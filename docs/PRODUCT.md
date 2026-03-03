@@ -32,6 +32,18 @@
 2. Multi-section form with progress bar
 3. Save Draft or Submit
 
+### Admin: Browse Surrogate Profiles
+1. Sidebar → Surrogates → card grid with search + filters
+2. Filter by status (Active/Screening/Pending) or match stage
+3. Click card → full profile with Overview, Medical, Documents, Timeline, Notes tabs
+4. Cross-link to matched IP from detail hero
+
+### Admin: Browse Intended Parent Profiles
+1. Sidebar → Intended Parents → card grid with search + filters
+2. Filter by status or family type (Same-sex/Heterosexual/Single parent)
+3. Click card → full profile with Overview, Documents, Timeline, Notes tabs
+4. Cross-link to matched surrogate from detail hero
+
 ### Form Builder: Create Custom Form
 1. Forms → New Form
 2. Add sections, add fields (10 types)
@@ -52,8 +64,10 @@
 | Form Builder | /forms/builder | admin+ | Built |
 | Form Submission | /forms/:id/submit | all | Built |
 | Form Responses | /forms/:id/responses | admin+ | Built |
-| Surrogates | /surrogates | admin+ | Stub |
-| Intended Parents | /intended-parents | admin+ | Stub |
+| Surrogates List | /surrogates | admin+ | Built |
+| Surrogate Detail | /surrogates/:id | admin+ | Built |
+| Intended Parents List | /intended-parents | admin+ | Built |
+| IP Detail | /intended-parents/:id | admin+ | Built |
 | Matching | /matching | admin+ | Stub |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub |

@@ -5,11 +5,13 @@ import FormsListPage from './pages/forms/FormsListPage'
 import FormBuilderPage from './pages/forms/FormBuilderPage'
 import FormSubmissionPage from './pages/forms/FormSubmissionPage'
 import FormResponsesPage from './pages/forms/FormResponsesPage'
+import SurrogateListPage from './pages/surrogates/SurrogateListPage'
+import SurrogateDetailPage from './pages/surrogates/SurrogateDetailPage'
+import IPListPage from './pages/intended-parents/IPListPage'
+import IPDetailPage from './pages/intended-parents/IPDetailPage'
 import StubPage from './pages/stubs/StubPage'
 
 const stubs = [
-  { path: '/surrogates', title: 'Surrogates' },
-  { path: '/intended-parents', title: 'Intended Parents' },
   { path: '/matching', title: 'Matching' },
   { path: '/crm', title: 'CRM / Cases' },
   { path: '/documents', title: 'Documents' },
@@ -39,6 +41,10 @@ export default function App() {
         <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
         <Route path="/forms/:formId/submit" element={<FormSubmissionPage />} />
         <Route path="/forms/:formId/responses" element={<FormResponsesPage />} />
+        <Route path="/surrogates" element={<SurrogateListPage />} />
+        <Route path="/surrogates/:id" element={<SurrogateDetailPage />} />
+        <Route path="/intended-parents" element={<IPListPage />} />
+        <Route path="/intended-parents/:id" element={<IPDetailPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}
