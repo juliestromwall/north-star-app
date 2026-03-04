@@ -18,12 +18,6 @@ export default function Sidebar() {
       <div className="flex items-center justify-center px-4 py-4 bg-white rounded-b-lg">
         <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-18 w-auto" />
       </div>
-      {showBabiesBorn && (
-        <div className="flex items-center justify-center gap-2 py-3 text-abc-coral">
-          <Baby className="size-4" />
-          <span className="text-sm font-semibold">{BABIES_BORN}</span>
-        </div>
-      )}
       <ScrollArea className="flex-1">
         <nav className="p-4 space-y-6">
           {sections.map(section => (
@@ -55,6 +49,12 @@ export default function Sidebar() {
           ))}
         </nav>
       </ScrollArea>
+      {showBabiesBorn && (
+        <div className="flex items-center justify-center gap-2 py-4 border-t border-sidebar-foreground/10 text-abc-coral">
+          <Baby className="size-4" />
+          <span className="text-sm font-semibold">{BABIES_BORN}</span>
+        </div>
+      )}
     </aside>
   )
 }
