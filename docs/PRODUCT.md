@@ -35,14 +35,24 @@
 ### Admin: Browse Surrogate Profiles
 1. Sidebar → Surrogates → card grid with search + filters
 2. Filter by status (Active/Screening/Pending) or match stage
-3. Click card → full profile with Overview, Medical, Documents, Timeline, Notes tabs
-4. Cross-link to matched IP from detail hero
+3. Click card → full profile with Dashboard, Overview, Medical, Documents, Timeline, Notes tabs
+4. Dashboard tab (default) shows stat cards, tasks, recent notes, journey progress
+5. Cross-link to matched IP from detail hero
 
 ### Admin: Browse Intended Parent Profiles
 1. Sidebar → Intended Parents → card grid with search + filters
 2. Filter by status or family type (Same-sex/Heterosexual/Single parent)
-3. Click card → full profile with Overview, Documents, Timeline, Notes tabs
-4. Cross-link to matched surrogate from detail hero
+3. Click card → full profile with Dashboard, Overview, Documents, Timeline, Notes tabs
+4. Dashboard tab (default) shows stat cards, tasks, recent notes, journey progress
+5. Cross-link to matched surrogate from detail hero
+
+### Admin: Manage Profile Tasks
+1. Surrogate or IP detail page → Dashboard tab
+2. View open/completed task counts and current match stage
+3. Check/uncheck tasks — stats update, completed tasks move to bottom with strikethrough
+4. Click "+ Add Task" → fill title, category, source (staff/self), optional due date → submit
+5. Tasks show category badge, source icon (workflow/staff/self), and due date
+6. Unmatched profiles show "Not yet matched" empty state for journey progress
 
 ### Admin: Share Matching Profile
 1. Surrogate or IP detail page → click "Share Profile" button
@@ -115,3 +125,6 @@
 | Transfer | Embryo transfer procedure |
 | Clearance | Medical or psychological clearance to proceed |
 | Escrow | Trust account holding funds for surrogate compensation |
+| Task | Action item on a profile — can be workflow-generated (from match stages), staff-assigned, or self-created |
+| Task Category | Classification of a task: Medical, Legal, Admin, Financial, or Personal |
+| Task Source | Origin of a task: workflow (auto-generated per match stage), staff (assigned by agency staff), self (created by user) |

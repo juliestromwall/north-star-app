@@ -21,6 +21,7 @@ import TimelineItem from '@/components/shared/TimelineItem'
 import EmptyState from '@/components/shared/EmptyState'
 import PhotoGallery from '@/components/shared/PhotoGallery'
 import AddPhotosDialog from '@/components/shared/AddPhotosDialog'
+import ProfileDashboardTab from '@/components/shared/ProfileDashboardTab'
 import { mockSurrogates } from '@/data/mock/surrogates'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
 
@@ -112,14 +113,25 @@ export default function SurrogateDetailPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="dashboard">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="medical">Medical</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
+
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard">
+          <ProfileDashboardTab
+            profileId={surrogate.id}
+            profileType="surrogate"
+            notes={surrogate.notes}
+            matchStage={surrogate.matchStage}
+          />
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">

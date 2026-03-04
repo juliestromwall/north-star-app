@@ -20,6 +20,7 @@ import TimelineItem from '@/components/shared/TimelineItem'
 import EmptyState from '@/components/shared/EmptyState'
 import PhotoGallery from '@/components/shared/PhotoGallery'
 import AddPhotosDialog from '@/components/shared/AddPhotosDialog'
+import ProfileDashboardTab from '@/components/shared/ProfileDashboardTab'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
 import { mockSurrogates } from '@/data/mock/surrogates'
 
@@ -118,13 +119,24 @@ export default function IPDetailPage() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="dashboard">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
+
+        {/* Dashboard Tab */}
+        <TabsContent value="dashboard">
+          <ProfileDashboardTab
+            profileId={ip.id}
+            profileType="ip"
+            notes={ip.notes}
+            matchStage={ip.matchStage}
+          />
+        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">

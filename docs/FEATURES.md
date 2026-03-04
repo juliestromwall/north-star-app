@@ -29,9 +29,9 @@
 | ScreeningStatusItem | src/components/shared/ScreeningStatusItem.jsx | Screening step with color-coded status icon and label |
 | TimelineItem | src/components/shared/TimelineItem.jsx | Timeline entry with dot connector, date, event, and type badge |
 | SurrogateListPage | src/pages/surrogates/SurrogateListPage.jsx | Filterable card grid of surrogates with search, status, and match stage filters |
-| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Full surrogate profile with hero section and 5 tabs (Overview, Medical, Documents, Timeline, Notes) |
+| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Full surrogate profile with hero section and 6 tabs (Dashboard, Overview, Medical, Documents, Timeline, Notes) |
 | IPListPage | src/pages/intended-parents/IPListPage.jsx | Filterable card grid of intended parents with search, status, and type filters |
-| IPDetailPage | src/pages/intended-parents/IPDetailPage.jsx | Full IP profile with hero section and 4 tabs (Overview, Documents, Timeline, Notes) |
+| IPDetailPage | src/pages/intended-parents/IPDetailPage.jsx | Full IP profile with hero section and 5 tabs (Dashboard, Overview, Documents, Timeline, Notes) |
 | PhotoGallery | src/components/shared/PhotoGallery.jsx | Photo display with hero mode (large + thumbnails) for share pages and grid mode for admin pages |
 | AddPhotosDialog | src/components/shared/AddPhotosDialog.jsx | Mock photo upload dialog with drop zone UI |
 | SurrogateSharePage | src/pages/surrogates/SurrogateSharePage.jsx | Standalone branded matching profile for surrogates — privacy names, curated sections, print-friendly |
@@ -42,11 +42,15 @@
 | KanbanColumn | src/pages/matching/KanbanColumn.jsx | Single stage column with header badge and match card list |
 | MatchDetailDialog | src/pages/matching/MatchDetailDialog.jsx | Match detail with stage progress bar, side-by-side profiles, advance/back controls |
 | NewMatchDialog | src/pages/matching/NewMatchDialog.jsx | Two-panel dialog to select unmatched surrogate + IP and create a match |
+| ProfileDashboardTab | src/components/shared/ProfileDashboardTab.jsx | Shared dashboard tab for surrogate/IP detail pages — stat cards, task list, recent notes, journey stepper |
+| AddTaskDialog | src/components/shared/AddTaskDialog.jsx | Dialog to create a new task with title, category, source, and optional due date |
+| mockTasks | src/data/mock/tasks.js | Mock task data with workflow templates per match stage, task categories, and ~23 tasks across profiles |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-03 | Phase 5: Profile Dashboard tab + task system — Dashboard as default tab on detail pages, stat cards, checkable tasks (workflow/staff/self sources), add task dialog, recent notes, journey progress stepper |
 | 2026-03-03 | Phase 4: Matching module — Kanban pipeline board with 10 stage columns, match cards, detail dialog with advance/back, new match creation from unmatched candidates |
 | 2026-03-03 | Phase 3: Matching profiles + photo gallery — share pages for surrogates & IPs, photo gallery component, stock photos, print CSS |
 | 2026-03-03 | Phase 2: Surrogate & IP profile pages — enriched mock data (10 surrogates, 8 IPs), 4 shared components, list + detail views with search/filters/tabs |
