@@ -13,6 +13,9 @@ import SurrogateSharePage from './pages/surrogates/SurrogateSharePage'
 import IPSharePage from './pages/intended-parents/IPSharePage'
 import MatchingPage from './pages/matching/MatchingPage'
 import StubPage from './pages/stubs/StubPage'
+import SettingsPage from './pages/SettingsPage'
+import CalendarPage from './pages/calendar/CalendarPage'
+import TimeClockPage from './pages/time-clock/TimeClockPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -20,13 +23,10 @@ const stubs = [
   { path: '/e-signature', title: 'E-Signature' },
   { path: '/messages', title: 'Messages' },
   { path: '/email', title: 'Email' },
-  { path: '/calendar', title: 'Calendar' },
   { path: '/hr', title: 'HR Management' },
-  { path: '/time-clock', title: 'Time Clock' },
   { path: '/payroll', title: 'Payroll' },
   { path: '/financials', title: 'Financials' },
   { path: '/reports', title: 'Reports' },
-  { path: '/settings', title: 'Settings' },
   { path: '/system', title: 'System' },
   { path: '/my-profile', title: 'My Profile' },
   { path: '/my-match', title: 'My Match' },
@@ -52,6 +52,9 @@ export default function App() {
         <Route path="/intended-parents" element={<IPListPage />} />
         <Route path="/intended-parents/:id" element={<IPDetailPage />} />
         <Route path="/matching" element={<MatchingPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/time-clock" element={<TimeClockPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}

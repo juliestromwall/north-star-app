@@ -1,5 +1,27 @@
 # Session Log
 
+## 2026-03-03 (Evening)
+
+**Worked on:** Time Clock page — admin clock in/out with pay periods
+
+**Changes made:**
+- Created `src/data/mock/timeClockData.js` — staff list (from mockUsers), 4 bi-weekly pay periods (Jan 19 – Mar 15, 2026), ~25 time entries, helper functions (getCurrentPayPeriod, calculateHours, formatTime12h)
+- Created `src/pages/time-clock/TimeClockPage.jsx` — full time clock page with clock in/out, live HH:MM:SS timer with pulsing green indicator, pay period summary card (total hours, days worked, avg daily), time entries table with prev/next period navigation, status badges (pending/approved/edited), edit entry dialog with time inputs and live hours preview, master_admin/super_admin staff selector dropdown
+- Updated `src/App.jsx` — removed `/time-clock` from stubs array, added real route with TimeClockPage import
+- Updated `docs/FEATURES.md` — added TimeClockPage and timeClockData entries + changelog
+
+**Next steps:**
+- Build remaining stub modules (Documents, Messages, HR Management, etc.)
+- Connect time clock to backend when Supabase is configured
+- Add timesheet approval workflow (admin approves pending entries)
+- Add pay period report export
+
+**Open questions:**
+- Should time clock support break tracking (lunch breaks, etc.)?
+- Should there be overtime calculation rules?
+
+---
+
 ## 2026-03-03
 
 **Worked on:** Phase 3 — Matching profiles and photo gallery feature

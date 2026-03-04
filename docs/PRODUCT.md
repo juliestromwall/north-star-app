@@ -102,13 +102,13 @@
 | E-Signature | /e-signature | admin+ | Stub |
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Stub |
-| Calendar | /calendar | admin+ | Stub |
+| Calendar | /calendar | admin+ | Built |
 | HR Management | /hr | master_admin+ | Stub |
-| Time Clock | /time-clock | admin+ | Stub |
+| Time Clock | /time-clock | admin+ | Built |
 | Payroll | /payroll | master_admin+ | Stub |
 | Financials | /financials | master_admin+ | Stub |
 | Reports | /reports | master_admin+ | Stub |
-| Settings | /settings | master_admin+ | Stub |
+| Settings | /settings | master_admin+ | Built |
 | System | /system | super_admin | Stub |
 | My Profile | /my-profile | surrogate, ip | Stub |
 | My Match | /my-match | surrogate, partner, ip | Stub |
@@ -128,3 +128,4 @@
 | Task | Action item on a profile — can be workflow-generated (from match stages), staff-assigned, or self-created |
 | Task Category | Classification of a task: Medical, Legal, Admin, Financial, or Personal |
 | Task Source | Origin of a task: workflow (auto-generated per match stage), staff (assigned by agency staff), self (created by user) |
+| Admin Note | An announcement published by master_admin targeting all admins or specific admin users. Displayed as alert banners on the Dashboard. Dismissals persist in Supabase. Can be toggled active/inactive or deleted from Settings. |
