@@ -32,10 +32,15 @@
 | SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Full surrogate profile with hero section and 5 tabs (Overview, Medical, Documents, Timeline, Notes) |
 | IPListPage | src/pages/intended-parents/IPListPage.jsx | Filterable card grid of intended parents with search, status, and type filters |
 | IPDetailPage | src/pages/intended-parents/IPDetailPage.jsx | Full IP profile with hero section and 4 tabs (Overview, Documents, Timeline, Notes) |
+| PhotoGallery | src/components/shared/PhotoGallery.jsx | Photo display with hero mode (large + thumbnails) for share pages and grid mode for admin pages |
+| AddPhotosDialog | src/components/shared/AddPhotosDialog.jsx | Mock photo upload dialog with drop zone UI |
+| SurrogateSharePage | src/pages/surrogates/SurrogateSharePage.jsx | Standalone branded matching profile for surrogates — privacy names, curated sections, print-friendly |
+| IPSharePage | src/pages/intended-parents/IPSharePage.jsx | Standalone branded matching profile for IPs — privacy names, preferences narrative, print-friendly |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-03 | Phase 3: Matching profiles + photo gallery — share pages for surrogates & IPs, photo gallery component, stock photos, print CSS |
 | 2026-03-03 | Phase 2: Surrogate & IP profile pages — enriched mock data (10 surrogates, 8 IPs), 4 shared components, list + detail views with search/filters/tabs |
 | 2026-03-02 | Initial prototype: project scaffold, brand theme, 6-role app shell, 4 dashboards, full forms module, 19 stubbed modules |

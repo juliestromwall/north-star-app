@@ -10,10 +10,8 @@ export default function Sidebar() {
 
   return (
     <aside className="w-60 bg-sidebar text-sidebar-foreground flex flex-col shrink-0">
-      <div className="h-14 flex items-center px-6 border-b border-sidebar-border">
-        <span className="font-heading font-bold text-lg text-white tracking-tight">
-          ABC Surrogacy
-        </span>
+      <div className="flex items-center justify-center px-4 py-4 bg-white rounded-b-lg">
+        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-18 w-auto" />
       </div>
       <ScrollArea className="flex-1">
         <nav className="p-4 space-y-6">

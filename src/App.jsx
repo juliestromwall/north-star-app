@@ -9,6 +9,8 @@ import SurrogateListPage from './pages/surrogates/SurrogateListPage'
 import SurrogateDetailPage from './pages/surrogates/SurrogateDetailPage'
 import IPListPage from './pages/intended-parents/IPListPage'
 import IPDetailPage from './pages/intended-parents/IPDetailPage'
+import SurrogateSharePage from './pages/surrogates/SurrogateSharePage'
+import IPSharePage from './pages/intended-parents/IPSharePage'
 import StubPage from './pages/stubs/StubPage'
 
 const stubs = [
@@ -34,6 +36,10 @@ const stubs = [
 export default function App() {
   return (
     <Routes>
+      {/* Standalone share pages — no AppLayout */}
+      <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
+      <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
+
       <Route element={<AppLayout />}>
         <Route index element={<DashboardRouter />} />
         <Route path="/forms" element={<FormsListPage />} />

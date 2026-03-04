@@ -44,6 +44,13 @@
 3. Click card → full profile with Overview, Documents, Timeline, Notes tabs
 4. Cross-link to matched surrogate from detail hero
 
+### Admin: Share Matching Profile
+1. Surrogate or IP detail page → click "Share Profile" button
+2. Opens standalone branded page in new tab (no admin chrome)
+3. Privacy-safe: first name + last initial only, no contact info
+4. Copy Link button copies URL to clipboard
+5. Download PDF triggers browser print dialog
+
 ### Form Builder: Create Custom Form
 1. Forms → New Form
 2. Add sections, add fields (10 types)
@@ -68,6 +75,8 @@
 | Surrogate Detail | /surrogates/:id | admin+ | Built |
 | Intended Parents List | /intended-parents | admin+ | Built |
 | IP Detail | /intended-parents/:id | admin+ | Built |
+| Surrogate Share | /surrogates/:id/share | public (link) | Built |
+| IP Share | /intended-parents/:id/share | public (link) | Built |
 | Matching | /matching | admin+ | Stub |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub |

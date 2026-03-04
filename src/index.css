@@ -102,3 +102,20 @@
         font-family: var(--font-heading);
     }
 }
+
+/* Print styles for share pages */
+@media print {
+    .print\:hidden {
+        display: none !important;
+    }
+    body {
+        background: white !important;
+    }
+    img {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+    .rounded-xl {
+        page-break-inside: avoid;
+    }
+}

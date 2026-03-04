@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, GraduationCap, Briefcase, Heart, Users, Church,
   Globe, Shield, Baby, Ruler, Weight, Droplets, Activity, MessageSquare,
-  Pencil, FileText, CheckCircle2, Clock, AlertCircle, User
+  Pencil, FileText, CheckCircle2, Clock, AlertCircle, User, ExternalLink
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -19,6 +19,8 @@ import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import TimelineItem from '@/components/shared/TimelineItem'
 import EmptyState from '@/components/shared/EmptyState'
+import PhotoGallery from '@/components/shared/PhotoGallery'
+import AddPhotosDialog from '@/components/shared/AddPhotosDialog'
 import { mockSurrogates } from '@/data/mock/surrogates'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
 
@@ -79,6 +81,14 @@ export default function SurrogateDetailPage() {
               <Button variant="outline" size="sm" className="gap-1.5" disabled>
                 <Pencil className="size-3.5" /> Edit Profile
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => window.open(`/surrogates/${surrogate.id}/share`, '_blank')}
+              >
+                <ExternalLink className="size-3.5" /> Share Profile
+              </Button>
             </div>
           </div>
 
@@ -113,6 +123,16 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Photos</CardTitle>
+              <AddPhotosDialog />
+            </CardHeader>
+            <CardContent>
+              <PhotoGallery photos={surrogate.photos} mode="grid" />
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>

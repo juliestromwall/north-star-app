@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Video, Briefcase, Globe, Church, Users,
-  DollarSign, MessageSquare, Pencil, FileText, Baby, Target, MapPin
+  DollarSign, MessageSquare, Pencil, FileText, Baby, Target, MapPin, ExternalLink
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -18,6 +18,8 @@ import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import TimelineItem from '@/components/shared/TimelineItem'
 import EmptyState from '@/components/shared/EmptyState'
+import PhotoGallery from '@/components/shared/PhotoGallery'
+import AddPhotosDialog from '@/components/shared/AddPhotosDialog'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
 import { mockSurrogates } from '@/data/mock/surrogates'
 
@@ -87,6 +89,14 @@ export default function IPDetailPage() {
               <Button variant="outline" size="sm" className="gap-1.5" disabled>
                 <Pencil className="size-3.5" /> Edit Profile
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => window.open(`/intended-parents/${ip.id}/share`, '_blank')}
+              >
+                <ExternalLink className="size-3.5" /> Share Profile
+              </Button>
             </div>
           </div>
 
@@ -118,6 +128,16 @@ export default function IPDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Photos</CardTitle>
+              <AddPhotosDialog />
+            </CardHeader>
+            <CardContent>
+              <PhotoGallery photos={ip.photos} mode="grid" />
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
