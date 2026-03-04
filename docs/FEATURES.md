@@ -37,10 +37,17 @@
 | SurrogateSharePage | src/pages/surrogates/SurrogateSharePage.jsx | Standalone branded matching profile for surrogates — privacy names, curated sections, print-friendly |
 | IPSharePage | src/pages/intended-parents/IPSharePage.jsx | Standalone branded matching profile for IPs — privacy names, preferences narrative, print-friendly |
 
+| MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board with 10 stage columns, stats row, match management |
+| MatchCard | src/pages/matching/MatchCard.jsx | Match card showing surrogate + heart + IP with date info |
+| KanbanColumn | src/pages/matching/KanbanColumn.jsx | Single stage column with header badge and match card list |
+| MatchDetailDialog | src/pages/matching/MatchDetailDialog.jsx | Match detail with stage progress bar, side-by-side profiles, advance/back controls |
+| NewMatchDialog | src/pages/matching/NewMatchDialog.jsx | Two-panel dialog to select unmatched surrogate + IP and create a match |
+
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-03 | Phase 4: Matching module — Kanban pipeline board with 10 stage columns, match cards, detail dialog with advance/back, new match creation from unmatched candidates |
 | 2026-03-03 | Phase 3: Matching profiles + photo gallery — share pages for surrogates & IPs, photo gallery component, stock photos, print CSS |
 | 2026-03-03 | Phase 2: Surrogate & IP profile pages — enriched mock data (10 surrogates, 8 IPs), 4 shared components, list + detail views with search/filters/tabs |
 | 2026-03-02 | Initial prototype: project scaffold, brand theme, 6-role app shell, 4 dashboards, full forms module, 19 stubbed modules |

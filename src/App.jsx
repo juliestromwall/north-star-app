@@ -11,10 +11,10 @@ import IPListPage from './pages/intended-parents/IPListPage'
 import IPDetailPage from './pages/intended-parents/IPDetailPage'
 import SurrogateSharePage from './pages/surrogates/SurrogateSharePage'
 import IPSharePage from './pages/intended-parents/IPSharePage'
+import MatchingPage from './pages/matching/MatchingPage'
 import StubPage from './pages/stubs/StubPage'
 
 const stubs = [
-  { path: '/matching', title: 'Matching' },
   { path: '/crm', title: 'CRM / Cases' },
   { path: '/documents', title: 'Documents' },
   { path: '/e-signature', title: 'E-Signature' },
@@ -51,6 +51,7 @@ export default function App() {
         <Route path="/surrogates/:id" element={<SurrogateDetailPage />} />
         <Route path="/intended-parents" element={<IPListPage />} />
         <Route path="/intended-parents/:id" element={<IPDetailPage />} />
+        <Route path="/matching" element={<MatchingPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}

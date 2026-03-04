@@ -51,6 +51,15 @@
 4. Copy Link button copies URL to clipboard
 5. Download PDF triggers browser print dialog
 
+### Admin: Manage Match Pipeline
+1. Sidebar → Matching → Kanban board with 10 stage columns
+2. View stats: total matches, unmatched surrogates, unmatched IPs
+3. Click match card → detail dialog with stage progress bar
+4. Side-by-side surrogate + IP profiles with "View Full Profile" links
+5. Advance Stage / Move Back buttons to move match through pipeline
+6. Click "+ New Match" → select unmatched surrogate + IP → Create Match
+7. New match appears in Profile Review column, stats update
+
 ### Form Builder: Create Custom Form
 1. Forms → New Form
 2. Add sections, add fields (10 types)
@@ -77,7 +86,7 @@
 | IP Detail | /intended-parents/:id | admin+ | Built |
 | Surrogate Share | /surrogates/:id/share | public (link) | Built |
 | IP Share | /intended-parents/:id/share | public (link) | Built |
-| Matching | /matching | admin+ | Stub |
+| Matching | /matching | admin+ | Built |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub |
 | E-Signature | /e-signature | admin+ | Stub |
