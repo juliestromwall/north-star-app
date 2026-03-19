@@ -39,7 +39,8 @@ export default function IntakeConfirmationPage() {
     )
   }
 
-  const { qualified, type, name } = state
+  const { qualified, type, name, answers } = state
+  const editPath = type === 'gc' ? '/apply/surrogate' : '/apply/ip'
   const steps = type === 'gc' ? QUALIFIED_GC_STEPS : QUALIFIED_IP_STEPS
   const typeLabel = type === 'gc' ? 'Surrogate' : 'Intended Parent'
 
@@ -81,10 +82,15 @@ export default function IntakeConfirmationPage() {
             </p>
           </div>
 
-          <Button variant="outline" onClick={() => navigate('/apply')} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Return to Application Home
-          </Button>
+          <div className="flex flex-col gap-3 items-center">
+            <Button variant="outline" onClick={() => navigate(editPath, { state: { prefill: answers } })} className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Edit my answers
+            </Button>
+            <button onClick={() => navigate('/apply')} className="text-xs text-stone-400 underline underline-offset-2">
+              Return to Application Home
+            </button>
+          </div>
         </div>
 
         <footer className="py-6 text-center text-xs text-stone-400">
@@ -192,6 +198,13 @@ export default function IntakeConfirmationPage() {
             </div>
           )}
         </div>
+
+        <button
+          onClick={() => navigate(editPath, { state: { prefill: answers } })}
+          className="text-sm text-stone-400 underline underline-offset-2 mb-6 hover:text-stone-600 transition-colors"
+        >
+          ← Edit my answers
+        </button>
 
         <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
           <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>

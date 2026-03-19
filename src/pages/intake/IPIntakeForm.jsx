@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -30,6 +30,8 @@ const FAMILY_TYPES = [
 
 export default function IPIntakeForm() {
   const navigate   = useNavigate()
+  const { state: navState } = useLocation()
+  const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     familyType: '',
@@ -38,6 +40,7 @@ export default function IPIntakeForm() {
     ip2FirstName: '', ip2LastName: '', ip2Dob: '', ip2Email: '', ip2Phone: '',
     hasRE: null, hasFrozenEmbryos: null, usingEggDonor: null, usingSpermDonor: null,
     wantsConsultation: null, hearAboutUs: '', agreeToConsultation: false,
+    ...prefill,
   })
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
@@ -56,7 +59,7 @@ export default function IPIntakeForm() {
     const dqReasons = getIPDisqualifications(form)
     const tracking  = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
     navigate('/apply/confirmation', {
-      state: { qualified: dqReasons.length === 0, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking },
+      state: { qualified: dqReasons.length === 0, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
     })
   }
 

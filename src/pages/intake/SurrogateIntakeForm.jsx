@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -48,6 +48,8 @@ function calculateBMI(ft, inches, lbs) {
 
 export default function SurrogateIntakeForm() {
   const navigate = useNavigate()
+  const { state: navState } = useLocation()
+  const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', email: '', phone: '', state: '',
@@ -55,6 +57,7 @@ export default function SurrogateIntakeForm() {
     heightFt: '', heightIn: '', weightLbs: '',
     healthyPregnancy: null,
     hearAboutUs: '', agreeBackgroundCheck: false,
+    ...prefill,
   })
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
@@ -78,6 +81,7 @@ export default function SurrogateIntakeForm() {
         qualified: dqReasons.length === 0,
         dqReasons, type: 'gc',
         name: form.firstName, email: form.email, tracking,
+        answers: form,
       },
     })
   }
