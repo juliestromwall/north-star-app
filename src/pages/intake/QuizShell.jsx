@@ -161,7 +161,7 @@ export function QuizShell({
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>
-        <img src="/abc-logo.png" alt="Abundant Beginnings" className="h-9 w-auto" />
+        <img src="/abc-logo.png" alt="Abundant Beginnings" className="h-12 w-auto" />
         <div className="w-9" aria-hidden />
       </header>
 
