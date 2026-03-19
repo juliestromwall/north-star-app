@@ -123,6 +123,24 @@ export default function MarketingDashboard() {
   const bySource = Object.values(sourceMap).sort((a, b) => b.count - a.count)
   const maxSourceCount = bySource.length > 0 ? bySource[0].count : 1
 
+  // By campaign
+  const campaignMap = {}
+  filtered.forEach(s => {
+    const campaign = s.tracking.utm_campaign || '(no campaign)'
+    const src = s.tracking.resolvedSource || 'direct'
+    const content = s.tracking.utm_content || null
+    const key = `${src}::${campaign}`
+    if (!campaignMap[key]) campaignMap[key] = { source: src, campaign, contents: {}, count: 0, qualifiedCount: 0 }
+    campaignMap[key].count++
+    if (['qualified', 'approved'].includes(s.status)) campaignMap[key].qualifiedCount++
+    if (content) {
+      if (!campaignMap[key].contents[content]) campaignMap[key].contents[content] = { count: 0, qualifiedCount: 0 }
+      campaignMap[key].contents[content].count++
+      if (['qualified', 'approved'].includes(s.status)) campaignMap[key].contents[content].qualifiedCount++
+    }
+  })
+  const byCampaign = Object.values(campaignMap).sort((a, b) => b.count - a.count)
+
   // DQ reason breakdown
   const dqMap = {}
   filtered.forEach(s => {
@@ -283,6 +301,65 @@ export default function MarketingDashboard() {
         </Card>
       )}
 
+      {/* Campaign & Ad Performance */}
+      {byCampaign.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Campaign & Ad Performance</CardTitle>
+            <CardDescription>Submissions by campaign and ad creative</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stone-100">
+                  <th className="text-left py-3 px-6 font-medium text-stone-400">Source</th>
+                  <th className="text-left py-3 px-4 font-medium text-stone-400">Campaign</th>
+                  <th className="text-left py-3 px-4 font-medium text-stone-400">Ad / Content</th>
+                  <th className="text-right py-3 px-4 font-medium text-stone-400">Submissions</th>
+                  <th className="text-right py-3 px-6 font-medium text-stone-400">Qualified</th>
+                </tr>
+              </thead>
+              <tbody>
+                {byCampaign.map(c => {
+                  const contents = Object.entries(c.contents)
+                  const srcColor = SOURCE_COLORS[c.source] || '#9CA3AF'
+                  return (
+                    <tr key={`${c.source}::${c.campaign}`} className="border-b border-stone-50 last:border-0 align-top">
+                      <td className="py-3 px-6">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: srcColor }} />
+                          <span className="font-medium text-stone-700">{getSourceLabel(c.source)}</span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-stone-600">{c.campaign}</td>
+                      <td className="py-3 px-4">
+                        {contents.length > 0 ? (
+                          <div className="space-y-1">
+                            {contents.map(([name, data]) => (
+                              <div key={name} className="flex items-center justify-between gap-3">
+                                <span className="text-stone-500 truncate max-w-48">{name}</span>
+                                <span className="text-xs text-stone-400 shrink-0">{data.count} / {data.qualifiedCount}q</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-stone-300 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold text-stone-800">{c.count}</td>
+                      <td className="py-3 px-6 text-right">
+                        <span className="text-emerald-600 font-semibold">{c.qualifiedCount}</span>
+                        <span className="text-stone-400 text-xs ml-1">({c.count > 0 ? Math.round((c.qualifiedCount / c.count) * 100) : 0}%)</span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Recent submissions (privacy-safe) */}
       <Card>
         <CardHeader>
@@ -297,6 +374,7 @@ export default function MarketingDashboard() {
                 <th className="text-left py-3 px-4 font-medium text-stone-400">Type</th>
                 <th className="text-left py-3 px-4 font-medium text-stone-400">Date</th>
                 <th className="text-left py-3 px-4 font-medium text-stone-400">Source</th>
+                <th className="text-left py-3 px-4 font-medium text-stone-400">Campaign / Ad</th>
                 <th className="text-left py-3 px-4 font-medium text-stone-400">Status</th>
               </tr>
             </thead>
@@ -315,6 +393,18 @@ export default function MarketingDashboard() {
                   </td>
                   <td className="py-3 px-4 text-stone-400">{formatDate(sub.submittedAt)}</td>
                   <td className="py-3 px-4 text-stone-600">{getSourceLabel(sub.tracking.resolvedSource)}</td>
+                  <td className="py-3 px-4">
+                    {sub.tracking.utm_campaign ? (
+                      <div>
+                        <span className="text-stone-600 text-xs">{sub.tracking.utm_campaign}</span>
+                        {sub.tracking.utm_content && (
+                          <p className="text-stone-400 text-xs truncate max-w-36">{sub.tracking.utm_content}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-stone-300 text-xs">—</span>
+                    )}
+                  </td>
                   <td className="py-3 px-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                       sub.status === 'qualified' || sub.status === 'approved'
