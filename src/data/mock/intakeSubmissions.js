@@ -977,18 +977,19 @@ export const DQ_REASON_LABELS = {
 // Helper: resolve disqualifications for a GC form submission
 export function getGCDisqualifications(answers) {
   const reasons = []
+  // Age from DOB
   const age = answers.dob
     ? Math.floor((new Date() - new Date(answers.dob)) / (365.25 * 24 * 60 * 60 * 1000))
     : null
   if (age !== null && (age < 21 || age > 40)) reasons.push('age_out_of_range')
-  if (answers.bmi < 19 || answers.bmi > 33) reasons.push('bmi_out_of_range')
-  if (answers.tobaccoUse) reasons.push('tobacco_use')
-  if (answers.drugUse) reasons.push('drug_use')
-  if (answers.seriousMedicalCondition) reasons.push('serious_medical_condition')
-  if (answers.currentlyPregnant) reasons.push('currently_pregnant')
-  if (answers.biologicalChildren === 0) reasons.push('no_biological_children')
-  if (answers.cSections > 3) reasons.push('excess_c_sections')
-  if (answers.govtAssistance) reasons.push('govt_assistance')
+  // Age range quick-check (if DOB not set or as a secondary signal)
+  if (answers.ageRange === 'under_21' || answers.ageRange === 'over_40') {
+    if (!reasons.includes('age_out_of_range')) reasons.push('age_out_of_range')
+  }
+  // BMI
+  if (answers.bmi != null && (answers.bmi < 19 || answers.bmi > 33)) reasons.push('bmi_out_of_range')
+  // Healthy pregnancy check (replaces biologicalChildren + cSections)
+  if (answers.healthyPregnancy === false) reasons.push('no_biological_children')
   return reasons
 }
 
