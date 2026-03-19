@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CheckCircle, Clock, Mail, Heart, ArrowLeft, ArrowRight, Eye, EyeOff, Lock, LogIn } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Heart, ArrowRight, Eye, EyeOff, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,7 +58,6 @@ export default function IntakeConfirmationPage() {
   }
 
   const { qualified, type, name, email, answers } = state
-  const editPath = type === 'gc' ? '/apply/surrogate' : '/apply/ip'
   const steps = type === 'gc' ? QUALIFIED_GC_STEPS : QUALIFIED_IP_STEPS
   const typeLabel = type === 'gc' ? 'Surrogate' : 'Intended Parent'
   const showConfetti = qualified && type === 'gc'
@@ -100,7 +99,7 @@ export default function IntakeConfirmationPage() {
           },
         })
         if (error) {
-          setSignupError(error.message)
+          setSignupError(error.message.includes('already') ? 'User already registered' : error.message)
           setSigningUp(false)
           return
         }
@@ -151,10 +150,6 @@ export default function IntakeConfirmationPage() {
           </div>
 
           <div className="flex flex-col gap-3 items-center">
-            <Button variant="outline" onClick={() => navigate(editPath, { state: { prefill: answers } })} className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Edit my answers
-            </Button>
             <button onClick={() => navigate('/surrogatequiz')} className="text-xs text-stone-400 underline underline-offset-2">
               Return to Application Home
             </button>
@@ -264,7 +259,12 @@ export default function IntakeConfirmationPage() {
                   )}
                 </div>
                 {signupError && (
-                  <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{signupError}</p>
+                  <div className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {signupError.includes('already registered') || signupError.includes('already been registered')
+                      ? <>It looks like you already have an account. <a href="/login" className="text-[#283693] underline font-medium">Log in here</a></>
+                      : signupError
+                    }
+                  </div>
                 )}
                 <Button
                   onClick={handleCreateAccount}
@@ -302,13 +302,6 @@ export default function IntakeConfirmationPage() {
             </div>
           ))}
         </div>
-
-        <button
-          onClick={() => navigate(editPath, { state: { prefill: answers } })}
-          className="text-sm text-stone-400 underline underline-offset-2 mb-6 hover:text-stone-600 transition-colors"
-        >
-          ← Edit my answers
-        </button>
 
         <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
           <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
-import { insertIntakeSubmission } from '@/lib/db'
+import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const IP_COLOR = '#464DA0'
@@ -84,6 +84,23 @@ export default function IPIntakeForm() {
   const step4Valid = form.hasRE !== null && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
   const step5Valid = form.wantsConsultation !== null && form.hearAboutUs && form.agreeToConsultation
   const stepValid  = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
+  const [emailError, setEmailError] = useState(null)
+  const [checking, setChecking] = useState(false)
+
+  async function handleStep1Next() {
+    setChecking(true)
+    setEmailError(null)
+    try {
+      const exists = await checkEmailExists(form.email)
+      if (exists) {
+        setEmailError('This email has already been used to apply. Please log in to your existing account instead.')
+        setChecking(false)
+        return
+      }
+    } catch {}
+    setChecking(false)
+    setStep(2)
+  }
 
   async function handleSubmit() {
     const dqReasons = getIPDisqualifications(form)
@@ -136,10 +153,10 @@ export default function IPIntakeForm() {
   const MILESTONES = [null, null, null, 'Halfway there!', 'Almost done!', 'Last step!']
   const shell = (s) => ({
     step: s, totalSteps: 5, accentColor: IP_COLOR, accentFg: IP_FG,
-    milestone: MILESTONES[s], nextDisabled: !stepValid[s],
+    milestone: MILESTONES[s], nextDisabled: !stepValid[s] || (s === 1 && checking),
     onBack: s === 1 ? () => navigate('/intendedparentapply') : () => setStep(s - 1),
-    onNext: s === 5 ? handleSubmit : () => setStep(s + 1),
-    nextLabel: s === 5 ? 'Get my next steps' : 'Continue',
+    onNext: s === 5 ? handleSubmit : s === 1 ? handleStep1Next : () => setStep(s + 1),
+    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'Get my next steps' : 'Continue',
   })
 
   // Step 1 — Primary applicant
@@ -172,6 +189,12 @@ export default function IPIntakeForm() {
         <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" />
         {form.email && !primaryEmailValid && (
           <p className="text-xs text-red-500">Enter a valid email address</p>
+        )}
+        {emailError && (
+          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">
+            {emailError}{' '}
+            <a href="/login" className="text-[#283693] underline font-medium">Log in here</a>
+          </div>
         )}
       </div>
       <div className="space-y-1.5">

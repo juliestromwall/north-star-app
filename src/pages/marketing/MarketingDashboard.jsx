@@ -601,6 +601,30 @@ export default function MarketingDashboard() {
                     </SelectContent>
                   </Select>
                 )}
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+                  const headers = ['Source', 'Campaign', 'Ad Content', 'Submissions', 'Qualified', 'Conv. Rate']
+                  const rows = filteredCampaigns.flatMap(c => {
+                    const contents = Object.entries(c.contents)
+                    if (contents.length === 0) {
+                      return [[getSourceLabel(c.source), c.campaign, '', c.count, c.qualifiedCount, c.count > 0 ? Math.round((c.qualifiedCount / c.count) * 100) + '%' : '0%']]
+                    }
+                    return contents.map(([name, data]) => [
+                      getSourceLabel(c.source), c.campaign, name, data.count, data.qualifiedCount,
+                      data.count > 0 ? Math.round((data.qualifiedCount / data.count) * 100) + '%' : '0%'
+                    ])
+                  })
+                  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+                  const blob = new Blob([csv], { type: 'text/csv' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `campaign-performance-${startDate}-to-${endDate}.csv`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}>
+                  <Download className="w-3.5 h-3.5" />
+                  Export
+                </Button>
                 {(campSourceFilter !== 'all' || campCampaignFilter !== 'all' || campContentFilter !== 'all') && (
                   <Button variant="ghost" size="sm" className="h-8 text-xs text-stone-400" onClick={() => { setCampSourceFilter('all'); setCampCampaignFilter('all'); setCampContentFilter('all') }}>
                     Clear
