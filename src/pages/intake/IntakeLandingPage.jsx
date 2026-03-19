@@ -110,7 +110,7 @@ export default function IntakeLandingPage() {
             See if surrogacy with Abundant Beginnings is the right fit for your family's journey — and get personalized next steps.
           </p>
           <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#464DA0' }}>
-            Take the quiz
+            Get started
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </div>
         </button>

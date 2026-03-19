@@ -17,15 +17,6 @@ const US_STATES = [
   'VA','WA','WV','WI','WY',
 ]
 
-const AGE_RANGE_OPTIONS = [
-  { value: 'under_21', label: 'Under 21' },
-  { value: '21_25',    label: '21 – 25' },
-  { value: '26_30',    label: '26 – 30' },
-  { value: '31_35',    label: '31 – 35' },
-  { value: '36_40',    label: '36 – 40' },
-  { value: 'over_40',  label: 'Over 40' },
-]
-
 const MARITAL_OPTIONS = [
   { value: 'Single',               label: 'Single'               },
   { value: 'Married',              label: 'Married'              },
@@ -53,7 +44,7 @@ export default function SurrogateIntakeForm() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', email: '', phone: '', state: '',
-    maritalStatus: '', ageRange: '', preferredContact: '',
+    maritalStatus: '', preferredContact: '',
     heightFt: '', heightIn: '', weightLbs: '',
     healthyPregnancy: null,
     hearAboutUs: '', agreeBackgroundCheck: false,
@@ -66,7 +57,7 @@ export default function SurrogateIntakeForm() {
   const bmiOk = bmi && bmiVal >= 19 && bmiVal <= 33
 
   const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state
-  const step2Valid = form.maritalStatus && form.ageRange && form.preferredContact
+  const step2Valid = form.maritalStatus && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
   const step4Valid = form.healthyPregnancy !== null
   const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck
@@ -141,14 +132,6 @@ export default function SurrogateIntakeForm() {
         {MARITAL_OPTIONS.map(opt => (
           <ChoiceCard key={opt.value} selected={form.maritalStatus === opt.value} onSelect={() => set('maritalStatus', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
         ))}
-      </div>
-      <div className="space-y-2">
-        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold block">My age is</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {AGE_RANGE_OPTIONS.map(opt => (
-            <ChoiceCard key={opt.value} selected={form.ageRange === opt.value} onSelect={() => set('ageRange', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
-          ))}
-        </div>
       </div>
       <div className="space-y-2">
         <p className="text-sm font-medium text-stone-800">Best way to reach you?</p>
