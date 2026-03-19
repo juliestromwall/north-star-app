@@ -221,6 +221,17 @@ const nav = [
 ]
 
 export function getNavForRole(role) {
+  // Marketing role only sees the Marketing section
+  if (role === ROLES.MARKETING) {
+    return nav
+      .filter(section => section.roles && section.roles.includes(ROLES.MARKETING))
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => item.roles.includes(ROLES.MARKETING)),
+      }))
+      .filter(section => section.items.length > 0)
+  }
+
   return nav
     .filter(section => {
       if (!section.roles) return true
