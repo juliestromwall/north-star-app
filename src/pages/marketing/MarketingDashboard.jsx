@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react'
-import { TrendingUp, Users, CheckCircle, XCircle, BarChart3, Heart, Download } from 'lucide-react'
+import { TrendingUp, Users, CheckCircle, XCircle, BarChart3, Heart, Download, Filter } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import PageHeader from '@/components/shared/PageHeader'
 import { mockIntakeSubmissions, DQ_REASON_LABELS, getSourceLabel } from '@/data/mock/intakeSubmissions'
 import { fetchIntakeSubmissions } from '@/lib/db'
@@ -140,6 +141,9 @@ export default function MarketingDashboard() {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [allSubmissions, setAllSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [campSourceFilter, setCampSourceFilter] = useState('all')
+  const [campCampaignFilter, setCampCampaignFilter] = useState('all')
+  const [campContentFilter, setCampContentFilter] = useState('all')
 
   useEffect(() => {
     fetchIntakeSubmissions()
@@ -204,6 +208,19 @@ export default function MarketingDashboard() {
     }
   })
   const byCampaign = Object.values(campaignMap).sort((a, b) => b.count - a.count)
+
+  // Unique values for campaign filters
+  const campSources = [...new Set(byCampaign.map(c => c.source))]
+  const campCampaigns = [...new Set(byCampaign.map(c => c.campaign))]
+  const campContents = [...new Set(byCampaign.flatMap(c => Object.keys(c.contents)))].filter(Boolean)
+
+  // Filtered campaigns
+  const filteredCampaigns = byCampaign.filter(c => {
+    if (campSourceFilter !== 'all' && c.source !== campSourceFilter) return false
+    if (campCampaignFilter !== 'all' && c.campaign !== campCampaignFilter) return false
+    if (campContentFilter !== 'all' && !c.contents[campContentFilter]) return false
+    return true
+  })
 
   // Volume over time
   const volumeData = useMemo(() => {
@@ -429,8 +446,42 @@ export default function MarketingDashboard() {
       {byCampaign.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Campaign & Ad Performance</CardTitle>
-            <CardDescription>Submissions, conversions, and per-ad performance</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Campaign & Ad Performance</CardTitle>
+                <CardDescription>Submissions, conversions, and per-ad performance</CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Select value={campSourceFilter} onValueChange={v => { setCampSourceFilter(v); setCampContentFilter('all') }}>
+                  <SelectTrigger className="h-8 text-xs w-32"><SelectValue placeholder="Source" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {campSources.map(s => <SelectItem key={s} value={s} className="text-xs">{getSourceLabel(s)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={campCampaignFilter} onValueChange={v => { setCampCampaignFilter(v); setCampContentFilter('all') }}>
+                  <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Campaign" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Campaigns</SelectItem>
+                    {campCampaigns.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {campContents.length > 0 && (
+                  <Select value={campContentFilter} onValueChange={setCampContentFilter}>
+                    <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="Ad Content" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Ads</SelectItem>
+                      {campContents.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+                {(campSourceFilter !== 'all' || campCampaignFilter !== 'all' || campContentFilter !== 'all') && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs text-stone-400" onClick={() => { setCampSourceFilter('all'); setCampCampaignFilter('all'); setCampContentFilter('all') }}>
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <table className="w-full text-sm">
@@ -445,7 +496,10 @@ export default function MarketingDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {byCampaign.map(c => {
+                {filteredCampaigns.length === 0 && (
+                  <tr><td colSpan={6} className="py-8 text-center text-stone-400 text-sm">No campaigns match your filters.</td></tr>
+                )}
+                {filteredCampaigns.map(c => {
                   const contents = Object.entries(c.contents)
                   const srcColor = SOURCE_COLORS[c.source] || '#9CA3AF'
                   const convRate = c.count > 0 ? Math.round((c.qualifiedCount / c.count) * 100) : 0

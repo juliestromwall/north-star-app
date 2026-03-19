@@ -23,7 +23,7 @@ export default function TopBar() {
   return (
     <header className="h-14 border-b bg-abc-cream flex items-center justify-between px-6">
       <RoleSwitcher />
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 ml-auto">
         <div className="text-right">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
           <p className="text-xs text-muted-foreground">{ROLE_LABELS[currentUser.role]}</p>
