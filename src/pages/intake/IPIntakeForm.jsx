@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
+import { insertIntakeSubmission } from '@/lib/db'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const IP_COLOR = '#464DA0'
@@ -78,11 +79,40 @@ export default function IPIntakeForm() {
   const step5Valid = form.wantsConsultation !== null && form.hearAboutUs && form.agreeToConsultation
   const stepValid  = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const dqReasons = getIPDisqualifications(form)
     const tracking  = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
+    const qualified = dqReasons.length === 0
+    try {
+      await insertIntakeSubmission({
+        intake_type: 'ip',
+        qualified,
+        dq_reasons: dqReasons,
+        applicant_name: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
+        applicant_email: form.email.trim(),
+        applicant_phone: form.phone.trim(),
+        country: form.country || null,
+        state_region: form.stateProv || null,
+        city: form.city || null,
+        zip_postal_code: form.zipCode || null,
+        answers: form,
+        tracking,
+        utm_source: tracking.utm_source || null,
+        utm_medium: tracking.utm_medium || null,
+        utm_campaign: tracking.utm_campaign || null,
+        utm_content: tracking.utm_content || null,
+        utm_term: tracking.utm_term || null,
+        fbclid: tracking.fbclid || null,
+        ttclid: tracking.ttclid || null,
+        resolved_source: tracking.resolvedSource || null,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      })
+    } catch {
+      // Keep applicant flow moving even if persistence fails
+    }
     navigate('/apply/confirmation', {
-      state: { qualified: dqReasons.length === 0, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
+      state: { qualified, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
     })
   }
 

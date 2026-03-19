@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGCDisqualifications } from '@/data/mock/intakeSubmissions'
+import { insertIntakeSubmission } from '@/lib/db'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const GC_COLOR = '#FFB3AB'
@@ -75,13 +76,42 @@ export default function SurrogateIntakeForm() {
   const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck
   const stepValid = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const answers = { ...form, bmi: parseFloat(bmi) }
     const dqReasons = getGCDisqualifications(answers)
     const tracking = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
+    const qualified = dqReasons.length === 0
+    try {
+      await insertIntakeSubmission({
+        intake_type: 'gc',
+        qualified,
+        dq_reasons: dqReasons,
+        applicant_name: `${form.firstName} ${form.lastName}`.trim(),
+        applicant_email: form.email.trim(),
+        applicant_phone: form.phone.trim(),
+        country: 'United States',
+        state_region: form.state || null,
+        city: null,
+        zip_postal_code: null,
+        answers,
+        tracking,
+        utm_source: tracking.utm_source || null,
+        utm_medium: tracking.utm_medium || null,
+        utm_campaign: tracking.utm_campaign || null,
+        utm_content: tracking.utm_content || null,
+        utm_term: tracking.utm_term || null,
+        fbclid: tracking.fbclid || null,
+        ttclid: tracking.ttclid || null,
+        resolved_source: tracking.resolvedSource || null,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      })
+    } catch {
+      // Keep applicant flow moving even if persistence fails
+    }
     navigate('/apply/confirmation', {
       state: {
-        qualified: dqReasons.length === 0,
+        qualified,
         dqReasons, type: 'gc',
         name: form.firstName, email: form.email, tracking,
         answers: form,

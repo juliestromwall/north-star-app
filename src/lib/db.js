@@ -67,3 +67,14 @@ export async function dismissAdminNote(noteId) {
   if (result.error) throw result.error
   return result.data
 }
+
+// ── Intake Submissions ───────────────────────────────────
+
+export async function insertIntakeSubmission(submission) {
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').insert(submission).select('id').single()
+  )
+  if (!result) return null
+  if (result.error) throw result.error
+  return result.data
+}

@@ -51,3 +51,47 @@ create policy "Master admins can view all dismissals"
   on admin_note_dismissals for select using (
     (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
   );
+
+-- ── Intake Submissions ───────────────────────────────────
+
+create table intake_submissions (
+  id bigint generated always as identity primary key,
+  intake_type text not null check (intake_type in ('gc', 'ip')),
+  qualified boolean not null,
+  dq_reasons text[] not null default '{}',
+  applicant_name text not null,
+  applicant_email text not null,
+  applicant_phone text not null,
+  country text,
+  state_region text,
+  city text,
+  zip_postal_code text,
+  answers jsonb not null,
+  tracking jsonb not null default '{}'::jsonb,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  utm_term text,
+  fbclid text,
+  ttclid text,
+  resolved_source text,
+  referrer text,
+  user_agent text,
+  submitted_at timestamptz not null default now()
+);
+
+create index intake_submissions_submitted_at_idx on intake_submissions (submitted_at desc);
+create index intake_submissions_type_idx on intake_submissions (intake_type);
+create index intake_submissions_resolved_source_idx on intake_submissions (resolved_source);
+create index intake_submissions_utm_source_idx on intake_submissions (utm_source);
+
+alter table intake_submissions enable row level security;
+
+create policy "Anyone can insert intake submissions"
+  on intake_submissions for insert with check (true);
+
+create policy "Master admins can view intake submissions"
+  on intake_submissions for select using (
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
+  );
