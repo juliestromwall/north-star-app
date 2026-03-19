@@ -22,6 +22,7 @@ import IPIntakeForm from './pages/intake/IPIntakeForm'
 import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
 import IntakeSubmissionsPage from './pages/intake/IntakeSubmissionsPage'
 import MarketingDashboard from './pages/marketing/MarketingDashboard'
+import LoginPage from './pages/auth/LoginPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -43,16 +44,16 @@ const stubs = [
 export default function App() {
   return (
     <Routes>
-      {/* Standalone share pages — no AppLayout */}
+      {/* Public pages — no auth required */}
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
-
-      {/* Public intake application — no AppLayout */}
       <Route path="/surrogatequiz" element={<IntakeLandingPage />} />
       <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
       <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
 
+      {/* Authenticated app */}
       <Route element={<AppLayout />}>
         <Route index element={<DashboardRouter />} />
         <Route path="/forms" element={<FormsListPage />} />

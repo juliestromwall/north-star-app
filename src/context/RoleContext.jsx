@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { ROLES } from '@/lib/constants'
+import { supabase } from '@/lib/supabase'
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -57,8 +58,62 @@ const RoleContext = createContext(null)
 
 export function RoleProvider({ children }) {
   const [currentRole, setCurrentRole] = useState(ROLES.MASTER_ADMIN)
+  const [authUser, setAuthUser] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
-  const currentUser = MOCK_USERS[currentRole]
+  // Listen for Supabase auth state changes
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false)
+      return
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const user = session.user
+        const role = user.user_metadata?.role || ROLES.SURROGATE
+        setAuthUser({
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email,
+          email: user.email,
+          role,
+          avatar: null,
+        })
+        setCurrentRole(role)
+      }
+      setAuthLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const user = session.user
+        const role = user.user_metadata?.role || ROLES.SURROGATE
+        setAuthUser({
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email,
+          email: user.email,
+          role,
+          avatar: null,
+        })
+        setCurrentRole(role)
+      } else {
+        setAuthUser(null)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function signOut() {
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
+    setAuthUser(null)
+    setCurrentRole(ROLES.MASTER_ADMIN)
+  }
+
+  // Use auth user if logged in, otherwise fall back to mock user for dev
+  const currentUser = authUser || MOCK_USERS[currentRole]
 
   const isAdmin = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN].includes(currentRole)
   const isSuperAdmin = currentRole === ROLES.SUPER_ADMIN
@@ -71,11 +126,15 @@ export function RoleProvider({ children }) {
       currentRole,
       setCurrentRole,
       currentUser,
+      authUser,
+      authLoading,
+      isAuthenticated: !!authUser,
       isAdmin,
       isSuperAdmin,
       isMasterAdmin,
       isMarketing,
       canViewMarketing,
+      signOut,
       allUsers: MOCK_USERS,
     }}>
       {children}
