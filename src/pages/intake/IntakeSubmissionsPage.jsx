@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Filter, Eye, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import PageHeader from '@/components/shared/PageHeader'
 import { mockIntakeSubmissions, DQ_REASON_LABELS, getSourceLabel } from '@/data/mock/intakeSubmissions'
+import { fetchIntakeSubmissions, updateIntakeSubmissionStatus } from '@/lib/db'
 
 const STATUS_CONFIG = {
   qualified: { label: 'Qualified', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -146,12 +147,20 @@ function IPAnswerDetail({ answers }) {
 }
 
 export default function IntakeSubmissionsPage() {
-  const [submissions, setSubmissions] = useState(mockIntakeSubmissions)
+  const [submissions, setSubmissions] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [selected, setSelected] = useState(null)
+
+  useEffect(() => {
+    fetchIntakeSubmissions()
+      .then(data => setSubmissions(data && data.length > 0 ? data : mockIntakeSubmissions))
+      .catch(() => setSubmissions(mockIntakeSubmissions))
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = submissions.filter(s => {
     const name = getApplicantName(s).toLowerCase()
@@ -167,6 +176,7 @@ export default function IntakeSubmissionsPage() {
   function updateStatus(id, newStatus) {
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s))
     if (selected?.id === id) setSelected(prev => ({ ...prev, status: newStatus }))
+    updateIntakeSubmissionStatus(id, newStatus).catch(() => {})
   }
 
   const sources = [...new Set(submissions.map(s => s.tracking.resolvedSource).filter(Boolean))]

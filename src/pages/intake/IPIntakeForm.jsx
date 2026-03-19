@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,6 +52,7 @@ export default function IPIntakeForm() {
   const { state: navState } = useLocation()
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
+  useEffect(() => { window.scrollTo(0, 0) }, [step])
   const [form, setForm] = useState({
     familyType: '',
     primaryFirstName: '', primaryLastName: '', primaryDob: '', email: '', phone: '',
@@ -87,6 +88,7 @@ export default function IPIntakeForm() {
       await insertIntakeSubmission({
         intake_type: 'ip',
         qualified,
+        status: qualified ? 'qualified' : 'disqualified',
         dq_reasons: dqReasons,
         applicant_name: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
         applicant_email: form.email.trim(),
@@ -120,7 +122,7 @@ export default function IPIntakeForm() {
   const shell = (s) => ({
     step: s, totalSteps: 5, accentColor: IP_COLOR, accentFg: IP_FG,
     milestone: MILESTONES[s], nextDisabled: !stepValid[s],
-    onBack: s === 1 ? () => navigate('/apply') : () => setStep(s - 1),
+    onBack: s === 1 ? () => navigate('/intendedparentapply') : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : () => setStep(s + 1),
     nextLabel: s === 5 ? 'Get my next steps' : 'Continue',
   })

@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { TrendingUp, Users, CheckCircle, XCircle, BarChart3, Heart } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import PageHeader from '@/components/shared/PageHeader'
 import { mockIntakeSubmissions, DQ_REASON_LABELS, getSourceLabel } from '@/data/mock/intakeSubmissions'
+import { fetchIntakeSubmissions } from '@/lib/db'
 
 const DAY_OPTIONS = [
   { label: 'Last 30 days', value: 30 },
@@ -87,13 +88,22 @@ function formatDate(iso) {
 
 export default function MarketingDashboard() {
   const [days, setDays] = useState(90)
+  const [allSubmissions, setAllSubmissions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchIntakeSubmissions()
+      .then(data => setAllSubmissions(data && data.length > 0 ? data : mockIntakeSubmissions))
+      .catch(() => setAllSubmissions(mockIntakeSubmissions))
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = useMemo(() => {
-    if (days === 9999) return mockIntakeSubmissions
+    if (days === 9999) return allSubmissions
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    return mockIntakeSubmissions.filter(s => new Date(s.submittedAt) >= cutoff)
-  }, [days])
+    return allSubmissions.filter(s => new Date(s.submittedAt) >= cutoff)
+  }, [days, allSubmissions])
 
   const total = filtered.length
   const qualified = filtered.filter(s => ['qualified', 'approved'].includes(s.status)).length

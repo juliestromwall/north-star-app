@@ -78,6 +78,7 @@ create table intake_submissions (
   resolved_source text,
   referrer text,
   user_agent text,
+  status text not null default 'qualified',
   submitted_at timestamptz not null default now()
 );
 
@@ -93,5 +94,10 @@ create policy "Anyone can insert intake submissions"
 
 create policy "Master admins can view intake submissions"
   on intake_submissions for select using (
+    (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
+  );
+
+create policy "Master admins can update intake submissions"
+  on intake_submissions for update using (
     (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
   );

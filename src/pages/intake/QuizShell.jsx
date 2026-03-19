@@ -9,7 +9,7 @@ export function ChoiceCard({
   label,
   description,
   emoji,
-  accentColor = '#FFB3AB',
+  accentColor = '#ed148c',
   accentFg = '#2F324F',
 }) {
   return (
@@ -143,7 +143,7 @@ export function QuizShell({
   onNext,
   nextLabel = 'Continue',
   nextDisabled = false,
-  accentColor = '#FFB3AB',
+  accentColor = '#ed148c',
   accentFg = '#2F324F',
   children,
 }) {

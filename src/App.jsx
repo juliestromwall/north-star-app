@@ -48,9 +48,9 @@ export default function App() {
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
 
       {/* Public intake application — no AppLayout */}
-      <Route path="/apply" element={<IntakeLandingPage />} />
+      <Route path="/surrogatequiz" element={<IntakeLandingPage />} />
       <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
-      <Route path="/apply/intended-parent" element={<IPIntakeForm />} />
+      <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
 
       <Route element={<AppLayout />}>

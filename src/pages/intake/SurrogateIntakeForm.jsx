@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,8 +8,8 @@ import { getGCDisqualifications } from '@/data/mock/intakeSubmissions'
 import { insertIntakeSubmission } from '@/lib/db'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
-const GC_COLOR = '#FFB3AB'
-const GC_FG = '#2F324F'
+const GC_COLOR = '#ed148c'
+const GC_FG = '#ffffff'
 
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
@@ -52,6 +52,7 @@ export default function SurrogateIntakeForm() {
   const { state: navState } = useLocation()
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
+  useEffect(() => { window.scrollTo(0, 0) }, [step])
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', email: '', phone: '', state: '',
     usCitizen: null,
@@ -85,6 +86,7 @@ export default function SurrogateIntakeForm() {
       await insertIntakeSubmission({
         intake_type: 'gc',
         qualified,
+        status: qualified ? 'qualified' : 'disqualified',
         dq_reasons: dqReasons,
         applicant_name: `${form.firstName} ${form.lastName}`.trim(),
         applicant_email: form.email.trim(),
@@ -125,7 +127,7 @@ export default function SurrogateIntakeForm() {
     accentColor: GC_COLOR, accentFg: GC_FG,
     milestone: MILESTONES[s],
     nextDisabled: !stepValid[s],
-    onBack: s === 1 ? () => navigate('/apply') : () => setStep(s - 1),
+    onBack: s === 1 ? () => navigate('/surrogatequiz') : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : () => setStep(s + 1),
     nextLabel: s === 5 ? 'See if I qualify' : 'Continue',
   })
@@ -273,7 +275,7 @@ export default function SurrogateIntakeForm() {
       </div>
       <div
         className="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all"
-        style={form.agreeBackgroundCheck ? { borderColor: GC_COLOR, backgroundColor: '#FFB3AB18' } : { borderColor: '#e7e5e4' }}
+        style={form.agreeBackgroundCheck ? { borderColor: GC_COLOR, backgroundColor: '#ed148c18' } : { borderColor: '#e7e5e4' }}
         onClick={() => set('agreeBackgroundCheck', !form.agreeBackgroundCheck)}
       >
         <Checkbox id="bg-check" checked={form.agreeBackgroundCheck} onCheckedChange={v => set('agreeBackgroundCheck', v === true)} className="mt-0.5 shrink-0" />

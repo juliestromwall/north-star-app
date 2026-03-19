@@ -25,8 +25,8 @@ function captureTrackingParams(searchParams) {
 
 const STATS = [
   { stat: '220+', label: 'Babies born' },
-  { stat: '15+', label: 'Years of experience' },
-  { stat: '98%', label: 'Client satisfaction' },
+  { stat: '20+', label: 'Years of experience' },
+  { stat: '😍', label: 'Client satisfaction' },
 ]
 
 export default function IntakeLandingPage() {
@@ -48,14 +48,14 @@ export default function IntakeLandingPage() {
       <div className="max-w-2xl mx-auto px-5 pt-14 pb-10 text-center">
         <div className="inline-flex items-center gap-2 bg-white border border-stone-200 rounded-full px-4 py-1.5 mb-6 text-xs text-stone-500 font-medium shadow-sm">
           <Clock className="w-3.5 h-3.5" />
-          About 5 minutes · No commitment
+          See if you qualify in less than 5 minutes.
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight mb-4">
-          Could surrogacy be{' '}
-          <span style={{ color: '#FFB3AB' }}>your next chapter?</span>
+          <span style={{ color: '#283693' }}>Could surrogacy be</span>{' '}
+          <span style={{ color: '#ed148c' }}>your next chapter?</span>
         </h1>
         <p className="text-stone-500 text-lg leading-relaxed max-w-lg mx-auto">
-          Take our quick fit quiz and find out — whether you want to carry for a family or are ready to grow your own.
+          Take our quick fit quiz and find out whether you qualify to carry for a family with Abundant Beginnings Co.
         </p>
         <div className="flex items-center justify-center gap-5 mt-5 flex-wrap">
           {[
@@ -70,15 +70,13 @@ export default function IntakeLandingPage() {
         </div>
       </div>
 
-      {/* Quiz entry cards */}
-      <div className="max-w-2xl mx-auto px-5 pb-16 grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* GC card */}
+      {/* Quiz entry card */}
+      <div className="max-w-md mx-auto px-5 pb-16">
         <button
           type="button"
           onClick={() => navigate('/apply/surrogate')}
-          className="group text-left bg-white rounded-2xl border-2 border-stone-200 hover:shadow-lg transition-all duration-200 p-7 flex flex-col"
-          style={{ ['--hover-border']: '#FFB3AB' }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#FFB3AB'}
+          className="group w-full text-left bg-white rounded-2xl border-2 border-stone-200 hover:shadow-lg transition-all duration-200 p-7 flex flex-col"
+          onMouseEnter={e => e.currentTarget.style.borderColor = '#ed148c'}
           onMouseLeave={e => e.currentTarget.style.borderColor = ''}
         >
           <div className="text-4xl mb-4 select-none" aria-hidden>🤰</div>
@@ -86,31 +84,10 @@ export default function IntakeLandingPage() {
             I Want to Be a Surrogate
           </h2>
           <p className="text-sm text-stone-500 leading-relaxed flex-1 mb-6">
-            Discover if you could help a loving family begin their journey — while earning $40,000–$60,000+ and being supported every step of the way.
+            Discover if you could help a loving family begin their journey — earn $60,000 to $85,000+ while being supported every step of the way.
           </p>
-          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#FFB3AB' }}>
+          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#ed148c' }}>
             Take the quiz
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </div>
-        </button>
-
-        {/* IP card */}
-        <button
-          type="button"
-          onClick={() => navigate('/apply/intended-parent')}
-          className="group text-left bg-white rounded-2xl border-2 border-stone-200 hover:shadow-lg transition-all duration-200 p-7 flex flex-col"
-          onMouseEnter={e => e.currentTarget.style.borderColor = '#464DA0'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = ''}
-        >
-          <div className="text-4xl mb-4 select-none" aria-hidden>👨‍👩‍👧</div>
-          <h2 className="text-xl font-bold text-stone-800 mb-2">
-            We're Ready to Start a Family
-          </h2>
-          <p className="text-sm text-stone-500 leading-relaxed flex-1 mb-6">
-            See if surrogacy with Abundant Beginnings is the right fit for your family's journey — and get personalized next steps.
-          </p>
-          <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#464DA0' }}>
-            Get started
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </div>
         </button>
@@ -120,12 +97,12 @@ export default function IntakeLandingPage() {
       <div className="border-t border-stone-200 bg-white py-10">
         <div className="max-w-2xl mx-auto px-5 text-center">
           <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-7">
-            Why families choose Abundant Beginnings
+            WHY FAMILIES CHOOSE ABUNDANT BEGINNINGS CO.
           </p>
           <div className="grid grid-cols-3 gap-6">
             {STATS.map(({ stat, label }) => (
               <div key={label}>
-                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#FFB3AB' }}>{stat}</div>
+                <div className="text-2xl sm:text-3xl font-bold" style={{ color: '#ed148c' }}>{stat}</div>
                 <div className="text-xs text-stone-500 mt-1">{label}</div>
               </div>
             ))}

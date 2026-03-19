@@ -18,6 +18,8 @@ const QUALIFIED_IP_STEPS = [
   { icon: Heart, label: 'Initial consultation call', desc: 'A call with your dedicated coordinator to walk through the process and answer all your questions.' },
 ]
 
+const CONFETTI_ICON_SRC = '/abc-favicon.png'
+
 export default function IntakeConfirmationPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
@@ -35,7 +37,7 @@ export default function IntakeConfirmationPage() {
       <div className="min-h-screen flex items-center justify-center bg-[#fdf8f3]">
         <div className="text-center">
           <p className="text-stone-500 mb-4">This page requires a form submission to display.</p>
-          <Button onClick={() => navigate('/apply')} variant="outline">Go to Application</Button>
+          <Button onClick={() => navigate('/surrogatequiz')} variant="outline">Go to Application</Button>
         </div>
       </div>
     )
@@ -49,17 +51,22 @@ export default function IntakeConfirmationPage() {
 
   useEffect(() => {
     if (!showConfetti) return
-    const timeout = setTimeout(() => {
+    const timer = setTimeout(() => {
       fire({
-        particleCount: 56,
-        spread: 120,
-        startVelocity: 20,
-        gravity: 0.3,
-        scalar: 24,
-        origin: { x: 0.5, y: 0.25 },
+        particleCount: 260,
+        spread: 360,
+        startVelocity: 55,
+        gravity: 0.25,
+        decay: 0.94,
+        lifetime: 160,
+        scalar: 14,
+        iconScalar: 38,
+        iconRate: 0.2,
+        colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
+        origin: { x: 0.5, y: 0.45 },
       })
-    }, 250)
-    return () => clearTimeout(timeout)
+    }, 140)
+    return () => clearTimeout(timer)
   }, [showConfetti, fire])
 
   if (!qualified) {
@@ -105,7 +112,7 @@ export default function IntakeConfirmationPage() {
               <ArrowLeft className="w-4 h-4" />
               Edit my answers
             </Button>
-            <button onClick={() => navigate('/apply')} className="text-xs text-stone-400 underline underline-offset-2">
+            <button onClick={() => navigate('/surrogatequiz')} className="text-xs text-stone-400 underline underline-offset-2">
               Return to Application Home
             </button>
           </div>
@@ -121,7 +128,7 @@ export default function IntakeConfirmationPage() {
   // Qualified page
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
-      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc="/abc-logo.png" zIndex={40} />}
+      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc={CONFETTI_ICON_SRC} zIndex={40} />}
       <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
         <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
       </header>

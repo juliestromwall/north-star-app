@@ -78,3 +78,41 @@ export async function insertIntakeSubmission(submission) {
   if (result.error) throw result.error
   return result.data
 }
+
+export async function fetchIntakeSubmissions() {
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('*').order('submitted_at', { ascending: false }),
+    20000
+  )
+  if (!result) return null
+  if (result.error) throw result.error
+  // Normalize snake_case rows to camelCase shape the UI expects
+  return result.data.map(row => ({
+    id: row.id,
+    type: row.intake_type,
+    submittedAt: row.submitted_at,
+    status: row.status || (row.qualified ? 'qualified' : 'disqualified'),
+    dqReasons: row.dq_reasons || [],
+    tracking: {
+      ...(row.tracking || {}),
+      utm_source: row.utm_source,
+      utm_medium: row.utm_medium,
+      utm_campaign: row.utm_campaign,
+      utm_content: row.utm_content,
+      utm_term: row.utm_term,
+      fbclid: row.fbclid,
+      ttclid: row.ttclid,
+      resolvedSource: row.resolved_source || row.tracking?.resolvedSource || null,
+    },
+    answers: row.answers || {},
+  }))
+}
+
+export async function updateIntakeSubmissionStatus(id, status) {
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').update({ status }).eq('id', id).select().single()
+  )
+  if (!result) return null
+  if (result.error) throw result.error
+  return result.data
+}
