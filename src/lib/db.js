@@ -114,6 +114,7 @@ export async function fetchIntakeSubmissions() {
       resolvedSource: row.resolved_source || row.tracking?.resolvedSource || null,
     },
     answers: row.answers || {},
+    stateRegion: row.state_region || null,
   }))
 }
 

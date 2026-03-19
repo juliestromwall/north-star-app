@@ -179,7 +179,7 @@ export default function SurrogateIntakeForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Date of birth</Label>
-        <Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} className="rounded-xl h-11" />
+        <Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} max="2010-12-31" min="1960-01-01" className="rounded-xl h-11" />
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">State</Label>

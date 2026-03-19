@@ -274,6 +274,18 @@ export default function MarketingDashboard() {
   const avgCompletionTime = completionTimes.length > 0 ? Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length) : 0
   const medianCompletionTime = completionTimes.length > 0 ? completionTimes.sort((a, b) => a - b)[Math.floor(completionTimes.length / 2)] : 0
 
+  // State breakdown
+  const stateMap = {}
+  filtered.forEach(s => {
+    const st = s.stateRegion || s.answers?.state || s.answers?.stateProv || null
+    if (st) {
+      stateMap[st] = (stateMap[st] || { count: 0, qualifiedCount: 0 })
+      stateMap[st].count++
+      if (['qualified', 'approved'].includes(s.status)) stateMap[st].qualifiedCount++
+    }
+  })
+  const byState = Object.entries(stateMap).sort((a, b) => b[1].count - a[1].count)
+
   // DQ reason breakdown
   const dqMap = {}
   filtered.forEach(s => {
@@ -470,24 +482,53 @@ export default function MarketingDashboard() {
         </Card>
       </div>
 
-      {/* Timezone / Location Insights */}
-      {byTimezone.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Audience Locations</CardTitle>
-            <CardDescription>Where applicants are based (by timezone)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {byTimezone.slice(0, 8).map(([tz, count]) => (
-                <div key={tz} className="flex items-center justify-between p-2.5 rounded-lg bg-stone-50 border border-stone-100">
-                  <span className="text-xs text-stone-600 truncate mr-2">{tz.replace(/_/g, ' ').replace('America/', '')}</span>
-                  <span className="text-xs font-semibold text-stone-700 shrink-0">{count}</span>
+      {/* State & Location Insights */}
+      {(byState.length > 0 || byTimezone.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {byState.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Submissions by State</CardTitle>
+                <CardDescription>Where applicants are located</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {byState.map(([state, data]) => {
+                    const pct = total > 0 ? (data.count / total) * 100 : 0
+                    const convRate = data.count > 0 ? Math.round((data.qualifiedCount / data.count) * 100) : 0
+                    return (
+                      <div key={state} className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-stone-700 w-8 shrink-0">{state}</span>
+                        <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#283693] rounded-full transition-all" style={{ width: `${pct}%`, minWidth: data.count > 0 ? '8px' : '0' }} />
+                        </div>
+                        <span className="text-xs text-stone-500 w-20 text-right shrink-0">{data.count} · {convRate}%</span>
+                      </div>
+                    )
+                  })}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+          {byTimezone.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Timezones</CardTitle>
+                <CardDescription>Applicant timezone distribution</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-3">
+                  {byTimezone.slice(0, 8).map(([tz, count]) => (
+                    <div key={tz} className="flex items-center justify-between p-2.5 rounded-lg bg-stone-50 border border-stone-100">
+                      <span className="text-xs text-stone-600 truncate mr-2">{tz.replace(/_/g, ' ').replace('America/', '')}</span>
+                      <span className="text-xs font-semibold text-stone-700 shrink-0">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

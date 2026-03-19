@@ -182,7 +182,7 @@ export default function IPIntakeForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Date of birth</Label>
-        <Input type="date" value={form.primaryDob} onChange={e => set('primaryDob', e.target.value)} className="rounded-xl h-11" />
+        <Input type="date" value={form.primaryDob} onChange={e => set('primaryDob', e.target.value)} max="2010-12-31" min="1940-01-01" className="rounded-xl h-11" />
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
@@ -278,7 +278,7 @@ export default function IPIntakeForm() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Partner date of birth</Label>
-            <Input type="date" value={form.ip2Dob} onChange={e => set('ip2Dob', e.target.value)} className="rounded-xl h-11" />
+            <Input type="date" value={form.ip2Dob} onChange={e => set('ip2Dob', e.target.value)} max="2010-12-31" min="1940-01-01" className="rounded-xl h-11" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Partner email</Label>
