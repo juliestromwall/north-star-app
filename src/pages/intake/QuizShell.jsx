@@ -196,11 +196,6 @@ export function QuizShell({
 
         {/* Question header */}
         <div className="mb-7">
-          {emoji && (
-            <div className="text-3xl mb-2 select-none" aria-hidden>
-              {emoji}
-            </div>
-          )}
           <h2 className="text-[1.65rem] font-bold text-stone-900 leading-tight">{title}</h2>
           {subtitle && (
             <p className="text-stone-500 text-sm mt-2 leading-relaxed">{subtitle}</p>

@@ -27,17 +27,17 @@ const AGE_RANGE_OPTIONS = [
 ]
 
 const MARITAL_OPTIONS = [
-  { value: 'Single',               label: 'Single',               emoji: '🙋' },
-  { value: 'Married',              label: 'Married',              emoji: '💍' },
-  { value: 'Domestic Partnership', label: 'Domestic Partnership', emoji: '🤝' },
-  { value: 'Divorced',             label: 'Divorced',             emoji: '📋' },
-  { value: 'Widowed',              label: 'Widowed',              emoji: '🕊️' },
+  { value: 'Single',               label: 'Single'               },
+  { value: 'Married',              label: 'Married'              },
+  { value: 'Domestic Partnership', label: 'Domestic Partnership' },
+  { value: 'Divorced',             label: 'Divorced'             },
+  { value: 'Widowed',              label: 'Widowed'              },
 ]
 
 const COMM_OPTIONS = [
-  { value: 'Text',  label: 'Text message', emoji: '💬' },
-  { value: 'Email', label: 'Email',        emoji: '📧' },
-  { value: 'Phone', label: 'Phone call',   emoji: '📞' },
+  { value: 'Text',  label: 'Text message' },
+  { value: 'Email', label: 'Email'        },
+  { value: 'Phone', label: 'Phone call'   },
 ]
 
 function calculateBMI(ft, inches, lbs) {
@@ -99,7 +99,7 @@ export default function SurrogateIntakeForm() {
 
   // Step 1 — Contact info
   if (step === 1) return (
-    <QuizShell {...shell(1)} emoji="👋" title="Let's get acquainted" subtitle="Just a few quick details to get started — takes about 5 minutes.">
+    <QuizShell {...shell(1)} title="Let's get acquainted" subtitle="A few quick details to get started — takes about 5 minutes.">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">First name</Label>
@@ -135,11 +135,11 @@ export default function SurrogateIntakeForm() {
 
   // Step 2 — About you
   if (step === 2) return (
-    <QuizShell {...shell(2)} emoji="🌸" title="A little about you" subtitle="Tell us a bit about where you are in life right now.">
+    <QuizShell {...shell(2)} title="A little about you" subtitle="Tell us a bit about where you are in life right now.">
       <div className="space-y-2">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold block">I am</Label>
         {MARITAL_OPTIONS.map(opt => (
-          <ChoiceCard key={opt.value} selected={form.maritalStatus === opt.value} onSelect={() => set('maritalStatus', opt.value)} label={opt.label} emoji={opt.emoji} accentColor={GC_COLOR} accentFg={GC_FG} />
+          <ChoiceCard key={opt.value} selected={form.maritalStatus === opt.value} onSelect={() => set('maritalStatus', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
         ))}
       </div>
       <div className="space-y-2">
@@ -154,7 +154,7 @@ export default function SurrogateIntakeForm() {
         <p className="text-sm font-medium text-stone-800">Best way to reach you?</p>
         <p className="text-xs text-stone-400">Communication is key — we aim to respond within 24–48 hours.</p>
         {COMM_OPTIONS.map(opt => (
-          <ChoiceCard key={opt.value} selected={form.preferredContact === opt.value} onSelect={() => set('preferredContact', opt.value)} label={opt.label} emoji={opt.emoji} accentColor={GC_COLOR} accentFg={GC_FG} />
+          <ChoiceCard key={opt.value} selected={form.preferredContact === opt.value} onSelect={() => set('preferredContact', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
         ))}
       </div>
     </QuizShell>
@@ -162,7 +162,7 @@ export default function SurrogateIntakeForm() {
 
   // Step 3 — Health
   if (step === 3) return (
-    <QuizShell {...shell(3)} emoji="💪" title="Quick health check" subtitle="Agencies have a few health guidelines — let’s see where you stand." milestone="Halfway there!">
+    <QuizShell {...shell(3)} title="Health information" subtitle="Surrogacy agencies have a few standard health guidelines — this helps us assess your eligibility." milestone="Halfway there!">
       <div>
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold block mb-3">Height</Label>
         <div className="grid grid-cols-2 gap-3">
@@ -193,7 +193,7 @@ export default function SurrogateIntakeForm() {
 
   // Step 4 — Pregnancy
   if (step === 4) return (
-    <QuizShell {...shell(4)} emoji="👶" title="Your pregnancy journey" subtitle="This helps us understand your experience." milestone="Almost done!">
+    <QuizShell {...shell(4)} title="Your pregnancy history" subtitle="This helps us understand your experience and eligibility." milestone="Almost done!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-1">Have you had a healthy pregnancy?</p>
         <p className="text-xs text-stone-400 mb-3">No more than 5 vaginal deliveries or 2 C-sections.</p>
@@ -202,8 +202,6 @@ export default function SurrogateIntakeForm() {
           onChange={v => set('healthyPregnancy', v)}
           yesLabel="Yes, I have"
           noLabel="Not yet"
-          yesEmoji="✅"
-          noEmoji="👋"
           accentColor={GC_COLOR}
           accentFg={GC_FG}
         />
@@ -213,21 +211,21 @@ export default function SurrogateIntakeForm() {
 
   // Step 5 — Final
   if (step === 5) return (
-    <QuizShell {...shell(5)} emoji="🙏" title="One last thing!" subtitle="Almost there — you’re doing amazing." milestone="Last step!">
+    <QuizShell {...shell(5)} title="Final step" subtitle="You're almost done. We'll review your responses and be in touch shortly." milestone="Last step!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">How did you hear about Abundant Beginnings Co.?</p>
         <div className="space-y-2">
           {[
-            { value: 'Instagram',              emoji: '📸', label: 'Instagram' },
-            { value: 'TikTok',                 emoji: '🎵', label: 'TikTok' },
-            { value: 'Facebook',               emoji: '👤', label: 'Facebook' },
-            { value: 'Google search',          emoji: '🔍', label: 'Google' },
-            { value: 'Friend or family',       emoji: '👫', label: 'Friend or family' },
-            { value: 'Doctor or clinic',       emoji: '👩‍⚕️', label: 'Doctor or clinic' },
-            { value: 'Podcast or blog',        emoji: '🎧', label: 'Podcast or blog' },
-            { value: 'Other',                  emoji: '💡', label: 'Other' },
+            { value: 'Instagram',              label: 'Instagram'        },
+            { value: 'TikTok',                 label: 'TikTok'           },
+            { value: 'Facebook',               label: 'Facebook'         },
+            { value: 'Google search',          label: 'Google'           },
+            { value: 'Friend or family',       label: 'Friend or family' },
+            { value: 'Doctor or clinic',       label: 'Doctor or clinic' },
+            { value: 'Podcast or blog',        label: 'Podcast or blog'  },
+            { value: 'Other',                  label: 'Other'            },
           ].map(opt => (
-            <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} emoji={opt.emoji} accentColor={GC_COLOR} accentFg={GC_FG} />
+            <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
           ))}
         </div>
       </div>

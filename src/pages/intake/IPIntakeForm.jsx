@@ -23,9 +23,9 @@ const COUNTRIES = [
 ]
 
 const FAMILY_TYPES = [
-  { value: 'Heterosexual couple', emoji: '💑', label: 'Couple (man and woman)' },
-  { value: 'Same-sex couple',     emoji: '🌈', label: 'Same-sex couple'        },
-  { value: 'Single parent',       emoji: '🧡', label: 'Single parent'          },
+  { value: 'Heterosexual couple', label: 'Couple (man and woman)' },
+  { value: 'Same-sex couple',     label: 'Same-sex couple'        },
+  { value: 'Single parent',       label: 'Single parent'          },
 ]
 
 export default function IPIntakeForm() {
@@ -74,12 +74,12 @@ export default function IPIntakeForm() {
 
   // Step 1 — Primary applicant
   if (step === 1) return (
-    <QuizShell {...shell(1)} emoji="👋" title="Nice to meet you!" subtitle="Let's start with a bit about who you are.">
+    <QuizShell {...shell(1)} title="Tell us about yourself" subtitle="A few quick details to get started.">
       <div>
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold block mb-2">Who is on this journey?</Label>
         <div className="space-y-2">
           {FAMILY_TYPES.map(ft => (
-            <ChoiceCard key={ft.value} selected={form.familyType === ft.value} onSelect={() => set('familyType', ft.value)} label={ft.label} emoji={ft.emoji} accentColor={IP_COLOR} accentFg={IP_FG} />
+            <ChoiceCard key={ft.value} selected={form.familyType === ft.value} onSelect={() => set('familyType', ft.value)} label={ft.label} accentColor={IP_COLOR} accentFg={IP_FG} />
           ))}
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function IPIntakeForm() {
 
   // Step 2 — Address
   if (step === 2) return (
-    <QuizShell {...shell(2)} emoji="🏠" title="Where are you located?" subtitle="This helps us match you with a surrogate in a compatible state.">
+    <QuizShell {...shell(2)} title="Where are you located?" subtitle="This helps us match you with a surrogate in a compatible state.">
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Country</Label>
         <Select value={form.country} onValueChange={v => set('country', v)}>
@@ -156,9 +156,8 @@ export default function IPIntakeForm() {
   // Step 3 — Partner info (conditional)
   if (step === 3) return (
     <QuizShell {...shell(3)}
-      emoji="💑"
-      title="Your partner's info"
-      subtitle={isCouple ? 'Just a few quick details about your partner.' : "Looks like you're applying solo — you're all set for this step!"}
+      title="Partner information"
+      subtitle={isCouple ? 'A few quick details about your partner.' : 'No partner information needed for this step.'}
       milestone="Halfway there!"
     >
       {isCouple ? (
@@ -187,9 +186,8 @@ export default function IPIntakeForm() {
           </div>
         </>
       ) : (
-        <div className="rounded-xl p-6 text-center" style={{ backgroundColor: '#f0f1fa' }}>
-          <p className="text-3xl mb-2">🙋</p>
-          <p className="text-sm text-stone-600">No partner info needed — tap <strong>Continue</strong> to move on.</p>
+        <div className="rounded-xl p-5 text-center" style={{ backgroundColor: '#f0f1fa' }}>
+          <p className="text-sm text-stone-600">No partner information is required. Tap <strong>Continue</strong> to proceed.</p>
         </div>
       )}
     </QuizShell>
@@ -197,47 +195,47 @@ export default function IPIntakeForm() {
 
   // Step 4 — Fertility details
   if (step === 4) return (
-    <QuizShell {...shell(4)} emoji="💫" title="Your fertility journey" subtitle="A few quick questions to help us understand where you are." milestone="Almost done!">
+    <QuizShell {...shell(4)} title="Your fertility journey" subtitle="A few questions to help us understand where you are in the process." milestone="Almost done!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Do you have a Reproductive Endocrinologist (Fertility Doctor)?</p>
-        <YesNoGrid value={form.hasRE} onChange={v => set('hasRE', v)} yesLabel="Yes" noLabel="Not yet" yesEmoji="👩‍⚕️" noEmoji="🔍" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.hasRE} onChange={v => set('hasRE', v)} yesLabel="Yes" noLabel="Not yet" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Do you have frozen embryos?</p>
-        <YesNoGrid value={form.hasFrozenEmbryos} onChange={v => set('hasFrozenEmbryos', v)} yesLabel="Yes, we do" noLabel="Not yet" yesEmoji="✅" noEmoji="⏳" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.hasFrozenEmbryos} onChange={v => set('hasFrozenEmbryos', v)} yesLabel="Yes, we do" noLabel="Not yet" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Are you using an egg donor?</p>
-        <YesNoGrid value={form.usingEggDonor} onChange={v => set('usingEggDonor', v)} yesLabel="Yes" noLabel="No" yesEmoji="🥚" noEmoji="🙅" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.usingEggDonor} onChange={v => set('usingEggDonor', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Are you using a sperm donor?</p>
-        <YesNoGrid value={form.usingSpermDonor} onChange={v => set('usingSpermDonor', v)} yesLabel="Yes" noLabel="No" yesEmoji="🔬" noEmoji="🙅" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.usingSpermDonor} onChange={v => set('usingSpermDonor', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
     </QuizShell>
   )
 
   // Step 5 — Final
   if (step === 5) return (
-    <QuizShell {...shell(5)} emoji="💙" title="One last thing!" subtitle="You're almost done — you're doing great." milestone="Last step!">
+    <QuizShell {...shell(5)} title="Final step" subtitle="You're almost done. We'll review your responses and be in touch shortly." milestone="Last step!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Would you like to schedule a consultation?</p>
-        <YesNoGrid value={form.wantsConsultation} onChange={v => set('wantsConsultation', v)} yesLabel="Yes, please!" noLabel="Not right now" yesEmoji="📅" noEmoji="🤔" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.wantsConsultation} onChange={v => set('wantsConsultation', v)} yesLabel="Yes, please" noLabel="Not right now" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">How did you hear about Abundant Beginnings Co.?</p>
         <div className="space-y-2">
           {[
-            { value: 'Instagram',        emoji: '📸', label: 'Instagram'        },
-            { value: 'TikTok',           emoji: '🎵', label: 'TikTok'           },
-            { value: 'Facebook',         emoji: '👤', label: 'Facebook'         },
-            { value: 'Google search',    emoji: '🔍', label: 'Google'           },
-            { value: 'Friend or family', emoji: '👫', label: 'Friend or family' },
-            { value: 'Doctor or clinic', emoji: '👩‍⚕️', label: 'Doctor or clinic' },
-            { value: 'Podcast or blog',  emoji: '🎧', label: 'Podcast or blog'  },
-            { value: 'Other',            emoji: '💡', label: 'Other'            },
+            { value: 'Instagram',        label: 'Instagram'        },
+            { value: 'TikTok',           label: 'TikTok'           },
+            { value: 'Facebook',         label: 'Facebook'         },
+            { value: 'Google search',    label: 'Google'           },
+            { value: 'Friend or family', label: 'Friend or family' },
+            { value: 'Doctor or clinic', label: 'Doctor or clinic' },
+            { value: 'Podcast or blog',  label: 'Podcast or blog'  },
+            { value: 'Other',            label: 'Other'            },
           ].map(opt => (
-            <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} emoji={opt.emoji} accentColor={IP_COLOR} accentFg={IP_FG} />
+            <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} accentColor={IP_COLOR} accentFg={IP_FG} />
           ))}
         </div>
       </div>

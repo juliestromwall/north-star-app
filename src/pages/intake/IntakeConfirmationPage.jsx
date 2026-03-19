@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CheckCircle, Clock, Mail, Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Heart, ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -113,7 +113,7 @@ export default function IntakeConfirmationPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-stone-800 mb-2">
-          Great news, {name}! 🎉
+          Great news, {name}!
         </h1>
         <p className="text-stone-500 mb-2">
           You're a potential fit as a{typeLabel === 'Surrogate' ? '' : 'n'} {typeLabel}
@@ -148,7 +148,7 @@ export default function IntakeConfirmationPage() {
 
         {/* Portal password setup */}
         <div className="rounded-xl border-2 border-stone-200 p-5 text-left mb-6" style={{ backgroundColor: '#fdf8f3' }}>
-          <p className="text-sm font-semibold text-stone-800 mb-0.5">🔐 Set up your portal access</p>
+          <p className="text-sm font-semibold text-stone-800 mb-0.5 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-stone-500" /> Set up your portal access</p>
           <p className="text-xs text-stone-400 mb-4">Create a password so you can log in and track your application.</p>
           {pwSaved ? (
             <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium py-2">
