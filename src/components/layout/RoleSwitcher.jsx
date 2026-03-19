@@ -10,7 +10,10 @@ import {
 import { Shield } from 'lucide-react'
 
 export default function RoleSwitcher() {
-  const { currentRole, setCurrentRole } = useRole()
+  const { currentRole, setCurrentRole, isSuperAdmin, isAuthenticated } = useRole()
+
+  // Only super admins (and unauthenticated dev mode) can switch roles
+  if (isAuthenticated && !isSuperAdmin) return null
 
   return (
     <div className="flex items-center gap-2">
