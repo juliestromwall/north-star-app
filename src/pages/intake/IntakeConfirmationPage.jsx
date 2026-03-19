@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CheckCircle, Clock, Mail, Heart, ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const QUALIFIED_GC_STEPS = [
   { icon: Mail, label: 'Confirmation email sent', desc: 'Check your inbox for a welcome email with details about your application.' },
@@ -24,6 +25,7 @@ export default function IntakeConfirmationPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw, setShowPw]                   = useState(false)
   const [pwSaved, setPwSaved]                 = useState(false)
+  const { fire, ref: confettiRef } = useConfetti()
 
   const pwValid = password.length >= 8 && password === confirmPassword
 
@@ -43,6 +45,22 @@ export default function IntakeConfirmationPage() {
   const editPath = type === 'gc' ? '/apply/surrogate' : '/apply/ip'
   const steps = type === 'gc' ? QUALIFIED_GC_STEPS : QUALIFIED_IP_STEPS
   const typeLabel = type === 'gc' ? 'Surrogate' : 'Intended Parent'
+  const showConfetti = qualified && type === 'gc'
+
+  useEffect(() => {
+    if (!showConfetti) return
+    const timeout = setTimeout(() => {
+      fire({
+        particleCount: 56,
+        spread: 120,
+        startVelocity: 20,
+        gravity: 0.3,
+        scalar: 24,
+        origin: { x: 0.5, y: 0.25 },
+      })
+    }, 250)
+    return () => clearTimeout(timeout)
+  }, [showConfetti, fire])
 
   if (!qualified) {
     return (
@@ -103,6 +121,7 @@ export default function IntakeConfirmationPage() {
   // Qualified page
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
+      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc="/abc-logo.png" zIndex={40} />}
       <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
         <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
       </header>
