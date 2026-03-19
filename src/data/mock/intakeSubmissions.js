@@ -994,8 +994,7 @@ export function getGCDisqualifications(answers) {
 }
 
 // Helper: resolve disqualifications for an IP form submission
-export function getIPDisqualifications(answers) {
-  const reasons = []
-  if (!answers.financingConfirmed) reasons.push('no_financing_plan')
-  return reasons
+// IPs are never disqualified via the intake quiz
+export function getIPDisqualifications(_answers) {
+  return []
 }
