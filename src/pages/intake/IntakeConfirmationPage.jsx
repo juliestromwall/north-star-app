@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CheckCircle, Clock, Mail, Heart, ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Heart, ArrowLeft, ArrowRight, Eye, EyeOff, Lock, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { supabase } from '@/lib/supabase'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const QUALIFIED_GC_STEPS = [
@@ -27,9 +28,22 @@ export default function IntakeConfirmationPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw, setShowPw]                   = useState(false)
   const [pwSaved, setPwSaved]                 = useState(false)
+  const [signupError, setSignupError]         = useState(null)
+  const [signingUp, setSigningUp]             = useState(false)
   const { fire, ref: confettiRef } = useConfetti()
 
   const pwValid = password.length >= 8 && password === confirmPassword
+
+  // Navigation guard — warn if leaving without setting password
+  useEffect(() => {
+    if (pwSaved || !state?.qualified) return
+    const handler = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [pwSaved, state?.qualified])
 
   // Guard: if navigated directly without state
   if (!state) {
@@ -43,7 +57,7 @@ export default function IntakeConfirmationPage() {
     )
   }
 
-  const { qualified, type, name, answers } = state
+  const { qualified, type, name, email, answers } = state
   const editPath = type === 'gc' ? '/apply/surrogate' : '/apply/ip'
   const steps = type === 'gc' ? QUALIFIED_GC_STEPS : QUALIFIED_IP_STEPS
   const typeLabel = type === 'gc' ? 'Surrogate' : 'Intended Parent'
@@ -68,6 +82,35 @@ export default function IntakeConfirmationPage() {
     }, 140)
     return () => clearTimeout(timer)
   }, [showConfetti, fire])
+
+  async function handleCreateAccount() {
+    if (!pwValid) return
+    setSigningUp(true)
+    setSignupError(null)
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              role: type === 'gc' ? 'surrogate' : 'intended_parent',
+            },
+          },
+        })
+        if (error) {
+          setSignupError(error.message)
+          setSigningUp(false)
+          return
+        }
+      }
+      setPwSaved(true)
+    } catch (err) {
+      setSignupError('Something went wrong. Please try again.')
+    }
+    setSigningUp(false)
+  }
 
   if (!qualified) {
     return (
@@ -145,12 +188,100 @@ export default function IntakeConfirmationPage() {
           You're a potential fit as a{typeLabel === 'Surrogate' ? '' : 'n'} {typeLabel}
         </p>
 
-        <p className="text-stone-600 mb-10 leading-relaxed">
-          Your responses look promising! Our team will be in touch shortly — a confirmation has been sent to your email. We're excited to connect with you.
+        <p className="text-stone-600 mb-8 leading-relaxed">
+          Your responses look promising! Set up your account below to access your portal and complete your profile.
         </p>
 
-        {/* Next steps */}
-        <div className="text-left space-y-4 mb-10">
+        {/* Account setup — PRIMARY CTA */}
+        <div className={`rounded-xl border-2 p-5 text-left mb-8 transition-all ${pwSaved ? 'border-emerald-300 bg-emerald-50' : 'border-[#283693] bg-white shadow-lg'}`}>
+          {pwSaved ? (
+            <div className="text-center py-3 space-y-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto">
+                <CheckCircle className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-emerald-800 text-lg">Account created!</p>
+                <p className="text-sm text-emerald-600 mt-1">You're all set. Head to your portal to complete your profile.</p>
+              </div>
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
+                style={{ backgroundColor: '#283693', color: '#fff' }}
+              >
+                Continue to my portal
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#283693]/10">
+                  <Lock className="w-4 h-4 text-[#283693]" />
+                </div>
+                <p className="text-sm font-semibold text-stone-800">Create your account</p>
+              </div>
+              <p className="text-xs text-stone-400 mb-4 ml-10">Set up your password to access the surrogate portal.</p>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
+                  <Input
+                    type="email"
+                    value={email || ''}
+                    readOnly
+                    className="rounded-xl h-11 bg-stone-50 text-stone-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPw ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="rounded-xl h-11 pr-11"
+                    />
+                    <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat your password"
+                    className="rounded-xl h-11"
+                  />
+                  {confirmPassword && !pwValid && (
+                    <p className="text-xs text-red-500">Passwords don't match or are too short</p>
+                  )}
+                  {confirmPassword && pwValid && (
+                    <p className="text-xs text-emerald-600">Looks good!</p>
+                  )}
+                </div>
+                {signupError && (
+                  <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{signupError}</p>
+                )}
+                <Button
+                  onClick={handleCreateAccount}
+                  disabled={!pwValid || signingUp}
+                  className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
+                  style={pwValid ? { backgroundColor: '#283693', color: '#fff' } : {}}
+                >
+                  {signingUp ? 'Creating account...' : 'Create account & continue'}
+                  {!signingUp && <ArrowRight className="w-4 h-4" />}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Next steps — secondary info */}
+        <div className="text-left space-y-4 mb-8">
           <p className="text-sm font-semibold text-stone-700 uppercase tracking-wide text-center mb-6">
             What Happens Next
           </p>
@@ -170,59 +301,6 @@ export default function IntakeConfirmationPage() {
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Portal password setup */}
-        <div className="rounded-xl border-2 border-stone-200 p-5 text-left mb-6" style={{ backgroundColor: '#fdf8f3' }}>
-          <p className="text-sm font-semibold text-stone-800 mb-0.5 flex items-center gap-1.5"><Lock className="w-3.5 h-3.5 text-stone-500" /> Set up your portal access</p>
-          <p className="text-xs text-stone-400 mb-4">Create a password so you can log in and track your application.</p>
-          {pwSaved ? (
-            <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium py-2">
-              <CheckCircle className="w-4 h-4" /> Password saved — you're all set!
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
-                <div className="relative">
-                  <Input
-                    type={showPw ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="At least 8 characters"
-                    className="rounded-xl h-11 pr-11"
-                  />
-                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
-                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
-                <Input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="Repeat your password"
-                  className="rounded-xl h-11"
-                />
-                {confirmPassword && !pwValid && (
-                  <p className="text-xs text-red-500">Passwords don't match or are too short</p>
-                )}
-                {confirmPassword && pwValid && (
-                  <p className="text-xs text-emerald-600">✓ Looks good!</p>
-                )}
-              </div>
-              <Button
-                onClick={() => pwValid && setPwSaved(true)}
-                disabled={!pwValid}
-                className="w-full h-10 rounded-xl text-sm font-semibold"
-                style={pwValid ? { backgroundColor: '#464DA0', color: '#fff' } : {}}
-              >
-                Save password
-              </Button>
-            </div>
-          )}
         </div>
 
         <button
