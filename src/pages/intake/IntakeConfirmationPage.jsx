@@ -9,8 +9,8 @@ import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const QUALIFIED_GC_STEPS = [
   { icon: Mail, label: 'Confirmation email sent', desc: 'Check your inbox for a welcome email with details about your application.' },
-  { icon: Clock, label: 'Application review (3–5 business days)', desc: 'Our team will carefully review your responses and contact you to schedule a phone interview.' },
-  { icon: Heart, label: 'Phone interview', desc: 'A 30–45 minute call with one of our coordinators to get to know you and answer your questions.' },
+  { icon: Clock, label: 'Application review (1–3 business days)', desc: 'Our team will review your responses and contact you to schedule a time to chat.' },
+  { icon: Heart, label: "Let's meet!", desc: 'A 30 to 45 minute call with a team member to get to know you, and answer all your questions.' },
 ]
 
 const QUALIFIED_IP_STEPS = [
@@ -137,8 +137,8 @@ export default function IntakeConfirmationPage() {
 
           <p className="text-stone-500 mb-10 leading-relaxed">
             Circumstances change, and we may be in touch in the future. If you believe there may have been an error, please don't hesitate to contact us directly at{' '}
-            <a href="mailto:info@abcsurrogacy.com" className="text-abc-coral underline">
-              info@abcsurrogacy.com
+            <a href="mailto:intake@abcsurrogacy.com" className="text-[#ed148c] underline">
+              intake@abcsurrogacy.com
             </a>.
           </p>
 
@@ -288,8 +288,8 @@ export default function IntakeConfirmationPage() {
           {steps.map((s, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-abc-coral/10 shrink-0">
-                  <s.icon className="w-5 h-5 text-abc-coral" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ed148c]/10 shrink-0">
+                  <s.icon className="w-5 h-5 text-[#ed148c]" />
                 </div>
                 {i < steps.length - 1 && (
                   <div className="w-px flex-1 bg-stone-200 my-1" />
@@ -307,10 +307,9 @@ export default function IntakeConfirmationPage() {
           <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
           <p className="text-sm text-stone-500">
             You can reach our team any time at{' '}
-            <a href="mailto:info@abcsurrogacy.com" className="text-abc-coral underline">
-              info@abcsurrogacy.com
-            </a>{' '}
-            or call us at (800) 555-0100.
+            <a href="mailto:intake@abcsurrogacy.com" className="text-[#ed148c] underline">
+              intake@abcsurrogacy.com
+            </a>
           </p>
         </div>
       </div>
