@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +52,12 @@ export default function IPIntakeForm() {
   const { state: navState } = useLocation()
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
+  const startTimeRef = useRef(Date.now())
+  const maxStepRef = useRef(1)
   useEffect(() => { window.scrollTo(0, 0) }, [step])
+  useEffect(() => {
+    if (step > maxStepRef.current) maxStepRef.current = step
+  }, [step])
   const [form, setForm] = useState({
     familyType: '',
     primaryFirstName: '', primaryLastName: '', primaryDob: '', email: '', phone: '',
@@ -82,7 +87,17 @@ export default function IPIntakeForm() {
 
   async function handleSubmit() {
     const dqReasons = getIPDisqualifications(form)
-    const tracking  = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
+    const rawTracking = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
+    const timeToCompleteSeconds = Math.round((Date.now() - startTimeRef.current) / 1000)
+    const tracking = {
+      ...rawTracking,
+      quizStartedAt: new Date(startTimeRef.current).toISOString(),
+      quizCompletedAt: new Date().toISOString(),
+      timeToCompleteSeconds,
+      maxStepReached: 5,
+      totalSteps: 5,
+      completed: true,
+    }
     const qualified = dqReasons.length === 0
     try {
       await insertIntakeSubmission({

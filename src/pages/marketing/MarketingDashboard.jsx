@@ -18,9 +18,7 @@ const SOURCE_COLORS = {
 }
 
 function defaultStart() {
-  const d = new Date()
-  d.setDate(d.getDate() - 90)
-  return d.toISOString().slice(0, 10)
+  return '2026-01-01'
 }
 
 function StatCard({ icon: Icon, label, value, sub, color = 'stone' }) {
@@ -255,6 +253,27 @@ export default function MarketingDashboard() {
       }))
   }, [filtered, startDate, endDate])
 
+  // Device / browser / OS breakdown
+  const deviceMap = {}
+  const browserMap = {}
+  const osMap = {}
+  const timezoneMap = {}
+  const completionTimes = []
+  filtered.forEach(s => {
+    const t = s.tracking || {}
+    if (t.device) deviceMap[t.device] = (deviceMap[t.device] || 0) + 1
+    if (t.browser) browserMap[t.browser] = (browserMap[t.browser] || 0) + 1
+    if (t.os) osMap[t.os] = (osMap[t.os] || 0) + 1
+    if (t.timezone) timezoneMap[t.timezone] = (timezoneMap[t.timezone] || 0) + 1
+    if (t.timeToCompleteSeconds && t.timeToCompleteSeconds > 0) completionTimes.push(t.timeToCompleteSeconds)
+  })
+  const byDevice = Object.entries(deviceMap).sort((a, b) => b[1] - a[1])
+  const byBrowser = Object.entries(browserMap).sort((a, b) => b[1] - a[1])
+  const byOS = Object.entries(osMap).sort((a, b) => b[1] - a[1])
+  const byTimezone = Object.entries(timezoneMap).sort((a, b) => b[1] - a[1])
+  const avgCompletionTime = completionTimes.length > 0 ? Math.round(completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length) : 0
+  const medianCompletionTime = completionTimes.length > 0 ? completionTimes.sort((a, b) => a - b)[Math.floor(completionTimes.length / 2)] : 0
+
   // DQ reason breakdown
   const dqMap = {}
   filtered.forEach(s => {
@@ -363,6 +382,113 @@ export default function MarketingDashboard() {
           <VolumeChart data={volumeData} />
         </CardContent>
       </Card>
+
+      {/* Device, Browser, Audience & Completion Time */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Device */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Device</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byDevice.length === 0 ? <p className="text-xs text-stone-400">No data yet</p> : (
+              <div className="space-y-2">
+                {byDevice.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between">
+                    <span className="text-sm text-stone-600">{name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#283693] rounded-full" style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }} />
+                      </div>
+                      <span className="text-xs text-stone-500 w-8 text-right">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Browser */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Browser</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byBrowser.length === 0 ? <p className="text-xs text-stone-400">No data yet</p> : (
+              <div className="space-y-2">
+                {byBrowser.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between">
+                    <span className="text-sm text-stone-600">{name}</span>
+                    <span className="text-xs text-stone-500">{count} ({total > 0 ? Math.round((count / total) * 100) : 0}%)</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* OS */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Operating System</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {byOS.length === 0 ? <p className="text-xs text-stone-400">No data yet</p> : (
+              <div className="space-y-2">
+                {byOS.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between">
+                    <span className="text-sm text-stone-600">{name}</span>
+                    <span className="text-xs text-stone-500">{count} ({total > 0 ? Math.round((count / total) * 100) : 0}%)</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Completion Time */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Quiz Completion Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {completionTimes.length === 0 ? <p className="text-xs text-stone-400">No data yet</p> : (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-2xl font-bold text-stone-800">{Math.floor(avgCompletionTime / 60)}m {avgCompletionTime % 60}s</p>
+                  <p className="text-xs text-stone-400">Average time</p>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-stone-600">{Math.floor(medianCompletionTime / 60)}m {medianCompletionTime % 60}s</p>
+                  <p className="text-xs text-stone-400">Median time</p>
+                </div>
+                <p className="text-xs text-stone-400">{completionTimes.length} completed quizzes</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Timezone / Location Insights */}
+      {byTimezone.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Audience Locations</CardTitle>
+            <CardDescription>Where applicants are based (by timezone)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {byTimezone.slice(0, 8).map(([tz, count]) => (
+                <div key={tz} className="flex items-center justify-between p-2.5 rounded-lg bg-stone-50 border border-stone-100">
+                  <span className="text-xs text-stone-600 truncate mr-2">{tz.replace(/_/g, ' ').replace('America/', '')}</span>
+                  <span className="text-xs font-semibold text-stone-700 shrink-0">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Submissions by source */}

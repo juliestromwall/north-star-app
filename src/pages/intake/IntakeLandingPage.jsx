@@ -2,10 +2,35 @@ import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Clock, Lock, Shield } from 'lucide-react'
 
+function parseDevice(ua) {
+  if (/tablet|ipad/i.test(ua)) return 'Tablet'
+  if (/mobile|iphone|android.*mobile/i.test(ua)) return 'Mobile'
+  return 'Desktop'
+}
+
+function parseBrowser(ua) {
+  if (/edg\//i.test(ua)) return 'Edge'
+  if (/chrome/i.test(ua) && !/edg/i.test(ua)) return 'Chrome'
+  if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari'
+  if (/firefox/i.test(ua)) return 'Firefox'
+  if (/opera|opr/i.test(ua)) return 'Opera'
+  return 'Other'
+}
+
+function parseOS(ua) {
+  if (/windows/i.test(ua)) return 'Windows'
+  if (/mac os/i.test(ua)) return 'macOS'
+  if (/iphone|ipad/i.test(ua)) return 'iOS'
+  if (/android/i.test(ua)) return 'Android'
+  if (/linux/i.test(ua)) return 'Linux'
+  return 'Other'
+}
+
 function captureTrackingParams(searchParams) {
   const fbclid = searchParams.get('fbclid')
   const ttclid = searchParams.get('ttclid')
   const utm_source = searchParams.get('utm_source')
+  const ua = navigator.userAgent || ''
   const tracking = {
     utm_source,
     utm_medium: searchParams.get('utm_medium'),
@@ -19,6 +44,18 @@ function captureTrackingParams(searchParams) {
       (fbclid ? 'facebook' : null) ||
       (ttclid ? 'tiktok' : null) ||
       'direct',
+    // Enhanced tracking
+    device: parseDevice(ua),
+    browser: parseBrowser(ua),
+    os: parseOS(ua),
+    language: navigator.language || null,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+    landingUrl: window.location.href,
+    landedAt: new Date().toISOString(),
   }
   sessionStorage.setItem('intakeTrackingData', JSON.stringify(tracking))
 }
