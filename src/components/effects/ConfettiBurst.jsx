@@ -64,7 +64,7 @@ class Particle {
     ctx.globalAlpha = this.opacity
     ctx.translate(this.x, this.y)
     ctx.rotate((this.rotation * Math.PI) / 180)
-    if (this.kind === 'icon' && img) {
+    if (this.kind === 'icon' && img && img.complete && img.naturalWidth > 0) {
       const half = this.size / 2
       ctx.drawImage(img, -half, -half, this.size, this.size)
     } else {
@@ -168,7 +168,7 @@ const ConfettiBurst = React.forwardRef(function ConfettiBurst(
 
   const fire = useCallback((overrides = {}) => {
     const canvas = canvasRef.current
-    if (!canvas || (!imgReady && iconRate > 0)) return
+    if (!canvas) return
 
     const ox = overrides.origin?.x ?? origin?.x ?? 0.5
     const oy = overrides.origin?.y ?? origin?.y ?? 0.5
