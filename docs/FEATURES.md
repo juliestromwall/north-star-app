@@ -52,6 +52,13 @@
 | SettingsPage | src/pages/SettingsPage.jsx | Notes management for master_admin/super_admin: publish dialog (title, message, target), notes list with active/inactive toggle, delete, dismissal counts |
 | CalendarPage | src/pages/calendar/CalendarPage.jsx | Mock Google Calendar-style monthly view with colored event pills, prev/next navigation, event detail dialog, upcoming sidebar |
 | calendarEvents | src/data/mock/calendarEvents.js | Mock calendar events (20 events across Mar–May 2026) with 5 event types: appointment, milestone, meeting, legal, admin |
+| IntakeLandingPage | src/pages/intake/IntakeLandingPage.jsx | Public /apply page with two cards (Apply as Surrogate / Apply as Intended Parent), captures UTM + fbclid + ttclid tracking params to sessionStorage |
+| SurrogateIntakeForm | src/pages/intake/SurrogateIntakeForm.jsx | Public 5-step GC intake form (/apply/surrogate): About You, Health & Lifestyle (BMI auto-calc), Pregnancy History, Surrogacy Readiness, Final Details. DQ logic at submission. |
+| IPIntakeForm | src/pages/intake/IPIntakeForm.jsx | Public 5-step IP intake form (/apply/intended-parent): About You, Your Journey, Preferences, Financial Readiness, Final Details. DQ on no financing plan. |
+| IntakeConfirmationPage | src/pages/intake/IntakeConfirmationPage.jsx | Post-submission confirmation page (/apply/confirmation). Warm qualified flow with next steps or compassionate DQ messaging. |
+| IntakeSubmissionsPage | src/pages/intake/IntakeSubmissionsPage.jsx | Admin intake review page (/intake). Filterable table (type/status/source), detail dialog with all answers + DQ reasons highlighted, approve/reject/pending actions. |
+| MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics dashboard (/marketing) for marketing + master_admin + super_admin. 30/60/90/all-time toggle, stat cards, source bar chart, GC/IP split, DQ breakdown, recent submissions. |
+| intakeSubmissions | src/data/mock/intakeSubmissions.js | 20 mock intake submissions (11 GC, 9 IP) with UTM/fbclid/ttclid tracking, DQ reasons, statuses, and helper functions |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Admin time clock page (/time-clock): clock in/out with live HH:MM:SS timer and pulsing indicator, bi-weekly pay period summary (total hours, days worked, avg daily), time entries table with prev/next period navigation, status badges (pending/approved/edited), edit entry dialog with time inputs and live hours preview, master_admin/super_admin staff selector dropdown |
 | timeClockData | src/data/mock/timeClockData.js | Mock data for time clock: staff list (from mockUsers), 4 bi-weekly pay periods (Jan 19 – Mar 15, 2026), ~25 time entries across staff/periods, helper functions (getCurrentPayPeriod, calculateHours, formatTime12h) |
 
@@ -59,6 +66,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-03-18 | Intake form system: public GC + IP multi-step forms with DQ logic, confirmation page, ad tracking (UTM/fbclid/ttclid). Admin intake submissions review page. Marketing analytics dashboard. Marketing role + mock user added. |
 | 2026-03-03 | Time Clock page: admin clock in/out with live timer, bi-weekly pay period tracking, time entries table with edit dialog, staff selector for master admins. Mock data (no backend). |
 | 2026-03-03 | Calendar page: monthly grid view with 5 event types, event detail dialog, upcoming sidebar, month navigation |
 | 2026-03-03 | Admin Notes: Supabase integration (client, db helpers, schema). Settings page with notes management (publish, toggle, delete). Dashboard alert banners for admin users. |

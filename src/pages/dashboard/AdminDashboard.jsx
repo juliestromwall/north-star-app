@@ -1,4 +1,5 @@
 import { useRole } from '@/context/RoleContext'
+import { useAdminNotes } from '@/context/AdminNotesContext'
 import PageHeader from '@/components/shared/PageHeader'
 import StatCard from '@/components/shared/StatCard'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -8,7 +9,7 @@ import { mockSurrogates } from '@/data/mock/surrogates'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
 import { matchPipelineCounts } from '@/data/mock/matches'
 import { MATCH_STAGES } from '@/lib/constants'
-import { Heart, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock } from 'lucide-react'
+import { Heart, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const activeSurrogates = mockSurrogates.filter(s => s.status === 'active').length
@@ -34,6 +35,11 @@ const upcomingMilestones = [
 
 export default function AdminDashboard() {
   const { currentUser } = useRole()
+  const { getActiveNotes, dismissNote } = useAdminNotes()
+
+  const visibleNotes = getActiveNotes().filter(
+    (n) => !n.dismissals?.some((d) => d.user_id === currentUser?.id)
+  )
 
   return (
     <div className="space-y-6">
@@ -46,6 +52,23 @@ export default function AdminDashboard() {
           </Button>
         }
       />
+
+      {/* Admin Notes */}
+      {visibleNotes.map((note) => (
+        <div key={note.id} className="flex items-start gap-3 bg-abc-indigo/10 border border-abc-indigo/30 rounded-lg px-4 py-3">
+          <Megaphone className="size-5 text-abc-indigo shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            {note.title && <p className="font-semibold text-sm">{note.title}</p>}
+            <p className="text-sm text-muted-foreground">{note.message}</p>
+          </div>
+          <button
+            onClick={() => dismissNote(note.id, currentUser?.id)}
+            className="p-1 rounded hover:bg-abc-indigo/10 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      ))}
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, Plus, MapPin, Baby, Calendar, ArrowRight, CheckCircle, Clock, XCircle, Circle } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, Plus, MapPin, Baby, Calendar, ArrowRight, CheckCircle, Clock, XCircle, Circle, LayoutGrid, List } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import PageHeader from '@/components/shared/PageHeader'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -44,6 +45,8 @@ export default function SurrogateListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [stageFilter, setStageFilter] = useState('all')
+  const [view, setView] = useState('tile')
+  const navigate = useNavigate()
 
   const filtered = useMemo(() => {
     return mockSurrogates.filter(s => {
@@ -103,6 +106,24 @@ export default function SurrogateListPage() {
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center border rounded-md">
+          <Button
+            variant={view === 'tile' ? 'default' : 'ghost'}
+            size="icon"
+            className="rounded-r-none"
+            onClick={() => setView('tile')}
+          >
+            <LayoutGrid className="size-4" />
+          </Button>
+          <Button
+            variant={view === 'list' ? 'default' : 'ghost'}
+            size="icon"
+            className="rounded-l-none"
+            onClick={() => setView('list')}
+          >
+            <List className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -111,7 +132,7 @@ export default function SurrogateListPage() {
           title="No surrogates found"
           description="Try adjusting your search or filters."
         />
-      ) : (
+      ) : view === 'tile' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(surrogate => (
             <Link key={surrogate.id} to={`/surrogates/${surrogate.id}`} className="group">
@@ -168,6 +189,48 @@ export default function SurrogateListPage() {
             </Link>
           ))}
         </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Age</TableHead>
+                <TableHead>Match Stage</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Prev. Journeys</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(surrogate => (
+                <TableRow
+                  key={surrogate.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/surrogates/${surrogate.id}`)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <ProfileAvatar name={surrogate.name} avatar={surrogate.avatar} size="sm" />
+                      <span className="font-medium">{surrogate.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{surrogate.location}</TableCell>
+                  <TableCell><StatusBadge status={surrogate.status} /></TableCell>
+                  <TableCell>{surrogate.age}</TableCell>
+                  <TableCell>{surrogate.matchStage || 'Unmatched'}</TableCell>
+                  <TableCell>
+                    {surrogate.dueDate
+                      ? new Date(surrogate.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : '—'}
+                  </TableCell>
+                  <TableCell>{surrogate.previousJourneys}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )

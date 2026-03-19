@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { ROLES } from '@/lib/constants'
 import AdminDashboard from './AdminDashboard'
@@ -19,6 +20,8 @@ export default function DashboardRouter() {
       return <IPDashboard />
     case ROLES.SURROGATE_PARTNER:
       return <PartnerDashboard />
+    case ROLES.MARKETING:
+      return <Navigate to="/marketing" replace />
     default:
       return <AdminDashboard />
   }

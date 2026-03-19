@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
-import { Search, Plus, MapPin, Calendar, ArrowRight, DollarSign } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Search, Plus, MapPin, Calendar, ArrowRight, DollarSign, LayoutGrid, List } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import PageHeader from '@/components/shared/PageHeader'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -22,6 +23,8 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [view, setView] = useState('tile')
+  const navigate = useNavigate()
 
   const filtered = useMemo(() => {
     return mockIntendedParents.filter(ip => {
@@ -78,6 +81,24 @@ export default function IPListPage() {
             <SelectItem value="Single parent">Single Parent</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center border rounded-md">
+          <Button
+            variant={view === 'tile' ? 'default' : 'ghost'}
+            size="icon"
+            className="rounded-r-none"
+            onClick={() => setView('tile')}
+          >
+            <LayoutGrid className="size-4" />
+          </Button>
+          <Button
+            variant={view === 'list' ? 'default' : 'ghost'}
+            size="icon"
+            className="rounded-l-none"
+            onClick={() => setView('list')}
+          >
+            <List className="size-4" />
+          </Button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -86,7 +107,7 @@ export default function IPListPage() {
           title="No intended parents found"
           description="Try adjusting your search or filters."
         />
-      ) : (
+      ) : view === 'tile' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(ip => (
             <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="group">
@@ -140,6 +161,46 @@ export default function IPListPage() {
             </Link>
           ))}
         </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Names</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Match Stage</TableHead>
+                <TableHead>Budget</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(ip => (
+                <TableRow
+                  key={ip.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/intended-parents/${ip.id}`)}
+                >
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <ProfileAvatar name={ip.names} avatar={ip.avatar} size="sm" />
+                      <span className="font-medium">{ip.names}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{ip.location}</TableCell>
+                  <TableCell><StatusBadge status={ip.status} /></TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>
+                      {ip.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{ip.matchStage || 'Unmatched'}</TableCell>
+                  <TableCell>{ip.budget}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
     </div>
   )

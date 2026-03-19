@@ -1,0 +1,13 @@
+
+> abc-surrogacy@0.0.0 dev
+> vite
+
+
+  VITE v7.3.1  ready in 308 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+  ➜  press h + enter to show help
+6:32:28 PM [vite] (client) hmr update /src/index.css
+6:35:45 PM [vite] (client) hmr update /src/index.css
+6:38:08 PM [vite] (client) hmr update /src/index.css

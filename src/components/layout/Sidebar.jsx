@@ -15,10 +15,10 @@ export default function Sidebar() {
 
   return (
     <aside className="w-60 bg-sidebar text-sidebar-foreground flex flex-col shrink-0">
-      <div className="flex items-center justify-center px-4 py-4 bg-white rounded-b-lg">
+      <div className="flex items-center justify-center px-4 py-4 bg-white">
         <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-18 w-auto" />
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <nav className="p-4 space-y-6">
           {sections.map(section => (
             <div key={section.section}>

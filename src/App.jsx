@@ -16,6 +16,12 @@ import StubPage from './pages/stubs/StubPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/calendar/CalendarPage'
 import TimeClockPage from './pages/time-clock/TimeClockPage'
+import IntakeLandingPage from './pages/intake/IntakeLandingPage'
+import SurrogateIntakeForm from './pages/intake/SurrogateIntakeForm'
+import IPIntakeForm from './pages/intake/IPIntakeForm'
+import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
+import IntakeSubmissionsPage from './pages/intake/IntakeSubmissionsPage'
+import MarketingDashboard from './pages/marketing/MarketingDashboard'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -32,6 +38,7 @@ const stubs = [
   { path: '/my-match', title: 'My Match' },
   { path: '/appointments', title: 'Appointments' },
 ]
+// Note: /intake and /marketing are NOT stubs — they are fully built pages
 
 export default function App() {
   return (
@@ -39,6 +46,12 @@ export default function App() {
       {/* Standalone share pages — no AppLayout */}
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
+
+      {/* Public intake application — no AppLayout */}
+      <Route path="/apply" element={<IntakeLandingPage />} />
+      <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
+      <Route path="/apply/intended-parent" element={<IPIntakeForm />} />
+      <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
 
       <Route element={<AppLayout />}>
         <Route index element={<DashboardRouter />} />
@@ -55,6 +68,8 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/time-clock" element={<TimeClockPage />} />
+        <Route path="/intake" element={<IntakeSubmissionsPage />} />
+        <Route path="/marketing" element={<MarketingDashboard />} />
         {stubs.map(s => (
           <Route
             key={s.path}

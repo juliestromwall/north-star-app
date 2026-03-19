@@ -44,6 +44,13 @@ const MOCK_USERS = {
     role: ROLES.INTENDED_PARENT,
     avatar: null,
   },
+  [ROLES.MARKETING]: {
+    id: 'u7',
+    name: 'Casey Rivera',
+    email: 'casey@abcsurrogacy.com',
+    role: ROLES.MARKETING,
+    avatar: null,
+  },
 }
 
 const RoleContext = createContext(null)
@@ -56,6 +63,8 @@ export function RoleProvider({ children }) {
   const isAdmin = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN].includes(currentRole)
   const isSuperAdmin = currentRole === ROLES.SUPER_ADMIN
   const isMasterAdmin = currentRole === ROLES.MASTER_ADMIN
+  const isMarketing = currentRole === ROLES.MARKETING
+  const canViewMarketing = [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER_ADMIN].includes(currentRole)
 
   return (
     <RoleContext.Provider value={{
@@ -65,6 +74,8 @@ export function RoleProvider({ children }) {
       isAdmin,
       isSuperAdmin,
       isMasterAdmin,
+      isMarketing,
+      canViewMarketing,
       allUsers: MOCK_USERS,
     }}>
       {children}

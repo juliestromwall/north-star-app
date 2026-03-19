@@ -17,6 +17,8 @@ import {
   CreditCard,
   UserCog,
   Shield,
+  ClipboardCheck,
+  TrendingUp,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -54,12 +56,12 @@ const nav = [
         path: '/matching',
         roles: ADMIN_ROLES,
       },
-      {
-        label: 'CRM / Cases',
-        icon: ClipboardList,
-        path: '/crm',
-        roles: ADMIN_ROLES,
-      },
+      // {
+      //   label: 'CRM / Cases',
+      //   icon: ClipboardList,
+      //   path: '/crm',
+      //   roles: ADMIN_ROLES,
+      // },
     ],
   },
   {
@@ -147,6 +149,30 @@ const nav = [
         icon: BarChart3,
         path: '/reports',
         roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN],
+      },
+    ],
+  },
+  {
+    section: 'Intake',
+    roles: ADMIN_ROLES,
+    items: [
+      {
+        label: 'Applications',
+        icon: ClipboardCheck,
+        path: '/intake',
+        roles: ADMIN_ROLES,
+      },
+    ],
+  },
+  {
+    section: 'Marketing',
+    roles: [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER_ADMIN],
+    items: [
+      {
+        label: 'Analytics',
+        icon: TrendingUp,
+        path: '/marketing',
+        roles: [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER_ADMIN],
       },
     ],
   },

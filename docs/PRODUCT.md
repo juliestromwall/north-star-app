@@ -15,6 +15,7 @@
 | Surrogate | Own journey, forms, messages, docs | Surrogate Dashboard, Forms, Documents, Messages, My Journey |
 | Surrogate Partner | Read-only view of surrogate's journey | Partner Dashboard, Documents, Messages, My Match |
 | Intended Parent | Own journey, shared profiles, messages | IP Dashboard, Forms, Documents, Messages, My Journey |
+| Marketing | Read-only analytics + intake submissions view | Marketing Dashboard, Intake Submissions |
 
 ## Key Flows
 
@@ -78,6 +79,30 @@
 5. Preview mode toggle
 6. Save Draft / Publish
 
+### Public: Apply as a Surrogate (GC Intake)
+1. Visit /apply → click "Apply to be a Surrogate"
+2. 5-step form: About You → Health & Lifestyle → Pregnancy History → Surrogacy Readiness → Final Details
+3. DQ check at submission — disqualified applicants see compassionate messaging; qualified proceed
+4. Confirmation page shows next steps (qualified) or compassionate denial (DQ)
+
+### Public: Apply as an Intended Parent (IP Intake)
+1. Visit /apply → click "Apply to be an Intended Parent"
+2. 5-step form: About You → Your Journey → Preferences → Financial Readiness → Final Details
+3. DQ check at submission — no confirmed financing plan triggers disqualification
+4. Confirmation page shows next steps (qualified) or compassionate denial (DQ)
+
+### Admin: Review Intake Submissions
+1. Sidebar → Applications → filter by type (GC/IP), status, or source
+2. Click row → detail dialog with all answers, DQ reasons highlighted
+3. Action buttons: Approve / Reject / Mark Pending
+
+### Marketing: View Analytics
+1. Sidebar → Analytics → Marketing Dashboard
+2. Toggle 30 / 60 / 90 / All time windows
+3. View conversion funnel: total submissions, qualified, DQ, conversion rate
+4. Source performance bar chart (Instagram, TikTok, Facebook, Google, Direct, Referral)
+5. GC vs IP split, DQ reasons breakdown, recent submissions table (privacy-safe)
+
 ## Pages
 
 | Page | Path | Roles | Status |
@@ -113,6 +138,12 @@
 | My Profile | /my-profile | surrogate, ip | Stub |
 | My Match | /my-match | surrogate, partner, ip | Stub |
 | Appointments | /appointments | surrogate, partner, ip | Stub |
+| Apply Landing | /apply | public | Built |
+| Surrogate Intake Form | /apply/surrogate | public | Built |
+| IP Intake Form | /apply/intended-parent | public | Built |
+| Intake Confirmation | /apply/confirmation | public | Built |
+| Intake Submissions | /intake | admin+ | Built |
+| Marketing Dashboard | /marketing | marketing, master_admin, super_admin | Built |
 
 ## Terminology
 
@@ -129,3 +160,10 @@
 | Task Category | Classification of a task: Medical, Legal, Admin, Financial, or Personal |
 | Task Source | Origin of a task: workflow (auto-generated per match stage), staff (assigned by agency staff), self (created by user) |
 | Admin Note | An announcement published by master_admin targeting all admins or specific admin users. Displayed as alert banners on the Dashboard. Dismissals persist in Supabase. Can be toggled active/inactive or deleted from Settings. |
+| UTM Parameters | URL query parameters (utm_source, utm_medium, utm_campaign, etc.) used to track marketing campaign attribution |
+| fbclid | Facebook/Instagram click ID — automatically appended to URLs from Facebook and Instagram ads |
+| ttclid | TikTok click ID — automatically appended to URLs from TikTok ads |
+| Intake Form | Public-facing multi-step application form for GC or IP applicants |
+| DQ / Disqualification | Automatic rejection triggered when applicant responses fail eligibility criteria |
+| Conversion Rate | Percentage of total intake submissions that result in a qualified (non-DQ) outcome |
+| Source | Marketing channel or campaign that drove an applicant to the intake form |
