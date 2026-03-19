@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
+import { Eye, EyeOff } from 'lucide-react'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const IP_COLOR = '#464DA0'
@@ -54,9 +55,11 @@ export default function IPIntakeForm() {
     openToFirstTimeSurrogate: null, openToMultiples: null, desiredInvolvement: '',
     budgetAcknowledged: false, financingConfirmed: null, desiredTimeline: '',
     hearAboutUs: '', preferredContact: '', additionalNotes: '', agreeToConsultation: false,
+    password: '', confirmPassword: '',
   })
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const [showPw, setShowPw] = useState(false)
   const toggleTag = (field, val) =>
     set(field, form[field].includes(val)
       ? form[field].filter(t => t !== val)
@@ -74,8 +77,9 @@ export default function IPIntakeForm() {
     form.desiredInvolvement
   const step4Valid =
     form.budgetAcknowledged && form.financingConfirmed !== null && form.desiredTimeline
+  const pwValid = form.password.length >= 8 && form.password === form.confirmPassword
   const step5Valid =
-    form.hearAboutUs && form.preferredContact && form.agreeToConsultation
+    form.hearAboutUs && form.preferredContact && form.agreeToConsultation && pwValid
   const stepValid = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
 
   function handleSubmit() {
@@ -327,6 +331,43 @@ export default function IPIntakeForm() {
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Anything else on your mind? <span className="normal-case font-normal text-stone-400">(optional)</span></Label>
         <Textarea value={form.additionalNotes} onChange={e => set('additionalNotes', e.target.value)} placeholder="Questions, context, or anything you'd like us to know..." rows={3} className="rounded-xl resize-none" />
+      </div>
+      <div className="space-y-3 rounded-xl border-2 border-stone-200 p-4" style={{ backgroundColor: '#f5f5fb' }}>
+        <div>
+          <p className="text-sm font-semibold text-stone-800">🔐 Create your portal password</p>
+          <p className="text-xs text-stone-400 mt-0.5">Only activates if you qualify — you'll use this to log in and track your journey.</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
+          <div className="relative">
+            <Input
+              type={showPw ? 'text' : 'password'}
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              placeholder="At least 8 characters"
+              className="rounded-xl h-11 pr-11"
+            />
+            <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
+          <Input
+            type="password"
+            value={form.confirmPassword}
+            onChange={e => set('confirmPassword', e.target.value)}
+            placeholder="Repeat your password"
+            className="rounded-xl h-11"
+          />
+          {form.confirmPassword && form.password !== form.confirmPassword && (
+            <p className="text-xs text-red-500">Passwords don't match</p>
+          )}
+          {form.confirmPassword && form.password === form.confirmPassword && form.password.length >= 8 && (
+            <p className="text-xs text-emerald-600">✓ Looks good!</p>
+          )}
+        </div>
       </div>
       <div
         className="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all"
