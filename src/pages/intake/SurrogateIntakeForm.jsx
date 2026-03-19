@@ -44,6 +44,7 @@ export default function SurrogateIntakeForm() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     firstName: '', lastName: '', dob: '', email: '', phone: '', state: '',
+    usCitizen: null,
     maritalStatus: '', preferredContact: '',
     heightFt: '', heightIn: '', weightLbs: '',
     healthyPregnancy: null,
@@ -56,7 +57,7 @@ export default function SurrogateIntakeForm() {
   const bmiVal = parseFloat(bmi)
   const bmiOk = bmi && bmiVal >= 19 && bmiVal <= 33
 
-  const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state
+  const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state && form.usCitizen !== null
   const step2Valid = form.maritalStatus && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
   const step4Valid = form.healthyPregnancy !== null
@@ -119,6 +120,17 @@ export default function SurrogateIntakeForm() {
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
         <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@example.com" className="rounded-xl h-11" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-stone-800 mb-1">Are you a US citizen or permanent resident?</p>
+        <YesNoGrid
+          value={form.usCitizen}
+          onChange={v => set('usCitizen', v)}
+          yesLabel="Yes"
+          noLabel="No"
+          accentColor={GC_COLOR}
+          accentFg={GC_FG}
+        />
       </div>
       <p className="text-xs text-stone-400 pt-1">We will only reach out to share your results. No spam, ever.</p>
     </QuizShell>
