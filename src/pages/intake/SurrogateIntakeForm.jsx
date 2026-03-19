@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGCDisqualifications } from '@/data/mock/intakeSubmissions'
-import { Eye, EyeOff } from 'lucide-react'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const GC_COLOR = '#FFB3AB'
@@ -56,11 +55,9 @@ export default function SurrogateIntakeForm() {
     heightFt: '', heightIn: '', weightLbs: '',
     healthyPregnancy: null,
     hearAboutUs: '', agreeBackgroundCheck: false,
-    password: '', confirmPassword: '',
   })
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
-  const [showPw, setShowPw] = useState(false)
 
+  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
   const bmi = calculateBMI(form.heightFt, form.heightIn, form.weightLbs)
   const bmiVal = parseFloat(bmi)
   const bmiOk = bmi && bmiVal >= 19 && bmiVal <= 33
@@ -69,8 +66,7 @@ export default function SurrogateIntakeForm() {
   const step2Valid = form.maritalStatus && form.ageRange && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
   const step4Valid = form.healthyPregnancy !== null
-  const pwValid = form.password.length >= 8 && form.password === form.confirmPassword
-  const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck && pwValid
+  const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck
   const stepValid = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
 
   function handleSubmit() {
@@ -229,43 +225,6 @@ export default function SurrogateIntakeForm() {
           ].map(opt => (
             <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} emoji={opt.emoji} accentColor={GC_COLOR} accentFg={GC_FG} />
           ))}
-        </div>
-      </div>
-      <div className="space-y-3 rounded-xl border-2 border-stone-200 p-4" style={{ backgroundColor: '#fff9f8' }}>
-        <div>
-          <p className="text-sm font-semibold text-stone-800">🔐 Create your portal password</p>
-          <p className="text-xs text-stone-400 mt-0.5">Only activates if you qualify — you'll use this to log in and track your application.</p>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
-          <div className="relative">
-            <Input
-              type={showPw ? 'text' : 'password'}
-              value={form.password}
-              onChange={e => set('password', e.target.value)}
-              placeholder="At least 8 characters"
-              className="rounded-xl h-11 pr-11"
-            />
-            <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
-              {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
-          <Input
-            type="password"
-            value={form.confirmPassword}
-            onChange={e => set('confirmPassword', e.target.value)}
-            placeholder="Repeat your password"
-            className="rounded-xl h-11"
-          />
-          {form.confirmPassword && form.password !== form.confirmPassword && (
-            <p className="text-xs text-red-500">Passwords don't match</p>
-          )}
-          {form.confirmPassword && form.password === form.confirmPassword && form.password.length >= 8 && (
-            <p className="text-xs text-emerald-600">✓ Looks good!</p>
-          )}
         </div>
       </div>
       <div

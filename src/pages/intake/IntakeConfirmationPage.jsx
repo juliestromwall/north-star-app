@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CheckCircle, Clock, Mail, Heart, ArrowLeft } from 'lucide-react'
+import { CheckCircle, Clock, Mail, Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const QUALIFIED_GC_STEPS = [
   { icon: Mail, label: 'Confirmation email sent', desc: 'Check your inbox for a welcome email with details about your application.' },
@@ -16,7 +19,13 @@ const QUALIFIED_IP_STEPS = [
 
 export default function IntakeConfirmationPage() {
   const { state } = useLocation()
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+  const [password, setPassword]               = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPw, setShowPw]                   = useState(false)
+  const [pwSaved, setPwSaved]                 = useState(false)
+
+  const pwValid = password.length >= 8 && password === confirmPassword
 
   // Guard: if navigated directly without state
   if (!state) {
@@ -129,6 +138,59 @@ export default function IntakeConfirmationPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Portal password setup */}
+        <div className="rounded-xl border-2 border-stone-200 p-5 text-left mb-6" style={{ backgroundColor: '#fdf8f3' }}>
+          <p className="text-sm font-semibold text-stone-800 mb-0.5">🔐 Set up your portal access</p>
+          <p className="text-xs text-stone-400 mb-4">Create a password so you can log in and track your application.</p>
+          {pwSaved ? (
+            <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium py-2">
+              <CheckCircle className="w-4 h-4" /> Password saved — you're all set!
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPw ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="rounded-xl h-11 pr-11"
+                  />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat your password"
+                  className="rounded-xl h-11"
+                />
+                {confirmPassword && !pwValid && (
+                  <p className="text-xs text-red-500">Passwords don't match or are too short</p>
+                )}
+                {confirmPassword && pwValid && (
+                  <p className="text-xs text-emerald-600">✓ Looks good!</p>
+                )}
+              </div>
+              <Button
+                onClick={() => pwValid && setPwSaved(true)}
+                disabled={!pwValid}
+                className="w-full h-10 rounded-xl text-sm font-semibold"
+                style={pwValid ? { backgroundColor: '#464DA0', color: '#fff' } : {}}
+              >
+                Save password
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
