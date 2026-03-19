@@ -157,8 +157,8 @@ export default function IntakeSubmissionsPage() {
 
   useEffect(() => {
     fetchIntakeSubmissions()
-      .then(data => setSubmissions(data && data.length > 0 ? data : mockIntakeSubmissions))
-      .catch(() => setSubmissions(mockIntakeSubmissions))
+      .then(data => setSubmissions(data || []))
+      .catch(() => setSubmissions([]))
       .finally(() => setLoading(false))
   }, [])
 

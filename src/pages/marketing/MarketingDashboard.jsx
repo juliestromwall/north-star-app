@@ -147,8 +147,8 @@ export default function MarketingDashboard() {
 
   useEffect(() => {
     fetchIntakeSubmissions()
-      .then(data => setAllSubmissions(data && data.length > 0 ? data : mockIntakeSubmissions))
-      .catch(() => setAllSubmissions(mockIntakeSubmissions))
+      .then(data => setAllSubmissions(data || []))
+      .catch(() => setAllSubmissions([]))
       .finally(() => setLoading(false))
   }, [])
 
