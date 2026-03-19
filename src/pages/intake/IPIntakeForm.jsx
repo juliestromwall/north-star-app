@@ -28,6 +28,24 @@ const FAMILY_TYPES = [
   { value: 'Single parent',       label: 'Single parent'          },
 ]
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim())
+}
+
+function isValidInternationalPhone(value) {
+  const trimmed = (value || '').trim()
+  if (!/^[+\d\s\-()./]+$/.test(trimmed)) return false
+  const digits = trimmed.replace(/\D/g, '')
+  return digits.length >= 7 && digits.length <= 15
+}
+
+function isValidPostalCode(country, value) {
+  const trimmed = (value || '').trim()
+  if (!trimmed) return false
+  if (country === 'United States') return /^\d{5}(?:-\d{4})?$/.test(trimmed)
+  return /^[A-Za-z0-9\s-]{3,12}$/.test(trimmed)
+}
+
 export default function IPIntakeForm() {
   const navigate   = useNavigate()
   const { state: navState } = useLocation()
@@ -45,11 +63,16 @@ export default function IPIntakeForm() {
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
   const isCouple = form.familyType && form.familyType !== 'Single parent'
+  const primaryEmailValid = isValidEmail(form.email)
+  const primaryPhoneValid = isValidInternationalPhone(form.phone)
+  const postalValid = isValidPostalCode(form.country, form.zipCode)
+  const partnerEmailValid = !isCouple || isValidEmail(form.ip2Email)
+  const partnerPhoneValid = !isCouple || isValidInternationalPhone(form.ip2Phone)
 
-  const step1Valid = form.familyType && form.primaryFirstName && form.primaryLastName && form.primaryDob && form.email && form.phone
-  const step2Valid = form.street && form.city && form.stateProv && form.zipCode
+  const step1Valid = form.familyType && form.primaryFirstName && form.primaryLastName && form.primaryDob && form.email && form.phone && primaryEmailValid && primaryPhoneValid
+  const step2Valid = form.street && form.city && form.stateProv && form.zipCode && postalValid
   const step3Valid = isCouple
-    ? form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone
+    ? form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone && partnerEmailValid && partnerPhoneValid
     : true
   const step4Valid = form.hasRE !== null && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
   const step5Valid = form.wantsConsultation !== null && form.hearAboutUs && form.agreeToConsultation
@@ -100,10 +123,16 @@ export default function IPIntakeForm() {
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
         <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" />
+        {form.email && !primaryEmailValid && (
+          <p className="text-xs text-red-500">Enter a valid email address</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach you</Label>
-        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 555-0100" className="rounded-xl h-11" />
+        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+44 20 7946 0958" className="rounded-xl h-11" />
+        {form.phone && !primaryPhoneValid && (
+          <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
+        )}
       </div>
       <p className="text-xs text-stone-400 pt-1">We will only reach out to share your results. No spam, ever.</p>
     </QuizShell>
@@ -148,6 +177,11 @@ export default function IPIntakeForm() {
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Zip / Postal code</Label>
           <Input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} placeholder="10001" className="rounded-xl h-11" />
+          {form.zipCode && !postalValid && (
+            <p className="text-xs text-red-500">
+              {form.country === 'United States' ? 'Enter a valid US ZIP code (e.g., 10001 or 10001-1234)' : 'Enter a valid postal code'}
+            </p>
+          )}
         </div>
       </div>
     </QuizShell>
@@ -179,10 +213,16 @@ export default function IPIntakeForm() {
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Partner email</Label>
             <Input type="email" value={form.ip2Email} onChange={e => set('ip2Email', e.target.value)} placeholder="partner@example.com" className="rounded-xl h-11" />
+            {form.ip2Email && !partnerEmailValid && (
+              <p className="text-xs text-red-500">Enter a valid email address</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach partner</Label>
-            <Input type="tel" value={form.ip2Phone} onChange={e => set('ip2Phone', e.target.value)} placeholder="(555) 555-0100" className="rounded-xl h-11" />
+            <Input type="tel" value={form.ip2Phone} onChange={e => set('ip2Phone', e.target.value)} placeholder="+44 20 7946 0958" className="rounded-xl h-11" />
+            {form.ip2Phone && !partnerPhoneValid && (
+              <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
+            )}
           </div>
         </>
       ) : (

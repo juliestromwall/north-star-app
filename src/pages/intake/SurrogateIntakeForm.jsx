@@ -37,6 +37,15 @@ function calculateBMI(ft, inches, lbs) {
   return ((lbs / (totalIn * totalIn)) * 703).toFixed(1)
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim())
+}
+
+function isValidUSPhone(value) {
+  const digits = (value || '').replace(/\D/g, '')
+  return digits.length === 10 || (digits.length === 11 && digits.startsWith('1'))
+}
+
 export default function SurrogateIntakeForm() {
   const navigate = useNavigate()
   const { state: navState } = useLocation()
@@ -56,8 +65,10 @@ export default function SurrogateIntakeForm() {
   const bmi = calculateBMI(form.heightFt, form.heightIn, form.weightLbs)
   const bmiVal = parseFloat(bmi)
   const bmiOk = bmi && bmiVal >= 19 && bmiVal <= 33
+  const emailValid = isValidEmail(form.email)
+  const phoneValid = isValidUSPhone(form.phone)
 
-  const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state && form.usCitizen !== null
+  const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state && form.usCitizen !== null && emailValid && phoneValid
   const step2Valid = form.maritalStatus && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
   const step4Valid = form.healthyPregnancy !== null
@@ -116,10 +127,16 @@ export default function SurrogateIntakeForm() {
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Phone number</Label>
         <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 555-0100" className="rounded-xl h-11" />
+        {form.phone && !phoneValid && (
+          <p className="text-xs text-red-500">Enter a valid US phone number</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
         <Input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@example.com" className="rounded-xl h-11" />
+        {form.email && !emailValid && (
+          <p className="text-xs text-red-500">Enter a valid email address</p>
+        )}
       </div>
       <div>
         <p className="text-sm font-medium text-stone-800 mb-1">Are you a US citizen or permanent resident?</p>
