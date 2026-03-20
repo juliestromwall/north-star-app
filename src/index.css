@@ -45,10 +45,10 @@
     --color-sidebar-ring: var(--sidebar-ring);
 
     /* Custom brand colors */
-    --color-abc-indigo: #464DA0;
-    --color-abc-coral: #FFB3AB;
+    --color-abc-indigo: #283693;
+    --color-abc-coral: #ed148c;
     --color-abc-cream: #FCF8EF;
-    --color-abc-navy: #2F324F;
+    --color-abc-navy: #283693;
 
     /* Fonts */
     --font-sans: 'Open Sans', sans-serif;
@@ -59,36 +59,36 @@
     --radius: 0.625rem;
     /* ABC Surrogacy Brand Theme */
     --background: #FCF8EF;
-    --foreground: #2F324F;
+    --foreground: #283693;
     --card: #FFFFFF;
-    --card-foreground: #2F324F;
+    --card-foreground: #283693;
     --popover: #FFFFFF;
-    --popover-foreground: #2F324F;
-    --primary: #464DA0;
+    --popover-foreground: #283693;
+    --primary: #283693;
     --primary-foreground: #FFFFFF;
     --secondary: #F0EDE4;
-    --secondary-foreground: #2F324F;
+    --secondary-foreground: #283693;
     --muted: #F0EDE4;
     --muted-foreground: #666666;
-    --accent: #FFB3AB;
-    --accent-foreground: #2F324F;
+    --accent: #ed148c;
+    --accent-foreground: #FFFFFF;
     --destructive: #DC2626;
     --border: #E5DFD3;
     --input: #E5DFD3;
-    --ring: #464DA0;
-    --chart-1: #464DA0;
-    --chart-2: #FFB3AB;
-    --chart-3: #2F324F;
+    --ring: #283693;
+    --chart-1: #283693;
+    --chart-2: #ed148c;
+    --chart-3: #283693;
     --chart-4: #8B8FBF;
-    --chart-5: #FFD4CF;
-    --sidebar: #2F324F;
+    --chart-5: #f9a8d4;
+    --sidebar: #283693;
     --sidebar-foreground: #E5DFD3;
-    --sidebar-primary: #FFB3AB;
-    --sidebar-primary-foreground: #2F324F;
-    --sidebar-accent: #3D4068;
+    --sidebar-primary: #ed148c;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #3347b0;
     --sidebar-accent-foreground: #FFFFFF;
-    --sidebar-border: #3D4068;
-    --sidebar-ring: #464DA0;
+    --sidebar-border: #3347b0;
+    --sidebar-ring: #283693;
 }
 
 @layer base {
