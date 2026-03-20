@@ -222,22 +222,11 @@ export default function MarketingDashboard() {
 
   // Volume over time
   const volumeData = useMemo(() => {
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const rangeDays = Math.round((end - start) / 86400000)
-    const byWeek = rangeDays > 60
-
     const buckets = {}
     filtered.forEach(s => {
       const d = new Date(s.submittedAt)
-      let key
-      if (byWeek) {
-        const day = new Date(d)
-        day.setDate(day.getDate() - ((day.getDay() + 6) % 7))
-        key = day.toISOString().slice(0, 10)
-      } else {
-        key = d.toISOString().slice(0, 10)
-      }
+      // Use local date parts to avoid UTC timezone shift
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       if (!buckets[key]) buckets[key] = { count: 0, qualifiedCount: 0 }
       buckets[key].count++
       if (['qualified', 'approved'].includes(s.status)) buckets[key].qualifiedCount++
