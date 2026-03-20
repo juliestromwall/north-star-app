@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
@@ -7,11 +8,56 @@ import { MATCH_STAGES } from '@/lib/constants'
 import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+// ─── Profile completion (mirrors SurrogateProfilePage logic) ───
+const PROFILE_REQUIRED = {
+  about: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'],
+  family: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'],
+  pregnancyHistory: ['numberOfPregnancies'],
+  fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
+  health: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'],
+  lifestyle: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
+  employment: ['currentlyEmployed', 'healthInsurance'],
+  preferences: ['previousSurrogate', 'reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
+}
+
+function getProfileCompletion(userId) {
+  try {
+    const raw = localStorage.getItem(`abc-surrogate-profile-${userId || 'anonymous'}`)
+    if (!raw) return 0
+    const data = JSON.parse(raw)
+    let total = 0, filled = 0
+    for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
+      total += fields.length
+      for (const f of fields) {
+        const val = data?.[section]?.[f]
+        if (val !== undefined && val !== '' && val !== null) filled++
+      }
+    }
+    return total > 0 ? Math.round((filled / total) * 100) : 0
+  } catch { return 0 }
+}
+
+function ProgressRing({ percent, size = 56 }) {
+  const r = (size - 6) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (percent / 100) * circ
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e7e5e4" strokeWidth={5} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#ed148c" strokeWidth={5}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        className="transition-all duration-700"
+      />
+      <text x="50%" y="50%" textAnchor="middle" dy=".35em" className="text-xs font-bold fill-stone-700">{percent}%</text>
+    </svg>
+  )
+}
+
 // A new surrogate who just signed up via the quiz has no journey data yet.
 // We detect this by checking if they're an auth user (real signup) vs a mock user.
 
 const ONBOARDING_STEPS = [
-  { id: 1, label: 'Complete your profile', desc: 'Add your personal details, photos, and preferences.', icon: UserCircle, link: '/my-profile', done: false },
   { id: 2, label: 'Upload documents', desc: 'Medical records, ID, and insurance information.', icon: Upload, link: '/documents', done: false },
   { id: 3, label: 'Review & sign forms', desc: 'Complete required agency forms and agreements.', icon: ClipboardList, link: '/forms', done: false },
 ]
@@ -24,13 +70,52 @@ export default function SurrogateDashboard() {
   // Real auth users see the onboarding/empty state
   // Mock users (dev role switcher) see the demo journey
   if (isAuthenticated) {
-    return <OnboardingDashboard name={firstName} />
+    return <OnboardingDashboard name={firstName} currentUser={currentUser} />
   }
 
   return <DemoJourneyDashboard name={firstName} />
 }
 
-function OnboardingDashboard({ name }) {
+function ProfileProgressCard({ userId }) {
+  const [percent, setPercent] = useState(0)
+  useEffect(() => {
+    setPercent(getProfileCompletion(userId))
+  }, [userId])
+
+  return (
+    <Link to="/my-profile" className="block">
+      <Card className="hover:shadow-md transition-shadow cursor-pointer border-stone-200">
+        <CardContent className="py-5">
+          <div className="flex items-center gap-5">
+            <ProgressRing percent={percent} />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-[#283693] text-lg">My Matching Profile</p>
+              <p className="text-sm text-stone-500 mt-0.5">
+                {percent === 0
+                  ? 'Start building your profile so intended parents can get to know you.'
+                  : percent === 100
+                  ? "Your profile is complete! We'll use this to find your perfect match."
+                  : 'Continue building your profile so intended parents can get to know you.'}
+              </p>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-stone-400 shrink-0">{percent}% complete</span>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-stone-300 shrink-0" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+function OnboardingDashboard({ name, currentUser }) {
   return (
     <div className="space-y-6">
       <PageHeader
@@ -54,6 +139,9 @@ function OnboardingDashboard({ name }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Profile progress */}
+      <ProfileProgressCard userId={currentUser?.id || currentUser?.email} />
 
       {/* Onboarding checklist */}
       <Card>
