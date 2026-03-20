@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  User, Home, Baby, Stethoscope, HeartPulse, Cigarette, Briefcase,
+  User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
   Heart, Camera, ChevronDown, CheckCircle2, Circle, Plus, Trash2,
   Ruler, Scale, CalendarDays, MapPin, Upload
 } from 'lucide-react'
@@ -195,13 +195,19 @@ const SECTION_META = [
   { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
   { key: 'fertility', title: 'Fertility & Medical Details', icon: Stethoscope, description: 'Reproductive health information' },
   { key: 'health', title: 'Health & Wellness', icon: HeartPulse, description: 'Mental health, medications, and conditions' },
-  { key: 'lifestyle', title: 'Lifestyle', icon: Cigarette, description: 'Daily habits and personal details' },
+  { key: 'lifestyle', title: 'Lifestyle', icon: Apple, description: 'Daily habits and personal details' },
   { key: 'employment', title: 'Employment & Finances', icon: Briefcase, description: 'Work and financial information' },
   { key: 'preferences', title: 'Surrogacy Preferences', icon: Heart, description: 'Your ideal surrogacy experience' },
   { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
 ]
 
 // Required fields per section for completion tracking
+const PREGNANCY_REQUIRED_FIELDS = ['outcome', 'dob', 'deliveryType', 'gestationWeeks', 'weight']
+
+function isPregnancyComplete(p) {
+  return PREGNANCY_REQUIRED_FIELDS.every(f => p[f] && p[f] !== '')
+}
+
 const REQUIRED_FIELDS = {
   about: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'],
   family: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'],
@@ -221,6 +227,15 @@ function countCompleted(data, sectionKey) {
   for (const f of fields) {
     const val = data?.[sectionKey]?.[f]
     if (val !== undefined && val !== '' && val !== null) filled++
+  }
+  // Special: pregnancy section requires all pregnancy details filled
+  if (sectionKey === 'pregnancyHistory') {
+    const numPreg = parseInt(data?.pregnancyHistory?.numberOfPregnancies) || 0
+    const pregnancies = data?.pregnancyHistory?.pregnancies || []
+    if (numPreg < 1) return { filled: 0, total: 1, complete: false }
+    const completedPregs = pregnancies.filter(p => isPregnancyComplete(p)).length
+    const allPregsComplete = completedPregs >= numPreg
+    return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
   }
   return { filled, total: fields.length, complete: filled === fields.length }
 }
@@ -482,82 +497,167 @@ function FamilySection({ v, u }) {
 // ─────────────────────────────────────────────────────────
 function PregnancyHistorySection({ v, u, profile, setProfile }) {
   const s = 'pregnancyHistory'
-  const children = profile?.pregnancyHistory?.children || []
+  const pregnancies = profile?.pregnancyHistory?.pregnancies || []
+  const numberOfPregnancies = parseInt(v(s, 'numberOfPregnancies')) || 0
+  const [expandedIdx, setExpandedIdx] = useState(null)
 
-  const addChild = () => {
+  // Ensure pregnancy slots exist when count changes
+  useEffect(() => {
+    if (numberOfPregnancies < 1) return
+    const current = profile?.pregnancyHistory?.pregnancies || []
+    if (current.length >= numberOfPregnancies) return
+    const newSlots = []
+    for (let i = current.length; i < numberOfPregnancies; i++) {
+      newSlots.push({
+        id: Date.now() + i, name: '', dob: '', sex: '', outcome: '', deliveryType: '',
+        singleOrMultiples: 'Single', weight: '', length: '', gestationWeeks: '',
+        surrogateDelivery: '', cyclesToConceive: '', complications: ''
+      })
+    }
     setProfile(prev => ({
       ...prev,
       pregnancyHistory: {
         ...prev.pregnancyHistory,
-        children: [...(prev.pregnancyHistory?.children || []), {
-          id: Date.now(), name: '', dob: '', sex: '', deliveryType: '', singleOrMultiples: '',
-          weight: '', length: '', gestationWeeks: '', surrogateDelivery: '', complications: ''
-        }]
+        pregnancies: [...current, ...newSlots].slice(0, numberOfPregnancies)
       }
     }))
-  }
+  }, [numberOfPregnancies])
 
-  const updateChild = (id, field, value) => {
+  const updatePregnancy = (idx, field, value) => {
     setProfile(prev => ({
       ...prev,
       pregnancyHistory: {
         ...prev.pregnancyHistory,
-        children: (prev.pregnancyHistory?.children || []).map(c =>
-          c.id === id ? { ...c, [field]: value } : c
+        pregnancies: (prev.pregnancyHistory?.pregnancies || []).map((p, i) =>
+          i === idx ? { ...p, [field]: value } : p
         )
       }
     }))
   }
 
-  const removeChild = (id) => {
-    setProfile(prev => ({
-      ...prev,
-      pregnancyHistory: {
-        ...prev.pregnancyHistory,
-        children: (prev.pregnancyHistory?.children || []).filter(c => c.id !== id)
-      }
-    }))
-  }
+  const filledCount = pregnancies.filter(p => isPregnancyComplete(p)).length
 
   return (
     <div className="space-y-6">
-      <TextField label="Total number of pregnancies" value={v(s, 'numberOfPregnancies')} onChange={u(s, 'numberOfPregnancies')}
-        type="number" className="max-w-xs" />
+      <div className="max-w-xs">
+        <Field label="Total number of pregnancies">
+          <p className="text-xs text-stone-400 -mt-1 mb-1.5">Include every time you've been pregnant — live births, miscarriages, terminations, stillborns, ectopic pregnancies, etc.</p>
+          <Input
+            type="number"
+            min="0"
+            max="20"
+            value={v(s, 'numberOfPregnancies')}
+            onChange={e => u(s, 'numberOfPregnancies')(e.target.value)}
+            className="rounded-xl h-11"
+          />
+        </Field>
+      </div>
 
-      {children.map((child, idx) => (
-        <div key={child.id} className="rounded-xl border border-gray-200 bg-[#faf8f5] p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="font-semibold text-[#283693]">Pregnancy {idx + 1}</h4>
-            <Button variant="ghost" size="sm" onClick={() => removeChild(child.id)} className="text-red-400 hover:text-red-600">
-              <Trash2 className="w-4 h-4" />
-            </Button>
+      {numberOfPregnancies > 0 && (
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-stone-700">Enter details for each pregnancy:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Array.from({ length: numberOfPregnancies }).map((_, idx) => {
+              const p = pregnancies[idx] || {}
+              const complete = isPregnancyComplete(p)
+              const hasData = p.outcome || p.dob
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+                  className={`text-left rounded-xl border-2 p-4 transition-all ${
+                    expandedIdx === idx
+                      ? 'border-[#283693] bg-[#283693]/5 shadow-md'
+                      : complete
+                      ? 'border-emerald-300 bg-emerald-50 hover:shadow-sm'
+                      : hasData
+                      ? 'border-amber-300 bg-amber-50 hover:shadow-sm'
+                      : 'border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-stone-800">Pregnancy #{idx + 1}</span>
+                    {complete ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-stone-300" />
+                    )}
+                  </div>
+                  {p.outcome ? (
+                    <p className="text-xs text-stone-500 mt-1">{p.outcome}{p.name ? ` — ${p.name}` : ''}</p>
+                  ) : (
+                    <p className="text-xs text-stone-400 mt-1">Click to enter details</p>
+                  )}
+                </button>
+              )
+            })}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField label="Child's Name" value={child.name} onChange={(val) => updateChild(child.id, 'name', val)} />
-            <TextField label="Date of Birth" value={child.dob} onChange={(val) => updateChild(child.id, 'dob', val)} type="date" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <SelectField label="Sex" value={child.sex} onChange={(val) => updateChild(child.id, 'sex', val)}
-              options={['Male', 'Female']} />
-            <SelectField label="Delivery Type" value={child.deliveryType} onChange={(val) => updateChild(child.id, 'deliveryType', val)}
-              options={['Vaginal', 'C-Section']} />
-            <SelectField label="Single or Multiples" value={child.singleOrMultiples} onChange={(val) => updateChild(child.id, 'singleOrMultiples', val)}
-              options={['Single', 'Twins', 'Triplets+']} />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <TextField label="Birth Weight" value={child.weight} onChange={(val) => updateChild(child.id, 'weight', val)} placeholder="lbs oz" />
-            <TextField label="Birth Length" value={child.length} onChange={(val) => updateChild(child.id, 'length', val)} placeholder="inches" />
-            <TextField label="Gestation (weeks)" value={child.gestationWeeks} onChange={(val) => updateChild(child.id, 'gestationWeeks', val)} type="number" />
-          </div>
-          <YesNoField label="Was this a surrogate delivery?" value={child.surrogateDelivery} onChange={(val) => updateChild(child.id, 'surrogateDelivery', val)} />
-          <TextAreaField label="Complications" value={child.complications} onChange={(val) => updateChild(child.id, 'complications', val)}
-            placeholder="Any complications during pregnancy or delivery" rows={2} />
+
+          {/* Expanded pregnancy detail form */}
+          {expandedIdx !== null && expandedIdx < numberOfPregnancies && (
+            <div className="rounded-xl border-2 border-[#283693] bg-white p-5 space-y-4 shadow-lg mt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-[#283693] text-lg">Pregnancy #{expandedIdx + 1} Details</h4>
+                <Button variant="ghost" size="sm" onClick={() => setExpandedIdx(null)} className="text-stone-400 text-xs">
+                  Done
+                </Button>
+              </div>
+
+              <SelectField label="Pregnancy Outcome" value={pregnancies[expandedIdx]?.outcome || ''} onChange={val => updatePregnancy(expandedIdx, 'outcome', val)}
+                options={['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination', 'Surrogate Delivery']} />
+
+              {pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery' && (
+                <TextField label="Cycles to conceive" value={pregnancies[expandedIdx]?.cyclesToConceive || ''} onChange={val => updatePregnancy(expandedIdx, 'cyclesToConceive', val)} type="number" className="max-w-xs" />
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField label={pregnancies[expandedIdx]?.outcome === 'Live Birth' || pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery' ? "Child's Name" : "Notes (optional)"} value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. 8 weeks along' : ''} />
+                <TextField label="Date (DOB or date of event)" value={pregnancies[expandedIdx]?.dob || ''} onChange={val => updatePregnancy(expandedIdx, 'dob', val)} type="date" />
+              </div>
+
+              {(pregnancies[expandedIdx]?.outcome === 'Live Birth' || pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery') && (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <SelectField label="Sex" value={pregnancies[expandedIdx]?.sex || ''} onChange={val => updatePregnancy(expandedIdx, 'sex', val)}
+                      options={['Male', 'Female']} />
+                    <SelectField label="Delivery Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
+                      options={['Vaginal', 'C-Section']} />
+                    <SelectField label="Single or Multiples" value={pregnancies[expandedIdx]?.singleOrMultiples || ''} onChange={val => updatePregnancy(expandedIdx, 'singleOrMultiples', val)}
+                      options={['Single', 'Twins', 'Triplets+']} />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <TextField label="Birth Weight" value={pregnancies[expandedIdx]?.weight || ''} onChange={val => updatePregnancy(expandedIdx, 'weight', val)} placeholder="e.g. 7 lbs 4 oz" />
+                    <TextField label="Birth Length" value={pregnancies[expandedIdx]?.length || ''} onChange={val => updatePregnancy(expandedIdx, 'length', val)} placeholder="inches" />
+                    <TextField label="Gestation (weeks)" value={pregnancies[expandedIdx]?.gestationWeeks || ''} onChange={val => updatePregnancy(expandedIdx, 'gestationWeeks', val)} type="number" />
+                  </div>
+                </>
+              )}
+
+              {(pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Stillborn' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' || pregnancies[expandedIdx]?.outcome === 'Termination') && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <TextField label="Gestation at time (weeks)" value={pregnancies[expandedIdx]?.gestationWeeks || ''} onChange={val => updatePregnancy(expandedIdx, 'gestationWeeks', val)} type="number" />
+                  <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
+                    options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
+                </div>
+              )}
+
+              <TextAreaField label="Complications or additional details" value={pregnancies[expandedIdx]?.complications || ''} onChange={val => updatePregnancy(expandedIdx, 'complications', val)}
+                placeholder="Any complications during pregnancy, delivery, or recovery" rows={2} />
+
+              <div className="flex justify-end">
+                <Button onClick={() => setExpandedIdx(null)} className="gap-2 rounded-xl" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                  <CheckCircle2 className="w-4 h-4" /> Save & Close
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {numberOfPregnancies > 0 && (
+            <p className="text-xs text-stone-400">{filledCount} of {numberOfPregnancies} pregnancies completed</p>
+          )}
         </div>
-      ))}
-
-      <Button variant="outline" onClick={addChild} className="gap-2">
-        <Plus className="w-4 h-4" /> Add Pregnancy
-      </Button>
+      )}
     </div>
   )
 }
