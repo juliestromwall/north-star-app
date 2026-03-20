@@ -61,11 +61,13 @@
 | intakeSubmissions | src/data/mock/intakeSubmissions.js | 20 mock intake submissions (11 GC, 9 IP) with UTM/fbclid/ttclid tracking, DQ reasons, statuses, and helper functions |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Admin time clock page (/time-clock): clock in/out with live HH:MM:SS timer and pulsing indicator, bi-weekly pay period summary (total hours, days worked, avg daily), time entries table with prev/next period navigation, status badges (pending/approved/edited), edit entry dialog with time inputs and live hours preview, master_admin/super_admin staff selector dropdown |
 | timeClockData | src/data/mock/timeClockData.js | Mock data for time clock: staff list (from mockUsers), 4 bi-weekly pay periods (Jan 19 – Mar 15, 2026), ~25 time entries across staff/periods, helper functions (getCurrentPayPeriod, calculateHours, formatTime12h) |
+| SurrogateProfilePage | src/pages/profile/SurrogateProfilePage.jsx | Surrogate "My Profile" page (/my-profile): 9-section collapsible profile builder (About Me, Family, Pregnancy History, Fertility, Health, Lifestyle, Employment, Surrogacy Preferences, Photos). Progress ring + bar, completion tracking per section, auto-save to localStorage, BMI auto-calc, repeatable pregnancy cards. |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-20 | Surrogate Profile page: 9-section collapsible matching profile builder with progress tracking, localStorage persistence, auto-calculated BMI, repeatable pregnancy history cards, and photo upload placeholders |
 | 2026-03-18 | Intake form system: public GC + IP multi-step forms with DQ logic, confirmation page, ad tracking (UTM/fbclid/ttclid). Admin intake submissions review page. Marketing analytics dashboard. Marketing role + mock user added. |
 | 2026-03-03 | Time Clock page: admin clock in/out with live timer, bi-weekly pay period tracking, time entries table with edit dialog, staff selector for master admins. Mock data (no backend). |
 | 2026-03-03 | Calendar page: monthly grid view with 5 event types, event detail dialog, upcoming sidebar, month navigation |

@@ -79,6 +79,14 @@
 5. Preview mode toggle
 6. Save Draft / Publish
 
+### Surrogate: Build Matching Profile
+1. Sidebar → My Profile → collapsible section cards
+2. 9 sections: About Me, Family & Household, Pregnancy History, Fertility & Medical, Health & Wellness, Lifestyle, Employment & Finances, Surrogacy Preferences, Photos
+3. Progress ring and bar show overall completion percentage
+4. Each section header shows filled/total fields and checkmark when complete
+5. Click section to expand, fill fields — data auto-saves to localStorage
+6. Repeatable pregnancy cards with add/remove in Pregnancy History section
+
 ### Public: Apply as a Surrogate (GC Intake)
 1. Visit /apply → click "Apply to be a Surrogate"
 2. 5-step form: About You → Health & Lifestyle → Pregnancy History → Surrogacy Readiness → Final Details
@@ -135,7 +143,7 @@
 | Reports | /reports | master_admin+ | Stub |
 | Settings | /settings | master_admin+ | Built |
 | System | /system | super_admin | Stub |
-| My Profile | /my-profile | surrogate, ip | Stub |
+| My Profile | /my-profile | surrogate | Built |
 | My Match | /my-match | surrogate, partner, ip | Stub |
 | Appointments | /appointments | surrogate, partner, ip | Stub |
 | Apply Landing | /apply | public | Built |

@@ -23,6 +23,7 @@ import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
 import IntakeSubmissionsPage from './pages/intake/IntakeSubmissionsPage'
 import MarketingDashboard from './pages/marketing/MarketingDashboard'
 import LoginPage from './pages/auth/LoginPage'
+import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -35,7 +36,6 @@ const stubs = [
   { path: '/financials', title: 'Financials' },
   { path: '/reports', title: 'Reports' },
   { path: '/system', title: 'System' },
-  { path: '/my-profile', title: 'My Profile' },
   { path: '/my-match', title: 'My Match' },
   { path: '/appointments', title: 'Appointments' },
 ]
@@ -71,6 +71,7 @@ export default function App() {
         <Route path="/time-clock" element={<TimeClockPage />} />
         <Route path="/intake" element={<IntakeSubmissionsPage />} />
         <Route path="/marketing" element={<MarketingDashboard />} />
+        <Route path="/my-profile" element={<SurrogateProfilePage />} />
         {stubs.map(s => (
           <Route
             key={s.path}
