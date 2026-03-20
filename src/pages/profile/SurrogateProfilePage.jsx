@@ -212,7 +212,7 @@ const REQUIRED_FIELDS = {
   about: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'],
   family: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'],
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['numberOfPregnancies_f', 'liveBirths', 'contraceptiveMethod', 'cycleLength'],
+  fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
   health: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'],
   lifestyle: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
   employment: ['currentlyEmployed', 'healthInsurance'],
@@ -418,7 +418,7 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
     case 'about': return <AboutSection v={v} u={u} />
     case 'family': return <FamilySection v={v} u={u} />
     case 'pregnancyHistory': return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
-    case 'fertility': return <FertilitySection v={v} u={u} />
+    case 'fertility': return <FertilitySection v={v} u={u} profile={profile} />
     case 'health': return <HealthSection v={v} u={u} />
     case 'lifestyle': return <LifestyleSection v={v} u={u} />
     case 'employment': return <EmploymentSection v={v} u={u} />
@@ -706,8 +706,14 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
 // ─────────────────────────────────────────────────────────
 // 4. Fertility & Medical Details
 // ─────────────────────────────────────────────────────────
-function FertilitySection({ v, u }) {
+function FertilitySection({ v, u, profile }) {
   const s = 'fertility'
+  const pregnancies = profile?.pregnancyHistory?.pregnancies || []
+  const totalPregnancies = parseInt(profile?.pregnancyHistory?.numberOfPregnancies) || 0
+  const liveBirths = pregnancies.filter(p => p.outcome === 'Live Birth').length
+  const miscarriages = pregnancies.filter(p => ['Miscarriage', 'Ectopic Pregnancy', 'Stillborn'].includes(p.outcome)).length
+  const terminations = pregnancies.filter(p => p.outcome === 'Termination').length
+
   const complications = [
     'C-Section', 'Ectopic Pregnancy', 'Gestational Diabetes', 'High Blood Pressure',
     'IUGR', 'Bed Rest', 'Placenta Previa', 'Postpartum Depression', 'Premature Birth',
@@ -715,13 +721,29 @@ function FertilitySection({ v, u }) {
   ]
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <TextField label="Pregnancies" value={v(s, 'numberOfPregnancies_f')} onChange={u(s, 'numberOfPregnancies_f')} type="number" />
-        <TextField label="Live Births" value={v(s, 'liveBirths')} onChange={u(s, 'liveBirths')} type="number" />
-        <TextField label="Miscarriages" value={v(s, 'miscarriages')} onChange={u(s, 'miscarriages')} type="number" />
-        <TextField label="Abortions" value={v(s, 'abortions')} onChange={u(s, 'abortions')} type="number" />
-      </div>
-      <YesNoField label="Is the biological father the same for all pregnancies?" value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
+      {totalPregnancies > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-center">
+            <p className="text-2xl font-bold text-[#283693]">{totalPregnancies}</p>
+            <p className="text-xs text-stone-500 mt-1">Pregnancies</p>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-center">
+            <p className="text-2xl font-bold text-emerald-600">{liveBirths}</p>
+            <p className="text-xs text-stone-500 mt-1">Live Births</p>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-center">
+            <p className="text-2xl font-bold text-amber-600">{miscarriages}</p>
+            <p className="text-xs text-stone-500 mt-1">Miscarriages</p>
+          </div>
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 text-center">
+            <p className="text-2xl font-bold text-stone-600">{terminations}</p>
+            <p className="text-xs text-stone-500 mt-1">Terminations</p>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-stone-400 italic">Complete the Pregnancy History section above to auto-fill these counts.</p>
+      )}
+      <YesNoField label="For your own biological children, is the biological father the same for all?" value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
       <TextAreaField label="Pregnancy Details" value={v(s, 'pregnancyDetails')} onChange={u(s, 'pregnancyDetails')}
         placeholder="Additional details about your pregnancies" rows={3} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
