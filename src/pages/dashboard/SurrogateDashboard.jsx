@@ -35,7 +35,7 @@ function OnboardingDashboard({ name }) {
     <div className="space-y-6">
       <PageHeader
         title={`Welcome, ${name}!`}
-        subtitle="We're excited to have you. Let's get your profile set up."
+        subtitle="We're so glad you're here. Take a look around — this is your portal."
       />
 
       {/* Welcome banner */}
@@ -48,7 +48,7 @@ function OnboardingDashboard({ name }) {
             <div>
               <p className="font-semibold text-[#283693] text-lg">You're off to a great start!</p>
               <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                Our team is reviewing your results. While you wait, complete the steps below so we can match you with the perfect family as quickly as possible.
+                Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to explore your portal. If you'd like to get a head start, you can begin filling out your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
               </p>
             </div>
           </div>
@@ -58,8 +58,8 @@ function OnboardingDashboard({ name }) {
       {/* Onboarding checklist */}
       <Card>
         <CardHeader>
-          <CardTitle>Getting Started</CardTitle>
-          <CardDescription>Complete these steps to finish your profile</CardDescription>
+          <CardTitle>Whenever You're Ready</CardTitle>
+          <CardDescription>These are optional for now — complete them at your own pace</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
