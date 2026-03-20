@@ -268,9 +268,14 @@ export default function SurrogateProfilePage() {
     const existing = loadProfile(userId)
     // Only pre-fill if profile is mostly empty (first visit)
     if (existing?.about?.firstName) return
+    const STATE_ABBR_TO_NAME = {
+      AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+    }
     fetchIntakeByEmail(currentUser.email).then(answers => {
       if (!answers) return
       const bmi = calculateBMI(answers.heightFt, answers.heightIn, answers.weightLbs)
+      const rawState = answers.state || ''
+      const state = STATE_ABBR_TO_NAME[rawState.toUpperCase()] || rawState
       setProfile(prev => ({
         ...prev,
         about: {
@@ -278,7 +283,7 @@ export default function SurrogateProfilePage() {
           firstName: answers.firstName || '',
           dob: answers.dob || '',
           city: answers.city || '',
-          state: answers.state || '',
+          state,
           heightFt: answers.heightFt?.toString() || '',
           heightIn: answers.heightIn?.toString() || '',
           weight: answers.weightLbs?.toString() || '',
