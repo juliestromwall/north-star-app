@@ -744,8 +744,6 @@ function FertilitySection({ v, u, profile }) {
         <p className="text-sm text-stone-400 italic">Complete the Pregnancy History section above to auto-fill these counts.</p>
       )}
       <YesNoField label="For your own biological children, is the biological father the same for all?" value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
-      <TextAreaField label="Pregnancy Details" value={v(s, 'pregnancyDetails')} onChange={u(s, 'pregnancyDetails')}
-        placeholder="Additional details about your pregnancies" rows={3} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="Longest Hospital Stay After Delivery" value={v(s, 'hospitalStay')} onChange={u(s, 'hospitalStay')} placeholder="e.g. 2 days" />
         <YesNoField label="Infections after delivery?" value={v(s, 'infectionsAfterDelivery')} onChange={u(s, 'infectionsAfterDelivery')} />
