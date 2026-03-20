@@ -18,18 +18,18 @@ import {
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail } from '@/lib/db'
 
-// ─── Storage key ───
-const STORAGE_KEY = 'abc-surrogate-profile'
-
-// ─── Helper: load / save ───
-function loadProfile() {
+// ─── Helper: load / save (per-user) ───
+function getStorageKey(userId) {
+  return `abc-surrogate-profile-${userId || 'anonymous'}`
+}
+function loadProfile(userId) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(getStorageKey(userId))
     return raw ? JSON.parse(raw) : {}
   } catch { return {} }
 }
-function saveProfile(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function saveProfile(userId, data) {
+  localStorage.setItem(getStorageKey(userId), JSON.stringify(data))
 }
 
 // ─────────────────────────────────────────────────────────
@@ -252,14 +252,20 @@ function calculateBMI(ft, inches, lbs) {
 }
 
 export default function SurrogateProfilePage() {
-  const [profile, setProfile] = useState(loadProfile)
-  const [openSections, setOpenSections] = useState({ about: true })
   const { currentUser } = useRole()
+  const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [profile, setProfile] = useState(() => loadProfile(userId))
+  const [openSections, setOpenSections] = useState({ about: true })
+
+  // Reload profile when user changes
+  useEffect(() => {
+    setProfile(loadProfile(userId))
+  }, [userId])
 
   // Pre-fill from intake quiz answers on first load
   useEffect(() => {
     if (!currentUser?.email) return
-    const existing = loadProfile()
+    const existing = loadProfile(userId)
     // Only pre-fill if profile is mostly empty (first visit)
     if (existing?.about?.firstName) return
     fetchIntakeByEmail(currentUser.email).then(answers => {
@@ -287,10 +293,10 @@ export default function SurrogateProfilePage() {
     })
   }, [currentUser?.email])
 
-  // Auto-save on change
+  // Auto-save on change (per-user)
   useEffect(() => {
-    saveProfile(profile)
-  }, [profile])
+    saveProfile(userId, profile)
+  }, [profile, userId])
 
   const updateSection = useCallback((section, field, value) => {
     setProfile(prev => ({
