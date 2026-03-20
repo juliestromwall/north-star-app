@@ -202,10 +202,10 @@ const SECTION_META = [
 ]
 
 // Required fields per section for completion tracking
-const PREGNANCY_REQUIRED_FIELDS = ['outcome', 'dob', 'deliveryType', 'gestationWeeks', 'weight']
-
 function isPregnancyComplete(p) {
-  return PREGNANCY_REQUIRED_FIELDS.every(f => p[f] && p[f] !== '')
+  if (!p.outcome || !p.dob || !p.gestationWeeks || !p.deliveryType) return false
+  if (p.outcome === 'Live Birth' && !p.weight) return false
+  return true
 }
 
 const REQUIRED_FIELDS = {
@@ -275,7 +275,7 @@ export default function SurrogateProfilePage() {
           state: answers.state || '',
           heightFt: answers.heightFt?.toString() || '',
           heightIn: answers.heightIn?.toString() || '',
-          weightLbs: answers.weightLbs?.toString() || '',
+          weight: answers.weightLbs?.toString() || '',
           bmi: bmi || '',
         },
         family: {
@@ -510,8 +510,8 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
     for (let i = current.length; i < numberOfPregnancies; i++) {
       newSlots.push({
         id: Date.now() + i, name: '', dob: '', sex: '', outcome: '', deliveryType: '',
-        singleOrMultiples: 'Single', weight: '', length: '', gestationWeeks: '',
-        surrogateDelivery: '', cyclesToConceive: '', complications: ''
+        singleOrMultiples: 'Single', weight: '', length: '', gestationWeeks: '', gestationDays: '',
+        wasSurrogacy: '', cyclesToConceive: '', complications: ''
       })
     }
     setProfile(prev => ({
@@ -585,7 +585,11 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     )}
                   </div>
                   {p.outcome ? (
-                    <p className="text-xs text-stone-500 mt-1">{p.outcome}{p.name ? ` — ${p.name}` : ''}</p>
+                    <p className="text-xs text-stone-500 mt-1">
+                      {p.outcome}{p.name ? ` — ${p.name}` : ''}
+                      {p.wasSurrogacy === 'yes' ? ' (surrogacy)' : ''}
+                      {p.gestationWeeks ? ` · ${p.gestationWeeks}w${p.gestationDays ? `${p.gestationDays}d` : ''}` : ''}
+                    </p>
                   ) : (
                     <p className="text-xs text-stone-400 mt-1">Click to enter details</p>
                   )}
@@ -605,18 +609,45 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
               </div>
 
               <SelectField label="Pregnancy Outcome" value={pregnancies[expandedIdx]?.outcome || ''} onChange={val => updatePregnancy(expandedIdx, 'outcome', val)}
-                options={['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination', 'Surrogate Delivery']} />
+                options={['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination']} />
 
-              {pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery' && (
+              <YesNoField label="Was this a surrogacy pregnancy?" value={pregnancies[expandedIdx]?.wasSurrogacy || ''} onChange={val => updatePregnancy(expandedIdx, 'wasSurrogacy', val)} />
+
+              {pregnancies[expandedIdx]?.wasSurrogacy === 'yes' && (
                 <TextField label="Cycles to conceive" value={pregnancies[expandedIdx]?.cyclesToConceive || ''} onChange={val => updatePregnancy(expandedIdx, 'cyclesToConceive', val)} type="number" className="max-w-xs" />
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField label={pregnancies[expandedIdx]?.outcome === 'Live Birth' || pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery' ? "Child's Name" : "Notes (optional)"} value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. 8 weeks along' : ''} />
+                <TextField label={pregnancies[expandedIdx]?.outcome === 'Live Birth' ? "Child's Name" : "Notes (optional)"} value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. how far along' : ''} />
                 <TextField label="Date (DOB or date of event)" value={pregnancies[expandedIdx]?.dob || ''} onChange={val => updatePregnancy(expandedIdx, 'dob', val)} type="date" />
               </div>
 
-              {(pregnancies[expandedIdx]?.outcome === 'Live Birth' || pregnancies[expandedIdx]?.outcome === 'Surrogate Delivery') && (
+              {/* Gestation: weeks + days */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                  {pregnancies[expandedIdx]?.outcome === 'Live Birth' ? 'Gestation at delivery' : 'Gestation at time'}
+                </Label>
+                <div className="flex items-center gap-2 max-w-xs">
+                  <Input
+                    type="number" min="0" max="45"
+                    value={pregnancies[expandedIdx]?.gestationWeeks || ''}
+                    onChange={e => updatePregnancy(expandedIdx, 'gestationWeeks', e.target.value)}
+                    className="rounded-xl h-11 w-20"
+                    placeholder="39"
+                  />
+                  <span className="text-sm text-stone-500">weeks</span>
+                  <Input
+                    type="number" min="0" max="6"
+                    value={pregnancies[expandedIdx]?.gestationDays || ''}
+                    onChange={e => updatePregnancy(expandedIdx, 'gestationDays', e.target.value)}
+                    className="rounded-xl h-11 w-20"
+                    placeholder="6"
+                  />
+                  <span className="text-sm text-stone-500">days</span>
+                </div>
+              </div>
+
+              {pregnancies[expandedIdx]?.outcome === 'Live Birth' && (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <SelectField label="Sex" value={pregnancies[expandedIdx]?.sex || ''} onChange={val => updatePregnancy(expandedIdx, 'sex', val)}
@@ -626,20 +657,16 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     <SelectField label="Single or Multiples" value={pregnancies[expandedIdx]?.singleOrMultiples || ''} onChange={val => updatePregnancy(expandedIdx, 'singleOrMultiples', val)}
                       options={['Single', 'Twins', 'Triplets+']} />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <TextField label="Birth Weight" value={pregnancies[expandedIdx]?.weight || ''} onChange={val => updatePregnancy(expandedIdx, 'weight', val)} placeholder="e.g. 7 lbs 4 oz" />
                     <TextField label="Birth Length" value={pregnancies[expandedIdx]?.length || ''} onChange={val => updatePregnancy(expandedIdx, 'length', val)} placeholder="inches" />
-                    <TextField label="Gestation (weeks)" value={pregnancies[expandedIdx]?.gestationWeeks || ''} onChange={val => updatePregnancy(expandedIdx, 'gestationWeeks', val)} type="number" />
                   </div>
                 </>
               )}
 
               {(pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Stillborn' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' || pregnancies[expandedIdx]?.outcome === 'Termination') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <TextField label="Gestation at time (weeks)" value={pregnancies[expandedIdx]?.gestationWeeks || ''} onChange={val => updatePregnancy(expandedIdx, 'gestationWeeks', val)} type="number" />
-                  <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
-                    options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
-                </div>
+                <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
+                  options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
               )}
 
               <TextAreaField label="Complications or additional details" value={pregnancies[expandedIdx]?.complications || ''} onChange={val => updatePregnancy(expandedIdx, 'complications', val)}
