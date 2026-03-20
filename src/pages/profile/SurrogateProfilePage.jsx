@@ -625,7 +625,12 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
               {/* Gestation: weeks + days */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  {pregnancies[expandedIdx]?.outcome === 'Live Birth' ? 'Gestation at delivery' : 'Gestation at time'}
+                  {pregnancies[expandedIdx]?.outcome === 'Live Birth' ? 'Gestation at time of delivery'
+                    : pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'Gestation at time of miscarriage'
+                    : pregnancies[expandedIdx]?.outcome === 'Termination' ? 'Gestation at time of termination'
+                    : pregnancies[expandedIdx]?.outcome === 'Stillborn' ? 'Gestation at time of stillbirth'
+                    : pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' ? 'Gestation at time of ectopic pregnancy'
+                    : 'Gestation'}
                 </Label>
                 <div className="flex items-center gap-2 max-w-xs">
                   <Input
@@ -633,7 +638,6 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     value={pregnancies[expandedIdx]?.gestationWeeks || ''}
                     onChange={e => updatePregnancy(expandedIdx, 'gestationWeeks', e.target.value)}
                     className="rounded-xl h-11 w-20"
-                    placeholder="39"
                   />
                   <span className="text-sm text-stone-500">weeks</span>
                   <Input
@@ -641,7 +645,6 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                     value={pregnancies[expandedIdx]?.gestationDays || ''}
                     onChange={e => updatePregnancy(expandedIdx, 'gestationDays', e.target.value)}
                     className="rounded-xl h-11 w-20"
-                    placeholder="6"
                   />
                   <span className="text-sm text-stone-500">days</span>
                 </div>
