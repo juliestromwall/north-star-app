@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { useRole } from '@/context/RoleContext'
+import { fetchIntakeByEmail } from '@/lib/db'
 
 // ─── Storage key ───
 const STORAGE_KEY = 'abc-surrogate-profile'
@@ -227,9 +229,48 @@ function countCompleted(data, sectionKey) {
 // Main Page Component
 // ─────────────────────────────────────────────────────────
 
+function calculateBMI(ft, inches, lbs) {
+  const f = parseFloat(ft); const i = parseFloat(inches); const w = parseFloat(lbs)
+  if (!f || !w) return ''
+  const totalInches = f * 12 + (i || 0)
+  return ((w / (totalInches * totalInches)) * 703).toFixed(1)
+}
+
 export default function SurrogateProfilePage() {
   const [profile, setProfile] = useState(loadProfile)
   const [openSections, setOpenSections] = useState({ about: true })
+  const { currentUser } = useRole()
+
+  // Pre-fill from intake quiz answers on first load
+  useEffect(() => {
+    if (!currentUser?.email) return
+    const existing = loadProfile()
+    // Only pre-fill if profile is mostly empty (first visit)
+    if (existing?.about?.firstName) return
+    fetchIntakeByEmail(currentUser.email).then(answers => {
+      if (!answers) return
+      const bmi = calculateBMI(answers.heightFt, answers.heightIn, answers.weightLbs)
+      setProfile(prev => ({
+        ...prev,
+        about: {
+          ...prev.about,
+          firstName: answers.firstName || '',
+          dob: answers.dob || '',
+          city: answers.city || '',
+          state: answers.state || '',
+          heightFt: answers.heightFt?.toString() || '',
+          heightIn: answers.heightIn?.toString() || '',
+          weightLbs: answers.weightLbs?.toString() || '',
+          bmi: bmi || '',
+        },
+        family: {
+          ...prev.family,
+          maritalStatus: answers.maritalStatus || '',
+          partnerName: answers.partnerName || '',
+        },
+      }))
+    })
+  }, [currentUser?.email])
 
   // Auto-save on change
   useEffect(() => {

@@ -48,7 +48,7 @@ function OnboardingDashboard({ name }) {
             <div>
               <p className="font-semibold text-[#283693] text-lg">You're off to a great start!</p>
               <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                Your application is under review. While you wait, complete the steps below so we can match you with the perfect family as quickly as possible.
+                Our team is reviewing your results. While you wait, complete the steps below so we can match you with the perfect family as quickly as possible.
               </p>
             </div>
           </div>
@@ -88,7 +88,7 @@ function OnboardingDashboard({ name }) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="size-4 text-amber-500" /> Application Status
+              <ClipboardList className="size-4 text-amber-500" /> Quiz Results
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -96,7 +96,7 @@ function OnboardingDashboard({ name }) {
               <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
               <div>
                 <p className="text-sm font-medium text-amber-800">Under Review</p>
-                <p className="text-xs text-amber-600 mt-0.5">Our team is reviewing your application. We'll be in touch within 3–5 business days.</p>
+                <p className="text-xs text-amber-600 mt-0.5">Our team is reviewing your quiz results. We'll be in touch within 1–3 business days.</p>
               </div>
             </div>
           </CardContent>

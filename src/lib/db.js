@@ -70,6 +70,15 @@ export async function dismissAdminNote(noteId) {
 
 // ── Intake Submissions ───────────────────────────────────
 
+export async function fetchIntakeByEmail(email) {
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('answers').eq('applicant_email', email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
+  )
+  if (!result) return null
+  if (result.error) return null
+  return result.data?.answers || null
+}
+
 export async function checkEmailExists(email) {
   const result = await withTimeout(
     () => supabase.from('intake_submissions').select('id', { count: 'exact', head: true }).eq('applicant_email', email.trim().toLowerCase())
