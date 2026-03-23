@@ -406,6 +406,7 @@ export default function SurrogateProfilePage() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const [profile, setProfile] = useState(() => loadProfile(userId))
+  const [profileApproved, setProfileApproved] = useState(false)
   const [openSections, setOpenSections] = useState(() => {
     // If URL has a hash like #family, open that section instead of about
     const hash = window.location.hash.replace('#', '')
@@ -466,10 +467,11 @@ export default function SurrogateProfilePage() {
   }, [currentUser?.email])
 
   // Auto-save on change (localStorage immediately, Supabase debounced)
+  // Skip saving if profile is approved
   const saveTimer = useRef(null)
   useEffect(() => {
+    if (profileApproved) return
     saveProfile(userId, profile)
-    // Debounced save to Supabase (2 seconds after last change)
     if (currentUser?.id && currentUser?.email) {
       clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
@@ -477,12 +479,13 @@ export default function SurrogateProfilePage() {
       }, 2000)
     }
     return () => clearTimeout(saveTimer.current)
-  }, [profile, userId, currentUser?.id, currentUser?.email])
+  }, [profile, userId, currentUser?.id, currentUser?.email, profileApproved])
 
   // Sync with Supabase on first visit
   useEffect(() => {
     if (!currentUser?.id || !currentUser?.email) return
     fetchSurrogateProfile(currentUser.id).then(result => {
+      if (result?.status === 'approved') setProfileApproved(true)
       if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
         // Supabase has data — merge with localStorage
         setProfile(prev => {
@@ -571,6 +574,17 @@ export default function SurrogateProfilePage() {
           </Button>
         </div>
 
+        {/* Approved banner */}
+        {profileApproved && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-green-800 text-sm">Profile Approved</p>
+              <p className="text-xs text-green-600">Your profile has been reviewed and approved by the ABC team. It is now visible to intended parents.</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Section Cards ── */}
         {SECTION_META.map(sec => {
           const { filled, total, complete } = countCompleted(profile, sec.key)
@@ -609,7 +623,7 @@ export default function SurrogateProfilePage() {
                   </CardHeader>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
-                  <CardContent>
+                  <CardContent className={profileApproved ? 'pointer-events-none opacity-60' : ''}>
                     <SectionBody sectionKey={sec.key} v={v} u={u} profile={profile} setProfile={setProfile} />
                   </CardContent>
                 </CollapsibleContent>

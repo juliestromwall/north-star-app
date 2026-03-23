@@ -17,7 +17,8 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile } from '@/lib/db'
+import { Eye, ShieldCheck, ShieldX, Save, Loader2 } from 'lucide-react'
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
@@ -25,6 +26,7 @@ export default function SurrogateDetailPage() {
   const [loading, setLoading] = useState(true)
   const [quizAnswers, setQuizAnswers] = useState(null)
   const [profileData, setProfileData] = useState(null)
+  const [profileStatus, setProfileStatus] = useState('draft')
   const [photos, setPhotos] = useState([])
   const [noteText, setNoteText] = useState('')
 
@@ -36,6 +38,7 @@ export default function SurrogateDetailPage() {
         fetchIntakeByEmail(found.email).then(setQuizAnswers).catch(() => {})
         fetchSurrogateProfileByEmail(found.email).then(result => {
           if (result?.profile_data) setProfileData(result.profile_data)
+          if (result?.status) setProfileStatus(result.status)
         }).catch(() => {})
       }
       if (found?.userId) {
@@ -179,7 +182,15 @@ export default function SurrogateDetailPage() {
 
         {/* Profile Tab — surrogate's matching profile from Supabase */}
         <TabsContent value="profile" className="space-y-6 mt-4">
-          <ProfileTab surrogate={surrogate} profileData={profileData} photos={photos} heightStr={heightStr} />
+          <ProfileTab
+            surrogate={surrogate}
+            profileData={profileData}
+            setProfileData={setProfileData}
+            profileStatus={profileStatus}
+            setProfileStatus={setProfileStatus}
+            photos={photos}
+            heightStr={heightStr}
+          />
         </TabsContent>
 
         {/* Quiz Answers Tab */}
@@ -332,8 +343,46 @@ function countSectionFilled(data, section) {
   return { filled, total: section.fields.length }
 }
 
-function ProfileTab({ surrogate, profileData, photos, heightStr }) {
+function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, heightStr }) {
   const hasProfile = profileData && Object.keys(profileData).length > 0
+  const [editing, setEditing] = useState(false)
+  const [editData, setEditData] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [statusLoading, setStatusLoading] = useState(false)
+  const isApproved = profileStatus === 'approved'
+
+  function startEdit() {
+    setEditData(JSON.parse(JSON.stringify(profileData || {})))
+    setEditing(true)
+  }
+
+  function updateEditField(section, field, value) {
+    setEditData(prev => ({
+      ...prev,
+      [section]: { ...(prev[section] || {}), [field]: value }
+    }))
+  }
+
+  async function saveEdit() {
+    if (!surrogate.email) return
+    setSaving(true)
+    try {
+      await adminUpdateSurrogateProfile(surrogate.email, editData)
+      setProfileData(editData)
+      setEditing(false)
+    } catch {} finally { setSaving(false) }
+  }
+
+  async function toggleApproval() {
+    if (!surrogate.email) return
+    setStatusLoading(true)
+    const newStatus = isApproved ? 'draft' : 'approved'
+    try {
+      await updateSurrogateProfileStatus(surrogate.email, newStatus)
+      setProfileStatus(newStatus)
+    } catch {} finally { setStatusLoading(false) }
+  }
 
   // Calculate overall completion
   let totalFields = 0, totalFilled = 0
@@ -346,10 +395,39 @@ function ProfileTab({ surrogate, profileData, photos, heightStr }) {
 
   return (
     <div className="space-y-6">
+      {/* Status banner */}
+      {isApproved && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
+          <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
+          <p className="text-sm font-medium text-green-800">Profile is approved and visible to intended parents. The surrogate can no longer edit it.</p>
+        </div>
+      )}
+
       {/* Progress overview */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Profile Completion</CardTitle>
+          <div className="flex gap-2">
+            {hasProfile && (
+              <>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPreviewOpen(true)}>
+                  <Eye className="size-3.5" /> Preview
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={startEdit}>
+                  <Pencil className="size-3.5" /> Edit
+                </Button>
+                <Button
+                  size="sm"
+                  className={`gap-1.5 ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}
+                  onClick={toggleApproval}
+                  disabled={statusLoading}
+                >
+                  {statusLoading ? <Loader2 className="size-3.5 animate-spin" /> : isApproved ? <ShieldX className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+                  {isApproved ? 'Unapprove' : 'Approve'}
+                </Button>
+              </>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {!hasProfile ? (
@@ -425,6 +503,88 @@ function ProfileTab({ surrogate, profileData, photos, heightStr }) {
           })}
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editing} onOpenChange={open => !open && setEditing(false)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Profile — {surrogate.name}</DialogTitle>
+          </DialogHeader>
+          {editData && (
+            <div className="space-y-6">
+              {PROFILE_SECTIONS.map(sec => {
+                const sectionData = editData[sec.key] || {}
+                const entries = Object.entries(sectionData)
+                if (entries.length === 0) return null
+                return (
+                  <div key={sec.key}>
+                    <p className="font-semibold text-sm text-abc-indigo mb-2 pb-1 border-b">{sec.title}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {entries.map(([key, value]) => (
+                        <div key={key} className="space-y-1">
+                          <label className="text-xs text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
+                          <input
+                            className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white"
+                            value={typeof value === 'boolean' ? (value ? 'yes' : 'no') : Array.isArray(value) ? value.join(', ') : String(value || '')}
+                            onChange={e => updateEditField(sec.key, key, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                <Button onClick={saveEdit} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+          <div className="bg-[#fdf8f3] p-6 space-y-6">
+            {photos.length > 0 && (
+              <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden">
+                <img src={photos[0].url} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="text-center">
+              <h2 className="text-xl font-heading font-bold text-abc-indigo">Meet {surrogate.name.split(' ')[0]}</h2>
+              {surrogate.location && <p className="text-muted-foreground text-sm mt-1">{surrogate.age ? `${surrogate.age} years old · ` : ''}{surrogate.location}</p>}
+              {profileData?.about?.personality && <p className="text-sm italic text-abc-indigo/70 max-w-md mx-auto mt-3">"{profileData.about.personality}"</p>}
+            </div>
+            {hasProfile && PROFILE_SECTIONS.map(sec => {
+              const sectionData = profileData?.[sec.key]
+              if (!sectionData) return null
+              const entries = Object.entries(sectionData).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+              if (entries.length === 0) return null
+              return (
+                <div key={sec.key} className="rounded-xl bg-white shadow-sm border p-4 space-y-2">
+                  <h3 className="text-sm font-semibold text-abc-indigo">{sec.title}</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {entries.map(([key, value]) => (
+                      <div key={key}>
+                        <span className="text-muted-foreground capitalize text-xs">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <p className="font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : Array.isArray(value) ? value.join(', ') : String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+            <div className="text-center py-2">
+              <p className="text-xs text-muted-foreground">Preview of how intended parents will see this profile</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

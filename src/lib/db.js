@@ -264,12 +264,36 @@ export async function fetchSurrogateProfileByEmail(email) {
   if (!supabase) return null
   const { data, error } = await supabase
     .from('surrogate_profiles')
-    .select('profile_data, updated_at, user_id')
+    .select('profile_data, updated_at, user_id, status')
     .eq('email', email.trim().toLowerCase())
     .order('updated_at', { ascending: false })
     .limit(1)
     .single()
   if (error) return null
+  return data
+}
+
+export async function updateSurrogateProfileStatus(email, status) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('email', email.trim().toLowerCase())
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function adminUpdateSurrogateProfile(email, profileData) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .update({ profile_data: profileData, updated_at: new Date().toISOString() })
+    .eq('email', email.trim().toLowerCase())
+    .select()
+    .single()
+  if (error) throw error
   return data
 }
 
