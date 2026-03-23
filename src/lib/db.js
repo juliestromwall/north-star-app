@@ -215,7 +215,7 @@ export async function listProfilePhotos(userId) {
   })
   if (error) return []
   return (data || [])
-    .filter(f => !f.name.startsWith('.'))
+    .filter(f => f.id && !f.name.startsWith('.'))
     .map(f => {
       const path = `${userId}/${f.name}`
       const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)

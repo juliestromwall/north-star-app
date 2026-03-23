@@ -203,7 +203,7 @@ async function convertToJpeg(file, maxSize = 1200) {
         const jpegFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
         return await resizeViaCanvas(jpegFile, maxSize)
       } catch {
-        throw new Error('Could not convert this HEIC file. Try opening it in Preview and exporting as JPEG first.')
+        throw new Error('HEIC is not supported in this browser. Open the photo in Preview → File → Export as JPEG, then upload the JPEG.')
       }
     }
     throw new Error('Could not process this image')
