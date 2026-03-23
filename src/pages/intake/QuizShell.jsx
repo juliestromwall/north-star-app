@@ -165,21 +165,14 @@ export function QuizShell({
         <div className="w-9" aria-hidden />
       </header>
 
-      {/* Progress bar */}
-      <div className="w-full h-2 bg-stone-100">
-        <div
-          className="h-full transition-all duration-500 ease-out rounded-r-full"
-          style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${accentColor}, #283693)` }}
-        />
-      </div>
-
       {/* Scrollable body */}
       <div className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24">
-        {/* Step row */}
-        <div className="flex items-center justify-between mb-7">
-          <span className="text-xs text-stone-400 font-medium tracking-wide">
+        {/* Step pill */}
+        <div className="flex items-center justify-center gap-3 mb-7">
+          <div className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold shadow-sm"
+            style={{ background: `linear-gradient(135deg, ${accentColor}, #283693)`, color: '#fff' }}>
             Step {step} of {totalSteps}
-          </span>
+          </div>
           {milestone && (
             <span
               className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
