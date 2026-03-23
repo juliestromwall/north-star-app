@@ -149,15 +149,74 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
-function PhotoUploadPlaceholder({ label = 'Upload Photo', className = '' }) {
+function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
+  const [photo, setPhoto] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    // Check for existing profile photo in headshot subfolder
+    listProfilePhotos(`${userId}/headshot`).then(photos => {
+      if (photos.length > 0) setPhoto(photos[0])
+    }).catch(() => {})
+  }, [userId])
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
+    setUploading(true)
+    setError(null)
+    try {
+      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
+      const result = await uploadProfilePhoto(`${userId}/headshot`, file)
+      if (result) setPhoto(result)
+    } catch (err) {
+      setError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDelete() {
+    if (!photo) return
+    try {
+      await deleteProfilePhoto(photo.path)
+      setPhoto(null)
+    } catch (err) {
+      setError(err.message || 'Delete failed')
+    }
+  }
+
   return (
-    <Field label={label} className={className}>
-      <div className="flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors">
-        <div className="text-center">
-          <Upload className="w-6 h-6 mx-auto text-gray-400" />
-          <span className="text-xs text-gray-400 mt-1 block">Upload</span>
+    <Field label={label}>
+      {photo ? (
+        <div className="relative group w-32 h-32">
+          <img src={photo.url} alt="Profile" className="w-32 h-32 rounded-2xl object-cover border border-gray-200" />
+          <button
+            onClick={handleDelete}
+            className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
-      </div>
+      ) : (
+        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? (
+              <Loader2 className="w-6 h-6 mx-auto text-[#ed148c] animate-spin" />
+            ) : (
+              <>
+                <Upload className="w-6 h-6 mx-auto text-gray-400" />
+                <span className="text-xs text-gray-400 mt-1 block">Upload</span>
+              </>
+            )}
+          </div>
+          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </Field>
   )
 }
@@ -449,6 +508,8 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
 // 1. About Me
 // ─────────────────────────────────────────────────────────
 function AboutSection({ v, u }) {
+  const { currentUser } = useRole()
+  const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const s = 'about'
   const heightFt = parseInt(v(s, 'heightFt')) || 0
   const heightIn = parseInt(v(s, 'heightIn')) || 0
@@ -484,7 +545,7 @@ function AboutSection({ v, u }) {
       </div>
       <TextAreaField label="Tell us about yourself" value={v(s, 'personality')} onChange={u(s, 'personality')}
         placeholder="Share a bit about your personality, hobbies, and what makes you you..." rows={4} />
-      <PhotoUploadPlaceholder label="Profile Photo" />
+      <ProfilePhotoUpload label="Profile Photo" userId={userId} />
     </div>
   )
 }
