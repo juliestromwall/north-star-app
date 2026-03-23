@@ -297,6 +297,25 @@ function OnboardingDashboard({ name, currentUser }) {
         subtitle="We're so glad you're here. Take a look around — this is your portal."
       />
 
+      {/* All caught up — show at top when no tasks */}
+      {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
+        <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
+          <CardContent className="py-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
+                <Sparkles className="w-6 h-6 text-[#283693]" />
+              </div>
+              <div>
+                <p className="font-semibold text-[#283693] text-lg">You're all caught up!</p>
+                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                  Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Action banner — only show when there are pending tasks */}
       {pendingCount > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-[#ed148c]/10 border border-[#ed148c]/20">
@@ -346,25 +365,6 @@ function OnboardingDashboard({ name, currentUser }) {
               {activeTasks.map(task => (
                 <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* No tasks state */}
-      {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
-        <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
-          <CardContent className="py-6">
-            <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
-                <Sparkles className="w-6 h-6 text-[#283693]" />
-              </div>
-              <div>
-                <p className="font-semibold text-[#283693] text-lg">You're all caught up!</p>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                  Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
-                </p>
-              </div>
             </div>
           </CardContent>
         </Card>
