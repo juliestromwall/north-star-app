@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
@@ -7,17 +7,24 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { mockFormDefinitions } from '@/data/mock/forms'
-import { Plus, Pencil, Eye, FileBarChart } from 'lucide-react'
+import { Plus, Pencil, Eye, FileBarChart, FileText } from 'lucide-react'
 
 export default function FormsListPage() {
-  const { isAdmin } = useRole()
+  const { isAdmin, currentUser } = useRole()
   const [forms] = useState(mockFormDefinitions)
+
+  // Non-admins only see forms explicitly assigned to them (none yet — no backend)
+  // When backend is connected, this will fetch user-specific form assignments
+  const visibleForms = useMemo(() => {
+    if (isAdmin) return forms
+    return [] // No forms until admin assigns them via backend
+  }, [forms, isAdmin])
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Forms"
-        subtitle={isAdmin ? 'Manage form definitions and review submissions' : 'Complete and view your forms'}
+        subtitle={isAdmin ? 'Manage form definitions and review submissions' : 'Forms assigned to you'}
         actions={isAdmin && (
           <Button asChild>
             <Link to="/forms/builder"><Plus className="size-4" /> New Form</Link>
@@ -25,68 +32,82 @@ export default function FormsListPage() {
         )}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Form Name</TableHead>
-                <TableHead>Status</TableHead>
-                {isAdmin && <TableHead>Submissions</TableHead>}
-                <TableHead>Last Updated</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {forms.map(form => (
-                <TableRow key={form.id}>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{form.title}</p>
-                      <p className="text-xs text-muted-foreground">{form.description}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={form.status} />
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell>{form.submissionCount}</TableCell>
-                  )}
-                  <TableCell className="text-muted-foreground text-sm">{form.updatedAt}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {form.status === 'published' && (
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/forms/${form.id}/submit`}>
-                            <Eye className="size-4" />
-                            {isAdmin ? 'Preview' : 'Fill Out'}
-                          </Link>
-                        </Button>
-                      )}
-                      {isAdmin && (
-                        <>
+      {visibleForms.length === 0 && !isAdmin ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <FileText className="w-10 h-10 text-stone-300 mx-auto mb-3" />
+              <p className="font-medium text-stone-600">No forms right now</p>
+              <p className="text-sm text-stone-400 mt-1">
+                When your team assigns forms for you to complete, they'll appear here.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Form Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  {isAdmin && <TableHead>Submissions</TableHead>}
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleForms.map(form => (
+                  <TableRow key={form.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{form.title}</p>
+                        <p className="text-xs text-muted-foreground">{form.description}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={form.status} />
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell>{form.submissionCount}</TableCell>
+                    )}
+                    <TableCell className="text-muted-foreground text-sm">{form.updatedAt}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {form.status === 'published' && (
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/forms/builder/${form.id}`}>
-                              <Pencil className="size-4" />
+                            <Link to={`/forms/${form.id}/submit`}>
+                              <Eye className="size-4" />
+                              {isAdmin ? 'Preview' : 'Fill Out'}
                             </Link>
                           </Button>
-                          {form.submissionCount > 0 && (
+                        )}
+                        {isAdmin && (
+                          <>
                             <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/forms/${form.id}/responses`}>
-                                <FileBarChart className="size-4" />
+                              <Link to={`/forms/builder/${form.id}`}>
+                                <Pencil className="size-4" />
                               </Link>
                             </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                            {form.submissionCount > 0 && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/forms/${form.id}/responses`}>
+                                  <FileBarChart className="size-4" />
+                                </Link>
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

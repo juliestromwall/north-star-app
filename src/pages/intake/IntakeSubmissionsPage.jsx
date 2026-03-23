@@ -10,9 +10,10 @@ import { mockIntakeSubmissions, DQ_REASON_LABELS, getSourceLabel } from '@/data/
 import { fetchIntakeSubmissions, updateIntakeSubmissionStatus } from '@/lib/db'
 
 const STATUS_CONFIG = {
+  pending_review: { label: 'Pending Review', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  reviewed: { label: 'Reviewed', className: 'bg-violet-100 text-violet-700 border-violet-200' },
   qualified: { label: 'Qualified', className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
   approved: { label: 'Approved', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  pending_review: { label: 'Pending Review', className: 'bg-amber-100 text-amber-700 border-amber-200' },
   disqualified: { label: 'Disqualified', className: 'bg-red-100 text-red-700 border-red-200' },
   rejected: { label: 'Rejected', className: 'bg-stone-100 text-stone-500 border-stone-200' },
 }
@@ -212,6 +213,7 @@ export default function IntakeSubmissionsPage() {
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="pending_review">Pending Review</SelectItem>
+            <SelectItem value="reviewed">Reviewed</SelectItem>
             <SelectItem value="qualified">Qualified</SelectItem>
             <SelectItem value="approved">Approved</SelectItem>
             <SelectItem value="disqualified">Disqualified</SelectItem>
@@ -346,7 +348,7 @@ export default function IntakeSubmissionsPage() {
               {/* Status actions */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-stone-100 mt-4">
                 <p className="text-xs text-stone-400 w-full mb-1">Update Status:</p>
-                {['pending_review', 'qualified', 'approved', 'rejected'].map(s => (
+                {['pending_review', 'reviewed', 'qualified', 'approved', 'rejected'].map(s => (
                   <Button
                     key={s}
                     variant={selected.status === s ? 'default' : 'outline'}

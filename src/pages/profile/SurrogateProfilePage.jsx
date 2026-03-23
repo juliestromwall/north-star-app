@@ -255,12 +255,28 @@ export default function SurrogateProfilePage() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const [profile, setProfile] = useState(() => loadProfile(userId))
-  const [openSections, setOpenSections] = useState({ about: true })
+  const [openSections, setOpenSections] = useState(() => {
+    // If URL has a hash like #family, open that section instead of about
+    const hash = window.location.hash.replace('#', '')
+    if (hash && SECTION_META.some(s => s.key === hash)) {
+      return { [hash]: true }
+    }
+    return { about: true }
+  })
 
   // Reload profile when user changes
   useEffect(() => {
     setProfile(loadProfile(userId))
   }, [userId])
+
+  // Scroll to section if URL has a hash
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (hash) {
+      const el = document.getElementById(`section-${hash}`)
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
+    }
+  }, [])
 
   // Pre-fill from intake quiz answers on first load
   useEffect(() => {
@@ -366,7 +382,7 @@ export default function SurrogateProfilePage() {
 
           return (
             <Collapsible key={sec.key} open={isOpen} onOpenChange={() => toggleSection(sec.key)}>
-              <Card className="rounded-2xl shadow-sm border-gray-100 overflow-hidden">
+              <Card id={`section-${sec.key}`} className="rounded-2xl shadow-sm border-gray-100 overflow-hidden">
                 <CollapsibleTrigger asChild>
                   <CardHeader className="cursor-pointer hover:bg-gray-50/50 transition-colors">
                     <div className="flex items-center gap-3">

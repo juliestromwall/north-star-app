@@ -23,21 +23,36 @@ const PROFILE_REQUIRED = {
   preferences: ['previousSurrogate', 'reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
 }
 
-function getProfileCompletion(userId) {
+function getProfileData(userId) {
   try {
     const raw = localStorage.getItem(`abc-surrogate-profile-${userId || 'anonymous'}`)
-    if (!raw) return 0
-    const data = JSON.parse(raw)
-    let total = 0, filled = 0
-    for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
-      total += fields.length
-      for (const f of fields) {
-        const val = data?.[section]?.[f]
-        if (val !== undefined && val !== '' && val !== null) filled++
-      }
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+function getProfileCompletion(userId) {
+  const data = getProfileData(userId)
+  if (!data) return 0
+  let total = 0, filled = 0
+  for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
+    total += fields.length
+    for (const f of fields) {
+      const val = data?.[section]?.[f]
+      if (val !== undefined && val !== '' && val !== null) filled++
     }
-    return total > 0 ? Math.round((filled / total) * 100) : 0
-  } catch { return 0 }
+  }
+  return total > 0 ? Math.round((filled / total) * 100) : 0
+}
+
+function getFirstIncompleteSection(userId) {
+  const data = getProfileData(userId)
+  for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
+    for (const f of fields) {
+      const val = data?.[section]?.[f]
+      if (val === undefined || val === '' || val === null) return section
+    }
+  }
+  return 'about'
 }
 
 function ProgressRing({ percent, size = 56 }) {
@@ -77,11 +92,14 @@ export default function SurrogateDashboard() {
 
 function ProfileProgressCard({ userId }) {
   const [percent, setPercent] = useState(0)
+  const [nextSection, setNextSection] = useState('about')
   useEffect(() => {
     setPercent(getProfileCompletion(userId))
+    setNextSection(getFirstIncompleteSection(userId))
   }, [userId])
 
   const ctaLabel = percent === 0 ? 'Get Started' : 'Continue'
+  const profileLink = percent === 100 ? '/my-profile' : `/my-profile#${nextSection}`
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -101,7 +119,7 @@ function ProfileProgressCard({ userId }) {
               <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
             </div>
           </div>
-          <Link to="/my-profile">
+          <Link to={profileLink}>
             <Button className="rounded-lg gap-1.5 shrink-0" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
               {ctaLabel} <ArrowRight className="w-4 h-4" />
             </Button>
