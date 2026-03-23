@@ -833,7 +833,7 @@ function AboutSection({ v, u }) {
       </div>
       <TextAreaField label="Tell us about yourself" value={v(s, 'personality')} onChange={u(s, 'personality')}
         placeholder="Share a bit about your personality, hobbies, and what makes you you..." rows={4} />
-      <ProfilePhotoUpload label="Profile Photo" userId={userId} />
+      <ProfilePhotoUpload label="Cover Photo" userId={userId} />
     </div>
   )
 }
@@ -1440,9 +1440,6 @@ function SortablePhoto({ photo, index, total, onEdit, onDelete }) {
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
-      {index === 0 && total > 1 && (
-        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold shadow-sm">Cover</span>
-      )}
     </div>
   )
 }
@@ -1504,6 +1501,7 @@ function PhotosSection() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const [photos, setPhotos] = useState([])
+  const [coverPhoto, setCoverPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
@@ -1515,7 +1513,16 @@ function PhotosSection() {
 
   useEffect(() => {
     listProfilePhotos(userId).then(setPhotos).catch(() => {})
+    listProfilePhotos(`${userId}/headshot`).then(list => {
+      setCoverPhoto(list.length > 0 ? list[0] : null)
+    }).catch(() => {})
   }, [userId])
+
+  // Combine cover + gallery for display
+  const allPhotos = useMemo(() => {
+    if (!coverPhoto) return photos
+    return [{ ...coverPhoto, isCover: true }, ...photos]
+  }, [coverPhoto, photos])
 
   async function handleUpload(e) {
     const files = Array.from(e.target.files || [])
@@ -1575,13 +1582,22 @@ function PhotosSection() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        Upload photos that show your personality! Drag to reorder — the first photo is your cover. Tap a photo to crop or rotate.
+        Upload photos that show your personality! Your cover photo is set in About Me above. Drag to reorder gallery photos. Tap a photo to crop or rotate.
       </p>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {/* Cover photo from About Me — not draggable */}
+            {coverPhoto && (
+              <div className="relative aspect-square rounded-2xl overflow-hidden border border-gray-200">
+                <img src={coverPhoto.url} alt="" className="w-full h-full object-cover" />
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold shadow-sm">Cover</span>
+              </div>
+            )}
+
+            {/* Gallery photos — draggable */}
             {photos.map((photo, i) => (
-              <SortablePhoto key={photo.path} photo={photo} index={i} total={photos.length}
+              <SortablePhoto key={photo.path} photo={photo} index={coverPhoto ? i + 1 : i} total={photos.length + (coverPhoto ? 1 : 0)}
                 onEdit={setEditing} onDelete={handleDelete} />
             ))}
 
