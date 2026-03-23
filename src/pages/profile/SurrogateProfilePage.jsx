@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ─── Helper: load / save (per-user) ───
 function getStorageKey(userId) {
@@ -149,10 +149,21 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
-// Convert any image file to JPEG via canvas (handles HEIC, PNG, etc.)
-function convertToJpeg(file, maxSize = 1200) {
+// Convert any image file to JPEG — uses heic2any for HEIC, canvas for others
+async function convertToJpeg(file, maxSize = 1200) {
+  let imageFile = file
+  // Convert HEIC/HEIF to JPEG blob first
+  const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif'
+  if (isHeic) {
+    const heic2any = (await import('heic2any')).default
+    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+    imageFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+  }
+  // If already JPEG/PNG/WebP and under size limit, skip canvas
+  if (!isHeic && file.size < 2 * 1024 * 1024) return imageFile
+  // Resize via canvas
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
+    const url = URL.createObjectURL(imageFile)
     const img = new Image()
     img.onload = () => {
       let { width, height } = img
@@ -164,12 +175,11 @@ function convertToJpeg(file, maxSize = 1200) {
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
       canvas.toBlob(
         blob => {
           URL.revokeObjectURL(url)
-          if (blob) resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          if (blob) resolve(new File([blob], imageFile.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
           else reject(new Error('Conversion failed'))
         },
         'image/jpeg',
@@ -201,7 +211,8 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
     setError(null)
     try {
       if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
-      const result = await uploadProfilePhoto(`${userId}/headshot`, file)
+      const jpeg = await convertToJpeg(file)
+      const result = await uploadProfilePhoto(`${userId}/headshot`, jpeg)
       if (result) setPhoto(result)
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -245,7 +256,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
               </>
             )}
           </div>
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" disabled={uploading} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
         </label>
       )}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -1187,7 +1198,8 @@ function PhotosSection() {
           setError('Photos must be under 10MB each')
           continue
         }
-        const result = await uploadProfilePhoto(userId, file)
+        const jpeg = await convertToJpeg(file)
+        const result = await uploadProfilePhoto(userId, jpeg)
         if (result) {
           setPhotos(prev => [...prev, result])
         }
@@ -1209,6 +1221,16 @@ function PhotosSection() {
     }
   }
 
+  function movePhoto(index, direction) {
+    setPhotos(prev => {
+      const next = [...prev]
+      const target = index + direction
+      if (target < 0 || target >= next.length) return prev
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
   const emptySlots = Math.max(0, 4 - photos.length)
 
   return (
@@ -1217,15 +1239,29 @@ function PhotosSection() {
         Upload photos that show your personality! Intended parents love seeing family photos, hobbies, and everyday life.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {photos.map(photo => (
+        {photos.map((photo, i) => (
           <div key={photo.path} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200">
             <img src={photo.url} alt="" className="w-full h-full object-cover" />
-            <button
-              onClick={() => handleDelete(photo)}
-              className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-1.5 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1">
+                {i > 0 && (
+                  <button onClick={() => movePhoto(i, -1)} className="p-1 rounded-full bg-white/80 text-gray-700 hover:bg-white">
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {i < photos.length - 1 && (
+                  <button onClick={() => movePhoto(i, 1)} className="p-1 rounded-full bg-white/80 text-gray-700 hover:bg-white">
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button onClick={() => handleDelete(photo)} className="p-1 rounded-full bg-white/80 text-red-500 hover:bg-white">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {i === 0 && photos.length > 1 && (
+              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold">Cover</span>
+            )}
           </div>
         ))}
 
@@ -1243,7 +1279,7 @@ function PhotosSection() {
           </div>
           <input
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
             multiple
             onChange={handleUpload}
             className="hidden"
