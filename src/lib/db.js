@@ -184,3 +184,41 @@ export async function fetchAllUserTasks() {
   if (result.error) return []
   return result.data
 }
+
+// ── Profile Photos (Supabase Storage) ───────────────────
+
+const BUCKET = 'profile-photos'
+
+export async function uploadProfilePhoto(userId, file) {
+  if (!supabase) return null
+  const ext = file.name.split('.').pop()
+  const path = `${userId}/${Date.now()}.${ext}`
+  const { data, error } = await supabase.storage.from(BUCKET).upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  })
+  if (error) throw error
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path)
+  return { path: data.path, url: urlData.publicUrl }
+}
+
+export async function deleteProfilePhoto(path) {
+  if (!supabase) return
+  const { error } = await supabase.storage.from(BUCKET).remove([path])
+  if (error) throw error
+}
+
+export async function listProfilePhotos(userId) {
+  if (!supabase) return []
+  const { data, error } = await supabase.storage.from(BUCKET).list(userId, {
+    sortBy: { column: 'created_at', order: 'asc' },
+  })
+  if (error) return []
+  return (data || [])
+    .filter(f => !f.name.startsWith('.'))
+    .map(f => {
+      const path = `${userId}/${f.name}`
+      const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
+      return { path, url: urlData.publicUrl, name: f.name }
+    })
+}

@@ -16,7 +16,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
+import { Loader2, X } from 'lucide-react'
 
 // ─── Helper: load / save (per-user) ───
 function getStorageKey(userId) {
@@ -1072,22 +1073,98 @@ function PreferencesSection({ v, u }) {
 // 9. Photos
 // ─────────────────────────────────────────────────────────
 function PhotosSection() {
+  const { currentUser } = useRole()
+  const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [photos, setPhotos] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    listProfilePhotos(userId).then(setPhotos).catch(() => {})
+  }, [userId])
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true)
+    setError(null)
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) {
+          setError('Photos must be under 10MB each')
+          continue
+        }
+        const result = await uploadProfilePhoto(userId, file)
+        if (result) {
+          setPhotos(prev => [...prev, result])
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Upload failed')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDelete(photo) {
+    try {
+      await deleteProfilePhoto(photo.path)
+      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+    } catch (err) {
+      setError(err.message || 'Delete failed')
+    }
+  }
+
+  const emptySlots = Math.max(0, 4 - photos.length)
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
         Upload photos that show your personality! Intended parents love seeing family photos, hobbies, and everyday life.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors">
-            <div className="text-center">
-              <Camera className="w-8 h-8 mx-auto text-gray-300" />
-              <span className="text-xs text-gray-400 mt-1 block">Upload</span>
-            </div>
+        {photos.map(photo => (
+          <div key={photo.path} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200">
+            <img src={photo.url} alt="" className="w-full h-full object-cover" />
+            <button
+              onClick={() => handleDelete(photo)}
+              className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         ))}
+
+        {/* Upload button */}
+        <label className={`aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? (
+              <Loader2 className="w-8 h-8 mx-auto text-[#ed148c] animate-spin" />
+            ) : (
+              <>
+                <Camera className="w-8 h-8 mx-auto text-gray-300" />
+                <span className="text-xs text-gray-400 mt-1 block">Upload</span>
+              </>
+            )}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleUpload}
+            className="hidden"
+            disabled={uploading}
+          />
+        </label>
+
+        {/* Empty placeholder slots */}
+        {Array.from({ length: emptySlots }).map((_, i) => (
+          <div key={`empty-${i}`} className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50" />
+        ))}
       </div>
-      <p className="text-xs text-gray-400">Photo upload will be available once connected to the backend.</p>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+      <p className="text-xs text-gray-400">JPG, PNG, or HEIC — up to 10MB each.</p>
     </div>
   )
 }
