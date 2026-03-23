@@ -17,7 +17,12 @@ import {
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
-import { Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Loader2, X, RotateCw, Crop as CropIcon } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import Cropper from 'react-easy-crop'
 
 // ─── Helper: load / save (per-user) ───
 function getStorageKey(userId) {
@@ -149,19 +154,8 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
-// Convert any image file to JPEG — uses heic2any for HEIC, canvas for others
-async function convertToJpeg(file, maxSize = 1200) {
-  let imageFile = file
-  // Convert HEIC/HEIF to JPEG blob first
-  const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif'
-  if (isHeic) {
-    const heic2any = (await import('heic2any')).default
-    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
-    imageFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
-  }
-  // If already JPEG/PNG/WebP and under size limit, skip canvas
-  if (!isHeic && file.size < 2 * 1024 * 1024) return imageFile
-  // Resize via canvas
+// Resize image via canvas, returns JPEG File
+function resizeViaCanvas(imageFile, maxSize = 1200) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(imageFile)
     const img = new Image()
@@ -188,6 +182,59 @@ async function convertToJpeg(file, maxSize = 1200) {
     }
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load image')) }
     img.src = url
+  })
+}
+
+// Convert any image to JPEG — tries canvas first (Safari supports HEIC natively),
+// falls back to heic2any for Chrome/Firefox
+async function convertToJpeg(file, maxSize = 1200) {
+  const isHeic = /\.(heic|heif)$/i.test(file.name) || file.type === 'image/heic' || file.type === 'image/heif'
+  // For non-HEIC files under 2MB, skip processing
+  if (!isHeic && file.size < 2 * 1024 * 1024) return file
+  // Try canvas first (works for JPEG/PNG/WebP, and HEIC on Safari)
+  try {
+    return await resizeViaCanvas(isHeic ? file : file, maxSize)
+  } catch {
+    // Canvas failed (HEIC on Chrome/Firefox) — use heic2any
+    if (isHeic) {
+      try {
+        const heic2any = (await import('heic2any')).default
+        const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+        const jpegFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+        return await resizeViaCanvas(jpegFile, maxSize)
+      } catch {
+        throw new Error('Could not convert this HEIC file. Try opening it in Preview and exporting as JPEG first.')
+      }
+    }
+    throw new Error('Could not process this image')
+  }
+}
+
+// Crop helper — takes a URL + crop area, returns a JPEG blob
+function getCroppedImg(imageSrc, crop, rotation = 0) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const rad = (rotation * Math.PI) / 180
+      // Calculate bounding box of rotated image
+      const sin = Math.abs(Math.sin(rad))
+      const cos = Math.abs(Math.cos(rad))
+      const bw = img.width * cos + img.height * sin
+      const bh = img.width * sin + img.height * cos
+      canvas.width = crop.width
+      canvas.height = crop.height
+      ctx.translate(-crop.x, -crop.y)
+      ctx.translate(bw / 2, bh / 2)
+      ctx.rotate(rad)
+      ctx.translate(-img.width / 2, -img.height / 2)
+      ctx.drawImage(img, 0, 0)
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Crop failed')), 'image/jpeg', 0.9)
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = imageSrc
   })
 }
 
@@ -1174,14 +1221,99 @@ function PreferencesSection({ v, u }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// 9. Photos
+// 9. Photos — drag-to-reorder, click-to-edit (crop/rotate)
 // ─────────────────────────────────────────────────────────
+
+function SortablePhoto({ photo, index, total, onEdit, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.path })
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.5 : 1 }
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200 touch-none" {...attributes} {...listeners}>
+      <img src={photo.url} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={(e) => { e.stopPropagation(); onEdit(photo) }}
+          className="p-1.5 rounded-full bg-white/90 text-gray-700 hover:bg-white shadow-sm">
+          <CropIcon className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(photo) }}
+          className="p-1.5 rounded-full bg-white/90 text-red-500 hover:bg-white shadow-sm">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      {index === 0 && total > 1 && (
+        <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold shadow-sm">Cover</span>
+      )}
+    </div>
+  )
+}
+
+function PhotoEditor({ photo, onSave, onClose }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
+  const [croppedArea, setCroppedArea] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!croppedArea) return
+    setSaving(true)
+    try {
+      const blob = await getCroppedImg(photo.url, croppedArea, rotation)
+      const file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' })
+      await onSave(photo, file)
+    } catch {
+      // silently fail
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="relative w-full h-80 sm:h-96 bg-gray-900 rounded-xl overflow-hidden">
+        <Cropper
+          image={photo.url}
+          crop={crop}
+          zoom={zoom}
+          rotation={rotation}
+          aspect={1}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={(_, area) => setCroppedArea(area)}
+        />
+      </div>
+      <div className="flex items-center gap-4">
+        <label className="text-xs text-gray-500 shrink-0">Zoom</label>
+        <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={e => setZoom(Number(e.target.value))}
+          className="flex-1 accent-[#ed148c]" />
+        <Button variant="outline" size="sm" onClick={() => setRotation(r => (r + 90) % 360)} className="gap-1.5">
+          <RotateCw className="w-3.5 h-3.5" /> Rotate
+        </Button>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function PhotosSection() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const [photos, setPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
 
   useEffect(() => {
     listProfilePhotos(userId).then(setPhotos).catch(() => {})
@@ -1194,15 +1326,10 @@ function PhotosSection() {
     setError(null)
     try {
       for (const file of files) {
-        if (file.size > 10 * 1024 * 1024) {
-          setError('Photos must be under 10MB each')
-          continue
-        }
+        if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
         const jpeg = await convertToJpeg(file)
         const result = await uploadProfilePhoto(userId, jpeg)
-        if (result) {
-          setPhotos(prev => [...prev, result])
-        }
+        if (result) setPhotos(prev => [...prev, result])
       }
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -1221,13 +1348,27 @@ function PhotosSection() {
     }
   }
 
-  function movePhoto(index, direction) {
+  async function handleCropSave(oldPhoto, croppedFile) {
+    try {
+      // Upload cropped version, delete old
+      const result = await uploadProfilePhoto(userId, croppedFile)
+      if (result) {
+        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
+        setPhotos(prev => prev.map(p => p.path === oldPhoto.path ? result : p))
+      }
+      setEditing(null)
+    } catch (err) {
+      setError(err.message || 'Save failed')
+    }
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
     setPhotos(prev => {
-      const next = [...prev]
-      const target = index + direction
-      if (target < 0 || target >= next.length) return prev
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next
+      const oldIndex = prev.findIndex(p => p.path === active.id)
+      const newIndex = prev.findIndex(p => p.path === over.id)
+      return arrayMove(prev, oldIndex, newIndex)
     })
   }
 
@@ -1236,64 +1377,48 @@ function PhotosSection() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-gray-500">
-        Upload photos that show your personality! Intended parents love seeing family photos, hobbies, and everyday life.
+        Upload photos that show your personality! Drag to reorder — the first photo is your cover. Tap a photo to crop or rotate.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {photos.map((photo, i) => (
-          <div key={photo.path} className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-200">
-            <img src={photo.url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-1.5 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="flex gap-1">
-                {i > 0 && (
-                  <button onClick={() => movePhoto(i, -1)} className="p-1 rounded-full bg-white/80 text-gray-700 hover:bg-white">
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                {i < photos.length - 1 && (
-                  <button onClick={() => movePhoto(i, 1)} className="p-1 rounded-full bg-white/80 text-gray-700 hover:bg-white">
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {photos.map((photo, i) => (
+              <SortablePhoto key={photo.path} photo={photo} index={i} total={photos.length}
+                onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+
+            {/* Upload button */}
+            <label className={`aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="text-center">
+                {uploading ? (
+                  <Loader2 className="w-8 h-8 mx-auto text-[#ed148c] animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-8 h-8 mx-auto text-gray-300" />
+                    <span className="text-xs text-gray-400 mt-1 block">Upload</span>
+                  </>
                 )}
               </div>
-              <button onClick={() => handleDelete(photo)} className="p-1 rounded-full bg-white/80 text-red-500 hover:bg-white">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            {i === 0 && photos.length > 1 && (
-              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-[#ed148c] text-white text-[10px] font-bold">Cover</span>
-            )}
-          </div>
-        ))}
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple
+                onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
 
-        {/* Upload button */}
-        <label className={`aspect-square rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer hover:border-[#ed148c]/50 hover:bg-pink-50/30 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
-          <div className="text-center">
-            {uploading ? (
-              <Loader2 className="w-8 h-8 mx-auto text-[#ed148c] animate-spin" />
-            ) : (
-              <>
-                <Camera className="w-8 h-8 mx-auto text-gray-300" />
-                <span className="text-xs text-gray-400 mt-1 block">Upload</span>
-              </>
-            )}
+            {Array.from({ length: emptySlots }).map((_, i) => (
+              <div key={`empty-${i}`} className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50" />
+            ))}
           </div>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-            multiple
-            onChange={handleUpload}
-            className="hidden"
-            disabled={uploading}
-          />
-        </label>
+        </SortableContext>
+      </DndContext>
 
-        {/* Empty placeholder slots */}
-        {Array.from({ length: emptySlots }).map((_, i) => (
-          <div key={`empty-${i}`} className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50" />
-        ))}
-      </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <p className="text-xs text-gray-400">JPG, PNG, or HEIC — up to 10MB each.</p>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={open => !open && setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          {editing && <PhotoEditor photo={editing} onSave={handleCropSave} onClose={() => setEditing(null)} />}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
