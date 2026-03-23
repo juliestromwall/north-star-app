@@ -115,7 +115,7 @@ export default function IntakeConfirmationPage() {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
         <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
+          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
         </header>
 
         <div className="max-w-lg mx-auto px-4 py-16 text-center">
@@ -168,7 +168,7 @@ export default function IntakeConfirmationPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
       {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc={CONFETTI_ICON_SRC} zIndex={40} />}
       <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
+        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
