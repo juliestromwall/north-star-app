@@ -4,11 +4,12 @@ import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MATCH_STAGES } from '@/lib/constants'
-import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles, AlertCircle, Clock, ChevronDown } from 'lucide-react'
+import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles, AlertCircle, Clock, ChevronDown, Loader2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
-import { fetchUserTasks, updateTaskStatus } from '@/lib/db'
+import { fetchUserTasks, updateTaskStatus, fetchIntakeByEmail } from '@/lib/db'
 
 // ─── Profile completion (mirrors SurrogateProfilePage logic) ───
 const PROFILE_REQUIRED = {
@@ -80,22 +81,93 @@ function ProfileProgressCard({ userId }) {
     setPercent(getProfileCompletion(userId))
   }, [userId])
 
+  const ctaLabel = percent === 0 ? 'Get Started' : 'Continue'
+
   return (
-    <Link to="/my-profile" className="block">
-      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-        <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
-          <ProgressRing percent={percent} size={48} />
-          <p className="font-semibold text-stone-700 text-sm mt-2">My Profile</p>
-          <div className="w-full mt-2">
-            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="py-6">
+        <div className="flex items-center gap-6">
+          <ProgressRing percent={percent} size={72} />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-stone-800 text-lg">My Profile</p>
+            <p className="text-sm text-stone-500 mt-1">
+              Complete your matching profile so intended parents can find you. It takes about 20–30 minutes — you can save your progress at any time.
+            </p>
+            <div className="mt-3 max-w-sm">
+              <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+              </div>
+              <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
             </div>
           </div>
-          <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
-        </CardContent>
-      </Card>
-    </Link>
+          <Link to="/my-profile">
+            <Button className="rounded-lg gap-1.5 shrink-0" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+              {ctaLabel} <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function GCAnswerDetail({ answers }) {
+  return (
+    <div className="space-y-6 text-sm">
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">About You</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Name</span><p className="font-medium">{answers.firstName} {answers.lastName}</p></div>
+          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{answers.dob}</p></div>
+          <div><span className="text-stone-400">Email</span><p className="font-medium">{answers.email}</p></div>
+          <div><span className="text-stone-400">Phone</span><p className="font-medium">{answers.phone}</p></div>
+          <div><span className="text-stone-400">Location</span><p className="font-medium">{answers.city}, {answers.state}</p></div>
+          <div><span className="text-stone-400">Marital Status</span><p className="font-medium">{answers.maritalStatus}</p></div>
+          {answers.partnerName && <div><span className="text-stone-400">Partner</span><p className="font-medium">{answers.partnerName}</p></div>}
+        </div>
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Health & Lifestyle</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Height</span><p className="font-medium">{answers.heightFt}'{answers.heightIn}"</p></div>
+          <div><span className="text-stone-400">Weight</span><p className="font-medium">{answers.weightLbs} lbs</p></div>
+          <div><span className="text-stone-400">BMI</span><p className={`font-medium ${answers.bmi > 33 || answers.bmi < 19 ? 'text-red-600' : 'text-emerald-600'}`}>{answers.bmi}</p></div>
+          <div><span className="text-stone-400">Tobacco Use</span><p className={`font-medium ${answers.tobaccoUse ? 'text-red-600' : ''}`}>{answers.tobaccoUse ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Drug Use</span><p className={`font-medium ${answers.drugUse ? 'text-red-600' : ''}`}>{answers.drugUse ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Medical Condition</span><p className={`font-medium ${answers.seriousMedicalCondition ? 'text-red-600' : ''}`}>{answers.seriousMedicalCondition ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Currently Pregnant</span><p className={`font-medium ${answers.currentlyPregnant ? 'text-red-600' : ''}`}>{answers.currentlyPregnant ? 'Yes' : 'No'}</p></div>
+        </div>
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Pregnancy History</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Biological Children</span><p className={`font-medium ${answers.biologicalChildren === 0 ? 'text-red-600' : ''}`}>{answers.biologicalChildren}</p></div>
+          <div><span className="text-stone-400">Total Pregnancies</span><p className="font-medium">{answers.totalPregnancies}</p></div>
+          <div><span className="text-stone-400">Vaginal Deliveries</span><p className="font-medium">{answers.vaginalDeliveries}</p></div>
+          <div><span className="text-stone-400">C-Sections</span><p className={`font-medium ${answers.cSections > 3 ? 'text-red-600' : ''}`}>{answers.cSections}</p></div>
+          {answers.majorComplications && <div className="col-span-2"><span className="text-stone-400">Complications</span><p className="font-medium">{answers.majorComplications}</p></div>}
+        </div>
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Surrogacy Readiness</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Previous Surrogate</span><p className="font-medium">{answers.previousSurrogacy ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Carry Multiples</span><p className="font-medium">{answers.willingToCarryMultiples ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">IP Contact Pref.</span><p className="font-medium">{answers.contactPreferenceWithIPs}</p></div>
+          <div><span className="text-stone-400">Support System</span><p className="font-medium">{answers.supportSystemConfirmed ? 'Confirmed' : 'Not yet'}</p></div>
+        </div>
+        <div className="mt-2"><span className="text-stone-400">Motivation</span><p className="mt-1 text-stone-600 leading-relaxed">{answers.motivation}</p></div>
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Final Details</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Govt. Assistance</span><p className={`font-medium ${answers.govtAssistance ? 'text-red-600' : ''}`}>{answers.govtAssistance ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{answers.preferredContact}</p></div>
+          <div><span className="text-stone-400">Heard Via</span><p className="font-medium">{answers.hearAboutUs}</p></div>
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -162,6 +234,9 @@ function OnboardingDashboard({ name, currentUser }) {
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [completedOpen, setCompletedOpen] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
+  const [quizAnswers, setQuizAnswers] = useState(null)
+  const [quizLoading, setQuizLoading] = useState(false)
 
   const userId = currentUser?.id
 
@@ -177,6 +252,20 @@ function OnboardingDashboard({ name, currentUser }) {
   const completedTasks = tasks.filter(t => t.status === 'completed')
   const skippedTasks = tasks.filter(t => t.status === 'skip')
   const pendingCount = tasks.filter(t => t.status === 'pending').length
+
+  async function handleQuizClick() {
+    if (quizAnswers) { setQuizOpen(true); return }
+    setQuizLoading(true)
+    setQuizOpen(true)
+    try {
+      const answers = await fetchIntakeByEmail(currentUser.email)
+      setQuizAnswers(answers)
+    } catch {
+      setQuizAnswers(null)
+    } finally {
+      setQuizLoading(false)
+    }
+  }
 
   async function handleStatusChange(taskId, newStatus) {
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus, completed_at: newStatus === 'completed' ? new Date().toISOString() : t.completed_at } : t))
@@ -202,31 +291,25 @@ function OnboardingDashboard({ name, currentUser }) {
         </div>
       )}
 
-      {/* Status cards row */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <ProfileProgressCard userId={userId || currentUser?.email} />
+      {/* Profile card — full width, prominent */}
+      <ProfileProgressCard userId={userId || currentUser?.email} />
 
-        <Link to="/my-match" className="block">
-          <Card className="hover:shadow-md transition-shadow h-full">
-            <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
-              <Heart className="w-8 h-8 text-stone-300 mb-2" />
-              <p className="font-semibold text-stone-700 text-sm">My Match</p>
-              <p className="text-xs text-stone-400 mt-1">Pending</p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Card>
-          <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
-            <ClipboardList className="w-8 h-8 text-stone-300 mb-2" />
+      {/* Quiz Results card */}
+      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
+        <CardContent className="py-4 flex items-center gap-4">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 shrink-0">
+            <ClipboardList className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1 min-w-0">
             <p className="font-semibold text-stone-700 text-sm">Quiz Results</p>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <p className="text-xs text-amber-600">Under Review</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-stone-400 shrink-0" />
+        </CardContent>
+      </Card>
 
       {/* To Do section */}
       {activeTasks.length > 0 && (
@@ -311,6 +394,26 @@ function OnboardingDashboard({ name, currentUser }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quiz Results Dialog */}
+      <Dialog open={quizOpen} onOpenChange={setQuizOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Your Quiz Answers</DialogTitle>
+          </DialogHeader>
+          {quizLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-stone-400" />
+            </div>
+          )}
+          {!quizLoading && quizAnswers && <GCAnswerDetail answers={quizAnswers} />}
+          {!quizLoading && !quizAnswers && (
+            <p className="text-sm text-stone-500 py-8 text-center">
+              No quiz answers found. Our team may still be processing your submission.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

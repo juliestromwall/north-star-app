@@ -205,12 +205,6 @@ const nav = [
         roles: [ROLES.SURROGATE, ROLES.INTENDED_PARENT],
       },
       {
-        label: 'My Match',
-        icon: Heart,
-        path: '/my-match',
-        roles: [ROLES.SURROGATE, ROLES.SURROGATE_PARTNER, ROLES.INTENDED_PARENT],
-      },
-      {
         label: 'Appointments',
         icon: Calendar,
         path: '/appointments',

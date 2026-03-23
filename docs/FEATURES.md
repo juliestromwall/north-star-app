@@ -14,7 +14,7 @@
 | StatusBadge | src/components/shared/StatusBadge.jsx | Colored badge for status display |
 | EmptyState | src/components/shared/EmptyState.jsx | Empty state placeholder with icon and message |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Stats, match pipeline, activity, milestones, quick actions |
-| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Journey stepper, match info, next steps, messages |
+| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Full-width profile progress card with CTA, clickable Quiz Results card with dialog showing actual intake answers, action banner, to-do/completed tasks, contact card. My Match removed. |
 | IPDashboard | src/pages/dashboard/IPDashboard.jsx | Journey banner, milestones, messages |
 | PartnerDashboard | src/pages/dashboard/PartnerDashboard.jsx | Read-only partner view of surrogate journey |
 | DashboardRouter | src/pages/dashboard/DashboardRouter.jsx | Routes to correct dashboard based on role |
@@ -67,6 +67,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-03-23 | Surrogate Dashboard overhaul: removed My Match nav item and card, full-width ProfileProgressCard (72px progress ring, gradient bar, pink CTA), clickable Quiz Results card with Dialog showing actual intake answers via fetchIntakeByEmail, reordered layout (welcome → action banner → profile → quiz results → to do → completed → contact) |
 | 2026-03-20 | Surrogate Profile page: 9-section collapsible matching profile builder with progress tracking, localStorage persistence, auto-calculated BMI, repeatable pregnancy history cards, and photo upload placeholders |
 | 2026-03-18 | Intake form system: public GC + IP multi-step forms with DQ logic, confirmation page, ad tracking (UTM/fbclid/ttclid). Admin intake submissions review page. Marketing analytics dashboard. Marketing role + mock user added. |
 | 2026-03-03 | Time Clock page: admin clock in/out with live timer, bi-weekly pay period tracking, time entries table with edit dialog, staff selector for master admins. Mock data (no backend). |

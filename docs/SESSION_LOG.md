@@ -1,5 +1,27 @@
 # Session Log
 
+## 2026-03-23
+
+**Worked on:** Surrogate Dashboard overhaul — redesigned layout and added interactive features
+
+**Changes made:**
+- Removed "My Match" nav item from `navigation.js` and its card from `SurrogateDashboard.jsx`
+- Made `ProfileProgressCard` full-width with 72px progress ring, description text, gradient progress bar, and pink CTA button
+- Added clickable Quiz Results card that opens a Dialog showing the surrogate's actual quiz answers (fetched via `fetchIntakeByEmail`)
+- Reordered dashboard layout: welcome → action banner → profile card → quiz results → to do → completed → contact
+- Updated `docs/FEATURES.md` — revised SurrogateDashboard entry + changelog
+
+**Next steps:**
+- Build remaining stub modules (Documents, Messages, HR Management, etc.)
+- Add backend persistence for surrogate profile data
+- Consider adding more interactive dashboard cards (e.g., messages preview, upcoming appointments)
+
+**Open questions:**
+- Should Quiz Results card show a summary score or just the full answers?
+- Should the profile CTA navigate to a specific incomplete section?
+
+---
+
 ## 2026-03-03 (Evening)
 
 **Worked on:** Time Clock page — admin clock in/out with pay periods
