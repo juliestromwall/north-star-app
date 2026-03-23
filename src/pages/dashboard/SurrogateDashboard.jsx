@@ -130,59 +130,73 @@ function ProfileProgressCard({ userId }) {
   )
 }
 
+function QuizAnswerRow({ label, value }) {
+  if (value === undefined || value === null || value === '') return null
+  return (
+    <div>
+      <span className="text-stone-400">{label}</span>
+      <p className="font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}</p>
+    </div>
+  )
+}
+
 function GCAnswerDetail({ answers }) {
+  const bmi = answers.heightFt && answers.weightLbs
+    ? ((answers.weightLbs / ((answers.heightFt * 12 + (parseInt(answers.heightIn) || 0)) ** 2)) * 703).toFixed(1)
+    : null
+
   return (
     <div className="space-y-6 text-sm">
+      {/* Step 1 — Contact info */}
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Contact Info</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <QuizAnswerRow label="Name" value={answers.firstName && `${answers.firstName} ${answers.lastName || ''}`} />
+          <QuizAnswerRow label="Date of Birth" value={answers.dob} />
+          <QuizAnswerRow label="State" value={answers.state} />
+          <QuizAnswerRow label="Phone" value={answers.phone} />
+          <QuizAnswerRow label="Email" value={answers.email} />
+          <QuizAnswerRow label="US Citizen" value={answers.usCitizen} />
+        </div>
+      </section>
+
+      {/* Step 2 — About you */}
       <section>
         <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">About You</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Name</span><p className="font-medium">{answers.firstName} {answers.lastName}</p></div>
-          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{answers.dob}</p></div>
-          <div><span className="text-stone-400">Email</span><p className="font-medium">{answers.email}</p></div>
-          <div><span className="text-stone-400">Phone</span><p className="font-medium">{answers.phone}</p></div>
-          <div><span className="text-stone-400">Location</span><p className="font-medium">{answers.city}, {answers.state}</p></div>
-          <div><span className="text-stone-400">Marital Status</span><p className="font-medium">{answers.maritalStatus}</p></div>
-          {answers.partnerName && <div><span className="text-stone-400">Partner</span><p className="font-medium">{answers.partnerName}</p></div>}
+          <QuizAnswerRow label="Marital Status" value={answers.maritalStatus} />
+          <QuizAnswerRow label="Preferred Contact" value={answers.preferredContact} />
         </div>
       </section>
+
+      {/* Step 3 — Health */}
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Health & Lifestyle</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Health</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Height</span><p className="font-medium">{answers.heightFt}'{answers.heightIn}"</p></div>
-          <div><span className="text-stone-400">Weight</span><p className="font-medium">{answers.weightLbs} lbs</p></div>
-          <div><span className="text-stone-400">BMI</span><p className={`font-medium ${answers.bmi > 33 || answers.bmi < 19 ? 'text-red-600' : 'text-emerald-600'}`}>{answers.bmi}</p></div>
-          <div><span className="text-stone-400">Tobacco Use</span><p className={`font-medium ${answers.tobaccoUse ? 'text-red-600' : ''}`}>{answers.tobaccoUse ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Drug Use</span><p className={`font-medium ${answers.drugUse ? 'text-red-600' : ''}`}>{answers.drugUse ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Medical Condition</span><p className={`font-medium ${answers.seriousMedicalCondition ? 'text-red-600' : ''}`}>{answers.seriousMedicalCondition ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Currently Pregnant</span><p className={`font-medium ${answers.currentlyPregnant ? 'text-red-600' : ''}`}>{answers.currentlyPregnant ? 'Yes' : 'No'}</p></div>
+          <QuizAnswerRow label="Height" value={answers.heightFt && `${answers.heightFt}'${answers.heightIn || 0}"`} />
+          <QuizAnswerRow label="Weight" value={answers.weightLbs && `${answers.weightLbs} lbs`} />
+          {bmi && (
+            <div>
+              <span className="text-stone-400">BMI</span>
+              <p className={`font-medium ${bmi > 33 || bmi < 19 ? 'text-amber-600' : 'text-emerald-600'}`}>{bmi}</p>
+            </div>
+          )}
         </div>
       </section>
+
+      {/* Step 4 — Pregnancy */}
       <section>
         <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Pregnancy History</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Biological Children</span><p className={`font-medium ${answers.biologicalChildren === 0 ? 'text-red-600' : ''}`}>{answers.biologicalChildren}</p></div>
-          <div><span className="text-stone-400">Total Pregnancies</span><p className="font-medium">{answers.totalPregnancies}</p></div>
-          <div><span className="text-stone-400">Vaginal Deliveries</span><p className="font-medium">{answers.vaginalDeliveries}</p></div>
-          <div><span className="text-stone-400">C-Sections</span><p className={`font-medium ${answers.cSections > 3 ? 'text-red-600' : ''}`}>{answers.cSections}</p></div>
-          {answers.majorComplications && <div className="col-span-2"><span className="text-stone-400">Complications</span><p className="font-medium">{answers.majorComplications}</p></div>}
+          <QuizAnswerRow label="Healthy Pregnancy" value={answers.healthyPregnancy} />
         </div>
       </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Surrogacy Readiness</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Previous Surrogate</span><p className="font-medium">{answers.previousSurrogacy ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Carry Multiples</span><p className="font-medium">{answers.willingToCarryMultiples ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">IP Contact Pref.</span><p className="font-medium">{answers.contactPreferenceWithIPs}</p></div>
-          <div><span className="text-stone-400">Support System</span><p className="font-medium">{answers.supportSystemConfirmed ? 'Confirmed' : 'Not yet'}</p></div>
-        </div>
-        <div className="mt-2"><span className="text-stone-400">Motivation</span><p className="mt-1 text-stone-600 leading-relaxed">{answers.motivation}</p></div>
-      </section>
+
+      {/* Step 5 — Final */}
       <section>
         <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Final Details</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Govt. Assistance</span><p className={`font-medium ${answers.govtAssistance ? 'text-red-600' : ''}`}>{answers.govtAssistance ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{answers.preferredContact}</p></div>
-          <div><span className="text-stone-400">Heard Via</span><p className="font-medium">{answers.hearAboutUs}</p></div>
+          <QuizAnswerRow label="Heard About Us" value={answers.hearAboutUs} />
         </div>
       </section>
     </div>
