@@ -479,13 +479,13 @@ export default function SurrogateProfilePage() {
     return () => clearTimeout(saveTimer.current)
   }, [profile, userId, currentUser?.id, currentUser?.email])
 
-  // Load from Supabase on first visit (merge with localStorage)
+  // Sync with Supabase on first visit
   useEffect(() => {
-    if (!currentUser?.id) return
+    if (!currentUser?.id || !currentUser?.email) return
     fetchSurrogateProfile(currentUser.id).then(result => {
       if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
+        // Supabase has data — merge with localStorage
         setProfile(prev => {
-          // Merge: Supabase data fills in anything localStorage doesn't have
           const merged = { ...result.profile_data }
           for (const [section, fields] of Object.entries(prev)) {
             if (!merged[section]) merged[section] = fields
@@ -493,9 +493,15 @@ export default function SurrogateProfilePage() {
           }
           return merged
         })
+      } else {
+        // No Supabase data yet — push localStorage to Supabase now
+        const local = loadProfile(userId)
+        if (local && Object.keys(local).length > 0) {
+          saveSurrogateProfile(currentUser.id, currentUser.email, local).catch(() => {})
+        }
       }
     }).catch(() => {})
-  }, [currentUser?.id])
+  }, [currentUser?.id, currentUser?.email])
 
   const updateSection = useCallback((section, field, value) => {
     setProfile(prev => ({
