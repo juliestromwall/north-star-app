@@ -104,14 +104,14 @@ function ProfileProgressCard({ userId }) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="py-6">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           <ProgressRing percent={percent} size={72} />
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 text-center sm:text-left">
             <p className="font-semibold text-stone-800 text-lg">My Profile</p>
             <p className="text-sm text-stone-500 mt-1">
               Complete your matching profile so intended parents can find you. It takes about 20–30 minutes — you can save your progress at any time.
             </p>
-            <div className="mt-3 max-w-sm">
+            <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
                   style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
@@ -120,7 +120,7 @@ function ProfileProgressCard({ userId }) {
             </div>
           </div>
           <Link to={profileLink}>
-            <Button className="rounded-lg gap-1.5 shrink-0" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+            <Button className="rounded-lg gap-1.5 shrink-0 w-full sm:w-auto" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
               {ctaLabel} <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

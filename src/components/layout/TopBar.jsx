@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick }) {
   const { currentUser, isAuthenticated, signOut } = useRole()
   const navigate = useNavigate()
 
@@ -21,10 +21,19 @@ export default function TopBar() {
   }
 
   return (
-    <header className="h-14 border-b bg-abc-cream flex items-center justify-between px-6">
-      <RoleSwitcher />
-      <div className="flex items-center gap-3 ml-auto">
-        <div className="text-right">
+    <header className="h-14 border-b bg-abc-cream flex items-center justify-between px-4 sm:px-6">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-1.5 -ml-1 rounded-md text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <RoleSwitcher />
+      </div>
+      <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+        <div className="text-right hidden sm:block">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
           <p className="text-xs text-muted-foreground">{ROLE_LABELS[currentUser.role]}</p>
         </div>
