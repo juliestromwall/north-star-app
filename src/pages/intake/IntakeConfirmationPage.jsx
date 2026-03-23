@@ -10,7 +10,7 @@ import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 const QUALIFIED_GC_STEPS = [
   { icon: Mail, label: 'Confirmation email sent', desc: 'Check your inbox for a welcome email with details about your application.' },
   { icon: Clock, label: 'Application review (1–3 business days)', desc: 'Our team will review your responses and contact you to schedule a time to chat.' },
-  { icon: Heart, label: "Let's meet!", desc: 'A 30 to 45 minute call with a team member to get to know you, and answer all your questions.' },
+  { icon: Heart, label: "Let's meet!", desc: "We're excited to get to know you and look forward to answering all of your questions." },
 ]
 
 const QUALIFIED_IP_STEPS = [

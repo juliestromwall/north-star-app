@@ -165,11 +165,11 @@ export function QuizShell({
         <div className="w-9" aria-hidden />
       </header>
 
-      {/* Thin progress bar */}
-      <div className="w-full h-1 bg-stone-200">
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-stone-100">
         <div
-          className="h-full transition-all duration-500 ease-out"
-          style={{ width: `${progress}%`, backgroundColor: accentColor }}
+          className="h-full transition-all duration-500 ease-out rounded-r-full"
+          style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${accentColor}, #283693)` }}
         />
       </div>
 

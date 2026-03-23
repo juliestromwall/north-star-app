@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
   Heart, Camera, ChevronDown, CheckCircle2, Circle, Plus, Trash2,
-  Ruler, Scale, CalendarDays, MapPin, Upload
+  Ruler, Scale, CalendarDays, MapPin, Upload,
+  Loader2, X, RotateCw, Crop as CropIcon, Eye,
+  Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from '@/components/ui/card'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -18,7 +20,6 @@ import {
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { Loader2, X, RotateCw, Crop as CropIcon } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -496,18 +497,28 @@ export default function SurrogateProfilePage() {
     return totalFields === 0 ? 0 : Math.round((totalFilled / totalFields) * 100)
   }, [profile])
 
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewPhotos, setPreviewPhotos] = useState([])
+
   // Shorthand helpers
   const v = (section, field) => getVal(section, field)
   const u = (section, field) => (val) => updateSection(section, field, val)
+
+  async function openPreview() {
+    const photos = await listProfilePhotos(userId)
+    const headshot = await listProfilePhotos(`${userId}/headshot`)
+    setPreviewPhotos([...headshot, ...photos])
+    setPreviewOpen(true)
+  }
 
   return (
     <div className="min-h-screen bg-[#fdf8f3]">
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto space-y-6">
 
         {/* ── Page Header ── */}
-        <div className="flex items-center gap-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <ProgressRing percent={overallCompletion} />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-[#283693]">My Surrogate Profile</h1>
             <p className="text-gray-500 mt-1">
               Complete your matching profile so intended parents can get to know you.
@@ -522,6 +533,9 @@ export default function SurrogateProfilePage() {
               <span className="text-xs font-medium text-gray-500">{overallCompletion}% complete</span>
             </div>
           </div>
+          <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
+            <Eye className="w-4 h-4" /> Preview
+          </Button>
         </div>
 
         {/* ── Section Cards ── */}
@@ -571,6 +585,190 @@ export default function SurrogateProfilePage() {
           )
         })}
 
+        {/* Profile Preview Dialog */}
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+            <ProfilePreview profile={profile} photos={previewPhotos} />
+          </DialogContent>
+        </Dialog>
+
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// Profile Preview — shows what IPs will see
+// ─────────────────────────────────────────────────────────
+function PreviewSection({ title, children }) {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-base font-heading font-semibold text-[#283693]">{title}</h3>
+      {children}
+    </div>
+  )
+}
+
+function PreviewStat({ icon: Icon, label, value }) {
+  if (!value) return null
+  return (
+    <div className="flex flex-col items-center text-center p-3 rounded-lg bg-[#fdf8f3]">
+      {Icon && <Icon className="w-4 h-4 text-[#283693] mb-1" />}
+      <span className="text-sm font-bold text-[#283693]">{value}</span>
+      <span className="text-[11px] text-gray-400">{label}</span>
+    </div>
+  )
+}
+
+function ProfilePreview({ profile, photos }) {
+  const about = profile?.about || {}
+  const family = profile?.family || {}
+  const health = profile?.health || {}
+  const lifestyle = profile?.lifestyle || {}
+  const employment = profile?.employment || {}
+  const prefs = profile?.preferences || {}
+
+  const firstName = about.firstName || 'Your Name'
+  const heightStr = about.heightFt ? `${about.heightFt}'${about.heightIn || 0}"` : ''
+  const bmi = about.bmi || ''
+
+  const heroPhoto = photos?.[0]
+
+  return (
+    <div className="bg-[#fdf8f3]">
+      {/* Hero photo */}
+      {heroPhoto ? (
+        <div className="w-full h-64 sm:h-80 overflow-hidden">
+          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-full h-40 bg-gradient-to-br from-[#ed148c]/20 to-[#283693]/20 flex items-center justify-center">
+          <p className="text-gray-400 text-sm">No photos uploaded yet</p>
+        </div>
+      )}
+
+      {/* Photo thumbnails */}
+      {photos.length > 1 && (
+        <div className="flex gap-2 px-6 -mt-6 relative z-10">
+          {photos.slice(1, 5).map(p => (
+            <div key={p.path} className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-sm shrink-0">
+              <img src={p.url} alt="" className="w-full h-full object-cover" />
+            </div>
+          ))}
+          {photos.length > 5 && (
+            <div className="w-14 h-14 rounded-lg bg-white/80 border-2 border-white shadow-sm flex items-center justify-center text-xs font-medium text-gray-500">
+              +{photos.length - 5}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="px-6 py-6 space-y-6">
+        {/* Name & location */}
+        <div className="text-center">
+          <h2 className="text-2xl font-heading font-bold text-[#283693]">
+            Meet {firstName}
+          </h2>
+          {(about.city || about.state) && (
+            <p className="text-gray-500 text-sm mt-1">
+              {[about.city, about.state].filter(Boolean).join(', ')}
+            </p>
+          )}
+          {about.personality && (
+            <p className="text-sm italic text-[#283693]/70 max-w-md mx-auto mt-3">
+              "{about.personality}"
+            </p>
+          )}
+        </div>
+
+        {/* About Me */}
+        <PreviewSection title="About Me">
+          <div className="grid grid-cols-2 gap-3">
+            {family.maritalStatus && (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
+                  <Heart className="w-3.5 h-3.5 text-[#283693]" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-400">Marital Status</p>
+                  <p className="text-sm font-medium">{family.maritalStatus}</p>
+                </div>
+              </div>
+            )}
+            {employment.currentlyEmployed && (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
+                  <BriefcaseIcon className="w-3.5 h-3.5 text-[#283693]" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-400">Employed</p>
+                  <p className="text-sm font-medium capitalize">{employment.currentlyEmployed}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </PreviewSection>
+
+        {/* Surrogacy */}
+        <PreviewSection title="Surrogacy Experience">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ed148c]/10 text-[#283693] text-sm font-medium px-3 py-1.5">
+              {prefs.previousSurrogate === 'yes' ? 'Experienced Surrogate' : 'First-Time Surrogate'}
+            </span>
+            {prefs.reasonForSurrogacy && (
+              <span className="inline-flex items-center rounded-full bg-[#283693]/10 text-[#283693] text-sm font-medium px-3 py-1.5">
+                {prefs.reasonForSurrogacy}
+              </span>
+            )}
+          </div>
+        </PreviewSection>
+
+        {/* Medical snapshot */}
+        {(heightStr || about.weight || bmi || health.bloodType) && (
+          <PreviewSection title="Medical Snapshot">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <PreviewStat icon={Ruler} label="Height" value={heightStr} />
+              <PreviewStat icon={WeightIcon} label="Weight" value={about.weight ? `${about.weight} lbs` : ''} />
+              <PreviewStat icon={Activity} label="BMI" value={bmi} />
+              <PreviewStat icon={Droplets} label="Blood Type" value={health.bloodType} />
+            </div>
+          </PreviewSection>
+        )}
+
+        {/* Lifestyle */}
+        {(lifestyle.typicalDiet || lifestyle.exerciseFrequency) && (
+          <PreviewSection title="Lifestyle">
+            <div className="flex flex-wrap gap-2">
+              {lifestyle.typicalDiet && (
+                <span className="inline-flex items-center rounded-full bg-green-50 text-green-700 text-sm px-3 py-1">
+                  {lifestyle.typicalDiet}
+                </span>
+              )}
+              {lifestyle.exerciseFrequency && (
+                <span className="inline-flex items-center rounded-full bg-blue-50 text-blue-700 text-sm px-3 py-1">
+                  Exercise: {lifestyle.exerciseFrequency}
+                </span>
+              )}
+            </div>
+          </PreviewSection>
+        )}
+
+        {/* Insurance */}
+        {employment.healthInsurance && (
+          <PreviewSection title="Insurance">
+            <div className="flex items-center gap-2">
+              <ShieldIcon className="w-4 h-4 text-[#283693]" />
+              <span className="text-sm capitalize">{employment.healthInsurance}</span>
+            </div>
+          </PreviewSection>
+        )}
+
+        {/* Banner */}
+        <div className="text-center py-4 border-t border-gray-200">
+          <p className="text-xs text-gray-400">
+            This is a preview of how intended parents will see your profile.
+          </p>
+        </div>
       </div>
     </div>
   )
