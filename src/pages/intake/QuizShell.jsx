@@ -167,28 +167,18 @@ export function QuizShell({
 
       {/* Scrollable body */}
       <div className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24">
-        {/* Progress pill */}
-        <div className="flex items-center justify-center gap-3 mb-7">
-          <div className="inline-flex items-center gap-3 rounded-full pl-1.5 pr-5 py-1.5 shadow-sm border border-stone-100 bg-white">
-            {/* Mini progress bar inside the pill */}
-            <div className="w-20 h-2 bg-stone-100 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${accentColor}, #283693)` }} />
+        {/* Progress indicator */}
+        <div className="flex flex-col items-center gap-2 mb-7">
+          <span className="text-xs text-stone-400 font-medium tracking-wide">Step {step} of {totalSteps}</span>
+          <div className="w-full max-w-xs h-8 rounded-full overflow-hidden shadow-sm"
+            style={{ background: '#e7e5e4' }}>
+            <div className="h-full rounded-full transition-all duration-500 ease-out flex items-center justify-center"
+              style={{ width: `${Math.max(progress, 20)}%`, background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
+              {milestone && (
+                <span className="text-[11px] font-semibold text-white whitespace-nowrap">{milestone}</span>
+              )}
             </div>
-            <span className="text-xs font-semibold text-stone-600">Step {step} of {totalSteps}</span>
           </div>
-          {milestone && (
-            <span
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-              style={{
-                color: accentColor,
-                borderColor: `${accentColor}55`,
-                backgroundColor: `${accentColor}18`,
-              }}
-            >
-              {milestone}
-            </span>
-          )}
         </div>
 
         {/* Question header */}
