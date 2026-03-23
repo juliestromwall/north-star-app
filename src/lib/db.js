@@ -231,6 +231,48 @@ export async function fetchAllUserTasks() {
   return result.data
 }
 
+// ── Surrogate Profiles ──────────────────────────────────
+
+export async function saveSurrogateProfile(userId, email, profileData) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .upsert({
+      user_id: userId,
+      email: email.trim().toLowerCase(),
+      profile_data: profileData,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function fetchSurrogateProfile(userId) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .select('profile_data, updated_at')
+    .eq('user_id', userId)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchSurrogateProfileByEmail(email) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .select('profile_data, updated_at, user_id')
+    .eq('email', email.trim().toLowerCase())
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single()
+  if (error) return null
+  return data
+}
+
 // ── Profile Photos (Supabase Storage) ───────────────────
 
 const BUCKET = 'profile-photos'

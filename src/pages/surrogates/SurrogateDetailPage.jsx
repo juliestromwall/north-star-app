@@ -17,13 +17,14 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail } from '@/lib/db'
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
   const [surrogate, setSurrogate] = useState(null)
   const [loading, setLoading] = useState(true)
   const [quizAnswers, setQuizAnswers] = useState(null)
+  const [profileData, setProfileData] = useState(null)
   const [photos, setPhotos] = useState([])
   const [noteText, setNoteText] = useState('')
 
@@ -33,6 +34,9 @@ export default function SurrogateDetailPage() {
       setSurrogate(found || null)
       if (found?.email) {
         fetchIntakeByEmail(found.email).then(setQuizAnswers).catch(() => {})
+        fetchSurrogateProfileByEmail(found.email).then(result => {
+          if (result?.profile_data) setProfileData(result.profile_data)
+        }).catch(() => {})
       }
       if (found?.userId) {
         listProfilePhotos(found.userId).then(setPhotos).catch(() => {})
@@ -173,79 +177,9 @@ export default function SurrogateDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Profile Tab — surrogate's matching profile */}
+        {/* Profile Tab — surrogate's matching profile from Supabase */}
         <TabsContent value="profile" className="space-y-6 mt-4">
-          {/* Profile preview built from quiz answers + uploaded photos */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Matching Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Cover photo + gallery */}
-                {photos.length > 0 && (
-                  <div>
-                    <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden">
-                      <img src={photos[0].url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    {photos.length > 1 && (
-                      <div className="flex gap-2 mt-2">
-                        {photos.slice(1, 5).map(p => (
-                          <div key={p.path} className="w-16 h-16 rounded-lg overflow-hidden border">
-                            <img src={p.url} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                        {photos.length > 5 && (
-                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium">
-                            +{photos.length - 5}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Name & bio */}
-                <div className="text-center">
-                  <h2 className="text-xl font-heading font-bold text-abc-indigo">
-                    Meet {surrogate.name.split(' ')[0]}
-                  </h2>
-                  {surrogate.location && (
-                    <p className="text-muted-foreground text-sm mt-1">{surrogate.age ? `${surrogate.age} years old · ` : ''}{surrogate.location}</p>
-                  )}
-                </div>
-
-                {/* Info grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-semibold text-abc-indigo mb-2">About</h3>
-                    <div className="space-y-1.5 text-sm">
-                      {surrogate.maritalStatus && <div className="flex justify-between"><span className="text-muted-foreground">Marital Status</span><span className="font-medium">{surrogate.maritalStatus}</span></div>}
-                      {surrogate.preferredContact && <div className="flex justify-between"><span className="text-muted-foreground">Preferred Contact</span><span className="font-medium">{surrogate.preferredContact}</span></div>}
-                      {surrogate.hearAboutUs && <div className="flex justify-between"><span className="text-muted-foreground">Referral Source</span><span className="font-medium">{surrogate.hearAboutUs}</span></div>}
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-abc-indigo mb-2">Medical</h3>
-                    <div className="space-y-1.5 text-sm">
-                      {heightStr && <div className="flex justify-between"><span className="text-muted-foreground">Height</span><span className="font-medium">{heightStr}</span></div>}
-                      {surrogate.weightLbs && <div className="flex justify-between"><span className="text-muted-foreground">Weight</span><span className="font-medium">{surrogate.weightLbs} lbs</span></div>}
-                      {surrogate.bmi && <div className="flex justify-between"><span className="text-muted-foreground">BMI</span><span className="font-medium">{surrogate.bmi}</span></div>}
-                      {surrogate.healthyPregnancy !== undefined && surrogate.healthyPregnancy !== null && (
-                        <div className="flex justify-between"><span className="text-muted-foreground">Healthy Pregnancy</span><span className="font-medium">{surrogate.healthyPregnancy ? 'Yes' : 'No'}</span></div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-abc-indigo/5 border border-abc-indigo/10 p-4">
-                  <p className="text-sm text-muted-foreground">
-                    This profile shows data from the intake quiz. Once the surrogate completes their full matching profile, additional details (personality, pregnancy history, lifestyle, preferences, etc.) will appear here.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ProfileTab surrogate={surrogate} profileData={profileData} photos={photos} heightStr={heightStr} />
         </TabsContent>
 
         {/* Quiz Answers Tab */}
@@ -372,6 +306,125 @@ export default function SurrogateDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+// Profile section config — matches SurrogateProfilePage sections
+const PROFILE_SECTIONS = [
+  { key: 'about', title: 'About Me', fields: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'] },
+  { key: 'family', title: 'Family & Household', fields: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'] },
+  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies'] },
+  { key: 'fertility', title: 'Fertility & Medical', fields: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'] },
+  { key: 'health', title: 'Health & Wellness', fields: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'] },
+  { key: 'lifestyle', title: 'Lifestyle', fields: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'] },
+  { key: 'employment', title: 'Employment & Finances', fields: ['currentlyEmployed', 'healthInsurance'] },
+  { key: 'preferences', title: 'Surrogacy Preferences', fields: ['previousSurrogate', 'reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'] },
+]
+
+function countSectionFilled(data, section) {
+  if (!data?.[section.key]) return { filled: 0, total: section.fields.length }
+  let filled = 0
+  for (const f of section.fields) {
+    const val = data[section.key][f]
+    if (val !== undefined && val !== '' && val !== null) filled++
+  }
+  return { filled, total: section.fields.length }
+}
+
+function ProfileTab({ surrogate, profileData, photos, heightStr }) {
+  const hasProfile = profileData && Object.keys(profileData).length > 0
+
+  // Calculate overall completion
+  let totalFields = 0, totalFilled = 0
+  for (const sec of PROFILE_SECTIONS) {
+    const { filled, total } = countSectionFilled(profileData, sec)
+    totalFields += total
+    totalFilled += filled
+  }
+  const overallPercent = totalFields > 0 ? Math.round((totalFilled / totalFields) * 100) : 0
+
+  return (
+    <div className="space-y-6">
+      {/* Progress overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Completion</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!hasProfile ? (
+            <p className="text-sm text-muted-foreground">This surrogate has not started their matching profile yet.</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-abc-indigo">{overallPercent}%</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {PROFILE_SECTIONS.map(sec => {
+                  const { filled, total } = countSectionFilled(profileData, sec)
+                  const complete = filled === total && total > 0
+                  return (
+                    <div key={sec.key} className={`rounded-lg border p-3 text-center ${complete ? 'border-green-200 bg-green-50' : filled > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200'}`}>
+                      <p className="text-xs font-medium text-gray-600 truncate">{sec.title}</p>
+                      <p className={`text-sm font-bold mt-1 ${complete ? 'text-green-600' : filled > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                        {filled}/{total}
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Photos */}
+      {photos.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Photos ({photos.length})</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              {photos.map(p => (
+                <div key={p.path} className="aspect-square rounded-xl overflow-hidden border">
+                  <img src={p.url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Profile data sections */}
+      {hasProfile && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {PROFILE_SECTIONS.map(sec => {
+            const sectionData = profileData?.[sec.key]
+            if (!sectionData) return null
+            const entries = Object.entries(sectionData).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+            if (entries.length === 0) return null
+            return (
+              <Card key={sec.key}>
+                <CardHeader><CardTitle className="text-base">{sec.title}</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    {entries.map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-4">
+                        <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                        <span className="font-medium text-right">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

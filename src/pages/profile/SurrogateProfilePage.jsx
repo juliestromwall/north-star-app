@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
   Heart, Camera, ChevronDown, CheckCircle2, Circle, Plus, Trash2,
@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile } from '@/lib/db'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -465,10 +465,37 @@ export default function SurrogateProfilePage() {
     })
   }, [currentUser?.email])
 
-  // Auto-save on change (per-user)
+  // Auto-save on change (localStorage immediately, Supabase debounced)
+  const saveTimer = useRef(null)
   useEffect(() => {
     saveProfile(userId, profile)
-  }, [profile, userId])
+    // Debounced save to Supabase (2 seconds after last change)
+    if (currentUser?.id && currentUser?.email) {
+      clearTimeout(saveTimer.current)
+      saveTimer.current = setTimeout(() => {
+        saveSurrogateProfile(currentUser.id, currentUser.email, profile).catch(() => {})
+      }, 2000)
+    }
+    return () => clearTimeout(saveTimer.current)
+  }, [profile, userId, currentUser?.id, currentUser?.email])
+
+  // Load from Supabase on first visit (merge with localStorage)
+  useEffect(() => {
+    if (!currentUser?.id) return
+    fetchSurrogateProfile(currentUser.id).then(result => {
+      if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
+        setProfile(prev => {
+          // Merge: Supabase data fills in anything localStorage doesn't have
+          const merged = { ...result.profile_data }
+          for (const [section, fields] of Object.entries(prev)) {
+            if (!merged[section]) merged[section] = fields
+            else merged[section] = { ...merged[section], ...fields }
+          }
+          return merged
+        })
+      }
+    }).catch(() => {})
+  }, [currentUser?.id])
 
   const updateSection = useCallback((section, field, value) => {
     setProfile(prev => ({
