@@ -310,6 +310,12 @@ export default function SurrogateIntakeForm() {
             <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} accentColor={GC_COLOR} accentFg={GC_FG} />
           ))}
         </div>
+        {form.hearAboutUs === 'Other' && (
+          <div className="mt-3 space-y-1.5">
+            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please specify</Label>
+            <Input value={form.hearAboutUsOther || ''} onChange={e => set('hearAboutUsOther', e.target.value)} placeholder="How did you find us?" className="rounded-xl h-11" />
+          </div>
+        )}
       </div>
       <div
         className="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all"
