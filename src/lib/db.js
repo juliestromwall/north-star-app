@@ -135,3 +135,52 @@ export async function updateIntakeSubmissionStatus(id, status) {
   if (result.error) throw result.error
   return result.data
 }
+
+// ── User Tasks ─────────────────────────────────────────
+
+export async function fetchUserTasks(userId) {
+  const result = await withTimeout(
+    () => supabase.from('user_tasks').select('*').eq('user_id', userId).order('sort_order').order('assigned_at', { ascending: false })
+  )
+  if (!result) return []
+  if (result.error) return []
+  return result.data
+}
+
+export async function updateTaskStatus(taskId, status) {
+  const updates = { status }
+  if (status === 'completed') updates.completed_at = new Date().toISOString()
+  const result = await withTimeout(
+    () => supabase.from('user_tasks').update(updates).eq('id', taskId).select().single()
+  )
+  if (!result) return null
+  if (result.error) throw result.error
+  return result.data
+}
+
+export async function insertUserTask(task) {
+  const result = await withTimeout(
+    () => supabase.from('user_tasks').insert(task).select().single()
+  )
+  if (!result) return null
+  if (result.error) throw result.error
+  return result.data
+}
+
+export async function deleteUserTask(taskId) {
+  const result = await withTimeout(
+    () => supabase.from('user_tasks').delete().eq('id', taskId)
+  )
+  if (!result) return
+  if (result.error) throw result.error
+}
+
+export async function fetchAllUserTasks() {
+  const result = await withTimeout(
+    () => supabase.from('user_tasks').select('*').order('assigned_at', { ascending: false }),
+    20000
+  )
+  if (!result) return []
+  if (result.error) return []
+  return result.data
+}

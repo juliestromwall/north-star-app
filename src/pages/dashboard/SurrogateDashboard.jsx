@@ -5,8 +5,10 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MATCH_STAGES } from '@/lib/constants'
-import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles } from 'lucide-react'
+import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles, AlertCircle, Clock, ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+import { fetchUserTasks, updateTaskStatus } from '@/lib/db'
 
 // ─── Profile completion (mirrors SurrogateProfilePage logic) ───
 const PROFILE_REQUIRED = {
@@ -57,10 +59,6 @@ function ProgressRing({ percent, size = 56 }) {
 // A new surrogate who just signed up via the quiz has no journey data yet.
 // We detect this by checking if they're an auth user (real signup) vs a mock user.
 
-const ONBOARDING_STEPS = [
-  { id: 2, label: 'Upload documents', desc: 'Medical records, ID, and insurance information.', icon: Upload, link: '/documents', done: false },
-  { id: 3, label: 'Review & sign forms', desc: 'Complete required agency forms and agreements.', icon: ClipboardList, link: '/forms', done: false },
-]
 
 export default function SurrogateDashboard() {
   const { currentUser, isAuthenticated } = useRole()
@@ -84,38 +82,107 @@ function ProfileProgressCard({ userId }) {
 
   return (
     <Link to="/my-profile" className="block">
-      <Card className="hover:shadow-md transition-shadow cursor-pointer border-stone-200">
-        <CardContent className="py-5">
-          <div className="flex items-center gap-5">
-            <ProgressRing percent={percent} />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-[#283693] text-lg">My Matching Profile</p>
-              <p className="text-sm text-stone-500 mt-0.5">
-                {percent === 0
-                  ? 'Start building your profile so intended parents can get to know you.'
-                  : percent === 100
-                  ? "Your profile is complete! We'll use this to find your perfect match."
-                  : 'Continue building your profile so intended parents can get to know you.'}
-              </p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }}
-                  />
-                </div>
-                <span className="text-xs font-medium text-stone-400 shrink-0">{percent}% complete</span>
-              </div>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+        <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
+          <ProgressRing percent={percent} size={48} />
+          <p className="font-semibold text-stone-700 text-sm mt-2">My Profile</p>
+          <div className="w-full mt-2">
+            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
             </div>
-            <ArrowRight className="w-5 h-5 text-stone-300 shrink-0" />
           </div>
+          <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
         </CardContent>
       </Card>
     </Link>
   )
 }
 
+const TASK_ICONS = {
+  form: ClipboardList,
+  document: Upload,
+  action: AlertCircle,
+}
+
+function TaskCard({ task, onStatusChange }) {
+  const Icon = TASK_ICONS[task.type] || ClipboardList
+  const isPending = task.status === 'pending'
+  const isInProgress = task.status === 'in_progress'
+
+  return (
+    <div className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
+      isPending ? 'border-[#ed148c]/30 bg-[#ed148c]/5' : 'border-stone-200 bg-white'
+    }`}>
+      <div className={`flex items-center justify-center w-10 h-10 rounded-xl shrink-0 ${
+        isPending ? 'bg-[#ed148c]/10' : 'bg-[#283693]/10'
+      }`}>
+        <Icon className={`w-5 h-5 ${isPending ? 'text-[#ed148c]' : 'text-[#283693]'}`} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-stone-800 text-sm">{task.title}</p>
+        {task.description && <p className="text-xs text-stone-500 mt-0.5">{task.description}</p>}
+        {task.due_date && (
+          <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Due {new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </p>
+        )}
+      </div>
+      {isPending && (
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#ed148c', color: '#fff' }}
+          onClick={() => onStatusChange(task.id, 'in_progress')}>
+          Start <ArrowRight className="w-3.5 h-3.5" />
+        </Button>
+      )}
+      {isInProgress && (
+        <Button size="sm" className="rounded-lg text-xs gap-1.5 shrink-0" style={{ backgroundColor: '#283693', color: '#fff' }}
+          onClick={() => onStatusChange(task.id, 'completed')}>
+          <CheckCircle2 className="w-3.5 h-3.5" /> Mark Done
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function CompletedTaskRow({ task }) {
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+      <span className="text-sm text-stone-500 line-through">{task.title}</span>
+      {task.completed_at && (
+        <span className="text-xs text-stone-400 ml-auto shrink-0">
+          {new Date(task.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function OnboardingDashboard({ name, currentUser }) {
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [completedOpen, setCompletedOpen] = useState(false)
+
+  const userId = currentUser?.id
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return }
+    fetchUserTasks(userId)
+      .then(data => setTasks(data || []))
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  const activeTasks = tasks.filter(t => ['pending', 'in_progress'].includes(t.status))
+  const completedTasks = tasks.filter(t => t.status === 'completed')
+  const skippedTasks = tasks.filter(t => t.status === 'skip')
+  const pendingCount = tasks.filter(t => t.status === 'pending').length
+
+  async function handleStatusChange(taskId, newStatus) {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus, completed_at: newStatus === 'completed' ? new Date().toISOString() : t.completed_at } : t))
+    try { await updateTaskStatus(taskId, newStatus) } catch {}
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -123,118 +190,123 @@ function OnboardingDashboard({ name, currentUser }) {
         subtitle="We're so glad you're here. Take a look around — this is your portal."
       />
 
-      {/* Welcome banner */}
-      <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
-        <CardContent className="py-6">
-          <div className="flex items-start gap-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
-              <Sparkles className="w-6 h-6 text-[#283693]" />
-            </div>
-            <div>
-              <p className="font-semibold text-[#283693] text-lg">You're off to a great start!</p>
-              <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to explore your portal. If you'd like to get a head start, you can begin filling out your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
-              </p>
-            </div>
+      {/* Action banner — only show when there are pending tasks */}
+      {pendingCount > 0 && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#ed148c]/10 border border-[#ed148c]/20">
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ed148c] text-white text-sm font-bold shrink-0">
+            {pendingCount}
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm font-medium text-stone-800">
+            {pendingCount === 1 ? '1 item needs your attention' : `${pendingCount} items need your attention`}
+          </p>
+        </div>
+      )}
 
-      {/* Profile progress */}
-      <ProfileProgressCard userId={currentUser?.id || currentUser?.email} />
+      {/* Status cards row */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <ProfileProgressCard userId={userId || currentUser?.email} />
 
-      {/* Onboarding checklist */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Whenever You're Ready</CardTitle>
-          <CardDescription>These are optional for now — complete them at your own pace</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {ONBOARDING_STEPS.map((step, i) => (
-              <Link
-                key={step.id}
-                to={step.link}
-                className="flex items-start gap-4 p-4 rounded-xl border border-stone-200 hover:border-stone-300 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-stone-100 group-hover:bg-[#283693]/10 transition-colors shrink-0">
-                  <step.icon className="w-5 h-5 text-stone-500 group-hover:text-[#283693] transition-colors" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-stone-800 text-sm">{step.label}</p>
-                  <p className="text-xs text-stone-500 mt-0.5">{step.desc}</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-stone-300 group-hover:text-[#283693] mt-3 shrink-0 transition-colors" />
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        <Link to="/my-match" className="block">
+          <Card className="hover:shadow-md transition-shadow h-full">
+            <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
+              <Heart className="w-8 h-8 text-stone-300 mb-2" />
+              <p className="font-semibold text-stone-700 text-sm">My Match</p>
+              <p className="text-xs text-stone-400 mt-1">Pending</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Application status */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="size-4 text-amber-500" /> Quiz Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-amber-800">Under Review</p>
-                <p className="text-xs text-amber-600 mt-0.5">Our team is reviewing your quiz results. We'll be in touch within 1–3 business days.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick links */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Links</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/my-profile">
-                  <UserCircle className="size-4" /> My Profile
-                  <ArrowRight className="size-4 ml-auto" />
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/forms">
-                  <FileText className="size-4" /> My Forms
-                  <ArrowRight className="size-4 ml-auto" />
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/documents">
-                  <FileText className="size-4" /> Documents
-                  <ArrowRight className="size-4 ml-auto" />
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/messages">
-                  <MessageSquare className="size-4" /> Messages
-                </Link>
-              </Button>
+          <CardContent className="py-5 flex flex-col items-center justify-center text-center h-full">
+            <ClipboardList className="w-8 h-8 text-stone-300 mb-2" />
+            <p className="font-semibold text-stone-700 text-sm">Quiz Results</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <p className="text-xs text-amber-600">Under Review</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Questions card */}
+      {/* To Do section */}
+      {activeTasks.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              To Do
+              {pendingCount > 0 && (
+                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#ed148c] text-white text-[11px] font-bold">{pendingCount}</span>
+              )}
+            </CardTitle>
+            <CardDescription>Items that need your attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {activeTasks.map(task => (
+                <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* No tasks state */}
+      {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
+        <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
+          <CardContent className="py-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
+                <Sparkles className="w-6 h-6 text-[#283693]" />
+              </div>
+              <div>
+                <p className="font-semibold text-[#283693] text-lg">You're all caught up!</p>
+                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                  Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Completed section — collapsible */}
+      {completedTasks.length > 0 && (
+        <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  Completed
+                  <span className="text-xs font-normal text-stone-400 ml-1">({completedTasks.length})</span>
+                </CardTitle>
+                <div className="ml-auto">
+                  <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${completedOpen ? 'rotate-180' : ''}`} />
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <div className="divide-y divide-stone-100">
+                  {completedTasks.map(task => (
+                    <CompletedTaskRow key={task.id} task={task} />
+                  ))}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
+      {/* Contact */}
       <Card>
         <CardContent className="py-5">
           <div className="text-center">
             <p className="text-sm text-stone-600">
               Questions? Reach us at{' '}
-              <a href="mailto:info@abcsurrogacy.com" className="text-[#283693] underline font-medium">
-                info@abcsurrogacy.com
-              </a>{' '}
-              or call (800) 555-0100
+              <a href="mailto:intake@abcsurrogacy.com" className="text-[#283693] underline font-medium">
+                intake@abcsurrogacy.com
+              </a>
             </p>
           </div>
         </CardContent>

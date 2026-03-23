@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Baby } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
@@ -5,13 +6,23 @@ import { ROLES } from '@/lib/constants'
 import { getNavForRole } from '@/lib/navigation'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { fetchUserTasks } from '@/lib/db'
 
 const BABIES_BORN = 220
 
 export default function Sidebar() {
-  const { currentRole } = useRole()
+  const { currentRole, currentUser, isAuthenticated } = useRole()
   const sections = getNavForRole(currentRole)
   const showBabiesBorn = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN].includes(currentRole)
+  const [pendingCount, setPendingCount] = useState(0)
+
+  // Fetch pending task count for authenticated users
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.id) return
+    fetchUserTasks(currentUser.id).then(tasks => {
+      setPendingCount((tasks || []).filter(t => t.status === 'pending').length)
+    }).catch(() => {})
+  }, [isAuthenticated, currentUser?.id])
 
   return (
     <aside className="w-60 bg-sidebar text-sidebar-foreground flex flex-col shrink-0">
@@ -42,6 +53,12 @@ export default function Sidebar() {
                   >
                     <item.icon className="size-4 shrink-0" />
                     {item.label}
+                    {/* Pending task badge on Dashboard */}
+                    {item.path === '/' && pendingCount > 0 && (
+                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#ed148c] text-white text-[10px] font-bold">
+                        {pendingCount}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </div>
