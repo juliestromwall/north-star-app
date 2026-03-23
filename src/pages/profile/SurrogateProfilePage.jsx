@@ -246,7 +246,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
               </>
             )}
           </div>
-          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" disabled={uploading} />
         </label>
       )}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -1245,7 +1245,7 @@ function PhotosSection() {
           </div>
           <input
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             multiple
             onChange={handleUpload}
             className="hidden"
