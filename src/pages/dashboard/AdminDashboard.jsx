@@ -17,21 +17,8 @@ const activeIPs = mockIntendedParents.filter(ip => ip.status === 'active').lengt
 const matchesInProgress = mockSurrogates.filter(s => s.matchedWith).length
 const pendingApps = mockSurrogates.filter(s => s.status === 'pending').length + mockIntendedParents.filter(ip => ip.status === 'pending').length
 
-const recentActivity = [
-  { id: 1, text: 'Kayla Brown submitted surrogate application', time: '2 hours ago', type: 'submission' },
-  { id: 2, text: 'Emily Carter — 32 week checkup completed', time: '5 hours ago', type: 'milestone' },
-  { id: 3, text: 'Brittany Moore & Garcia family — introduction meeting scheduled', time: '1 day ago', type: 'match' },
-  { id: 4, text: 'Lauren Davis & Park family — match confirmed', time: '2 days ago', type: 'match' },
-  { id: 5, text: "Kevin & Brian O'Neil submitted IP application", time: '3 days ago', type: 'submission' },
-  { id: 6, text: 'Rachel White — legal contracts sent for review', time: '4 days ago', type: 'milestone' },
-]
-
-const upcomingMilestones = [
-  { id: 1, text: 'Stephanie Clark — Due date', date: 'Mar 28, 2026', urgency: 'high' },
-  { id: 2, text: 'Emily Carter — Due date', date: 'May 12, 2026', urgency: 'medium' },
-  { id: 3, text: 'Jessica Nguyen — Embryo transfer', date: 'Mar 15, 2026', urgency: 'high' },
-  { id: 4, text: 'Ashley Williams — Medical clearance review', date: 'Mar 10, 2026', urgency: 'medium' },
-]
+const recentActivity = []
+const upcomingMilestones = []
 
 export default function AdminDashboard() {
   const { currentUser } = useRole()
@@ -72,8 +59,8 @@ export default function AdminDashboard() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Surrogates" value={activeSurrogates} icon={Heart} description="+2 this month" />
-        <StatCard title="Active IPs" value={activeIPs} icon={Users} description="+1 this month" />
+        <StatCard title="Active Surrogates" value={activeSurrogates} icon={Heart} description="In program" />
+        <StatCard title="Active IPs" value={activeIPs} icon={Users} description="In program" />
         <StatCard title="Matches in Progress" value={matchesInProgress} icon={GitMerge} description="Across all stages" />
         <StatCard title="Pending Applications" value={pendingApps} icon={FileText} description="Needs review" />
       </div>
@@ -117,20 +104,24 @@ export default function AdminDashboard() {
             <CardTitle>Upcoming Milestones</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {upcomingMilestones.map(milestone => (
-                <div key={milestone.id} className="flex items-start gap-3">
-                  <div className={`size-2 rounded-full mt-2 shrink-0 ${milestone.urgency === 'high' ? 'bg-abc-coral' : 'bg-abc-indigo'}`} />
-                  <div>
-                    <p className="text-sm">{milestone.text}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Calendar className="size-3" />
-                      {milestone.date}
-                    </p>
+            {upcomingMilestones.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No upcoming milestones</p>
+            ) : (
+              <div className="space-y-3">
+                {upcomingMilestones.map(milestone => (
+                  <div key={milestone.id} className="flex items-start gap-3">
+                    <div className={`size-2 rounded-full mt-2 shrink-0 ${milestone.urgency === 'high' ? 'bg-abc-coral' : 'bg-abc-indigo'}`} />
+                    <div>
+                      <p className="text-sm">{milestone.text}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Calendar className="size-3" />
+                        {milestone.date}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -142,20 +133,24 @@ export default function AdminDashboard() {
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {recentActivity.map(activity => (
-                <div key={activity.id} className="flex items-start gap-3">
-                  <div className="size-2 rounded-full mt-2 bg-abc-indigo/40 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">{activity.text}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <Clock className="size-3" />
-                      {activity.time}
-                    </p>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No recent activity</p>
+            ) : (
+              <div className="space-y-3">
+                {recentActivity.map(activity => (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className="size-2 rounded-full mt-2 bg-abc-indigo/40 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm">{activity.text}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Clock className="size-3" />
+                        {activity.time}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
