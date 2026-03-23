@@ -83,8 +83,9 @@ export default function IntakeLandingPage() {
 
       {/* Hero */}
       <div className="max-w-2xl mx-auto px-5 pt-14 pb-10 text-center">
-        <div className="inline-flex items-center gap-2 bg-white border border-stone-200 rounded-full px-4 py-1.5 mb-6 text-xs text-stone-500 font-medium shadow-sm">
-          <Clock className="w-3.5 h-3.5" />
+        <div className="inline-flex items-center gap-2 rounded-full px-5 py-2 mb-6 text-sm font-semibold shadow-sm"
+          style={{ background: 'linear-gradient(135deg, #ed148c, #283693)', color: '#fff' }}>
+          <Clock className="w-4 h-4" />
           See if you qualify in less than 5 minutes.
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold text-stone-900 leading-tight mb-4">
