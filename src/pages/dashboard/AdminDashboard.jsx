@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
 import PageHeader from '@/components/shared/PageHeader'
@@ -5,17 +6,11 @@ import StatCard from '@/components/shared/StatCard'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { mockSurrogates } from '@/data/mock/surrogates'
-import { mockIntendedParents } from '@/data/mock/intendedParents'
+import { fetchSurrogatesFromIntake } from '@/lib/db'
 import { matchPipelineCounts } from '@/data/mock/matches'
 import { MATCH_STAGES } from '@/lib/constants'
 import { Heart, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-
-const activeSurrogates = mockSurrogates.filter(s => s.status === 'active').length
-const activeIPs = mockIntendedParents.filter(ip => ip.status === 'active').length
-const matchesInProgress = mockSurrogates.filter(s => s.matchedWith).length
-const pendingApps = mockSurrogates.filter(s => s.status === 'pending').length + mockIntendedParents.filter(ip => ip.status === 'pending').length
 
 const recentActivity = []
 const upcomingMilestones = []
@@ -23,6 +18,15 @@ const upcomingMilestones = []
 export default function AdminDashboard() {
   const { currentUser } = useRole()
   const { getActiveNotes, dismissNote } = useAdminNotes()
+  const [surrogateCount, setSurrogateCount] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
+
+  useEffect(() => {
+    fetchSurrogatesFromIntake().then(data => {
+      setSurrogateCount(data.length)
+      setPendingCount(data.filter(s => s.status === 'pending').length)
+    }).catch(() => {})
+  }, [])
 
   const visibleNotes = getActiveNotes().filter(
     (n) => !n.dismissals?.some((d) => d.user_id === currentUser?.id)
@@ -59,10 +63,10 @@ export default function AdminDashboard() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Active Surrogates" value={activeSurrogates} icon={Heart} description="In program" />
-        <StatCard title="Active IPs" value={activeIPs} icon={Users} description="In program" />
-        <StatCard title="Matches in Progress" value={matchesInProgress} icon={GitMerge} description="Across all stages" />
-        <StatCard title="Pending Applications" value={pendingApps} icon={FileText} description="Needs review" />
+        <StatCard title="Surrogates" value={surrogateCount} icon={Heart} description="In program" />
+        <StatCard title="Active IPs" value={0} icon={Users} description="In program" />
+        <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
+        <StatCard title="Pending Review" value={pendingCount} icon={FileText} description="Needs review" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

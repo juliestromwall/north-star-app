@@ -136,6 +136,52 @@ export async function updateIntakeSubmissionStatus(id, status) {
   return result.data
 }
 
+// ── Surrogates (from qualified intake submissions) ─────
+
+export async function fetchSurrogatesFromIntake() {
+  if (!supabase) return []
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions')
+      .select('*')
+      .eq('intake_type', 'gc')
+      .in('status', ['qualified', 'approved', 'reviewed', 'pending_review'])
+      .order('submitted_at', { ascending: false }),
+    20000
+  )
+  if (!result || result.error) return []
+  return result.data.map(row => {
+    const a = row.answers || {}
+    const dob = a.dob ? new Date(a.dob) : null
+    const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+    return {
+      id: row.id,
+      name: `${a.firstName || ''} ${a.lastName || ''}`.trim() || 'Unknown',
+      email: row.applicant_email || a.email || '',
+      age,
+      location: [a.city, a.state].filter(Boolean).join(', ') || a.state || '',
+      status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'screening' : 'pending',
+      intakeStatus: row.status,
+      submittedAt: row.submitted_at,
+      phone: a.phone || '',
+      maritalStatus: a.maritalStatus || '',
+      heightFt: a.heightFt,
+      heightIn: a.heightIn,
+      weightLbs: a.weightLbs,
+      bmi: a.heightFt && a.weightLbs
+        ? ((a.weightLbs / ((a.heightFt * 12 + (parseInt(a.heightIn) || 0)) ** 2)) * 703).toFixed(1)
+        : null,
+      healthyPregnancy: a.healthyPregnancy,
+      hearAboutUs: a.hearAboutUs,
+      preferredContact: a.preferredContact,
+      userId: row.user_id || null,
+      matchStage: null,
+      dueDate: null,
+      previousJourneys: 0,
+      screening: { medical: 'not_started', psychological: 'not_started', background: 'not_started', homeStudy: 'not_started' },
+    }
+  })
+}
+
 // ── User Tasks ─────────────────────────────────────────
 
 export async function fetchUserTasks(userId) {
