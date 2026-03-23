@@ -149,6 +149,38 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
+// Convert any image file to JPEG via canvas (handles HEIC, PNG, etc.)
+function convertToJpeg(file, maxSize = 1200) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        blob => {
+          URL.revokeObjectURL(url)
+          if (blob) resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+          else reject(new Error('Conversion failed'))
+        },
+        'image/jpeg',
+        0.85
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not load image')) }
+    img.src = url
+  })
+}
+
 function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -169,7 +201,8 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
     setError(null)
     try {
       if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
-      const result = await uploadProfilePhoto(`${userId}/headshot`, file)
+      const jpeg = await convertToJpeg(file)
+      const result = await uploadProfilePhoto(`${userId}/headshot`, jpeg)
       if (result) setPhoto(result)
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -1155,7 +1188,8 @@ function PhotosSection() {
           setError('Photos must be under 10MB each')
           continue
         }
-        const result = await uploadProfilePhoto(userId, file)
+        const jpeg = await convertToJpeg(file)
+        const result = await uploadProfilePhoto(userId, jpeg)
         if (result) {
           setPhotos(prev => [...prev, result])
         }
