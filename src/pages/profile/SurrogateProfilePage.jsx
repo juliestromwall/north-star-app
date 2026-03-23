@@ -201,8 +201,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
     setError(null)
     try {
       if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
-      const jpeg = await convertToJpeg(file)
-      const result = await uploadProfilePhoto(`${userId}/headshot`, jpeg)
+      const result = await uploadProfilePhoto(`${userId}/headshot`, file)
       if (result) setPhoto(result)
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -1188,8 +1187,7 @@ function PhotosSection() {
           setError('Photos must be under 10MB each')
           continue
         }
-        const jpeg = await convertToJpeg(file)
-        const result = await uploadProfilePhoto(userId, jpeg)
+        const result = await uploadProfilePhoto(userId, file)
         if (result) {
           setPhotos(prev => [...prev, result])
         }
