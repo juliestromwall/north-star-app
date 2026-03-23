@@ -121,6 +121,7 @@ export default function SurrogateDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="quiz">Quiz Answers</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
@@ -168,6 +169,81 @@ export default function SurrogateDetailPage() {
               <ScreeningStatusItem label="Psychological" status={screening.psychological} />
               <ScreeningStatusItem label="Background Check" status={screening.background} />
               <ScreeningStatusItem label="Home Study" status={screening.homeStudy} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Profile Tab — surrogate's matching profile */}
+        <TabsContent value="profile" className="space-y-6 mt-4">
+          {/* Profile preview built from quiz answers + uploaded photos */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Matching Profile</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Cover photo + gallery */}
+                {photos.length > 0 && (
+                  <div>
+                    <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden">
+                      <img src={photos[0].url} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    {photos.length > 1 && (
+                      <div className="flex gap-2 mt-2">
+                        {photos.slice(1, 5).map(p => (
+                          <div key={p.path} className="w-16 h-16 rounded-lg overflow-hidden border">
+                            <img src={p.url} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                        {photos.length > 5 && (
+                          <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium">
+                            +{photos.length - 5}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Name & bio */}
+                <div className="text-center">
+                  <h2 className="text-xl font-heading font-bold text-abc-indigo">
+                    Meet {surrogate.name.split(' ')[0]}
+                  </h2>
+                  {surrogate.location && (
+                    <p className="text-muted-foreground text-sm mt-1">{surrogate.age ? `${surrogate.age} years old · ` : ''}{surrogate.location}</p>
+                  )}
+                </div>
+
+                {/* Info grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-abc-indigo mb-2">About</h3>
+                    <div className="space-y-1.5 text-sm">
+                      {surrogate.maritalStatus && <div className="flex justify-between"><span className="text-muted-foreground">Marital Status</span><span className="font-medium">{surrogate.maritalStatus}</span></div>}
+                      {surrogate.preferredContact && <div className="flex justify-between"><span className="text-muted-foreground">Preferred Contact</span><span className="font-medium">{surrogate.preferredContact}</span></div>}
+                      {surrogate.hearAboutUs && <div className="flex justify-between"><span className="text-muted-foreground">Referral Source</span><span className="font-medium">{surrogate.hearAboutUs}</span></div>}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-abc-indigo mb-2">Medical</h3>
+                    <div className="space-y-1.5 text-sm">
+                      {heightStr && <div className="flex justify-between"><span className="text-muted-foreground">Height</span><span className="font-medium">{heightStr}</span></div>}
+                      {surrogate.weightLbs && <div className="flex justify-between"><span className="text-muted-foreground">Weight</span><span className="font-medium">{surrogate.weightLbs} lbs</span></div>}
+                      {surrogate.bmi && <div className="flex justify-between"><span className="text-muted-foreground">BMI</span><span className="font-medium">{surrogate.bmi}</span></div>}
+                      {surrogate.healthyPregnancy !== undefined && surrogate.healthyPregnancy !== null && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Healthy Pregnancy</span><span className="font-medium">{surrogate.healthyPregnancy ? 'Yes' : 'No'}</span></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-abc-indigo/5 border border-abc-indigo/10 p-4">
+                  <p className="text-sm text-muted-foreground">
+                    This profile shows data from the intake quiz. Once the surrogate completes their full matching profile, additional details (personality, pregnancy history, lifestyle, preferences, etc.) will appear here.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
