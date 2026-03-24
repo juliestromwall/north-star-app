@@ -23,6 +23,7 @@ import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
 import IntakeSubmissionsPage from './pages/intake/IntakeSubmissionsPage'
 import MarketingDashboard from './pages/marketing/MarketingDashboard'
 import LoginPage from './pages/auth/LoginPage'
+import ComingSoonPage from './pages/ComingSoonPage'
 import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
 
 const stubs = [
@@ -45,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public pages — no auth required */}
+      <Route path="/welcome" element={<ComingSoonPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
