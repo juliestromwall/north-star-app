@@ -228,20 +228,22 @@ export async function adminAddSurrogate(surrogateData) {
     intake_type: 'gc',
     status: 'qualified',
     qualified: true,
-    applicant_name: `${surrogateData.firstName} ${surrogateData.lastName || ''}`.trim(),
+    applicant_name: `${surrogateData.firstName} ${surrogateData.lastName}`.trim(),
     applicant_email: surrogateData.email.trim().toLowerCase(),
+    applicant_phone: surrogateData.phone,
     answers: {
       firstName: surrogateData.firstName,
       lastName: surrogateData.lastName,
       email: surrogateData.email,
-      phone: surrogateData.phone || '',
-      state: surrogateData.state || '',
-      dob: surrogateData.dob || '',
+      phone: surrogateData.phone,
+      state: surrogateData.state,
+      dob: surrogateData.dob,
     },
     submitted_at: new Date().toISOString(),
     assigned_to: surrogateData.assignedTo || null,
     referral_partner: surrogateData.referralPartner || null,
-    state_region: surrogateData.state || null,
+    state_region: surrogateData.state,
+    dq_reasons: [],
   }
   const { data, error } = await supabase
     .from('intake_submissions')

@@ -395,7 +395,7 @@ export default function SurrogateListPage() {
                 <Input value={addForm.firstName} onChange={e => setAddForm(f => ({ ...f, firstName: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Last Name</Label>
+                <Label className="text-xs">Last Name *</Label>
                 <Input value={addForm.lastName} onChange={e => setAddForm(f => ({ ...f, lastName: e.target.value }))} />
               </div>
             </div>
@@ -405,16 +405,16 @@ export default function SurrogateListPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Phone</Label>
+                <Label className="text-xs">Phone *</Label>
                 <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">State</Label>
+                <Label className="text-xs">State *</Label>
                 <Input value={addForm.state} onChange={e => setAddForm(f => ({ ...f, state: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Date of Birth</Label>
+              <Label className="text-xs">Date of Birth *</Label>
               <Input type="date" value={addForm.dob} onChange={e => setAddForm(f => ({ ...f, dob: e.target.value }))} />
             </div>
 
@@ -435,7 +435,8 @@ export default function SurrogateListPage() {
             {addError && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{addError}</p>
             )}
-            <Button onClick={handleAddSurrogate} disabled={addSaving || !addForm.firstName || !addForm.email}
+            <Button onClick={handleAddSurrogate}
+              disabled={addSaving || !addForm.firstName || !addForm.lastName || !addForm.email || !addForm.phone || !addForm.state || !addForm.dob}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {addSaving ? 'Adding...' : 'Add Surrogate'}
             </Button>
