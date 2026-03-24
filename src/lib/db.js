@@ -227,6 +227,7 @@ export async function adminAddSurrogate(surrogateData) {
   const submission = {
     intake_type: 'gc',
     status: 'qualified',
+    qualified: true,
     applicant_email: surrogateData.email.trim().toLowerCase(),
     answers: {
       firstName: surrogateData.firstName,
