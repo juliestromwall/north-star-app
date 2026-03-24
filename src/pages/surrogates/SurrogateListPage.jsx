@@ -174,11 +174,9 @@ function SurrogateCard({ surrogate, profileData, onAssign }) {
   const submitted = timeAgo(surrogate.submittedAt)
 
   return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+    <Card className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80 rounded-2xl">
 
-      <CardContent className="pt-5 space-y-4">
+      <CardContent className="space-y-4">
         {/* Header: avatar + name + status */}
         <div className="flex items-start gap-3.5">
           <Link to={`/surrogates/${surrogate.id}`} className="relative shrink-0">
