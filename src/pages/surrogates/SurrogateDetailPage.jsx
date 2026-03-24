@@ -3,13 +3,12 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
-  MapPin, Calendar, ClipboardList, User
+  MapPin, Calendar, ClipboardList, User, Baby, ChevronRight,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -27,16 +26,31 @@ import { mockUsers } from '@/data/mock/users'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
-function getGravidaPara(profileData) {
+// ── GTPAL ──────────────────────────────────────────────────
+function getGTPAL(profileData) {
   const ph = profileData?.pregnancyHistory
   if (!ph?.pregnancies || ph.pregnancies.length === 0) return null
   const pregnancies = ph.pregnancies
-  const gravida = parseInt(ph.numberOfPregnancies) || pregnancies.length
-  const liveBirths = pregnancies.filter(p => p.outcome === 'Live Birth').length
-  const miscarriages = pregnancies.filter(p => p.outcome === 'Miscarriage').length
-  const terminations = pregnancies.filter(p => p.outcome === 'Termination').length
-  return { gravida, liveBirths, miscarriages, terminations }
+  const g = parseInt(ph.numberOfPregnancies) || pregnancies.length
+  let term = 0, preterm = 0, abortions = 0, living = 0
+  for (const p of pregnancies) {
+    if (p.outcome === 'Live Birth') {
+      const weeks = parseInt(p.gestationWeeks) || 40
+      if (weeks >= 37) term++
+      else preterm++
+      living++
+    } else {
+      abortions++
+    }
+  }
+  return { g, t: term, p: preterm, a: abortions, l: living }
 }
+
+// ── Screening helpers ──────────────────────────────────────
+const SCREENING_STEPS = ['medical', 'psychological', 'background', 'homeStudy']
+const SCREENING_LABELS = { medical: 'Medical', psychological: 'Psychological', background: 'Background Check', homeStudy: 'Home Study' }
+const SCREENING_ICONS = { cleared: CheckCircle2, pending: Clock, failed: XCircle, not_started: Circle }
+const SCREENING_COLORS = { cleared: 'text-emerald-500', pending: 'text-amber-500', failed: 'text-red-500', not_started: 'text-stone-300' }
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
@@ -86,6 +100,8 @@ export default function SurrogateDetailPage() {
 
   const screening = surrogate.screening || {}
   const heightStr = surrogate.heightFt ? `${surrogate.heightFt}'${surrogate.heightIn || 0}"` : null
+  const gtpal = getGTPAL(profileData)
+  const screeningCleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
 
   return (
     <div className="space-y-6">
@@ -93,14 +109,18 @@ export default function SurrogateDetailPage() {
         <ArrowLeft className="size-4" /> Back to Surrogates
       </Link>
 
-      {/* Hero */}
-      <Card className="bg-gradient-to-r from-abc-indigo/5 to-abc-coral/5">
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-start gap-4">
-            <ProfileAvatar name={surrogate.name} size="xl" />
+      {/* ─── Hero Section ─────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden border border-stone-200/80 bg-white">
+        {/* Top banner area */}
+        <div className="h-2" style={{ background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+
+        <div className="p-6 space-y-6">
+          {/* Name row */}
+          <div className="flex flex-col sm:flex-row items-start gap-5">
+            <ProfileAvatar name={surrogate.name} size="xl" className="ring-4 ring-white shadow-lg" />
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-heading font-bold">{surrogate.name}</h1>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>
                 <StatusBadge status={surrogate.status} />
                 <Badge variant="outline" className="text-xs capitalize">
                   {surrogate.intakeStatus?.replace('_', ' ')}
@@ -109,23 +129,47 @@ export default function SurrogateDetailPage() {
                   <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
                 )}
               </div>
-              {surrogate.location && (
-                <p className="text-muted-foreground mt-1 flex items-center gap-1">
-                  <MapPin className="size-3.5" /> {surrogate.location}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-1">
-                Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
+                {surrogate.location && (
+                  <span className="flex items-center gap-1"><MapPin className="size-3.5" /> {surrogate.location}</span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3.5" />
+                  Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+              {/* Assignment */}
+              <div className="flex items-center gap-1.5 mt-2">
+                <UserCog className="size-3.5 text-stone-400" />
+                <span className="text-xs text-stone-400">Assigned to</span>
+                <SelectUI
+                  value={surrogate.assignedTo || '_unassigned'}
+                  onValueChange={async val => {
+                    const email = val === '_unassigned' ? null : val
+                    await assignSurrogateToAdmin(surrogate.id, email).catch(() => {})
+                    setSurrogate(prev => ({ ...prev, assignedTo: email }))
+                  }}
+                >
+                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24">
+                    <SelectValueUI />
+                  </SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {ADMIN_STAFF.map(a => (
+                      <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>
+                    ))}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" className="gap-1.5" asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" asChild>
                 <a href={`mailto:${surrogate.email}`}>
                   <Mail className="size-3.5" /> Email
                 </a>
               </Button>
               {surrogate.phone && (
-                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-full" asChild>
                   <a href={`tel:${surrogate.phone}`}>
                     <Phone className="size-3.5" /> Call
                   </a>
@@ -134,52 +178,41 @@ export default function SurrogateDetailPage() {
             </div>
           </div>
 
-          <Separator />
-
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            {surrogate.age && <span><span className="text-muted-foreground">Age:</span> <strong>{surrogate.age}</strong></span>}
-            {surrogate.bmi && <span><span className="text-muted-foreground">BMI:</span> <strong>{surrogate.bmi}</strong></span>}
-            {surrogate.maritalStatus && <span><span className="text-muted-foreground">Status:</span> <strong>{surrogate.maritalStatus}</strong></span>}
-            {(() => {
-              const gp = getGravidaPara(profileData)
-              if (!gp) return null
-              return (
-                <span className="flex items-center gap-2">
-                  <span className="text-muted-foreground">G/P:</span>
-                  <strong className="text-abc-indigo">{gp.gravida}</strong><span className="text-muted-foreground">/</span>
-                  <strong className="text-emerald-600">{gp.liveBirths}</strong>
-                  {gp.miscarriages > 0 && <><span className="text-muted-foreground">/</span><strong className="text-amber-500">{gp.miscarriages}M</strong></>}
-                  {gp.terminations > 0 && <><span className="text-muted-foreground">/</span><strong className="text-stone-500">{gp.terminations}T</strong></>}
-                </span>
-              )
-            })()}
-            <span className="flex items-center gap-1.5">
-              <UserCog className="size-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">Assigned:</span>
-              <SelectUI
-                value={surrogate.assignedTo || '_unassigned'}
-                onValueChange={async val => {
-                  const email = val === '_unassigned' ? null : val
-                  await assignSurrogateToAdmin(surrogate.id, email).catch(() => {})
-                  setSurrogate(prev => ({ ...prev, assignedTo: email }))
-                }}
-              >
-                <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24">
-                  <SelectValueUI />
-                </SelectTriggerUI>
-                <SelectContentUI>
-                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                  {ADMIN_STAFF.map(a => (
-                    <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>
-                  ))}
-                </SelectContentUI>
-              </SelectUI>
-            </span>
+          {/* Stats grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            <StatCard label="Age" value={surrogate.age || '—'} />
+            <StatCard label="Height" value={heightStr || '—'} />
+            <StatCard label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} />
+            <StatCard label="BMI" value={surrogate.bmi || '—'} highlight={surrogate.bmi && parseFloat(surrogate.bmi) >= 19 && parseFloat(surrogate.bmi) <= 33} />
+            <StatCard label="Status" value={surrogate.maritalStatus || '—'} />
+            <StatCard label="Screening" value={`${screeningCleared}/4`} highlight={screeningCleared === 4} />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Tabs */}
+          {/* GTPAL + Pregnancy History */}
+          {gtpal && (
+            <div className="rounded-xl border border-pink-100 bg-gradient-to-r from-pink-50/60 to-indigo-50/60 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Baby className="size-4 text-pink-400" />
+                <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Pregnancy History — GTPAL</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-6">
+                <span className="font-mono text-xl font-bold tracking-wider" style={{ color: '#283693' }}>
+                  G{gtpal.g}P{gtpal.t}{gtpal.p}{gtpal.a}{gtpal.l}
+                </span>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <GTPALChip label="Pregnancies" value={gtpal.g} color="#283693" />
+                  <GTPALChip label="Term" value={gtpal.t} color="#10b981" />
+                  <GTPALChip label="Preterm" value={gtpal.p} color="#f59e0b" />
+                  <GTPALChip label="Losses" value={gtpal.a} color="#ef4444" />
+                  <GTPALChip label="Living" value={gtpal.l} color="#8b5cf6" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -192,10 +225,10 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <OverviewTab surrogate={surrogate} setSurrogate={setSurrogate} screening={screening} heightStr={heightStr} />
+          <OverviewTab surrogate={surrogate} setSurrogate={setSurrogate} screening={screening} heightStr={heightStr} profileData={profileData} />
         </TabsContent>
 
-        {/* Profile Tab — surrogate's matching profile from Supabase */}
+        {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6 mt-4">
           <ProfileTab
             surrogate={surrogate}
@@ -210,7 +243,7 @@ export default function SurrogateDetailPage() {
 
         {/* Quiz Answers Tab */}
         <TabsContent value="quiz" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ClipboardList className="size-4" /> Intake Quiz Answers
@@ -265,15 +298,25 @@ export default function SurrogateDetailPage() {
 
         {/* Screening Tab */}
         <TabsContent value="screening" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Screening Checklist</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <ScreeningStatusItem label="Medical Clearance" status={screening.medical} />
-              <ScreeningStatusItem label="Psychological Evaluation" status={screening.psychological} />
-              <ScreeningStatusItem label="Background Check" status={screening.background} />
-              <ScreeningStatusItem label="Home Study" status={screening.homeStudy} />
+              {SCREENING_STEPS.map(step => (
+                <div key={step} className="flex items-center justify-between py-3 px-4 rounded-xl bg-stone-50/80 border border-stone-100">
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const Icon = SCREENING_ICONS[screening[step]] || Circle
+                      return <Icon className={`size-5 ${SCREENING_COLORS[screening[step]] || 'text-stone-300'}`} />
+                    })()}
+                    <span className="font-medium text-stone-700">{SCREENING_LABELS[step]}</span>
+                  </div>
+                  <Badge variant="outline" className="capitalize text-xs">
+                    {(screening[step] || 'not_started').replace('_', ' ')}
+                  </Badge>
+                </div>
+              ))}
               <p className="text-xs text-muted-foreground pt-4">
                 Screening status updates will be managed here as the intake process progresses.
               </p>
@@ -283,7 +326,7 @@ export default function SurrogateDetailPage() {
 
         {/* Photos Tab */}
         <TabsContent value="photos" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Photos</CardTitle>
             </CardHeader>
@@ -305,7 +348,7 @@ export default function SurrogateDetailPage() {
 
         {/* Notes Tab */}
         <TabsContent value="notes" className="mt-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
               <CardTitle>Notes</CardTitle>
             </CardHeader>
@@ -336,7 +379,29 @@ export default function SurrogateDetailPage() {
   )
 }
 
-// Profile section config — matches SurrogateProfilePage sections
+// ── Stat Card ──────────────────────────────────────────────
+function StatCard({ label, value, highlight }) {
+  return (
+    <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
+      <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{label}</p>
+      <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-emerald-600' : 'text-stone-800'}`}>{value}</p>
+    </div>
+  )
+}
+
+// ── GTPAL Chip ─────────────────────────────────────────────
+function GTPALChip({ label, value, color }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="inline-flex items-center justify-center size-6 rounded-full text-xs font-bold text-white" style={{ backgroundColor: color }}>
+        {value}
+      </span>
+      <span className="text-xs text-stone-500">{label}</span>
+    </div>
+  )
+}
+
+// ── Profile section config ─────────────────────────────────
 const PROFILE_SECTIONS = [
   { key: 'about', title: 'About Me', fields: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'] },
   { key: 'family', title: 'Family & Household', fields: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'] },
@@ -358,7 +423,8 @@ function countSectionFilled(data, section) {
   return { filled, total: section.fields.length }
 }
 
-function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
+// ── Overview Tab ───────────────────────────────────────────
+function OverviewTab({ surrogate, setSurrogate, screening, heightStr, profileData }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
@@ -410,10 +476,14 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
     } catch {} finally { setSaving(false) }
   }
 
+  const screeningCleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
+  const screeningPct = (screeningCleared / 4) * 100
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Contact — takes 3 cols */}
+        <Card className="lg:col-span-3 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Contact Information</CardTitle>
             {!editing ? (
@@ -439,7 +509,7 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
                 <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
                 <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
                 <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
-                <div className="flex items-center justify-between pt-3 mt-2 border-t col-span-1">
+                <div className="flex items-center justify-between pt-3 mt-2 border-t">
                   <div className="flex items-center gap-2">
                     <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
                     <span className="text-sm font-medium">Referral</span>
@@ -471,7 +541,8 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Health — takes 2 cols */}
+        <Card className="lg:col-span-2 rounded-2xl">
           <CardHeader>
             <CardTitle>Health Information</CardTitle>
           </CardHeader>
@@ -487,15 +558,48 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
         </Card>
       </div>
 
-      <Card>
+      {/* Screening Progress */}
+      <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>Screening Status</CardTitle>
+          <CardTitle>Screening Progress</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <ScreeningStatusItem label="Medical" status={screening.medical} />
-          <ScreeningStatusItem label="Psychological" status={screening.psychological} />
-          <ScreeningStatusItem label="Background Check" status={screening.background} />
-          <ScreeningStatusItem label="Home Study" status={screening.homeStudy} />
+        <CardContent className="space-y-4">
+          {/* Progress bar */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-2.5 bg-stone-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${screeningPct}%`,
+                  background: screeningPct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
+                }}
+              />
+            </div>
+            <span className="text-sm font-bold" style={{ color: screeningPct === 100 ? '#10b981' : '#283693' }}>
+              {screeningCleared}/4
+            </span>
+          </div>
+          {/* Step cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {SCREENING_STEPS.map(step => {
+              const status = screening[step] || 'not_started'
+              const Icon = SCREENING_ICONS[status]
+              return (
+                <div key={step} className={`rounded-xl border p-4 text-center transition-colors ${
+                  status === 'cleared' ? 'border-emerald-200 bg-emerald-50/50' :
+                  status === 'pending' ? 'border-amber-200 bg-amber-50/50' :
+                  status === 'failed' ? 'border-red-200 bg-red-50/50' :
+                  'border-stone-100 bg-stone-50/50'
+                }`}>
+                  <Icon className={`size-6 mx-auto mb-2 ${SCREENING_COLORS[status]}`} />
+                  <p className="text-sm font-semibold text-stone-700">{SCREENING_LABELS[step]}</p>
+                  <p className={`text-xs mt-0.5 capitalize ${SCREENING_COLORS[status]}`}>
+                    {status.replace('_', ' ')}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -569,17 +673,16 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         </div>
       )}
 
-      {/* Progress + actions */}
-      <Card>
+      <Card className="rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Profile Completion</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPreviewOpen(true)}>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => setPreviewOpen(true)}>
               <Eye className="size-3.5" /> Preview
             </Button>
             <Button
               size="sm"
-              className={`gap-1.5 ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}
+              className={`gap-1.5 rounded-full ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}
               onClick={toggleApproval}
               disabled={statusLoading}
             >
@@ -605,7 +708,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                 <button
                   key={sec.key}
                   onClick={() => document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className={`rounded-lg border p-3 text-center cursor-pointer hover:shadow-sm transition-shadow ${complete ? 'border-green-200 bg-green-50' : filled > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  className={`rounded-xl border p-3 text-center cursor-pointer hover:shadow-sm transition-shadow ${complete ? 'border-green-200 bg-green-50' : filled > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}
                 >
                   <p className="text-xs font-medium text-gray-600 truncate">{sec.title}</p>
                   <p className={`text-sm font-bold mt-1 ${complete ? 'text-green-600' : filled > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
@@ -618,9 +721,8 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         </CardContent>
       </Card>
 
-      {/* Photos */}
       {photos.length > 0 && (
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader><CardTitle>Photos ({photos.length})</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
@@ -634,12 +736,11 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         </Card>
       )}
 
-      {/* All profile sections — always shown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {PROFILE_SECTIONS.map(sec => {
           const sectionData = data[sec.key] || {}
           return (
-            <Card key={sec.key} id={`admin-sec-${sec.key}`}>
+            <Card key={sec.key} id={`admin-sec-${sec.key}`} className="rounded-2xl">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base">{sec.title}</CardTitle>
                 <Button variant="ghost" size="sm" className="gap-1" onClick={() => startSectionEdit(sec)}>
@@ -656,7 +757,6 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                       </span>
                     </div>
                   ))}
-                  {/* Show any extra fields not in the required list */}
                   {Object.entries(sectionData)
                     .filter(([k, v]) => !sec.fields.includes(k) && v !== '' && v !== null && v !== undefined)
                     .map(([key, value]) => (
@@ -681,7 +781,6 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
           {editData && editingSection && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Required fields first */}
                 {editingSection.fields.map(field => (
                   <div key={field} className="space-y-1">
                     <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
@@ -692,7 +791,6 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                     />
                   </div>
                 ))}
-                {/* Extra fields */}
                 {Object.keys(editData)
                   .filter(k => !editingSection.fields.includes(k))
                   .map(field => (
