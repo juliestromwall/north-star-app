@@ -11,7 +11,9 @@ export default function ComingSoonPage() {
             <span style={{ color: '#283693' }}>is coming.</span>
           </h1>
           <p className="text-lg text-stone-500 leading-relaxed">
-            Big things are on the way. We can't wait to share them with you.
+            Big things are on the way.
+            <br />
+            We can't wait to share them with you.
           </p>
         </div>
       </div>
