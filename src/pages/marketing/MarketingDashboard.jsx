@@ -368,9 +368,51 @@ export default function MarketingDashboard() {
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={BarChart3} label="Total Submissions" value={total} sub={`${gcCount} surrogates · ${ipCount} IPs`} color="stone" />
-        <StatCard icon={CheckCircle} label="Qualified" value={qualified} sub={`${conversionRate}% conversion rate`} color="emerald" />
+        <StatCard icon={CheckCircle} label="Total Qualified" value={qualified} sub={`${conversionRate}% overall conversion`} color="emerald" />
         <StatCard icon={XCircle} label="Disqualified" value={disqualified} sub={total > 0 ? `${Math.round((disqualified / total) * 100)}% of submissions` : ''} color="red" />
-        <StatCard icon={TrendingUp} label="Conversion Rate" value={`${conversionRate}%`} sub="Qualified ÷ total submissions" color="blue" />
+        <StatCard icon={TrendingUp} label="Overall Conversion" value={`${conversionRate}%`} sub="Qualified ÷ total submissions" color="blue" />
+      </div>
+
+      {/* GC vs IP Conversion Rates */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardContent className="py-5">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-abc-coral/10">
+                <Heart className="w-5 h-5 text-abc-coral" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Surrogate (GC) Conversion</p>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-2xl font-bold">{gcCount > 0 ? Math.round((gcQualified / gcCount) * 100) : 0}%</span>
+                  <span className="text-sm text-muted-foreground">{gcQualified} qualified of {gcCount} submitted</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div className="h-full bg-abc-coral rounded-full transition-all" style={{ width: gcCount > 0 ? `${(gcQualified / gcCount) * 100}%` : '0%' }} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-5">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#6b8cba]/10">
+                <Users className="w-5 h-5 text-[#6b8cba]" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Intended Parent (IP) Conversion</p>
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-2xl font-bold">{ipCount > 0 ? Math.round((ipQualified / ipCount) * 100) : 0}%</span>
+                  <span className="text-sm text-muted-foreground">{ipQualified} qualified of {ipCount} submitted</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div className="h-full bg-[#6b8cba] rounded-full transition-all" style={{ width: ipCount > 0 ? `${(ipQualified / ipCount) * 100}%` : '0%' }} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Submission volume over time */}
