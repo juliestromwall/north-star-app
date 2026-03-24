@@ -1,6 +1,10 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Plus, MapPin, Calendar, ArrowRight, CheckCircle, Clock, XCircle, Circle, LayoutGrid, List, UserCog } from 'lucide-react'
+import {
+  Search, Plus, MapPin, ArrowRight, CheckCircle, Clock, XCircle, Circle,
+  LayoutGrid, List, UserCog, Baby, Ruler, Heart, Calendar, Phone, Mail,
+  Activity, ChevronRight,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -33,66 +37,254 @@ function formatPhone(value) {
   return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
 }
 
-const SCREENING_ICONS = {
-  cleared: CheckCircle,
-  pending: Clock,
-  failed: XCircle,
-  not_started: Circle,
-}
-
-const SCREENING_COLORS = {
-  cleared: 'text-green-500',
-  pending: 'text-yellow-500',
-  failed: 'text-red-500',
-  not_started: 'text-gray-300',
-}
-
-function ScreeningDots({ screening }) {
-  const steps = ['medical', 'psychological', 'background', 'homeStudy']
-  return (
-    <div className="flex items-center gap-1.5">
-      {steps.map(step => {
-        const status = screening[step]
-        const Icon = SCREENING_ICONS[status] || Circle
-        return <Icon key={step} className={`size-3.5 ${SCREENING_COLORS[status] || 'text-gray-300'}`} />
-      })}
-      <span className="text-[10px] text-muted-foreground ml-1">Screening</span>
-    </div>
-  )
-}
-
 function getAdminName(email) {
   const user = ADMIN_STAFF.find(u => u.email === email)
   return user ? user.name : email
 }
 
-function getGravidaPara(profileData) {
+// ── GTPAL Calculation ──────────────────────────────────────
+function getGTPAL(profileData) {
   const ph = profileData?.pregnancyHistory
   if (!ph?.pregnancies || ph.pregnancies.length === 0) return null
   const pregnancies = ph.pregnancies
-  const gravida = parseInt(ph.numberOfPregnancies) || pregnancies.length
-  const liveBirths = pregnancies.filter(p => p.outcome === 'Live Birth').length
-  const miscarriages = pregnancies.filter(p => p.outcome === 'Miscarriage').length
-  const terminations = pregnancies.filter(p => p.outcome === 'Termination').length
-  return { gravida, liveBirths, miscarriages, terminations }
+  const g = parseInt(ph.numberOfPregnancies) || pregnancies.length
+
+  let term = 0, preterm = 0, abortions = 0, living = 0
+  for (const p of pregnancies) {
+    if (p.outcome === 'Live Birth') {
+      const weeks = parseInt(p.gestationWeeks) || 40
+      if (weeks >= 37) term++
+      else preterm++
+      living++ // assume living unless we have reason to think otherwise
+    } else {
+      // Miscarriage, Termination, Ectopic, Stillborn all count as A
+      abortions++
+    }
+  }
+  return { g, t: term, p: preterm, a: abortions, l: living }
 }
 
-function GravidaParaRow({ gp }) {
-  if (!gp) return null
+function GTPALBadge({ gtpal }) {
+  if (!gtpal) return null
+  const code = `G${gtpal.g}P${gtpal.t}${gtpal.p}${gtpal.a}${gtpal.l}`
   return (
-    <div className="flex items-center gap-3 text-xs">
-      <span><span className="font-bold text-abc-indigo">{gp.gravida}</span> <span className="text-muted-foreground">G</span></span>
-      <span><span className="font-bold text-emerald-600">{gp.liveBirths}</span> <span className="text-muted-foreground">P</span></span>
-      {gp.miscarriages > 0 && <span><span className="font-bold text-amber-500">{gp.miscarriages}</span> <span className="text-muted-foreground">M</span></span>}
-      {gp.terminations > 0 && <span><span className="font-bold text-stone-500">{gp.terminations}</span> <span className="text-muted-foreground">T</span></span>}
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5 font-mono text-sm font-bold tracking-wide"
+        style={{ color: '#283693' }}>
+        <span>{code}</span>
+      </div>
+      <div className="flex items-center gap-2 text-[10px] text-stone-400 leading-none">
+        <span>{gtpal.g} preg</span>
+        <span className="text-stone-200">|</span>
+        <span>{gtpal.t} term</span>
+        {gtpal.p > 0 && <><span className="text-stone-200">|</span><span>{gtpal.p} pre</span></>}
+        {gtpal.a > 0 && <><span className="text-stone-200">|</span><span>{gtpal.a} loss</span></>}
+        <span className="text-stone-200">|</span>
+        <span>{gtpal.l} living</span>
+      </div>
     </div>
   )
+}
+
+// ── Screening Progress ─────────────────────────────────────
+const SCREENING_STEPS = ['medical', 'psychological', 'background', 'homeStudy']
+const SCREENING_LABELS = { medical: 'Med', psychological: 'Psych', background: 'BG', homeStudy: 'Home' }
+const SCREENING_ICONS = { cleared: CheckCircle, pending: Clock, failed: XCircle, not_started: Circle }
+const SCREENING_COLORS = {
+  cleared: 'text-emerald-500',
+  pending: 'text-amber-500',
+  failed: 'text-red-500',
+  not_started: 'text-stone-300',
+}
+
+function ScreeningProgress({ screening }) {
+  const cleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
+  const total = SCREENING_STEPS.length
+  const pct = (cleared / total) * 100
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
+        <span>Screening</span>
+        <span>{cleared}/{total}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        {SCREENING_STEPS.map(step => {
+          const status = screening[step]
+          const Icon = SCREENING_ICONS[status] || Circle
+          return (
+            <div key={step} className="flex items-center gap-1">
+              <Icon className={`size-3 ${SCREENING_COLORS[status]}`} />
+              <span className="text-[10px] text-stone-400">{SCREENING_LABELS[step]}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Stat Chip ──────────────────────────────────────────────
+function StatChip({ icon: Icon, label, value, iconColor = 'text-stone-400' }) {
+  if (!value && value !== 0) return null
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <Icon className={`size-3.5 ${iconColor} shrink-0`} />
+      <span className="text-stone-400">{label}</span>
+      <span className="font-semibold text-stone-700">{value}</span>
+    </div>
+  )
+}
+
+// ── Height formatter ───────────────────────────────────────
+function formatHeight(ft, inches) {
+  if (!ft) return null
+  return `${ft}'${inches || 0}"`
+}
+
+// ── Time ago ───────────────────────────────────────────────
+function timeAgo(dateStr) {
+  if (!dateStr) return null
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'Today'
+  if (days === 1) return '1d ago'
+  if (days < 30) return `${days}d ago`
+  const months = Math.floor(days / 30)
+  if (months === 1) return '1mo ago'
+  return `${months}mo ago`
 }
 
 function BeBadge({ className = '' }) {
   return <img src="/be-logo.png" alt="Be Surrogacy" className={`h-8 w-auto ${className}`} title="Be Surrogacy Referral" />
 }
 
+// ── Surrogate Card (Tile View) ─────────────────────────────
+function SurrogateCard({ surrogate, profileData, onAssign }) {
+  const gtpal = getGTPAL(profileData)
+  const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
+  const submitted = timeAgo(surrogate.submittedAt)
+
+  return (
+    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80">
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+
+      <CardContent className="pt-5 space-y-4">
+        {/* Header: avatar + name + status */}
+        <div className="flex items-start gap-3.5">
+          <Link to={`/surrogates/${surrogate.id}`} className="relative shrink-0">
+            <ProfileAvatar name={surrogate.name} size="lg" className="ring-2 ring-white shadow-md" />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <Link to={`/surrogates/${surrogate.id}`} className="hover:underline">
+                  <h3 className="font-heading font-bold text-[15px] text-stone-900 truncate leading-tight">{surrogate.name}</h3>
+                </Link>
+                {surrogate.location && (
+                  <div className="flex items-center gap-1 text-xs text-stone-400 mt-0.5">
+                    <MapPin className="size-3" />
+                    <span>{surrogate.location}</span>
+                  </div>
+                )}
+              </div>
+              {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
+            </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <StatusBadge status={surrogate.status} />
+              {submitted && (
+                <span className="text-[10px] text-stone-300 font-medium">{submitted}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick stats row */}
+        <div className="grid grid-cols-3 gap-1 bg-stone-50/80 rounded-lg p-2.5">
+          <div className="text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider font-medium">Age</p>
+            <p className="text-lg font-bold text-stone-800 leading-tight">{surrogate.age || '—'}</p>
+          </div>
+          <div className="text-center border-x border-stone-200/60">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider font-medium">Height</p>
+            <p className="text-lg font-bold text-stone-800 leading-tight">{height || '—'}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider font-medium">BMI</p>
+            <p className="text-lg font-bold text-stone-800 leading-tight">{surrogate.bmi || '—'}</p>
+          </div>
+        </div>
+
+        {/* GTPAL */}
+        {gtpal && (
+          <div className="rounded-lg border border-pink-100 bg-gradient-to-r from-pink-50/50 to-indigo-50/50 px-3 py-2">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Baby className="size-3.5 text-pink-400" />
+              <span className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Pregnancy History</span>
+            </div>
+            <GTPALBadge gtpal={gtpal} />
+          </div>
+        )}
+
+        {/* Additional info chips */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+          <StatChip icon={Heart} label="" value={surrogate.maritalStatus} iconColor="text-pink-400" />
+          {surrogate.weightLbs && <StatChip icon={Activity} label="" value={`${surrogate.weightLbs} lbs`} iconColor="text-blue-400" />}
+          <StatChip icon={Phone} label="" value={surrogate.preferredContact} iconColor="text-emerald-400" />
+        </div>
+
+        {/* Screening */}
+        <ScreeningProgress screening={surrogate.screening} />
+
+        {/* Footer: assignment + view link */}
+        <div className="pt-2 border-t border-stone-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <UserCog className="size-3.5 text-stone-300" />
+              <Select
+                value={surrogate.assignedTo || '_unassigned'}
+                onValueChange={val => onAssign(surrogate.id, val === '_unassigned' ? null : val)}
+              >
+                <SelectTrigger className="h-7 text-xs border-none shadow-none px-1 w-auto min-w-24 text-stone-500">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_unassigned">
+                    <span className="text-muted-foreground">Unassigned</span>
+                  </SelectItem>
+                  {ADMIN_STAFF.map(admin => (
+                    <SelectItem key={admin.email} value={admin.email}>
+                      {admin.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Link
+              to={`/surrogates/${surrogate.id}`}
+              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+              style={{ color: '#283693' }}
+            >
+              View Profile
+              <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ── Main Page ──────────────────────────────────────────────
 export default function SurrogateListPage() {
   const { currentUser, isAdmin, isSuperAdmin, isMasterAdmin } = useRole()
   const [surrogates, setSurrogates] = useState([])
@@ -123,19 +315,15 @@ export default function SurrogateListPage() {
       .finally(() => setLoading(false))
   }, [])
 
-
   const filtered = useMemo(() => {
     return surrogates.filter(s => {
-      // Owner filter
       if (ownerFilter === 'mine') {
         if (s.assignedTo !== currentUser.email) return false
       } else if (ownerFilter === 'unassigned') {
         if (s.assignedTo) return false
       } else if (ownerFilter !== 'all') {
-        // Specific admin email
         if (s.assignedTo !== ownerFilter) return false
       }
-
       const matchesSearch = !search ||
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.location.toLowerCase().includes(search.toLowerCase()) ||
@@ -158,7 +346,6 @@ export default function SurrogateListPage() {
         assignedTo: currentUser.email,
         referralPartner: addForm.referralPartner ? 'be_surrogacy' : null,
       })
-      // Refresh list
       const data = await fetchSurrogatesFromIntake()
       setSurrogates(data || [])
       setAddOpen(false)
@@ -177,6 +364,11 @@ export default function SurrogateListPage() {
     } catch {}
   }
 
+  // ── Hero Stats Bar ─────────────────────────────────────
+  const activeCount = surrogates.filter(s => s.status === 'active').length
+  const screeningCount = surrogates.filter(s => s.status === 'screening').length
+  const pendingCount = surrogates.filter(s => s.status === 'pending').length
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -190,12 +382,28 @@ export default function SurrogateListPage() {
         }
       />
 
+      {/* Hero stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total', value: surrogates.length, color: '#283693', bg: 'from-indigo-50 to-blue-50' },
+          { label: 'Active', value: activeCount, color: '#10b981', bg: 'from-emerald-50 to-green-50' },
+          { label: 'Screening', value: screeningCount, color: '#f59e0b', bg: 'from-amber-50 to-yellow-50' },
+          { label: 'Pending', value: pendingCount, color: '#8b5cf6', bg: 'from-violet-50 to-purple-50' },
+        ].map(stat => (
+          <div key={stat.label} className={`rounded-xl bg-gradient-to-br ${stat.bg} border border-stone-100 p-4 text-center`}>
+            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
+            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
       {addSuccess && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">
           <CheckCircle className="size-4" /> Surrogate added successfully and assigned to you.
         </div>
       )}
 
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -207,7 +415,6 @@ export default function SurrogateListPage() {
           />
         </div>
 
-        {/* Owner filter */}
         <Select value={ownerFilter} onValueChange={setOwnerFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue />
@@ -256,6 +463,7 @@ export default function SurrogateListPage() {
         </div>
       </div>
 
+      {/* Content */}
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Loading...</div>
       ) : filtered.length === 0 ? (
@@ -273,79 +481,12 @@ export default function SurrogateListPage() {
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(surrogate => (
-            <Card key={surrogate.id} className="transition-shadow hover:shadow-md h-full">
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Link to={`/surrogates/${surrogate.id}`}>
-                    <ProfileAvatar name={surrogate.name} size="lg" />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link to={`/surrogates/${surrogate.id}`} className="hover:underline">
-                      <h3 className="font-heading font-semibold truncate">{surrogate.name}</h3>
-                    </Link>
-                    {surrogate.location && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                        <MapPin className="size-3.5" />
-                        <span>{surrogate.location}</span>
-                      </div>
-                    )}
-                    <div className="mt-1.5">
-                      <StatusBadge status={surrogate.status} />
-                    </div>
-                  </div>
-                  {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground text-xs">Age</span>
-                    <p className="font-medium">{surrogate.age || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Submitted</span>
-                    <p className="font-medium">
-                      {surrogate.submittedAt
-                        ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : '—'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Gravida/Para */}
-                {(() => { const gp = getGravidaPara(profiles[surrogate.email]); return gp ? <GravidaParaRow gp={gp} /> : null })()}
-
-                {/* Assignment */}
-                <div className="pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <UserCog className="size-3.5 text-muted-foreground" />
-                      <Select
-                        value={surrogate.assignedTo || '_unassigned'}
-                        onValueChange={val => handleAssign(surrogate.id, val === '_unassigned' ? null : val)}
-                      >
-                        <SelectTrigger className="h-7 text-xs border-none shadow-none px-1 w-auto min-w-24">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="_unassigned">
-                            <span className="text-muted-foreground">Unassigned</span>
-                          </SelectItem>
-                          {ADMIN_STAFF.map(admin => (
-                            <SelectItem key={admin.email} value={admin.email}>
-                              {admin.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Link to={`/surrogates/${surrogate.id}`}
-                      className="text-xs text-abc-indigo font-medium flex items-center gap-1 hover:underline">
-                      View <ArrowRight className="size-3" />
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <SurrogateCard
+              key={surrogate.id}
+              surrogate={surrogate}
+              profileData={profiles[surrogate.email]}
+              onAssign={handleAssign}
+            />
           ))}
         </div>
       ) : (
@@ -355,41 +496,59 @@ export default function SurrogateListPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Age</TableHead>
+                <TableHead>GTPAL</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Submitted</TableHead>
-                <TableHead>Email</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(surrogate => (
-                <TableRow
-                  key={surrogate.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/surrogates/${surrogate.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <ProfileAvatar name={surrogate.name} size="sm" />
-                      <span className="font-medium">{surrogate.name}</span>
-                      {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
-                    </div>
-                  </TableCell>
-                  <TableCell>{surrogate.location || '—'}</TableCell>
-                  <TableCell><StatusBadge status={surrogate.status} /></TableCell>
-                  <TableCell>
-                    <span className={`text-sm ${surrogate.assignedTo ? '' : 'text-muted-foreground'}`}>
-                      {surrogate.assignedTo ? getAdminName(surrogate.assignedTo) : 'Unassigned'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {surrogate.submittedAt
-                      ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                      : '—'}
-                  </TableCell>
-                  <TableCell className="text-sm">{surrogate.email}</TableCell>
-                </TableRow>
-              ))}
+              {filtered.map(surrogate => {
+                const gtpal = getGTPAL(profiles[surrogate.email])
+                return (
+                  <TableRow
+                    key={surrogate.id}
+                    className="cursor-pointer hover:bg-stone-50/80"
+                    onClick={() => navigate(`/surrogates/${surrogate.id}`)}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <ProfileAvatar name={surrogate.name} size="sm" />
+                        <span className="font-semibold text-stone-800">{surrogate.name}</span>
+                        {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm text-stone-500">
+                        <MapPin className="size-3" />
+                        {surrogate.location || '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{surrogate.age || '—'}</TableCell>
+                    <TableCell>
+                      {gtpal ? (
+                        <span className="font-mono text-xs font-bold" style={{ color: '#283693' }}>
+                          G{gtpal.g}P{gtpal.t}{gtpal.p}{gtpal.a}{gtpal.l}
+                        </span>
+                      ) : (
+                        <span className="text-stone-300 text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell><StatusBadge status={surrogate.status} /></TableCell>
+                    <TableCell>
+                      <span className={`text-sm ${surrogate.assignedTo ? '' : 'text-muted-foreground'}`}>
+                        {surrogate.assignedTo ? getAdminName(surrogate.assignedTo) : 'Unassigned'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-stone-500">
+                      {surrogate.submittedAt
+                        ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—'}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </Card>
@@ -436,7 +595,6 @@ export default function SurrogateListPage() {
               <Input type="date" value={addForm.dob} onChange={e => setAddForm(f => ({ ...f, dob: e.target.value }))} />
             </div>
 
-            {/* Be Surrogacy toggle */}
             <div className="flex items-center justify-between rounded-lg border p-3">
               <div className="flex items-center gap-3">
                 <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" />
