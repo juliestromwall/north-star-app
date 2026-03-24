@@ -379,25 +379,25 @@ export default function SurrogateListPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">First Name *</Label>
-                <Input value={addForm.firstName} onChange={e => setAddForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jane" />
+                <Input value={addForm.firstName} onChange={e => setAddForm(f => ({ ...f, firstName: e.target.value }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Last Name</Label>
-                <Input value={addForm.lastName} onChange={e => setAddForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Smith" />
+                <Input value={addForm.lastName} onChange={e => setAddForm(f => ({ ...f, lastName: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Email *</Label>
-              <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" />
+              <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Phone</Label>
-                <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-0100" />
+                <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">State</Label>
-                <Input value={addForm.state} onChange={e => setAddForm(f => ({ ...f, state: e.target.value }))} placeholder="CA" />
+                <Input value={addForm.state} onChange={e => setAddForm(f => ({ ...f, state: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
