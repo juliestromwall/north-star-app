@@ -177,9 +177,89 @@ export async function fetchSurrogatesFromIntake() {
       matchStage: null,
       dueDate: null,
       previousJourneys: 0,
+      assignedTo: row.assigned_to || null,
+      referralPartner: row.referral_partner || null,
       screening: { medical: 'not_started', psychological: 'not_started', background: 'not_started', homeStudy: 'not_started' },
     }
   })
+}
+
+// ── Case Assignment ─────────────────────────────────────
+
+export async function assignSurrogateToAdmin(submissionId, adminEmail) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .update({ assigned_to: adminEmail })
+    .eq('id', submissionId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateIntakeSubmission(submissionId, updates) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .update(updates)
+    .eq('id', submissionId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateReferralPartner(submissionId, partner) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .update({ referral_partner: partner || null })
+    .eq('id', submissionId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function adminAddSurrogate(surrogateData) {
+  if (!supabase) return null
+  const submission = {
+    intake_type: 'gc',
+    status: 'qualified',
+    applicant_email: surrogateData.email.trim().toLowerCase(),
+    answers: {
+      firstName: surrogateData.firstName,
+      lastName: surrogateData.lastName,
+      email: surrogateData.email,
+      phone: surrogateData.phone || '',
+      state: surrogateData.state || '',
+      dob: surrogateData.dob || '',
+    },
+    submitted_at: new Date().toISOString(),
+    assigned_to: surrogateData.assignedTo || null,
+    referral_partner: surrogateData.referralPartner || null,
+    state_region: surrogateData.state || null,
+  }
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .insert(submission)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function unassignSurrogate(submissionId) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .update({ assigned_to: null })
+    .eq('id', submissionId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
 
 // ── User Tasks ─────────────────────────────────────────
@@ -258,6 +338,15 @@ export async function fetchSurrogateProfile(userId) {
     .single()
   if (error) return null
   return data
+}
+
+export async function fetchAllSurrogateProfiles() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .select('email, profile_data')
+  if (error) return []
+  return data || []
 }
 
 export async function fetchSurrogateProfileByEmail(email) {

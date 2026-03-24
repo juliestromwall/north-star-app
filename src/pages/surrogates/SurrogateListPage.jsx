@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Plus, MapPin, Calendar, ArrowRight, CheckCircle, Clock, XCircle, Circle, LayoutGrid, List } from 'lucide-react'
+import { Search, Plus, MapPin, Calendar, ArrowRight, CheckCircle, Clock, XCircle, Circle, LayoutGrid, List, UserCog } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,15 @@ import PageHeader from '@/components/shared/PageHeader'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchSurrogatesFromIntake } from '@/lib/db'
-import { MATCH_STAGES } from '@/lib/constants'
+import { useRole } from '@/context/RoleContext'
+import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { mockUsers } from '@/data/mock/users'
+import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
+
+const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 const SCREENING_ICONS = {
   cleared: CheckCircle,
@@ -41,42 +48,122 @@ function ScreeningDots({ screening }) {
   )
 }
 
+function getAdminName(email) {
+  const user = ADMIN_STAFF.find(u => u.email === email)
+  return user ? user.name : email
+}
+
+function getGravidaPara(profileData) {
+  const ph = profileData?.pregnancyHistory
+  if (!ph?.pregnancies || ph.pregnancies.length === 0) return null
+  const pregnancies = ph.pregnancies
+  const gravida = parseInt(ph.numberOfPregnancies) || pregnancies.length
+  const liveBirths = pregnancies.filter(p => p.outcome === 'Live Birth').length
+  const miscarriages = pregnancies.filter(p => p.outcome === 'Miscarriage').length
+  const terminations = pregnancies.filter(p => p.outcome === 'Termination').length
+  return { gravida, liveBirths, miscarriages, terminations }
+}
+
+function GravidaParaRow({ gp }) {
+  if (!gp) return null
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <span><span className="font-bold text-abc-indigo">{gp.gravida}</span> <span className="text-muted-foreground">G</span></span>
+      <span><span className="font-bold text-emerald-600">{gp.liveBirths}</span> <span className="text-muted-foreground">P</span></span>
+      {gp.miscarriages > 0 && <span><span className="font-bold text-amber-500">{gp.miscarriages}</span> <span className="text-muted-foreground">M</span></span>}
+      {gp.terminations > 0 && <span><span className="font-bold text-stone-500">{gp.terminations}</span> <span className="text-muted-foreground">T</span></span>}
+    </div>
+  )
+}
+
+function BeBadge({ className = '' }) {
+  return <img src="/be-logo.png" alt="Be Surrogacy" className={`h-8 w-auto ${className}`} title="Be Surrogacy Referral" />
+}
+
 export default function SurrogateListPage() {
+  const { currentUser, isAdmin, isSuperAdmin, isMasterAdmin } = useRole()
   const [surrogates, setSurrogates] = useState([])
+  const [profiles, setProfiles] = useState({})
   const [loading, setLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
+  const [addSaving, setAddSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [stageFilter, setStageFilter] = useState('all')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
+  const canSeeAll = isSuperAdmin || isMasterAdmin
+
   useEffect(() => {
-    fetchSurrogatesFromIntake()
-      .then(data => setSurrogates(data || []))
+    Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles()])
+      .then(([data, profileList]) => {
+        setSurrogates(data || [])
+        const map = {}
+        for (const p of (profileList || [])) { map[p.email] = p.profile_data }
+        setProfiles(map)
+      })
       .catch(() => setSurrogates([]))
       .finally(() => setLoading(false))
   }, [])
 
+
   const filtered = useMemo(() => {
     return surrogates.filter(s => {
+      // Owner filter
+      if (ownerFilter === 'mine') {
+        if (s.assignedTo !== currentUser.email) return false
+      } else if (ownerFilter === 'unassigned') {
+        if (s.assignedTo) return false
+      } else if (ownerFilter !== 'all') {
+        // Specific admin email
+        if (s.assignedTo !== ownerFilter) return false
+      }
+
       const matchesSearch = !search ||
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.location.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase())
       const matchesStatus = statusFilter === 'all' || s.status === statusFilter
-      const matchesStage = stageFilter === 'all' ||
-        (stageFilter === 'unmatched' ? !s.matchStage : s.matchStage === stageFilter)
-      return matchesSearch && matchesStatus && matchesStage
+      return matchesSearch && matchesStatus
     })
-  }, [surrogates, search, statusFilter, stageFilter])
+  }, [surrogates, search, statusFilter, ownerFilter, currentUser.email])
+
+  const myCaseCount = surrogates.filter(s => s.assignedTo === currentUser.email).length
+  const unassignedCount = surrogates.filter(s => !s.assignedTo).length
+
+  async function handleAddSurrogate() {
+    if (!addForm.firstName || !addForm.email) return
+    setAddSaving(true)
+    try {
+      await adminAddSurrogate({
+        ...addForm,
+        assignedTo: currentUser.email,
+        referralPartner: addForm.referralPartner ? 'be_surrogacy' : null,
+      })
+      // Refresh list
+      const data = await fetchSurrogatesFromIntake()
+      setSurrogates(data || [])
+      setAddOpen(false)
+      setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
+    } catch {} finally { setAddSaving(false) }
+  }
+
+  async function handleAssign(surrogateId, adminEmail) {
+    try {
+      await assignSurrogateToAdmin(surrogateId, adminEmail)
+      setSurrogates(prev => prev.map(s => s.id === surrogateId ? { ...s, assignedTo: adminEmail } : s))
+    } catch {}
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Surrogates"
-        subtitle={`${surrogates.length} surrogate${surrogates.length !== 1 ? 's' : ''} in program`}
+        subtitle={`${filtered.length} of ${surrogates.length} surrogate${surrogates.length !== 1 ? 's' : ''} shown`}
         actions={
-          <Button disabled className="gap-2">
+          <Button className="gap-2" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
             Add Surrogate
           </Button>
@@ -93,6 +180,24 @@ export default function SurrogateListPage() {
             className="pl-9"
           />
         </div>
+
+        {/* Owner filter */}
+        <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mine">My Cases ({myCaseCount})</SelectItem>
+            {canSeeAll && <SelectItem value="all">All Cases ({surrogates.length})</SelectItem>}
+            <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
+            {canSeeAll && ADMIN_STAFF.map(admin => (
+              <SelectItem key={admin.email} value={admin.email}>
+                {admin.name} ({surrogates.filter(s => s.assignedTo === admin.email).length})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[160px]">
             <SelectValue placeholder="Status" />
@@ -104,18 +209,7 @@ export default function SurrogateListPage() {
             <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={stageFilter} onValueChange={setStageFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Match Stage" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Stages</SelectItem>
-            <SelectItem value="unmatched">Unmatched</SelectItem>
-            {MATCH_STAGES.map(stage => (
-              <SelectItem key={stage} value={stage}>{stage}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
         <div className="flex items-center border rounded-md">
           <Button
             variant={view === 'tile' ? 'default' : 'ghost'}
@@ -142,64 +236,90 @@ export default function SurrogateListPage() {
         <EmptyState
           icon={Search}
           title="No surrogates found"
-          description={surrogates.length === 0
-            ? "Surrogates will appear here once they complete the intake quiz and qualify."
-            : "Try adjusting your search or filters."}
+          description={
+            ownerFilter === 'mine' && myCaseCount === 0
+              ? "You don't have any cases assigned to you yet."
+              : surrogates.length === 0
+              ? "Surrogates will appear here once they complete the intake quiz and qualify."
+              : "Try adjusting your search or filters."
+          }
         />
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(surrogate => (
-            <Link key={surrogate.id} to={`/surrogates/${surrogate.id}`} className="group">
-              <Card className="transition-shadow hover:shadow-md h-full">
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3">
+            <Card key={surrogate.id} className="transition-shadow hover:shadow-md h-full">
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <Link to={`/surrogates/${surrogate.id}`}>
                     <ProfileAvatar name={surrogate.name} size="lg" />
-                    <div className="flex-1 min-w-0">
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/surrogates/${surrogate.id}`} className="hover:underline">
                       <h3 className="font-heading font-semibold truncate">{surrogate.name}</h3>
-                      {surrogate.location && (
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                          <MapPin className="size-3.5" />
-                          <span>{surrogate.location}</span>
-                        </div>
-                      )}
-                      <div className="mt-1.5">
-                        <StatusBadge status={surrogate.status} />
+                    </Link>
+                    {surrogate.location && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                        <MapPin className="size-3.5" />
+                        <span>{surrogate.location}</span>
                       </div>
+                    )}
+                    <div className="mt-1.5">
+                      <StatusBadge status={surrogate.status} />
                     </div>
                   </div>
+                  {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
+                </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-muted-foreground text-xs">Age</span>
-                      <p className="font-medium">{surrogate.age || '—'}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">Email</span>
-                      <p className="font-medium truncate text-xs">{surrogate.email}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">Intake Status</span>
-                      <p className="font-medium capitalize">{surrogate.intakeStatus?.replace('_', ' ')}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">Submitted</span>
-                      <p className="font-medium">
-                        {surrogate.submittedAt
-                          ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                          : '—'}
-                      </p>
-                    </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground text-xs">Age</span>
+                    <p className="font-medium">{surrogate.age || '—'}</p>
                   </div>
+                  <div>
+                    <span className="text-muted-foreground text-xs">Submitted</span>
+                    <p className="font-medium">
+                      {surrogate.submittedAt
+                        ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <ScreeningDots screening={surrogate.screening} />
-                    <span className="text-xs text-abc-indigo font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Profile <ArrowRight className="size-3" />
-                    </span>
+                {/* Gravida/Para */}
+                {(() => { const gp = getGravidaPara(profiles[surrogate.email]); return gp ? <GravidaParaRow gp={gp} /> : null })()}
+
+                {/* Assignment */}
+                <div className="pt-2 border-t">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <UserCog className="size-3.5 text-muted-foreground" />
+                      <Select
+                        value={surrogate.assignedTo || '_unassigned'}
+                        onValueChange={val => handleAssign(surrogate.id, val === '_unassigned' ? null : val)}
+                      >
+                        <SelectTrigger className="h-7 text-xs border-none shadow-none px-1 w-auto min-w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_unassigned">
+                            <span className="text-muted-foreground">Unassigned</span>
+                          </SelectItem>
+                          {ADMIN_STAFF.map(admin => (
+                            <SelectItem key={admin.email} value={admin.email}>
+                              {admin.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Link to={`/surrogates/${surrogate.id}`}
+                      className="text-xs text-abc-indigo font-medium flex items-center gap-1 hover:underline">
+                      View <ArrowRight className="size-3" />
+                    </Link>
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (
@@ -210,7 +330,7 @@ export default function SurrogateListPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Age</TableHead>
+                <TableHead>Assigned To</TableHead>
                 <TableHead>Submitted</TableHead>
                 <TableHead>Email</TableHead>
               </TableRow>
@@ -226,11 +346,16 @@ export default function SurrogateListPage() {
                     <div className="flex items-center gap-3">
                       <ProfileAvatar name={surrogate.name} size="sm" />
                       <span className="font-medium">{surrogate.name}</span>
+                      {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
                     </div>
                   </TableCell>
                   <TableCell>{surrogate.location || '—'}</TableCell>
                   <TableCell><StatusBadge status={surrogate.status} /></TableCell>
-                  <TableCell>{surrogate.age || '—'}</TableCell>
+                  <TableCell>
+                    <span className={`text-sm ${surrogate.assignedTo ? '' : 'text-muted-foreground'}`}>
+                      {surrogate.assignedTo ? getAdminName(surrogate.assignedTo) : 'Unassigned'}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     {surrogate.submittedAt
                       ? new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -243,6 +368,64 @@ export default function SurrogateListPage() {
           </Table>
         </Card>
       )}
+
+      {/* Add Surrogate Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Surrogate</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">First Name *</Label>
+                <Input value={addForm.firstName} onChange={e => setAddForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Jane" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Last Name</Label>
+                <Input value={addForm.lastName} onChange={e => setAddForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Smith" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email *</Label>
+              <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Phone</Label>
+                <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-0100" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">State</Label>
+                <Input value={addForm.state} onChange={e => setAddForm(f => ({ ...f, state: e.target.value }))} placeholder="CA" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Date of Birth</Label>
+              <Input type="date" value={addForm.dob} onChange={e => setAddForm(f => ({ ...f, dob: e.target.value }))} />
+            </div>
+
+            {/* Be Surrogacy toggle */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="flex items-center gap-3">
+                <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" />
+                <div>
+                  <p className="text-sm font-medium">Referral</p>
+                </div>
+              </div>
+              <Switch
+                checked={addForm.referralPartner}
+                onCheckedChange={v => setAddForm(f => ({ ...f, referralPartner: v }))}
+              />
+            </div>
+
+            <Button onClick={handleAddSurrogate} disabled={addSaving || !addForm.firstName || !addForm.email}
+              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {addSaving ? 'Adding...' : 'Add Surrogate'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

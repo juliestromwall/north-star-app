@@ -17,8 +17,26 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile } from '@/lib/db'
-import { Eye, ShieldCheck, ShieldX, Save, Loader2 } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission } from '@/lib/db'
+import { Eye, ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
+import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
+import { mockUsers } from '@/data/mock/users'
+
+const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+
+function getGravidaPara(profileData) {
+  const ph = profileData?.pregnancyHistory
+  if (!ph?.pregnancies || ph.pregnancies.length === 0) return null
+  const pregnancies = ph.pregnancies
+  const gravida = parseInt(ph.numberOfPregnancies) || pregnancies.length
+  const liveBirths = pregnancies.filter(p => p.outcome === 'Live Birth').length
+  const miscarriages = pregnancies.filter(p => p.outcome === 'Miscarriage').length
+  const terminations = pregnancies.filter(p => p.outcome === 'Termination').length
+  return { gravida, liveBirths, miscarriages, terminations }
+}
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
@@ -87,6 +105,9 @@ export default function SurrogateDetailPage() {
                 <Badge variant="outline" className="text-xs capitalize">
                   {surrogate.intakeStatus?.replace('_', ' ')}
                 </Badge>
+                {surrogate.referralPartner === 'be_surrogacy' && (
+                  <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
+                )}
               </div>
               {surrogate.location && (
                 <p className="text-muted-foreground mt-1 flex items-center gap-1">
@@ -115,11 +136,45 @@ export default function SurrogateDetailPage() {
 
           <Separator />
 
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             {surrogate.age && <span><span className="text-muted-foreground">Age:</span> <strong>{surrogate.age}</strong></span>}
             {surrogate.bmi && <span><span className="text-muted-foreground">BMI:</span> <strong>{surrogate.bmi}</strong></span>}
             {surrogate.maritalStatus && <span><span className="text-muted-foreground">Status:</span> <strong>{surrogate.maritalStatus}</strong></span>}
-            {surrogate.preferredContact && <span><span className="text-muted-foreground">Preferred Contact:</span> <strong>{surrogate.preferredContact}</strong></span>}
+            {(() => {
+              const gp = getGravidaPara(profileData)
+              if (!gp) return null
+              return (
+                <span className="flex items-center gap-2">
+                  <span className="text-muted-foreground">G/P:</span>
+                  <strong className="text-abc-indigo">{gp.gravida}</strong><span className="text-muted-foreground">/</span>
+                  <strong className="text-emerald-600">{gp.liveBirths}</strong>
+                  {gp.miscarriages > 0 && <><span className="text-muted-foreground">/</span><strong className="text-amber-500">{gp.miscarriages}M</strong></>}
+                  {gp.terminations > 0 && <><span className="text-muted-foreground">/</span><strong className="text-stone-500">{gp.terminations}T</strong></>}
+                </span>
+              )
+            })()}
+            <span className="flex items-center gap-1.5">
+              <UserCog className="size-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground">Assigned:</span>
+              <SelectUI
+                value={surrogate.assignedTo || '_unassigned'}
+                onValueChange={async val => {
+                  const email = val === '_unassigned' ? null : val
+                  await assignSurrogateToAdmin(surrogate.id, email).catch(() => {})
+                  setSurrogate(prev => ({ ...prev, assignedTo: email }))
+                }}
+              >
+                <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24">
+                  <SelectValueUI />
+                </SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                  {ADMIN_STAFF.map(a => (
+                    <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>
+                  ))}
+                </SelectContentUI>
+              </SelectUI>
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -137,47 +192,7 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <InfoRow icon={Mail} label="Email" value={surrogate.email} />
-                <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
-                <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
-                <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
-                <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                <InfoRow icon={Ruler} label="Height" value={heightStr || '—'} />
-                <InfoRow icon={Weight} label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} />
-                <InfoRow icon={Activity} label="BMI" value={surrogate.bmi || '—'} />
-                <InfoRow icon={CheckCircle2} label="Healthy Pregnancy" value={
-                  surrogate.healthyPregnancy === true ? 'Yes' :
-                  surrogate.healthyPregnancy === false ? 'No' : '—'
-                } />
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Screening Status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <ScreeningStatusItem label="Medical" status={screening.medical} />
-              <ScreeningStatusItem label="Psychological" status={screening.psychological} />
-              <ScreeningStatusItem label="Background Check" status={screening.background} />
-              <ScreeningStatusItem label="Home Study" status={screening.homeStudy} />
-            </CardContent>
-          </Card>
+          <OverviewTab surrogate={surrogate} setSurrogate={setSurrogate} screening={screening} heightStr={heightStr} />
         </TabsContent>
 
         {/* Profile Tab — surrogate's matching profile from Supabase */}
@@ -341,6 +356,150 @@ function countSectionFilled(data, section) {
     if (val !== undefined && val !== '' && val !== null) filled++
   }
   return { filled, total: section.fields.length }
+}
+
+function OverviewTab({ surrogate, setSurrogate, screening, heightStr }) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({})
+
+  function startEdit() {
+    setForm({
+      email: surrogate.email || '',
+      phone: surrogate.phone || '',
+      location: surrogate.location || '',
+      maritalStatus: surrogate.maritalStatus || '',
+      preferredContact: surrogate.preferredContact || '',
+      beReferral: surrogate.referralPartner === 'be_surrogacy',
+    })
+    setEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditing(false)
+    setForm({})
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      const currentAnswers = await fetchIntakeByEmail(surrogate.email)
+      const updatedAnswers = {
+        ...(currentAnswers || {}),
+        email: form.email,
+        phone: form.phone,
+        maritalStatus: form.maritalStatus,
+        preferredContact: form.preferredContact,
+      }
+      const referralVal = form.beReferral ? 'be_surrogacy' : null
+      await updateIntakeSubmission(surrogate.id, {
+        applicant_email: form.email.trim().toLowerCase(),
+        answers: updatedAnswers,
+        referral_partner: referralVal,
+      })
+      setSurrogate(prev => ({
+        ...prev,
+        email: form.email,
+        phone: form.phone,
+        location: form.location,
+        maritalStatus: form.maritalStatus,
+        preferredContact: form.preferredContact,
+        referralPartner: referralVal,
+      }))
+      setEditing(false)
+    } catch {} finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Contact Information</CardTitle>
+            {!editing ? (
+              <Button variant="ghost" size="sm" className="gap-1" onClick={startEdit}>
+                <Pencil className="size-3.5" /> Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={cancelEdit}>Cancel</Button>
+                <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+                  onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                  Save
+                </Button>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {editing ? (
+              <div className="space-y-3">
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
+                <div className="flex items-center justify-between pt-3 mt-2 border-t col-span-1">
+                  <div className="flex items-center gap-2">
+                    <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
+                    <span className="text-sm font-medium">Referral</span>
+                  </div>
+                  <Switch
+                    checked={form.beReferral}
+                    onCheckedChange={v => setForm(f => ({ ...f, beReferral: v }))}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow icon={Mail} label="Email" value={surrogate.email} />
+                <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
+                <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
+                <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
+                <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-2">
+                    <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
+                    <span className="text-sm text-muted-foreground">Referral</span>
+                  </div>
+                  <span className={`text-sm font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Health Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            <InfoRow icon={Ruler} label="Height" value={heightStr || '—'} />
+            <InfoRow icon={Weight} label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} />
+            <InfoRow icon={Activity} label="BMI" value={surrogate.bmi || '—'} />
+            <InfoRow icon={CheckCircle2} label="Healthy Pregnancy" value={
+              surrogate.healthyPregnancy === true ? 'Yes' :
+              surrogate.healthyPregnancy === false ? 'No' : '—'
+            } />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Screening Status</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <ScreeningStatusItem label="Medical" status={screening.medical} />
+          <ScreeningStatusItem label="Psychological" status={screening.psychological} />
+          <ScreeningStatusItem label="Background Check" status={screening.background} />
+          <ScreeningStatusItem label="Home Study" status={screening.homeStudy} />
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 function formatFieldLabel(key) {
