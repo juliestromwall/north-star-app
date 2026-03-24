@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const { getAllNotes, addNote, toggleNote, removeNote } = useAdminNotes()
 
   if (!isMasterAdmin && currentRole !== ROLES.SUPER_ADMIN) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   const notes = getAllNotes()

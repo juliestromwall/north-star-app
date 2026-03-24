@@ -29,7 +29,7 @@ const nav = [
       {
         label: 'Dashboard',
         icon: LayoutDashboard,
-        path: '/',
+        path: '/dashboard',
         roles: 'all',
       },
     ],

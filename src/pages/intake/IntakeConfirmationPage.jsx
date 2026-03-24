@@ -199,7 +199,7 @@ export default function IntakeConfirmationPage() {
                 <p className="text-sm text-emerald-600 mt-1">You're all set. Head to your portal to complete your profile.</p>
               </div>
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
                 style={{ backgroundColor: '#283693', color: '#fff' }}
               >

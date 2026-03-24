@@ -46,6 +46,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public pages — no auth required */}
+      <Route index element={<ComingSoonPage />} />
       <Route path="/welcome" element={<ComingSoonPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
@@ -57,7 +58,7 @@ export default function App() {
 
       {/* Authenticated app */}
       <Route element={<AppLayout />}>
-        <Route index element={<DashboardRouter />} />
+        <Route path="/dashboard" element={<DashboardRouter />} />
         <Route path="/forms" element={<FormsListPage />} />
         <Route path="/forms/builder" element={<FormBuilderPage />} />
         <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />

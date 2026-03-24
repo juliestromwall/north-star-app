@@ -25,7 +25,7 @@ export default function TimeClockPage() {
 
   // Guard: admin roles only
   if (!isAdmin) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   const canViewAllStaff = isMasterAdmin || isSuperAdmin
