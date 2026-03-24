@@ -228,6 +228,7 @@ export async function adminAddSurrogate(surrogateData) {
     intake_type: 'gc',
     status: 'qualified',
     qualified: true,
+    applicant_name: `${surrogateData.firstName} ${surrogateData.lastName || ''}`.trim(),
     applicant_email: surrogateData.email.trim().toLowerCase(),
     answers: {
       firstName: surrogateData.firstName,
