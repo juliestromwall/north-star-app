@@ -112,7 +112,6 @@ export default function SurrogateDetailPage() {
       {/* ─── Hero Section ─────────────────────────────────── */}
       <div className="rounded-2xl overflow-hidden border border-stone-200/80 bg-white">
         {/* Top banner area */}
-        <div className="h-2" style={{ background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
 
         <div className="p-6 space-y-6">
           {/* Name row */}
@@ -193,7 +192,7 @@ export default function SurrogateDetailPage() {
             <div className="rounded-xl border border-pink-100 bg-gradient-to-r from-pink-50/60 to-indigo-50/60 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Baby className="size-4 text-pink-400" />
-                <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Pregnancy History — GTPAL</span>
+                <span className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Pregnancy History</span>
               </div>
               <div className="flex flex-wrap items-center gap-6">
                 <span className="font-mono text-xl font-bold tracking-wider" style={{ color: '#283693' }}>
