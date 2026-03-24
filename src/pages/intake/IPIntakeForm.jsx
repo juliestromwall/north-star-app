@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
 import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
+import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProtection.jsx'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const IP_COLOR = '#464DA0'
@@ -68,7 +69,15 @@ export default function IPIntakeForm() {
     ...prefill,
   })
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const {
+    honeypotValue, setHoneypotValue, trackFieldChange,
+    validateSubmission, setTurnstileToken,
+  } = useBotProtection(startTimeRef)
+
+  const set = (field, value) => {
+    trackFieldChange()
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
   const isCouple = form.familyType && form.familyType !== 'Single parent'
   const primaryEmailValid = isValidEmail(form.email)
   const primaryPhoneValid = isValidInternationalPhone(form.phone)
@@ -103,6 +112,15 @@ export default function IPIntakeForm() {
   }
 
   async function handleSubmit() {
+    // Bot protection — silently reject without revealing why
+    const botCheck = validateSubmission()
+    if (!botCheck.ok) {
+      navigate('/apply/confirmation', {
+        state: { qualified: false, dqReasons: [], type: 'ip', name: form.primaryFirstName, email: form.email, tracking: {}, answers: form },
+      })
+      return
+    }
+
     const dqReasons = getIPDisqualifications(form)
     const rawTracking = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
     const timeToCompleteSeconds = Math.round((Date.now() - startTimeRef.current) / 1000)
@@ -359,6 +377,8 @@ export default function IPIntakeForm() {
           I am open to being contacted by an Abundant Beginnings coordinator.
         </label>
       </div>
+      <TurnstileWidget onToken={setTurnstileToken} />
+      <HoneypotField value={honeypotValue} onChange={setHoneypotValue} />
     </QuizShell>
   )
 

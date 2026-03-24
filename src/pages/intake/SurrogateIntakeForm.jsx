@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGCDisqualifications } from '@/data/mock/intakeSubmissions'
 import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
+import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProtection.jsx'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const GC_COLOR = '#ed148c'
@@ -68,7 +69,15 @@ export default function SurrogateIntakeForm() {
     ...prefill,
   })
 
-  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const {
+    honeypotValue, setHoneypotValue, trackFieldChange,
+    validateSubmission, setTurnstileToken,
+  } = useBotProtection(startTimeRef)
+
+  const set = (field, value) => {
+    trackFieldChange()
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
   const bmi = calculateBMI(form.heightFt, form.heightIn, form.weightLbs)
   const bmiVal = parseFloat(bmi)
   const bmiOk = bmi && bmiVal >= 19 && bmiVal <= 33
@@ -100,6 +109,16 @@ export default function SurrogateIntakeForm() {
   }
 
   async function handleSubmit() {
+    // Bot protection — silently reject without revealing why
+    const botCheck = validateSubmission()
+    if (!botCheck.ok) {
+      // Fake success: bots think they submitted, but nothing happens
+      navigate('/apply/confirmation', {
+        state: { qualified: false, dqReasons: [], type: 'gc', name: form.firstName, email: form.email, tracking: {}, answers: form },
+      })
+      return
+    }
+
     const answers = { ...form, bmi: parseFloat(bmi) }
     const dqReasons = getGCDisqualifications(answers)
     const rawTracking = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
@@ -327,6 +346,8 @@ export default function SurrogateIntakeForm() {
           I understand that if approved, a background check is part of the standard screening process.
         </label>
       </div>
+      <TurnstileWidget onToken={setTurnstileToken} />
+      <HoneypotField value={honeypotValue} onChange={setHoneypotValue} />
     </QuizShell>
   )
 
