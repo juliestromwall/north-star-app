@@ -88,6 +88,8 @@ export default function SurrogateListPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
   const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState(null)
+  const [addSuccess, setAddSuccess] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [ownerFilter, setOwnerFilter] = useState('mine')
@@ -136,6 +138,7 @@ export default function SurrogateListPage() {
   async function handleAddSurrogate() {
     if (!addForm.firstName || !addForm.email) return
     setAddSaving(true)
+    setAddError(null)
     try {
       await adminAddSurrogate({
         ...addForm,
@@ -147,7 +150,11 @@ export default function SurrogateListPage() {
       setSurrogates(data || [])
       setAddOpen(false)
       setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
-    } catch {} finally { setAddSaving(false) }
+      setAddSuccess(true)
+      setTimeout(() => setAddSuccess(false), 3000)
+    } catch (err) {
+      setAddError(err.message || 'Failed to add surrogate. Please try again.')
+    } finally { setAddSaving(false) }
   }
 
   async function handleAssign(surrogateId, adminEmail) {
@@ -169,6 +176,12 @@ export default function SurrogateListPage() {
           </Button>
         }
       />
+
+      {addSuccess && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm font-medium">
+          <CheckCircle className="size-4" /> Surrogate added successfully and assigned to you.
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -419,6 +432,9 @@ export default function SurrogateListPage() {
               />
             </div>
 
+            {addError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{addError}</p>
+            )}
             <Button onClick={handleAddSurrogate} disabled={addSaving || !addForm.firstName || !addForm.email}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {addSaving ? 'Adding...' : 'Add Surrogate'}
