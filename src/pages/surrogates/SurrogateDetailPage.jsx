@@ -26,7 +26,10 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
@@ -633,6 +636,55 @@ function getFileIcon(fileType) {
   return FileText
 }
 
+function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, setUploadCategory, DocRow }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 10 : 'auto' }
+  const Icon = cat.icon
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="rounded-2xl overflow-hidden h-full">
+        <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: cat.color + '0a' }}>
+          <div className="flex items-center gap-2.5">
+            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded hover:bg-white/50">
+              <GripVertical className="size-4 text-stone-300" />
+            </div>
+            <div className="size-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '18' }}>
+              <Icon className="size-4" style={{ color: cat.color }} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-stone-800">{cat.label}</p>
+              <p className="text-[10px] text-stone-400">{catDocs.length} file{catDocs.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="size-8 rounded-full hover:bg-white/50" disabled={uploading}
+            onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+            {uploading && uploadCategory === cat.id
+              ? <Loader2 className="size-3.5 animate-spin text-stone-400" />
+              : <Upload className="size-3.5" style={{ color: cat.color }} />}
+          </Button>
+        </div>
+        <CardContent className="p-0">
+          {catDocs.length > 0 ? (
+            <div className="divide-y divide-stone-100">
+              {catDocs.map(doc => <DocRow key={doc.id} doc={doc} />)}
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-center">
+              <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
+              <p className="text-[11px] text-stone-400">No files yet</p>
+              <button className="text-[11px] font-medium mt-1 hover:underline" style={{ color: cat.color }}
+                onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+                Upload
+              </button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function DocumentsTab({ surrogateId }) {
   const { currentUser } = useRole()
   const [docs, setDocs] = useState([])
@@ -647,6 +699,28 @@ function DocumentsTab({ surrogateId }) {
   const [editSaving, setEditSaving] = useState(false)
   const [docSearch, setDocSearch] = useState('')
   const [docView, setDocView] = useState('grid') // 'grid' | 'list'
+  const [categoryOrder, setCategoryOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('abc_doc_category_order')
+      if (saved) return JSON.parse(saved)
+    } catch {}
+    return DOC_CATEGORIES.map(c => c.id)
+  })
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor))
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setCategoryOrder(prev => {
+      const oldIdx = prev.indexOf(active.id)
+      const newIdx = prev.indexOf(over.id)
+      const updated = arrayMove(prev, oldIdx, newIdx)
+      localStorage.setItem('abc_doc_category_order', JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
 
   useEffect(() => {
     fetchCaseDocuments(surrogateId).then(setDocs).catch(() => {}).finally(() => setLoading(false))
@@ -771,51 +845,20 @@ function DocumentsTab({ surrogateId }) {
         </div>
       </div>
 
-      {/* Grid view — cards per category */}
+      {/* Grid view — sortable cards per category */}
       {docView === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DOC_CATEGORIES.map(cat => {
-            const catDocs = docsByCategory[cat.id]
-            const Icon = cat.icon
-            return (
-              <Card key={cat.id} className="rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: cat.color + '0a' }}>
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '18' }}>
-                      <Icon className="size-4" style={{ color: cat.color }} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-stone-800">{cat.label}</p>
-                      <p className="text-[10px] text-stone-400">{catDocs.length} file{catDocs.length !== 1 ? 's' : ''}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full hover:bg-white/50" disabled={uploading}
-                    onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
-                    {uploading && uploadCategory === cat.id
-                      ? <Loader2 className="size-3.5 animate-spin text-stone-400" />
-                      : <Upload className="size-3.5" style={{ color: cat.color }} />}
-                  </Button>
-                </div>
-                <CardContent className="p-0">
-                  {catDocs.length > 0 ? (
-                    <div className="divide-y divide-stone-100">
-                      {catDocs.map(doc => <DocRow key={doc.id} doc={doc} />)}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-6 text-center">
-                      <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-stone-400">No files yet</p>
-                      <button className="text-[11px] font-medium mt-1 hover:underline" style={{ color: cat.color }}
-                        onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
-                        Upload
-                      </button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={categoryOrder} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {orderedCategories.map(cat => {
+                const catDocs = docsByCategory[cat.id]
+                // Hide empty categories when searching
+                if (docSearch && catDocs.length === 0) return null
+                return <SortableCategoryCard key={cat.id} cat={cat} catDocs={catDocs} uploading={uploading} uploadCategory={uploadCategory} setUploadCategory={setUploadCategory} DocRow={DocRow} />
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
       ) : (
         /* List view — flat table */
         <Card className="rounded-2xl overflow-hidden">
