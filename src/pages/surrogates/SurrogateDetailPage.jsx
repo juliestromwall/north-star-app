@@ -172,16 +172,24 @@ export default function SurrogateDetailPage() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" asChild>
-                <a href={`mailto:${surrogate.email}`}>
-                  <Mail className="size-3.5" /> Email
-                </a>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 rounded-full"
+                onClick={() => toggleFlip('email')}
+              >
+                <Mail className="size-3.5" />
+                {flipped.email ? surrogate.email : 'Email'}
               </Button>
               {surrogate.phone && (
-                <Button variant="outline" size="sm" className="gap-1.5 rounded-full" asChild>
-                  <a href={`tel:${surrogate.phone}`}>
-                    <Phone className="size-3.5" /> Call
-                  </a>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 rounded-full"
+                  onClick={() => toggleFlip('phone')}
+                >
+                  <Phone className="size-3.5" />
+                  {flipped.phone ? surrogate.phone : 'Call'}
                 </Button>
               )}
             </div>
@@ -257,8 +265,8 @@ export default function SurrogateDetailPage() {
               </div>
               {stageOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setStageOpen(false)} />
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-48">
+                  <div className="fixed inset-0 z-30" onClick={() => setStageOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 z-40 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-52">
                     <div className="py-1">
                       {JOURNEY_STAGES.map((stage, i) => (
                         <button
