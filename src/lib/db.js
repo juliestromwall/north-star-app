@@ -427,3 +427,53 @@ export async function listProfilePhotos(userId) {
       return { path, url: urlData.publicUrl, name: f.name }
     })
 }
+
+// ── Case Notes ─────────────────────────────────────────────
+
+export async function fetchCaseNotes(surrogateId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_notes')
+    .select('*')
+    .eq('surrogate_id', surrogateId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+export async function insertCaseNote({ surrogateId, authorName, authorEmail, content }) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('case_notes')
+    .insert({
+      surrogate_id: surrogateId,
+      author_name: authorName,
+      author_email: authorEmail,
+      content,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateCaseNote(noteId, content) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('case_notes')
+    .update({ content, updated_at: new Date().toISOString() })
+    .eq('id', noteId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteCaseNote(noteId) {
+  if (!supabase) return
+  const { error } = await supabase
+    .from('case_notes')
+    .delete()
+    .eq('id', noteId)
+  if (error) throw error
+}

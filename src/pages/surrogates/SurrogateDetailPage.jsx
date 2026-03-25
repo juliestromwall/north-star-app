@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
 import StageBadge from '@/components/shared/StageBadge'
@@ -23,7 +24,8 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote } from '@/lib/db'
+import { Trash2, AlertTriangle, Plus } from 'lucide-react'
 import { Eye, ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
@@ -58,13 +60,20 @@ const SCREENING_COLORS = { cleared: 'text-emerald-500', pending: 'text-amber-500
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
+  const { currentUser } = useRole()
   const [surrogate, setSurrogate] = useState(null)
   const [loading, setLoading] = useState(true)
   const [quizAnswers, setQuizAnswers] = useState(null)
   const [profileData, setProfileData] = useState(null)
   const [profileStatus, setProfileStatus] = useState('draft')
   const [photos, setPhotos] = useState([])
+  const [notes, setNotes] = useState([])
   const [noteText, setNoteText] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
+  const [noteAddOpen, setNoteAddOpen] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editNoteText, setEditNoteText] = useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
   const [flipped, setFlipped] = useState({})
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
@@ -75,6 +84,9 @@ export default function SurrogateDetailPage() {
     fetchSurrogatesFromIntake().then(all => {
       const found = all.find(s => String(s.id) === String(id))
       setSurrogate(found || null)
+      if (found?.id) {
+        fetchCaseNotes(found.id).then(setNotes).catch(() => {})
+      }
       if (found?.email) {
         fetchIntakeByEmail(found.email).then(setQuizAnswers).catch(() => {})
         fetchSurrogateProfileByEmail(found.email).then(result => {
@@ -527,13 +539,13 @@ export default function SurrogateDetailPage() {
         {/* Notes Tab */}
         <TabsContent value="notes" className="mt-4">
           <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Dialog>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Notes ({notes.length})</CardTitle>
+              <Dialog open={noteAddOpen} onOpenChange={v => { setNoteAddOpen(v); if (!v) setNoteText('') }}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">Add Note</Button>
+                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                    <Plus className="size-3.5" /> Add Note
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -544,13 +556,122 @@ export default function SurrogateDetailPage() {
                     value={noteText}
                     onChange={e => setNoteText(e.target.value)}
                     rows={4}
+                    autoFocus
                   />
-                  <Button onClick={() => setNoteText('')} className="w-full">Save Note</Button>
+                  <Button
+                    onClick={async () => {
+                      if (!noteText.trim()) return
+                      setNoteSaving(true)
+                      try {
+                        const note = await insertCaseNote({
+                          surrogateId: surrogate.id,
+                          authorName: currentUser.name,
+                          authorEmail: currentUser.email,
+                          content: noteText.trim(),
+                        })
+                        if (note) setNotes(prev => [note, ...prev])
+                        setNoteText('')
+                        setNoteAddOpen(false)
+                      } catch {} finally { setNoteSaving(false) }
+                    }}
+                    disabled={noteSaving || !noteText.trim()}
+                    className="w-full"
+                    style={{ backgroundColor: '#283693', color: '#fff' }}
+                  >
+                    {noteSaving ? 'Saving...' : 'Save Note'}
+                  </Button>
                 </DialogContent>
               </Dialog>
-              <p className="text-sm text-muted-foreground">No notes yet. Notes will be stored once connected to the backend.</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {notes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No notes yet.</p>
+              ) : notes.map(note => (
+                <div key={note.id} className="rounded-xl border border-stone-100 bg-stone-50/50 p-4 space-y-2">
+                  {editingNoteId === note.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editNoteText}
+                        onChange={e => setEditNoteText(e.target.value)}
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
+                        <Button
+                          size="sm"
+                          style={{ backgroundColor: '#283693', color: '#fff' }}
+                          disabled={noteSaving || !editNoteText.trim()}
+                          onClick={async () => {
+                            setNoteSaving(true)
+                            try {
+                              await updateCaseNote(note.id, editNoteText.trim())
+                              setNotes(prev => prev.map(n => n.id === note.id ? { ...n, content: editNoteText.trim(), updated_at: new Date().toISOString() } : n))
+                              setEditingNoteId(null)
+                            } catch {} finally { setNoteSaving(false) }
+                          }}
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-stone-700 whitespace-pre-wrap">{note.content}</p>
+                      <div className="flex items-center justify-between pt-1">
+                        <div className="text-xs text-stone-400">
+                          <span className="font-medium text-stone-500">{note.author_name}</span>
+                          {' · '}
+                          {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          {note.updated_at !== note.created_at && ' (edited)'}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost" size="icon" className="size-7"
+                            onClick={() => { setEditingNoteId(note.id); setEditNoteText(note.content) }}
+                          >
+                            <Pencil className="size-3 text-stone-400" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon" className="size-7"
+                            onClick={() => setDeleteConfirmId(note.id)}
+                          >
+                            <Trash2 className="size-3 text-stone-400" />
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
+
+          {/* Delete confirmation */}
+          <Dialog open={deleteConfirmId !== null} onOpenChange={v => { if (!v) setDeleteConfirmId(null) }}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="size-5" /> Delete Note
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-stone-600">This action is permanent and cannot be undone. Are you sure you want to delete this note?</p>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+                <Button
+                  variant="destructive" size="sm"
+                  onClick={async () => {
+                    try {
+                      await deleteCaseNote(deleteConfirmId)
+                      setNotes(prev => prev.filter(n => n.id !== deleteConfirmId))
+                    } catch {} finally { setDeleteConfirmId(null) }
+                  }}
+                >
+                  Delete Permanently
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

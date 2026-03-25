@@ -101,3 +101,22 @@ create policy "Master admins can update intake submissions"
   on intake_submissions for update using (
     (auth.jwt() -> 'app_metadata' ->> 'role') = 'master_admin'
   );
+
+-- ── Case Notes ─────────────────────────────────────────────
+
+create table case_notes (
+  id bigint generated always as identity primary key,
+  surrogate_id bigint references intake_submissions(id) on delete cascade not null,
+  author_name text not null,
+  author_email text not null,
+  content text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index case_notes_surrogate_id_idx on case_notes (surrogate_id);
+
+alter table case_notes enable row level security;
+
+create policy "Admins can do everything with case notes"
+  on case_notes for all using (true);
