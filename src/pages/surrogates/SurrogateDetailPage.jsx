@@ -310,7 +310,14 @@ export default function SurrogateDetailPage() {
                     className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
                     onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
                   >
-                    <Circle className="size-4 mx-auto mb-1" style={{ color: currentStageObj.color + '60' }} />
+                    {stageStatus.status === 'New' ? (
+                      <span className="relative flex size-4 mx-auto mb-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
+                      </span>
+                    ) : (
+                      <Circle className="size-4 mx-auto mb-1" style={{ color: currentStageObj.color + '60' }} />
+                    )}
                     <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Status</p>
                     <p className="text-sm font-bold mt-0.5 leading-tight text-stone-800">{stageStatus.status}</p>
                   </div>
