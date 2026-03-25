@@ -529,14 +529,14 @@ export default function SurrogateListPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
+                        <ProfileAvatar name={surrogate.name} size="sm" />
+                        <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {rowIsNew && (
                           <span className="relative flex size-2.5 shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
                             <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
                           </span>
                         )}
-                        <ProfileAvatar name={surrogate.name} size="sm" />
-                        <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
                       </div>
                     </TableCell>
