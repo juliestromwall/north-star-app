@@ -120,7 +120,7 @@ export default function SurrogateDetailPage() {
       </Link>
 
       {/* ─── Hero Section ─────────────────────────────────── */}
-      <div className="rounded-2xl overflow-hidden border border-stone-200/80 bg-white">
+      <div className="rounded-2xl border border-stone-200/80 bg-white">
         {/* Top banner area */}
 
         <div className="p-6 space-y-6">
