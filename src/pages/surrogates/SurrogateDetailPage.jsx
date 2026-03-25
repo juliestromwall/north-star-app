@@ -9,6 +9,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SURROGATE_STAGES } from '@/lib/constants'
+import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
+import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -62,8 +65,9 @@ export default function SurrogateDetailPage() {
   const [photos, setPhotos] = useState([])
   const [noteText, setNoteText] = useState('')
   const [flipped, setFlipped] = useState({})
-  const [journeyStage, setJourneyStage] = useState('Pre-Qualification')
+  const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
   useEffect(() => {
@@ -87,10 +91,10 @@ export default function SurrogateDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Set journey stage once surrogate loads
+  // Load stage/status from localStorage
   useEffect(() => {
-    if (surrogate?.screening) {
-      setJourneyStage(getJourneyStage(surrogate.screening))
+    if (surrogate) {
+      setStageStatus(getSurrogateStageStatus(surrogate.id))
     }
   }, [surrogate])
 
@@ -130,10 +134,7 @@ export default function SurrogateDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>
-                <StatusBadge status={surrogate.status} />
-                <Badge variant="outline" className="text-xs capitalize">
-                  {surrogate.intakeStatus?.replace('_', ' ')}
-                </Badge>
+                <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
                 {surrogate.referralPartner === 'be_surrogacy' && (
                   <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
                 )}
@@ -192,7 +193,7 @@ export default function SurrogateDetailPage() {
           </div>
 
           {/* Stats grid — interactive flip cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {/* Age / DOB */}
             <FlipCard
               flipped={flipped.age}
@@ -250,44 +251,99 @@ export default function SurrogateDetailPage() {
               return <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
             })()}
             {/* Stage — clickable selector */}
-            <div className="relative">
-              <div
-                className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
-                onClick={() => setStageOpen(!stageOpen)}
-              >
-                <Milestone className="size-4 text-stone-300 mx-auto mb-1" />
-                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
-                <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journeyStage}</p>
-              </div>
-              {stageOpen && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setStageOpen(false)} />
-                  <div className="absolute top-full right-0 mt-2 z-40 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-52">
-                    <div className="py-1">
-                      {JOURNEY_STAGES.map((stage, i) => (
-                        <button
-                          key={stage}
-                          className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
-                            journeyStage === stage
-                              ? 'font-semibold bg-indigo-50'
-                              : 'text-stone-600 hover:bg-stone-50'
-                          }`}
-                          style={journeyStage === stage ? { color: '#283693' } : {}}
-                          onClick={e => { e.stopPropagation(); setJourneyStage(stage); setStageOpen(false) }}
-                        >
-                          <span className={`inline-flex items-center justify-center size-5 rounded-full text-[10px] font-bold text-white ${
-                            journeyStage === stage ? '' : 'opacity-40'
-                          }`} style={{ backgroundColor: journeyStage === stage ? '#283693' : '#a8a29e' }}>
-                            {i + 1}
-                          </span>
-                          {stage}
-                        </button>
-                      ))}
-                    </div>
+            {(() => {
+              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
+              return (
+                <div className="relative">
+                  <div
+                    className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
+                    onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
+                  >
+                    <Milestone className="size-4 mx-auto mb-1" style={{ color: currentStageObj.color + '60' }} />
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
+                    <p className="text-sm font-bold mt-0.5 leading-tight" style={{ color: currentStageObj.color }}>{currentStageObj.label}</p>
                   </div>
-                </>
-              )}
-            </div>
+                  {stageOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setStageOpen(false)} />
+                      <div className="absolute top-full right-0 mt-2 z-40 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-52">
+                        <div className="py-1">
+                          {SURROGATE_STAGES.map((stage, i) => (
+                            <button
+                              key={stage.id}
+                              className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                                stageStatus.stage === stage.id ? 'font-semibold' : 'text-stone-600 hover:bg-stone-50'
+                              }`}
+                              style={stageStatus.stage === stage.id ? { color: stage.color, backgroundColor: stage.color + '10' } : {}}
+                              onClick={e => {
+                                e.stopPropagation()
+                                const newStatus = getDefaultStatus(stage.id)
+                                setSurrogateStageStatus(surrogate.id, stage.id, newStatus)
+                                setStageStatus({ stage: stage.id, status: newStatus })
+                                setStageOpen(false)
+                              }}
+                            >
+                              <span
+                                className={`inline-flex items-center justify-center size-5 rounded-full text-[10px] font-bold text-white ${stageStatus.stage === stage.id ? '' : 'opacity-40'}`}
+                                style={{ backgroundColor: stageStatus.stage === stage.id ? stage.color : '#a8a29e' }}
+                              >
+                                {i + 1}
+                              </span>
+                              {stage.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
+            {/* Status — clickable selector */}
+            {(() => {
+              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
+              const config = getStatusConfig()
+              const availableStatuses = config[stageStatus.stage] || []
+              return (
+                <div className="relative">
+                  <div
+                    className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
+                    onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
+                  >
+                    <Circle className="size-4 mx-auto mb-1" style={{ color: currentStageObj.color + '60' }} />
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Status</p>
+                    <p className="text-sm font-bold mt-0.5 leading-tight text-stone-800">{stageStatus.status}</p>
+                  </div>
+                  {statusOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setStatusOpen(false)} />
+                      <div className="absolute top-full right-0 mt-2 z-40 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-56 max-h-64 overflow-y-auto">
+                        <div className="py-1">
+                          {availableStatuses.map(status => (
+                            <button
+                              key={status}
+                              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                                stageStatus.status === status ? 'font-semibold' : 'text-stone-600 hover:bg-stone-50'
+                              }`}
+                              style={stageStatus.status === status ? { color: currentStageObj.color, backgroundColor: currentStageObj.color + '10' } : {}}
+                              onClick={e => {
+                                e.stopPropagation()
+                                setSurrogateStageStatus(surrogate.id, stageStatus.stage, status)
+                                setStageStatus({ stage: stageStatus.stage, status })
+                                setStatusOpen(false)
+                              }}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stageStatus.status === status ? currentStageObj.color : '#d6d3d1' }} />
+                              {status}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
 
           {/* GTPAL + Pregnancy History */}
@@ -523,18 +579,6 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip }) {
       </button>
     </div>
   )
-}
-
-// ── Journey Stages ─────────────────────────────────────────
-const JOURNEY_STAGES = ['Pre-Qualification', 'Screening', 'Matching', 'Journey Oversight']
-
-function getJourneyStage(screening) {
-  const steps = SCREENING_STEPS
-  const allCleared = steps.every(s => screening[s] === 'cleared')
-  const anyStarted = steps.some(s => screening[s] !== 'not_started')
-  if (allCleared) return 'Matching'
-  if (anyStarted) return 'Screening'
-  return 'Pre-Qualification'
 }
 
 // ── Stat Card (non-interactive) ────────────────────────────

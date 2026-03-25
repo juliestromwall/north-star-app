@@ -11,8 +11,11 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import PageHeader from '@/components/shared/PageHeader'
-import StatusBadge from '@/components/shared/StatusBadge'
+import StageBadge from '@/components/shared/StageBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
+import StatusSettingsDialog from '@/components/surrogates/StatusSettingsDialog'
+import { SURROGATE_STAGES } from '@/lib/constants'
+import { getSurrogateStageStatus, getAllSurrogateStageStatuses } from '@/lib/stageStatusStore'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
@@ -168,7 +171,7 @@ function BeBadge({ className = '' }) {
 }
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
-function SurrogateCard({ surrogate, profileData, onAssign }) {
+function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
   const submitted = timeAgo(surrogate.submittedAt)
@@ -198,7 +201,7 @@ function SurrogateCard({ surrogate, profileData, onAssign }) {
               {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
             </div>
             <div className="mt-1.5 flex items-center gap-2">
-              <StatusBadge status={surrogate.status} />
+              <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
               {submitted && (
                 <span className="text-[10px] text-stone-300 font-medium">{submitted}</span>
               )}
@@ -313,6 +316,8 @@ export default function SurrogateListPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const allStageStatuses = getAllSurrogateStageStatuses()
+
   const filtered = useMemo(() => {
     return surrogates.filter(s => {
       if (ownerFilter === 'mine') {
@@ -326,7 +331,8 @@ export default function SurrogateListPage() {
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.location.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase())
-      const matchesStatus = statusFilter === 'all' || s.status === statusFilter
+      const surrogateStage = allStageStatuses[s.id]?.stage || 'pre-qualification'
+      const matchesStatus = statusFilter === 'all' || surrogateStage === statusFilter
       return matchesSearch && matchesStatus
     })
   }, [surrogates, search, statusFilter, ownerFilter, currentUser.email])
@@ -363,9 +369,13 @@ export default function SurrogateListPage() {
   }
 
   // ── Hero Stats Bar ─────────────────────────────────────
-  const activeCount = surrogates.filter(s => s.status === 'active').length
-  const screeningCount = surrogates.filter(s => s.status === 'screening').length
-  const pendingCount = surrogates.filter(s => s.status === 'pending').length
+  const stageCounts = {}
+  for (const stage of SURROGATE_STAGES) stageCounts[stage.id] = 0
+  for (const s of surrogates) {
+    const ss = allStageStatuses[s.id]
+    const stageId = ss?.stage || 'pre-qualification'
+    if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
+  }
 
   return (
     <div className="space-y-6">
@@ -381,16 +391,15 @@ export default function SurrogateListPage() {
       />
 
       {/* Hero stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total', value: surrogates.length, color: '#283693', bg: 'from-indigo-50 to-blue-50' },
-          { label: 'Active', value: activeCount, color: '#10b981', bg: 'from-emerald-50 to-green-50' },
-          { label: 'Screening', value: screeningCount, color: '#f59e0b', bg: 'from-amber-50 to-yellow-50' },
-          { label: 'Pending', value: pendingCount, color: '#8b5cf6', bg: 'from-violet-50 to-purple-50' },
-        ].map(stat => (
-          <div key={stat.label} className={`rounded-xl bg-gradient-to-br ${stat.bg} border border-stone-100 p-4 text-center`}>
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
-            <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stat.label}</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="rounded-xl border border-stone-100 p-4 text-center" style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+        </div>
+        {SURROGATE_STAGES.map(stage => (
+          <div key={stage.id} className="rounded-xl border border-stone-100 p-4 text-center" style={{ backgroundColor: stage.color + '08' }}>
+            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
+            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
           </div>
         ))}
       </div>
@@ -430,16 +439,17 @@ export default function SurrogateListPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Stage" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="screening">Screening</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="all">All Stages</SelectItem>
+            {SURROGATE_STAGES.map(stage => (
+              <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
+        <StatusSettingsDialog />
 
         <div className="flex items-center border rounded-md">
           <Button
@@ -484,6 +494,7 @@ export default function SurrogateListPage() {
               surrogate={surrogate}
               profileData={profiles[surrogate.email]}
               onAssign={handleAssign}
+              stageStatus={allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }}
             />
           ))}
         </div>
@@ -496,7 +507,7 @@ export default function SurrogateListPage() {
                 <TableHead>Location</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>GTPAL</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Stage / Status</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Submitted</TableHead>
               </TableRow>
@@ -533,7 +544,12 @@ export default function SurrogateListPage() {
                         <span className="text-stone-300 text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell><StatusBadge status={surrogate.status} /></TableCell>
+                    <TableCell>
+                      {(() => {
+                        const ss = allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }
+                        return <StageBadge stage={ss.stage} status={ss.status} />
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <span className={`text-sm ${surrogate.assignedTo ? '' : 'text-muted-foreground'}`}>
                         {surrogate.assignedTo ? getAdminName(surrogate.assignedTo) : 'Unassigned'}

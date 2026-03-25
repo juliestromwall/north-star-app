@@ -61,3 +61,42 @@ export const INTAKE_TYPES = {
 }
 
 export const MARKETING_ROLES = [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER_ADMIN]
+
+// ── Surrogate Journey Stages ──────────────────────────────
+export const SURROGATE_STAGES = [
+  { id: 'pre-qualification', label: 'Pre-Qualification', color: '#ed148c', order: 1 },
+  { id: 'screening',         label: 'Screening',         color: '#c4219a', order: 2 },
+  { id: 'matching',          label: 'Matching',           color: '#9b2ea7', order: 3 },
+  { id: 'journey-oversight',  label: 'Journey Oversight',  color: '#723bb4', order: 4 },
+  { id: 'journey-ending',     label: 'Journey Ending',     color: '#4d3da4', order: 5 },
+  { id: 'journey-closed',     label: 'Journey Closed',     color: '#283693', order: 6 },
+]
+
+export const DEFAULT_STATUSES_BY_STAGE = {
+  'pre-qualification': [
+    'New', '1st Reach Out', '2nd Reach Out', '3rd Reach Out',
+    'Screening Call Scheduled', 'Screening Call Complete',
+    'Pending Profile Completion', 'Profile Complete', 'Zoom Call Scheduled',
+  ],
+  'screening': [
+    'Documents Requested', 'Documents Received',
+    'Medical Scheduled', 'Medical Complete',
+    'Psych Scheduled', 'Psych Complete',
+    'Background In Progress', 'Background Complete',
+  ],
+  'matching': [
+    'Awaiting Match', 'Profile Shared', 'Meeting Scheduled',
+    'Meeting Complete', 'Match Confirmed',
+  ],
+  'journey-oversight': [
+    'Legal Review', 'Medical Clearance', 'Transfer Prep',
+    'Active Pregnancy', 'Monitoring',
+  ],
+  'journey-ending': [
+    'Delivery Scheduled', 'Delivered', 'Post-Partum',
+    'Final Payments', 'Wrap-Up',
+  ],
+  'journey-closed': [
+    'Closed — Complete', 'Closed — Withdrawn', 'Closed — Disqualified',
+  ],
+}
