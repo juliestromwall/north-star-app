@@ -181,11 +181,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
 
   return (
     <Card
-      className={`group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 rounded-2xl cursor-pointer ${
-        isNew
-          ? 'border-2 border-pink-300 shadow-[0_0_12px_rgba(237,20,140,0.12)]'
-          : 'border-stone-200/80'
-      }`}
+      className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 rounded-2xl cursor-pointer border-stone-200/80"
       onClick={() => navigate(`/surrogates/${surrogate.id}`)}
     >
       {isNew && (
@@ -528,11 +524,17 @@ export default function SurrogateListPage() {
                 return (
                   <TableRow
                     key={surrogate.id}
-                    className={`cursor-pointer ${rowIsNew ? 'bg-pink-50/40 hover:bg-pink-50/70' : 'hover:bg-stone-50/80'}`}
+                    className={`cursor-pointer relative ${rowIsNew ? 'bg-pink-50/40 hover:bg-pink-50/70' : 'hover:bg-stone-50/80'}`}
                     onClick={() => navigate(`/surrogates/${surrogate.id}`)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
+                        {rowIsNew && (
+                          <span className="relative flex size-2.5 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+                          </span>
+                        )}
                         <ProfileAvatar name={surrogate.name} size="sm" />
                         <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {surrogate.referralPartner === 'be_surrogacy' && <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />}
