@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useRole } from '@/context/RoleContext'
+import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
 import StageBadge from '@/components/shared/StageBadge'
@@ -547,34 +548,32 @@ export default function SurrogateDetailPage() {
                     <Plus className="size-3.5" /> Add Note
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Add Note</DialogTitle>
                   </DialogHeader>
-                  <Textarea
+                  <RichTextEditor
+                    content={noteText}
+                    onChange={setNoteText}
                     placeholder="Write a note..."
-                    value={noteText}
-                    onChange={e => setNoteText(e.target.value)}
-                    rows={4}
-                    autoFocus
                   />
                   <Button
                     onClick={async () => {
-                      if (!noteText.trim()) return
+                      if (!noteText || noteText === '<p></p>') return
                       setNoteSaving(true)
                       try {
                         const note = await insertCaseNote({
                           surrogateId: surrogate.id,
                           authorName: currentUser.name,
                           authorEmail: currentUser.email,
-                          content: noteText.trim(),
+                          content: noteText,
                         })
                         if (note) setNotes(prev => [note, ...prev])
                         setNoteText('')
                         setNoteAddOpen(false)
                       } catch {} finally { setNoteSaving(false) }
                     }}
-                    disabled={noteSaving || !noteText.trim()}
+                    disabled={noteSaving || !noteText || noteText === '<p></p>'}
                     className="w-full"
                     style={{ backgroundColor: '#283693', color: '#fff' }}
                   >
@@ -590,23 +589,21 @@ export default function SurrogateDetailPage() {
                 <div key={note.id} className="rounded-xl border border-stone-100 bg-stone-50/50 p-4 space-y-2">
                   {editingNoteId === note.id ? (
                     <div className="space-y-2">
-                      <Textarea
-                        value={editNoteText}
-                        onChange={e => setEditNoteText(e.target.value)}
-                        rows={3}
-                        autoFocus
+                      <RichTextEditor
+                        content={editNoteText}
+                        onChange={setEditNoteText}
                       />
                       <div className="flex gap-2 justify-end">
                         <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(null)}>Cancel</Button>
                         <Button
                           size="sm"
                           style={{ backgroundColor: '#283693', color: '#fff' }}
-                          disabled={noteSaving || !editNoteText.trim()}
+                          disabled={noteSaving || !editNoteText || editNoteText === '<p></p>'}
                           onClick={async () => {
                             setNoteSaving(true)
                             try {
-                              await updateCaseNote(note.id, editNoteText.trim())
-                              setNotes(prev => prev.map(n => n.id === note.id ? { ...n, content: editNoteText.trim(), updated_at: new Date().toISOString() } : n))
+                              await updateCaseNote(note.id, editNoteText)
+                              setNotes(prev => prev.map(n => n.id === note.id ? { ...n, content: editNoteText, updated_at: new Date().toISOString() } : n))
                               setEditingNoteId(null)
                             } catch {} finally { setNoteSaving(false) }
                           }}
@@ -617,7 +614,7 @@ export default function SurrogateDetailPage() {
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-stone-700 whitespace-pre-wrap">{note.content}</p>
+                      <RichTextDisplay content={note.content} />
                       <div className="flex items-center justify-between pt-1">
                         <div className="text-xs text-stone-400">
                           <span className="font-medium text-stone-500">{note.author_name}</span>
