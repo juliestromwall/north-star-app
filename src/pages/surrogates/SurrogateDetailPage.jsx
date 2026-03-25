@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
-  MapPin, Calendar, ClipboardList, User, Baby, Layers,
+  MapPin, Calendar, ClipboardList, User, Baby, Milestone,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -230,28 +230,58 @@ export default function SurrogateDetailPage() {
                 />
               )
             })()}
-            {/* Relationship */}
-            <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
+            {/* Relationship / Partner name */}
+            {(() => {
+              const partnerName = profileData?.family?.partnerName
+              if (partnerName) {
+                return (
+                  <FlipCard
+                    flipped={flipped.relationship}
+                    onClick={() => toggleFlip('relationship')}
+                    front={{ icon: Heart, label: 'Relationship', value: surrogate.maritalStatus || '—' }}
+                    back={{ icon: Heart, label: 'Partner', value: partnerName }}
+                  />
+                )
+              }
+              return <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
+            })()}
             {/* Stage — clickable selector */}
-            <div
-              className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 transition-colors relative"
-              onClick={() => setStageOpen(!stageOpen)}
-            >
-              <Layers className="size-4 text-stone-300 mx-auto mb-1" />
-              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
-              <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journeyStage}</p>
+            <div className="relative">
+              <div
+                className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
+                onClick={() => setStageOpen(!stageOpen)}
+              >
+                <Milestone className="size-4 text-stone-300 mx-auto mb-1" />
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
+                <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journeyStage}</p>
+              </div>
               {stageOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-white rounded-xl border shadow-lg overflow-hidden">
-                  {JOURNEY_STAGES.map(stage => (
-                    <button
-                      key={stage}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors ${journeyStage === stage ? 'font-bold text-abc-indigo bg-indigo-50/50' : 'text-stone-600'}`}
-                      onClick={e => { e.stopPropagation(); setJourneyStage(stage); setStageOpen(false) }}
-                    >
-                      {stage}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setStageOpen(false)} />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-48">
+                    <div className="py-1">
+                      {JOURNEY_STAGES.map((stage, i) => (
+                        <button
+                          key={stage}
+                          className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
+                            journeyStage === stage
+                              ? 'font-semibold bg-indigo-50'
+                              : 'text-stone-600 hover:bg-stone-50'
+                          }`}
+                          style={journeyStage === stage ? { color: '#283693' } : {}}
+                          onClick={e => { e.stopPropagation(); setJourneyStage(stage); setStageOpen(false) }}
+                        >
+                          <span className={`inline-flex items-center justify-center size-5 rounded-full text-[10px] font-bold text-white ${
+                            journeyStage === stage ? '' : 'opacity-40'
+                          }`} style={{ backgroundColor: journeyStage === stage ? '#283693' : '#a8a29e' }}>
+                            {i + 1}
+                          </span>
+                          {stage}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
