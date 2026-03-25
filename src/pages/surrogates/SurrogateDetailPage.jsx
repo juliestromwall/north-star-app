@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
-  MapPin, Calendar, ClipboardList, User, Baby, ChevronRight,
+  MapPin, Calendar, ClipboardList, User, Baby, Layers,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -101,7 +101,10 @@ export default function SurrogateDetailPage() {
   const screening = surrogate.screening || {}
   const heightStr = surrogate.heightFt ? `${surrogate.heightFt}'${surrogate.heightIn || 0}"` : null
   const gtpal = getGTPAL(profileData)
-  const screeningCleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
+  const [flipped, setFlipped] = useState({})
+  const [journeyStage, setJourneyStage] = useState(() => getJourneyStage(screening))
+  const [stageOpen, setStageOpen] = useState(false)
+  const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
   return (
     <div className="space-y-6">
@@ -177,14 +180,73 @@ export default function SurrogateDetailPage() {
             </div>
           </div>
 
-          {/* Stats grid */}
+          {/* Stats grid — interactive flip cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <StatCard label="Age" value={surrogate.age || '—'} icon={Calendar} />
-            <StatCard label="Height" value={heightStr || '—'} icon={Ruler} />
-            <StatCard label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} icon={Weight} />
-            <StatCard label="BMI" value={surrogate.bmi || '—'} icon={Activity} highlight={surrogate.bmi && parseFloat(surrogate.bmi) >= 19 && parseFloat(surrogate.bmi) <= 33} />
+            {/* Age / DOB */}
+            <FlipCard
+              flipped={flipped.age}
+              onClick={() => toggleFlip('age')}
+              front={{ icon: Calendar, label: 'Age', value: surrogate.age || '—' }}
+              back={{ icon: Calendar, label: 'DOB', value: quizAnswers?.dob ? new Date(quizAnswers.dob + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' }}
+            />
+            {/* Height — imperial / metric */}
+            <FlipCard
+              flipped={flipped.height}
+              onClick={() => toggleFlip('height')}
+              front={{ icon: Ruler, label: 'Height', value: heightStr || '—' }}
+              back={{ icon: Ruler, label: 'Height', value: heightStr ? `${Math.round(((parseInt(surrogate.heightFt) || 0) * 30.48) + ((parseInt(surrogate.heightIn) || 0) * 2.54))} cm` : '—' }}
+            />
+            {/* Weight — lbs / kg */}
+            <FlipCard
+              flipped={flipped.weight}
+              onClick={() => toggleFlip('weight')}
+              front={{ icon: Weight, label: 'Weight', value: surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—' }}
+              back={{ icon: Weight, label: 'Weight', value: surrogate.weightLbs ? `${(surrogate.weightLbs / 2.205).toFixed(1)} kg` : '—' }}
+            />
+            {/* BMI — value / over-under range */}
+            {(() => {
+              const bmiVal = parseFloat(surrogate.bmi)
+              const bmiOk = bmiVal >= 19 && bmiVal <= 33
+              const bmiColor = !surrogate.bmi ? '' : bmiOk ? 'text-emerald-600' : 'text-red-500'
+              let bmiBack = '—'
+              if (surrogate.bmi) {
+                if (bmiVal < 19) bmiBack = `${(19 - bmiVal).toFixed(1)} under`
+                else if (bmiVal > 33) bmiBack = `${(bmiVal - 33).toFixed(1)} over`
+                else bmiBack = 'In range'
+              }
+              return (
+                <FlipCard
+                  flipped={flipped.bmi}
+                  onClick={() => toggleFlip('bmi')}
+                  front={{ icon: Activity, label: 'BMI', value: surrogate.bmi || '—', color: bmiColor }}
+                  back={{ icon: Activity, label: 'BMI Range', value: bmiBack, color: bmiOk ? 'text-emerald-600' : 'text-red-500' }}
+                />
+              )
+            })()}
+            {/* Relationship */}
             <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
-            <StatCard label="Stage" value={getJourneyStage(screening)} icon={ChevronRight} />
+            {/* Stage — clickable selector */}
+            <div
+              className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 transition-colors relative"
+              onClick={() => setStageOpen(!stageOpen)}
+            >
+              <Layers className="size-4 text-stone-300 mx-auto mb-1" />
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
+              <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journeyStage}</p>
+              {stageOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-white rounded-xl border shadow-lg overflow-hidden">
+                  {JOURNEY_STAGES.map(stage => (
+                    <button
+                      key={stage}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors ${journeyStage === stage ? 'font-bold text-abc-indigo bg-indigo-50/50' : 'text-stone-600'}`}
+                      onClick={e => { e.stopPropagation(); setJourneyStage(stage); setStageOpen(false) }}
+                    >
+                      {stage}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* GTPAL + Pregnancy History */}
@@ -378,7 +440,9 @@ export default function SurrogateDetailPage() {
   )
 }
 
-// ── Journey Stage ──────────────────────────────────────────
+// ── Journey Stages ─────────────────────────────────────────
+const JOURNEY_STAGES = ['Pre-Qualification', 'Screening', 'Matching', 'Journey Oversight']
+
 function getJourneyStage(screening) {
   const steps = SCREENING_STEPS
   const allCleared = steps.every(s => screening[s] === 'cleared')
@@ -388,13 +452,29 @@ function getJourneyStage(screening) {
   return 'Pre-Qualification'
 }
 
-// ── Stat Card ──────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, highlight }) {
+// ── Stat Card (non-interactive) ────────────────────────────
+function StatCard({ label, value, icon: Icon }) {
   return (
     <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
       {Icon && <Icon className="size-4 text-stone-300 mx-auto mb-1" />}
       <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{label}</p>
-      <p className={`text-lg font-bold mt-0.5 leading-tight ${highlight ? 'text-emerald-600' : 'text-stone-800'}`}>{value}</p>
+      <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{value}</p>
+    </div>
+  )
+}
+
+// ── Flip Card (interactive) ────────────────────────────────
+function FlipCard({ flipped, onClick, front, back }) {
+  const side = flipped ? back : front
+  const Icon = side.icon
+  return (
+    <div
+      className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all select-none"
+      onClick={onClick}
+    >
+      {Icon && <Icon className="size-4 text-stone-300 mx-auto mb-1" />}
+      <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{side.label}</p>
+      <p className={`text-lg font-bold mt-0.5 leading-tight ${side.color || 'text-stone-800'}`}>{side.value}</p>
     </div>
   )
 }
