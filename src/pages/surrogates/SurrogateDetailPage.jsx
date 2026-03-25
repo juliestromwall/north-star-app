@@ -403,11 +403,11 @@ export default function SurrogateDetailPage() {
         </div>
       </div>
 
-      {/* ─── Tabs + Contact Sidebar ─────────────────────────── */}
-      <div className="flex flex-col lg:flex-row gap-6">
-      <Tabs defaultValue="overview" className="flex-1 min-w-0">
+      {/* ─── Tabs ─────────────────────────────────────────── */}
+      <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="quiz">Quiz Answers</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
@@ -418,6 +418,11 @@ export default function SurrogateDetailPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
           <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} />
+        </TabsContent>
+
+        {/* Contact Tab */}
+        <TabsContent value="contact" className="mt-4">
+          <ContactTab surrogate={surrogate} setSurrogate={setSurrogate} />
         </TabsContent>
 
         {/* Profile Tab */}
@@ -672,16 +677,12 @@ export default function SurrogateDetailPage() {
           </Dialog>
         </TabsContent>
       </Tabs>
-
-      {/* Contact sidebar */}
-      <ContactSidebar surrogate={surrogate} setSurrogate={setSurrogate} />
-      </div>
     </div>
   )
 }
 
-// ── Contact Sidebar ────────────────────────────────────────
-function ContactSidebar({ surrogate, setSurrogate }) {
+// ── Contact Tab ────────────────────────────────────────────
+function ContactTab({ surrogate, setSurrogate }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
@@ -729,77 +730,60 @@ function ContactSidebar({ surrogate, setSurrogate }) {
   }
 
   return (
-    <div className="lg:w-72 shrink-0">
-      <Card className="rounded-2xl sticky top-4">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-sm">Contact</CardTitle>
+      <Card className="rounded-2xl">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Contact Information</CardTitle>
           {!editing ? (
-            <Button variant="ghost" size="sm" className="gap-1 h-7 text-xs" onClick={startEdit}>
-              <Pencil className="size-3" /> Edit
+            <Button variant="ghost" size="sm" className="gap-1" onClick={startEdit}>
+              <Pencil className="size-3.5" /> Edit
             </Button>
           ) : (
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button size="sm" className="gap-1 h-7 text-xs" style={{ backgroundColor: '#283693', color: '#fff' }}
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
                 onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
                 Save
               </Button>
             </div>
           )}
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="space-y-1">
           {editing ? (
-            <div className="space-y-2">
-              <div className="space-y-1"><Label className="text-[10px] text-muted-foreground uppercase">Email</Label><Input className="h-8 text-xs" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-[10px] text-muted-foreground uppercase">Phone</Label><Input className="h-8 text-xs" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-[10px] text-muted-foreground uppercase">Location</Label><Input className="h-8 text-xs" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-[10px] text-muted-foreground uppercase">Marital Status</Label><Input className="h-8 text-xs" value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-[10px] text-muted-foreground uppercase">Preferred Contact</Label><Input className="h-8 text-xs" value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
-              <div className="flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center gap-1.5">
-                  <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
-                  <span className="text-xs font-medium">Referral</span>
+            <div className="space-y-3">
+              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
+              <div className="flex items-center justify-between pt-3 mt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
+                  <span className="text-sm font-medium">Referral</span>
                 </div>
                 <Switch checked={form.beReferral} onCheckedChange={v => setForm(f => ({ ...f, beReferral: v }))} />
               </div>
             </div>
           ) : (
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-2">
-                <Mail className="size-3.5 text-stone-300 shrink-0" />
-                <span className="text-xs text-stone-600 truncate">{surrogate.email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="size-3.5 text-stone-300 shrink-0" />
-                <span className="text-xs text-stone-600">{surrogate.phone || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="size-3.5 text-stone-300 shrink-0" />
-                <span className="text-xs text-stone-600">{surrogate.location || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Heart className="size-3.5 text-stone-300 shrink-0" />
-                <span className="text-xs text-stone-600">{surrogate.maritalStatus || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="size-3.5 text-stone-300 shrink-0" />
-                <span className="text-xs text-stone-600">Prefers {surrogate.preferredContact || '—'}</span>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t">
-                <div className="flex items-center gap-1.5">
+            <>
+              <InfoRow icon={Mail} label="Email" value={surrogate.email} />
+              <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
+              <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
+              <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
+              <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
                   <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
-                  <span className="text-xs text-stone-400">Referral</span>
+                  <span className="text-sm text-muted-foreground">Referral</span>
                 </div>
-                <span className={`text-xs font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-stone-400'}`}>
+                <span className={`text-sm font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
                   {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
                 </span>
               </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
-    </div>
   )
 }
 
