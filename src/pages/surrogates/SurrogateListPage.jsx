@@ -272,11 +272,10 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
             </div>
             <Link
               to={`/surrogates/${surrogate.id}`}
-              className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
-              style={{ color: '#283693' }}
+              className="flex items-center justify-center size-8 rounded-full hover:bg-stone-100 transition-colors"
+              title="Open case"
             >
-              View Profile
-              <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="size-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
             </Link>
           </div>
         </div>
