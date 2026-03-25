@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
-  MapPin, Calendar, ClipboardList, User, Baby, Milestone,
+  MapPin, Calendar, ClipboardList, User, Baby, Milestone, Copy, Check,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -172,25 +172,21 @@ export default function SurrogateDetailPage() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 rounded-full"
-                onClick={() => toggleFlip('email')}
-              >
-                <Mail className="size-3.5" />
-                {flipped.email ? surrogate.email : 'Email'}
-              </Button>
+              <CopyFlipButton
+                icon={Mail}
+                label="Email"
+                value={surrogate.email}
+                flipped={flipped.email}
+                onFlip={() => toggleFlip('email')}
+              />
               {surrogate.phone && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 rounded-full"
-                  onClick={() => toggleFlip('phone')}
-                >
-                  <Phone className="size-3.5" />
-                  {flipped.phone ? surrogate.phone : 'Call'}
-                </Button>
+                <CopyFlipButton
+                  icon={Phone}
+                  label="Call"
+                  value={surrogate.phone}
+                  flipped={flipped.phone}
+                  onFlip={() => toggleFlip('phone')}
+                />
               )}
             </div>
           </div>
@@ -481,6 +477,50 @@ export default function SurrogateDetailPage() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+// ── Copy-Flip Button ───────────────────────────────────────
+function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy(e) {
+    e.stopPropagation()
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  if (!flipped) {
+    return (
+      <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={onFlip}>
+        <Icon className="size-3.5" /> {label}
+      </Button>
+    )
+  }
+
+  return (
+    <div className="inline-flex items-center rounded-full border border-stone-200 bg-white text-sm h-8">
+      <button
+        className="flex items-center justify-center size-8 rounded-full hover:bg-stone-100 transition-colors shrink-0"
+        onClick={onFlip}
+        title={`Hide ${label.toLowerCase()}`}
+      >
+        <Icon className="size-3.5 text-stone-400" />
+      </button>
+      <button
+        className="flex items-center gap-1.5 pr-3 hover:text-stone-900 transition-colors text-stone-600 font-medium"
+        onClick={handleCopy}
+        title="Click to copy"
+      >
+        <span className="text-xs">{value}</span>
+        {copied
+          ? <Check className="size-3 text-emerald-500" />
+          : <Copy className="size-3 text-stone-300" />
+        }
+      </button>
     </div>
   )
 }
