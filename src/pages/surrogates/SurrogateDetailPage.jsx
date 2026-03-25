@@ -61,6 +61,10 @@ export default function SurrogateDetailPage() {
   const [profileStatus, setProfileStatus] = useState('draft')
   const [photos, setPhotos] = useState([])
   const [noteText, setNoteText] = useState('')
+  const [flipped, setFlipped] = useState({})
+  const [journeyStage, setJourneyStage] = useState('Pre-Qualification')
+  const [stageOpen, setStageOpen] = useState(false)
+  const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
   useEffect(() => {
     fetchSurrogatesFromIntake().then(all => {
@@ -83,6 +87,13 @@ export default function SurrogateDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
+  // Set journey stage once surrogate loads
+  useEffect(() => {
+    if (surrogate?.screening) {
+      setJourneyStage(getJourneyStage(surrogate.screening))
+    }
+  }, [surrogate])
+
   if (loading) {
     return <div className="text-center py-12 text-muted-foreground">Loading...</div>
   }
@@ -101,10 +112,6 @@ export default function SurrogateDetailPage() {
   const screening = surrogate.screening || {}
   const heightStr = surrogate.heightFt ? `${surrogate.heightFt}'${surrogate.heightIn || 0}"` : null
   const gtpal = getGTPAL(profileData)
-  const [flipped, setFlipped] = useState({})
-  const [journeyStage, setJourneyStage] = useState(() => getJourneyStage(screening))
-  const [stageOpen, setStageOpen] = useState(false)
-  const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
   return (
     <div className="space-y-6">
