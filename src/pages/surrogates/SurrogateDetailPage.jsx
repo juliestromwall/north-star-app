@@ -504,21 +504,21 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip }) {
   return (
     <div className="inline-flex items-center rounded-full border border-stone-200 bg-white text-sm h-8">
       <button
-        className="flex items-center justify-center size-8 rounded-full hover:bg-stone-100 transition-colors shrink-0"
+        className="flex items-center gap-1.5 pl-3 pr-1 hover:text-stone-900 transition-colors text-stone-600 font-medium"
         onClick={onFlip}
-        title={`Hide ${label.toLowerCase()}`}
+        title="Click to hide"
       >
         <Icon className="size-3.5 text-stone-400" />
+        <span className="text-xs">{value}</span>
       </button>
       <button
-        className="flex items-center gap-1.5 pr-3 hover:text-stone-900 transition-colors text-stone-600 font-medium"
+        className="flex items-center justify-center size-8 rounded-full hover:bg-stone-100 transition-colors shrink-0"
         onClick={handleCopy}
-        title="Click to copy"
+        title="Copy to clipboard"
       >
-        <span className="text-xs">{value}</span>
         {copied
-          ? <Check className="size-3 text-emerald-500" />
-          : <Copy className="size-3 text-stone-300" />
+          ? <Check className="size-3.5 text-emerald-500" />
+          : <Copy className="size-3.5 text-stone-300 hover:text-stone-500" />
         }
       </button>
     </div>
