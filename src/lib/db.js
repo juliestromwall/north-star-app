@@ -470,6 +470,18 @@ export async function uploadCaseDocument({ surrogateId, category, file, uploaded
   return data
 }
 
+export async function updateCaseDocument(docId, updates) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('case_documents')
+    .update(updates)
+    .eq('id', docId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteCaseDocument(docId, storagePath) {
   if (!supabase) return
   await supabase.storage.from(DOC_BUCKET).remove([storagePath])

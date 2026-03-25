@@ -25,9 +25,9 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, deleteCaseDocument } from '@/lib/db'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X } from 'lucide-react'
-import { Eye, ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput } from 'lucide-react'
+import { ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
 
@@ -640,15 +640,26 @@ function DocumentsTab({ surrogateId }) {
   const [uploading, setUploading] = useState(false)
   const [uploadCategory, setUploadCategory] = useState(null)
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
-  const fileInputRef = useState(null)
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [editingDoc, setEditingDoc] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editCategory, setEditCategory] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [docSearch, setDocSearch] = useState('')
+  const [docView, setDocView] = useState('grid') // 'grid' | 'list'
 
   useEffect(() => {
     fetchCaseDocuments(surrogateId).then(setDocs).catch(() => {}).finally(() => setLoading(false))
   }, [surrogateId])
 
+  // Filter by search
+  const filteredDocs = docSearch
+    ? docs.filter(d => d.file_name.toLowerCase().includes(docSearch.toLowerCase()) || DOC_CATEGORIES.find(c => c.id === d.category)?.label.toLowerCase().includes(docSearch.toLowerCase()))
+    : docs
+
   const docsByCategory = {}
   for (const cat of DOC_CATEGORIES) docsByCategory[cat.id] = []
-  for (const doc of docs) {
+  for (const doc of filteredDocs) {
     if (docsByCategory[doc.category]) docsByCategory[doc.category].push(doc)
     else docsByCategory['other'].push(doc)
   }
@@ -659,19 +670,10 @@ function DocumentsTab({ surrogateId }) {
     setUploading(true)
     try {
       for (const file of files) {
-        const doc = await uploadCaseDocument({
-          surrogateId,
-          category: uploadCategory,
-          file,
-          uploadedBy: currentUser.name,
-        })
+        const doc = await uploadCaseDocument({ surrogateId, category: uploadCategory, file, uploadedBy: currentUser.name })
         if (doc) setDocs(prev => [doc, ...prev])
       }
-    } catch {} finally {
-      setUploading(false)
-      setUploadCategory(null)
-      e.target.value = ''
-    }
+    } catch {} finally { setUploading(false); setUploadCategory(null); e.target.value = '' }
   }
 
   async function handleDelete() {
@@ -679,128 +681,236 @@ function DocumentsTab({ surrogateId }) {
     try {
       await deleteCaseDocument(deleteConfirmDoc.id, deleteConfirmDoc.storage_path)
       setDocs(prev => prev.filter(d => d.id !== deleteConfirmDoc.id))
+      if (previewDoc?.id === deleteConfirmDoc.id) setPreviewDoc(null)
     } catch {} finally { setDeleteConfirmDoc(null) }
+  }
+
+  async function handleEditSave() {
+    if (!editingDoc) return
+    setEditSaving(true)
+    try {
+      const updates = {}
+      if (editName !== editingDoc.file_name) updates.file_name = editName
+      if (editCategory !== editingDoc.category) updates.category = editCategory
+      if (Object.keys(updates).length > 0) {
+        await updateCaseDocument(editingDoc.id, updates)
+        setDocs(prev => prev.map(d => d.id === editingDoc.id ? { ...d, ...updates } : d))
+      }
+      setEditingDoc(null)
+    } catch {} finally { setEditSaving(false) }
+  }
+
+  function startEdit(doc) {
+    setEditingDoc(doc)
+    setEditName(doc.file_name)
+    setEditCategory(doc.category)
+  }
+
+  function isPreviewable(fileType) {
+    return fileType?.startsWith('image/') || fileType === 'application/pdf'
+  }
+
+  // File row used in both grid and list
+  function DocRow({ doc, compact }) {
+    const DocIcon = getFileIcon(doc.file_type)
+    const cat = DOC_CATEGORIES.find(c => c.id === doc.category)
+    return (
+      <div className={`flex items-center gap-3 group hover:bg-stone-50/50 transition-colors ${compact ? 'px-4 py-2' : 'px-4 py-2.5'}`}>
+        <DocIcon className="size-4 text-stone-300 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+          <p className="text-[10px] text-stone-400">
+            {formatFileSize(doc.file_size)}
+            {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
+            {' · '}
+            {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {compact && cat ? ` · ${cat.label}` : ''}
+          </p>
+        </div>
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {isPreviewable(doc.file_type) && (
+            <button className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={() => setPreviewDoc(doc)} title="Preview">
+              <Eye className="size-3 text-stone-400" />
+            </button>
+          )}
+          <a href={doc.public_url} target="_blank" rel="noopener noreferrer"
+            className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={e => e.stopPropagation()} title="Download">
+            <Download className="size-3 text-stone-400" />
+          </a>
+          <button className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={() => startEdit(doc)} title="Edit">
+            <Pencil className="size-3 text-stone-400" />
+          </button>
+          <button className="size-7 rounded-full flex items-center justify-center hover:bg-red-50" onClick={() => setDeleteConfirmDoc(doc)} title="Delete">
+            <Trash2 className="size-3 text-stone-400" />
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (loading) return <div className="text-center py-12 text-muted-foreground">Loading documents...</div>
 
   return (
     <div className="space-y-4">
-      {/* Hidden file input */}
-      <input
-        type="file"
-        multiple
-        className="hidden"
-        id="doc-upload-input"
-        onChange={handleUpload}
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx"
-      />
+      <input type="file" multiple className="hidden" id="doc-upload-input" onChange={handleUpload}
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx" />
 
-      {/* Category cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {DOC_CATEGORIES.map(cat => {
-          const catDocs = docsByCategory[cat.id]
-          const Icon = cat.icon
-          const hasFiles = catDocs.length > 0
-
-          return (
-            <Card key={cat.id} className="rounded-2xl overflow-hidden">
-              {/* Category header */}
-              <div
-                className="px-4 py-3 flex items-center justify-between"
-                style={{ backgroundColor: cat.color + '0a' }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="size-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '18' }}>
-                    <Icon className="size-4" style={{ color: cat.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-stone-800">{cat.label}</p>
-                    <p className="text-[10px] text-stone-400">
-                      {catDocs.length} file{catDocs.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 rounded-full hover:bg-white/50"
-                  disabled={uploading}
-                  onClick={() => {
-                    setUploadCategory(cat.id)
-                    document.getElementById('doc-upload-input')?.click()
-                  }}
-                >
-                  {uploading && uploadCategory === cat.id ? (
-                    <Loader2 className="size-3.5 animate-spin text-stone-400" />
-                  ) : (
-                    <Upload className="size-3.5" style={{ color: cat.color }} />
-                  )}
-                </Button>
-              </div>
-
-              {/* Files list */}
-              <CardContent className="p-0">
-                {hasFiles ? (
-                  <div className="divide-y divide-stone-100">
-                    {catDocs.map(doc => {
-                      const DocIcon = getFileIcon(doc.file_type)
-                      return (
-                        <div key={doc.id} className="flex items-center gap-3 px-4 py-2.5 group hover:bg-stone-50/50 transition-colors">
-                          <DocIcon className="size-4 text-stone-300 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
-                            <p className="text-[10px] text-stone-400">
-                              {formatFileSize(doc.file_size)}
-                              {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
-                              {' · '}
-                              {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </p>
-                          </div>
-                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a
-                              href={doc.public_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100 transition-colors"
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <Download className="size-3 text-stone-400" />
-                            </a>
-                            <button
-                              className="size-7 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors"
-                              onClick={() => setDeleteConfirmDoc(doc)}
-                            >
-                              <Trash2 className="size-3 text-stone-400 hover:text-red-500" />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="px-4 py-6 text-center">
-                    <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
-                    <p className="text-[11px] text-stone-400">No files yet</p>
-                    <button
-                      className="text-[11px] font-medium mt-1 hover:underline"
-                      style={{ color: cat.color }}
-                      onClick={() => {
-                        setUploadCategory(cat.id)
-                        document.getElementById('doc-upload-input')?.click()
-                      }}
-                    >
-                      Upload
-                    </button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
+      {/* Toolbar: search + view toggle */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Search documents..." value={docSearch} onChange={e => setDocSearch(e.target.value)} className="pl-9" />
+        </div>
+        <div className="flex items-center border rounded-md">
+          <Button variant={docView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setDocView('grid')}>
+            <LayoutGrid className="size-4" />
+          </Button>
+          <Button variant={docView === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setDocView('list')}>
+            <ListIcon className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Delete confirmation */}
+      {/* Grid view — cards per category */}
+      {docView === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {DOC_CATEGORIES.map(cat => {
+            const catDocs = docsByCategory[cat.id]
+            const Icon = cat.icon
+            return (
+              <Card key={cat.id} className="rounded-2xl overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: cat.color + '0a' }}>
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '18' }}>
+                      <Icon className="size-4" style={{ color: cat.color }} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-800">{cat.label}</p>
+                      <p className="text-[10px] text-stone-400">{catDocs.length} file{catDocs.length !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full hover:bg-white/50" disabled={uploading}
+                    onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+                    {uploading && uploadCategory === cat.id
+                      ? <Loader2 className="size-3.5 animate-spin text-stone-400" />
+                      : <Upload className="size-3.5" style={{ color: cat.color }} />}
+                  </Button>
+                </div>
+                <CardContent className="p-0">
+                  {catDocs.length > 0 ? (
+                    <div className="divide-y divide-stone-100">
+                      {catDocs.map(doc => <DocRow key={doc.id} doc={doc} />)}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
+                      <p className="text-[11px] text-stone-400">No files yet</p>
+                      <button className="text-[11px] font-medium mt-1 hover:underline" style={{ color: cat.color }}
+                        onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+                        Upload
+                      </button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ) : (
+        /* List view — flat table */
+        <Card className="rounded-2xl overflow-hidden">
+          <div className="divide-y divide-stone-100">
+            {filteredDocs.length > 0 ? filteredDocs.map(doc => (
+              <DocRow key={doc.id} doc={doc} compact />
+            )) : (
+              <div className="text-center py-12 text-sm text-muted-foreground">
+                {docSearch ? 'No documents match your search.' : 'No documents yet.'}
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Preview overlay ─────────────────────────────────── */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setPreviewDoc(null)}>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="size-4 text-stone-400 shrink-0" />
+                <p className="text-sm font-semibold text-stone-800 truncate">{previewDoc.file_name}</p>
+                <span className="text-xs text-stone-400">{formatFileSize(previewDoc.file_size)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <a href={previewDoc.public_url} target="_blank" rel="noopener noreferrer"
+                  className="size-8 rounded-full flex items-center justify-center hover:bg-stone-100">
+                  <Download className="size-4 text-stone-500" />
+                </a>
+                <button className="size-8 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={() => setPreviewDoc(null)}>
+                  <X className="size-4 text-stone-500" />
+                </button>
+              </div>
+            </div>
+            {/* Content */}
+            <div className="flex-1 overflow-auto bg-stone-100 flex items-center justify-center">
+              {previewDoc.file_type?.startsWith('image/') ? (
+                <img src={previewDoc.public_url} alt={previewDoc.file_name} className="max-w-full max-h-[80vh] object-contain" />
+              ) : previewDoc.file_type === 'application/pdf' ? (
+                <iframe src={previewDoc.public_url} className="w-full h-[80vh]" title={previewDoc.file_name} />
+              ) : (
+                <div className="text-center py-20">
+                  <File className="size-12 text-stone-300 mx-auto mb-3" />
+                  <p className="text-sm text-stone-500">Preview not available for this file type.</p>
+                  <a href={previewDoc.public_url} target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-medium mt-2 inline-block hover:underline" style={{ color: '#283693' }}>
+                    Download to view
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit dialog (rename / move) ─────────────────────── */}
+      <Dialog open={editingDoc !== null} onOpenChange={v => { if (!v) setEditingDoc(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Document</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">File Name</Label>
+              <Input value={editName} onChange={e => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Category</Label>
+              <SelectUI value={editCategory} onValueChange={setEditCategory}>
+                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  {DOC_CATEGORIES.map(c => (
+                    <SelectItemUI key={c.id} value={c.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ backgroundColor: c.color }} />
+                        {c.label}
+                      </span>
+                    </SelectItemUI>
+                  ))}
+                </SelectContentUI>
+              </SelectUI>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setEditingDoc(null)}>Cancel</Button>
+              <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} disabled={editSaving} onClick={handleEditSave}>
+                {editSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete confirmation ─────────────────────────────── */}
       <Dialog open={deleteConfirmDoc !== null} onOpenChange={v => { if (!v) setDeleteConfirmDoc(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
