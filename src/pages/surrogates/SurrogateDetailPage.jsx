@@ -178,13 +178,13 @@ export default function SurrogateDetailPage() {
           </div>
 
           {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            <StatCard label="Age" value={surrogate.age || '—'} />
-            <StatCard label="Height" value={heightStr || '—'} />
-            <StatCard label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} />
-            <StatCard label="BMI" value={surrogate.bmi || '—'} highlight={surrogate.bmi && parseFloat(surrogate.bmi) >= 19 && parseFloat(surrogate.bmi) <= 33} />
-            <StatCard label="Status" value={surrogate.maritalStatus || '—'} />
-            <StatCard label="Screening" value={`${screeningCleared}/4`} highlight={screeningCleared === 4} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <StatCard label="Age" value={surrogate.age || '—'} icon={Calendar} />
+            <StatCard label="Height" value={heightStr || '—'} icon={Ruler} />
+            <StatCard label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} icon={Weight} />
+            <StatCard label="BMI" value={surrogate.bmi || '—'} icon={Activity} highlight={surrogate.bmi && parseFloat(surrogate.bmi) >= 19 && parseFloat(surrogate.bmi) <= 33} />
+            <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
+            <StatCard label="Stage" value={getJourneyStage(screening)} icon={ChevronRight} />
           </div>
 
           {/* GTPAL + Pregnancy History */}
@@ -378,12 +378,23 @@ export default function SurrogateDetailPage() {
   )
 }
 
+// ── Journey Stage ──────────────────────────────────────────
+function getJourneyStage(screening) {
+  const steps = SCREENING_STEPS
+  const allCleared = steps.every(s => screening[s] === 'cleared')
+  const anyStarted = steps.some(s => screening[s] !== 'not_started')
+  if (allCleared) return 'Matching'
+  if (anyStarted) return 'Screening'
+  return 'Pre-Qualification'
+}
+
 // ── Stat Card ──────────────────────────────────────────────
-function StatCard({ label, value, highlight }) {
+function StatCard({ label, value, icon: Icon, highlight }) {
   return (
     <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
+      {Icon && <Icon className="size-4 text-stone-300 mx-auto mb-1" />}
       <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{label}</p>
-      <p className={`text-xl font-bold mt-0.5 ${highlight ? 'text-emerald-600' : 'text-stone-800'}`}>{value}</p>
+      <p className={`text-lg font-bold mt-0.5 leading-tight ${highlight ? 'text-emerald-600' : 'text-stone-800'}`}>{value}</p>
     </div>
   )
 }
@@ -480,9 +491,9 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr, profileDat
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Contact — takes 3 cols */}
-        <Card className="lg:col-span-3 rounded-2xl">
+      <div className="grid grid-cols-1 gap-6">
+        {/* Contact */}
+        <Card className="rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Contact Information</CardTitle>
             {!editing ? (
@@ -540,21 +551,6 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr, profileDat
           </CardContent>
         </Card>
 
-        {/* Health — takes 2 cols */}
-        <Card className="lg:col-span-2 rounded-2xl">
-          <CardHeader>
-            <CardTitle>Health Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <InfoRow icon={Ruler} label="Height" value={heightStr || '—'} />
-            <InfoRow icon={Weight} label="Weight" value={surrogate.weightLbs ? `${surrogate.weightLbs} lbs` : '—'} />
-            <InfoRow icon={Activity} label="BMI" value={surrogate.bmi || '—'} />
-            <InfoRow icon={CheckCircle2} label="Healthy Pregnancy" value={
-              surrogate.healthyPregnancy === true ? 'Yes' :
-              surrogate.healthyPregnancy === false ? 'No' : '—'
-            } />
-          </CardContent>
-        </Card>
       </div>
 
       {/* Screening Progress */}
