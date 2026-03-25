@@ -3,9 +3,10 @@ import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
-  MapPin, Calendar, ClipboardList, User, Baby, Milestone, Copy, Check,
+  MapPin, Calendar, ClipboardList, User, Baby, Milestone, Copy, Check, ChevronDown,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -173,12 +174,23 @@ export default function SurrogateDetailPage() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
+              {surrogate.phone && (
+                <CopyFlipButton
+                  icon={MessageSquare}
+                  label="Text"
+                  value={surrogate.phone}
+                  flipped={flipped.text}
+                  onFlip={() => toggleFlip('text')}
+                  preferred={surrogate.preferredContact === 'Text'}
+                />
+              )}
               <CopyFlipButton
                 icon={Mail}
                 label="Email"
                 value={surrogate.email}
                 flipped={flipped.email}
                 onFlip={() => toggleFlip('email')}
+                preferred={surrogate.preferredContact === 'Email'}
               />
               {surrogate.phone && (
                 <CopyFlipButton
@@ -187,6 +199,7 @@ export default function SurrogateDetailPage() {
                   value={surrogate.phone}
                   flipped={flipped.phone}
                   onFlip={() => toggleFlip('phone')}
+                  preferred={surrogate.preferredContact === 'Phone'}
                 />
               )}
             </div>
@@ -545,7 +558,7 @@ export default function SurrogateDetailPage() {
 }
 
 // ── Copy-Flip Button ───────────────────────────────────────
-function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip }) {
+function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }) {
   const [copied, setCopied] = useState(false)
 
   function handleCopy(e) {
@@ -557,7 +570,16 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip }) {
   }
 
   if (!flipped) {
-    return (
+    return preferred ? (
+      <Button
+        size="sm"
+        className="gap-1.5 rounded-full text-white shadow-md"
+        style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+        onClick={onFlip}
+      >
+        <Icon className="size-3.5" /> {label} ★
+      </Button>
+    ) : (
       <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={onFlip}>
         <Icon className="size-3.5" /> {label}
       </Button>
@@ -654,6 +676,7 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr, profileDat
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
+  const [contactOpen, setContactOpen] = useState(false)
 
   function startEdit() {
     setForm({
@@ -707,67 +730,73 @@ function OverviewTab({ surrogate, setSurrogate, screening, heightStr, profileDat
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6">
-        {/* Contact */}
+      {/* Contact — collapsible */}
+      <Collapsible open={contactOpen || editing} onOpenChange={v => { if (!editing) setContactOpen(v) }}>
         <Card className="rounded-2xl">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Contact Information</CardTitle>
-            {!editing ? (
-              <Button variant="ghost" size="sm" className="gap-1" onClick={startEdit}>
-                <Pencil className="size-3.5" /> Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={cancelEdit}>Cancel</Button>
-                <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
-                  onClick={handleSave} disabled={saving}>
-                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                  Save
+          <CollapsibleTrigger asChild>
+            <CardHeader className="flex flex-row items-center justify-between cursor-pointer hover:bg-stone-50/50 transition-colors">
+              <CardTitle className="flex items-center gap-2">
+                Contact Information
+                <ChevronDown className={`size-4 text-muted-foreground transition-transform duration-200 ${contactOpen || editing ? 'rotate-180' : ''}`} />
+              </CardTitle>
+              {!editing ? (
+                <Button variant="ghost" size="sm" className="gap-1" onClick={e => { e.stopPropagation(); setContactOpen(true); setTimeout(() => startEdit(), 50) }}>
+                  <Pencil className="size-3.5" /> Edit
                 </Button>
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {editing ? (
-              <div className="space-y-3">
-                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
-                <div className="flex items-center justify-between pt-3 mt-2 border-t">
-                  <div className="flex items-center gap-2">
-                    <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
-                    <span className="text-sm font-medium">Referral</span>
-                  </div>
-                  <Switch
-                    checked={form.beReferral}
-                    onCheckedChange={v => setForm(f => ({ ...f, beReferral: v }))}
-                  />
+              ) : (
+                <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  <Button variant="ghost" size="sm" onClick={cancelEdit}>Cancel</Button>
+                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+                    onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                    Save
+                  </Button>
                 </div>
-              </div>
-            ) : (
-              <>
-                <InfoRow icon={Mail} label="Email" value={surrogate.email} />
-                <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
-                <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
-                <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
-                <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-2">
-                    <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
-                    <span className="text-sm text-muted-foreground">Referral</span>
+              )}
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-1">
+              {editing ? (
+                <div className="space-y-3">
+                  <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
+                  <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
+                  <div className="flex items-center justify-between pt-3 mt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
+                      <span className="text-sm font-medium">Referral</span>
+                    </div>
+                    <Switch
+                      checked={form.beReferral}
+                      onCheckedChange={v => setForm(f => ({ ...f, beReferral: v }))}
+                    />
                   </div>
-                  <span className={`text-sm font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
-                  </span>
                 </div>
-              </>
-            )}
-          </CardContent>
+              ) : (
+                <>
+                  <InfoRow icon={Mail} label="Email" value={surrogate.email} />
+                  <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
+                  <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
+                  <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
+                  <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
+                      <span className="text-sm text-muted-foreground">Referral</span>
+                    </div>
+                    <span className={`text-sm font-medium ${surrogate.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </CollapsibleContent>
         </Card>
-
-      </div>
+      </Collapsible>
 
       {/* Screening Progress */}
       <Card className="rounded-2xl">
