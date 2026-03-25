@@ -428,6 +428,55 @@ export async function listProfilePhotos(userId) {
     })
 }
 
+// ── Case Documents ─────────────────────────────────────────
+
+const DOC_BUCKET = 'case-documents'
+
+export async function fetchCaseDocuments(surrogateId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_documents')
+    .select('*')
+    .eq('surrogate_id', surrogateId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+export async function uploadCaseDocument({ surrogateId, category, file, uploadedBy }) {
+  if (!supabase) return null
+  const ext = file.name.split('.').pop()
+  const path = `${surrogateId}/${category}/${Date.now()}-${file.name}`
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(DOC_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false })
+  if (uploadError) throw uploadError
+  const { data: urlData } = supabase.storage.from(DOC_BUCKET).getPublicUrl(uploadData.path)
+  const { data, error } = await supabase
+    .from('case_documents')
+    .insert({
+      surrogate_id: surrogateId,
+      category,
+      file_name: file.name,
+      file_type: file.type,
+      file_size: file.size,
+      storage_path: uploadData.path,
+      public_url: urlData.publicUrl,
+      uploaded_by: uploadedBy,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteCaseDocument(docId, storagePath) {
+  if (!supabase) return
+  await supabase.storage.from(DOC_BUCKET).remove([storagePath])
+  const { error } = await supabase.from('case_documents').delete().eq('id', docId)
+  if (error) throw error
+}
+
 // ── Case Notes ─────────────────────────────────────────────
 
 export async function fetchCaseNotes(surrogateId) {

@@ -25,8 +25,8 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote } from '@/lib/db'
-import { Trash2, AlertTriangle, Plus } from 'lucide-react'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, deleteCaseDocument } from '@/lib/db'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X } from 'lucide-react'
 import { Eye, ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
@@ -410,7 +410,7 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
-          <TabsTrigger value="photos">Photos</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -465,26 +465,9 @@ export default function SurrogateDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* Photos Tab */}
-        <TabsContent value="photos" className="mt-4">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Photos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {photos.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {photos.map(p => (
-                    <div key={p.path} className="aspect-square rounded-xl overflow-hidden border border-gray-200">
-                      <img src={p.url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">No photos uploaded yet.</p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="mt-4">
+          <DocumentsTab surrogateId={surrogate.id} />
         </TabsContent>
 
         {/* Notes Tab */}
@@ -621,6 +604,219 @@ export default function SurrogateDetailPage() {
           </Dialog>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+// ── Documents Tab ──────────────────────────────────────────
+const DOC_CATEGORIES = [
+  { id: 'photo-id', label: 'Photo IDs', icon: FileImage, color: '#ed148c' },
+  { id: 'agency-agreement', label: 'Agency Agreement', icon: FileText, color: '#283693' },
+  { id: 'benefit-package', label: 'Benefit Package', icon: FileText, color: '#10b981' },
+  { id: 'medical-records', label: 'Medical Records', icon: FileText, color: '#8b5cf6' },
+  { id: 'insurance', label: 'Insurance', icon: FileText, color: '#f59e0b' },
+  { id: 'legal', label: 'Legal Documents', icon: FileText, color: '#723bb4' },
+  { id: 'background-check', label: 'Background Check', icon: FileText, color: '#c4219a' },
+  { id: 'psych-evaluation', label: 'Psych Evaluation', icon: FileText, color: '#4d3da4' },
+  { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
+]
+
+function formatFileSize(bytes) {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function getFileIcon(fileType) {
+  if (fileType?.startsWith('image/')) return FileImage
+  return FileText
+}
+
+function DocumentsTab({ surrogateId }) {
+  const { currentUser } = useRole()
+  const [docs, setDocs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [uploadCategory, setUploadCategory] = useState(null)
+  const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
+  const fileInputRef = useState(null)
+
+  useEffect(() => {
+    fetchCaseDocuments(surrogateId).then(setDocs).catch(() => {}).finally(() => setLoading(false))
+  }, [surrogateId])
+
+  const docsByCategory = {}
+  for (const cat of DOC_CATEGORIES) docsByCategory[cat.id] = []
+  for (const doc of docs) {
+    if (docsByCategory[doc.category]) docsByCategory[doc.category].push(doc)
+    else docsByCategory['other'].push(doc)
+  }
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length || !uploadCategory) return
+    setUploading(true)
+    try {
+      for (const file of files) {
+        const doc = await uploadCaseDocument({
+          surrogateId,
+          category: uploadCategory,
+          file,
+          uploadedBy: currentUser.name,
+        })
+        if (doc) setDocs(prev => [doc, ...prev])
+      }
+    } catch {} finally {
+      setUploading(false)
+      setUploadCategory(null)
+      e.target.value = ''
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirmDoc) return
+    try {
+      await deleteCaseDocument(deleteConfirmDoc.id, deleteConfirmDoc.storage_path)
+      setDocs(prev => prev.filter(d => d.id !== deleteConfirmDoc.id))
+    } catch {} finally { setDeleteConfirmDoc(null) }
+  }
+
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Loading documents...</div>
+
+  return (
+    <div className="space-y-4">
+      {/* Hidden file input */}
+      <input
+        type="file"
+        multiple
+        className="hidden"
+        id="doc-upload-input"
+        onChange={handleUpload}
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx"
+      />
+
+      {/* Category cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {DOC_CATEGORIES.map(cat => {
+          const catDocs = docsByCategory[cat.id]
+          const Icon = cat.icon
+          const hasFiles = catDocs.length > 0
+
+          return (
+            <Card key={cat.id} className="rounded-2xl overflow-hidden">
+              {/* Category header */}
+              <div
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ backgroundColor: cat.color + '0a' }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="size-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: cat.color + '18' }}>
+                    <Icon className="size-4" style={{ color: cat.color }} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-stone-800">{cat.label}</p>
+                    <p className="text-[10px] text-stone-400">
+                      {catDocs.length} file{catDocs.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 rounded-full hover:bg-white/50"
+                  disabled={uploading}
+                  onClick={() => {
+                    setUploadCategory(cat.id)
+                    document.getElementById('doc-upload-input')?.click()
+                  }}
+                >
+                  {uploading && uploadCategory === cat.id ? (
+                    <Loader2 className="size-3.5 animate-spin text-stone-400" />
+                  ) : (
+                    <Upload className="size-3.5" style={{ color: cat.color }} />
+                  )}
+                </Button>
+              </div>
+
+              {/* Files list */}
+              <CardContent className="p-0">
+                {hasFiles ? (
+                  <div className="divide-y divide-stone-100">
+                    {catDocs.map(doc => {
+                      const DocIcon = getFileIcon(doc.file_type)
+                      return (
+                        <div key={doc.id} className="flex items-center gap-3 px-4 py-2.5 group hover:bg-stone-50/50 transition-colors">
+                          <DocIcon className="size-4 text-stone-300 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+                            <p className="text-[10px] text-stone-400">
+                              {formatFileSize(doc.file_size)}
+                              {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
+                              {' · '}
+                              {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a
+                              href={doc.public_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100 transition-colors"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <Download className="size-3 text-stone-400" />
+                            </a>
+                            <button
+                              className="size-7 rounded-full flex items-center justify-center hover:bg-red-50 transition-colors"
+                              onClick={() => setDeleteConfirmDoc(doc)}
+                            >
+                              <Trash2 className="size-3 text-stone-400 hover:text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center">
+                    <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
+                    <p className="text-[11px] text-stone-400">No files yet</p>
+                    <button
+                      className="text-[11px] font-medium mt-1 hover:underline"
+                      style={{ color: cat.color }}
+                      onClick={() => {
+                        setUploadCategory(cat.id)
+                        document.getElementById('doc-upload-input')?.click()
+                      }}
+                    >
+                      Upload
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Delete confirmation */}
+      <Dialog open={deleteConfirmDoc !== null} onOpenChange={v => { if (!v) setDeleteConfirmDoc(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="size-5" /> Delete Document
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            Permanently delete <strong>{deleteConfirmDoc?.file_name}</strong>? This cannot be undone.
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setDeleteConfirmDoc(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleDelete}>Delete Permanently</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
