@@ -177,11 +177,25 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
   const submitted = timeAgo(surrogate.submittedAt)
 
+  const isNew = stageStatus.stage === 'pre-qualification' && stageStatus.status === 'New'
+
   return (
     <Card
-      className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80 rounded-2xl cursor-pointer"
+      className={`group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 rounded-2xl cursor-pointer ${
+        isNew
+          ? 'border-2 border-pink-300 shadow-[0_0_12px_rgba(237,20,140,0.12)]'
+          : 'border-stone-200/80'
+      }`}
       onClick={() => navigate(`/surrogates/${surrogate.id}`)}
     >
+      {isNew && (
+        <div className="absolute top-3 right-3 z-10">
+          <span className="relative flex size-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+            <span className="relative inline-flex rounded-full size-3 bg-pink-500" />
+          </span>
+        </div>
+      )}
       <CardContent className="space-y-4">
         {/* Header: avatar + name + status */}
         <div className="flex items-start gap-3.5">
@@ -509,10 +523,12 @@ export default function SurrogateListPage() {
             <TableBody>
               {filtered.map(surrogate => {
                 const gtpal = getGTPAL(profiles[surrogate.email])
+                const ss = allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }
+                const rowIsNew = ss.stage === 'pre-qualification' && ss.status === 'New'
                 return (
                   <TableRow
                     key={surrogate.id}
-                    className="cursor-pointer hover:bg-stone-50/80"
+                    className={`cursor-pointer ${rowIsNew ? 'bg-pink-50/40 hover:bg-pink-50/70' : 'hover:bg-stone-50/80'}`}
                     onClick={() => navigate(`/surrogates/${surrogate.id}`)}
                   >
                     <TableCell>
