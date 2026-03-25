@@ -409,7 +409,6 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="quiz">Quiz Answers</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -422,7 +421,7 @@ export default function SurrogateDetailPage() {
 
         {/* Contact Tab */}
         <TabsContent value="contact" className="mt-4">
-          <ContactTab surrogate={surrogate} setSurrogate={setSurrogate} />
+          <ContactTab surrogate={surrogate} setSurrogate={setSurrogate} quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />
         </TabsContent>
 
         {/* Profile Tab */}
@@ -436,61 +435,6 @@ export default function SurrogateDetailPage() {
             photos={photos}
             heightStr={heightStr}
           />
-        </TabsContent>
-
-        {/* Quiz Answers Tab */}
-        <TabsContent value="quiz" className="mt-4">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="size-4" /> Intake Quiz Answers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {quizAnswers ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                  {quizAnswers.firstName && (
-                    <div><span className="text-muted-foreground">Name</span><p className="font-medium">{quizAnswers.firstName} {quizAnswers.lastName}</p></div>
-                  )}
-                  {quizAnswers.dob && (
-                    <div><span className="text-muted-foreground">Date of Birth</span><p className="font-medium">{quizAnswers.dob}</p></div>
-                  )}
-                  {quizAnswers.state && (
-                    <div><span className="text-muted-foreground">State</span><p className="font-medium">{quizAnswers.state}</p></div>
-                  )}
-                  {quizAnswers.phone && (
-                    <div><span className="text-muted-foreground">Phone</span><p className="font-medium">{quizAnswers.phone}</p></div>
-                  )}
-                  {quizAnswers.email && (
-                    <div><span className="text-muted-foreground">Email</span><p className="font-medium">{quizAnswers.email}</p></div>
-                  )}
-                  {quizAnswers.usCitizen !== undefined && (
-                    <div><span className="text-muted-foreground">US Citizen</span><p className="font-medium">{quizAnswers.usCitizen ? 'Yes' : 'No'}</p></div>
-                  )}
-                  {quizAnswers.maritalStatus && (
-                    <div><span className="text-muted-foreground">Marital Status</span><p className="font-medium">{quizAnswers.maritalStatus}</p></div>
-                  )}
-                  {quizAnswers.preferredContact && (
-                    <div><span className="text-muted-foreground">Preferred Contact</span><p className="font-medium">{quizAnswers.preferredContact}</p></div>
-                  )}
-                  {quizAnswers.heightFt && (
-                    <div><span className="text-muted-foreground">Height</span><p className="font-medium">{quizAnswers.heightFt}'{quizAnswers.heightIn || 0}"</p></div>
-                  )}
-                  {quizAnswers.weightLbs && (
-                    <div><span className="text-muted-foreground">Weight</span><p className="font-medium">{quizAnswers.weightLbs} lbs</p></div>
-                  )}
-                  {quizAnswers.healthyPregnancy !== undefined && (
-                    <div><span className="text-muted-foreground">Healthy Pregnancy</span><p className="font-medium">{quizAnswers.healthyPregnancy ? 'Yes' : 'No'}</p></div>
-                  )}
-                  {quizAnswers.hearAboutUs && (
-                    <div><span className="text-muted-foreground">Heard About Us</span><p className="font-medium">{quizAnswers.hearAboutUs}{quizAnswers.hearAboutUsOther ? ` — ${quizAnswers.hearAboutUsOther}` : ''}</p></div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No quiz answers found.</p>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Screening Tab */}
@@ -681,19 +625,39 @@ export default function SurrogateDetailPage() {
   )
 }
 
-// ── Contact Tab ────────────────────────────────────────────
-function ContactTab({ surrogate, setSurrogate }) {
+// ── Contact Tab (merged with quiz answers) ─────────────────
+const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+const MARITAL_OPTIONS = ['Single', 'Married', 'Domestic Partnership', 'Divorced', 'Widowed']
+const CONTACT_OPTIONS = ['Text', 'Email', 'Phone']
+const HEAR_OPTIONS = ['Instagram', 'TikTok', 'Facebook', 'Google search', 'Friend or family', 'Doctor or clinic', 'Podcast or blog', 'Other']
+
+function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({})
 
+  // Merge surrogate + quiz data for display
+  const qa = quizAnswers || {}
+  const displayData = {
+    firstName: qa.firstName || '', lastName: qa.lastName || '',
+    email: surrogate.email || qa.email || '',
+    phone: surrogate.phone || qa.phone || '',
+    dob: qa.dob || '',
+    state: qa.state || surrogate.location || '',
+    usCitizen: qa.usCitizen,
+    maritalStatus: surrogate.maritalStatus || qa.maritalStatus || '',
+    preferredContact: surrogate.preferredContact || qa.preferredContact || '',
+    heightFt: qa.heightFt || surrogate.heightFt || '',
+    heightIn: qa.heightIn || surrogate.heightIn || '',
+    weightLbs: qa.weightLbs || surrogate.weightLbs || '',
+    healthyPregnancy: qa.healthyPregnancy,
+    hearAboutUs: qa.hearAboutUs || '',
+    hearAboutUsOther: qa.hearAboutUsOther || '',
+  }
+
   function startEdit() {
     setForm({
-      email: surrogate.email || '',
-      phone: surrogate.phone || '',
-      location: surrogate.location || '',
-      maritalStatus: surrogate.maritalStatus || '',
-      preferredContact: surrogate.preferredContact || '',
+      ...displayData,
       beReferral: surrogate.referralPartner === 'be_surrogacy',
     })
     setEditing(true)
@@ -702,13 +666,15 @@ function ContactTab({ surrogate, setSurrogate }) {
   async function handleSave() {
     setSaving(true)
     try {
-      const currentAnswers = await fetchIntakeByEmail(surrogate.email)
       const updatedAnswers = {
-        ...(currentAnswers || {}),
-        email: form.email,
-        phone: form.phone,
-        maritalStatus: form.maritalStatus,
-        preferredContact: form.preferredContact,
+        ...(qa || {}),
+        firstName: form.firstName, lastName: form.lastName,
+        email: form.email, phone: form.phone, dob: form.dob,
+        state: form.state, usCitizen: form.usCitizen,
+        maritalStatus: form.maritalStatus, preferredContact: form.preferredContact,
+        heightFt: form.heightFt, heightIn: form.heightIn, weightLbs: form.weightLbs,
+        healthyPregnancy: form.healthyPregnancy,
+        hearAboutUs: form.hearAboutUs, hearAboutUsOther: form.hearAboutUsOther,
       }
       const referralVal = form.beReferral ? 'be_surrogacy' : null
       await updateIntakeSubmission(surrogate.id, {
@@ -718,21 +684,37 @@ function ContactTab({ surrogate, setSurrogate }) {
       })
       setSurrogate(prev => ({
         ...prev,
-        email: form.email,
-        phone: form.phone,
-        location: form.location,
+        email: form.email, phone: form.phone,
+        location: form.state,
         maritalStatus: form.maritalStatus,
         preferredContact: form.preferredContact,
         referralPartner: referralVal,
+        heightFt: form.heightFt, heightIn: form.heightIn,
+        weightLbs: form.weightLbs,
       }))
+      setQuizAnswers(updatedAnswers)
       setEditing(false)
     } catch {} finally { setSaving(false) }
   }
 
+  const SelectField = ({ label, value, onValueChange, options }) => (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <SelectUI value={value || ''} onValueChange={onValueChange}>
+        <SelectTriggerUI><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+        <SelectContentUI>
+          {options.map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
+        </SelectContentUI>
+      </SelectUI>
+    </div>
+  )
+
   return (
+    <div className="space-y-6">
+      {/* Contact Info */}
       <Card className="rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Contact Information</CardTitle>
+          <CardTitle>Contact & Intake Details</CardTitle>
           {!editing ? (
             <Button variant="ghost" size="sm" className="gap-1" onClick={startEdit}>
               <Pencil className="size-3.5" /> Edit
@@ -748,15 +730,63 @@ function ContactTab({ surrogate, setSurrogate }) {
             </div>
           )}
         </CardHeader>
-        <CardContent className="space-y-1">
+        <CardContent>
           {editing ? (
-            <div className="space-y-3">
-              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Location</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Marital Status</Label><Input value={form.maritalStatus} onChange={e => setForm(f => ({ ...f, maritalStatus: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs text-muted-foreground">Preferred Contact</Label><Input value={form.preferredContact} onChange={e => setForm(f => ({ ...f, preferredContact: e.target.value }))} /></div>
-              <div className="flex items-center justify-between pt-3 mt-2 border-t">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">First Name</Label><Input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Last Name</Label><Input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Phone</Label><Input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs text-muted-foreground">Date of Birth</Label><Input type="date" value={form.dob} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} /></div>
+                <SelectField label="State" value={form.state} onValueChange={v => setForm(f => ({ ...f, state: v }))} options={US_STATES} />
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">US Citizen / Resident</Label>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant={form.usCitizen === true ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, usCitizen: true }))}>Yes</Button>
+                    <Button size="sm" variant={form.usCitizen === false ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, usCitizen: false }))}>No</Button>
+                  </div>
+                </div>
+                <SelectField label="Marital Status" value={form.maritalStatus} onValueChange={v => setForm(f => ({ ...f, maritalStatus: v }))} options={MARITAL_OPTIONS} />
+                <SelectField label="Preferred Contact" value={form.preferredContact} onValueChange={v => setForm(f => ({ ...f, preferredContact: v }))} options={CONTACT_OPTIONS} />
+              </div>
+
+              <div className="border-t pt-4 mt-2">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-3">Health</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Height (ft)</Label>
+                    <Input type="number" min="4" max="7" value={form.heightFt} onChange={e => setForm(f => ({ ...f, heightFt: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Height (in)</Label>
+                    <Input type="number" min="0" max="11" value={form.heightIn} onChange={e => setForm(f => ({ ...f, heightIn: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Weight (lbs)</Label>
+                    <Input type="number" value={form.weightLbs} onChange={e => setForm(f => ({ ...f, weightLbs: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Healthy Pregnancy History</Label>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant={form.healthyPregnancy === true ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, healthyPregnancy: true }))}>Yes</Button>
+                    <Button size="sm" variant={form.healthyPregnancy === false ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, healthyPregnancy: false }))}>No</Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t pt-4 mt-2">
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-3">Other</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <SelectField label="How did you hear about us?" value={form.hearAboutUs} onValueChange={v => setForm(f => ({ ...f, hearAboutUs: v }))} options={HEAR_OPTIONS} />
+                  {form.hearAboutUs === 'Other' && (
+                    <div className="space-y-1"><Label className="text-xs text-muted-foreground">Please specify</Label><Input value={form.hearAboutUsOther} onChange={e => setForm(f => ({ ...f, hearAboutUsOther: e.target.value }))} /></div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t">
                 <div className="flex items-center gap-2">
                   <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
                   <span className="text-sm font-medium">Referral</span>
@@ -765,13 +795,20 @@ function ContactTab({ surrogate, setSurrogate }) {
               </div>
             </div>
           ) : (
-            <>
-              <InfoRow icon={Mail} label="Email" value={surrogate.email} />
-              <InfoRow icon={Phone} label="Phone" value={surrogate.phone || '—'} />
-              <InfoRow icon={MapPin} label="Location" value={surrogate.location || '—'} />
-              <InfoRow icon={Heart} label="Marital Status" value={surrogate.maritalStatus || '—'} />
-              <InfoRow icon={MessageSquare} label="Preferred Contact" value={surrogate.preferredContact || '—'} />
-              <div className="flex items-center justify-between py-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+              <div><span className="text-muted-foreground">Name</span><p className="font-medium">{displayData.firstName} {displayData.lastName}</p></div>
+              <div><span className="text-muted-foreground">Email</span><p className="font-medium">{displayData.email || '—'}</p></div>
+              <div><span className="text-muted-foreground">Phone</span><p className="font-medium">{displayData.phone || '—'}</p></div>
+              <div><span className="text-muted-foreground">Date of Birth</span><p className="font-medium">{displayData.dob || '—'}</p></div>
+              <div><span className="text-muted-foreground">State</span><p className="font-medium">{displayData.state || '—'}</p></div>
+              <div><span className="text-muted-foreground">US Citizen</span><p className="font-medium">{displayData.usCitizen === true ? 'Yes' : displayData.usCitizen === false ? 'No' : '—'}</p></div>
+              <div><span className="text-muted-foreground">Marital Status</span><p className="font-medium">{displayData.maritalStatus || '—'}</p></div>
+              <div><span className="text-muted-foreground">Preferred Contact</span><p className="font-medium">{displayData.preferredContact || '—'}</p></div>
+              <div><span className="text-muted-foreground">Height</span><p className="font-medium">{displayData.heightFt ? `${displayData.heightFt}'${displayData.heightIn || 0}"` : '—'}</p></div>
+              <div><span className="text-muted-foreground">Weight</span><p className="font-medium">{displayData.weightLbs ? `${displayData.weightLbs} lbs` : '—'}</p></div>
+              <div><span className="text-muted-foreground">Healthy Pregnancy</span><p className="font-medium">{displayData.healthyPregnancy === true ? 'Yes' : displayData.healthyPregnancy === false ? 'No' : '—'}</p></div>
+              <div><span className="text-muted-foreground">Heard About Us</span><p className="font-medium">{displayData.hearAboutUs || '—'}{displayData.hearAboutUsOther ? ` — ${displayData.hearAboutUsOther}` : ''}</p></div>
+              <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t">
                 <div className="flex items-center gap-2">
                   <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
                   <span className="text-sm text-muted-foreground">Referral</span>
@@ -780,10 +817,11 @@ function ContactTab({ surrogate, setSurrogate }) {
                   {surrogate.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
                 </span>
               </div>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
+    </div>
   )
 }
 
