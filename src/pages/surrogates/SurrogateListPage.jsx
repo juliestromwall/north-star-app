@@ -172,25 +172,26 @@ function BeBadge({ className = '' }) {
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
 function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
+  const navigate = useNavigate()
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
   const submitted = timeAgo(surrogate.submittedAt)
 
   return (
-    <Card className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80 rounded-2xl">
-
+    <Card
+      className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 border-stone-200/80 rounded-2xl cursor-pointer"
+      onClick={() => navigate(`/surrogates/${surrogate.id}`)}
+    >
       <CardContent className="space-y-4">
         {/* Header: avatar + name + status */}
         <div className="flex items-start gap-3.5">
-          <Link to={`/surrogates/${surrogate.id}`} className="relative shrink-0">
+          <div className="relative shrink-0">
             <ProfileAvatar name={surrogate.name} size="lg" className="ring-2 ring-white shadow-md" />
-          </Link>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <Link to={`/surrogates/${surrogate.id}`} className="hover:underline">
-                  <h3 className="font-heading font-bold text-[15px] text-stone-900 truncate leading-tight">{surrogate.name}</h3>
-                </Link>
+                <h3 className="font-heading font-bold text-[15px] text-stone-900 truncate leading-tight">{surrogate.name}</h3>
                 {surrogate.location && (
                   <div className="flex items-center gap-1 text-xs text-stone-400 mt-0.5">
                     <MapPin className="size-3" />
@@ -249,7 +250,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
         {/* Footer: assignment + view link */}
         <div className="pt-2 border-t border-stone-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
               <UserCog className="size-3.5 text-stone-300" />
               <Select
                 value={surrogate.assignedTo || '_unassigned'}
@@ -270,13 +271,6 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
                 </SelectContent>
               </Select>
             </div>
-            <Link
-              to={`/surrogates/${surrogate.id}`}
-              className="flex items-center justify-center size-8 rounded-full hover:bg-stone-100 transition-colors"
-              title="Open case"
-            >
-              <ArrowRight className="size-4 text-stone-400 group-hover:text-stone-600 transition-colors" />
-            </Link>
           </div>
         </div>
       </CardContent>
