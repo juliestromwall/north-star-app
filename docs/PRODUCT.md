@@ -17,11 +17,26 @@
 | Intended Parent | Own journey, shared profiles, messages | IP Dashboard, Forms, Documents, Messages, My Journey |
 | Marketing | Read-only analytics + intake submissions view | Marketing Dashboard, Intake Submissions |
 
+## Journey Stages
+
+Every surrogate moves through 6 stages, each with configurable statuses:
+
+| Stage | Purpose | Default Statuses |
+|-------|---------|-----------------|
+| Pre-Qualification | Initial contact and screening calls | New, 1st/2nd/3rd Reach Out, Screening Call Scheduled/Complete, Pending Profile Completion, Profile Complete, Zoom Call Scheduled |
+| Screening | Medical, psych, background verification | Documents Requested/Received, Medical/Psych Scheduled/Complete, Background In Progress/Complete |
+| Matching | Finding and confirming IP-surrogate match | Awaiting Match, Profile Shared, Meeting Scheduled/Complete, Match Confirmed |
+| Journey Oversight | Active surrogacy journey management | Legal Review, Medical Clearance, Transfer Prep, Active Pregnancy, Monitoring |
+| Journey Ending | Delivery and wrap-up | Delivery Scheduled, Delivered, Post-Partum, Final Payments, Wrap-Up |
+| Journey Closed | Case complete or withdrawn | Closed — Complete, Closed — Withdrawn, Closed — Disqualified |
+
+Admins can add/edit/delete statuses per stage via the Status Settings dialog. New surrogates default to Pre-Qualification / New.
+
 ## Key Flows
 
 ### Surrogate Intake → Admin Assignment
-1. Surrogate visits /surrogatequiz → completes 5-step quiz
-2. Qualified surrogates auto-appear in admin Surrogates list
+1. Surrogate visits /surrogatequiz → completes 5-step quiz (bot-protected)
+2. Qualified surrogates auto-appear in admin Surrogates list at stage "Pre-Qualification" / status "New"
 3. Admin assigns surrogate to themselves or another admin
 4. Surrogate appears under "My Cases" for assigned admin
 
@@ -35,60 +50,60 @@
 
 ### Admin: Manage Surrogate Cases
 1. Surrogates list defaults to "My Cases" — shows only assigned surrogates
-2. Master/Super admins can view "All Cases", filter by specific admin, or see "Unassigned"
-3. Each card shows: name, location, status, age, submitted date, assignment dropdown, gravida/para, BE badge
-4. Click card → detail page with tabs: Overview, Profile, Quiz Answers, Screening, Photos, Notes
+2. Hero stats count surrogates by stage (gradient colored)
+3. "New" surrogates get animated pink ping dot
+4. Click card → detail page with hero (interactive flip tiles) + tabs
+5. Tabs: Overview, Contact, Profile, Screening, Documents, Notes
 
-### Admin: Edit Surrogate Contact Info
-1. Surrogate detail → Overview tab → click "Edit" on Contact Information card
-2. Fields unlock to editable inputs (email, phone, location, marital status, preferred contact)
-3. Be Surrogacy referral toggle at bottom
-4. "Save" persists to Supabase, "Cancel" reverts
+### Admin: Change Stage & Status
+1. Click Stage tile on hero → dropdown with 6 stages (numbered, colored)
+2. Changing stage auto-sets status to the first default for that stage
+3. Click Status tile → dropdown with statuses for current stage
+4. Stage/status shown on list cards as StageBadge
 
-### Admin: Review & Approve Profile
-1. Surrogate detail → Profile tab
-2. View completion percentage + per-section progress grid (click tile to scroll to section)
-3. Each section has "Edit" button → dialog with all fields for that section
-4. "Preview" shows matching profile as IPs would see it
-5. "Approve" locks profile for surrogate, "Unapprove" unlocks
+### Admin: Manage Documents
+1. Documents tab shows 9 category folders (Photo IDs, Agency Agreement, etc.)
+2. Upload files directly to a category
+3. Preview images/PDFs in full-screen overlay
+4. Rename files, move between categories
+5. Search filters by file name or category
+6. Grid/list view toggle
+7. Drag to reorder category cards
 
-### Admin: Add Surrogate Manually
-1. Surrogates list → "+ Add Surrogate"
-2. Enter name, email, phone, state, DOB
-3. Toggle Be Surrogacy referral on/off
-4. Auto-assigns to current admin, creates intake record
+### Admin: Case Notes
+1. Notes tab with rich text editor (bold, italic, colors, highlights, lists)
+2. Create, edit inline, delete with permanent confirmation
+3. Notes show author, timestamp, (edited) indicator
+4. Stored in Supabase case_notes table
 
-### Be Surrogacy Referrals
-1. Referral surrogates marked with (BE) logo badge on cards and detail page
-2. Toggle in admin contact edit section or Add Surrogate dialog
-3. Stored as `referral_partner = 'be_surrogacy'` on intake_submissions
+### Admin: Contact & Intake Details
+1. Contact tab merges quiz answers + contact info in one editable view
+2. All fields use proper form controls matching quiz (dropdowns, toggles)
+3. BE Referral toggle at bottom
 
-### Surrogate: View Quiz Results
-1. Dashboard → click "Quiz Results" card
-2. Dialog shows only fields from the 5-step quiz (not profile fields)
-3. Status shown as "Under Review"
-
-### Admin: Review Intake Submissions
-1. Sidebar → Applications → filter by type (GC/IP), status (including "Reviewed"), or source
-2. Click row → detail dialog with all answers, DQ reasons highlighted
-3. Status buttons: Pending Review, Reviewed, Qualified, Approved, Rejected
+### GTPAL Pregnancy Display
+- Calculated from pregnancy history profile data
+- Format: G6P5015 = 6 pregnancies, 5 term, 0 preterm, 1 loss, 5 living
+- Shown on list cards and detail hero with colored chips
 
 ## Pages
 
 | Page | Path | Roles | Status |
 |------|------|-------|--------|
-| Admin Dashboard | / | super_admin, master_admin, admin | Built (live Supabase counts) |
-| Surrogate Dashboard | / | surrogate | Built (tasks, profile, quiz) |
-| IP Dashboard | / | intended_parent | Built |
-| Partner Dashboard | / | surrogate_partner | Built |
-| Surrogates List | /surrogates | admin+ | Built (live Supabase, case assignment) |
-| Surrogate Detail | /surrogates/:id | admin+ | Built (live data, profile mgmt) |
-| Intended Parents List | /intended-parents | admin+ | Built (empty — needs IP intake) |
+| Landing Page | / | public | Built (ComingSoonPage) |
+| Login | /login | public | Built |
+| Admin Dashboard | /dashboard | admin+ | Built (live Supabase counts) |
+| Surrogate Dashboard | /dashboard | surrogate | Built (tasks, profile, quiz) |
+| IP Dashboard | /dashboard | intended_parent | Built |
+| Partner Dashboard | /dashboard | surrogate_partner | Built |
+| Surrogates List | /surrogates | admin+ | Built (stages, statuses, search, grid/list) |
+| Surrogate Detail | /surrogates/:id | admin+ | Built (interactive hero, documents, notes) |
+| Intended Parents List | /intended-parents | admin+ | Built (needs IP intake) |
 | IP Detail | /intended-parents/:id | admin+ | Built (needs live data) |
 | My Profile | /my-profile | surrogate | Built (Supabase sync, photo upload) |
 | Forms List | /forms | all | Built |
-| Surrogate Quiz | /surrogatequiz | public | Built |
-| IP Intake | /intended-parent-intake | public | Built |
+| Surrogate Quiz | /surrogatequiz | public | Built (bot protected) |
+| IP Intake | /intendedparentapply | public | Built (bot protected) |
 | Intake Confirmation | /apply/confirmation | public | Built |
 | Intake Submissions | /intake | admin+ | Built (live Supabase) |
 | Marketing Dashboard | /marketing | marketing+ | Built |
@@ -96,9 +111,10 @@
 | Calendar | /calendar | admin+ | Built |
 | Time Clock | /time-clock | admin+ | Built |
 | Settings | /settings | master_admin+ | Built |
-| Documents | /documents | all | Stub |
-| Messages | /messages | all | Stub |
+| CRM / Cases | /crm | admin+ | Stub |
+| Documents | /documents | all | Stub (case-level docs built) |
 | E-Signature | /e-signature | admin+ | Stub |
+| Messages | /messages | all | Stub |
 | Email | /email | admin+ | Stub |
 | HR Management | /hr | master_admin+ | Stub |
 | Payroll | /payroll | master_admin+ | Stub |
@@ -111,7 +127,9 @@
 | IP | Intended parent(s) — person(s) seeking surrogacy |
 | Match | Pairing of a surrogate with intended parent(s) |
 | Journey | The full surrogacy process from application to delivery |
-| Gravida/Para (G/P) | Pregnancy history: G=total pregnancies, P=live births, M=miscarriages, T=terminations |
+| Stage | One of 6 phases a surrogate moves through (Pre-Qualification → Journey Closed) |
+| Status | Sub-state within a stage (e.g., "1st Reach Out" within Pre-Qualification) |
+| GTPAL | Pregnancy notation: G=gravida(total), T=term births, P=preterm, A=abortions/losses, L=living |
 | Be Surrogacy | Referral partner — surrogates referred through Be Surrogacy marked with (BE) badge |
 | Case Assignment | Each surrogate is assigned to a specific admin who manages their journey |
 | Profile Approval | Admin approves a surrogate's matching profile, locking it from further edits |
@@ -120,5 +138,7 @@
 | Clearance | Medical or psychological clearance to proceed |
 | Task | Action item on a profile — workflow-generated, staff-assigned, or self-created |
 | Admin Note | Announcement published by master_admin, displayed as dashboard alert banners |
-| UTM Parameters | URL tracking for marketing attribution (utm_source, utm_medium, etc.) |
-| GTM | Google Tag Manager (GTM-KK2Q822N) — marketing team manages pixels here |
+| Case Note | Per-surrogate note with rich text, stored in Supabase |
+| UTM Parameters | URL tracking for marketing attribution |
+| GTM | Google Tag Manager — marketing team manages pixels here |
+| Turnstile | Cloudflare's bot protection CAPTCHA on intake forms |

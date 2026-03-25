@@ -4,62 +4,92 @@
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| AppLayout | src/components/layout/AppLayout.jsx | Main layout with responsive Sidebar (hidden on mobile, Sheet drawer) + TopBar + content area |
-| Sidebar | src/components/layout/Sidebar.jsx | Dark navy sidebar, hidden on mobile with Sheet drawer, auto-closes on nav |
-| TopBar | src/components/layout/TopBar.jsx | Cream header with hamburger menu (mobile), role switcher, user info |
+| AppLayout | src/components/layout/AppLayout.jsx | Main layout with responsive Sidebar + TopBar + content area |
+| Sidebar | src/components/layout/Sidebar.jsx | Dark navy sidebar, hidden on mobile with Sheet drawer |
+| TopBar | src/components/layout/TopBar.jsx | Cream header with hamburger menu (mobile), role switcher |
 | RoleSwitcher | src/components/layout/RoleSwitcher.jsx | Dropdown to switch between 6 demo roles |
 | RoleContext | src/context/RoleContext.jsx | React context providing role state, auth, mock users |
-| PageHeader | src/components/shared/PageHeader.jsx | Reusable page title + subtitle + actions, responsive stacking |
+| PageHeader | src/components/shared/PageHeader.jsx | Reusable page title + subtitle + actions |
 | StatCard | src/components/shared/StatCard.jsx | Dashboard stat card with title, value, icon |
-| StatusBadge | src/components/shared/StatusBadge.jsx | Colored badge for status display |
+| StatusBadge | src/components/shared/StatusBadge.jsx | Colored badge for legacy status display |
+| StageBadge | src/components/shared/StageBadge.jsx | Colored badge showing journey stage + status (gradient pink-to-blue) |
 | EmptyState | src/components/shared/EmptyState.jsx | Empty state placeholder with icon and message |
-| ProfileAvatar | src/components/shared/ProfileAvatar.jsx | Initials-based avatar with pastel colors derived from name hash |
+| ProfileAvatar | src/components/shared/ProfileAvatar.jsx | Initials-based avatar with pastel colors |
 | InfoRow | src/components/shared/InfoRow.jsx | Labeled key-value row with icon |
 | ScreeningStatusItem | src/components/shared/ScreeningStatusItem.jsx | Screening step with color-coded status icon |
+| RichTextEditor | src/components/shared/RichTextEditor.jsx | Tiptap-based editor with bold, italic, underline, strikethrough, text color (8), highlight color (6), lists, undo/redo |
+| StatusSettingsDialog | src/components/surrogates/StatusSettingsDialog.jsx | Admin dialog to manage statuses per stage (add/edit/delete with in-use warnings) |
+| ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Live stats from Supabase, match pipeline, quick actions |
-| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Full-width profile card with CTA to first incomplete section, Quiz Results dialog, "You're all caught up" banner, tasks, contact card |
-| SurrogateListPage | src/pages/surrogates/SurrogateListPage.jsx | Live data from Supabase. Case assignment (My Cases/All/Unassigned/by admin), tile/list view, search, status filter, Add Surrogate dialog, BE referral badge, gravida/para display |
-| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Real data from Supabase. Hero with assignment dropdown + BE badge. Tabs: Overview (editable contact, BE toggle, screening), Profile (completion tracking, per-section edit, preview, approve/unapprove), Quiz Answers, Screening, Photos, Notes |
-| SurrogateProfilePage | src/pages/profile/SurrogateProfilePage.jsx | 9-section collapsible profile builder. Auto-saves to localStorage + Supabase. Cover photo + gallery with drag reorder + crop/rotate. Preview button. Locks when approved. Hash-based section navigation. |
-| FormsListPage | src/pages/forms/FormsListPage.jsx | Admin: form definitions table. Surrogate: empty state (forms appear when assigned) |
-| IntakeLandingPage | src/pages/intake/IntakeLandingPage.jsx | Public /surrogatequiz landing with gradient "5 minutes" badge |
-| SurrogateIntakeForm | src/pages/intake/SurrogateIntakeForm.jsx | 5-step quiz with gradient pill progress bar, "Other" text field for referral |
-| IntakeConfirmationPage | src/pages/intake/IntakeConfirmationPage.jsx | Post-submission with account creation, updated "Let's meet!" text |
-| IntakeSubmissionsPage | src/pages/intake/IntakeSubmissionsPage.jsx | Admin intake review with "Reviewed" status, live Supabase data |
-| MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics with source breakdown, DQ reasons, time filters |
-| MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board with 10 stage columns |
-| CalendarPage | src/pages/calendar/CalendarPage.jsx | Monthly calendar view with event types |
+| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card with CTA, Quiz Results dialog, tasks, contact |
+| SurrogateListPage | src/pages/surrogates/SurrogateListPage.jsx | Live Supabase data. Stage-based hero stats, StageBadge on cards, animated ping dot for "New" surrogates, drag-to-reorder, grid/list view, search, status settings gear |
+| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Hero with interactive flip tiles (Age/DOB, Height/cm, Weight/kg, BMI/range, Relationship/Partner), Stage+Status selectors, Text/Email/Call buttons with copy. Tabs: Overview, Contact, Profile, Screening, Documents, Notes |
+| SurrogateProfilePage | src/pages/profile/SurrogateProfilePage.jsx | 9-section collapsible profile builder with Supabase sync, photo upload |
+| FormsListPage | src/pages/forms/FormsListPage.jsx | Admin: form definitions. Surrogate: empty state |
+| IntakeLandingPage | src/pages/intake/IntakeLandingPage.jsx | Public /surrogatequiz landing |
+| SurrogateIntakeForm | src/pages/intake/SurrogateIntakeForm.jsx | 5-step quiz with bot protection |
+| IPIntakeForm | src/pages/intake/IPIntakeForm.jsx | 5-step IP intake with bot protection |
+| IntakeConfirmationPage | src/pages/intake/IntakeConfirmationPage.jsx | Post-submission with account creation |
+| IntakeSubmissionsPage | src/pages/intake/IntakeSubmissionsPage.jsx | Admin intake review with live Supabase data |
+| MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics with source breakdown |
+| MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board |
+| CalendarPage | src/pages/calendar/CalendarPage.jsx | Monthly calendar view |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes management |
-| PhotoGallery | src/components/shared/PhotoGallery.jsx | Hero + grid photo display modes |
-| SurrogateSharePage | src/pages/surrogates/SurrogateSharePage.jsx | Standalone branded matching profile |
-| IPSharePage | src/pages/intended-parents/IPSharePage.jsx | Standalone branded IP matching profile |
+
+## Bot Protection
+
+| Layer | Location | Description |
+|-------|----------|-------------|
+| Honeypot | src/lib/botProtection.jsx | Hidden field bots auto-fill, humans never see |
+| Time-based | src/lib/botProtection.jsx | Rejects form submissions under 15 seconds |
+| Rapid-fill | src/lib/botProtection.jsx | Detects inhumanly fast field changes |
+| Cloudflare Turnstile | src/lib/botProtection.jsx | CAPTCHA widget, activated via VITE_TURNSTILE_SITE_KEY env var |
+
+## Stages & Statuses
+
+| Stage | Color | Default Statuses |
+|-------|-------|-----------------|
+| Pre-Qualification | #ed148c (pink) | New, 1st/2nd/3rd Reach Out, Screening Call Scheduled/Complete, Pending Profile Completion, Profile Complete, Zoom Call Scheduled |
+| Screening | #c4219a | Documents Requested/Received, Medical/Psych Scheduled/Complete, Background In Progress/Complete |
+| Matching | #9b2ea7 | Awaiting Match, Profile Shared, Meeting Scheduled/Complete, Match Confirmed |
+| Journey Oversight | #723bb4 | Legal Review, Medical Clearance, Transfer Prep, Active Pregnancy, Monitoring |
+| Journey Ending | #4d3da4 | Delivery Scheduled, Delivered, Post-Partum, Final Payments, Wrap-Up |
+| Journey Closed | #283693 (indigo) | Closed — Complete/Withdrawn/Disqualified |
+
+Config: `src/lib/constants.js` (SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE)
+Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-surrogate data)
 
 ## Supabase Integration
 
 | Feature | Table/Bucket | Status |
 |---------|-------------|--------|
-| Intake submissions | intake_submissions | Live — quiz submissions, status, DQ reasons, UTM tracking, assigned_to, referral_partner |
-| Surrogate profiles | surrogate_profiles | Live — profile_data JSONB, status (draft/approved), auto-sync from localStorage |
-| Photo storage | profile-photos bucket | Live — cover photos, gallery photos, public URLs |
-| Admin notes | admin_notes + admin_note_dismissals | Live — publish, dismiss, toggle |
-| User tasks | user_tasks | Live — surrogate to-do items |
-| Auth | auth.users | Live — surrogate signup/login via quiz completion |
+| Intake submissions | intake_submissions | Live |
+| Surrogate profiles | surrogate_profiles | Live |
+| Photo storage | profile-photos bucket | Live |
+| Admin notes | admin_notes + admin_note_dismissals | Live |
+| User tasks | user_tasks | Live |
+| Case notes | case_notes | Live |
+| Case documents | case_documents + case-documents bucket | Live |
+| Auth | auth.users | Live |
 
 ## External Integrations
 
 | Integration | Status |
 |------------|--------|
-| Google Tag Manager (GTM-KK2Q822N) | Installed on all pages |
-| Supabase Auth | Live for surrogate signup |
-| Supabase Storage | Live for profile photos |
+| Google Tag Manager (GTM-57W6436V) | Installed |
+| Cloudflare Turnstile | Configured (site key in env) |
+| Cloudflare Pages | Hosting |
+| Supabase Auth | Live |
+| Supabase Storage | Live (profile-photos, case-documents) |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
-| 2026-03-23 | Full day: mobile responsiveness, photo upload with HEIC/crop/reorder, profile sync to Supabase, admin surrogate management with real data, case assignment, Be Surrogacy referrals, Add Surrogate, gravida/para, quiz progress pill, GTM, cleared mock data |
-| 2026-03-20 | Surrogate Profile page: 9-section collapsible builder with progress tracking |
-| 2026-03-18 | Intake form system: GC + IP forms, DQ logic, confirmation, ad tracking, admin review, marketing analytics |
-| 2026-03-03 | Time Clock, Calendar, Admin Notes, Matching module, share pages, photo gallery, list/tile views |
-| 2026-03-02 | Initial prototype: project scaffold, brand theme, 6-role app shell, 4 dashboards, forms module |
+| 2026-03-24 | Landing page routing, bot protection (4 layers), surrogate page redesign with GTPAL/interactive tiles, stages & statuses system, rich text notes, documents tab with preview/search/drag-reorder, search engine blocking |
+| 2026-03-23 | Mobile responsiveness, photo upload, profile sync, admin management, case assignment, referrals |
+| 2026-03-20 | Surrogate Profile page: 9-section builder |
+| 2026-03-18 | Intake forms, DQ logic, marketing analytics |
+| 2026-03-03 | Time Clock, Calendar, Matching, share pages, photo gallery |
+| 2026-03-02 | Initial prototype |
