@@ -506,8 +506,9 @@ export default function SurrogateListPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Age</TableHead>
-                <TableHead>GTPAL</TableHead>
-                <TableHead>Stage / Status</TableHead>
+                <TableHead>Pregnancy</TableHead>
+                <TableHead>Stage</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Assigned To</TableHead>
                 <TableHead>Submitted</TableHead>
               </TableRow>
@@ -544,12 +545,15 @@ export default function SurrogateListPage() {
                         <span className="text-stone-300 text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const ss = allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }
-                        return <StageBadge stage={ss.stage} status={ss.status} />
-                      })()}
-                    </TableCell>
+                    {(() => {
+                      const ss = allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }
+                      return (
+                        <>
+                          <TableCell><StageBadge stage={ss.stage} /></TableCell>
+                          <TableCell><span className="text-sm text-stone-600">{ss.status}</span></TableCell>
+                        </>
+                      )
+                    })()}
                     <TableCell>
                       <span className={`text-sm ${surrogate.assignedTo ? '' : 'text-muted-foreground'}`}>
                         {surrogate.assignedTo ? getAdminName(surrogate.assignedTo) : 'Unassigned'}
