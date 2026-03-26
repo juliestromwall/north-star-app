@@ -1141,7 +1141,13 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                   options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
               )}
 
-              <YesNoField label="Did you have an infection, fever or bleeding following this delivery?" value={pregnancies[expandedIdx]?.infectionAfter || ''} onChange={val => updatePregnancy(expandedIdx, 'infectionAfter', val)} />
+              <YesNoField label={`Did you have an infection, fever or bleeding following ${
+                pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy'
+                  ? 'the natural miscarriage or procedure'
+                  : pregnancies[expandedIdx]?.outcome === 'Termination'
+                  ? 'the termination'
+                  : 'this delivery'
+              }?`} value={pregnancies[expandedIdx]?.infectionAfter || ''} onChange={val => updatePregnancy(expandedIdx, 'infectionAfter', val)} />
               {pregnancies[expandedIdx]?.infectionAfter === 'yes' && (
                 <TextAreaField label="Please provide details" value={pregnancies[expandedIdx]?.infectionAfterDetails || ''} onChange={val => updatePregnancy(expandedIdx, 'infectionAfterDetails', val)} rows={2} />
               )}
