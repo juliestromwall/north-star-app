@@ -33,6 +33,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
+import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
@@ -1268,14 +1269,16 @@ function GTPALChip({ label, value, color }) {
 
 // ── Profile section config ─────────────────────────────────
 const PROFILE_SECTIONS = [
-  { key: 'about', title: 'About Me', fields: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'] },
-  { key: 'family', title: 'Family & Household', fields: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'] },
+  { key: 'personal', title: 'Personal Information', fields: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'] },
   { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies'] },
-  { key: 'fertility', title: 'Fertility & Medical', fields: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'] },
-  { key: 'health', title: 'Health & Wellness', fields: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'] },
-  { key: 'lifestyle', title: 'Lifestyle', fields: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'] },
-  { key: 'employment', title: 'Employment & Finances', fields: ['currentlyEmployed', 'healthInsurance'] },
-  { key: 'preferences', title: 'Surrogacy Preferences', fields: ['previousSurrogate', 'reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'] },
+  { key: 'fertility', title: 'Fertility Information', fields: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'] },
+  { key: 'general', title: 'General Information', fields: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'] },
+  { key: 'health', title: 'Health Information', fields: ['mentalHealthDiagnosis', 'bloodType', 'openToVaccinations'] },
+  { key: 'employment', title: 'Employment Information', fields: ['currentlyEmployed', 'healthInsurance'] },
+  { key: 'interests', title: 'Interests', fields: ['personality'] },
+  { key: 'academic', title: 'Academic Information', fields: ['educationLevel'] },
+  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [] },
+  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: ['reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'] },
 ]
 
 function countSectionFilled(data, section) {
@@ -1414,8 +1417,8 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Profile Completion</CardTitle>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => setPreviewOpen(true)}>
-              <Eye className="size-3.5" /> Preview
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { setPreviewOpen(!previewOpen); if (!previewOpen) window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+              <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
             </Button>
             <Button
               size="sm"
@@ -1428,170 +1431,120 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
-              </div>
-            </div>
-            <span className="text-sm font-bold text-abc-indigo">{overallPercent}%</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {PROFILE_SECTIONS.map(sec => {
-              const { filled, total } = countSectionFilled(data, sec)
-              const complete = filled === total && total > 0
-              return (
-                <button
-                  key={sec.key}
-                  onClick={() => document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className={`rounded-xl border p-3 text-center cursor-pointer hover:shadow-sm transition-shadow ${complete ? 'border-green-200 bg-green-50' : filled > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  <p className="text-xs font-medium text-gray-600 truncate">{sec.title}</p>
-                  <p className={`text-sm font-bold mt-1 ${complete ? 'text-green-600' : filled > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
-                    {filled}/{total}
-                  </p>
-                </button>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {photos.length > 0 && (
-        <Card className="rounded-2xl">
-          <CardHeader><CardTitle>Photos ({photos.length})</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-              {photos.map(p => (
-                <div key={p.path} className="aspect-square rounded-xl overflow-hidden border">
-                  <img src={p.url} alt="" className="w-full h-full object-cover" />
+        {!previewOpen && (
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${overallPercent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
                 </div>
-              ))}
+              </div>
+              <span className="text-sm font-bold text-abc-indigo">{overallPercent}%</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {PROFILE_SECTIONS.map(sec => {
+                const { filled, total } = countSectionFilled(data, sec)
+                const complete = filled === total && total > 0
+                return (
+                  <button
+                    key={sec.key}
+                    onClick={() => document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className={`rounded-xl border p-3 text-center cursor-pointer hover:shadow-sm transition-shadow ${complete ? 'border-green-200 bg-green-50' : filled > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <p className="text-xs font-medium text-gray-600 truncate">{sec.title}</p>
+                    <p className={`text-sm font-bold mt-1 ${complete ? 'text-green-600' : filled > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {total > 0 ? `${filled}/${total}` : '—'}
+                    </p>
+                  </button>
+                )
+              })}
             </div>
           </CardContent>
-        </Card>
-      )}
+        )}
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {PROFILE_SECTIONS.map(sec => {
-          const sectionData = data[sec.key] || {}
-          return (
-            <Card key={sec.key} id={`admin-sec-${sec.key}`} className="rounded-2xl">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">{sec.title}</CardTitle>
-                <Button variant="ghost" size="sm" className="gap-1" onClick={() => startSectionEdit(sec)}>
-                  <Pencil className="size-3.5" /> Edit
-                </Button>
-              </CardHeader>
+      {previewOpen ? (
+        /* ── Inline Preview (same as surrogate sees) ── */
+        <div className="max-w-[850px] mx-auto">
+          <ProfilePreview profile={data} photos={photos} />
+        </div>
+      ) : (
+        <>
+          {photos.length > 0 && (
+            <Card className="rounded-2xl">
+              <CardHeader><CardTitle>Photos ({photos.length})</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2 text-sm">
-                  {sec.fields.map(field => (
-                    <div key={field} className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">{formatFieldLabel(field)}</span>
-                      <span className={`font-medium text-right ${sectionData[field] !== undefined && sectionData[field] !== '' && sectionData[field] !== null ? '' : 'text-gray-300'}`}>
-                        {formatFieldValue(sectionData[field])}
-                      </span>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {photos.map(p => (
+                    <div key={p.path} className="aspect-square rounded-xl overflow-hidden border">
+                      <img src={p.url} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  {Object.entries(sectionData)
-                    .filter(([k, v]) => !sec.fields.includes(k) && v !== '' && v !== null && v !== undefined)
-                    .map(([key, value]) => (
-                      <div key={key} className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">{formatFieldLabel(key)}</span>
-                        <span className="font-medium text-right">{formatFieldValue(value)}</span>
-                      </div>
-                    ))}
                 </div>
               </CardContent>
             </Card>
-          )
-        })}
-      </div>
-
-      {/* Per-section Edit Dialog */}
-      <Dialog open={!!editingSection} onOpenChange={open => !open && setEditingSection(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit — {editingSection?.title}</DialogTitle>
-          </DialogHeader>
-          {editData && editingSection && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {editingSection.fields.map(field => (
-                  <div key={field} className="space-y-1">
-                    <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
-                    <input
-                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-abc-indigo focus:ring-1 focus:ring-abc-indigo/20 outline-none"
-                      value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
-                      onChange={e => updateEditField(field, e.target.value)}
-                    />
-                  </div>
-                ))}
-                {Object.keys(editData)
-                  .filter(k => !editingSection.fields.includes(k))
-                  .map(field => (
-                    <div key={field} className="space-y-1">
-                      <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
-                      <input
-                        className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-abc-indigo focus:ring-1 focus:ring-abc-indigo/20 outline-none"
-                        value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
-                        onChange={e => updateEditField(field, e.target.value)}
-                      />
-                    </div>
-                  ))}
-              </div>
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setEditingSection(null)}>Cancel</Button>
-                <Button onClick={saveSectionEdit} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                  Save
-                </Button>
-              </div>
-            </div>
           )}
-        </DialogContent>
-      </Dialog>
 
-      {/* Preview Dialog */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
-          <div className="bg-[#fdf8f3] p-6 space-y-6">
-            {photos.length > 0 && (
-              <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden">
-                <img src={photos[0].url} alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-            <div className="text-center">
-              <h2 className="text-xl font-heading font-bold text-abc-indigo">Meet {surrogate.name.split(' ')[0]}</h2>
-              {surrogate.location && <p className="text-muted-foreground text-sm mt-1">{surrogate.age ? `${surrogate.age} years old · ` : ''}{surrogate.location}</p>}
-              {data.about?.personality && <p className="text-sm italic text-abc-indigo/70 max-w-md mx-auto mt-3">"{data.about.personality}"</p>}
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {PROFILE_SECTIONS.map(sec => {
-              const sectionData = data[sec.key]
-              if (!sectionData) return null
-              const entries = Object.entries(sectionData).filter(([, v]) => v !== '' && v !== null && v !== undefined)
-              if (entries.length === 0) return null
+              const sectionData = data[sec.key] || {}
+              const isEditing = editingSection?.key === sec.key
+              const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
               return (
-                <div key={sec.key} className="rounded-xl bg-white shadow-sm border p-4 space-y-2">
-                  <h3 className="text-sm font-semibold text-abc-indigo">{sec.title}</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {entries.map(([key, value]) => (
-                      <div key={key}>
-                        <span className="text-muted-foreground capitalize text-xs">{formatFieldLabel(key)}</span>
-                        <p className="font-medium">{formatFieldValue(value)}</p>
+                <Card
+                  key={sec.key}
+                  id={`admin-sec-${sec.key}`}
+                  className={`rounded-2xl transition-all duration-300 ease-in-out ${isEditing ? 'lg:col-span-2 shadow-lg border-[#283693]/30 ring-2 ring-[#283693]/10' : ''}`}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle className="text-base">{sec.title}</CardTitle>
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setEditingSection(null)}>Cancel</Button>
+                        <Button size="sm" onClick={saveSectionEdit} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                          Save
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    ) : (
+                      <Button variant="ghost" size="sm" className="gap-1" onClick={() => startSectionEdit(sec)}>
+                        <Pencil className="size-3.5" /> Edit
+                      </Button>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {isEditing && editData ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {allFields.map(field => (
+                          <div key={field} className="space-y-1">
+                            <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
+                            <input
+                              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                              value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
+                              onChange={e => updateEditField(field, e.target.value)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        {allFields.map(field => (
+                          <div key={field} className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">{formatFieldLabel(field)}</span>
+                            <span className={`font-medium text-right ${sectionData[field] !== undefined && sectionData[field] !== '' && sectionData[field] !== null ? '' : 'text-gray-300'}`}>
+                              {formatFieldValue(sectionData[field])}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               )
             })}
-            <div className="text-center py-2">
-              <p className="text-xs text-muted-foreground">Preview of how intended parents will see this profile</p>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </>
+      )}
     </div>
   )
 }

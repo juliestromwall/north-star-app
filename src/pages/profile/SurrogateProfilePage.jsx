@@ -813,7 +813,7 @@ function PVYesNo({ label, value }) {
   )
 }
 
-function ProfilePreview({ profile, photos }) {
+export function ProfilePreview({ profile, photos }) {
   const p = profile?.personal || profile?.about || {}
   const family = profile?.family || {}
   const about = { ...p, ...family }
