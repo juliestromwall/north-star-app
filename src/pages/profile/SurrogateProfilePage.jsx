@@ -435,12 +435,27 @@ export default function SurrogateProfilePage() {
     }
   }, [])
 
-  // Pre-fill from intake quiz answers on first load
+  // Migrate old about/family keys → personal (one-time)
+  useEffect(() => {
+    const existing = loadProfile(userId)
+    if (!existing?.personal?.firstName && (existing?.about?.firstName || existing?.family?.maritalStatus)) {
+      setProfile(prev => ({
+        ...prev,
+        personal: {
+          ...prev.about,
+          ...prev.family,
+          ...prev.personal,
+        },
+      }))
+    }
+  }, [userId])
+
+  // Pre-fill from intake quiz answers
   useEffect(() => {
     if (!currentUser?.email) return
     const existing = loadProfile(userId)
-    // Only pre-fill if profile is mostly empty (first visit)
-    if (existing?.personal?.firstName || existing?.about?.firstName) return
+    // Only pre-fill if personal section is empty
+    if (existing?.personal?.firstName) return
     const STATE_ABBR_TO_NAME = {
       AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
     }
@@ -490,9 +505,19 @@ export default function SurrogateProfilePage() {
     fetchSurrogateProfile(currentUser.id).then(result => {
       if (result?.status === 'approved') setProfileApproved(true)
       if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
-        // Supabase has data — merge with localStorage
+        // Supabase has data — merge with localStorage, migrating old keys
         setProfile(prev => {
           const merged = { ...result.profile_data }
+          // Migrate old section keys → new ones
+          if (merged.about || merged.family) {
+            merged.personal = { ...merged.about, ...merged.family, ...merged.personal }
+          }
+          if (merged.lifestyle && !merged.general) {
+            merged.general = merged.lifestyle
+          }
+          if (merged.preferences && !merged.hopesWishes) {
+            merged.hopesWishes = merged.preferences
+          }
           for (const [section, fields] of Object.entries(prev)) {
             if (!merged[section]) merged[section] = fields
             else merged[section] = { ...merged[section], ...fields }
