@@ -156,6 +156,83 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
+const HOUSEHOLD_RELATIONSHIPS = [
+  'Spouse', 'Partner', 'Son', 'Daughter', 'Stepson', 'Stepdaughter',
+  'Mother', 'Father', 'Sibling', 'Grandparent', 'Grandchild',
+  'Roommate', 'Friend', 'Other'
+]
+
+function HouseholdMembers({ value = [], onChange }) {
+  const [count, setCount] = useState(value.length || 0)
+
+  useEffect(() => {
+    if (value.length > 0 && count === 0) setCount(value.length)
+  }, [value])
+
+  const handleCountChange = (newCount) => {
+    const n = Math.max(0, Math.min(20, parseInt(newCount) || 0))
+    setCount(n)
+    const current = [...value]
+    if (n > current.length) {
+      for (let i = current.length; i < n; i++) current.push({ name: '', relationship: '' })
+    }
+    onChange(current.slice(0, n))
+  }
+
+  const updateMember = (idx, field, val) => {
+    const updated = [...value]
+    updated[idx] = { ...updated[idx], [field]: val }
+    onChange(updated)
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="max-w-xs">
+        <Field label="How many other people live in your household?">
+          <Input
+            type="number" min="0" max="20"
+            value={count || ''}
+            onChange={e => handleCountChange(e.target.value)}
+            className="bg-white"
+          />
+        </Field>
+      </div>
+      {count > 0 && (
+        <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="grid grid-cols-[1fr_1fr] bg-gray-50 border-b border-gray-200">
+            <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">First Name</div>
+            <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Relationship</div>
+          </div>
+          {Array.from({ length: count }).map((_, idx) => (
+            <div key={idx} className={`grid grid-cols-[1fr_1fr] ${idx < count - 1 ? 'border-b border-gray-100' : ''}`}>
+              <div className="px-3 py-2">
+                <Input
+                  value={value[idx]?.name || ''}
+                  onChange={e => updateMember(idx, 'name', e.target.value)}
+                  placeholder={`Person ${idx + 1}`}
+                  className="bg-white h-9"
+                />
+              </div>
+              <div className="px-3 py-2">
+                <Select value={value[idx]?.relationship || ''} onValueChange={val => updateMember(idx, 'relationship', val)}>
+                  <SelectTrigger className="bg-white h-9">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HOUSEHOLD_RELATIONSHIPS.map(r => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Resize image via canvas, returns JPEG File
 function resizeViaCanvas(imageFile, maxSize = 1200) {
   return new Promise((resolve, reject) => {
@@ -363,7 +440,7 @@ function isPregnancyComplete(p) {
 }
 
 const REQUIRED_FIELDS = {
-  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus', 'whoLivesWithYou'],
+  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
   pregnancyHistory: ['numberOfPregnancies'],
   fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
   general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
@@ -985,8 +1062,7 @@ function PersonalSection({ v, u }) {
             </>
           )}
 
-          <TextAreaField label="Please list first names (and relationship) of all the people who live with you" value={v(s, 'whoLivesWithYou')} onChange={u(s, 'whoLivesWithYou')}
-            placeholder="List everyone who lives with you and their relationship to you" rows={3} />
+          <HouseholdMembers value={v(s, 'householdMembers') || []} onChange={u(s, 'householdMembers')} />
         </div>
       </div>
     </div>
