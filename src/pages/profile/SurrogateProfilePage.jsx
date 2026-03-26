@@ -1191,7 +1191,7 @@ function FertilitySection({ v, u, profile }) {
 
   return (
     <div className="space-y-6">
-      <YesNoField label="Is the biological father the same for all children? Please explain." value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
+      <YesNoField label="Is the biological father the same for all of your biological children?" value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
       {v(s, 'sameBioFather') === 'no' && (
         <TextAreaField label="Please explain" value={v(s, 'sameBioFatherDetails')} onChange={u(s, 'sameBioFatherDetails')} rows={2} />
       )}
