@@ -463,6 +463,7 @@ export default function SurrogateProfilePage() {
           bmi: bmi || '',
           maritalStatus: answers.maritalStatus || '',
           partnerName: answers.partnerName || '',
+          usCitizen: answers.usCitizen === true ? 'yes' : answers.usCitizen === false ? 'no' : '',
         },
       }))
     })
@@ -873,13 +874,13 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
     case 'personal': return <PersonalSection v={v} u={u} />
     case 'pregnancyHistory': return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
     case 'fertility': return <FertilitySection v={v} u={u} profile={profile} />
-    case 'general': return <GeneralSection v={v} u={u} />
+    case 'general': return <GeneralSection v={v} u={u} profile={profile} />
     case 'health': return <HealthSection v={v} u={u} />
-    case 'employment': return <EmploymentSection v={v} u={u} />
+    case 'employment': return <EmploymentSection v={v} u={u} profile={profile} />
     case 'interests': return <InterestsSection v={v} u={u} />
     case 'academic': return <AcademicSection v={v} u={u} />
     case 'experiencedSurrogate': return <ExperiencedSurrogateSection v={v} u={u} />
-    case 'hopesWishes': return <HopesWishesSection v={v} u={u} />
+    case 'hopesWishes': return <HopesWishesSection v={v} u={u} profile={profile} />
     case 'photos': return <PhotosSection v={v} u={u} />
     default: return null
   }
@@ -940,19 +941,25 @@ function PersonalSection({ v, u }) {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SelectField label="Current Marital/Relationship Status" value={v(s, 'maritalStatus')} onChange={u(s, 'maritalStatus')}
-              options={['Single', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']} />
+              options={['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']} />
             <YesNoField label="Are you currently in a monogamous relationship?" value={v(s, 'monogamous')} onChange={u(s, 'monogamous')} />
           </div>
           <SelectField label="How many sexual partners have you had in the past 6 months?" value={v(s, 'sexualPartners')} onChange={u(s, 'sexualPartners')}
             options={['0', '1', '2', '3', '4+']} className="max-w-xs" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField label="If married or in a relationship, how long have you been together?" value={v(s, 'relationshipLength')} onChange={u(s, 'relationshipLength')} placeholder="e.g. 5 years" />
-            <TextField label="First name ONLY of your spouse or partner" value={v(s, 'partnerName')} onChange={u(s, 'partnerName')} placeholder="If applicable" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField label="Spouse/Partner's Date of Birth" value={v(s, 'partnerDob')} onChange={u(s, 'partnerDob')} type="date" />
-            <YesNoField label="Is your Spouse/Partner a U.S. Citizen or Permanent Resident?" value={v(s, 'partnerUsCitizen')} onChange={u(s, 'partnerUsCitizen')} />
-          </div>
+
+          {['In a Relationship', 'Married', 'Domestic Partnership'].includes(v(s, 'maritalStatus')) && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField label="How long have you been together?" value={v(s, 'relationshipLength')} onChange={u(s, 'relationshipLength')} placeholder="e.g. 5 years" />
+                <TextField label="First name ONLY of your spouse or partner" value={v(s, 'partnerName')} onChange={u(s, 'partnerName')} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TextField label="Spouse/Partner's Date of Birth" value={v(s, 'partnerDob')} onChange={u(s, 'partnerDob')} type="date" />
+                <YesNoField label="Is your Spouse/Partner a U.S. Citizen or Permanent Resident?" value={v(s, 'partnerUsCitizen')} onChange={u(s, 'partnerUsCitizen')} />
+              </div>
+            </>
+          )}
+
           <TextAreaField label="Please list first names (and relationship) of all the people who live with you" value={v(s, 'whoLivesWithYou')} onChange={u(s, 'whoLivesWithYou')}
             placeholder="List everyone who lives with you and their relationship to you" rows={3} />
         </div>
@@ -1329,8 +1336,9 @@ function HealthSection({ v, u }) {
 // ─────────────────────────────────────────────────────────
 // 4. General Information
 // ─────────────────────────────────────────────────────────
-function GeneralSection({ v, u }) {
+function GeneralSection({ v, u, profile }) {
   const s = 'general'
+  const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(profile?.personal?.maritalStatus)
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1411,7 +1419,9 @@ function GeneralSection({ v, u }) {
       )}
       <TextAreaField label="Please describe your typical diet and eating habits. Do you cook at home? How often do you eat out? Do you have any special dietary restrictions?" value={v(s, 'typicalDiet')} onChange={u(s, 'typicalDiet')} rows={3} />
 
-      <YesNoField label="If in a relationship, will your partner submit to the FDA required lab tests (STD and drug testing)?" value={v(s, 'partnerFdaTests')} onChange={u(s, 'partnerFdaTests')} />
+      {hasPartner && (
+        <YesNoField label="Will your partner submit to the FDA required lab tests (STD and drug testing)?" value={v(s, 'partnerFdaTests')} onChange={u(s, 'partnerFdaTests')} />
+      )}
       <TextField label="What is your Ethnic Origin/Ancestry?" value={v(s, 'ethnicity')} onChange={u(s, 'ethnicity')} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1456,8 +1466,9 @@ function GeneralSection({ v, u }) {
 // ─────────────────────────────────────────────────────────
 // 6. Employment Information
 // ─────────────────────────────────────────────────────────
-function EmploymentSection({ v, u }) {
+function EmploymentSection({ v, u, profile }) {
   const s = 'employment'
+  const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(profile?.personal?.maritalStatus)
   return (
     <div className="space-y-6">
       <YesNoField label="Are you currently employed?" value={v(s, 'currentlyEmployed')} onChange={u(s, 'currentlyEmployed')} />
@@ -1474,13 +1485,15 @@ function EmploymentSection({ v, u }) {
         </>
       )}
 
-      <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">Spouse/Partner Employment</h4>
-        <div className="space-y-4">
-          <TextField label="Spouse/partner's occupation" value={v(s, 'partnerOccupation')} onChange={u(s, 'partnerOccupation')} />
-          <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
+      {hasPartner && (
+        <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
+          <h4 className="font-medium text-[#283693] mb-3">Spouse/Partner Employment</h4>
+          <div className="space-y-4">
+            <TextField label="Spouse/partner's occupation" value={v(s, 'partnerOccupation')} onChange={u(s, 'partnerOccupation')} />
+            <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
+          </div>
         </div>
-      </div>
+      )}
 
       <TextAreaField label="Do you have health insurance coverage? If yes, please provide name of provider" value={v(s, 'healthInsurance')} onChange={u(s, 'healthInsurance')} rows={2} />
       <SelectField label="Is it a private/personal policy or through you or your spouse's employer?" value={v(s, 'insuranceType')} onChange={u(s, 'insuranceType')}
@@ -1574,8 +1587,9 @@ function ExperiencedSurrogateSection({ v, u }) {
 // ─────────────────────────────────────────────────────────
 // 10. Journey Hopes & Wishes
 // ─────────────────────────────────────────────────────────
-function HopesWishesSection({ v, u }) {
+function HopesWishesSection({ v, u, profile }) {
   const s = 'hopesWishes'
+  const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(profile?.personal?.maritalStatus)
   return (
     <div className="space-y-6">
       <div className="p-4 rounded-xl bg-pink-50/50 border border-pink-100">
@@ -1642,7 +1656,9 @@ function HopesWishesSection({ v, u }) {
             <TextAreaField label="Please explain" value={v(s, 'cvsAmnioDetails')} onChange={u(s, 'cvsAmnioDetails')} rows={2} />
           )}
           <TextAreaField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={v(s, 'willingnessToTerminate')} onChange={u(s, 'willingnessToTerminate')} rows={2} />
-          <YesNoField label="If you are in a relationship, would your partner agree and support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
+          {hasPartner && (
+            <YesNoField label="Would your partner agree and support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
+          )}
           <TextAreaField label="Are there any specific conditions where you would not terminate a pregnancy? Please explain." value={v(s, 'conditionsWontTerminate')} onChange={u(s, 'conditionsWontTerminate')} rows={2} />
           <SelectField label="How many embryos are you in agreement to transfer at a time?" value={v(s, 'embryosToTransfer')} onChange={u(s, 'embryosToTransfer')}
             options={['1', '2', 'Doctor recommendation', 'Open to discussion']} />

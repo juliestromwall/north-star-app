@@ -21,6 +21,7 @@ const US_STATES = [
 
 const MARITAL_OPTIONS = [
   { value: 'Single',               label: 'Single'               },
+  { value: 'In a Relationship',    label: 'In a Relationship'    },
   { value: 'Married',              label: 'Married'              },
   { value: 'Domestic Partnership', label: 'Domestic Partnership' },
   { value: 'Divorced',             label: 'Divorced'             },
