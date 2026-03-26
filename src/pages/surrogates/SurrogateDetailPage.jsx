@@ -1353,8 +1353,13 @@ function formatFieldLabel(key) {
 function formatFieldValue(value) {
   if (value === undefined || value === null || value === '') return '—'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-  if (Array.isArray(value)) return value.length > 0 ? value.join(', ') : '—'
-  if (typeof value === 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '—'
+    // Handle array of objects (e.g. pregnancies, household members)
+    if (typeof value[0] === 'object') return null // render custom below
+    return value.join(', ')
+  }
+  if (typeof value === 'object') return null // render custom below
   return String(value)
 }
 
@@ -1370,6 +1375,9 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   function startSectionEdit(sec) {
     setEditData({ ...(data[sec.key] || {}), ...Object.fromEntries(sec.fields.filter(f => !(f in (data[sec.key] || {}))).map(f => [f, ''])) })
     setEditingSection(sec)
+    setTimeout(() => {
+      document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
   }
 
   function updateEditField(field, value) {
@@ -1514,26 +1522,90 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                   </CardHeader>
                   <CardContent>
                     {isEditing && editData ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {allFields.map(field => (
-                          <div key={field} className="space-y-1">
-                            <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
-                            <input
-                              className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-                              value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
-                              onChange={e => updateEditField(field, e.target.value)}
-                            />
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {allFields.filter(f => {
+                            const val = editData[f]
+                            return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
+                          }).map(field => (
+                            <div key={field} className="space-y-1">
+                              <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
+                              <input
+                                className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                                value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
+                                onChange={e => updateEditField(field, e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        {/* Render complex array fields (pregnancies, household) */}
+                        {allFields.filter(f => {
+                          const val = editData[f]
+                          return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
+                        }).map(field => (
+                          <div key={field}>
+                            <p className="text-xs text-muted-foreground font-medium mb-2">{formatFieldLabel(field)}</p>
+                            <div className="space-y-2">
+                              {editData[field].map((item, i) => (
+                                <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+                                  <p className="text-xs font-semibold text-[#283693] mb-2">#{i + 1}</p>
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                                    {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
+                                      <div key={k} className="space-y-0.5">
+                                        <span className="text-[10px] text-gray-400 uppercase">{formatFieldLabel(k)}</span>
+                                        <input
+                                          className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white focus:border-[#283693] outline-none"
+                                          value={Array.isArray(v) ? v.join(', ') : String(v || '')}
+                                          onChange={e => {
+                                            const updated = [...editData[field]]
+                                            updated[i] = { ...updated[i], [k]: e.target.value }
+                                            updateEditField(field, updated)
+                                          }}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="space-y-2 text-sm">
-                        {allFields.map(field => (
+                        {allFields.filter(f => {
+                          const val = sectionData[f]
+                          return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
+                        }).map(field => (
                           <div key={field} className="flex justify-between gap-4">
                             <span className="text-muted-foreground">{formatFieldLabel(field)}</span>
                             <span className={`font-medium text-right ${sectionData[field] !== undefined && sectionData[field] !== '' && sectionData[field] !== null ? '' : 'text-gray-300'}`}>
-                              {formatFieldValue(sectionData[field])}
+                              {formatFieldValue(sectionData[field]) ?? '—'}
                             </span>
+                          </div>
+                        ))}
+                        {/* Render complex array fields read-only */}
+                        {allFields.filter(f => {
+                          const val = sectionData[f]
+                          return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
+                        }).map(field => (
+                          <div key={field} className="pt-2">
+                            <p className="text-muted-foreground mb-2">{formatFieldLabel(field)}</p>
+                            <div className="space-y-2">
+                              {sectionData[field].map((item, i) => (
+                                <div key={i} className="rounded-lg border border-gray-100 bg-gray-50/50 p-2.5">
+                                  <span className="text-xs font-semibold text-[#283693]">#{i + 1}</span>
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                    {Object.entries(item).filter(([k, v]) => k !== 'id' && v !== '' && v !== null && v !== undefined).map(([k, v]) => (
+                                      <span key={k} className="text-xs">
+                                        <span className="text-gray-400">{formatFieldLabel(k)}:</span>{' '}
+                                        <span className="font-medium">{Array.isArray(v) ? v.join(', ') : String(v)}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
