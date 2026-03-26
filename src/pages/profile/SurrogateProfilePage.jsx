@@ -537,27 +537,6 @@ export default function SurrogateProfilePage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
 
-  // Load cover photo for summary card
-  const [coverPhotoUrl, setCoverPhotoUrl] = useState(null)
-  useEffect(() => {
-    listProfilePhotos(`${userId}/headshot`).then(photos => {
-      if (photos.length > 0) setCoverPhotoUrl(photos[0].url)
-      else setCoverPhotoUrl(null)
-    }).catch(() => {})
-  }, [userId])
-
-  // Calculate age from DOB
-  const age = useMemo(() => {
-    const dob = profile?.about?.dob
-    if (!dob) return null
-    const birth = new Date(dob)
-    const today = new Date()
-    let a = today.getFullYear() - birth.getFullYear()
-    const m = today.getMonth() - birth.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--
-    return a > 0 ? a : null
-  }, [profile?.about?.dob])
-
   // Shorthand helpers
   const v = (section, field) => getVal(section, field)
   const u = (section, field) => (val) => updateSection(section, field, val)
@@ -594,47 +573,6 @@ export default function SurrogateProfilePage() {
           <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
             <Eye className="w-4 h-4" /> Preview
           </Button>
-        </div>
-
-        {/* ── Profile Summary Card ── */}
-        <div className="flex flex-col sm:flex-row items-center gap-5 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          {/* Photo */}
-          {coverPhotoUrl ? (
-            <img src={coverPhotoUrl} alt="Profile" className="w-24 h-24 rounded-2xl object-cover border border-gray-200 shrink-0" />
-          ) : (
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#ed148c]/15 to-[#283693]/15 flex items-center justify-center shrink-0">
-              <User className="w-10 h-10 text-[#283693]/30" />
-            </div>
-          )}
-          {/* Info */}
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h2 className="text-xl font-bold text-[#283693]">
-              {profile?.about?.firstName || 'Your Name'}
-            </h2>
-            {(profile?.about?.city || profile?.about?.state) && (
-              <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500 mt-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {[profile?.about?.city, profile?.about?.state].filter(Boolean).join(', ')}
-              </p>
-            )}
-          </div>
-          {/* Quick stats */}
-          <div className="flex items-center gap-4 shrink-0">
-            {age && (
-              <div className="flex flex-col items-center px-4 py-2 rounded-xl bg-[#283693]/5">
-                <CalendarDays className="w-4 h-4 text-[#283693] mb-0.5" />
-                <span className="text-lg font-bold text-[#283693]">{age}</span>
-                <span className="text-[11px] text-gray-400">Age</span>
-              </div>
-            )}
-            {profile?.preferences?.desiredCompensation && (
-              <div className="flex flex-col items-center px-4 py-2 rounded-xl bg-[#ed148c]/5">
-                <DollarSign className="w-4 h-4 text-[#ed148c] mb-0.5" />
-                <span className="text-lg font-bold text-[#ed148c]">{profile.preferences.desiredCompensation}</span>
-                <span className="text-[11px] text-gray-400">Base Fee</span>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Approved banner */}
@@ -744,9 +682,20 @@ function ProfilePreview({ profile, photos }) {
 
   const heroPhoto = photos?.[0]
 
+  // Calculate age from DOB
+  const age = (() => {
+    if (!about.dob) return null
+    const birth = new Date(about.dob)
+    const today = new Date()
+    let a = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--
+    return a > 0 ? a : null
+  })()
+
   return (
     <div className="bg-[#fdf8f3]">
-      {/* Hero photo */}
+      {/* Cover photo */}
       {heroPhoto ? (
         <div className="w-full h-64 sm:h-80 overflow-hidden">
           <img src={heroPhoto.url} alt="" className="w-full h-full object-cover" />
@@ -773,23 +722,48 @@ function ProfilePreview({ profile, photos }) {
         </div>
       )}
 
-      <div className="px-6 py-6 space-y-6">
+      {/* ── Summary Header ── */}
+      <div className="flex flex-col sm:flex-row items-center gap-5 px-6 py-5 bg-white border-b border-gray-100">
         {/* Name & location */}
-        <div className="text-center">
+        <div className="flex-1 min-w-0 text-center sm:text-left">
           <h2 className="text-2xl font-heading font-bold text-[#283693]">
-            Meet {firstName}
+            {firstName}
           </h2>
           {(about.city || about.state) && (
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500 mt-1">
+              <MapPin className="w-3.5 h-3.5" />
               {[about.city, about.state].filter(Boolean).join(', ')}
             </p>
           )}
-          {about.personality && (
-            <p className="text-sm italic text-[#283693]/70 max-w-md mx-auto mt-3">
-              "{about.personality}"
-            </p>
+        </div>
+        {/* Quick stats */}
+        <div className="flex items-center gap-3 shrink-0">
+          {age && (
+            <div className="flex flex-col items-center px-4 py-2 rounded-xl bg-[#283693]/5">
+              <CalendarDays className="w-4 h-4 text-[#283693] mb-0.5" />
+              <span className="text-lg font-bold text-[#283693]">{age}</span>
+              <span className="text-[11px] text-gray-400">Age</span>
+            </div>
+          )}
+          {prefs.desiredCompensation && (
+            <div className="flex flex-col items-center px-4 py-2 rounded-xl bg-[#ed148c]/5">
+              <DollarSign className="w-4 h-4 text-[#ed148c] mb-0.5" />
+              <span className="text-lg font-bold text-[#ed148c]">{prefs.desiredCompensation}</span>
+              <span className="text-[11px] text-gray-400">Base Fee</span>
+            </div>
           )}
         </div>
+      </div>
+
+      <div className="px-6 py-6 space-y-6">
+        {/* Bio */}
+        {about.personality && (
+          <div className="text-center">
+            <p className="text-sm italic text-[#283693]/70 max-w-md mx-auto">
+              "{about.personality}"
+            </p>
+          </div>
+        )}
 
         {/* About Me */}
         <PreviewSection title="About Me">
