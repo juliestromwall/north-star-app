@@ -158,8 +158,8 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
 
 const HOUSEHOLD_RELATIONSHIPS = [
   'Spouse', 'Partner', 'Son', 'Daughter', 'Stepson', 'Stepdaughter',
-  'Mother', 'Father', 'Sibling', 'Grandparent', 'Grandchild',
-  'Roommate', 'Friend', 'Other'
+  'Mother', 'Father', 'Sibling', 'Cousin', 'Aunt', 'Uncle',
+  'Grandparent', 'Grandchild', 'Roommate', 'Friend', 'Other'
 ]
 
 function HouseholdMembers({ value = [], onChange }) {
