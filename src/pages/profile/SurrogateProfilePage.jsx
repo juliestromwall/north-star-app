@@ -1287,12 +1287,8 @@ function HealthSection({ v, u }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SelectField label="Blood type" value={v(s, 'bloodType')} onChange={u(s, 'bloodType')}
-          options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown']} />
-        <SelectField label="RH factor (+/-)" value={v(s, 'rhFactor')} onChange={u(s, 'rhFactor')}
-          options={['Positive', 'Negative', 'Unknown']} />
-      </div>
+      <SelectField label="Blood type" value={v(s, 'bloodType')} onChange={u(s, 'bloodType')}
+        options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown']} className="max-w-xs" />
       <TextAreaField label="Do you currently have any allergies?" value={v(s, 'allergies')} onChange={u(s, 'allergies')} placeholder="List any allergies and details" rows={2} />
       <TextAreaField label="Do you currently have any medical conditions we should be made aware of?" value={v(s, 'medicalConditions')} onChange={u(s, 'medicalConditions')} rows={2} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
