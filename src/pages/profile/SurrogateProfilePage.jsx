@@ -1211,7 +1211,7 @@ function FertilitySection({ v, u, profile }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SelectField label="Which contraceptive method do you currently use?" value={v(s, 'contraceptiveMethod')} onChange={u(s, 'contraceptiveMethod')}
-          options={['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Other']} />
+          options={['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other']} />
         <TextField label="When was the start of your last period?" value={v(s, 'lastPeriod')} onChange={u(s, 'lastPeriod')} type="date" />
       </div>
       <YesNoField label="Are your cycles typically between 28 to 30 days?" value={v(s, 'cycleLength')} onChange={u(s, 'cycleLength')} />
