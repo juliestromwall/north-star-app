@@ -1152,7 +1152,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
               <CheckboxGroupField label="Pregnancy complications (check all that apply)" options={[
                 'C-Section', 'Ectopic Pregnancy', 'Gestational Diabetes', 'High Blood Pressure',
                 'IUGR (Intrauterine Growth Restriction)', 'Physician Ordered Bed Rest', 'Placenta Previa',
-                'Postpartum Depression', 'Premature Birth', 'Retained Placenta', 'Still Birth', 'Toxemia', 'Other', 'None of the above'
+                'Postpartum Depression', 'Premature Birth', 'Retained Placenta', 'Toxemia', 'Other', 'None of the above'
               ]} value={pregnancies[expandedIdx]?.complicationsList || []} onChange={val => updatePregnancy(expandedIdx, 'complicationsList', val)} />
               {(pregnancies[expandedIdx]?.complicationsList || []).some(c => c !== 'None of the above') && (
                 <TextAreaField label="Please explain any checked complications" value={pregnancies[expandedIdx]?.complicationsExplanation || ''} onChange={val => updatePregnancy(expandedIdx, 'complicationsExplanation', val)} rows={2} />
