@@ -162,19 +162,39 @@ const HOUSEHOLD_RELATIONSHIPS = [
   'Grandparent', 'Grandchild', 'Roommate', 'Friend', 'Other'
 ]
 
-function HouseholdMembers({ value = [], onChange }) {
+function HouseholdMembers({ value = [], onChange, partnerName, maritalStatus }) {
   const [count, setCount] = useState(value.length || 0)
+  const hasPartner = ['Married', 'Domestic Partnership', 'In a Relationship'].includes(maritalStatus)
+  const autoRelationship = maritalStatus === 'Married' ? 'Spouse' : 'Partner'
 
   useEffect(() => {
     if (value.length > 0 && count === 0) setCount(value.length)
   }, [value])
+
+  // Auto-fill person #1 with partner info
+  useEffect(() => {
+    if (!hasPartner || !partnerName || value.length === 0) return
+    const first = value[0]
+    if (!first.name && !first.relationship) {
+      const updated = [...value]
+      updated[0] = { name: partnerName, relationship: autoRelationship }
+      onChange(updated)
+    }
+  }, [hasPartner, partnerName, value.length])
 
   const handleCountChange = (newCount) => {
     const n = Math.max(0, Math.min(20, parseInt(newCount) || 0))
     setCount(n)
     const current = [...value]
     if (n > current.length) {
-      for (let i = current.length; i < n; i++) current.push({ name: '', relationship: '' })
+      for (let i = current.length; i < n; i++) {
+        // Auto-fill first slot with partner if applicable
+        if (i === 0 && hasPartner && partnerName) {
+          current.push({ name: partnerName, relationship: autoRelationship })
+        } else {
+          current.push({ name: '', relationship: '' })
+        }
+      }
     }
     onChange(current.slice(0, n))
   }
@@ -1062,7 +1082,8 @@ function PersonalSection({ v, u }) {
             </>
           )}
 
-          <HouseholdMembers value={v(s, 'householdMembers') || []} onChange={u(s, 'householdMembers')} />
+          <HouseholdMembers value={v(s, 'householdMembers') || []} onChange={u(s, 'householdMembers')}
+            partnerName={v(s, 'partnerName')} maritalStatus={v(s, 'maritalStatus')} />
         </div>
       </div>
     </div>
