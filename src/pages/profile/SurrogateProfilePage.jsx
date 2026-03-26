@@ -666,10 +666,15 @@ export default function SurrogateProfilePage() {
   const u = (section, field) => (val) => updateSection(section, field, val)
 
   async function openPreview() {
+    if (previewOpen) {
+      setPreviewOpen(false)
+      return
+    }
     const photos = await listProfilePhotos(userId)
     const headshot = await listProfilePhotos(`${userId}/headshot`)
     setPreviewPhotos([...headshot, ...photos])
     setPreviewOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
@@ -695,7 +700,7 @@ export default function SurrogateProfilePage() {
             </div>
           </div>
           <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
-            <Eye className="w-4 h-4" /> Preview
+            <Eye className="w-4 h-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
           </Button>
         </div>
 
@@ -710,59 +715,61 @@ export default function SurrogateProfilePage() {
           </div>
         )}
 
-        {/* ── Section Cards ── */}
-        {SECTION_META.map(sec => {
-          const { filled, total, complete } = countCompleted(profile, sec.key)
-          const Icon = sec.icon
-          const isOpen = !!openSections[sec.key]
-
-          return (
-            <Collapsible key={sec.key} open={isOpen} onOpenChange={() => toggleSection(sec.key)}>
-              <Card id={`section-${sec.key}`} className="rounded-2xl shadow-sm border-gray-100 overflow-hidden">
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="cursor-pointer hover:bg-gray-50/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        complete ? 'bg-green-100' : 'bg-[#283693]/10'
-                      }`}>
-                        <Icon className={`w-5 h-5 ${complete ? 'text-green-600' : 'text-[#283693]'}`} />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{sec.title}</CardTitle>
-                        <CardDescription>{sec.description}</CardDescription>
-                      </div>
-                    </div>
-                    <CardAction>
-                      <div className="flex items-center gap-3">
-                        {total > 0 && (
-                          <span className="text-xs text-gray-400">{filled}/{total}</span>
-                        )}
-                        {complete ? (
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                        ) : total > 0 ? (
-                          <Circle className="w-5 h-5 text-gray-300" />
-                        ) : null}
-                        <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                      </div>
-                    </CardAction>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className={profileApproved ? 'pointer-events-none opacity-60' : ''}>
-                    <SectionBody sectionKey={sec.key} v={v} u={u} profile={profile} setProfile={setProfile} />
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
-          )
-        })}
-
-        {/* Profile Preview Dialog */}
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="!max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0">
+        {previewOpen ? (
+          /* ── Inline Preview ── */
+          <div className="max-w-[850px] mx-auto">
             <ProfilePreview profile={profile} photos={previewPhotos} />
-          </DialogContent>
-        </Dialog>
+          </div>
+        ) : (
+          /* ── Section Cards ── */
+          <>
+            {SECTION_META.map(sec => {
+              const { filled, total, complete } = countCompleted(profile, sec.key)
+              const Icon = sec.icon
+              const isOpen = !!openSections[sec.key]
+
+              return (
+                <Collapsible key={sec.key} open={isOpen} onOpenChange={() => toggleSection(sec.key)}>
+                  <Card id={`section-${sec.key}`} className="rounded-2xl shadow-sm border-gray-100 overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-gray-50/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            complete ? 'bg-green-100' : 'bg-[#283693]/10'
+                          }`}>
+                            <Icon className={`w-5 h-5 ${complete ? 'text-green-600' : 'text-[#283693]'}`} />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base">{sec.title}</CardTitle>
+                            <CardDescription>{sec.description}</CardDescription>
+                          </div>
+                        </div>
+                        <CardAction>
+                          <div className="flex items-center gap-3">
+                            {total > 0 && (
+                              <span className="text-xs text-gray-400">{filled}/{total}</span>
+                            )}
+                            {complete ? (
+                              <CheckCircle2 className="w-5 h-5 text-green-500" />
+                            ) : total > 0 ? (
+                              <Circle className="w-5 h-5 text-gray-300" />
+                            ) : null}
+                            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                          </div>
+                        </CardAction>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className={profileApproved ? 'pointer-events-none opacity-60' : ''}>
+                        <SectionBody sectionKey={sec.key} v={v} u={u} profile={profile} setProfile={setProfile} />
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )
+            })}
+          </>
+        )}
 
       </div>
     </div>
