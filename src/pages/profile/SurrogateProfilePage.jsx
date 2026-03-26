@@ -759,7 +759,7 @@ export default function SurrogateProfilePage() {
 
         {/* Profile Preview Dialog */}
         <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-4xl w-[95vw] max-h-[95vh] overflow-y-auto p-0">
+          <DialogContent className="!max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto p-0">
             <ProfilePreview profile={profile} photos={previewPhotos} />
           </DialogContent>
         </Dialog>
