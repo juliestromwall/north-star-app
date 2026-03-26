@@ -1545,28 +1545,146 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                         }).map(field => (
                           <div key={field}>
                             <p className="text-xs text-muted-foreground font-medium mb-2">{formatFieldLabel(field)}</p>
-                            <div className="space-y-2">
-                              {editData[field].map((item, i) => (
-                                <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
-                                  <p className="text-xs font-semibold text-[#283693] mb-2">#{i + 1}</p>
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                                    {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
-                                      <div key={k} className="space-y-0.5">
-                                        <span className="text-[10px] text-gray-400 uppercase">{formatFieldLabel(k)}</span>
-                                        <input
-                                          className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white focus:border-[#283693] outline-none"
-                                          value={Array.isArray(v) ? v.join(', ') : String(v || '')}
-                                          onChange={e => {
-                                            const updated = [...editData[field]]
-                                            updated[i] = { ...updated[i], [k]: e.target.value }
-                                            updateEditField(field, updated)
-                                          }}
-                                        />
+                            <div className="space-y-3">
+                              {editData[field].map((item, i) => {
+                                const updateItem = (k, val) => {
+                                  const updated = [...editData[field]]
+                                  updated[i] = { ...updated[i], [k]: val }
+                                  updateEditField(field, updated)
+                                }
+                                // Pregnancy-specific rendering
+                                if (field === 'pregnancies') {
+                                  return (
+                                    <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+                                      <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
+                                          <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
+                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                            <SelectContentUI>
+                                              {['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination'].map(o => (
+                                                <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
+                                              ))}
+                                            </SelectContentUI>
+                                          </SelectUI>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Surrogacy?</span>
+                                          <SelectUI value={item.wasSurrogacy || ''} onValueChange={v => updateItem('wasSurrogacy', v)}>
+                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                            <SelectContentUI>
+                                              <SelectItemUI value="yes">Yes</SelectItemUI>
+                                              <SelectItemUI value="no">No</SelectItemUI>
+                                            </SelectContentUI>
+                                          </SelectUI>
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">{item.outcome === 'Live Birth' ? "Child's Name" : 'Notes'}</span>
+                                          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Date</span>
+                                          <input type="date" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.dob || ''} onChange={e => updateItem('dob', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Gestation (weeks)</span>
+                                          <input type="number" min="0" max="45" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationWeeks || ''} onChange={e => updateItem('gestationWeeks', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Gestation (days)</span>
+                                          <input type="number" min="0" max="6" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationDays || ''} onChange={e => updateItem('gestationDays', e.target.value)} />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+                                          <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
+                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                            <SelectContentUI>
+                                              {(item.outcome === 'Live Birth' || item.outcome === 'Stillborn'
+                                                ? ['Vaginal', 'C-Section']
+                                                : ['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']
+                                              ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
+                                            </SelectContentUI>
+                                          </SelectUI>
+                                        </div>
+                                        {item.outcome === 'Live Birth' && (
+                                          <>
+                                            <div className="space-y-1">
+                                              <span className="text-[10px] text-gray-400 uppercase">Sex</span>
+                                              <SelectUI value={item.sex || ''} onValueChange={v => updateItem('sex', v)}>
+                                                <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                                <SelectContentUI>
+                                                  <SelectItemUI value="Male">Male</SelectItemUI>
+                                                  <SelectItemUI value="Female">Female</SelectItemUI>
+                                                </SelectContentUI>
+                                              </SelectUI>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <span className="text-[10px] text-gray-400 uppercase">Single/Multiples</span>
+                                              <SelectUI value={item.singleOrMultiples || ''} onValueChange={v => updateItem('singleOrMultiples', v)}>
+                                                <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                                <SelectContentUI>
+                                                  <SelectItemUI value="Single">Single</SelectItemUI>
+                                                  <SelectItemUI value="Twins">Twins</SelectItemUI>
+                                                  <SelectItemUI value="Triplets+">Triplets+</SelectItemUI>
+                                                </SelectContentUI>
+                                              </SelectUI>
+                                            </div>
+                                            <div className="space-y-1">
+                                              <span className="text-[10px] text-gray-400 uppercase">Birth Weight</span>
+                                              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weight || ''} onChange={e => updateItem('weight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <span className="text-[10px] text-gray-400 uppercase">Birth Length</span>
+                                              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.length || ''} onChange={e => updateItem('length', e.target.value)} placeholder="inches" />
+                                            </div>
+                                          </>
+                                        )}
                                       </div>
-                                    ))}
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] text-gray-400 uppercase">Complications / Details</span>
+                                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                // Household members
+                                if (field === 'householdMembers') {
+                                  return (
+                                    <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] text-gray-400 uppercase">Name</span>
+                                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <span className="text-[10px] text-gray-400 uppercase">Relationship</span>
+                                        <SelectUI value={item.relationship || ''} onValueChange={v => updateItem('relationship', v)}>
+                                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                                          <SelectContentUI>
+                                            {['Spouse','Partner','Son','Daughter','Stepson','Stepdaughter','Mother','Father','Sibling','Cousin','Aunt','Uncle','Grandparent','Grandchild','Roommate','Friend','Other'].map(r => (
+                                              <SelectItemUI key={r} value={r}>{r}</SelectItemUI>
+                                            ))}
+                                          </SelectContentUI>
+                                        </SelectUI>
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                                // Generic fallback
+                                return (
+                                  <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+                                    <p className="text-xs font-semibold text-[#283693] mb-2">#{i + 1}</p>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                                      {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
+                                        <div key={k} className="space-y-0.5">
+                                          <span className="text-[10px] text-gray-400 uppercase">{formatFieldLabel(k)}</span>
+                                          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white" value={Array.isArray(v) ? v.join(', ') : String(v || '')} onChange={e => updateItem(k, e.target.value)} />
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           </div>
                         ))}
