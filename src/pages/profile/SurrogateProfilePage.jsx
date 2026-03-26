@@ -964,11 +964,11 @@ function PersonalSection({ v, u }) {
       <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
         <h4 className="font-medium text-[#283693] mb-3">Relationship & Household</h4>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <SelectField label="Current Marital/Relationship Status" value={v(s, 'maritalStatus')} onChange={u(s, 'maritalStatus')}
-              options={['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']} />
+          <SelectField label="Current Marital/Relationship Status" value={v(s, 'maritalStatus')} onChange={u(s, 'maritalStatus')}
+            options={['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']} />
+          {!['Single', 'Divorced', 'Widowed'].includes(v(s, 'maritalStatus')) && v(s, 'maritalStatus') && (
             <YesNoField label="Are you currently in a monogamous relationship?" value={v(s, 'monogamous')} onChange={u(s, 'monogamous')} />
-          </div>
+          )}
           <SelectField label="How many sexual partners have you had in the past 6 months?" value={v(s, 'sexualPartners')} onChange={u(s, 'sexualPartners')}
             options={['0', '1', '2', '3', '4+']} className="max-w-xs" />
 
