@@ -1,0 +1,213 @@
+Section,Question,Field Type
+Personal Information,Cover Photo,Photo Upload
+Personal Information,First name (or nickname),Text
+Personal Information,Date of Birth,Date
+Personal Information,City,Text
+Personal Information,State,Select
+Personal Information,Height (ft),Select
+Personal Information,Height (in),Select
+Personal Information,Weight (lbs),Number
+Personal Information,BMI (auto),Display Field
+Personal Information,Are you a U.S. Citizen or Permanent Resident?,Yes/No
+Personal Information,Do you have a Real ID?,Yes/No
+Personal Information,Do you have a current/valid passport?,Yes/No
+Personal Information,"Do you (or anyone in your household) speak a language other than English?",Yes/No
+Personal Information,Which language(s)?,Text
+Personal Information,Current Marital/Relationship Status,Select
+Personal Information,Are you currently in a monogamous relationship?,Yes/No
+Personal Information,How many sexual partners have you had in the past 6 months?,Select
+Personal Information,How long have you been together?,Text
+Personal Information,First name ONLY of your spouse or partner,Text
+Personal Information,Spouse/Partner's Date of Birth,Date
+Personal Information,Is your Spouse/Partner a U.S. Citizen or Permanent Resident?,Yes/No
+Personal Information,How many other people live in your household?,Number
+Pregnancy History,Total number of pregnancies,Number
+Pregnancy History,Pregnancy Outcome,Select
+Pregnancy History,Was this a surrogacy pregnancy?,Yes/No
+Pregnancy History,Cycles to conceive,Number
+Pregnancy History,Child's Name / Notes (optional),Text
+Pregnancy History,Date (DOB or date of event),Date
+Pregnancy History,Gestation (weeks),Number
+Pregnancy History,Gestation (days),Number
+Pregnancy History,Sex,Select
+Pregnancy History,Delivery Type,Select
+Pregnancy History,Single or Multiples,Select
+Pregnancy History,Birth Weight,Text
+Pregnancy History,Birth Length,Text
+Pregnancy History,Delivery/Procedure Type,Select
+Pregnancy History,"Did you have an infection, fever or bleeding following this delivery/procedure?",Yes/No
+Pregnancy History,Please provide details (infection),Textarea
+Pregnancy History,Did this pregnancy result in a baby with a birth defect or genetic abnormality?,Yes/No
+Pregnancy History,Please provide details (birth defect),Textarea
+Pregnancy History,Pregnancy complications (check all that apply),Checkbox Group
+Pregnancy History,Please explain any checked complications,Textarea
+Pregnancy History,Additional details about this pregnancy,Textarea
+Fertility Information,Is the biological father the same for all of your biological children?,Yes/No
+Fertility Information,Please explain (bio father),Textarea
+Fertility Information,"We want to hear all the details about your pregnancy(s). Be sure to describe in detail about any complications you experienced. Please share the ups and downs.",Textarea
+Fertility Information,Have you ever been seen by a doctor for infertility treatment?,Yes/No
+Fertility Information,"Have you ever been told of any gynecological problems (endometriosis, ovarian cysts, fibroids, abnormal pap smears, etc.)?",Yes/No
+Fertility Information,Please provide details (infertility),Textarea
+Fertility Information,Please provide details (gynecological),Textarea
+Fertility Information,Which contraceptive method do you currently use?,Select
+Fertility Information,When was the start of your last period?,Date
+Fertility Information,Are your cycles typically between 28 to 30 days?,Yes/No
+Fertility Information,What is your typical cycle length?,Text
+Fertility Information,Are you currently breastfeeding/lactating?,Yes/No
+Fertility Information,When do you expect to stop?,Text
+Fertility Information,How long after stopping contraceptives did it take to get pregnant?,Textarea
+Fertility Information,Did you ever take medication (aside from prenatals) during pregnancy?,Yes/No
+Fertility Information,Please list medications,Textarea
+Fertility Information,What is the nearest hospital with a Level II or III NICU?,Text
+Fertility Information,"If only a Level I is close, are you ok traveling to a hospital with at least a Level II NICU?",Yes/No
+General Information,Do you own or rent your home?,Select
+General Information,How long have you lived in your current home?,Text
+General Information,Do your children live with you full time?,Yes/No
+General Information,Please explain (children),Textarea
+General Information,"Do any of your children have special needs or medical conditions (e.g., autism, developmental delays)?",Yes/No
+General Information,Please briefly describe (special needs),Textarea
+General Information,Have you ever placed a child for adoption?,Yes/No
+General Information,Please provide details (adoption),Textarea
+General Information,"If you are divorced or separated from the other parent(s) of your child(ren), please describe this relationship",Textarea
+General Information,Do you plan to have any more children of your own?,Yes/No
+General Information,Please share your thoughts (more children),Textarea
+General Information,Do you currently smoke or vape?,Yes/No
+General Information,Do you have a history of smoking in the past?,Yes/No
+General Information,For how long and when did you quit?,Text
+General Information,Does anyone else in your household currently smoke or vape?,Yes/No
+General Information,"Please provide details (who, how often, where and what)",Textarea
+General Information,Do you drink alcohol or use recreational drugs?,Yes/No
+General Information,Please list frequency and type,Textarea
+General Information,Have you ever been advised to limit your use of alcohol or any drugs?,Yes/No
+General Information,Please provide details (advised limit),Textarea
+General Information,"Does anyone in your household drink alcohol, use controlled substances or recreational drugs?",Yes/No
+General Information,"What, how often, and when/where?",Textarea
+General Information,"If a controlled substance, what is the purpose for use?",Textarea
+General Information,Do you own any guns?,Yes/No
+General Information,How many and where do you keep them?,Text
+General Information,Do you have any piercings or tattoos?,Yes/No
+General Information,Please list location and quantity for both,Textarea
+General Information,What month/year did you have your last tattoo? Was it a licensed facility?,Text
+General Information,Have you been tattooed or had a non-sterile skin piercing in the last 12 months?,Yes/No
+General Information,Do you have a history of eating disorders?,Yes/No
+General Information,Please explain (eating disorders),Textarea
+General Information,"Please describe your typical diet and eating habits. Do you cook at home? How often do you eat out? Do you have any special dietary restrictions?",Textarea
+General Information,Will your partner submit to the FDA required lab tests (STD and drug testing)?,Yes/No
+General Information,What is your Ethnic Origin/Ancestry?,Text
+General Information,"What is your current religious affiliation, if you have one?",Text
+General Information,How important is religion to you?,Select
+General Information,"If the Intended Parents had a different religious belief system than yours, would this create a problem?",Textarea
+General Information,Have you or anyone in your household ever been arrested and/or convicted of a crime/misdemeanor/felony?,Yes/No
+General Information,Please provide dates and explain,Textarea
+General Information,Have you traveled outside of the U.S. in the last 6 months?,Yes/No
+General Information,Do you plan on traveling within or outside of the U.S. in the next 6-8 months?,Yes/No
+General Information,When and where? (recent travel),Text
+General Information,When and where? (future travel),Text
+General Information,List the forms and frequency of regular exercise,Textarea
+General Information,Do you have any issues with sleeping?,Yes/No
+General Information,Please explain (sleep),Textarea
+General Information,How many hours do you typically sleep each night?,Number
+General Information,Do you have a reliable vehicle to drive?,Yes/No
+General Information,Do you have automobile insurance?,Yes/No
+General Information,Do you have a valid driver's license?,Yes/No
+Health Information,"Have you ever been formally or informally diagnosed with any mental health challenge (e.g. depression, anxiety, bipolar disorder, postpartum depression)?",Yes/No
+Health Information,Please provide details (mental health diagnosis),Textarea
+Health Information,Have you ever been hospitalized for a mental health challenge?,Yes/No
+Health Information,Please provide details (hospitalization),Textarea
+Health Information,Do you currently or have you ever taken medication for a mental health challenge?,Yes/No
+Health Information,Please list dates and medication type,Textarea
+Health Information,Are you currently or have you ever participated in counseling or psychotherapy?,Yes/No
+Health Information,Please provide details (counseling),Textarea
+Health Information,"Has anyone in your family ever had a mental health challenge such as depression, anxiety, alcoholism or drug abuse?",Yes/No
+Health Information,Please explain (family mental health),Textarea
+Health Information,Were you ever involved in a relationship where you experienced domestic violence?,Yes/No
+Health Information,Please explain (domestic violence),Textarea
+Health Information,"Non-prescription medication use (such as Tylenol, Advil, allergy/cold medication, etc.)",Textarea
+Health Information,"Prescription medications taken in the past 5 years, their purpose and dates of use",Textarea
+Health Information,Current medications and supplements,Textarea
+Health Information,Blood type,Select
+Health Information,Do you currently have any allergies?,Textarea
+Health Information,Do you currently have any medical conditions we should be made aware of?,Textarea
+Health Information,When was your last annual physical?,Text
+Health Information,Most recent Pap and results,Text
+Health Information,Hospitalization/surgery history over past 5 years. Please list surgery and year.,Textarea
+Health Information,Please indicate whether you have had any of the following conditions or diseases (check all that apply),Checkbox Group
+Health Information,Please explain any checked conditions,Textarea
+Health Information,"If required for the surrogacy process, are you open to being vaccinated (i.e Hep B, Flu, Varicella etc.)?",Yes/No
+Health Information,Please share your reasons (vaccination),Textarea
+Health Information,Have you received the Covid 19 vaccination?,Yes/No
+Health Information,Are you willing to receive the vaccination if recommended by the fertility doctor/OB or if your Intended Parents request this?,Yes/No
+Health Information,Have you had Covid-19 before?,Yes/No
+Health Information,Have you received the booster?,Yes/No
+Health Information,Are you comfortable getting this if requested?,Yes/No
+Employment Information,Are you currently employed?,Yes/No
+Employment Information,Please share details on the industry you work in,Textarea
+Employment Information,"How many hours a week do you work, and what are your typical hours?",Text
+Employment Information,What specifically is your occupation/position?,Text
+Employment Information,How long have you worked for your current employer?,Text
+Employment Information,What is your earned hourly rate?,Text
+Employment Information,What is your approximate weekly income?,Text
+Employment Information,Spouse/partner's occupation,Text
+Employment Information,Spouse/partner's approximate weekly income,Text
+Employment Information,"Do you have health insurance coverage? If yes, please provide name of provider",Textarea
+Employment Information,Is it a private/personal policy or through you or your spouse's employer?,Select
+Employment Information,"Do you receive any government assistance (WIC, food stamps)?",Yes/No
+Employment Information,Please explain (government assistance),Textarea
+Interests,Favorite music,Text
+Interests,Favorite movie,Text
+Interests,Favorite book,Text
+Interests,Favorite foods,Text
+Interests,Favorite color,Text
+Interests,Favorite flower,Text
+Interests,"Do you have any pets, including chickens and livestock?",Textarea
+Interests,"If you have cats, who changes the litter box?",Text
+Interests,What do you like to do in your free time?,Textarea
+Interests,Do you collect anything special?,Text
+Interests,Where would you most like to travel and why?,Textarea
+Interests,How would you describe yourself? Please include a description of your personality and temperament.,Textarea
+Academic Information,Highest level of education and/or type of vocational training,Select
+Academic Information,Are you currently in school?,Yes/No
+Academic Information,Please explain (school),Textarea
+Experienced Surrogate Information,Have you ever been a surrogate before?,Yes/No
+Experienced Surrogate Information,How many times?,Number
+Experienced Surrogate Information,Name, Location & Dates of each Reproductive Doctor,Textarea
+Experienced Surrogate Information,"Please share surrogacy pregnancy history (was there a pregnancy, complications, healthy baby, weeks when delivered)",Textarea
+Experienced Surrogate Information,How many attempts or transfers were there until you became pregnant?,Textarea
+Experienced Surrogate Information,What do you know about the embryos? Donor eggs or IM's eggs? How old was donor/IM at retrieval?,Textarea
+Experienced Surrogate Information,"Were there any unsuccessful cycles (lining issues, miscarriages, negative tests, chemical pregnancies)?",Yes/No
+Experienced Surrogate Information,Please explain (unsuccessful cycles),Textarea
+Experienced Surrogate Information,Please describe the overall experience. What did you like and what would you like to avoid in your next journey?,Textarea
+Journey Hopes & Wishes,"Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?",Textarea
+Journey Hopes & Wishes,How do you plan to use the money that you make from being a surrogate?,Textarea
+Journey Hopes & Wishes,Please explain how you see surrogacy fitting into your life,Textarea
+Journey Hopes & Wishes,Who will be your resource to help with your children for appointments / possible bed rest etc.? Please provide specific details on your support system.,Textarea
+Journey Hopes & Wishes,Are you willing to have 3 transfer attempts with the same IP if that is what it takes to achieve a pregnancy?,Yes/No
+Journey Hopes & Wishes,Are you willing to reduce the amount of caffeine and soda you consume during the pregnancy?,Yes/No
+Journey Hopes & Wishes,Are you open to making other lifestyle changes at the request of the Intended Parents?,Yes/No
+Journey Hopes & Wishes,Please explain (lifestyle changes),Textarea
+Journey Hopes & Wishes,Are you open to pumping colostrum and breast milk for your IP if they were to request this?,Yes/No
+Journey Hopes & Wishes,Describe ideal intended parent(s) for whom you would like to be a surrogate,Textarea
+Journey Hopes & Wishes,What is the best form of communication that you are comfortable using?,Select
+Journey Hopes & Wishes,How much involvement from the Intended Parents do you want during the pregnancy?,Select
+Journey Hopes & Wishes,Would you be willing to have the Intended Parents at doctor appointments and in delivery room?,Yes/No
+Journey Hopes & Wishes,Please explain (IPs at appointments),Textarea
+Journey Hopes & Wishes,"Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?",Textarea
+Journey Hopes & Wishes,How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?,Textarea
+Journey Hopes & Wishes,Are you willing to match with Intended Parents who already have children?,Yes/No
+Journey Hopes & Wishes,Are you open to matching with LGBTQ+ individual/couples?,Yes/No
+Journey Hopes & Wishes,Are you willing to match with a single Intended Parent?,Yes/No
+Journey Hopes & Wishes,Are you willing to have the embryo transfer in another state?,Yes/No
+Journey Hopes & Wishes,Are you willing to match with Intended Parents who live outside of the U.S.?,Yes/No
+Journey Hopes & Wishes,Who will care for your child(ren) when you need to travel for surrogacy?,Textarea
+Journey Hopes & Wishes,When are you ready to begin?,Select
+Journey Hopes & Wishes,Ideal relationship with Intended Parent(s) post birth,Select
+Journey Hopes & Wishes,"If recommended by a physician, would you be willing to undergo CVS, amniocentesis or other diagnostic testing?",Yes/No
+Journey Hopes & Wishes,Please explain (CVS/amnio),Textarea
+Journey Hopes & Wishes,Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?,Textarea
+Journey Hopes & Wishes,Would your partner agree and support the decision for termination?,Yes/No
+Journey Hopes & Wishes,Are there any specific conditions where you would not terminate a pregnancy? Please explain.,Textarea
+Journey Hopes & Wishes,How many embryos are you in agreement to transfer at a time?,Select
+Journey Hopes & Wishes,"If you only prefer to transfer 1 embryo and the embryo splits, would you be in agreement to carry twins?",Yes/No
+Journey Hopes & Wishes,Surrogate base fee,Text
+Journey Hopes & Wishes,Is this negotiable?,Yes/No
+Journey Hopes & Wishes,What would you like to add or say to potential Intended Parent(s) who are considering working with you as their surrogate?,Textarea
