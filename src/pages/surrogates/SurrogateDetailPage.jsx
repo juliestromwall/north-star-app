@@ -1566,30 +1566,36 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   const [downloading, setDownloading] = useState(false)
   const previewRef = useRef(null)
 
-  async function downloadPDF() {
-    // Show preview if not already visible
-    if (!previewOpen) {
-      setPreviewOpen(true)
-      await new Promise(r => setTimeout(r, 500))
-    }
-    if (!previewRef.current) return
-    setDownloading(true)
-    try {
-      const html2pdf = (await import('html2pdf.js')).default
+  function downloadPDF() {
+    // Show preview if needed so content renders
+    if (!previewOpen) setPreviewOpen(true)
+    setTimeout(() => {
+      if (!previewRef.current) return
       const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
-      await html2pdf().set({
-        margin: [10, 10, 10, 10],
-        filename: `${firstName}-Profile.pdf`,
-        image: { type: 'jpeg', quality: 0.85 },
-        html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, scrollY: -window.scrollY, windowWidth: 850 },
-        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['img', '.rounded-2xl'] }
-      }).from(previewRef.current).save()
-    } catch (err) {
-      console.error('PDF generation failed:', err)
-    } finally {
-      setDownloading(false)
-    }
+      // Clone the preview into a print window
+      const printWin = window.open('', '_blank', 'width=900,height=700')
+      if (!printWin) return
+      // Grab all stylesheets from the current page
+      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+        .map(el => el.outerHTML).join('\n')
+      printWin.document.write(`<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
+        <style>
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          body { background: #fdf8f3; margin: 0; padding: 20px; }
+          .print-container { max-width: 850px; margin: 0 auto; }
+        </style></head><body>
+        <div class="print-container">${previewRef.current.innerHTML}</div>
+        </body></html>`)
+      printWin.document.close()
+      // Wait for images to load then trigger print
+      printWin.onload = () => {
+        setTimeout(() => {
+          printWin.print()
+        }, 500)
+      }
+      // Fallback if onload already fired
+      setTimeout(() => { printWin.print() }, 1500)
+    }, 300)
   }
   const [statusLoading, setStatusLoading] = useState(false)
   const isApproved = profileStatus === 'approved'
@@ -1651,9 +1657,8 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
             <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { setPreviewOpen(!previewOpen); if (!previewOpen) window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
               <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF} disabled={downloading}>
-              {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-              {downloading ? 'Generating...' : 'Download PDF'}
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF}>
+              <Download className="size-3.5" /> Save as PDF
             </Button>
             <Button
               size="sm"
