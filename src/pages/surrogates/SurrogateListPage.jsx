@@ -372,9 +372,19 @@ export default function SurrogateListPage() {
   }
 
   // ── Hero Stats Bar ─────────────────────────────────────
+  // Filter surrogates by owner for stage counts (same logic as filtered, minus search/stage filter)
+  const ownerFiltered = useMemo(() => {
+    return surrogates.filter(s => {
+      if (ownerFilter === 'mine') return s.assignedTo === currentUser.email
+      if (ownerFilter === 'unassigned') return !s.assignedTo
+      if (ownerFilter !== 'all') return s.assignedTo === ownerFilter
+      return true
+    })
+  }, [surrogates, ownerFilter, currentUser.email])
+
   const stageCounts = {}
   for (const stage of SURROGATE_STAGES) stageCounts[stage.id] = 0
-  for (const s of surrogates) {
+  for (const s of ownerFiltered) {
     const ss = allStageStatuses[s.id]
     const stageId = ss?.stage || 'pre-qualification'
     if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
@@ -400,7 +410,7 @@ export default function SurrogateListPage() {
           className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
         </button>
         {SURROGATE_STAGES.map(stage => (
