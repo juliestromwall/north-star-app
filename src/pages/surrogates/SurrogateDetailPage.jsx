@@ -1572,29 +1572,29 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
     setTimeout(() => {
       if (!previewRef.current) return
       const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
-      // Clone the preview into a print window
-      const printWin = window.open('', '_blank', 'width=900,height=700')
-      if (!printWin) return
-      // Grab all stylesheets from the current page
+      // Clone the preview into a new tab (not a popup) so print doesn't block parent
+      const printWin = window.open('', '_blank')
+      if (!printWin) { alert('Please allow popups to save as PDF'); return }
       const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
         .map(el => el.outerHTML).join('\n')
-      printWin.document.write(`<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
+      const html = `<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
         <style>
           @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-          body { background: #fdf8f3; margin: 0; padding: 20px; }
+          body { background: white; margin: 0; padding: 20px; font-family: system-ui, -apple-system, sans-serif; }
           .print-container { max-width: 850px; margin: 0 auto; }
+          .print-bar { max-width: 850px; margin: 0 auto 20px; padding: 12px 16px; background: #283693; color: white; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+          .print-bar button { background: white; color: #283693; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+          .print-bar button:hover { opacity: 0.9; }
+          @media print { .print-bar { display: none; } }
         </style></head><body>
+        <div class="print-bar">
+          <span>${firstName}'s Surrogate Profile</span>
+          <button onclick="window.print()">Save as PDF / Print</button>
+        </div>
         <div class="print-container">${previewRef.current.innerHTML}</div>
-        </body></html>`)
+        </body></html>`
+      printWin.document.write(html)
       printWin.document.close()
-      // Wait for images to load then trigger print
-      printWin.onload = () => {
-        setTimeout(() => {
-          printWin.print()
-        }, 500)
-      }
-      // Fallback if onload already fired
-      setTimeout(() => { printWin.print() }, 1500)
     }, 300)
   }
   const [statusLoading, setStatusLoading] = useState(false)
