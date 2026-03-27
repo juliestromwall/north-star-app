@@ -156,6 +156,28 @@ function CheckboxGroupField({ label, options, value = [], onChange, className = 
   )
 }
 
+function CurrencyField({ label, value, onChange, className = '' }) {
+  const formatCurrency = (val) => {
+    const digits = String(val).replace(/[^0-9]/g, '')
+    if (!digits) return ''
+    return '$' + Number(digits).toLocaleString('en-US')
+  }
+  const handleChange = (raw) => {
+    const digits = raw.replace(/[^0-9]/g, '')
+    onChange(digits ? '$' + Number(digits).toLocaleString('en-US') : '')
+  }
+  return (
+    <Field label={label} className={className}>
+      <Input
+        value={formatCurrency(value)}
+        onChange={e => handleChange(e.target.value)}
+        placeholder="$0"
+        className="bg-white"
+      />
+    </Field>
+  )
+}
+
 const HOUSEHOLD_RELATIONSHIPS = [
   'Spouse', 'Partner', 'Son', 'Daughter', 'Stepson', 'Stepdaughter',
   'Mother', 'Father', 'Sibling', 'Cousin', 'Aunt', 'Uncle',
@@ -2045,7 +2067,7 @@ function HopesWishesSection({ v, u, profile }) {
       <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
         <h4 className="font-medium text-[#283693] mb-3">Compensation</h4>
         <div className="space-y-4">
-          <TextField label="Surrogate base fee" value={v(s, 'desiredCompensation')} onChange={u(s, 'desiredCompensation')} placeholder="$" />
+          <CurrencyField label="Surrogate base fee" value={v(s, 'desiredCompensation')} onChange={u(s, 'desiredCompensation')} />
           <YesNoField label="Is this negotiable?" value={v(s, 'compensationNegotiable')} onChange={u(s, 'compensationNegotiable')} />
         </div>
       </div>
