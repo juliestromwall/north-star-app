@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
@@ -1368,6 +1368,34 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const previewRef = useRef(null)
+
+  async function downloadPDF() {
+    // Show preview if not already visible
+    if (!previewOpen) {
+      setPreviewOpen(true)
+      await new Promise(r => setTimeout(r, 300))
+    }
+    if (!previewRef.current) return
+    setDownloading(true)
+    try {
+      const html2pdf = (await import('html2pdf.js')).default
+      const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
+      await html2pdf().set({
+        margin: 0,
+        filename: `${firstName}-Profile.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+        jsPDF: { unit: 'px', format: [850, previewRef.current.scrollHeight], hotfixes: ['px_scaling'] },
+        pagebreak: { mode: ['avoid-all'] }
+      }).from(previewRef.current).save()
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+    } finally {
+      setDownloading(false)
+    }
+  }
   const [statusLoading, setStatusLoading] = useState(false)
   const isApproved = profileStatus === 'approved'
   const data = profileData || {}
@@ -1428,6 +1456,10 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
             <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { setPreviewOpen(!previewOpen); if (!previewOpen) window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
               <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
             </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF} disabled={downloading}>
+              {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
+              {downloading ? 'Generating...' : 'Download PDF'}
+            </Button>
             <Button
               size="sm"
               className={`gap-1.5 rounded-full ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'}`}
@@ -1473,7 +1505,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
 
       {previewOpen ? (
         /* ── Inline Preview (same as surrogate sees) ── */
-        <div className="max-w-[850px] mx-auto">
+        <div className="max-w-[850px] mx-auto" ref={previewRef}>
           <ProfilePreview profile={data} photos={photos} />
         </div>
       ) : (
