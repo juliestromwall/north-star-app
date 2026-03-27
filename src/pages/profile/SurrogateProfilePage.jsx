@@ -337,17 +337,16 @@ function getCroppedImg(imageSrc, crop, rotation = 0) {
   })
 }
 
-function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId }) {
+function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder = 'headshot' }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    // Check for existing profile photo in headshot subfolder
-    listProfilePhotos(`${userId}/headshot`).then(photos => {
+    listProfilePhotos(`${userId}/${subfolder}`).then(photos => {
       if (photos.length > 0) setPhoto(photos[0])
     }).catch(() => {})
-  }, [userId])
+  }, [userId, subfolder])
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
@@ -358,7 +357,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId }) {
     try {
       if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
       const jpeg = await convertToJpeg(file)
-      const result = await uploadProfilePhoto(`${userId}/headshot`, jpeg)
+      const result = await uploadProfilePhoto(`${userId}/${subfolder}`, jpeg)
       if (result) setPhoto(result)
     } catch (err) {
       setError(err.message || 'Upload failed')
@@ -1211,7 +1210,10 @@ function PersonalSection({ v, u }) {
 
   return (
     <div className="space-y-6">
-      <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} subfolder="portrait" />
+        <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} subfolder="headshot" />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="First name (or nickname)" value={v(s, 'firstName')} onChange={u(s, 'firstName')} placeholder="First name ONLY or nickname" />
         <TextField label="Date of Birth" value={v(s, 'dob')} onChange={u(s, 'dob')} type="date" disabled placeholder="From signup" />
