@@ -719,6 +719,7 @@ function DocumentsTab({ surrogateId }) {
   })
   const uploadCategoryRef = useRef(null)
   const [zipFiles, setZipFiles] = useState(null) // extracted zip files awaiting assignment
+  const [zipPreviewIdx, setZipPreviewIdx] = useState(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor))
 
   function handleDragEnd(event) {
@@ -806,8 +807,12 @@ function DocumentsTab({ surrogateId }) {
         const blob = await entry.async('blob')
         const name = path.split('/').pop()
         if (!name) continue
-        const file = new window.File([blob], name, { type: blob.type || 'application/octet-stream' })
-        extracted.push({ file, name, category: 'other' })
+        const ext = name.split('.').pop().toLowerCase()
+        const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', pdf: 'application/pdf' }
+        const mime = mimeMap[ext] || blob.type || 'application/octet-stream'
+        const file = new window.File([blob], name, { type: mime })
+        const previewUrl = ['jpg','jpeg','png','gif','webp','pdf'].includes(ext) ? URL.createObjectURL(file) : null
+        extracted.push({ file, name, category: 'other', previewUrl, ext })
       }
       if (extracted.length > 0) setZipFiles(extracted)
     } catch (err) {
@@ -920,15 +925,23 @@ function DocumentsTab({ surrogateId }) {
           </CardHeader>
           <CardContent>
             <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-[1fr_1fr_auto] bg-gray-50 border-b border-gray-200 px-4 py-2">
+              <div className="grid grid-cols-[auto_1fr_1fr_auto] bg-gray-50 border-b border-gray-200 px-4 py-2 gap-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
                 <span className="text-xs font-semibold text-gray-500 uppercase">File Name</span>
                 <span className="text-xs font-semibold text-gray-500 uppercase">Folder</span>
                 <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
               </div>
               {zipFiles.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_1fr_auto] items-center px-4 py-2 border-b border-gray-100 last:border-0">
+                <div key={idx} className="grid grid-cols-[auto_1fr_1fr_auto] items-center px-4 py-2 border-b border-gray-100 last:border-0 gap-2">
+                  {item.previewUrl ? (
+                    <button className="p-1 rounded hover:bg-[#283693]/10 text-[#283693]" onClick={() => setZipPreviewIdx(idx)} title="Preview">
+                      <Eye className="size-4" />
+                    </button>
+                  ) : (
+                    <div className="w-6" />
+                  )}
                   <input
-                    className="rounded border border-gray-200 px-2 py-1 text-sm bg-white mr-2"
+                    className="rounded border border-gray-200 px-2 py-1 text-sm bg-white"
                     value={item.name}
                     onChange={e => setZipFiles(prev => prev.map((f, i) => i === idx ? { ...f, name: e.target.value } : f))}
                   />
@@ -938,13 +951,45 @@ function DocumentsTab({ surrogateId }) {
                       {DOC_CATEGORIES.map(c => <SelectItemUI key={c.id} value={c.id}>{c.label}</SelectItemUI>)}
                     </SelectContentUI>
                   </SelectUI>
-                  <button className="ml-2 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                  <button className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
                     onClick={() => setZipFiles(prev => prev.filter((_, i) => i !== idx))}>
                     <X className="size-3.5" />
                   </button>
                 </div>
               ))}
             </div>
+            {/* Zip file preview overlay */}
+            {zipPreviewIdx !== null && zipFiles[zipPreviewIdx]?.previewUrl && (
+              <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setZipPreviewIdx(null)}>
+                <div className="relative bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 py-3 border-b">
+                    <p className="text-sm font-semibold text-stone-800 truncate">{zipFiles[zipPreviewIdx].name}</p>
+                    <div className="flex items-center gap-2">
+                      {zipPreviewIdx > 0 && (
+                        <Button variant="outline" size="sm" onClick={() => setZipPreviewIdx(prev => { let n = prev - 1; while (n >= 0 && !zipFiles[n]?.previewUrl) n--; return n >= 0 ? n : prev })}>
+                          ← Prev
+                        </Button>
+                      )}
+                      {zipPreviewIdx < zipFiles.length - 1 && (
+                        <Button variant="outline" size="sm" onClick={() => setZipPreviewIdx(prev => { let n = prev + 1; while (n < zipFiles.length && !zipFiles[n]?.previewUrl) n++; return n < zipFiles.length ? n : prev })}>
+                          Next →
+                        </Button>
+                      )}
+                      <button className="p-1.5 rounded-full hover:bg-stone-100" onClick={() => setZipPreviewIdx(null)}>
+                        <X className="size-4 text-stone-500" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto flex items-center justify-center bg-stone-50 p-4">
+                    {zipFiles[zipPreviewIdx].ext === 'pdf' ? (
+                      <iframe src={zipFiles[zipPreviewIdx].previewUrl} className="w-full h-[80vh] border-0" />
+                    ) : (
+                      <img src={zipFiles[zipPreviewIdx].previewUrl} alt="" className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-sm" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
