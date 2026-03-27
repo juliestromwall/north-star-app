@@ -938,7 +938,7 @@ export function ProfilePreview({ profile, photos }) {
       <div className="px-6 sm:px-8 py-6 space-y-5 print:px-0">
 
         {/* Quick Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4 print:px-6">
           {[
             { icon: Ruler, label: 'Height', value: heightStr },
             { icon: Scale, label: 'Weight', value: about.weight ? `${about.weight} lbs` : '' },
