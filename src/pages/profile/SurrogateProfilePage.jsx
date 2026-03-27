@@ -1092,9 +1092,9 @@ export function ProfilePreview({ profile, photos }) {
           </div>
         </PVSection>
 
-        {/* Experienced Surrogate */}
-        <PVSection title="Surrogacy Experience" icon={Stethoscope}>
-          {expSurr.previousSurrogate === 'yes' ? (
+        {/* Experienced Surrogate — only show if they've been a surrogate before */}
+        {expSurr.previousSurrogate === 'yes' && (
+          <PVSection title="Surrogacy Experience" icon={Stethoscope}>
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#ed148c]/10 text-[#ed148c] text-sm font-semibold px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Experienced Surrogate — {expSurr.surrogacyTimes || '?'} time(s)
@@ -1104,12 +1104,8 @@ export function ProfilePreview({ profile, photos }) {
               <PVField label="Embryo Details" value={expSurr.embryoSource} />
               <PVField label="Overall Experience" value={expSurr.overallExperience} />
             </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#283693]/10 text-[#283693] text-sm font-semibold px-4 py-1.5">
-              First-Time Surrogate
-            </div>
-          )}
-        </PVSection>
+          </PVSection>
+        )}
 
         {/* Journey Hopes & Wishes */}
         <PVSection title="Journey Hopes & Wishes" icon={Heart}>
