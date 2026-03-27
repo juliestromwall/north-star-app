@@ -1539,7 +1539,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
     // Show preview if not already visible
     if (!previewOpen) {
       setPreviewOpen(true)
-      await new Promise(r => setTimeout(r, 300))
+      await new Promise(r => setTimeout(r, 500))
     }
     if (!previewRef.current) return
     setDownloading(true)
@@ -1547,12 +1547,12 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
       const html2pdf = (await import('html2pdf.js')).default
       const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
       await html2pdf().set({
-        margin: 0,
+        margin: [10, 10, 10, 10],
         filename: `${firstName}-Profile.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-        jsPDF: { unit: 'px', format: [850, previewRef.current.scrollHeight], hotfixes: ['px_scaling'] },
-        pagebreak: { mode: ['avoid-all'] }
+        image: { type: 'jpeg', quality: 0.85 },
+        html2canvas: { scale: 1.5, useCORS: true, allowTaint: true, scrollY: -window.scrollY, windowWidth: 850 },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['img', '.rounded-2xl'] }
       }).from(previewRef.current).save()
     } catch (err) {
       console.error('PDF generation failed:', err)
