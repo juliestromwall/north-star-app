@@ -337,7 +337,7 @@ function getCroppedImg(imageSrc, crop, rotation = 0) {
   })
 }
 
-function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
+function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -380,6 +380,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', userId }) {
 
   return (
     <Field label={label}>
+      {hint && <p className="text-xs text-gray-400 -mt-0.5 mb-1.5">{hint}</p>}
       {photo ? (
         <div className="relative group w-32 h-32">
           <img src={photo.url} alt="Profile" className="w-32 h-32 rounded-2xl object-cover border border-gray-200" />
@@ -1210,10 +1211,7 @@ function PersonalSection({ v, u }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <ProfilePhotoUpload label="Cover Photo" userId={userId} />
-        <p className="text-xs text-gray-400 mt-1.5">Upload a favorite picture of you with your family or kids!</p>
-      </div>
+      <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="First name (or nickname)" value={v(s, 'firstName')} onChange={u(s, 'firstName')} placeholder="First name ONLY or nickname" />
         <TextField label="Date of Birth" value={v(s, 'dob')} onChange={u(s, 'dob')} type="date" disabled placeholder="From signup" />
