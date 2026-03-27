@@ -51,7 +51,7 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Matching',
+        label: 'Matched Journeys',
         icon: GitMerge,
         path: '/matching',
         roles: ADMIN_ROLES,

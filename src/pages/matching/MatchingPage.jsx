@@ -1,158 +1,220 @@
 import { useState, useMemo } from 'react'
-import { Plus, Heart, Users, Baby } from 'lucide-react'
+import { Plus, Heart, Users, Baby, Search, LayoutGrid, List as ListIcon, GitMerge } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import PageHeader from '@/components/shared/PageHeader'
-import StatCard from '@/components/shared/StatCard'
-import KanbanColumn from './KanbanColumn'
-import MatchDetailDialog from './MatchDetailDialog'
-import NewMatchDialog from './NewMatchDialog'
+import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import { MATCH_STAGES } from '@/lib/constants'
 import { mockMatches } from '@/data/mock/matches'
 import { mockSurrogates } from '@/data/mock/surrogates'
 import { mockIntendedParents } from '@/data/mock/intendedParents'
+import NewMatchDialog from './NewMatchDialog'
+
+const JOURNEY_STAGES = [
+  { id: 'Profile Review', label: 'Profile Review', color: '#ed148c' },
+  { id: 'Introduction', label: 'Introduction', color: '#c4219a' },
+  { id: 'Meeting Scheduled', label: 'Meeting Scheduled', color: '#9b2ea7' },
+  { id: 'Meeting Complete', label: 'Meeting Complete', color: '#723bb4' },
+  { id: 'Match Confirmed', label: 'Match Confirmed', color: '#4d3da4' },
+  { id: 'Legal', label: 'Legal', color: '#283693' },
+  { id: 'Medical Clearance', label: 'Medical Clearance', color: '#10b981' },
+  { id: 'Transfer Prep', label: 'Transfer Prep', color: '#0ea5e9' },
+  { id: 'Active Pregnancy', label: 'Active Pregnancy', color: '#f59e0b' },
+  { id: 'Delivered', label: 'Delivered', color: '#22c55e' },
+]
 
 export default function MatchingPage() {
   const [matches, setMatches] = useState(mockMatches)
-  const [selectedMatchId, setSelectedMatchId] = useState(null)
   const [showNewMatch, setShowNewMatch] = useState(false)
+  const [search, setSearch] = useState('')
+  const [stageFilter, setStageFilter] = useState('all')
+  const [view, setView] = useState('tile')
 
-  // O(1) lookup maps
-  const surrogateMap = useMemo(
-    () => Object.fromEntries(mockSurrogates.map(s => [s.id, s])),
-    [],
-  )
-  const ipMap = useMemo(
-    () => Object.fromEntries(mockIntendedParents.map(ip => [ip.id, ip])),
-    [],
-  )
+  const surrogateMap = useMemo(() => Object.fromEntries(mockSurrogates.map(s => [s.id, s])), [])
+  const ipMap = useMemo(() => Object.fromEntries(mockIntendedParents.map(ip => [ip.id, ip])), [])
 
-  // Group matches by stage
-  const matchesByStage = useMemo(() => {
-    const map = {}
-    for (const stage of MATCH_STAGES) map[stage] = []
+  // Stage counts
+  const stageCounts = useMemo(() => {
+    const counts = {}
+    for (const s of JOURNEY_STAGES) counts[s.id] = 0
     for (const m of matches) {
-      if (map[m.stage]) map[m.stage].push(m)
+      if (counts[m.stage] !== undefined) counts[m.stage]++
     }
-    return map
+    return counts
   }, [matches])
 
-  // Unmatched candidates
-  const matchedSurrogateIds = useMemo(
-    () => new Set(matches.map(m => m.surrogateId)),
-    [matches],
-  )
-  const matchedIPIds = useMemo(
-    () => new Set(matches.map(m => m.ipId)),
-    [matches],
-  )
-  const unmatchedSurrogates = useMemo(
-    () => mockSurrogates.filter(s => !matchedSurrogateIds.has(s.id)),
-    [matchedSurrogateIds],
-  )
-  const unmatchedIPs = useMemo(
-    () => mockIntendedParents.filter(ip => !matchedIPIds.has(ip.id)),
-    [matchedIPIds],
-  )
+  // Unmatched
+  const matchedSurrogateIds = useMemo(() => new Set(matches.map(m => m.surrogateId)), [matches])
+  const matchedIPIds = useMemo(() => new Set(matches.map(m => m.ipId)), [matches])
+  const unmatchedSurrogates = useMemo(() => mockSurrogates.filter(s => !matchedSurrogateIds.has(s.id)), [matchedSurrogateIds])
+  const unmatchedIPs = useMemo(() => mockIntendedParents.filter(ip => !matchedIPIds.has(ip.id)), [matchedIPIds])
 
-  // Selected match (derived from ID)
-  const selectedMatch = matches.find(m => m.id === selectedMatchId) || null
-  const selectedSurrogate = selectedMatch ? surrogateMap[selectedMatch.surrogateId] : null
-  const selectedIP = selectedMatch ? ipMap[selectedMatch.ipId] : null
-
-  // Handlers
-  const advanceStage = () => {
-    if (!selectedMatch) return
-    const idx = MATCH_STAGES.indexOf(selectedMatch.stage)
-    if (idx >= MATCH_STAGES.length - 1) return
-    setMatches(prev =>
-      prev.map(m =>
-        m.id === selectedMatchId ? { ...m, stage: MATCH_STAGES[idx + 1] } : m,
-      ),
-    )
-  }
-
-  const moveBackStage = () => {
-    if (!selectedMatch) return
-    const idx = MATCH_STAGES.indexOf(selectedMatch.stage)
-    if (idx <= 0) return
-    setMatches(prev =>
-      prev.map(m =>
-        m.id === selectedMatchId ? { ...m, stage: MATCH_STAGES[idx - 1] } : m,
-      ),
-    )
-  }
+  // Filtered
+  const filtered = useMemo(() => {
+    return matches.filter(m => {
+      if (stageFilter !== 'all' && m.stage !== stageFilter) return false
+      if (search) {
+        const s = surrogateMap[m.surrogateId]
+        const ip = ipMap[m.ipId]
+        const q = search.toLowerCase()
+        if (!s?.name?.toLowerCase().includes(q) && !ip?.name?.toLowerCase().includes(q)) return false
+      }
+      return true
+    })
+  }, [matches, stageFilter, search])
 
   const createMatch = (surrogateId, ipId) => {
-    const newMatch = {
+    setMatches(prev => [...prev, {
       id: `m${Date.now()}`,
       surrogateId,
       ipId,
       stage: MATCH_STAGES[0],
       startDate: new Date().toISOString().split('T')[0],
       dueDate: null,
-    }
-    setMatches(prev => [...prev, newMatch])
+    }])
   }
+
+  const getStageInfo = (stageId) => JOURNEY_STAGES.find(s => s.id === stageId) || { color: '#6b7280', label: stageId }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Match Pipeline"
+        title="Matched Journeys"
+        subtitle={`${filtered.length} of ${matches.length} journey${matches.length !== 1 ? 's' : ''} shown`}
         actions={
-          <Button onClick={() => setShowNewMatch(true)}>
-            <Plus className="size-4 mr-1" />
-            New Match
+          <Button className="gap-2" onClick={() => setShowNewMatch(true)}>
+            <Plus className="size-4" /> New Journey
           </Button>
         }
       />
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        <StatCard
-          title="Total Matches"
-          value={matches.length}
-          icon={Heart}
-        />
-        <StatCard
-          title="Unmatched Surrogates"
-          value={unmatchedSurrogates.length}
-          icon={Users}
-        />
-        <StatCard
-          title="Unmatched IPs"
-          value={unmatchedIPs.length}
-          icon={Baby}
-        />
+      {/* Hero stats — click to filter */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+        <button
+          onClick={() => setStageFilter('all')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
+        >
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{matches.length}</p>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+        </button>
+        <div className="rounded-xl border border-stone-100 p-4 text-center" style={{ background: '#ed148c08' }}>
+          <p className="text-2xl font-bold text-[#ed148c]">{unmatchedSurrogates.length}</p>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Unmatched GCs</p>
+        </div>
+        <div className="rounded-xl border border-stone-100 p-4 text-center" style={{ background: '#28369308' }}>
+          <p className="text-2xl font-bold text-[#283693]">{unmatchedIPs.length}</p>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Unmatched IPs</p>
+        </div>
+        {JOURNEY_STAGES.filter(s => stageCounts[s.id] > 0).map(stage => (
+          <button
+            key={stage.id}
+            onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
+            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+            style={{ backgroundColor: stage.color + '08' }}
+          >
+            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
+            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
+          </button>
+        ))}
       </div>
 
-      {/* Kanban board */}
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max">
-          {MATCH_STAGES.map(stage => (
-            <KanbanColumn
-              key={stage}
-              stage={stage}
-              matches={matchesByStage[stage]}
-              surrogateMap={surrogateMap}
-              ipMap={ipMap}
-              onCardClick={setSelectedMatchId}
-            />
-          ))}
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input placeholder="Search by surrogate or IP name..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <div className="flex items-center border rounded-md">
+          <Button variant={view === 'tile' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setView('tile')}>
+            <LayoutGrid className="size-4" />
+          </Button>
+          <Button variant={view === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none" onClick={() => setView('list')}>
+            <ListIcon className="size-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Match detail dialog */}
-      <MatchDetailDialog
-        match={selectedMatch}
-        surrogate={selectedSurrogate}
-        ip={selectedIP}
-        open={!!selectedMatchId}
-        onOpenChange={open => { if (!open) setSelectedMatchId(null) }}
-        onAdvance={advanceStage}
-        onMoveBack={moveBackStage}
-      />
+      {/* Journey tiles or list */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <GitMerge className="size-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">{search || stageFilter !== 'all' ? 'No journeys match your filter.' : 'No matched journeys yet. Create one to get started!'}</p>
+        </div>
+      ) : view === 'tile' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(m => {
+            const surrogate = surrogateMap[m.surrogateId]
+            const ip = ipMap[m.ipId]
+            const stage = getStageInfo(m.stage)
+            return (
+              <Card key={m.id} className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
+                <div className="h-1.5" style={{ backgroundColor: stage.color }} />
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ backgroundColor: stage.color + '15', color: stage.color }}>
+                      {stage.label}
+                    </span>
+                    {m.startDate && <span className="text-[10px] text-stone-400">Started {m.startDate}</span>}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {/* Surrogate */}
+                    <div className="flex-1 text-center">
+                      <ProfileAvatar name={surrogate?.name || '?'} size={48} />
+                      <p className="text-sm font-semibold text-stone-800 mt-2 truncate">{surrogate?.name || 'Unknown'}</p>
+                      <p className="text-[10px] text-stone-400 uppercase">Surrogate</p>
+                    </div>
+                    {/* Heart connector */}
+                    <div className="shrink-0">
+                      <Heart className="size-5 text-[#ed148c] fill-[#ed148c]/20" />
+                    </div>
+                    {/* IP */}
+                    <div className="flex-1 text-center">
+                      <ProfileAvatar name={ip?.name || '?'} size={48} />
+                      <p className="text-sm font-semibold text-stone-800 mt-2 truncate">{ip?.name || 'Unknown'}</p>
+                      <p className="text-[10px] text-stone-400 uppercase">Intended Parent</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      ) : (
+        <Card className="rounded-2xl overflow-hidden">
+          <div className="divide-y divide-stone-100">
+            <div className="grid grid-cols-[1fr_1fr_1fr_auto] px-5 py-3 bg-stone-50 text-xs font-semibold text-stone-500 uppercase tracking-wider">
+              <span>Surrogate</span>
+              <span>Intended Parent</span>
+              <span>Stage</span>
+              <span>Started</span>
+            </div>
+            {filtered.map(m => {
+              const surrogate = surrogateMap[m.surrogateId]
+              const ip = ipMap[m.ipId]
+              const stage = getStageInfo(m.stage)
+              return (
+                <div key={m.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center px-5 py-3 hover:bg-stone-50 cursor-pointer">
+                  <div className="flex items-center gap-2.5">
+                    <ProfileAvatar name={surrogate?.name || '?'} size={32} />
+                    <span className="text-sm font-medium text-stone-800">{surrogate?.name || 'Unknown'}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <ProfileAvatar name={ip?.name || '?'} size={32} />
+                    <span className="text-sm font-medium text-stone-800">{ip?.name || 'Unknown'}</span>
+                  </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full w-fit" style={{ backgroundColor: stage.color + '15', color: stage.color }}>
+                    {stage.label}
+                  </span>
+                  <span className="text-xs text-stone-400">{m.startDate || '—'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
-      {/* New match dialog */}
       <NewMatchDialog
         open={showNewMatch}
         onOpenChange={setShowNewMatch}
