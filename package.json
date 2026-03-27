@@ -24,6 +24,7 @@
     "clsx": "^2.1.1",
     "heic2any": "^0.0.4",
     "html2pdf.js": "^0.14.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.576.0",
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",

@@ -637,14 +637,24 @@ function getFileIcon(fileType) {
   return FileText
 }
 
-function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, setUploadCategory, DocRow }) {
+function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploadClick, onFileDrop, DocRow }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 10 : 'auto' }
   const Icon = cat.icon
+  const [dragOver, setDragOver] = useState(false)
+
+  function handleDragOver(e) { e.preventDefault(); e.stopPropagation(); setDragOver(true) }
+  function handleDragLeave(e) { e.preventDefault(); e.stopPropagation(); setDragOver(false) }
+  function handleDrop(e) {
+    e.preventDefault(); e.stopPropagation(); setDragOver(false)
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length > 0) onFileDrop(cat.id, files)
+  }
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className="rounded-2xl overflow-hidden h-full">
+      <Card className={`rounded-2xl overflow-hidden h-full transition-all ${dragOver ? 'ring-2 ring-[#283693] shadow-lg scale-[1.02]' : ''}`}
+        onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
         <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: cat.color + '0a' }}>
           <div className="flex items-center gap-2.5">
             <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-0.5 -ml-1 rounded hover:bg-white/50">
@@ -659,7 +669,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, setUplo
             </div>
           </div>
           <Button variant="ghost" size="icon" className="size-8 rounded-full hover:bg-white/50" disabled={uploading}
-            onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+            onClick={() => onUploadClick(cat.id)}>
             {uploading && uploadCategory === cat.id
               ? <Loader2 className="size-3.5 animate-spin text-stone-400" />
               : <Upload className="size-3.5" style={{ color: cat.color }} />}
@@ -671,11 +681,11 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, setUplo
               {catDocs.map(doc => <DocRow key={doc.id} doc={doc} />)}
             </div>
           ) : (
-            <div className="px-4 py-6 text-center">
+            <div className={`px-4 py-6 text-center ${dragOver ? 'bg-[#283693]/5' : ''}`}>
               <FolderOpen className="size-6 text-stone-200 mx-auto mb-1.5" />
-              <p className="text-[11px] text-stone-400">No files yet</p>
+              <p className="text-[11px] text-stone-400">{dragOver ? 'Drop files here' : 'No files yet'}</p>
               <button className="text-[11px] font-medium mt-1 hover:underline" style={{ color: cat.color }}
-                onClick={() => { setUploadCategory(cat.id); document.getElementById('doc-upload-input')?.click() }}>
+                onClick={() => onUploadClick(cat.id)}>
                 Upload
               </button>
             </div>
@@ -707,6 +717,8 @@ function DocumentsTab({ surrogateId }) {
     } catch {}
     return DOC_CATEGORIES.map(c => c.id)
   })
+  const uploadCategoryRef = useRef(null)
+  const [zipFiles, setZipFiles] = useState(null) // extracted zip files awaiting assignment
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor))
 
   function handleDragEnd(event) {
@@ -739,16 +751,79 @@ function DocumentsTab({ surrogateId }) {
     else docsByCategory['other'].push(doc)
   }
 
+  function triggerUpload(categoryId) {
+    uploadCategoryRef.current = categoryId
+    setUploadCategory(categoryId)
+    document.getElementById('doc-upload-input')?.click()
+  }
+
   async function handleUpload(e) {
     const files = Array.from(e.target.files || [])
-    if (!files.length || !uploadCategory) return
+    const cat = uploadCategoryRef.current
+    if (!files.length || !cat) return
+    // Check for zip files
+    const zipFile = files.find(f => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip')
+    if (zipFile) {
+      await extractZip(zipFile)
+      e.target.value = ''
+      setUploading(false)
+      setUploadCategory(null)
+      return
+    }
     setUploading(true)
     try {
       for (const file of files) {
-        const doc = await uploadCaseDocument({ surrogateId, category: uploadCategory, file, uploadedBy: currentUser.name })
+        const doc = await uploadCaseDocument({ surrogateId, category: cat, file, uploadedBy: currentUser.name })
         if (doc) setDocs(prev => [doc, ...prev])
       }
-    } catch {} finally { setUploading(false); setUploadCategory(null); e.target.value = '' }
+    } catch {} finally { setUploading(false); setUploadCategory(null); uploadCategoryRef.current = null; e.target.value = '' }
+  }
+
+  async function handleFileDrop(categoryId, files) {
+    // Check for zip
+    const zipFile = files.find(f => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip')
+    if (zipFile) {
+      await extractZip(zipFile)
+      return
+    }
+    setUploadCategory(categoryId)
+    setUploading(true)
+    try {
+      for (const file of files) {
+        const doc = await uploadCaseDocument({ surrogateId, category: categoryId, file, uploadedBy: currentUser.name })
+        if (doc) setDocs(prev => [doc, ...prev])
+      }
+    } catch {} finally { setUploading(false); setUploadCategory(null) }
+  }
+
+  async function extractZip(zipFile) {
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = await JSZip.loadAsync(zipFile)
+      const extracted = []
+      for (const [path, entry] of Object.entries(zip.files)) {
+        if (entry.dir || path.startsWith('__MACOSX') || path.includes('/.')) continue
+        const blob = await entry.async('blob')
+        const name = path.split('/').pop()
+        if (!name) continue
+        const file = new window.File([blob], name, { type: blob.type || 'application/octet-stream' })
+        extracted.push({ file, name, category: 'other' })
+      }
+      if (extracted.length > 0) setZipFiles(extracted)
+    } catch (err) {
+      console.error('ZIP extraction failed:', err)
+    }
+  }
+
+  async function uploadZipFiles() {
+    if (!zipFiles) return
+    setUploading(true)
+    try {
+      for (const item of zipFiles) {
+        const doc = await uploadCaseDocument({ surrogateId, category: item.category, file: new window.File([item.file], item.name, { type: item.file.type }), uploadedBy: currentUser.name })
+        if (doc) setDocs(prev => [doc, ...prev])
+      }
+    } catch {} finally { setUploading(false); setZipFiles(null) }
   }
 
   async function handleDelete() {
@@ -828,7 +903,51 @@ function DocumentsTab({ surrogateId }) {
   return (
     <div className="space-y-4">
       <input type="file" multiple className="hidden" id="doc-upload-input" onChange={handleUpload}
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx" />
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx,.zip" />
+
+      {/* ZIP extraction assignment dialog */}
+      {zipFiles && (
+        <Card className="rounded-2xl border-2 border-[#283693]/30 shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Assign Extracted Files ({zipFiles.length})</CardTitle>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setZipFiles(null)}>Cancel</Button>
+              <Button size="sm" onClick={uploadZipFiles} disabled={uploading} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                Upload All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
+              <div className="grid grid-cols-[1fr_1fr_auto] bg-gray-50 border-b border-gray-200 px-4 py-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase">File Name</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Folder</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
+              </div>
+              {zipFiles.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_1fr_auto] items-center px-4 py-2 border-b border-gray-100 last:border-0">
+                  <input
+                    className="rounded border border-gray-200 px-2 py-1 text-sm bg-white mr-2"
+                    value={item.name}
+                    onChange={e => setZipFiles(prev => prev.map((f, i) => i === idx ? { ...f, name: e.target.value } : f))}
+                  />
+                  <SelectUI value={item.category} onValueChange={v => setZipFiles(prev => prev.map((f, i) => i === idx ? { ...f, category: v } : f))}>
+                    <SelectTriggerUI className="h-8 text-xs"><SelectValueUI /></SelectTriggerUI>
+                    <SelectContentUI>
+                      {DOC_CATEGORIES.map(c => <SelectItemUI key={c.id} value={c.id}>{c.label}</SelectItemUI>)}
+                    </SelectContentUI>
+                  </SelectUI>
+                  <button className="ml-2 p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                    onClick={() => setZipFiles(prev => prev.filter((_, i) => i !== idx))}>
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Toolbar: search + view toggle */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -855,7 +974,7 @@ function DocumentsTab({ surrogateId }) {
                 const catDocs = docsByCategory[cat.id]
                 // Hide empty categories when searching
                 if (docSearch && catDocs.length === 0) return null
-                return <SortableCategoryCard key={cat.id} cat={cat} catDocs={catDocs} uploading={uploading} uploadCategory={uploadCategory} setUploadCategory={setUploadCategory} DocRow={DocRow} />
+                return <SortableCategoryCard key={cat.id} cat={cat} catDocs={catDocs} uploading={uploading} uploadCategory={uploadCategory} onUploadClick={triggerUpload} onFileDrop={handleFileDrop} DocRow={DocRow} />
               })}
             </div>
           </SortableContext>
