@@ -1210,7 +1210,10 @@ function PersonalSection({ v, u }) {
 
   return (
     <div className="space-y-6">
-      <ProfilePhotoUpload label="Cover Photo" userId={userId} />
+      <div>
+        <ProfilePhotoUpload label="Cover Photo" userId={userId} />
+        <p className="text-xs text-gray-400 mt-1.5">Upload a favorite picture of you with your family or kids!</p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="First name (or nickname)" value={v(s, 'firstName')} onChange={u(s, 'firstName')} placeholder="First name ONLY or nickname" />
         <TextField label="Date of Birth" value={v(s, 'dob')} onChange={u(s, 'dob')} type="date" disabled placeholder="From signup" />
