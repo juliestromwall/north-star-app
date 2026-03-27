@@ -1,5 +1,83 @@
 # Session Log
 
+## 2026-03-26 / 2026-03-27 (Multi-Day Session)
+
+**Worked on:** Complete surrogate profile restructure per ABC Surrogacy spreadsheet feedback, profile preview redesign, admin profile tab overhaul
+
+**Changes made:**
+
+Profile Restructure (9 → 11 sections):
+- Personal Information: merged About Me + Family, added US citizen, Real ID, passport, languages, monogamous, partner citizenship, profile photo (solo) + cover photo (family)
+- Pregnancy History: added per-pregnancy infection, birth defect, complications checklist with outcome-specific wording
+- Fertility Information: removed redundant counts, deleted hospital stay, updated cycle/breastfeeding wording, added NICU questions
+- General Information: expanded from Lifestyle — housing, custody, smoking/alcohol/substances detail, guns, tattoos, eating disorders, diet, FDA tests, ethnicity, religion, criminal history, travel, exercise, sleep, vehicle
+- Health Information: "issue" → "challenge", deleted HepB/C & partner Covid questions, expanded disease checklist
+- Employment Information: added industry, hours detail, insurance type
+- Interests (NEW): favorites, pets, hobbies, collections, travel, personality
+- Academic Information (NEW): education level, currently in school
+- Experienced Surrogate Information (split from Surrogacy Preferences): per-journey structured cards with RE doctor, outcome, transfers, embryo source
+- Journey Hopes & Wishes (split from Surrogacy Preferences): motivation, matching, medical decisions, compensation with negotiable flag and currency formatting
+
+Conditional Logic:
+- Partner/spouse questions hidden when Single, Divorced, Separated, Widowed — across Personal, General, Employment, and Hopes sections
+- "In a Relationship" added as marital status option (quiz + profile)
+- Monogamous question hidden for Single/Divorced/Widowed
+- Experienced Surrogate section hidden from IP preview when answer is No
+- Cycles to conceive only shown for non-surrogacy pregnancies
+- Infection question wording varies by outcome type
+
+Data Mapping & Migration:
+- Quiz answers (DOB, height, weight, city, state, marital status, US citizen) pre-fill into profile
+- Auto-migrate old about/family/lifestyle/preferences keys to new section keys
+- Household members: structured table (name + relationship dropdown) with auto-fill of partner as person #1
+
+Profile Preview Redesign:
+- Switched from modal to inline rendering in content area
+- 850px max-width matching letter-size PDF
+- Cover photo hero with gradient overlay + photo gallery thumbnails
+- Summary card: name, location, age, base fee, bio quote
+- Quick stats bar: height, weight, BMI, blood type, status
+- All 10 sections as styled cards with gradient headers, Yes/No pills, pregnancy cards, household grid
+- "Not provided" shown for unfilled fields
+- Compensation section with negotiable badge
+- Button toggles between "Preview" and "Edit Profile"
+
+Admin Profile Tab:
+- PROFILE_SECTIONS updated to match new 10-section structure
+- Preview uses same inline ProfilePreview component (shared via export)
+- Edit expands section card to full-width with animated transition instead of dialog
+- Cancel/Save inline in expanded card header, 3-column field grid
+- Pregnancy edit uses proper dropdowns (outcome, delivery type, sex, multiples)
+- Household edit uses name + relationship dropdown
+- Scroll-to-section on edit click
+- Complex array fields (pregnancies, household) render as numbered cards
+
+Other:
+- Base compensation auto-formats as currency ($xx,xxx) while typing
+- Profile photo upload: solo photo + family cover photo side by side
+- Cover photo hint: "Upload a favorite picture of you with your family or kids!"
+- Profile photo hint: "Upload a favorite recent photo of just you!"
+- Removed Still Birth from pregnancy complications checklist
+- Added Celibacy, Vasectomy, Same Sex Partner as contraceptive options
+- Added Cousin, Aunt, Uncle to household relationship options
+- Combined Blood type + RH factor into single dropdown
+- Generated CSV of all 170+ profile questions (docs/surrogate-profile-questions.csv)
+
+**Next steps:**
+- Add PDF download/email functionality for admins
+- Build intended parent intake and management
+- Connect matching module to real data
+- Build Messages/Communication module
+- Build screening workflow
+- Persist stage/status to Supabase
+
+**Open questions:**
+- PDF generation approach — browser print, html2pdf, or server-side?
+- Should profile changes notify the surrogate or admin?
+- How should the admin PDF download/email flow work?
+
+---
+
 ## 2026-03-24 (Full Day Session)
 
 **Worked on:** Landing page routing, bot protection, surrogate list/detail page redesign with GTPAL, interactive hero tiles, stages & statuses system, rich text notes, documents tab, search engine blocking

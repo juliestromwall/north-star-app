@@ -42,11 +42,17 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 
 ### Surrogate: Build Matching Profile
 1. Dashboard → "Get Started" / "Continue" → links to first incomplete section
-2. 9 sections: About Me, Family, Pregnancy History, Fertility, Health, Lifestyle, Employment, Preferences, Photos
-3. Cover photo in About Me, gallery photos in Photos section (drag to reorder, crop/rotate)
+2. 11 sections: Personal Information, Pregnancy History, Fertility Information, General Information, Health Information, Employment Information, Interests, Academic Information, Experienced Surrogate Information, Journey Hopes & Wishes, Photos
+3. Profile photo (solo) + Cover photo (family) in Personal Information, gallery photos in Photos section (drag to reorder, crop/rotate)
 4. Auto-saves to localStorage + Supabase (admins can track progress)
-5. Preview button shows how IPs will see the profile
-6. When approved by admin, profile locks — surrogate sees green "Approved" banner
+5. Preview button toggles inline preview (850px, letter-size PDF width) showing full profile as IPs will see it
+6. Quiz answers (DOB, height, weight, city, state, marital status, US citizen) auto-fill into profile
+7. Partner/spouse questions conditionally shown based on relationship status
+8. Experienced Surrogate section hidden from preview when not applicable
+9. Household members entered as structured table (name + relationship dropdown)
+10. Per-journey cards for experienced surrogate details
+11. Base compensation auto-formats as currency ($xx,xxx)
+12. When approved by admin, profile locks — surrogate sees green "Approved" banner
 
 ### Admin: Manage Surrogate Cases
 1. Surrogates list defaults to "My Cases" — shows only assigned surrogates
