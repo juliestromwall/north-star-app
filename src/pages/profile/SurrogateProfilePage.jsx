@@ -1168,19 +1168,6 @@ export function ProfilePreview({ profile, photos }) {
             <PVField label="Post-Birth Relationship" value={hopes.postBirthRelationship} />
             <PVField label="Embryos to Transfer" value={hopes.embryosToTransfer} />
           </div>
-          <div className="mt-5 p-4 rounded-xl bg-gradient-to-r from-[#283693]/5 to-[#ed148c]/5 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Base Fee</p>
-                <p className="text-xl font-bold text-[#ed148c]">{hopes.desiredCompensation || '—'}</p>
-              </div>
-              {hopes.compensationNegotiable && (
-                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${hopes.compensationNegotiable === 'yes' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {hopes.compensationNegotiable === 'yes' ? 'Negotiable' : 'Firm'}
-                </span>
-              )}
-            </div>
-          </div>
           {hopes.additionalComments && (
             <div className="mt-4 p-4 rounded-xl bg-[#fdf8f3] border border-gray-100">
               <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Message to Intended Parents</p>
@@ -1190,7 +1177,7 @@ export function ProfilePreview({ profile, photos }) {
         </PVSection>
 
         {/* Footer */}
-        <div className="text-center py-6">
+        <div className="text-center py-6 print:hidden">
           <div className="inline-flex items-center gap-2 text-xs text-gray-400">
             <img src="/abc-logo.png" alt="" className="h-5 opacity-30" />
             This is a preview of how intended parents will see your profile.
