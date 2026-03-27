@@ -393,17 +393,26 @@ export default function SurrogateListPage() {
         }
       />
 
-      {/* Hero stats */}
+      {/* Hero stats — click to filter */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <div className="rounded-xl border border-stone-100 p-4 text-center" style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}>
+        <button
+          onClick={() => setStatusFilter('all')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
+        >
           <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
-        </div>
+        </button>
         {SURROGATE_STAGES.map(stage => (
-          <div key={stage.id} className="rounded-xl border border-stone-100 p-4 text-center" style={{ backgroundColor: stage.color + '08' }}>
+          <button
+            key={stage.id}
+            onClick={() => setStatusFilter(statusFilter === stage.id ? 'all' : stage.id)}
+            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+            style={{ backgroundColor: stage.color + '08', ...(statusFilter === stage.id ? { ringColor: stage.color, borderColor: stage.color + '50' } : {}) }}
+          >
             <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
             <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
-          </div>
+          </button>
         ))}
       </div>
 
