@@ -1468,7 +1468,7 @@ const PROFILE_SECTIONS = [
   { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies'] },
   { key: 'fertility', title: 'Fertility Information', fields: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'] },
   { key: 'general', title: 'General Information', fields: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'] },
-  { key: 'health', title: 'Health Information', fields: ['mentalHealthDiagnosis', 'bloodType', 'openToVaccinations'] },
+  { key: 'health', title: 'Health Information', fields: ['mentalHealthDiagnosis', 'openToVaccinations'] },
   { key: 'employment', title: 'Employment Information', fields: ['currentlyEmployed', 'healthInsurance'] },
   { key: 'interests', title: 'Interests', fields: ['personality'] },
   { key: 'academic', title: 'Academic Information', fields: ['educationLevel'] },

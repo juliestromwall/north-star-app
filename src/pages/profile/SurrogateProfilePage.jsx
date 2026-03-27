@@ -486,7 +486,7 @@ const REQUIRED_FIELDS = {
   pregnancyHistory: ['numberOfPregnancies'],
   fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
   general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
-  health: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'],
+  health: ['mentalHealthDiagnosis', 'openToVaccinations'],
   employment: ['currentlyEmployed', 'healthInsurance'],
   interests: ['personality'],
   academic: ['educationLevel'],
@@ -938,12 +938,11 @@ export function ProfilePreview({ profile, photos }) {
       <div className="px-6 sm:px-8 py-6 space-y-5 print:px-0">
 
         {/* Quick Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 print:grid-cols-5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4">
           {[
             { icon: Ruler, label: 'Height', value: heightStr },
             { icon: Scale, label: 'Weight', value: about.weight ? `${about.weight} lbs` : '' },
             { icon: Activity, label: 'BMI', value: bmi },
-            { icon: Droplets, label: 'Blood Type', value: health.bloodType },
             { icon: Heart, label: 'Status', value: about.maritalStatus },
           ].map(s => (
             <div key={s.label} className="flex flex-col items-center text-center p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
@@ -1060,7 +1059,6 @@ export function ProfilePreview({ profile, photos }) {
             <PVYesNo label="Covid-19 vaccinated" value={health.covidVaccine} />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Blood Type" value={health.bloodType} />
             <PVField label="Allergies" value={health.allergies} />
             <PVField label="Last Physical" value={health.lastPhysical} />
             <PVField label="Last Pap" value={health.lastPap} />
@@ -1634,8 +1632,6 @@ function HealthSection({ v, u }) {
         </div>
       </div>
 
-      <SelectField label="Blood type" value={v(s, 'bloodType')} onChange={u(s, 'bloodType')}
-        options={['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Unknown']} className="max-w-xs" />
       <TextAreaField label="Do you currently have any allergies?" value={v(s, 'allergies')} onChange={u(s, 'allergies')} placeholder="List any allergies and details" rows={2} />
       <TextAreaField label="Do you currently have any medical conditions we should be made aware of?" value={v(s, 'medicalConditions')} onChange={u(s, 'medicalConditions')} rows={2} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
