@@ -720,6 +720,7 @@ function DocumentsTab({ surrogateId }) {
   const uploadCategoryRef = useRef(null)
   const [zipFiles, setZipFiles] = useState(null) // extracted zip files awaiting assignment
   const [zipPreviewIdx, setZipPreviewIdx] = useState(null)
+  const [uploadProgress, setUploadProgress] = useState(null) // { done: N, total: N }
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(TouchSensor))
 
   function handleDragEnd(event) {
@@ -820,15 +821,34 @@ function DocumentsTab({ surrogateId }) {
     }
   }
 
+  async function uploadBatch(files, getCategoryForItem) {
+    const total = files.length
+    let done = 0
+    setUploadProgress({ done: 0, total })
+    setUploading(true)
+    const BATCH_SIZE = 5
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE)
+      const results = await Promise.allSettled(
+        batch.map(item => {
+          const file = item.file instanceof window.File ? item.file : new window.File([item.file], item.name, { type: item.file.type })
+          return uploadCaseDocument({ surrogateId, category: getCategoryForItem(item), file, uploadedBy: currentUser.name })
+        })
+      )
+      for (const r of results) {
+        done++
+        setUploadProgress({ done, total })
+        if (r.status === 'fulfilled' && r.value) setDocs(prev => [r.value, ...prev])
+      }
+    }
+    setUploading(false)
+    setUploadProgress(null)
+  }
+
   async function uploadZipFiles() {
     if (!zipFiles) return
-    setUploading(true)
-    try {
-      for (const item of zipFiles) {
-        const doc = await uploadCaseDocument({ surrogateId, category: item.category, file: new window.File([item.file], item.name, { type: item.file.type }), uploadedBy: currentUser.name })
-        if (doc) setDocs(prev => [doc, ...prev])
-      }
-    } catch {} finally { setUploading(false); setZipFiles(null) }
+    await uploadBatch(zipFiles, item => item.category)
+    setZipFiles(null)
   }
 
   async function handleDelete() {
@@ -919,11 +939,22 @@ function DocumentsTab({ surrogateId }) {
               <Button variant="outline" size="sm" onClick={() => setZipFiles(null)}>Cancel</Button>
               <Button size="sm" onClick={uploadZipFiles} disabled={uploading} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
                 {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                Upload All
+                {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : 'Upload All'}
               </Button>
             </div>
           </CardHeader>
           <CardContent>
+            {uploadProgress && (
+              <div className="mb-4 space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>Uploading {uploadProgress.done} of {uploadProgress.total} files...</span>
+                  <span>{Math.round((uploadProgress.done / uploadProgress.total) * 100)}%</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                </div>
+              </div>
+            )}
             <div className="rounded-xl border border-gray-200 overflow-hidden">
               <div className="grid grid-cols-[auto_1fr_1fr_auto] bg-gray-50 border-b border-gray-200 px-4 py-2 gap-2">
                 <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
