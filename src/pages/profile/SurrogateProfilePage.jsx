@@ -1407,7 +1407,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
 
               <YesNoField label="Was this a surrogacy pregnancy?" value={pregnancies[expandedIdx]?.wasSurrogacy || ''} onChange={val => updatePregnancy(expandedIdx, 'wasSurrogacy', val)} />
 
-              {pregnancies[expandedIdx]?.wasSurrogacy === 'yes' && (
+              {pregnancies[expandedIdx]?.wasSurrogacy !== 'yes' && (
                 <TextField label="Cycles to conceive" value={pregnancies[expandedIdx]?.cyclesToConceive || ''} onChange={val => updatePregnancy(expandedIdx, 'cyclesToConceive', val)} type="number" className="max-w-xs" />
               )}
 
