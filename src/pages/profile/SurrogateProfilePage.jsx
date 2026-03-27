@@ -803,7 +803,7 @@ export default function SurrogateProfilePage() {
 // ─────────────────────────────────────────────────────────
 function PVSection({ title, icon: Icon, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden print:rounded-none print:shadow-none print:border-x-0 print:break-inside-avoid">
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
         <div className="flex items-center gap-2.5">
           {Icon && <Icon className="w-4.5 h-4.5 text-[#283693]" />}
@@ -868,7 +868,7 @@ export function ProfilePreview({ profile, photos }) {
   })()
 
   return (
-    <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full">
+    <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
       {/* ── Cover Photo ── */}
       {heroPhoto ? (
         <div className="w-full h-72 sm:h-96 overflow-hidden relative">
@@ -898,7 +898,7 @@ export function ProfilePreview({ profile, photos }) {
       )}
 
       {/* ── Summary Header ── */}
-      <div className="mx-6 sm:mx-8 mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="mx-6 sm:mx-8 mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 print:mx-0 print:rounded-none print:shadow-none print:border-0">
         <div className="flex flex-col sm:flex-row items-center gap-5">
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <h2 className="text-3xl font-heading font-bold text-[#283693]">{firstName}</h2>
@@ -935,10 +935,10 @@ export function ProfilePreview({ profile, photos }) {
       </div>
 
       {/* ── All Sections ── */}
-      <div className="px-6 sm:px-8 py-6 space-y-5">
+      <div className="px-6 sm:px-8 py-6 space-y-5 print:px-0">
 
         {/* Quick Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 print:grid-cols-5">
           {[
             { icon: Ruler, label: 'Height', value: heightStr },
             { icon: Scale, label: 'Weight', value: about.weight ? `${about.weight} lbs` : '' },

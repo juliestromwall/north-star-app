@@ -1579,19 +1579,33 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         .map(el => el.outerHTML).join('\n')
       const html = `<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
         <style>
-          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-          body { background: white; margin: 0; padding: 20px; font-family: system-ui, -apple-system, sans-serif; }
-          .print-container { max-width: 850px; margin: 0 auto; }
-          .print-bar { max-width: 850px; margin: 0 auto 20px; padding: 12px 16px; background: #283693; color: white; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-          .print-bar button { background: white; color: #283693; border: none; padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+          @page { size: letter; margin: 0; }
+          @media print {
+            body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
+            .print-bar { display: none !important; }
+            .print-container { max-width: 100% !important; padding: 0 !important; }
+          }
+          body { background: #fdf8f3; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+          .print-container { max-width: 100%; margin: 0; padding: 0; }
+          .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+          .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
           .print-bar button:hover { opacity: 0.9; }
-          @media print { .print-bar { display: none; } }
+          .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
         </style></head><body>
         <div class="print-bar">
-          <span>${firstName}'s Surrogate Profile</span>
-          <button onclick="window.print()">Save as PDF / Print</button>
+          <div>
+            <strong>${firstName}'s Surrogate Profile</strong>
+            <span class="hint">Use "Save as PDF" as destination for best results</span>
+          </div>
+          <button onclick="window.print()">Save as PDF</button>
         </div>
         <div class="print-container">${previewRef.current.innerHTML}</div>
+        <script>
+          // Auto-prompt print after a short delay for images to load
+          setTimeout(function() {
+            // Don't auto-print, let user click the button
+          }, 1000);
+        </script>
         </body></html>`
       printWin.document.write(html)
       printWin.document.close()
