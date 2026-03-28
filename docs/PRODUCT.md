@@ -113,7 +113,8 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Intake Confirmation | /apply/confirmation | public | Built |
 | Intake Submissions | /intake | admin+ | Built (live Supabase) |
 | Marketing Dashboard | /marketing | marketing+ | Built |
-| Matching | /matching | admin+ | Built (needs live data) |
+| Matching | /matching | admin+ | Built (Kanban pipeline) |
+| Matched Journeys | /journeys | admin+ | Built (dashboard, tile/list, stage filters) |
 | Calendar | /calendar | admin+ | Built |
 | Time Clock | /time-clock | admin+ | Built |
 | Settings | /settings | master_admin+ | Built |

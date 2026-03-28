@@ -1,5 +1,64 @@
 # Session Log
 
+## 2026-03-27 (Continued Session)
+
+**Worked on:** Screening & medical records tracking, PDF download, documents overhaul, matched journeys module, stage filtering, record logging UX
+
+**Changes made:**
+
+Screening & Medical Records Tracking:
+- Built TrackingTable component — reusable table for step/status tracking with history
+- Screening tab: 7 standard steps (PAP, OB Clearance, Records Reviewed, Background Check, Psych, Mitera, Insurance) + pregnancy-based prenatal/delivery steps
+- Medical Records tab: auto-generated from pregnancy history (OB Records, Delivery Records per pregnancy, IVF Records for surrogacy pregnancies)
+- Record statuses: Not Started, Requested, Request Received, Followed Up, Received, Reviewed, Complete
+- Screening statuses: Not Started, Scheduled, Waiting on Surrogate, Waiting on Provider, In Progress, Followed Up, Needs Review, Under Review, Incomplete — Needs Resubmission, Complete, N/A
+- Status logging with notes, date (MM-DD-YYYY format), admin name tracking
+- Edit/delete log entries on hover
+- Green row + checkmark when step is Complete
+- Progress bar with completion count
+- Overview tab shows same screening checklist as Screening tab
+- Data stored in localStorage per surrogate
+
+PDF Download:
+- Replaced html2pdf.js (was freezing browser) with print-window approach
+- Opens clean new tab with profile content + "Save as PDF" button
+- Print styles: zero margins, edge-to-edge colors, no rounded corners
+- Stats bar padding in print mode
+- Preview footer hidden in print
+- Bottom base fee section removed from preview (only in summary header)
+
+Documents Overhaul:
+- Fixed multi-file upload (was race condition with async state)
+- Drag-and-drop files into folder cards with highlight animation
+- ZIP file extraction: upload zip → extract client-side → rename/assign folders → preview files → batch upload with progress bar
+- Parallel upload (5 at a time) with progress bar showing X/Y files
+- Preview button on extracted files (images + PDFs) with prev/next navigation
+
+Navigation & Modules:
+- Matched Journeys page at /journeys — dashboard with tiles, list view, stage filters, search
+- Sidebar: added "Matched Journeys" under Client Management
+- Restored original Matching page (Kanban board) at /matching
+- Stage stats on /surrogates now clickable to filter
+- Stage counts reflect owner filter (My Cases shows only my counts)
+
+Profile Tweaks:
+- Removed Blood Type from profile (will be in application)
+- Print CSS improvements for edge-to-edge PDF output
+
+**Next steps:**
+- Improve screening table UX — add column headers, inline log entry
+- Screening steps: OB Records/Delivery Records show X/X completion, IVF only for experienced surrogates
+- Build Case Updates section in navigation (Surrogate Updates, IP Updates, Matched Journey Updates)
+- Build spreadsheet-style case update reports
+- Persist record tracking to Supabase (currently localStorage)
+
+**Open questions:**
+- Should screening checklists be configurable/assignable per case?
+- How should the Case Updates spreadsheet report aggregate data across surrogates?
+- Should record tracking data move to Supabase now or after more iteration?
+
+---
+
 ## 2026-03-26 / 2026-03-27 (Multi-Day Session)
 
 **Worked on:** Complete surrogate profile restructure per ABC Surrogacy spreadsheet feedback, profile preview redesign, admin profile tab overhaul

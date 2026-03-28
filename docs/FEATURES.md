@@ -22,11 +22,13 @@
 | ProfilePreview | src/pages/profile/SurrogateProfilePage.jsx | Exported component showing full surrogate profile as IPs will see it — used inline on both surrogate and admin sides (850px, letter-size PDF width) |
 | HouseholdMembers | src/pages/profile/SurrogateProfilePage.jsx | Structured table for entering household members with name + relationship dropdown |
 | CurrencyField | src/pages/profile/SurrogateProfilePage.jsx | Auto-formatting currency input ($xx,xxx) for compensation fields |
+| TrackingTable | src/pages/surrogates/SurrogateDetailPage.jsx | Reusable table for step/status tracking with log history, edit/delete, admin attribution, progress bar |
+| MatchedJourneysPage | src/pages/journeys/MatchedJourneysPage.jsx | Dashboard for matched surrogacy journeys with tile/list views, stage filters, search |
 | ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Live stats from Supabase, match pipeline, quick actions |
 | SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card with CTA, Quiz Results dialog, tasks, contact |
 | SurrogateListPage | src/pages/surrogates/SurrogateListPage.jsx | Live Supabase data. Stage-based hero stats, StageBadge on cards, animated ping dot for "New" surrogates, drag-to-reorder, grid/list view, search, status settings gear |
-| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Hero with interactive flip tiles (Age/DOB, Height/cm, Weight/kg, BMI/range, Relationship/Partner), Stage+Status selectors, Text/Email/Call buttons with copy. Tabs: Overview, Contact, Profile, Screening, Documents, Notes |
+| SurrogateDetailPage | src/pages/surrogates/SurrogateDetailPage.jsx | Hero with interactive flip tiles, Stage+Status selectors, Text/Email/Call buttons. Tabs: Overview (screening checklist), Contact, Profile (inline preview + PDF download), Screening, Medical Records, Documents (drag-drop, ZIP extract), Notes |
 | SurrogateProfilePage | src/pages/profile/SurrogateProfilePage.jsx | 9-section collapsible profile builder with Supabase sync, photo upload |
 | FormsListPage | src/pages/forms/FormsListPage.jsx | Admin: form definitions. Surrogate: empty state |
 | IntakeLandingPage | src/pages/intake/IntakeLandingPage.jsx | Public /surrogatequiz landing |
