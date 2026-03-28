@@ -1,5 +1,60 @@
 # Session Log
 
+## 2026-03-27 (Evening Session)
+
+**Worked on:** Admin dashboard tile updates, screening overview UX improvements, IP intake form rework, IP confirmation flow changes
+
+**Changes made:**
+
+IP Intake Form Rework:
+- Removed family type selector (Couple/Same-sex/Single), replaced with partner yes/no question on step 3
+- Added follow-up fields: RE doctor name (when hasRE=true), frozen embryo count (when hasFrozenEmbryos=true)
+- Changed "How did you hear about us" from multi-choice cards to free-text textarea
+- Removed consultation agreement checkbox (agreeToConsultation field)
+- Updated phone placeholder to US format (+1 (555) 555-0100)
+- Step 2 subtitle updated to remove "match you with a surrogate" wording
+- Final step button changed from "Get my next steps" to "Submit application"
+- Step 5 title changed to "Almost there!"
+
+IP Confirmation Flow:
+- IPs no longer see account creation prompt — shows "We'll be in touch" message instead (ABC will invite them manually)
+- Navigation guard (beforeunload warning) skipped for IPs
+- Next steps icons use IP color (#464DA0) instead of surrogate pink
+- GC flow unchanged (still creates account on confirmation)
+
+Admin Dashboard Tiles:
+- Renamed "Active IPs" → "Intended Parents"
+- Renamed "Pending Review" → "Matched Journeys" (with Heart icon)
+- Clicking Surrogates tile when already selected no longer reverts to home view
+
+Screening Overview UX:
+- Removed "All" filter button — defaults to Pre-Qualification selected
+- Limited stage filters to only Pre-Qualification, Screening, Matching (removed Journey Oversight/Ending/Closed)
+- Replaced small pill-style filter buttons with card-style buttons matching /surrogates page (rounded-xl, colored numbers, uppercase labels)
+- Empty state message when no surrogates in selected stage
+
+Table Cleanup:
+- Surrogate names bumped from text-xs to text-sm
+- Location/age info bumped from text-[10px] to text-xs
+- Map pin icon increased from size-2.5 to size-3
+- BE referral logo increased from h-3.5 to h-4
+- "SCREENING STEP" header bumped from text-[10px] to text-xs
+- Header and row padding increased for more breathing room (py-2.5→py-3.5, px-3→px-4/px-5)
+
+**Next steps:**
+- Make Intended Parents, Matches in Progress, and Matched Journeys tiles clickable with their own views
+- Build IP screening/management view (similar to surrogate screening overview)
+- Improve screening table: inline status editing, column sorting
+- Persist screening/record tracking to Supabase (currently localStorage)
+- Build Case Updates section in navigation
+
+**Open questions:**
+- Should IP tile click show a similar screening sheet or a different view?
+- Should screening checklists be configurable/assignable per case?
+- How should Matched Journeys tile view differ from the /journeys page?
+
+---
+
 ## 2026-03-27 (Continued Session)
 
 **Worked on:** Screening & medical records tracking, PDF download, documents overhaul, matched journeys module, stage filtering, record logging UX
