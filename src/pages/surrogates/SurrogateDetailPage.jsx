@@ -1832,51 +1832,72 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
   const total = milestones.length
   const pct = total > 0 ? (completed / total) * 100 : 0
 
+  // Calculate gradient color per milestone based on position
+  const getGradientColor = (index) => {
+    if (total <= 1) return '#ed148c'
+    const t = index / (total - 1)
+    // pink #ed148c → blue #283693
+    const r = Math.round(237 + (40 - 237) * t)
+    const g = Math.round(20 + (54 - 20) * t)
+    const b = Math.round(140 + (147 - 140) * t)
+    return `rgb(${r},${g},${b})`
+  }
+
   return (
     <div className="space-y-6">
-      <Card className="rounded-2xl">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>Milestones</CardTitle>
-            <span className="text-sm font-semibold text-stone-500">{completed}/{total}</span>
-          </div>
-          <div className="h-2.5 rounded-full bg-stone-100 overflow-hidden mt-2">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(pct, 2)}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {milestoneData.length === 0 ? (
-            <p className="text-sm text-stone-400 text-center py-4">No milestones configured. Set them up in Settings.</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {milestoneData.map(ms => (
-                <div
-                  key={ms.id}
-                  className={`rounded-xl border p-3 text-center transition-all ${
-                    ms.status === 'complete'
-                      ? 'bg-emerald-50 border-emerald-200'
-                      : ms.status === 'in_progress'
-                        ? 'bg-amber-50 border-amber-200'
-                        : 'bg-white border-stone-100'
-                  }`}
-                >
-                  <div className="flex justify-center mb-2">
-                    {ms.status === 'complete' ? (
-                      <CheckCircle2 className="size-6 text-emerald-500" />
-                    ) : ms.status === 'in_progress' ? (
-                      <Clock className="size-6 text-amber-500" />
-                    ) : (
-                      <Circle className="size-6 text-stone-300" />
-                    )}
-                  </div>
-                  <p className="text-xs font-semibold text-stone-700 leading-tight">{ms.label}</p>
-                  <p className="text-[10px] text-stone-400 mt-0.5">{ms.stepCount} step{ms.stepCount !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-[#283693]">Milestones</h3>
+        <span className="text-sm font-semibold text-stone-400">{completed}/{total}</span>
+      </div>
+
+      {milestoneData.length === 0 ? (
+        <p className="text-sm text-stone-400 text-center py-4">No milestones configured. Set them up in Settings.</p>
+      ) : (
+        <div className="relative pt-4 pb-2 overflow-x-auto">
+          {/* Timeline track */}
+          <div className="relative flex items-start" style={{ minWidth: `${Math.max(milestoneData.length * 120, 400)}px` }}>
+            {/* Background line */}
+            <div className="absolute top-[14px] left-[14px] right-[14px] h-[3px] bg-stone-200 rounded-full" />
+            {/* Colored progress line */}
+            {completed > 0 && (
+              <div
+                className="absolute top-[14px] left-[14px] h-[3px] rounded-full transition-all duration-700"
+                style={{
+                  width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
+                  maxWidth: 'calc(100% - 28px)',
+                  background: 'linear-gradient(90deg, #ed148c, #283693)',
+                }}
+              />
+            )}
+            {/* Milestone dots */}
+            {milestoneData.map((ms, i) => {
+              const isComplete = ms.status === 'complete'
+              const isActive = ms.status === 'in_progress'
+              const color = getGradientColor(i)
+              return (
+                <div key={ms.id} className="flex-1 flex flex-col items-center relative z-10" style={{ minWidth: '80px' }}>
+                  <div
+                    className={`w-7 h-7 rounded-full border-[3px] transition-all duration-300 ${
+                      isComplete
+                        ? 'scale-110'
+                        : isActive
+                          ? 'scale-105 shadow-md'
+                          : ''
+                    }`}
+                    style={{
+                      backgroundColor: isComplete ? color : isActive ? color + '40' : '#e7e5e4',
+                      borderColor: isComplete || isActive ? color : '#d6d3d1',
+                    }}
+                  />
+                  <p className={`text-[11px] mt-2 text-center leading-tight font-medium max-w-[90px] ${isComplete ? 'text-stone-800' : isActive ? 'text-stone-600' : 'text-stone-400'}`}>
+                    {ms.label}
+                  </p>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
