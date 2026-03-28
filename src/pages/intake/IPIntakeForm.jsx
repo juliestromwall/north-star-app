@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
 import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
@@ -22,12 +22,6 @@ const US_STATES = [
 const COUNTRIES = [
   'United States','Canada','United Kingdom','Australia','Germany','France',
   'Israel','Japan','China','India','Mexico','Brazil','Other',
-]
-
-const FAMILY_TYPES = [
-  { value: 'Heterosexual couple', label: 'Couple (man and woman)' },
-  { value: 'Same-sex couple',     label: 'Same-sex couple'        },
-  { value: 'Single parent',       label: 'Single parent'          },
 ]
 
 function isValidEmail(value) {
@@ -60,12 +54,14 @@ export default function IPIntakeForm() {
     if (step > maxStepRef.current) maxStepRef.current = step
   }, [step])
   const [form, setForm] = useState({
-    familyType: '',
     primaryFirstName: '', primaryLastName: '', primaryDob: '', email: '', phone: '',
     country: 'United States', street: '', street2: '', city: '', stateProv: '', zipCode: '',
+    hasPartner: null,
     ip2FirstName: '', ip2LastName: '', ip2Dob: '', ip2Email: '', ip2Phone: '',
-    hasRE: null, hasFrozenEmbryos: null, usingEggDonor: null, usingSpermDonor: null,
-    wantsConsultation: null, hearAboutUs: '', agreeToConsultation: false,
+    hasRE: null, reDoctorName: '',
+    hasFrozenEmbryos: null, frozenEmbryoDetails: '',
+    usingEggDonor: null, usingSpermDonor: null,
+    wantsConsultation: null, hearAboutUs: '',
     ...prefill,
   })
 
@@ -78,20 +74,20 @@ export default function IPIntakeForm() {
     trackFieldChange()
     setForm(prev => ({ ...prev, [field]: value }))
   }
-  const isCouple = form.familyType && form.familyType !== 'Single parent'
+  const isCouple = form.hasPartner === true
   const primaryEmailValid = isValidEmail(form.email)
   const primaryPhoneValid = isValidInternationalPhone(form.phone)
   const postalValid = isValidPostalCode(form.country, form.zipCode)
   const partnerEmailValid = !isCouple || isValidEmail(form.ip2Email)
   const partnerPhoneValid = !isCouple || isValidInternationalPhone(form.ip2Phone)
 
-  const step1Valid = form.familyType && form.primaryFirstName && form.primaryLastName && form.primaryDob && form.email && form.phone && primaryEmailValid && primaryPhoneValid
+  const step1Valid = form.primaryFirstName && form.primaryLastName && form.primaryDob && form.email && form.phone && primaryEmailValid && primaryPhoneValid
   const step2Valid = form.street && form.city && form.stateProv && form.zipCode && postalValid
-  const step3Valid = isCouple
-    ? form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone && partnerEmailValid && partnerPhoneValid
-    : true
+  const step3Valid = form.hasPartner !== null && (
+    !isCouple || (form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone && partnerEmailValid && partnerPhoneValid)
+  )
   const step4Valid = form.hasRE !== null && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
-  const step5Valid = form.wantsConsultation !== null && form.hearAboutUs && form.agreeToConsultation
+  const step5Valid = form.wantsConsultation !== null && form.hearAboutUs.trim().length > 0
   const stepValid  = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
   const [emailError, setEmailError] = useState(null)
   const [checking, setChecking] = useState(false)
@@ -112,7 +108,6 @@ export default function IPIntakeForm() {
   }
 
   async function handleSubmit() {
-    // Bot protection — silently reject without revealing why
     const botCheck = validateSubmission()
     if (!botCheck.ok) {
       navigate('/apply/confirmation', {
@@ -121,7 +116,7 @@ export default function IPIntakeForm() {
       return
     }
 
-    const dqReasons = getIPDisqualifications(form)
+    const dqReasons = [] // IPs don't disqualify
     const rawTracking = JSON.parse(sessionStorage.getItem('intakeTrackingData') || '{}')
     const timeToCompleteSeconds = Math.round((Date.now() - startTimeRef.current) / 1000)
     const tracking = {
@@ -174,20 +169,12 @@ export default function IPIntakeForm() {
     milestone: MILESTONES[s], nextDisabled: !stepValid[s] || (s === 1 && checking),
     onBack: s === 1 ? () => navigate('/intendedparentapply') : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : s === 1 ? handleStep1Next : () => setStep(s + 1),
-    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'Get my next steps' : 'Continue',
+    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'Submit application' : 'Continue',
   })
 
   // Step 1 — Primary applicant
   if (step === 1) return (
     <QuizShell {...shell(1)} title="Tell us about yourself" subtitle="A few quick details to get started.">
-      <div>
-        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold block mb-2">Who is on this journey?</Label>
-        <div className="space-y-2">
-          {FAMILY_TYPES.map(ft => (
-            <ChoiceCard key={ft.value} selected={form.familyType === ft.value} onSelect={() => set('familyType', ft.value)} label={ft.label} accentColor={IP_COLOR} accentFg={IP_FG} />
-          ))}
-        </div>
-      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">First name</Label>
@@ -217,7 +204,7 @@ export default function IPIntakeForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach you</Label>
-        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+44 20 7946 0958" className="rounded-xl h-11" />
+        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+1 (555) 555-0100" className="rounded-xl h-11" />
         {form.phone && !primaryPhoneValid && (
           <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
         )}
@@ -228,7 +215,7 @@ export default function IPIntakeForm() {
 
   // Step 2 — Address
   if (step === 2) return (
-    <QuizShell {...shell(2)} title="Where are you located?" subtitle="This helps us match you with a surrogate in a compatible state.">
+    <QuizShell {...shell(2)} title="Where are you located?" subtitle="This helps us understand your situation and any state-specific considerations.">
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Country</Label>
         <Select value={form.country} onValueChange={v => set('country', v)}>
@@ -275,15 +262,16 @@ export default function IPIntakeForm() {
     </QuizShell>
   )
 
-  // Step 3 — Partner info (conditional)
+  // Step 3 — Partner info
   if (step === 3) return (
-    <QuizShell {...shell(3)}
-      title="Partner information"
-      subtitle={isCouple ? 'A few quick details about your partner.' : 'No partner information needed for this step.'}
-      milestone="Halfway there!"
-    >
-      {isCouple ? (
+    <QuizShell {...shell(3)} title="Your partner" subtitle="Let us know if you're going through this journey together." milestone="Halfway there!">
+      <div>
+        <p className="text-sm font-medium text-stone-800 mb-2">Are you going through this journey with a partner?</p>
+        <YesNoGrid value={form.hasPartner} onChange={v => set('hasPartner', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
+      </div>
+      {isCouple && (
         <>
+          <div className="border-t border-stone-200 pt-4 mt-2" />
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Partner first name</Label>
@@ -307,15 +295,16 @@ export default function IPIntakeForm() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach partner</Label>
-            <Input type="tel" value={form.ip2Phone} onChange={e => set('ip2Phone', e.target.value)} placeholder="+44 20 7946 0958" className="rounded-xl h-11" />
+            <Input type="tel" value={form.ip2Phone} onChange={e => set('ip2Phone', e.target.value)} placeholder="+1 (555) 555-0100" className="rounded-xl h-11" />
             {form.ip2Phone && !partnerPhoneValid && (
               <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
             )}
           </div>
         </>
-      ) : (
+      )}
+      {form.hasPartner === false && (
         <div className="rounded-xl p-5 text-center" style={{ backgroundColor: '#f0f1fa' }}>
-          <p className="text-sm text-stone-600">No partner information is required. Tap <strong>Continue</strong> to proceed.</p>
+          <p className="text-sm text-stone-600">No partner information needed. Tap <strong>Continue</strong> to proceed.</p>
         </div>
       )}
     </QuizShell>
@@ -323,15 +312,27 @@ export default function IPIntakeForm() {
 
   // Step 4 — Fertility details
   if (step === 4) return (
-    <QuizShell {...shell(4)} title="Your fertility journey" subtitle="A few questions to help us understand where you are in the process." milestone="Almost done!">
+    <QuizShell {...shell(4)} title="Additional information" subtitle="A few questions to help us understand where you are in the process." milestone="Almost done!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Do you have a Reproductive Endocrinologist (Fertility Doctor)?</p>
         <YesNoGrid value={form.hasRE} onChange={v => set('hasRE', v)} yesLabel="Yes" noLabel="Not yet" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
+      {form.hasRE === true && (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">What is your doctor's name?</Label>
+          <Input value={form.reDoctorName} onChange={e => set('reDoctorName', e.target.value)} placeholder="Dr. Smith" className="rounded-xl h-11" />
+        </div>
+      )}
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Do you have frozen embryos?</p>
-        <YesNoGrid value={form.hasFrozenEmbryos} onChange={v => set('hasFrozenEmbryos', v)} yesLabel="Yes, we do" noLabel="Not yet" accentColor={IP_COLOR} accentFg={IP_FG} />
+        <YesNoGrid value={form.hasFrozenEmbryos} onChange={v => set('hasFrozenEmbryos', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
+      {form.hasFrozenEmbryos === true && (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">How many frozen embryos do you have?</Label>
+          <Input value={form.frozenEmbryoDetails} onChange={e => set('frozenEmbryoDetails', e.target.value)} placeholder="e.g., 3 embryos" className="rounded-xl h-11" />
+        </div>
+      )}
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Are you using an egg donor?</p>
         <YesNoGrid value={form.usingEggDonor} onChange={v => set('usingEggDonor', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
@@ -345,37 +346,19 @@ export default function IPIntakeForm() {
 
   // Step 5 — Final
   if (step === 5) return (
-    <QuizShell {...shell(5)} title="Final step" subtitle="You're almost done. We'll review your responses and be in touch shortly." milestone="Last step!">
+    <QuizShell {...shell(5)} title="Almost there!" subtitle="Just a couple more things and you're done." milestone="Last step!">
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Would you like to schedule a consultation?</p>
         <YesNoGrid value={form.wantsConsultation} onChange={v => set('wantsConsultation', v)} yesLabel="Yes, please" noLabel="Not right now" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
-      <div>
-        <p className="text-sm font-medium text-stone-800 mb-2">How did you hear about Abundant Beginnings Co.?</p>
-        <div className="space-y-2">
-          {[
-            { value: 'Instagram',        label: 'Instagram'        },
-            { value: 'TikTok',           label: 'TikTok'           },
-            { value: 'Facebook',         label: 'Facebook'         },
-            { value: 'Google search',    label: 'Google'           },
-            { value: 'Friend or family', label: 'Friend or family' },
-            { value: 'Doctor or clinic', label: 'Doctor or clinic' },
-            { value: 'Podcast or blog',  label: 'Podcast or blog'  },
-            { value: 'Other',            label: 'Other'            },
-          ].map(opt => (
-            <ChoiceCard key={opt.value} selected={form.hearAboutUs === opt.value} onSelect={() => set('hearAboutUs', opt.value)} label={opt.label} accentColor={IP_COLOR} accentFg={IP_FG} />
-          ))}
-        </div>
-      </div>
-      <div
-        className="flex items-start gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all"
-        style={form.agreeToConsultation ? { borderColor: IP_COLOR, backgroundColor: '#464DA010' } : { borderColor: '#e7e5e4' }}
-        onClick={() => set('agreeToConsultation', !form.agreeToConsultation)}
-      >
-        <Checkbox id="agree-consult" checked={form.agreeToConsultation} onCheckedChange={v => set('agreeToConsultation', v === true)} className="mt-0.5 shrink-0" />
-        <label htmlFor="agree-consult" className="text-sm text-stone-600 leading-relaxed cursor-pointer select-none">
-          I am open to being contacted by an Abundant Beginnings coordinator.
-        </label>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">How did you hear about Abundant Beginnings Co.?</Label>
+        <Textarea
+          value={form.hearAboutUs}
+          onChange={e => set('hearAboutUs', e.target.value)}
+          placeholder="e.g., Friend, Google, my clinic, Instagram..."
+          className="rounded-xl min-h-[80px] resize-none"
+        />
       </div>
       <TurnstileWidget onToken={setTurnstileToken} />
       <HoneypotField value={honeypotValue} onChange={setHoneypotValue} />
