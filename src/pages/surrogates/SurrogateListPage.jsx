@@ -120,7 +120,7 @@ function ScreeningProgress({ screening, recordTracking, surrogateId }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
-        <span>Screening</span>
+        <span>Milestones</span>
         <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
