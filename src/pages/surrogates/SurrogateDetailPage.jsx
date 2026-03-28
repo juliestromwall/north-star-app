@@ -14,7 +14,7 @@ import { useRole } from '@/context/RoleContext'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
-import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getChecklistSteps, getAllChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
@@ -689,7 +689,7 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="screening">Screening</TabsTrigger>
+          <TabsTrigger value="screening">Checklist</TabsTrigger>
           <TabsTrigger value="records">Medical Records</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -1816,39 +1816,67 @@ function countSectionFilled(data, section) {
 
 // ── Overview Tab ───────────────────────────────────────────
 function OverviewTab({ surrogate, screening, heightStr, profileData, recordTracking, updateRecord, currentUserName, stageId }) {
-  const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
-  const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-  const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
-  let obTotal = numPreg, obDone = 0, delTotal = numPreg, delDone = 0, ivfTotal = 0, ivfDone = 0
-  for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
-    if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
-    if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
-    if ((pregnancies[i]?.wasSurrogacy === 'yes') || isExperiencedSurrogate) {
-      ivfTotal++
-      if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
-    }
-  }
-  const recordSummarySteps = [
-    { id: '_ob_summary', label: 'OB Records', subLabel: numPreg > 0 ? `(${obDone}/${obTotal})` : '' },
-    { id: '_del_summary', label: 'Delivery Records', subLabel: numPreg > 0 ? `(${delDone}/${delTotal})` : '' },
-  ]
-  if (isExperiencedSurrogate) {
-    const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
-    recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
-  }
-  const dynamicSteps = getChecklistSteps('gc', stageId || 'pre-qualification')
-  const allSteps = [...recordSummarySteps, ...dynamicSteps]
+  const milestones = getAllChecklistMilestones('gc')
+  const rt = recordTracking || {}
+
+  let completed = 0
+  const milestoneData = milestones.map(ms => {
+    const stepIds = ms.stepIds || []
+    const relevantSteps = stepIds.filter(id => rt[id]?.status || !id.startsWith('_'))
+    const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
+    const anyStarted = relevantSteps.some(id => rt[id]?.status && rt[id].status !== 'not_started')
+    const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allComplete) completed++
+    return { ...ms, status, stepCount: stepIds.length }
+  })
+  const total = milestones.length
+  const pct = total > 0 ? (completed / total) * 100 : 0
 
   return (
     <div className="space-y-6">
-      <TrackingTable
-        title="Screening Checklist"
-        steps={allSteps}
-        statuses={CHECKLIST_STEP_STATUSES}
-        tracking={recordTracking}
-        onUpdate={updateRecord}
-        currentUserName={currentUserName}
-      />
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>Milestones</CardTitle>
+            <span className="text-sm font-semibold text-stone-500">{completed}/{total}</span>
+          </div>
+          <div className="h-2.5 rounded-full bg-stone-100 overflow-hidden mt-2">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${Math.max(pct, 2)}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {milestoneData.length === 0 ? (
+            <p className="text-sm text-stone-400 text-center py-4">No milestones configured. Set them up in Settings.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {milestoneData.map(ms => (
+                <div
+                  key={ms.id}
+                  className={`rounded-xl border p-3 text-center transition-all ${
+                    ms.status === 'complete'
+                      ? 'bg-emerald-50 border-emerald-200'
+                      : ms.status === 'in_progress'
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-white border-stone-100'
+                  }`}
+                >
+                  <div className="flex justify-center mb-2">
+                    {ms.status === 'complete' ? (
+                      <CheckCircle2 className="size-6 text-emerald-500" />
+                    ) : ms.status === 'in_progress' ? (
+                      <Clock className="size-6 text-amber-500" />
+                    ) : (
+                      <Circle className="size-6 text-stone-300" />
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-stone-700 leading-tight">{ms.label}</p>
+                  <p className="text-[10px] text-stone-400 mt-0.5">{ms.stepCount} step{ms.stepCount !== 1 ? 's' : ''}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
