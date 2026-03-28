@@ -112,6 +112,46 @@ export default function IntakeConfirmationPage() {
     setSigningUp(false)
   }
 
+  // ── IP confirmation — simple thank-you, no DQ, no account creation ──
+  if (isIP) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
+        <header className="flex items-center justify-center px-6 py-6 border-b border-stone-200 bg-white">
+          <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+        </header>
+
+        <div className="max-w-lg mx-auto px-4 py-16 text-center">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#464DA0]/10 mx-auto mb-6">
+            <Heart className="w-8 h-8 text-[#464DA0]" />
+          </div>
+
+          <h1 className="text-2xl font-bold text-stone-800 mb-4">
+            Thank You{name ? `, ${name}` : ''}!
+          </h1>
+
+          <p className="text-stone-600 mb-8 leading-relaxed">
+            Please be sure to check your spam folder, to not miss any emails from us. Congratulations on taking the first step in this process. A member of our team will reach out to you within 48 hours.
+          </p>
+
+          <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
+            <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
+            <p className="text-sm text-stone-500">
+              You can reach our team any time at{' '}
+              <a href="mailto:intake@abcsurrogacy.com" className="text-[#464DA0] underline">
+                intake@abcsurrogacy.com
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <footer className="py-6 text-center text-xs text-stone-400">
+          © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+        </footer>
+      </div>
+    )
+  }
+
+  // ── GC: DQ page ──
   if (!qualified) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
@@ -164,7 +204,7 @@ export default function IntakeConfirmationPage() {
     )
   }
 
-  // Qualified page
+  // ── GC: Qualified page ──
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#fdf8f3] to-white">
       {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc={CONFETTI_ICON_SRC} zIndex={40} />}
@@ -181,123 +221,105 @@ export default function IntakeConfirmationPage() {
           Great news, {name}!
         </h1>
         <p className="text-stone-500 mb-2">
-          You're a potential fit as a{typeLabel === 'Surrogate' ? '' : 'n'} {typeLabel}
+          You're a potential fit as a Surrogate
         </p>
 
         <p className="text-stone-600 mb-8 leading-relaxed">
-          {isIP
-            ? "Your application has been received! Our team will review it and reach out to you soon."
-            : "Your responses look promising! Set up your account below to access your portal and complete your profile."
-          }
+          Your responses look promising! Set up your account below to access your portal and complete your profile.
         </p>
 
-        {/* IP: no account creation — ABC will invite them */}
-        {isIP ? (
-          <div className="rounded-xl border-2 border-[#464DA0]/30 bg-[#464DA0]/5 p-5 text-left mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#464DA0]/10">
-                <Mail className="w-4 h-4 text-[#464DA0]" />
+        {/* GC: account setup — PRIMARY CTA */}
+        <div className={`rounded-xl border-2 p-5 text-left mb-8 transition-all ${pwSaved ? 'border-emerald-300 bg-emerald-50' : 'border-[#283693] bg-white shadow-lg'}`}>
+          {pwSaved ? (
+            <div className="text-center py-3 space-y-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto">
+                <CheckCircle className="w-6 h-6 text-emerald-600" />
               </div>
-              <p className="text-sm font-semibold text-stone-800">We'll be in touch</p>
+              <div>
+                <p className="font-semibold text-emerald-800 text-lg">Account created!</p>
+                <p className="text-sm text-emerald-600 mt-1">You're all set. Head to your portal to complete your profile.</p>
+              </div>
+              <Button
+                onClick={() => navigate('/dashboard')}
+                className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
+                style={{ backgroundColor: '#283693', color: '#fff' }}
+              >
+                Continue to my portal
+                <ArrowRight className="w-4 h-4" />
+              </Button>
             </div>
-            <p className="text-sm text-stone-600 leading-relaxed ml-10">
-              Once your application is reviewed, a coordinator will contact you to discuss next steps and set up your portal access.
-            </p>
-          </div>
-        ) : (
-          /* GC: account setup — PRIMARY CTA */
-          <div className={`rounded-xl border-2 p-5 text-left mb-8 transition-all ${pwSaved ? 'border-emerald-300 bg-emerald-50' : 'border-[#283693] bg-white shadow-lg'}`}>
-            {pwSaved ? (
-              <div className="text-center py-3 space-y-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 mx-auto">
-                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#283693]/10">
+                  <Lock className="w-4 h-4 text-[#283693]" />
                 </div>
-                <div>
-                  <p className="font-semibold text-emerald-800 text-lg">Account created!</p>
-                  <p className="text-sm text-emerald-600 mt-1">You're all set. Head to your portal to complete your profile.</p>
+                <p className="text-sm font-semibold text-stone-800">Create your account</p>
+              </div>
+              <p className="text-xs text-stone-400 mb-4 ml-10">Set up your password to access the surrogate portal.</p>
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
+                  <Input
+                    type="email"
+                    value={email || ''}
+                    readOnly
+                    className="rounded-xl h-11 bg-stone-50 text-stone-500"
+                  />
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPw ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="At least 8 characters"
+                      className="rounded-xl h-11 pr-11"
+                    />
+                    <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat your password"
+                    className="rounded-xl h-11"
+                  />
+                  {confirmPassword && !pwValid && (
+                    <p className="text-xs text-red-500">Passwords don't match or are too short</p>
+                  )}
+                  {confirmPassword && pwValid && (
+                    <p className="text-xs text-emerald-600">Looks good!</p>
+                  )}
+                </div>
+                {signupError && (
+                  <div className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                    {signupError.includes('already registered') || signupError.includes('already been registered')
+                      ? <>It looks like you already have an account. <a href="/login" className="text-[#283693] underline font-medium">Log in here</a></>
+                      : signupError
+                    }
+                  </div>
+                )}
                 <Button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
-                  style={{ backgroundColor: '#283693', color: '#fff' }}
+                  onClick={handleCreateAccount}
+                  disabled={!pwValid || signingUp}
+                  className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
+                  style={pwValid ? { backgroundColor: '#283693', color: '#fff' } : {}}
                 >
-                  Continue to my portal
-                  <ArrowRight className="w-4 h-4" />
+                  {signingUp ? 'Creating account...' : 'Create account & continue'}
+                  {!signingUp && <ArrowRight className="w-4 h-4" />}
                 </Button>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#283693]/10">
-                    <Lock className="w-4 h-4 text-[#283693]" />
-                  </div>
-                  <p className="text-sm font-semibold text-stone-800">Create your account</p>
-                </div>
-                <p className="text-xs text-stone-400 mb-4 ml-10">Set up your password to access the surrogate portal.</p>
-
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
-                    <Input
-                      type="email"
-                      value={email || ''}
-                      readOnly
-                      className="rounded-xl h-11 bg-stone-50 text-stone-500"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
-                    <div className="relative">
-                      <Input
-                        type={showPw ? 'text' : 'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="At least 8 characters"
-                        className="rounded-xl h-11 pr-11"
-                      />
-                      <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
-                        {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Confirm password</Label>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="Repeat your password"
-                      className="rounded-xl h-11"
-                    />
-                    {confirmPassword && !pwValid && (
-                      <p className="text-xs text-red-500">Passwords don't match or are too short</p>
-                    )}
-                    {confirmPassword && pwValid && (
-                      <p className="text-xs text-emerald-600">Looks good!</p>
-                    )}
-                  </div>
-                  {signupError && (
-                    <div className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                      {signupError.includes('already registered') || signupError.includes('already been registered')
-                        ? <>It looks like you already have an account. <a href="/login" className="text-[#283693] underline font-medium">Log in here</a></>
-                        : signupError
-                      }
-                    </div>
-                  )}
-                  <Button
-                    onClick={handleCreateAccount}
-                    disabled={!pwValid || signingUp}
-                    className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
-                    style={pwValid ? { backgroundColor: '#283693', color: '#fff' } : {}}
-                  >
-                    {signingUp ? 'Creating account...' : 'Create account & continue'}
-                    {!signingUp && <ArrowRight className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         {/* Next steps — secondary info */}
         <div className="text-left space-y-4 mb-8">
@@ -307,8 +329,8 @@ export default function IntakeConfirmationPage() {
           {steps.map((s, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full shrink-0 ${isIP ? 'bg-[#464DA0]/10' : 'bg-[#ed148c]/10'}`}>
-                  <s.icon className={`w-5 h-5 ${isIP ? 'text-[#464DA0]' : 'text-[#ed148c]'}`} />
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ed148c]/10 shrink-0">
+                  <s.icon className="w-5 h-5 text-[#ed148c]" />
                 </div>
                 {i < steps.length - 1 && (
                   <div className="w-px flex-1 bg-stone-200 my-1" />

@@ -100,48 +100,63 @@ function GCAnswerDetail({ answers }) {
 }
 
 function IPAnswerDetail({ answers }) {
+  const hasPartner = answers.hasPartner === true
   return (
     <div className="space-y-6 text-sm">
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">About You</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Intended Parent 1</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
           <div><span className="text-stone-400">Name</span><p className="font-medium">{answers.primaryFirstName} {answers.primaryLastName}</p></div>
-          {answers.secondaryName && <div><span className="text-stone-400">Partner</span><p className="font-medium">{answers.secondaryName}</p></div>}
-          <div><span className="text-stone-400">Family Type</span><p className="font-medium">{answers.familyType}</p></div>
-          <div><span className="text-stone-400">DOB</span><p className="font-medium">{answers.primaryDob}</p></div>
+          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{answers.primaryDob}</p></div>
           <div><span className="text-stone-400">Email</span><p className="font-medium">{answers.email}</p></div>
           <div><span className="text-stone-400">Phone</span><p className="font-medium">{answers.phone}</p></div>
-          <div><span className="text-stone-400">Location</span><p className="font-medium">{answers.city}, {answers.state}</p></div>
         </div>
       </section>
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Their Journey</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Address</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Time on Journey</span><p className="font-medium">{answers.yearsOnJourney}</p></div>
-          <div><span className="text-stone-400">Has Embryos</span><p className="font-medium">{answers.hasEmbryos ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Needs Egg Donor</span><p className="font-medium">{answers.needsEggDonor ? 'Yes' : 'No'}</p></div>
-        </div>
-        <div className="mt-2"><span className="text-stone-400">Reason for Surrogacy</span><p className="mt-1 text-stone-600 leading-relaxed">{answers.surrogacyReason}</p></div>
-      </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Preferences</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Surrogate Age</span><p className="font-medium">{answers.surrogateAgeRange}</p></div>
-          <div><span className="text-stone-400">Location Pref.</span><p className="font-medium">{answers.locationPreference}</p></div>
-          <div><span className="text-stone-400">First-Time OK</span><p className="font-medium">{answers.openToFirstTimeSurrogate ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Open to Multiples</span><p className="font-medium">{answers.openToMultiples ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Involvement Level</span><p className="font-medium">{answers.desiredInvolvement}</p></div>
+          <div className="col-span-2"><span className="text-stone-400">Street</span><p className="font-medium">{answers.street}{answers.street2 ? `, ${answers.street2}` : ''}</p></div>
+          <div><span className="text-stone-400">City</span><p className="font-medium">{answers.city}</p></div>
+          <div><span className="text-stone-400">State</span><p className="font-medium">{answers.stateProv}</p></div>
+          <div><span className="text-stone-400">Zip</span><p className="font-medium">{answers.zipCode}</p></div>
+          <div><span className="text-stone-400">Country</span><p className="font-medium">{answers.country}</p></div>
         </div>
       </section>
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Financial & Final</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Intended Parent 2</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Financing Confirmed</span><p className={`font-medium ${!answers.financingConfirmed ? 'text-red-600' : ''}`}>{answers.financingConfirmed ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Timeline</span><p className="font-medium">{answers.desiredTimeline}</p></div>
-          <div><span className="text-stone-400">Heard Via</span><p className="font-medium">{answers.hearAboutUs}</p></div>
-          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{answers.preferredContact}</p></div>
+          <div className="col-span-2"><span className="text-stone-400">Has Partner</span><p className="font-medium">{hasPartner ? 'Yes' : 'No'}</p></div>
+          {hasPartner && (
+            <>
+              <div><span className="text-stone-400">Partner Name</span><p className="font-medium">{answers.ip2FirstName} {answers.ip2LastName}</p></div>
+              <div><span className="text-stone-400">Partner DOB</span><p className="font-medium">{answers.ip2Dob}</p></div>
+              <div><span className="text-stone-400">Partner Email</span><p className="font-medium">{answers.ip2Email}</p></div>
+              <div><span className="text-stone-400">Partner Phone</span><p className="font-medium">{answers.ip2Phone}</p></div>
+            </>
+          )}
         </div>
-        {answers.additionalNotes && <div className="mt-2"><span className="text-stone-400">Additional Notes</span><p className="mt-1 text-stone-600">{answers.additionalNotes}</p></div>}
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Fertility Details</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Has RE</span><p className="font-medium">{answers.hasRE === true ? 'Yes' : answers.hasRE === false ? 'Not yet' : '—'}</p></div>
+          {answers.hasRE === true && answers.reDoctorName && (
+            <div><span className="text-stone-400">Doctor</span><p className="font-medium">{answers.reDoctorName}</p></div>
+          )}
+          <div><span className="text-stone-400">Frozen Embryos</span><p className="font-medium">{answers.hasFrozenEmbryos === true ? 'Yes' : answers.hasFrozenEmbryos === false ? 'No' : '—'}</p></div>
+          {answers.hasFrozenEmbryos === true && answers.frozenEmbryoDetails && (
+            <div><span className="text-stone-400">Embryo Details</span><p className="font-medium">{answers.frozenEmbryoDetails}</p></div>
+          )}
+          <div><span className="text-stone-400">Using Egg Donor</span><p className="font-medium">{answers.usingEggDonor === true ? 'Yes' : answers.usingEggDonor === false ? 'No' : '—'}</p></div>
+          <div><span className="text-stone-400">Using Sperm Donor</span><p className="font-medium">{answers.usingSpermDonor === true ? 'Yes' : answers.usingSpermDonor === false ? 'No' : '—'}</p></div>
+        </div>
+      </section>
+      <section>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Final Details</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <div><span className="text-stone-400">Wants Consultation</span><p className="font-medium">{answers.wantsConsultation === true ? 'Yes' : answers.wantsConsultation === false ? 'Not right now' : '—'}</p></div>
+          <div className="col-span-2"><span className="text-stone-400">Heard About Us</span><p className="font-medium">{answers.hearAboutUs || '—'}</p></div>
+        </div>
       </section>
     </div>
   )
