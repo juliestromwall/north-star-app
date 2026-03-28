@@ -27,6 +27,7 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
+import { sendSMS } from '@/lib/sms'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -351,6 +352,10 @@ export default function SurrogateDetailPage() {
   const [editNoteText, setEditNoteText] = useState('')
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
   const [flipped, setFlipped] = useState({})
+  const [smsOpen, setSmsOpen] = useState(false)
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsResult, setSmsResult] = useState(null) // 'sent' | 'error'
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
@@ -477,14 +482,14 @@ export default function SurrogateDetailPage() {
             </div>
             <div className="flex gap-2 shrink-0">
               {surrogate.phone && (
-                <CopyFlipButton
-                  icon={MessageSquare}
-                  label="Text"
-                  value={surrogate.phone}
-                  flipped={flipped.text}
-                  onFlip={() => toggleFlip('text')}
-                  preferred={surrogate.preferredContact === 'Text'}
-                />
+                <Button
+                  variant={surrogate.preferredContact === 'Text' ? 'default' : 'outline'}
+                  size="sm"
+                  className={`gap-1.5 ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                  onClick={() => { setSmsOpen(true); setSmsResult(null); setSmsMessage('') }}
+                >
+                  <MessageSquare className="size-3.5" /> Text
+                </Button>
               )}
               <CopyFlipButton
                 icon={Mail}
@@ -957,6 +962,65 @@ export default function SurrogateDetailPage() {
           </Dialog>
         </TabsContent>
       </Tabs>
+
+      {/* SMS Dialog */}
+      <Dialog open={smsOpen} onOpenChange={setSmsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="size-4" />
+              Text {surrogate.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-sm text-stone-500">
+              To: <span className="font-medium text-stone-700">{surrogate.phone}</span>
+            </div>
+            <Textarea
+              value={smsMessage}
+              onChange={e => setSmsMessage(e.target.value)}
+              placeholder="Type your message..."
+              rows={4}
+              className="resize-none"
+              disabled={smsSending}
+            />
+            <p className="text-[11px] text-stone-400">Sent from ABC Surrogacy's Twilio number. Trial accounts can only text verified numbers.</p>
+            {smsResult === 'sent' && (
+              <div className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                <CheckCircle2 className="size-4" /> Message sent successfully!
+              </div>
+            )}
+            {smsResult === 'error' && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                Failed to send. Make sure the number is verified in your Twilio trial account.
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setSmsOpen(false)}>Cancel</Button>
+            <Button
+              onClick={async () => {
+                if (!smsMessage.trim()) return
+                setSmsSending(true)
+                setSmsResult(null)
+                try {
+                  await sendSMS(surrogate.phone, smsMessage.trim())
+                  setSmsResult('sent')
+                  setSmsMessage('')
+                } catch {
+                  setSmsResult('error')
+                }
+                setSmsSending(false)
+              }}
+              disabled={!smsMessage.trim() || smsSending}
+              className="gap-1.5"
+              style={{ backgroundColor: '#283693' }}
+            >
+              {smsSending ? 'Sending...' : 'Send Text'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
