@@ -451,7 +451,7 @@ function ScreeningChecklistsSection() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
           <ClipboardList className="size-5" />
-          Screening Checklists
+          Checklists
         </h2>
       </div>
       <CardDescription>

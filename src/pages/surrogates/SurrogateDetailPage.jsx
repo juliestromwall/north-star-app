@@ -743,11 +743,12 @@ export default function SurrogateDetailPage() {
               recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
             }
             const currentStageId = stageStatus?.stage || 'pre-qualification'
+            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
             const dynamicSteps = getChecklistSteps('gc', currentStageId)
             const allSteps = [...recordSummarySteps, ...dynamicSteps]
             return (
               <TrackingTable
-                title="Screening Checklist"
+                title={`${currentStageLabel} Checklist`}
                 steps={allSteps}
                 statuses={CHECKLIST_STEP_STATUSES}
                 tracking={recordTracking}
