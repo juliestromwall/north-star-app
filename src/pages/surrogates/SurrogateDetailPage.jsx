@@ -990,9 +990,9 @@ export default function SurrogateDetailPage() {
                 <CheckCircle2 className="size-4" /> Message sent successfully!
               </div>
             )}
-            {smsResult === 'error' && (
+            {smsResult && smsResult !== 'sent' && (
               <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                Failed to send. Make sure the number is verified in your Twilio trial account.
+                {smsResult}
               </div>
             )}
           </div>
@@ -1007,8 +1007,8 @@ export default function SurrogateDetailPage() {
                   await sendSMS(surrogate.phone, smsMessage.trim())
                   setSmsResult('sent')
                   setSmsMessage('')
-                } catch {
-                  setSmsResult('error')
+                } catch (err) {
+                  setSmsResult(err.message || 'Failed to send. Check Twilio configuration.')
                 }
                 setSmsSending(false)
               }}
