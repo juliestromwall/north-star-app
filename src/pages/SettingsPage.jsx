@@ -443,6 +443,9 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
 
 // ── Checklists Section (collapsible) ──────────────────────
 
+const CASE_STAGES = ['pre-qualification', 'screening', 'matching']
+const JOURNEY_STAGES = ['journey-oversight', 'journey-ending', 'journey-closed']
+
 function ChecklistsSection() {
   const [open, setOpen] = useState(false)
   const [userType, setUserType] = useState('gc')
@@ -450,7 +453,8 @@ function ChecklistsSection() {
   const forceUpdate = useCallback(() => setTick(t => t + 1), [])
 
   const config = getChecklistConfig()
-  const stages = SURROGATE_STAGES
+  const caseStages = SURROGATE_STAGES.filter(s => CASE_STAGES.includes(s.id))
+  const journeyStages = SURROGATE_STAGES.filter(s => JOURNEY_STAGES.includes(s.id))
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -473,17 +477,24 @@ function ChecklistsSection() {
             <TabsList>
               <TabsTrigger value="gc">Surrogate (GC)</TabsTrigger>
               <TabsTrigger value="ip">Intended Parent (IP)</TabsTrigger>
+              <TabsTrigger value="journey">Matched Journeys</TabsTrigger>
             </TabsList>
 
             <TabsContent value="gc" className="space-y-4 mt-4">
-              {stages.map(stage => (
+              {caseStages.map(stage => (
                 <StageChecklistCard key={stage.id} stage={stage} userType="gc" stageData={config.gc?.[stage.id]} onUpdate={forceUpdate} />
               ))}
             </TabsContent>
 
             <TabsContent value="ip" className="space-y-4 mt-4">
-              {stages.map(stage => (
+              {caseStages.map(stage => (
                 <StageChecklistCard key={stage.id} stage={stage} userType="ip" stageData={config.ip?.[stage.id]} onUpdate={forceUpdate} />
+              ))}
+            </TabsContent>
+
+            <TabsContent value="journey" className="space-y-4 mt-4">
+              {journeyStages.map(stage => (
+                <StageChecklistCard key={stage.id} stage={stage} userType="gc" stageData={config.gc?.[stage.id]} onUpdate={forceUpdate} />
               ))}
             </TabsContent>
           </Tabs>
