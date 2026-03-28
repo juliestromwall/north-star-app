@@ -1,45 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Mail, Phone, Video, Briefcase, Globe, Church, Users,
-  DollarSign, MessageSquare, Pencil, FileText, Baby, Target, MapPin, ExternalLink
+  ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope,
+  Calendar, ClipboardList, Copy, Check
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
-import ScreeningStatusItem from '@/components/shared/ScreeningStatusItem'
-import TimelineItem from '@/components/shared/TimelineItem'
 import EmptyState from '@/components/shared/EmptyState'
-import PhotoGallery from '@/components/shared/PhotoGallery'
-import AddPhotosDialog from '@/components/shared/AddPhotosDialog'
-import ProfileDashboardTab from '@/components/shared/ProfileDashboardTab'
-import { mockIntendedParents } from '@/data/mock/intendedParents'
-import { mockSurrogates } from '@/data/mock/surrogates'
+import { fetchIPsFromIntake } from '@/lib/db'
+
+const STATUS_STYLES = {
+  new:             'bg-pink-100 text-pink-700 border-pink-200',
+  qualified:       'bg-emerald-100 text-emerald-700 border-emerald-200',
+  approved:        'bg-blue-100 text-blue-700 border-blue-200',
+  active:          'bg-blue-100 text-blue-700 border-blue-200',
+  pending_review:  'bg-amber-100 text-amber-700 border-amber-200',
+  reviewed:        'bg-violet-100 text-violet-700 border-violet-200',
+}
 
 const TYPE_STYLES = {
-  'Same-sex couple': 'bg-violet-100 text-violet-800 border-violet-200',
-  'Heterosexual couple': 'bg-sky-100 text-sky-800 border-sky-200',
+  'Couple':        'bg-sky-100 text-sky-800 border-sky-200',
   'Single parent': 'bg-amber-100 text-amber-800 border-amber-200',
 }
 
-const DOC_STATUS_STYLES = {
-  received: 'bg-green-500',
-  pending: 'bg-yellow-500',
-  missing: 'bg-gray-300',
+function StatusBadge({ status }) {
+  const label = status === 'new' ? 'New' : status === 'pending_review' ? 'Pending Review' : status.charAt(0).toUpperCase() + status.slice(1)
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[status] || 'bg-stone-100 text-stone-500 border-stone-200'}`}>
+      {label}
+    </span>
+  )
+}
+
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = (e) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <button onClick={handleCopy} className="text-stone-400 hover:text-stone-600 ml-1">
+      {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
+    </button>
+  )
 }
 
 export default function IPDetailPage() {
   const { id } = useParams()
-  const ip = mockIntendedParents.find(p => p.id === id)
-  const [noteText, setNoteText] = useState('')
+  const [ip, setIp] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchIPsFromIntake().then(all => {
+      const found = all.find(item => String(item.id) === String(id))
+      setIp(found || null)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return <div className="text-center py-12 text-stone-400">Loading...</div>
+  }
 
   if (!ip) {
     return (
@@ -47,14 +74,13 @@ export default function IPDetailPage() {
         <Link to="/intended-parents" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> Back to Intended Parents
         </Link>
-        <EmptyState title="Intended Parent not found" description="This profile doesn't exist." />
+        <EmptyState title="Intended Parent not found" description="This case doesn't exist." />
       </div>
     )
   }
 
-  const matchedSurrogate = ip.matchedWith
-    ? mockSurrogates.find(s => s.id === ip.matchedWith)
-    : null
+  const a = ip.answers || {}
+  const hasPartner = a.hasPartner === true
 
   return (
     <div className="space-y-6">
@@ -63,10 +89,10 @@ export default function IPDetailPage() {
       </Link>
 
       {/* Hero */}
-      <Card className="bg-gradient-to-r from-abc-indigo/5 to-abc-coral/5">
+      <Card className="bg-gradient-to-r from-[#464DA0]/5 to-[#464DA0]/10">
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row items-start gap-4">
-            <ProfileAvatar name={ip.names} avatar={ip.avatar} size="xl" />
+            <ProfileAvatar name={ip.names} size="xl" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-heading font-bold">{ip.names}</h1>
@@ -74,238 +100,179 @@ export default function IPDetailPage() {
                 <Badge variant="outline" className={`text-xs ${TYPE_STYLES[ip.type] || ''}`}>
                   {ip.type}
                 </Badge>
-                {ip.matchStage && (
-                  <Badge variant="outline" className="bg-abc-coral/20 text-abc-navy border-abc-coral/30 text-xs">
-                    {ip.matchStage}
-                  </Badge>
-                )}
               </div>
-              <p className="text-muted-foreground mt-1">{ip.location}</p>
-              <p className="text-sm mt-2 max-w-2xl">{ip.bio}</p>
+              {ip.location && (
+                <p className="text-muted-foreground mt-1 flex items-center gap-1">
+                  <MapPin className="size-3.5" /> {ip.location}{ip.country && ip.country !== 'United States' ? `, ${ip.country}` : ''}
+                </p>
+              )}
+              <p className="text-xs text-stone-400 mt-1">
+                Applied {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
             </div>
+
+            {/* Quick contact buttons */}
             <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <MessageSquare className="size-3.5" /> Send Message
-              </Button>
-              <Button variant="outline" size="sm" className="gap-1.5" disabled>
-                <Pencil className="size-3.5" /> Edit Profile
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => window.open(`/intended-parents/${ip.id}/share`, '_blank')}
-              >
-                <ExternalLink className="size-3.5" /> Share Profile
-              </Button>
+              {ip.email && (
+                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                  <a href={`mailto:${ip.email}`}><Mail className="size-3.5" /> Email</a>
+                </Button>
+              )}
+              {ip.phone && (
+                <Button variant="outline" size="sm" className="gap-1.5" asChild>
+                  <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /> Call</a>
+                </Button>
+              )}
             </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <span><span className="text-muted-foreground">Ages:</span> <strong>{ip.ages}</strong></span>
-            <span><span className="text-muted-foreground">Budget:</span> <strong>{ip.budget}</strong></span>
-            {matchedSurrogate && (
-              <span>
-                <span className="text-muted-foreground">Matched With:</span>{' '}
-                <Link to={`/surrogates/${matchedSurrogate.id}`} className="font-semibold text-abc-indigo hover:underline">
-                  {matchedSurrogate.name}
-                </Link>
-              </span>
-            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="dashboard">
+      <Tabs defaultValue="overview">
         <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="intake">Intake Answers</TabsTrigger>
         </TabsList>
-
-        {/* Dashboard Tab */}
-        <TabsContent value="dashboard">
-          <ProfileDashboardTab
-            profileId={ip.id}
-            profileType="ip"
-            notes={ip.notes}
-            matchStage={ip.matchStage}
-          />
-        </TabsContent>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Photos</CardTitle>
-              <AddPhotosDialog />
-            </CardHeader>
-            <CardContent>
-              <PhotoGallery photos={ip.photos} mode="grid" />
-            </CardContent>
-          </Card>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* IP1 Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
+                <CardTitle>Intended Parent 1</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
+                <InfoRow icon={Users} label="Name" value={ip.ip1Name} />
+                <InfoRow icon={Calendar} label="Date of Birth" value={a.primaryDob} />
+                {ip.age && <InfoRow icon={Users} label="Age" value={`${ip.age}`} />}
                 <InfoRow icon={Mail} label="Email" value={ip.email} />
                 <InfoRow icon={Phone} label="Phone" value={ip.phone} />
-                <InfoRow icon={Video} label="Preferred Communication" value={ip.preferredCommunication} />
               </CardContent>
             </Card>
 
+            {/* IP2 Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Screening Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <ScreeningStatusItem label="Application" status={ip.screening.application} />
-                <ScreeningStatusItem label="Financial Verification" status={ip.screening.financialVerification} />
-                <ScreeningStatusItem label="Psychological" status={ip.screening.psychological} />
-                <ScreeningStatusItem label="Legal Consultation" status={ip.screening.legalConsultation} />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Preferences</CardTitle>
+                <CardTitle>Intended Parent 2</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
-                <InfoRow icon={Target} label="Surrogate Age Range" value={ip.preferences.surrogateAge} />
-                <InfoRow icon={MapPin} label="Surrogate Location" value={ip.preferences.surrogateLocation} />
-                <InfoRow icon={Users} label="Experienced Preferred" value={ip.preferences.experiencedPreferred ? 'Yes' : 'No'} />
-                <InfoRow icon={Baby} label="Open to Multiples" value={ip.preferences.openToMultiples ? 'Yes' : 'No'} />
+                {hasPartner ? (
+                  <>
+                    <InfoRow icon={Users} label="Name" value={ip.ip2Name} />
+                    <InfoRow icon={Calendar} label="Date of Birth" value={a.ip2Dob} />
+                    <InfoRow icon={Mail} label="Email" value={ip.ip2Email} />
+                    <InfoRow icon={Phone} label="Phone" value={ip.ip2Phone} />
+                  </>
+                ) : (
+                  <p className="text-sm text-stone-400">No partner on this journey</p>
+                )}
               </CardContent>
             </Card>
 
+            {/* Fertility Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Family Information</CardTitle>
+                <CardTitle>Fertility Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
-                <InfoRow icon={Users} label="Family Type" value={ip.type} />
-                <InfoRow icon={Globe} label="Ethnicity" value={ip.ethnicity} />
-                <InfoRow icon={Church} label="Religion" value={ip.religion} />
-                <InfoRow icon={Briefcase} label="Occupation" value={ip.occupation} />
-                <InfoRow icon={DollarSign} label="Budget" value={ip.budget} />
+                <InfoRow icon={Stethoscope} label="Has RE" value={ip.hasRE === true ? 'Yes' : ip.hasRE === false ? 'Not yet' : '—'} />
+                {ip.hasRE === true && ip.reDoctorName && (
+                  <InfoRow icon={Stethoscope} label="Doctor" value={ip.reDoctorName} />
+                )}
+                <InfoRow icon={Baby} label="Frozen Embryos" value={ip.hasFrozenEmbryos === true ? 'Yes' : ip.hasFrozenEmbryos === false ? 'No' : '—'} />
+                {ip.hasFrozenEmbryos === true && ip.frozenEmbryoDetails && (
+                  <InfoRow icon={Baby} label="Details" value={ip.frozenEmbryoDetails} />
+                )}
+                <InfoRow icon={Baby} label="Egg Donor" value={ip.usingEggDonor === true ? 'Yes' : ip.usingEggDonor === false ? 'No' : '—'} />
+                <InfoRow icon={Baby} label="Sperm Donor" value={ip.usingSpermDonor === true ? 'Yes' : ip.usingSpermDonor === false ? 'No' : '—'} />
+              </CardContent>
+            </Card>
+
+            {/* Additional Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <InfoRow icon={ClipboardList} label="Wants Consultation" value={ip.wantsConsultation === true ? 'Yes' : ip.wantsConsultation === false ? 'Not right now' : '—'} />
+                <InfoRow icon={ClipboardList} label="How They Heard" value={ip.hearAboutUs || '—'} />
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Document</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date Received</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ip.documents.map((doc, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <FileText className="size-4 text-muted-foreground" />
-                        {doc.name}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className={`size-2 rounded-full ${DOC_STATUS_STYLES[doc.status]}`} />
-                          <span className="text-sm capitalize">{doc.status}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {doc.date
-                          ? new Date(doc.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                          : '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        {/* Contact Tab */}
+        <TabsContent value="contact" className="space-y-6 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle>IP1 Contact</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Email</p>
+                    <p className="text-sm font-medium">{ip.email}</p>
+                  </div>
+                  <CopyButton text={ip.email} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Phone</p>
+                    <p className="text-sm font-medium">{ip.phone}</p>
+                  </div>
+                  <CopyButton text={ip.phone} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {hasPartner && (
+              <Card>
+                <CardHeader><CardTitle>IP2 Contact</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Email</p>
+                      <p className="text-sm font-medium">{ip.ip2Email}</p>
+                    </div>
+                    <CopyButton text={ip.ip2Email} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Phone</p>
+                      <p className="text-sm font-medium">{ip.ip2Phone}</p>
+                    </div>
+                    <CopyButton text={ip.ip2Phone} />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className={hasPartner ? 'lg:col-span-2' : ''}>
+              <CardHeader><CardTitle>Address</CardTitle></CardHeader>
+              <CardContent>
+                <p className="text-sm">{a.street}{a.street2 ? `, ${a.street2}` : ''}</p>
+                <p className="text-sm">{a.city}, {a.stateProv} {a.zipCode}</p>
+                {a.country && a.country !== 'United States' && <p className="text-sm">{a.country}</p>}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        {/* Timeline Tab */}
-        <TabsContent value="timeline" className="mt-4">
+        {/* Intake Answers Tab */}
+        <TabsContent value="intake" className="space-y-6 mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Journey Timeline</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Raw Intake Answers</CardTitle></CardHeader>
             <CardContent>
-              <div className="space-y-0">
-                {[...ip.timeline].reverse().map((entry, i) => (
-                  <TimelineItem
-                    key={i}
-                    date={entry.date}
-                    event={entry.event}
-                    type={entry.type}
-                    isLast={i === ip.timeline.length - 1}
-                  />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                {Object.entries(a).filter(([_, v]) => v !== null && v !== '' && v !== undefined).map(([key, value]) => (
+                  <div key={key}>
+                    <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <p className="font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</p>
+                  </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notes Tab */}
-        <TabsContent value="notes" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">Add Note</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Note</DialogTitle>
-                  </DialogHeader>
-                  <Textarea
-                    placeholder="Write a note..."
-                    value={noteText}
-                    onChange={e => setNoteText(e.target.value)}
-                    rows={4}
-                  />
-                  <Button onClick={() => setNoteText('')} className="w-full">Save Note</Button>
-                </DialogContent>
-              </Dialog>
-
-              {ip.notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No notes yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {ip.notes.map((note, i) => (
-                    <div key={i} className="rounded-lg border p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium">{note.author}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{note.text}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

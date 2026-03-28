@@ -184,6 +184,57 @@ export async function fetchSurrogatesFromIntake() {
   })
 }
 
+// ── Intended Parents (from intake submissions) ─────────
+
+export async function fetchIPsFromIntake() {
+  if (!supabase) return []
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions')
+      .select('*')
+      .eq('intake_type', 'ip')
+      .order('submitted_at', { ascending: false }),
+    20000
+  )
+  if (!result || result.error) return []
+  return result.data.map(row => {
+    const a = row.answers || {}
+    const hasPartner = a.hasPartner === true
+    const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
+    const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : null
+    const names = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+    const dob = a.primaryDob ? new Date(a.primaryDob) : null
+    const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+    return {
+      id: row.id,
+      names: names || 'Unknown',
+      ip1Name,
+      ip2Name,
+      email: row.applicant_email || a.email || '',
+      ip2Email: a.ip2Email || '',
+      phone: a.phone || '',
+      ip2Phone: a.ip2Phone || '',
+      age,
+      location: [a.city, a.stateProv].filter(Boolean).join(', ') || '',
+      country: a.country || '',
+      type: hasPartner ? 'Couple' : 'Single parent',
+      status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'new' : row.status,
+      intakeStatus: row.status,
+      submittedAt: row.submitted_at,
+      hasRE: a.hasRE,
+      reDoctorName: a.reDoctorName || '',
+      hasFrozenEmbryos: a.hasFrozenEmbryos,
+      frozenEmbryoDetails: a.frozenEmbryoDetails || '',
+      usingEggDonor: a.usingEggDonor,
+      usingSpermDonor: a.usingSpermDonor,
+      wantsConsultation: a.wantsConsultation,
+      hearAboutUs: a.hearAboutUs || '',
+      assignedTo: row.assigned_to || null,
+      matchStage: null,
+      answers: a,
+    }
+  })
+}
+
 // ── Case Assignment ─────────────────────────────────────
 
 export async function assignSurrogateToAdmin(submissionId, adminEmail) {
