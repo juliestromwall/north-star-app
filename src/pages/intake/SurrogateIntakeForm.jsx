@@ -112,9 +112,7 @@ export default function SurrogateIntakeForm() {
   async function handleSubmit() {
     // Bot protection — silently reject without revealing why
     const botCheck = validateSubmission()
-    console.log('[GC Intake] Bot check:', botCheck)
     if (!botCheck.ok) {
-      console.warn('[GC Intake] Bot check FAILED:', botCheck.reason)
       // Fake success: bots think they submitted, but nothing happens
       navigate('/apply/confirmation', {
         state: { qualified: false, dqReasons: [], type: 'gc', name: form.firstName, email: form.email, tracking: {}, answers: form },
@@ -162,9 +160,8 @@ export default function SurrogateIntakeForm() {
         referrer: document.referrer || null,
         user_agent: navigator.userAgent || null,
       })
-      console.log('[GC Intake] Supabase insert SUCCESS')
-    } catch (err) {
-      console.error('[GC Intake] Supabase insert FAILED:', err)
+    } catch {
+      // Keep applicant flow moving even if persistence fails
     }
     navigate('/apply/confirmation', {
       state: {

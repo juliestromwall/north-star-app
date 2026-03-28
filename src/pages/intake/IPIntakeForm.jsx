@@ -109,9 +109,7 @@ export default function IPIntakeForm() {
 
   async function handleSubmit() {
     const botCheck = validateSubmission()
-    console.log('[IP Intake] Bot check:', botCheck)
     if (!botCheck.ok) {
-      console.warn('[IP Intake] Bot check FAILED:', botCheck.reason)
       navigate('/apply/confirmation', {
         state: { qualified: false, dqReasons: [], type: 'ip', name: form.primaryFirstName, email: form.email, tracking: {}, answers: form },
       })
@@ -157,9 +155,8 @@ export default function IPIntakeForm() {
         referrer: document.referrer || null,
         user_agent: navigator.userAgent || null,
       })
-      console.log('[IP Intake] Supabase insert SUCCESS')
-    } catch (err) {
-      console.error('[IP Intake] Supabase insert FAILED:', err)
+    } catch {
+      // Keep applicant flow moving even if persistence fails
     }
     navigate('/apply/confirmation', {
       state: { qualified, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
