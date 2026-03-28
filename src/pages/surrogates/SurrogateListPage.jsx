@@ -127,19 +127,19 @@ function ScreeningProgress({ screening, recordTracking, surrogateId }) {
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
       </div>
       {cardMilestones.length > 0 && (
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
         {cardMilestones.map(ms => {
           const status = milestoneStatuses[ms.id]
           return (
             <div key={ms.id} className="flex items-center gap-1">
               {status === 'complete' ? (
-                <CheckCircle className="size-3 text-emerald-500" />
+                <CheckCircle className="size-3 text-emerald-500 shrink-0" />
               ) : status === 'in_progress' ? (
-                <Clock className="size-3 text-amber-500" />
+                <Clock className="size-3 text-amber-500 shrink-0" />
               ) : (
-                <Circle className="size-3 text-stone-300" />
+                <Circle className="size-3 text-stone-300 shrink-0" />
               )}
-              <span className="text-[10px] text-stone-400">{ms.label}</span>
+              <span className="text-[10px] text-stone-400 whitespace-nowrap">{ms.label}</span>
             </div>
           )
         })}
