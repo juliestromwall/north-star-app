@@ -262,6 +262,8 @@ export default function AdminDashboard() {
     }).catch(() => {})
   }, [])
 
+  const [dashView, setDashView] = useState('home') // 'home' | 'surrogates'
+
   const visibleNotes = getActiveNotes().filter(
     (n) => !n.dismissals?.some((d) => d.user_id === currentUser?.id)
   )
@@ -295,14 +297,53 @@ export default function AdminDashboard() {
         </div>
       ))}
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Surrogates" value={surrogateCount} icon={Heart} description="In program" />
-        <StatCard title="Active IPs" value={0} icon={Users} description="In program" />
-        <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
-        <StatCard title="Pending Review" value={pendingCount} icon={FileText} description="Needs review" />
+      {/* Stat Cards — clickable */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <button onClick={() => setDashView('home')} className={`text-left rounded-2xl border p-5 transition-all ${dashView === 'home' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md' : 'border-stone-100 hover:shadow-sm'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-stone-600">Home</span>
+            <ArrowRight className="size-4 text-stone-300" />
+          </div>
+          <p className="text-2xl font-bold text-[#283693]">Dashboard</p>
+        </button>
+        <button onClick={() => setDashView('surrogates')} className={`text-left rounded-2xl border p-5 transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md' : 'border-stone-100 hover:shadow-sm'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-stone-600">Surrogates</span>
+            <Heart className="size-4 text-stone-300" />
+          </div>
+          <p className="text-2xl font-bold">{surrogateCount}</p>
+          <p className="text-xs text-stone-400 mt-0.5">In program</p>
+        </button>
+        <div className="rounded-2xl border border-stone-100 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-stone-600">Active IPs</span>
+            <Users className="size-4 text-stone-300" />
+          </div>
+          <p className="text-2xl font-bold">0</p>
+          <p className="text-xs text-stone-400 mt-0.5">In program</p>
+        </div>
+        <div className="rounded-2xl border border-stone-100 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-stone-600">Matches in Progress</span>
+            <GitMerge className="size-4 text-stone-300" />
+          </div>
+          <p className="text-2xl font-bold">0</p>
+          <p className="text-xs text-stone-400 mt-0.5">Across all stages</p>
+        </div>
+        <div className="rounded-2xl border border-stone-100 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-stone-600">Pending Review</span>
+            <FileText className="size-4 text-stone-300" />
+          </div>
+          <p className="text-2xl font-bold">{pendingCount}</p>
+          <p className="text-xs text-stone-400 mt-0.5">Needs review</p>
+        </div>
       </div>
 
+      {dashView === 'surrogates' ? (
+        /* Surrogate Screening Sheet */
+        surrogates.length > 0 && <SurrogateScreeningSheet surrogates={surrogates} />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Match Pipeline */}
         <Card className="lg:col-span-2">
@@ -426,9 +467,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Surrogate Screening Sheet */}
-      {surrogates.length > 0 && <SurrogateScreeningSheet surrogates={surrogates} />}
+      )}
     </div>
   )
 }
