@@ -145,8 +145,13 @@ function SurrogateScreeningSheet({ surrogates }) {
               <tr className="bg-stone-50 border-b border-stone-200">
                 <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[180px]">Screening Step</th>
                 {filtered.map(s => (
-                  <th key={s.id} className="text-left px-3 py-2.5 min-w-[200px]">
+                  <th key={s.id} className="text-left px-3 py-2.5 min-w-[200px] align-top">
                     <Link to={`/surrogates/${s.id}`} className="text-xs font-semibold text-[#283693] hover:underline">{s.name}</Link>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {s.location && <span className="text-[10px] text-stone-400">{s.location}</span>}
+                      {s.age && <span className="text-[10px] text-stone-400">· {s.age}y</span>}
+                      {s.referralPartner && <span className="text-[9px] font-bold text-[#ed148c] bg-[#ed148c]/10 px-1.5 py-0.5 rounded">(BE)</span>}
+                    </div>
                   </th>
                 ))}
               </tr>
