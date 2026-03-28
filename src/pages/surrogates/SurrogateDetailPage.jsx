@@ -718,33 +718,41 @@ export default function SurrogateDetailPage() {
           />
         </TabsContent>
 
-        {/* Screening Tab */}
+        {/* Checklist Tab */}
         <TabsContent value="screening" className="mt-4 space-y-6">
           {(() => {
-            const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
-            const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-            const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
-            // Count how many OB/Delivery/IVF records are complete in the Medical Records tab
-            let obTotal = numPreg, obDone = 0, delTotal = numPreg, delDone = 0, ivfTotal = 0, ivfDone = 0
-            for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
-              if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
-              if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
-              if ((pregnancies[i]?.wasSurrogacy === 'yes') || isExperiencedSurrogate) {
-                ivfTotal++
-                if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
-              }
-            }
-            const recordSummarySteps = [
-              { id: '_ob_summary', label: 'OB Records', subLabel: numPreg > 0 ? `(${obDone}/${obTotal})` : '' },
-              { id: '_del_summary', label: 'Delivery Records', subLabel: numPreg > 0 ? `(${delDone}/${delTotal})` : '' },
-            ]
-            if (isExperiencedSurrogate) {
-              const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
-              recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
-            }
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
             const dynamicSteps = getChecklistSteps('gc', currentStageId)
+
+            // Only show medical record summary rows for Pre-Qualification stage
+            const recordSummarySteps = []
+            if (currentStageId === 'pre-qualification') {
+              const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
+              const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+              const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
+              let obDone = 0, delDone = 0, ivfTotal = 0, ivfDone = 0
+              for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+                if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
+                if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
+                const isSurrogacyPreg = pregnancies[i]?.wasSurrogacy === 'yes'
+                if (isSurrogacyPreg || isExperiencedSurrogate) {
+                  ivfTotal++
+                  if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
+                }
+              }
+              if (numPreg > 0) {
+                recordSummarySteps.push(
+                  { id: '_ob_summary', label: 'OB Records', subLabel: `(${obDone}/${numPreg})` },
+                  { id: '_del_summary', label: 'Delivery Records', subLabel: `(${delDone}/${numPreg})` },
+                )
+                if (ivfTotal > 0 || isExperiencedSurrogate) {
+                  const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
+                  recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: `(${ivfDone}/${ivfCount})` })
+                }
+              }
+            }
+
             const allSteps = [...recordSummarySteps, ...dynamicSteps]
             return (
               <TrackingTable
