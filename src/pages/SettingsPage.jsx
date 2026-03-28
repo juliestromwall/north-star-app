@@ -21,7 +21,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog } from 'lucide-react'
+import { mockUsers } from '@/data/mock/users'
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
 
@@ -440,9 +441,10 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
   )
 }
 
-// ── Screening Checklists Section ──────────────────────────
+// ── Checklists Section (collapsible) ──────────────────────
 
-function ScreeningChecklistsSection() {
+function ChecklistsSection() {
+  const [open, setOpen] = useState(false)
   const [userType, setUserType] = useState('gc')
   const [, setTick] = useState(0)
   const forceUpdate = useCallback(() => setTick(t => t + 1), [])
@@ -451,48 +453,202 @@ function ScreeningChecklistsSection() {
   const stages = SURROGATE_STAGES
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
-          <ClipboardList className="size-5" />
-          Checklists
-        </h2>
-      </div>
-      <CardDescription>
-        Configure the checklist steps that appear for each case stage. Each stage has one checklist per user type.
-      </CardDescription>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center justify-between cursor-pointer group py-1">
+          <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
+            <ClipboardList className="size-5" />
+            Checklists
+          </h2>
+          <ChevronDown className={`size-5 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-4 mt-3">
+          <CardDescription>
+            Configure the checklist steps that appear for each case stage. Each stage has one checklist per user type.
+          </CardDescription>
 
-      <Tabs value={userType} onValueChange={setUserType}>
-        <TabsList>
-          <TabsTrigger value="gc">Surrogate (GC)</TabsTrigger>
-          <TabsTrigger value="ip">Intended Parent (IP)</TabsTrigger>
-        </TabsList>
+          <Tabs value={userType} onValueChange={setUserType}>
+            <TabsList>
+              <TabsTrigger value="gc">Surrogate (GC)</TabsTrigger>
+              <TabsTrigger value="ip">Intended Parent (IP)</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="gc" className="space-y-4 mt-4">
-          {stages.map(stage => (
-            <StageChecklistCard
-              key={stage.id}
-              stage={stage}
-              userType="gc"
-              stageData={config.gc?.[stage.id]}
-              onUpdate={forceUpdate}
-            />
-          ))}
-        </TabsContent>
+            <TabsContent value="gc" className="space-y-4 mt-4">
+              {stages.map(stage => (
+                <StageChecklistCard key={stage.id} stage={stage} userType="gc" stageData={config.gc?.[stage.id]} onUpdate={forceUpdate} />
+              ))}
+            </TabsContent>
 
-        <TabsContent value="ip" className="space-y-4 mt-4">
-          {stages.map(stage => (
-            <StageChecklistCard
-              key={stage.id}
-              stage={stage}
-              userType="ip"
-              stageData={config.ip?.[stage.id]}
-              onUpdate={forceUpdate}
-            />
-          ))}
-        </TabsContent>
-      </Tabs>
-    </div>
+            <TabsContent value="ip" className="space-y-4 mt-4">
+              {stages.map(stage => (
+                <StageChecklistCard key={stage.id} stage={stage} userType="ip" stageData={config.ip?.[stage.id]} onUpdate={forceUpdate} />
+              ))}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+// ── User Management Section ──────────────────────────────────
+
+const ROLE_OPTIONS = [
+  { value: 'master_admin', label: 'Master Admin' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'marketing', label: 'Marketing' },
+]
+
+const ROLE_BADGE_STYLES = {
+  master_admin: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  admin: 'bg-sky-100 text-sky-700 border-sky-200',
+  marketing: 'bg-amber-100 text-amber-700 border-amber-200',
+  super_admin: 'bg-red-100 text-red-700 border-red-200',
+}
+
+function UserManagementSection() {
+  const [open, setOpen] = useState(false)
+  // Filter out super_admin (developer) from visible list
+  const [users, setUsers] = useState(() => mockUsers.filter(u => u.role !== 'super_admin'))
+  const [addOpen, setAddOpen] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [form, setForm] = useState({ name: '', email: '', role: 'admin' })
+
+  const startAdd = () => {
+    setForm({ name: '', email: '', role: 'admin' })
+    setAddOpen(true)
+    setEditingId(null)
+  }
+
+  const startEdit = (user) => {
+    setForm({ name: user.name, email: user.email, role: user.role })
+    setEditingId(user.id)
+    setAddOpen(true)
+  }
+
+  const handleSave = () => {
+    if (!form.name.trim() || !form.email.trim()) return
+    if (editingId) {
+      setUsers(prev => prev.map(u => u.id === editingId ? { ...u, name: form.name.trim(), email: form.email.trim(), role: form.role } : u))
+    } else {
+      const newId = 'u' + Date.now()
+      setUsers(prev => [...prev, { id: newId, name: form.name.trim(), email: form.email.trim(), role: form.role, active: true }])
+    }
+    setAddOpen(false)
+    setEditingId(null)
+  }
+
+  const toggleActive = (userId) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, active: u.active === false ? true : false } : u))
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center justify-between cursor-pointer group py-1">
+          <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
+            <Users className="size-5" />
+            Team Members
+          </h2>
+          <ChevronDown className={`size-5 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-4 mt-3">
+          <div className="flex items-center justify-between">
+            <CardDescription>Manage who has access to the system and their roles.</CardDescription>
+            <Button size="sm" onClick={startAdd} className="gap-1">
+              <Plus className="size-4" /> Add User
+            </Button>
+          </div>
+
+          <div className="rounded-xl border border-stone-200 overflow-hidden bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-stone-50 border-b border-stone-200">
+                  <th className="text-left py-3 px-4 font-medium text-stone-500">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-stone-500">Email</th>
+                  <th className="text-left py-3 px-4 font-medium text-stone-500">Role</th>
+                  <th className="text-left py-3 px-4 font-medium text-stone-500">Status</th>
+                  <th className="py-3 px-4" />
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id} className={`border-b border-stone-100 ${user.active === false ? 'opacity-50' : ''}`}>
+                    <td className="py-3 px-4 font-medium text-stone-800">{user.name}</td>
+                    <td className="py-3 px-4 text-stone-500">{user.email}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${ROLE_BADGE_STYLES[user.role] || 'bg-stone-100 text-stone-500'}`}>
+                        {ROLE_OPTIONS.find(r => r.value === user.role)?.label || user.role}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`text-xs font-medium ${user.active === false ? 'text-red-500' : 'text-emerald-600'}`}>
+                        {user.active === false ? 'Deactivated' : 'Active'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button onClick={() => startEdit(user)} className="p-1.5 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600" title="Edit">
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button onClick={() => toggleActive(user.id)} className={`p-1.5 rounded text-stone-400 ${user.active === false ? 'hover:bg-emerald-50 hover:text-emerald-600' : 'hover:bg-red-50 hover:text-red-500'}`} title={user.active === false ? 'Reactivate' : 'Deactivate'}>
+                          {user.active === false ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </CollapsibleContent>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'Edit User' : 'Add User'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Full Name</label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Jane Smith" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Email</label>
+              <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@abcsurrogacy.com" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Role</label>
+              <div className="space-y-2">
+                {ROLE_OPTIONS.map(opt => (
+                  <label key={opt.value} className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-all ${form.role === opt.value ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:border-stone-300'}`}>
+                    <input type="radio" name="role" value={opt.value} checked={form.role === opt.value} onChange={() => setForm(f => ({ ...f, role: opt.value }))} className="accent-[#283693]" />
+                    <div>
+                      <p className="text-sm font-medium">{opt.label}</p>
+                      <p className="text-xs text-stone-400">
+                        {opt.value === 'master_admin' && 'Full access to all modules and settings'}
+                        {opt.value === 'admin' && 'Operations, clients, forms, and messaging'}
+                        {opt.value === 'marketing' && 'Read-only analytics and intake submissions'}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+            <Button onClick={handleSave} disabled={!form.name.trim() || !form.email.trim()}>{editingId ? 'Save Changes' : 'Add User'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Collapsible>
   )
 }
 
@@ -509,11 +665,13 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Settings"
-        subtitle="Manage admin notes, checklists, and app configuration"
+        subtitle="Manage team, checklists, and app configuration"
       />
       <AdminNotesSection />
       <div className="border-t border-stone-200" />
-      <ScreeningChecklistsSection />
+      <UserManagementSection />
+      <div className="border-t border-stone-200" />
+      <ChecklistsSection />
     </div>
   )
 }
