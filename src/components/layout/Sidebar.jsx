@@ -8,10 +8,21 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import { fetchUserTasks } from '@/lib/db'
+import { fetchSMSMessages } from '@/lib/sms'
+import { getUnreadSMSCount } from '@/lib/smsReadState'
 
 const BABIES_BORN = 220
 
-function SidebarContent({ sections, pendingCount, showBabiesBorn }) {
+function UnreadDot() {
+  return (
+    <span className="relative flex size-2.5 ml-auto">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+      <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+    </span>
+  )
+}
+
+function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS }) {
   return (
     <>
       <div className="flex items-center justify-center px-4 py-4 bg-white">
@@ -46,6 +57,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn }) {
                         {pendingCount}
                       </span>
                     )}
+                    {item.path === '/text-messages' && unreadSMS > 0 && <UnreadDot />}
                   </NavLink>
                 ))}
               </div>
@@ -68,6 +80,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const sections = getNavForRole(currentRole)
   const showBabiesBorn = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN].includes(currentRole)
   const [pendingCount, setPendingCount] = useState(0)
+  const [unreadSMS, setUnreadSMS] = useState(0)
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return
@@ -76,7 +89,23 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     }).catch(() => {})
   }, [isAuthenticated, currentUser?.id])
 
-  const sharedProps = { sections, pendingCount, showBabiesBorn }
+  // Check for unread SMS periodically
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const checkUnread = () => {
+      fetchSMSMessages()
+        .then(data => {
+          const sids = (data.messages || []).map(m => m.sid)
+          setUnreadSMS(getUnreadSMSCount(sids))
+        })
+        .catch(() => {})
+    }
+    checkUnread()
+    const interval = setInterval(checkUnread, 60000) // check every 60s
+    return () => clearInterval(interval)
+  }, [isAuthenticated])
+
+  const sharedProps = { sections, pendingCount, showBabiesBorn, unreadSMS }
 
   return (
     <>
