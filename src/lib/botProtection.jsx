@@ -6,8 +6,8 @@ const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
 const MIN_FORM_TIME_SECONDS = 15
 
 // Track rapid field changes — bots fill forms inhumanly fast
-const RAPID_FILL_THRESHOLD_MS = 80  // < 80ms between field changes = suspicious
-const RAPID_FILL_MAX_COUNT = 5       // 5+ rapid fills in a row = bot
+const RAPID_FILL_THRESHOLD_MS = 30  // < 30ms between field changes = suspicious
+const RAPID_FILL_MAX_COUNT = 10      // 10+ rapid fills in a row = bot
 
 /**
  * Hook that provides multi-layer bot protection for intake forms.
