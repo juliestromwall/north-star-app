@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, MessageSquare, ArrowUpRight, ArrowDownLeft, RefreshCw, CheckCheck, ExternalLink } from 'lucide-react'
+import { Search, MessageSquare, RefreshCw, CheckCheck } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -52,7 +52,7 @@ export default function TextMessagesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
-  const [directionFilter, setDirectionFilter] = useState('all')
+  const [directionFilter, setDirectionFilter] = useState('inbound')
   const [expandedSid, setExpandedSid] = useState(null)
   const [caseMap, setCaseMap] = useState({}) // phone digits → { name, id, type }
   const [, setTick] = useState(0)
@@ -164,7 +164,7 @@ export default function TextMessagesPage() {
             <thead>
               <tr className="bg-stone-50 border-b border-stone-200">
                 <th className="text-left py-3 px-4 font-medium text-stone-500 w-8" />
-                <th className="text-left py-3 px-4 font-medium text-stone-500 w-8" />
+                <th className="text-left py-3 px-4 font-medium text-stone-500 w-20" />
                 <th className="text-left py-3 px-4 font-medium text-stone-500">Contact</th>
                 <th className="text-left py-3 px-4 font-medium text-stone-500">Case</th>
                 <th className="text-left py-3 px-4 font-medium text-stone-500">Message</th>
@@ -188,12 +188,10 @@ export default function TextMessagesPage() {
                     <td className="py-3 px-4">
                       {unread && <UnreadDot />}
                     </td>
-                    <td className="py-3 px-2">
-                      {m.direction === 'outbound' ? (
-                        <ArrowUpRight className="size-4 text-blue-500" title="Sent" />
-                      ) : (
-                        <ArrowDownLeft className="size-4 text-violet-500" title="Received" />
-                      )}
+                    <td className="py-3 px-4">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider ${m.direction === 'outbound' ? 'text-stone-400' : 'text-[#283693]'}`}>
+                        {m.direction === 'outbound' ? 'Sent' : 'Received'}
+                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-medium text-stone-800">{formatPhone(contactNum)}</span>
@@ -203,10 +201,9 @@ export default function TextMessagesPage() {
                         <Link
                           to={caseInfo.path}
                           onClick={e => e.stopPropagation()}
-                          className="inline-flex items-center gap-1 text-[#283693] font-medium hover:underline"
+                          className="text-[#283693] font-medium hover:underline"
                         >
                           {caseInfo.name}
-                          <ExternalLink className="size-3" />
                         </Link>
                       ) : (
                         <span className="text-stone-300 text-xs">—</span>
