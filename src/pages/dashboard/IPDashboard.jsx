@@ -13,7 +13,7 @@ const journeyData = {
   dueDate: 'May 12, 2026',
   currentStage: 'Active Pregnancy',
   weeksPregnant: 38,
-  coordinator: 'Sarah Mitchell',
+  coordinator: 'Emily Rotter',
 }
 
 const milestones = [
@@ -29,7 +29,7 @@ const milestones = [
 
 const recentMessages = [
   { id: 1, from: 'Emily Carter', preview: 'Baby is doing great! Had another checkup today...', time: '3h ago' },
-  { id: 2, from: 'Sarah Mitchell', preview: 'Just a reminder about the upcoming hospital tour...', time: '1 day ago' },
+  { id: 2, from: 'Emily Rotter', preview: 'Just a reminder about the upcoming hospital tour...', time: '1 day ago' },
 ]
 
 export default function IPDashboard() {

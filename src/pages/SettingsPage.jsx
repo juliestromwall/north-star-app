@@ -26,8 +26,12 @@ import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, C
 // ── Admin Notes Section (unchanged) ──────────────────────────
 
 const TARGETABLE_USERS = [
-  { id: 'u2', name: 'Julie Thompson', role: ROLES.MASTER_ADMIN },
-  { id: 'u3', name: 'Sarah Mitchell', role: ROLES.ADMIN },
+  { id: 'u2', name: 'Julie Allgood', role: ROLES.MASTER_ADMIN },
+  { id: 'u3', name: 'Nicole Lawson', role: ROLES.MASTER_ADMIN },
+  { id: 'u4', name: 'Emily Rotter', role: ROLES.ADMIN },
+  { id: 'u5', name: 'Stacie Adler', role: ROLES.ADMIN },
+  { id: 'u6', name: 'Desiree Melchiori', role: ROLES.ADMIN },
+  { id: 'u7', name: 'Jennifer Rose', role: ROLES.ADMIN },
 ]
 
 function AdminNotesSection() {

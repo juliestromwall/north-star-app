@@ -459,7 +459,7 @@ function DemoJourneyDashboard({ name }) {
     dueDate: 'May 12, 2026',
     weeksPregnant: 38,
     nextAppointment: 'March 5, 2026 at 10:00 AM',
-    coordinator: 'Sarah Mitchell',
+    coordinator: 'Emily Rotter',
   }
 
   const nextSteps = [
@@ -470,7 +470,7 @@ function DemoJourneyDashboard({ name }) {
   ]
 
   const recentMessages = [
-    { id: 1, from: 'Sarah Mitchell', preview: 'Hi Emily! Just confirming your appointment...', time: '2h ago' },
+    { id: 1, from: 'Emily Rotter', preview: 'Hi Emily! Just confirming your appointment...', time: '2h ago' },
     { id: 2, from: 'Michael Rivera', preview: "We're so excited! Thank you for everything...", time: '1 day ago' },
   ]
 
