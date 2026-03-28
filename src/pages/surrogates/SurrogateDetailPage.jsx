@@ -1642,13 +1642,17 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
         hearAboutUs: form.hearAboutUs, hearAboutUsOther: form.hearAboutUsOther,
       }
       const referralVal = form.beReferral ? 'be_surrogacy' : null
+      const newName = `${form.firstName} ${form.lastName}`.trim()
       await updateIntakeSubmission(surrogate.id, {
+        applicant_name: newName,
         applicant_email: form.email.trim().toLowerCase(),
+        applicant_phone: form.phone.trim(),
         answers: updatedAnswers,
         referral_partner: referralVal,
       })
       setSurrogate(prev => ({
         ...prev,
+        name: newName,
         email: form.email, phone: form.phone,
         location: form.state,
         maritalStatus: form.maritalStatus,
