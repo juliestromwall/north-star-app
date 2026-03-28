@@ -147,10 +147,15 @@ function SurrogateScreeningSheet({ surrogates }) {
                 {filtered.map(s => (
                   <th key={s.id} className="text-left px-3 py-2.5 min-w-[200px] align-top">
                     <Link to={`/surrogates/${s.id}`} className="text-xs font-semibold text-[#283693] hover:underline">{s.name}</Link>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {s.location && <span className="text-[10px] text-stone-400">{s.location}</span>}
+                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                      {s.location && (
+                        <span className="text-[10px] text-stone-400 flex items-center gap-0.5">
+                          <svg className="size-2.5 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                          {s.location}
+                        </span>
+                      )}
                       {s.age && <span className="text-[10px] text-stone-400">· {s.age}y</span>}
-                      {s.referralPartner && <span className="text-[9px] font-bold text-[#ed148c] bg-[#ed148c]/10 px-1.5 py-0.5 rounded">(BE)</span>}
+                      {s.referralPartner && <img src="/be-logo.png" alt="BE" className="h-3.5 w-auto ml-0.5" title="Be Surrogacy Referral" />}
                     </div>
                   </th>
                 ))}
