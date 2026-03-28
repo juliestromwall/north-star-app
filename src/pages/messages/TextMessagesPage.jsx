@@ -99,7 +99,7 @@ export default function TextMessagesPage() {
   }, [messages, search, directionFilter, caseMap])
 
   const unreadCount = useMemo(() => {
-    return messages.filter(m => !isMessageRead(m.sid)).length
+    return messages.filter(m => m.direction === 'inbound' && !isMessageRead(m.sid)).length
   }, [messages])
 
   const handleMarkRead = (sid) => {
@@ -177,7 +177,7 @@ export default function TextMessagesPage() {
               {filtered.map(m => {
                 const contactNum = m.direction === 'outbound' ? m.to : m.from
                 const caseInfo = caseMap[cleanDigits(contactNum)]
-                const unread = !isMessageRead(m.sid)
+                const unread = m.direction === 'inbound' && !isMessageRead(m.sid)
                 const isExpanded = expandedSid === m.sid
                 return (
                   <tr

@@ -27,7 +27,8 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
-import { sendSMS } from '@/lib/sms'
+import { sendSMS, fetchSMSMessages } from '@/lib/sms'
+import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -706,6 +707,7 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="screening">Checklist</TabsTrigger>
           <TabsTrigger value="records">Medical Records</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="texts">Texts</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -826,6 +828,11 @@ export default function SurrogateDetailPage() {
         {/* Documents Tab */}
         <TabsContent value="documents" className="mt-4">
           <DocumentsTab surrogateId={surrogate.id} />
+        </TabsContent>
+
+        {/* Texts Tab */}
+        <TabsContent value="texts" className="mt-4">
+          <CaseTextsTab phone={surrogate.phone} caseName={surrogate.name} />
         </TabsContent>
 
         {/* Notes Tab */}
@@ -1897,6 +1904,112 @@ function countSectionFilled(data, section) {
     if (val !== undefined && val !== '' && val !== null) filled++
   }
   return { filled, total: section.fields.length }
+}
+
+// ── Case Texts Tab ────────────────────────────────────────
+function CaseTextsTab({ phone, caseName }) {
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [smsText, setSmsText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState(null)
+
+  function cleanDigits(num) {
+    if (!num) return ''
+    const d = num.replace(/[^\d]/g, '')
+    return d.length === 11 && d.startsWith('1') ? d.slice(1) : d
+  }
+
+  useEffect(() => {
+    if (!phone) { setLoading(false); return }
+    // Clean the phone for Twilio E.164
+    let cleanTo = phone.replace(/[^\d+]/g, '')
+    if (!cleanTo.startsWith('+')) cleanTo = '+1' + cleanTo.replace(/^1/, '')
+    fetchSMSMessages(cleanTo)
+      .then(data => setMessages(data.messages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [phone])
+
+  const handleSend = async () => {
+    if (!smsText.trim() || !phone) return
+    setSending(true)
+    setSendResult(null)
+    try {
+      await sendSMS(phone, smsText.trim())
+      setSendResult('sent')
+      setSmsText('')
+      // Refresh messages
+      let cleanTo = phone.replace(/[^\d+]/g, '')
+      if (!cleanTo.startsWith('+')) cleanTo = '+1' + cleanTo.replace(/^1/, '')
+      fetchSMSMessages(cleanTo).then(data => setMessages(data.messages || [])).catch(() => {})
+    } catch (err) {
+      setSendResult(err.message || 'Failed to send')
+    }
+    setSending(false)
+  }
+
+  if (!phone) return <p className="text-sm text-stone-400 py-8 text-center">No phone number on file for this case.</p>
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Text Messages</CardTitle>
+        <span className="text-xs text-stone-400">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Compose */}
+        <div className="flex gap-2">
+          <Textarea
+            value={smsText}
+            onChange={e => setSmsText(e.target.value)}
+            placeholder={`Text ${caseName || 'this contact'}...`}
+            rows={2}
+            className="resize-none flex-1"
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+          />
+          <Button
+            onClick={handleSend}
+            disabled={!smsText.trim() || sending}
+            className="self-end"
+            style={{ backgroundColor: '#283693' }}
+          >
+            {sending ? '...' : 'Send'}
+          </Button>
+        </div>
+        {sendResult === 'sent' && <p className="text-xs text-emerald-600">Sent!</p>}
+        {sendResult && sendResult !== 'sent' && <p className="text-xs text-red-500">{sendResult}</p>}
+
+        {/* Thread */}
+        {loading ? (
+          <p className="text-sm text-stone-400 text-center py-6">Loading...</p>
+        ) : messages.length === 0 ? (
+          <p className="text-sm text-stone-400 text-center py-6">No texts with this contact yet.</p>
+        ) : (
+          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            {messages.map(m => {
+              const isOutbound = m.direction === 'outbound'
+              // Mark inbound as read when viewing
+              if (!isOutbound && !isMessageRead(m.sid)) markSMSRead(m.sid)
+              return (
+                <div key={m.sid} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isOutbound ? 'bg-[#283693] text-white rounded-br-md' : 'bg-stone-100 text-stone-800 rounded-bl-md'}`}>
+                    <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
+                    <p className={`text-[10px] mt-1 ${isOutbound ? 'text-white/60' : 'text-stone-400'}`}>
+                      {new Date(m.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      {' · '}
+                      {new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {isOutbound && m.status && ` · ${m.status}`}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
 // ── Overview Tab ───────────────────────────────────────────

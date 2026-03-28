@@ -95,8 +95,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     const checkUnread = () => {
       fetchSMSMessages()
         .then(data => {
-          const sids = (data.messages || []).map(m => m.sid)
-          setUnreadSMS(getUnreadSMSCount(sids))
+          const inboundSids = (data.messages || []).filter(m => m.direction === 'inbound').map(m => m.sid)
+          setUnreadSMS(getUnreadSMSCount(inboundSids))
         })
         .catch(() => {})
     }
