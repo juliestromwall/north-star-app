@@ -2,21 +2,9 @@ import { createContext, useContext, useState, useCallback } from 'react'
 
 const AdminNotesContext = createContext(null)
 
-// Seed with one example note so the feature is visible immediately
-const INITIAL_NOTES = [
-  {
-    id: 1,
-    title: 'Welcome',
-    message: 'Admin notes are live! Use Settings to publish announcements to the team.',
-    target_user_ids: null,
-    is_active: true,
-    created_by: 'u2',
-    created_at: new Date().toISOString(),
-    dismissals: [],
-  },
-]
+const INITIAL_NOTES = []
 
-let nextId = 2
+let nextId = 1
 
 export function AdminNotesProvider({ children }) {
   const [notes, setNotes] = useState(INITIAL_NOTES)
