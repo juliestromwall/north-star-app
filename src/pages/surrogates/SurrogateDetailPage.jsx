@@ -356,7 +356,8 @@ export default function SurrogateDetailPage() {
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsMessage, setSmsMessage] = useState('')
   const [smsSending, setSmsSending] = useState(false)
-  const [smsResult, setSmsResult] = useState(null) // 'sent' | 'error'
+  const [smsResult, setSmsResult] = useState(null)
+  const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
@@ -404,6 +405,15 @@ export default function SurrogateDetailPage() {
   useEffect(() => {
     if (surrogate) {
       setStageStatus(getSurrogateStageStatus(surrogate.id))
+      // Check for unread inbound texts
+      if (surrogate.phone) {
+        let cleanTo = surrogate.phone.replace(/[^\d+]/g, '')
+        if (!cleanTo.startsWith('+')) cleanTo = '+1' + cleanTo.replace(/^1/, '')
+        fetchSMSMessages(cleanTo).then(data => {
+          const unread = (data.messages || []).some(m => m.direction === 'inbound' && !isMessageRead(m.sid))
+          setHasUnreadTexts(unread)
+        }).catch(() => {})
+      }
     }
   }, [surrogate])
 
@@ -707,7 +717,17 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="screening">Checklist</TabsTrigger>
           <TabsTrigger value="records">Medical Records</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="texts">Texts</TabsTrigger>
+          <TabsTrigger value="texts" onClick={() => setHasUnreadTexts(false)}>
+            <span className="flex items-center gap-1.5">
+              Texts
+              {hasUnreadTexts && (
+                <span className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
+                </span>
+              )}
+            </span>
+          </TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
