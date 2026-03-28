@@ -26,6 +26,7 @@ import MarketingDashboard from './pages/marketing/MarketingDashboard'
 import LoginPage from './pages/auth/LoginPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
+import TextMessagesPage from './pages/messages/TextMessagesPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="/intake" element={<IntakeSubmissionsPage />} />
         <Route path="/marketing" element={<MarketingDashboard />} />
         <Route path="/my-profile" element={<SurrogateProfilePage />} />
+        <Route path="/text-messages" element={<TextMessagesPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}

@@ -1,5 +1,5 @@
 // ── SMS Helper ──────────────────────────────────────────
-// Sends SMS via the /api/sms/send Cloudflare Pages Function
+// Frontend helpers for the /api/sms/ Cloudflare Pages Functions
 
 export async function sendSMS(to, message) {
   const res = await fetch('/api/sms/send', {
@@ -13,5 +13,15 @@ export async function sendSMS(to, message) {
     err.detail = data
     throw err
   }
+  return data
+}
+
+/** Fetch all messages. Optionally filter by a contact phone number. */
+export async function fetchSMSMessages(contactNumber) {
+  const params = new URLSearchParams()
+  if (contactNumber) params.set('contact', contactNumber)
+  const res = await fetch(`/api/sms/list?${params}`)
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch messages')
   return data
 }

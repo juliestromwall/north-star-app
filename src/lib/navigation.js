@@ -32,6 +32,12 @@ const nav = [
         path: '/dashboard',
         roles: 'all',
       },
+      {
+        label: 'Text Messages',
+        icon: MessageSquare,
+        path: '/text-messages',
+        roles: ADMIN_ROLES,
+      },
     ],
   },
   {
