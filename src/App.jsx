@@ -12,6 +12,7 @@ import IPDetailPage from './pages/intended-parents/IPDetailPage'
 import SurrogateSharePage from './pages/surrogates/SurrogateSharePage'
 import IPSharePage from './pages/intended-parents/IPSharePage'
 import MatchingPage from './pages/matching/MatchingPage'
+import MatchedJourneysPage from './pages/journeys/MatchedJourneysPage'
 import StubPage from './pages/stubs/StubPage'
 import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/calendar/CalendarPage'
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/intended-parents" element={<IPListPage />} />
         <Route path="/intended-parents/:id" element={<IPDetailPage />} />
         <Route path="/matching" element={<MatchingPage />} />
+        <Route path="/journeys" element={<MatchedJourneysPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/time-clock" element={<TimeClockPage />} />

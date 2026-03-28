@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
@@ -63,6 +63,261 @@ const SCREENING_LABELS = { medical: 'Medical', psychological: 'Psychological', b
 const SCREENING_ICONS = { cleared: CheckCircle2, pending: Clock, failed: XCircle, not_started: Circle }
 const SCREENING_COLORS = { cleared: 'text-emerald-500', pending: 'text-amber-500', failed: 'text-red-500', not_started: 'text-stone-300' }
 
+// ── Medical Records statuses ──
+const MEDICAL_RECORD_STATUSES = [
+  { id: 'not_started', label: 'Not Started' },
+  { id: 'requested', label: 'Requested' },
+  { id: 'request_received', label: 'Request Received' },
+  { id: 'followed_up', label: 'Follow Up' },
+  { id: 'received', label: 'Received' },
+  { id: 'reviewed', label: 'Reviewed' },
+  { id: 'complete', label: 'Complete' },
+]
+
+// ── Screening step statuses ──
+const SCREENING_STEP_STATUSES = [
+  { id: 'not_started', label: 'Not Started' },
+  { id: 'scheduled', label: 'Scheduled' },
+  { id: 'waiting_surrogate', label: 'Waiting on Surrogate' },
+  { id: 'waiting_provider', label: 'Waiting on Provider' },
+  { id: 'in_progress', label: 'In Progress' },
+  { id: 'followed_up', label: 'Follow Up' },
+  { id: 'needs_review', label: 'Needs Review' },
+  { id: 'under_review', label: 'Under Review' },
+  { id: 'incomplete_resubmit', label: 'Incomplete — Needs Resubmission' },
+  { id: 'complete', label: 'Complete' },
+  { id: 'na', label: 'N/A' },
+]
+
+const SCREENING_RECORD_STEPS = [
+  { id: 'pap', label: 'PAP' },
+  { id: 'ob_clearance', label: 'OB Clearance Letter' },
+  { id: 'records_reviewed', label: 'Records Reviewed' },
+  { id: 'background_check', label: 'Background Check' },
+  { id: 'psych_screening', label: 'Psych Screening' },
+  { id: 'mitera', label: 'Mitera' },
+  { id: 'insurance', label: 'Insurance' },
+]
+
+// Milestones group steps for the card/overview display
+const SCREENING_MILESTONES = [
+  { id: 'records_collection', label: 'Records', stepIds: ['_ob_summary', '_del_summary', '_ivf_summary', 'pap', 'ob_clearance'] },
+  { id: 'records_review', label: 'Review', stepIds: ['records_reviewed'] },
+  { id: 'background', label: 'BG', stepIds: ['background_check'] },
+  { id: 'psych', label: 'Psych', stepIds: ['psych_screening'] },
+  { id: 'mfm', label: 'MFM', stepIds: ['mitera'] },
+  { id: 'insurance_ms', label: 'Insurance', stepIds: ['insurance'] },
+]
+
+// ── Shared table component for tracking ──
+function formatDateMMDDYYYY(dateStr) {
+  if (!dateStr) return '—'
+  const [y, m, d] = dateStr.split('-')
+  return `${m}-${d}-${y}`
+}
+
+function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName }) {
+  const [addingLogFor, setAddingLogFor] = useState(null)
+  const [logStatus, setLogStatus] = useState('')
+  const [logNote, setLogNote] = useState('')
+  const [expandedStep, setExpandedStep] = useState(null)
+  const [editingLog, setEditingLog] = useState(null) // { stepId, index }
+  const [editStatus, setEditStatus] = useState('')
+  const [editNote, setEditNote] = useState('')
+
+  const completeCount = steps.filter(s => {
+    const status = tracking[s.id]?.status
+    return status === 'complete' || status === 'na'
+  }).length
+
+  function submitLog(stepId) {
+    if (!logStatus) return
+    const current = tracking[stepId] || { history: [] }
+    const history = current.history || []
+    const entry = { status: logStatus, date: new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
+    onUpdate(stepId, { status: logStatus, history: [...history, entry] })
+    setLogStatus('')
+    setLogNote('')
+    setAddingLogFor(null)
+  }
+
+  function deleteLog(stepId, index) {
+    const current = tracking[stepId] || { history: [] }
+    const history = [...(current.history || [])]
+    history.splice(index, 1)
+    const newStatus = history.length > 0 ? history[history.length - 1].status : 'not_started'
+    onUpdate(stepId, { status: newStatus, history })
+  }
+
+  function saveEditLog(stepId, index) {
+    const current = tracking[stepId] || { history: [] }
+    const history = [...(current.history || [])]
+    history[index] = { ...history[index], status: editStatus, note: editNote.trim() || null }
+    const newStatus = history[history.length - 1].status
+    onUpdate(stepId, { status: newStatus, history })
+    setEditingLog(null)
+  }
+
+  function openAddLog(stepId) {
+    setAddingLogFor(stepId)
+    setExpandedStep(stepId)
+    setLogStatus('')
+    setLogNote('')
+    setEditingLog(null)
+  }
+
+  function getStatusLabel(statusId) {
+    if (statusId === 'followed_up') return 'Followed Up'
+    return statuses.find(s => s.id === statusId)?.label || statusId
+  }
+
+  function statusColor(statusId) {
+    if (statusId === 'complete') return 'text-green-600 bg-green-50 border-green-200'
+    if (statusId === 'na') return 'text-stone-400 bg-stone-50 border-stone-200'
+    if (statusId === 'not_started') return 'text-stone-400 bg-stone-50 border-stone-200'
+    if (statusId === 'received' || statusId === 'reviewed') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
+    if (statusId === 'followed_up') return 'text-sky-600 bg-sky-50 border-sky-200'
+    if (statusId === 'requested' || statusId === 'scheduled') return 'text-amber-600 bg-amber-50 border-amber-200'
+    if (statusId === 'incomplete_resubmit') return 'text-red-600 bg-red-50 border-red-200'
+    return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle>{title}</CardTitle>
+        <span className="text-sm font-bold text-[#283693]">{completeCount}/{steps.length}</span>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="px-6 pb-5">
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${steps.length > 0 ? (completeCount / steps.length) * 100 : 0}%`, background: completeCount === steps.length ? '#22c55e' : 'linear-gradient(90deg, #10b981, #22c55e)' }} />
+          </div>
+        </div>
+        {/* Table with headers */}
+        <table className="w-full border-t border-stone-200 text-sm">
+          <thead>
+            <tr className="bg-stone-50 border-b border-stone-200">
+              <th className="text-left px-6 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[24%]">Step</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[14%]">Status</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[12%]">Date Updated</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Note</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[12%]">Logged By</th>
+              <th className="w-[70px]" />
+            </tr>
+          </thead>
+          <tbody>
+            {steps.map((step, stepIdx) => {
+              const data = tracking[step.id] || {}
+              const history = data.history || []
+              const currentStatus = data.status || 'not_started'
+              const isComplete = currentStatus === 'complete' || currentStatus === 'na'
+              const lastEntry = history.length > 0 ? history[history.length - 1] : null
+              const isExpanded = expandedStep === step.id
+              const isAddingLog = addingLogFor === step.id
+
+              return (
+                <React.Fragment key={step.id ?? stepIdx}>
+                  {/* Main row — click anywhere to expand/collapse */}
+                  <tr
+                    onClick={() => { if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
+                    className={`border-b border-stone-100 cursor-pointer ${isComplete ? 'bg-green-50/70 hover:bg-green-50' : 'hover:bg-stone-50/50'} transition-colors`}
+                  >
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-2">
+                        {isComplete ? (
+                          <CheckCircle2 className="size-4.5 text-green-500 shrink-0" />
+                        ) : (
+                          <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-stone-300">{stepIdx + 1}</div>
+                        )}
+                        <span className={`font-semibold ${isComplete ? 'text-green-700' : 'text-stone-800'}`}>{step.label}</span>
+                        {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
+                        <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>
+                        {getStatusLabel(currentStatus)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3.5 text-stone-500">{formatDateMMDDYYYY(lastEntry?.date)}</td>
+                    <td className="px-3 py-3.5 text-stone-500 truncate max-w-0">{lastEntry?.note || ''}</td>
+                    <td className="px-3 py-3.5 text-stone-400">{lastEntry?.by || ''}</td>
+                    <td className="px-3 py-3.5" />
+                  </tr>
+
+                  {/* Expanded history rows */}
+                  {isExpanded && history.map((entry, i) => {
+                    const isEditing = editingLog?.stepId === step.id && editingLog?.index === i
+                    if (isEditing) {
+                      return (
+                        <tr key={`h-${i}`} className="bg-white border-b border-stone-100">
+                          <td className="px-6 py-2" />
+                          <td className="px-3 py-2">
+                            <select className="rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white w-full" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+                              {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                          <td className="px-3 py-2">
+                            <input className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} />
+                          </td>
+                          <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#283693] hover:underline mr-2">Save</button>
+                            <button onClick={() => setEditingLog(null)} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                          </td>
+                        </tr>
+                      )
+                    }
+                    return (
+                      <tr key={`h-${i}`} className="bg-stone-50/60 border-b border-stone-100/50 group">
+                        <td className="px-6 py-2" />
+                        <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{getStatusLabel(entry.status)}</td>
+                        <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                        <td className="px-3 py-2 text-stone-500">{entry.note || ''}</td>
+                        <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || '') }} className="text-[10px] text-stone-400 hover:text-[#283693] mr-2">Edit</button>
+                            <button onClick={() => deleteLog(step.id, i)} className="text-[10px] text-stone-400 hover:text-red-500">Delete</button>
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {/* Inline Add Log row */}
+                  {isAddingLog && (
+                    <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
+                      <td className="px-6 py-3 text-xs font-semibold text-[#283693]">New Log</td>
+                      <td className="px-3 py-3">
+                        <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
+                          <option value="">Select...</option>
+                          {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-3 text-stone-400 text-xs">Today</td>
+                      <td className="px-3 py-3">
+                        <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
+                      </td>
+                      <td className="px-3 py-3 text-stone-400 text-xs">{currentUserName}</td>
+                      <td className="px-3 py-3 text-right">
+                        <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40 mr-1">Save</button>
+                        <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function SurrogateDetailPage() {
   const { id } = useParams()
   const { currentUser } = useRole()
@@ -72,6 +327,12 @@ export default function SurrogateDetailPage() {
   const [profileData, setProfileData] = useState(null)
   const [profileStatus, setProfileStatus] = useState('draft')
   const [photos, setPhotos] = useState([])
+  const [recordTracking, setRecordTracking] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`abc_records_${id}`)
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })
   const [notes, setNotes] = useState([])
   const [noteText, setNoteText] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
@@ -84,6 +345,20 @@ export default function SurrogateDetailPage() {
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // Persist record tracking to localStorage
+  useEffect(() => {
+    if (Object.keys(recordTracking).length > 0) {
+      localStorage.setItem(`abc_records_${id}`, JSON.stringify(recordTracking))
+    }
+  }, [recordTracking, id])
+
+  function updateRecord(recordId, updates) {
+    setRecordTracking(prev => ({
+      ...prev,
+      [recordId]: { ...(prev[recordId] || {}), ...updates }
+    }))
+  }
 
   useEffect(() => {
     fetchSurrogatesFromIntake().then(all => {
@@ -414,13 +689,14 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="screening">Screening</TabsTrigger>
+          <TabsTrigger value="records">Medical Records</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} />
+          <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} />
         </TabsContent>
 
         {/* Contact Tab */}
@@ -442,31 +718,80 @@ export default function SurrogateDetailPage() {
         </TabsContent>
 
         {/* Screening Tab */}
-        <TabsContent value="screening" className="mt-4">
-          <Card className="rounded-2xl">
-            <CardHeader>
-              <CardTitle>Screening Checklist</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {SCREENING_STEPS.map(step => (
-                <div key={step} className="flex items-center justify-between py-3 px-4 rounded-xl bg-stone-50/80 border border-stone-100">
-                  <div className="flex items-center gap-3">
-                    {(() => {
-                      const Icon = SCREENING_ICONS[screening[step]] || Circle
-                      return <Icon className={`size-5 ${SCREENING_COLORS[screening[step]] || 'text-stone-300'}`} />
-                    })()}
-                    <span className="font-medium text-stone-700">{SCREENING_LABELS[step]}</span>
-                  </div>
-                  <Badge variant="outline" className="capitalize text-xs">
-                    {(screening[step] || 'not_started').replace('_', ' ')}
-                  </Badge>
-                </div>
-              ))}
-              <p className="text-xs text-muted-foreground pt-4">
-                Screening status updates will be managed here as the intake process progresses.
-              </p>
-            </CardContent>
-          </Card>
+        <TabsContent value="screening" className="mt-4 space-y-6">
+          {(() => {
+            const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
+            const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+            const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
+            // Count how many OB/Delivery/IVF records are complete in the Medical Records tab
+            let obTotal = numPreg, obDone = 0, delTotal = numPreg, delDone = 0, ivfTotal = 0, ivfDone = 0
+            for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+              if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
+              if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
+              if ((pregnancies[i]?.wasSurrogacy === 'yes') || isExperiencedSurrogate) {
+                ivfTotal++
+                if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
+              }
+            }
+            const recordSummarySteps = [
+              { id: '_ob_summary', label: 'OB Records', subLabel: numPreg > 0 ? `(${obDone}/${obTotal})` : '' },
+              { id: '_del_summary', label: 'Delivery Records', subLabel: numPreg > 0 ? `(${delDone}/${delTotal})` : '' },
+            ]
+            if (isExperiencedSurrogate) {
+              const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
+              recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
+            }
+            const allSteps = [...recordSummarySteps, ...SCREENING_RECORD_STEPS]
+            return (
+              <TrackingTable
+                title="Screening Checklist"
+                steps={allSteps}
+                statuses={SCREENING_STEP_STATUSES}
+                tracking={recordTracking}
+                onUpdate={updateRecord}
+                currentUserName={currentUser.name}
+              />
+            )
+          })()}
+        </TabsContent>
+
+        {/* Medical Records Tab */}
+        <TabsContent value="records" className="mt-4 space-y-6">
+          {(() => {
+            const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
+            const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+            if (numPreg === 0) {
+              return (
+                <Card className="rounded-2xl">
+                  <CardContent className="py-12 text-center">
+                    <Circle className="size-8 text-stone-200 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Complete the Pregnancy History in the Profile tab to auto-generate required medical records.</p>
+                  </CardContent>
+                </Card>
+              )
+            }
+            const medSteps = []
+            for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+              const p = pregnancies[i] || {}
+              const year = p.dob ? new Date(p.dob).getFullYear() : ''
+              const yearLabel = year || `#${i + 1}`
+              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}` })
+              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}` })
+              if (p.wasSurrogacy === 'yes') {
+                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}` })
+              }
+            }
+            return (
+              <TrackingTable
+                title={`Medical Records (${medSteps.length} required)`}
+                steps={medSteps}
+                statuses={MEDICAL_RECORD_STATUSES}
+                tracking={recordTracking}
+                onUpdate={updateRecord}
+                currentUserName={currentUser.name}
+              />
+            )
+          })()}
         </TabsContent>
 
         {/* Documents Tab */}
@@ -1487,56 +1812,39 @@ function countSectionFilled(data, section) {
 }
 
 // ── Overview Tab ───────────────────────────────────────────
-function OverviewTab({ surrogate, screening, heightStr, profileData }) {
-  const screeningCleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
-  const screeningPct = (screeningCleared / 4) * 100
+function OverviewTab({ surrogate, screening, heightStr, profileData, recordTracking, updateRecord, currentUserName }) {
+  const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
+  const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+  const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
+  let obTotal = numPreg, obDone = 0, delTotal = numPreg, delDone = 0, ivfTotal = 0, ivfDone = 0
+  for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+    if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
+    if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
+    if ((pregnancies[i]?.wasSurrogacy === 'yes') || isExperiencedSurrogate) {
+      ivfTotal++
+      if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
+    }
+  }
+  const recordSummarySteps = [
+    { id: '_ob_summary', label: 'OB Records', subLabel: numPreg > 0 ? `(${obDone}/${obTotal})` : '' },
+    { id: '_del_summary', label: 'Delivery Records', subLabel: numPreg > 0 ? `(${delDone}/${delTotal})` : '' },
+  ]
+  if (isExperiencedSurrogate) {
+    const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
+    recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
+  }
+  const allSteps = [...recordSummarySteps, ...SCREENING_RECORD_STEPS]
 
   return (
     <div className="space-y-6">
-      {/* Screening Progress */}
-      <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle>Screening Progress</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Progress bar */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 h-2.5 bg-stone-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${screeningPct}%`,
-                  background: screeningPct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
-                }}
-              />
-            </div>
-            <span className="text-sm font-bold" style={{ color: screeningPct === 100 ? '#10b981' : '#283693' }}>
-              {screeningCleared}/4
-            </span>
-          </div>
-          {/* Step cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {SCREENING_STEPS.map(step => {
-              const status = screening[step] || 'not_started'
-              const Icon = SCREENING_ICONS[status]
-              return (
-                <div key={step} className={`rounded-xl border p-4 text-center transition-colors ${
-                  status === 'cleared' ? 'border-emerald-200 bg-emerald-50/50' :
-                  status === 'pending' ? 'border-amber-200 bg-amber-50/50' :
-                  status === 'failed' ? 'border-red-200 bg-red-50/50' :
-                  'border-stone-100 bg-stone-50/50'
-                }`}>
-                  <Icon className={`size-6 mx-auto mb-2 ${SCREENING_COLORS[status]}`} />
-                  <p className="text-sm font-semibold text-stone-700">{SCREENING_LABELS[step]}</p>
-                  <p className={`text-xs mt-0.5 capitalize ${SCREENING_COLORS[status]}`}>
-                    {status.replace('_', ' ')}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <TrackingTable
+        title="Screening Checklist"
+        steps={allSteps}
+        statuses={SCREENING_STEP_STATUSES}
+        tracking={recordTracking}
+        onUpdate={updateRecord}
+        currentUserName={currentUserName}
+      />
     </div>
   )
 }

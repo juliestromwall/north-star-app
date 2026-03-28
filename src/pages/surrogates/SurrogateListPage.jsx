@@ -92,6 +92,14 @@ function GTPALBadge({ gtpal }) {
 // ── Screening Progress ─────────────────────────────────────
 const SCREENING_STEPS = ['medical', 'psychological', 'background', 'homeStudy']
 const SCREENING_LABELS = { medical: 'Med', psychological: 'Psych', background: 'BG', homeStudy: 'Home' }
+const CARD_MILESTONES = [
+  { id: 'records', label: 'Records' },
+  { id: 'review', label: 'Review' },
+  { id: 'bg', label: 'BG' },
+  { id: 'psych', label: 'Psych' },
+  { id: 'mfm', label: 'MFM' },
+  { id: 'ins', label: 'Ins' },
+]
 const SCREENING_ICONS = { cleared: CheckCircle, pending: Clock, failed: XCircle, not_started: Circle }
 const SCREENING_COLORS = {
   cleared: 'text-emerald-500',
@@ -100,33 +108,51 @@ const SCREENING_COLORS = {
   not_started: 'text-stone-300',
 }
 
-function ScreeningProgress({ screening }) {
-  const cleared = SCREENING_STEPS.filter(s => screening[s] === 'cleared').length
-  const total = SCREENING_STEPS.length
-  const pct = (cleared / total) * 100
+function ScreeningProgress({ screening, recordTracking, surrogateId }) {
+  // Use record tracking milestones if available, fallback to old screening
+  const milestoneMap = {
+    records: ['_ob_summary', '_del_summary', '_ivf_summary', 'pap', 'ob_clearance'],
+    review: ['records_reviewed'],
+    bg: ['background_check'],
+    psych: ['psych_screening'],
+    mfm: ['mitera'],
+    ins: ['insurance'],
+  }
+  const rt = recordTracking || {}
+  let completed = 0
+  const total = CARD_MILESTONES.length
+  const milestoneStatuses = {}
+  for (const ms of CARD_MILESTONES) {
+    const stepIds = milestoneMap[ms.id] || []
+    const relevantSteps = stepIds.filter(id => rt[id]?.status || (id.startsWith('_') ? false : true))
+    const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
+    const anyStarted = relevantSteps.some(id => rt[id]?.status && rt[id].status !== 'not_started')
+    milestoneStatuses[ms.id] = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allComplete) completed++
+  }
+  const pct = (completed / total) * 100
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
         <span>Screening</span>
-        <span>{cleared}/{total}</span>
+        <span>{completed}/{total}</span>
       </div>
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${pct}%`,
-            background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
-          }}
-        />
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
       </div>
       <div className="flex items-center justify-between">
-        {SCREENING_STEPS.map(step => {
-          const status = screening[step]
-          const Icon = SCREENING_ICONS[status] || Circle
+        {CARD_MILESTONES.map(ms => {
+          const status = milestoneStatuses[ms.id]
           return (
-            <div key={step} className="flex items-center gap-1">
-              <Icon className={`size-3 ${SCREENING_COLORS[status]}`} />
-              <span className="text-[10px] text-stone-400">{SCREENING_LABELS[step]}</span>
+            <div key={ms.id} className="flex items-center gap-1">
+              {status === 'complete' ? (
+                <CheckCircle className="size-3 text-emerald-500" />
+              ) : status === 'in_progress' ? (
+                <Clock className="size-3 text-amber-500" />
+              ) : (
+                <Circle className="size-3 text-stone-300" />
+              )}
+              <span className="text-[10px] text-stone-400">{ms.label}</span>
             </div>
           )
         })}
@@ -255,7 +281,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
         </div>
 
         {/* Screening */}
-        <ScreeningProgress screening={surrogate.screening} />
+        <ScreeningProgress screening={surrogate.screening} recordTracking={(() => { try { const d = localStorage.getItem(`abc_records_${surrogate.id}`); return d ? JSON.parse(d) : {} } catch { return {} } })()} surrogateId={surrogate.id} />
 
         {/* Footer: assignment + view link */}
         <div className="pt-2 border-t border-stone-100">

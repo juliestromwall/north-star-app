@@ -51,17 +51,17 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Matched Journeys',
+        label: 'Matching',
         icon: GitMerge,
         path: '/matching',
         roles: ADMIN_ROLES,
       },
-      // {
-      //   label: 'CRM / Cases',
-      //   icon: ClipboardList,
-      //   path: '/crm',
-      //   roles: ADMIN_ROLES,
-      // },
+      {
+        label: 'Matched Journeys',
+        icon: Heart,
+        path: '/journeys',
+        roles: ADMIN_ROLES,
+      },
     ],
   },
   {
