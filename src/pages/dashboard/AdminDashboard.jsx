@@ -35,8 +35,10 @@ function formatDateShort(dateStr) {
   return `${parseInt(m)}/${parseInt(d)}/${y.slice(2)}`
 }
 
+const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
+
 function SurrogateScreeningSheet({ surrogates }) {
-  const [stageFilter, setStageFilter] = useState('all')
+  const [stageFilter, setStageFilter] = useState('pre-qualification')
   const [logPopover, setLogPopover] = useState(null) // { surrogateId, stepId }
   const [docPopover, setDocPopover] = useState(null) // { surrogateId, stepId }
 
@@ -60,7 +62,6 @@ function SurrogateScreeningSheet({ surrogates }) {
 
   // Filter surrogates by stage
   const filtered = useMemo(() => {
-    if (stageFilter === 'all') return surrogates
     return surrogates.filter(s => (allStageStatuses[s.id]?.stage || 'pre-qualification') === stageFilter)
   }, [surrogates, stageFilter, allStageStatuses])
 
@@ -112,8 +113,6 @@ function SurrogateScreeningSheet({ surrogates }) {
     return { status, lastEntry, isComplete, history, hasIncompleteRecords }
   }
 
-  if (filtered.length === 0) return null
-
   return (
     <Card className="rounded-2xl">
       <CardHeader className="pb-3">
@@ -121,41 +120,44 @@ function SurrogateScreeningSheet({ surrogates }) {
         <CardDescription>Click a stage to filter surrogates</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        {/* Stage filter tiles */}
+        {/* Stage filter buttons */}
         <div className="px-6 pb-4">
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setStageFilter('all')}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${stageFilter === 'all' ? 'bg-[#283693] text-white border-[#283693]' : 'text-stone-500 border-stone-200 hover:border-stone-300'}`}>
-              All ({surrogates.length})
-            </button>
-            {SURROGATE_STAGES.map(stage => (
-              <button key={stage.id} onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${stageFilter === stage.id ? 'text-white border-transparent' : 'text-stone-500 border-stone-200 hover:border-stone-300'}`}
-                style={stageFilter === stage.id ? { backgroundColor: stage.color, borderColor: stage.color } : {}}>
-                {stage.label} ({stageCounts[stage.id]})
+          <div className="grid grid-cols-3 gap-3">
+            {SURROGATE_STAGES.filter(s => SCREENING_STAGES.includes(s.id)).map(stage => (
+              <button
+                key={stage.id}
+                onClick={() => setStageFilter(stage.id)}
+                className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+                style={{ backgroundColor: stage.color + '08', ...(stageFilter === stage.id ? { ringColor: stage.color, borderColor: stage.color + '50' } : {}) }}
+              >
+                <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
+                <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
               </button>
             ))}
           </div>
         </div>
 
         {/* Spreadsheet table */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 text-sm text-stone-400 border-t border-stone-200">No surrogates in this stage</div>
+        ) : (
         <div className="overflow-x-auto border-t border-stone-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-stone-50 border-b border-stone-200">
-                <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[180px]">Screening Step</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[200px]">Screening Step</th>
                 {filtered.map(s => (
-                  <th key={s.id} className="text-left px-3 py-2.5 min-w-[200px] align-top">
-                    <Link to={`/surrogates/${s.id}`} className="text-xs font-semibold text-[#283693] hover:underline">{s.name}</Link>
-                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                  <th key={s.id} className="text-left px-4 py-3.5 min-w-[210px] align-top">
+                    <Link to={`/surrogates/${s.id}`} className="text-sm font-semibold text-[#283693] hover:underline">{s.name}</Link>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                       {s.location && (
-                        <span className="text-[10px] text-stone-400 flex items-center gap-0.5">
-                          <svg className="size-2.5 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <span className="text-xs text-stone-400 flex items-center gap-0.5">
+                          <svg className="size-3 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                           {s.location}
                         </span>
                       )}
-                      {s.age && <span className="text-[10px] text-stone-400">· {s.age}y</span>}
-                      {s.referralPartner && <img src="/be-logo.png" alt="BE" className="h-3.5 w-auto ml-0.5" title="Be Surrogacy Referral" />}
+                      {s.age && <span className="text-xs text-stone-400">· {s.age}y</span>}
+                      {s.referralPartner && <img src="/be-logo.png" alt="BE" className="h-4 w-auto ml-0.5" title="Be Surrogacy Referral" />}
                     </div>
                   </th>
                 ))}
@@ -164,13 +166,13 @@ function SurrogateScreeningSheet({ surrogates }) {
             <tbody>
               {SCREENING_SHEET_ROWS.map(row => (
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
-                  <td className="px-4 py-3 font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
+                  <td className="px-5 py-3.5 text-sm font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                   {filtered.map(s => {
                     const { status, lastEntry, isComplete, history, hasIncompleteRecords } = getCellData(s.id, row.id)
                     const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
                     const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
                     return (
-                      <td key={s.id} className={`px-3 py-3 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                      <td key={s.id} className={`px-4 py-3.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                         <div className="flex items-center gap-1.5">
                           {isComplete ? (
                             <span className="text-xs text-green-600 font-medium">
@@ -242,6 +244,7 @@ function SurrogateScreeningSheet({ surrogates }) {
             </tbody>
           </table>
         </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -251,14 +254,12 @@ export default function AdminDashboard() {
   const { currentUser } = useRole()
   const { getActiveNotes, dismissNote } = useAdminNotes()
   const [surrogateCount, setSurrogateCount] = useState(0)
-  const [pendingCount, setPendingCount] = useState(0)
   const [surrogates, setSurrogates] = useState([])
   const [dashView, setDashView] = useState('home') // 'home' | 'surrogates'
 
   useEffect(() => {
     fetchSurrogatesFromIntake().then(data => {
       setSurrogateCount(data.length)
-      setPendingCount(data.filter(s => s.status === 'pending').length)
       setSurrogates(data)
     }).catch(() => {})
   }, [])
@@ -308,7 +309,7 @@ export default function AdminDashboard() {
             </Card>
           </button>
         )}
-        <button onClick={() => setDashView(dashView === 'surrogates' ? 'home' : 'surrogates')} className="text-left">
+        <button onClick={() => { if (dashView !== 'surrogates') setDashView('surrogates') }} className="text-left">
           <Card className={`h-full transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] shadow-md' : 'hover:shadow-sm'}`}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <p className="text-sm font-medium text-muted-foreground">Surrogates</p>
@@ -320,9 +321,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </button>
-        <StatCard title="Active IPs" value={0} icon={Users} description="In program" />
+        <StatCard title="Intended Parents" value={0} icon={Users} description="In program" />
         <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
-        <StatCard title="Pending Review" value={pendingCount} icon={FileText} description="Needs review" />
+        <StatCard title="Matched Journeys" value={0} icon={Heart} description="Active journeys" />
       </div>
 
       {dashView === 'surrogates' ? (
