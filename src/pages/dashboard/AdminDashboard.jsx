@@ -253,6 +253,7 @@ export default function AdminDashboard() {
   const [surrogateCount, setSurrogateCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [surrogates, setSurrogates] = useState([])
+  const [dashView, setDashView] = useState('home') // 'home' | 'surrogates'
 
   useEffect(() => {
     fetchSurrogatesFromIntake().then(data => {
@@ -261,8 +262,6 @@ export default function AdminDashboard() {
       setSurrogates(data)
     }).catch(() => {})
   }, [])
-
-  const [dashView, setDashView] = useState('home') // 'home' | 'surrogates'
 
   const visibleNotes = getActiveNotes().filter(
     (n) => !n.dismissals?.some((d) => d.user_id === currentUser?.id)
@@ -297,53 +296,31 @@ export default function AdminDashboard() {
         </div>
       ))}
 
-      {/* Stat Cards — clickable */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <button onClick={() => setDashView('home')} className={`text-left rounded-2xl border p-5 transition-all ${dashView === 'home' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md' : 'border-stone-100 hover:shadow-sm'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-stone-600">Home</span>
-            <ArrowRight className="size-4 text-stone-300" />
-          </div>
-          <p className="text-2xl font-bold text-[#283693]">Dashboard</p>
+      {/* Stat Cards — clickable to switch views */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        {dashView !== 'home' && (
+          <button onClick={() => setDashView('home')} className="text-left">
+            <Card className="h-full hover:shadow-md transition-shadow">
+              <CardContent className="flex flex-col items-center justify-center py-6 gap-2">
+                <svg className="size-10 text-[#283693]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span className="text-sm font-bold text-[#283693] uppercase tracking-wider">Home</span>
+              </CardContent>
+            </Card>
+          </button>
+        )}
+        <button onClick={() => setDashView(dashView === 'surrogates' ? 'home' : 'surrogates')} className={`text-left rounded-xl transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] shadow-md' : ''}`}>
+          <StatCard title="Surrogates" value={surrogateCount} icon={Heart} description="In program" />
         </button>
-        <button onClick={() => setDashView('surrogates')} className={`text-left rounded-2xl border p-5 transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md' : 'border-stone-100 hover:shadow-sm'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-stone-600">Surrogates</span>
-            <Heart className="size-4 text-stone-300" />
-          </div>
-          <p className="text-2xl font-bold">{surrogateCount}</p>
-          <p className="text-xs text-stone-400 mt-0.5">In program</p>
-        </button>
-        <div className="rounded-2xl border border-stone-100 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-stone-600">Active IPs</span>
-            <Users className="size-4 text-stone-300" />
-          </div>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-xs text-stone-400 mt-0.5">In program</p>
-        </div>
-        <div className="rounded-2xl border border-stone-100 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-stone-600">Matches in Progress</span>
-            <GitMerge className="size-4 text-stone-300" />
-          </div>
-          <p className="text-2xl font-bold">0</p>
-          <p className="text-xs text-stone-400 mt-0.5">Across all stages</p>
-        </div>
-        <div className="rounded-2xl border border-stone-100 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-stone-600">Pending Review</span>
-            <FileText className="size-4 text-stone-300" />
-          </div>
-          <p className="text-2xl font-bold">{pendingCount}</p>
-          <p className="text-xs text-stone-400 mt-0.5">Needs review</p>
-        </div>
+        <StatCard title="Active IPs" value={0} icon={Users} description="In program" />
+        <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
+        <StatCard title="Pending Review" value={pendingCount} icon={FileText} description="Needs review" />
       </div>
 
       {dashView === 'surrogates' ? (
         /* Surrogate Screening Sheet */
         surrogates.length > 0 && <SurrogateScreeningSheet surrogates={surrogates} />
       ) : (
+      <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Match Pipeline */}
         <Card className="lg:col-span-2">
@@ -467,6 +444,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+      </>
       )}
     </div>
   )
