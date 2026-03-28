@@ -231,8 +231,17 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                         ) : (
                           <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-stone-300">{stepIdx + 1}</div>
                         )}
-                        <span className={`font-semibold ${isComplete ? 'text-green-700' : 'text-stone-800'}`}>{step.label}</span>
+                        <span className={`font-semibold ${currentStatus === 'na' ? 'text-stone-400 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}>{step.label}</span>
                         {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
+                        {step.canToggleNA && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: currentStatus === 'na' ? 'not_started' : 'na', history: [...(data.history || []), { status: currentStatus === 'na' ? 'not_started' : 'na', date: new Date().toISOString().split('T')[0], note: currentStatus === 'na' ? 'Reactivated' : 'Not needed', by: currentUserName || 'Admin' }] }) }}
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${currentStatus === 'na' ? 'bg-amber-50 border-amber-300 text-amber-600 hover:bg-amber-100' : 'bg-stone-50 border-stone-200 text-stone-400 hover:bg-stone-100'}`}
+                            title={currentStatus === 'na' ? 'Re-enable this record' : 'Mark as not needed'}
+                          >
+                            {currentStatus === 'na' ? 'UNDO' : 'N/A'}
+                          </button>
+                        )}
                         <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
                     </td>
@@ -730,25 +739,28 @@ export default function SurrogateDetailPage() {
             if (currentStageId === 'screening') {
               const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
               const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-              const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
-              let obDone = 0, delDone = 0, ivfTotal = 0, ivfDone = 0
+              let obTotal = 0, obDone = 0, delTotal = 0, delDone = 0, ivfTotal = 0, ivfDone = 0
               for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
-                if (recordTracking[`ob_records_${i}`]?.status === 'complete') obDone++
-                if (recordTracking[`delivery_records_${i}`]?.status === 'complete') delDone++
+                const obStatus = recordTracking[`ob_records_${i}`]?.status
+                const delStatus = recordTracking[`delivery_records_${i}`]?.status
+                const ivfStatus = recordTracking[`ivf_records_${i}`]?.status
+                // OB: count unless toggled off (N/A)
+                if (obStatus !== 'na') { obTotal++; if (obStatus === 'complete') obDone++ }
+                // Delivery: count unless toggled off (N/A)
+                if (delStatus !== 'na') { delTotal++; if (delStatus === 'complete') delDone++ }
+                // IVF: only for pregnancies where wasSurrogacy === 'yes'
                 const isSurrogacyPreg = pregnancies[i]?.wasSurrogacy === 'yes'
-                if (isSurrogacyPreg || isExperiencedSurrogate) {
-                  ivfTotal++
-                  if (recordTracking[`ivf_records_${i}`]?.status === 'complete') ivfDone++
+                if (isSurrogacyPreg) {
+                  if (ivfStatus !== 'na') { ivfTotal++; if (ivfStatus === 'complete') ivfDone++ }
                 }
               }
               if (numPreg > 0) {
                 recordSummarySteps.push(
-                  { id: '_ob_summary', label: 'OB Records', subLabel: `(${obDone}/${numPreg})` },
-                  { id: '_del_summary', label: 'Delivery Records', subLabel: `(${delDone}/${numPreg})` },
+                  { id: '_ob_summary', label: 'OB Records', subLabel: `(${obDone}/${obTotal})` },
+                  { id: '_del_summary', label: 'Delivery Records', subLabel: `(${delDone}/${delTotal})` },
                 )
-                if (ivfTotal > 0 || isExperiencedSurrogate) {
-                  const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
-                  recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: `(${ivfDone}/${ivfCount})` })
+                if (ivfTotal > 0) {
+                  recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: `(${ivfDone}/${ivfTotal})` })
                 }
               }
             }
@@ -787,10 +799,10 @@ export default function SurrogateDetailPage() {
               const p = pregnancies[i] || {}
               const year = p.dob ? new Date(p.dob).getFullYear() : ''
               const yearLabel = year || `#${i + 1}`
-              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}` })
-              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}` })
+              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}`, canToggleNA: true })
+              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}`, canToggleNA: true })
               if (p.wasSurrogacy === 'yes') {
-                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}` })
+                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}`, canToggleNA: true })
               }
             }
             return (
