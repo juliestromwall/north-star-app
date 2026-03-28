@@ -10,24 +10,12 @@ import { fetchSurrogatesFromIntake } from '@/lib/db'
 import { matchPipelineCounts } from '@/data/mock/matches'
 import { MATCH_STAGES, SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
+import { getAllChecklistSteps } from '@/lib/checklistStore'
 import { Heart, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X, ScrollText, FileWarning, CheckCircle2, Circle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const recentActivity = []
 const upcomingMilestones = []
-
-const SCREENING_SHEET_ROWS = [
-  { id: '_ob_summary', label: 'OB Records' },
-  { id: '_del_summary', label: 'Delivery Records' },
-  { id: '_ivf_summary', label: 'IVF Records' },
-  { id: 'pap', label: 'PAP' },
-  { id: 'ob_clearance', label: 'OB Clearance Letter' },
-  { id: 'records_reviewed', label: 'Records Reviewed' },
-  { id: 'background_check', label: 'Background Check' },
-  { id: 'psych_screening', label: 'Psych Screening' },
-  { id: 'mitera', label: 'Mitera' },
-  { id: 'insurance', label: 'Insurance' },
-]
 
 function formatDateShort(dateStr) {
   if (!dateStr) return ''
@@ -39,6 +27,8 @@ const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
 
 function SurrogateScreeningSheet({ surrogates }) {
   const [stageFilter, setStageFilter] = useState('pre-qualification')
+  // Get checklist steps for the current stage filter
+  const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
   const [logPopover, setLogPopover] = useState(null) // { surrogateId, stepId }
   const [docPopover, setDocPopover] = useState(null) // { surrogateId, stepId }
 
@@ -164,7 +154,7 @@ function SurrogateScreeningSheet({ surrogates }) {
               </tr>
             </thead>
             <tbody>
-              {SCREENING_SHEET_ROWS.map(row => (
+              {sheetRows.map(row => (
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 text-sm font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                   {filtered.map(s => {

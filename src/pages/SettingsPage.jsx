@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES } from '@/lib/constants'
-import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults } from '@/lib/checklistStore'
+import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +19,9 @@ import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw } from 'lucide-react'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown } from 'lucide-react'
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
 
@@ -217,10 +219,90 @@ function SortableStepRow({ step, onEdit, onDelete }) {
   )
 }
 
+// ── Milestone Row ──────────────────────────────────────
+
+function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
+  const [editing, setEditing] = useState(false)
+  const [editLabel, setEditLabel] = useState(milestone.label)
+  const [open, setOpen] = useState(false)
+
+  const handleSave = () => {
+    if (editLabel.trim() && editLabel.trim() !== milestone.label) {
+      editChecklistMilestone(userType, stageId, milestone.id, editLabel.trim())
+      onUpdate()
+    }
+    setEditing(false)
+  }
+
+  const handleToggleStep = (stepId) => {
+    toggleStepInMilestone(userType, stageId, milestone.id, stepId)
+    onUpdate()
+  }
+
+  const assignedCount = milestone.stepIds?.length || 0
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="rounded-lg border bg-stone-50 overflow-hidden">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-stone-100 transition-colors group">
+            <Milestone className="size-3.5 text-stone-400 shrink-0" />
+            {editing ? (
+              <div className="flex-1 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                <Input
+                  value={editLabel}
+                  onChange={e => setEditLabel(e.target.value)}
+                  className="h-7 text-xs"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') { setEditLabel(milestone.label); setEditing(false) } }}
+                />
+                <button onClick={handleSave} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-3.5" /></button>
+                <button onClick={() => { setEditLabel(milestone.label); setEditing(false) }} className="p-1 rounded hover:bg-stone-200 text-stone-400"><X className="size-3.5" /></button>
+              </div>
+            ) : (
+              <>
+                <span className="flex-1 text-xs font-semibold text-stone-600">{milestone.label}</span>
+                <span className="text-[10px] text-stone-400">{assignedCount} step{assignedCount !== 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setEditLabel(milestone.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+                  <button onClick={() => { deleteChecklistMilestone(userType, stageId, milestone.id); onUpdate() }} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+                </div>
+                <ChevronDown className={`size-3.5 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </>
+            )}
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 pb-2 pt-1 space-y-1 border-t border-stone-200">
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-1">Assign steps to this milestone:</p>
+            {steps.length === 0 ? (
+              <p className="text-xs text-stone-400 italic">No steps to assign — add steps first.</p>
+            ) : (
+              steps.map(step => (
+                <label key={step.id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5 hover:bg-stone-100 rounded px-1 -mx-1">
+                  <Checkbox
+                    checked={milestone.stepIds?.includes(step.id)}
+                    onCheckedChange={() => handleToggleStep(step.id)}
+                    className="size-3.5"
+                  />
+                  <span className="text-stone-600">{step.label}</span>
+                </label>
+              ))
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  )
+}
+
 // ── Stage Checklist Card ──────────────────────────────────
 
-function StageChecklistCard({ stage, userType, steps, onUpdate }) {
+function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
+  const steps = stageData?.steps || []
+  const milestones = stageData?.milestones || []
   const [newStepLabel, setNewStepLabel] = useState('')
+  const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
   const [confirmReset, setConfirmReset] = useState(false)
 
   const sensors = useSensors(
@@ -238,20 +320,27 @@ function StageChecklistCard({ stage, userType, steps, onUpdate }) {
     onUpdate()
   }
 
-  const handleAdd = () => {
+  const handleAddStep = () => {
     if (!newStepLabel.trim()) return
     addChecklistStep(userType, stage.id, newStepLabel.trim())
     setNewStepLabel('')
     onUpdate()
   }
 
-  const handleEdit = (stepId, newLabel) => {
+  const handleEditStep = (stepId, newLabel) => {
     editChecklistStep(userType, stage.id, stepId, newLabel)
     onUpdate()
   }
 
-  const handleDelete = (stepId) => {
+  const handleDeleteStep = (stepId) => {
     deleteChecklistStep(userType, stage.id, stepId)
+    onUpdate()
+  }
+
+  const handleAddMilestone = () => {
+    if (!newMilestoneLabel.trim()) return
+    addChecklistMilestone(userType, stage.id, newMilestoneLabel.trim())
+    setNewMilestoneLabel('')
     onUpdate()
   }
 
@@ -268,7 +357,7 @@ function StageChecklistCard({ stage, userType, steps, onUpdate }) {
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
             <CardTitle className="text-base">{stage.label}</CardTitle>
-            <span className="text-xs text-stone-400 font-normal">{steps.length} step{steps.length !== 1 ? 's' : ''}</span>
+            <span className="text-xs text-stone-400 font-normal">{steps.length} step{steps.length !== 1 ? 's' : ''} · {milestones.length} milestone{milestones.length !== 1 ? 's' : ''}</span>
           </div>
           {confirmReset ? (
             <div className="flex items-center gap-2">
@@ -283,33 +372,64 @@ function StageChecklistCard({ stage, userType, steps, onUpdate }) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {steps.length > 0 ? (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-1.5">
-                {steps.map(step => (
-                  <SortableStepRow key={step.id} step={step} onEdit={handleEdit} onDelete={handleDelete} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        ) : (
-          <p className="text-xs text-stone-400 py-3 text-center">No steps configured for this stage.</p>
-        )}
+      <CardContent className="space-y-4">
+        {/* Steps */}
+        <div className="space-y-2">
+          <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Steps</p>
+          {steps.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-1.5">
+                  {steps.map(step => (
+                    <SortableStepRow key={step.id} step={step} onEdit={handleEditStep} onDelete={handleDeleteStep} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-xs text-stone-400 py-2 text-center">No steps configured.</p>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              value={newStepLabel}
+              onChange={e => setNewStepLabel(e.target.value)}
+              placeholder="Add a step..."
+              className="h-8 text-sm flex-1"
+              onKeyDown={e => { if (e.key === 'Enter') handleAddStep() }}
+            />
+            <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
+              <Plus className="size-3.5" /> Add
+            </Button>
+          </div>
+        </div>
 
-        {/* Add step inline */}
-        <div className="flex items-center gap-2 pt-1">
-          <Input
-            value={newStepLabel}
-            onChange={e => setNewStepLabel(e.target.value)}
-            placeholder="Add a step..."
-            className="h-8 text-sm flex-1"
-            onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-          />
-          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAdd} disabled={!newStepLabel.trim()}>
-            <Plus className="size-3.5" /> Add
-          </Button>
+        {/* Milestones */}
+        <div className="space-y-2 border-t border-stone-100 pt-4">
+          <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+            <Milestone className="size-3.5" /> Milestones
+            <span className="font-normal normal-case text-stone-400">— shown on case cards</span>
+          </p>
+          {milestones.length > 0 ? (
+            <div className="space-y-1.5">
+              {milestones.map(ms => (
+                <MilestoneRow key={ms.id} milestone={ms} steps={steps} userType={userType} stageId={stage.id} onUpdate={onUpdate} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-stone-400 py-2 text-center">No milestones configured.</p>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              value={newMilestoneLabel}
+              onChange={e => setNewMilestoneLabel(e.target.value)}
+              placeholder="Add a milestone..."
+              className="h-8 text-sm flex-1"
+              onKeyDown={e => { if (e.key === 'Enter') handleAddMilestone() }}
+            />
+            <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddMilestone} disabled={!newMilestoneLabel.trim()}>
+              <Plus className="size-3.5" /> Add
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -350,7 +470,7 @@ function ScreeningChecklistsSection() {
               key={stage.id}
               stage={stage}
               userType="gc"
-              steps={config.gc?.[stage.id] || []}
+              stageData={config.gc?.[stage.id]}
               onUpdate={forceUpdate}
             />
           ))}
@@ -362,7 +482,7 @@ function ScreeningChecklistsSection() {
               key={stage.id}
               stage={stage}
               userType="ip"
-              steps={config.ip?.[stage.id] || []}
+              stageData={config.ip?.[stage.id]}
               onUpdate={forceUpdate}
             />
           ))}

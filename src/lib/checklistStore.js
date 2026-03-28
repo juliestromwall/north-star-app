@@ -1,6 +1,7 @@
 // ── Checklist Configuration Store ──────────────────────────
-// Manages screening/tracking checklist steps per user type + stage.
+// Manages screening/tracking checklist steps + milestones per user type + stage.
 // Persisted to localStorage. One checklist per (userType, stageId) pair.
+// Each stage has: steps[] and milestones[] (milestones group steps for card display).
 
 const STORAGE_KEY = 'abc_checklist_config'
 
@@ -20,31 +21,46 @@ export const CHECKLIST_STEP_STATUSES = [
 ]
 
 // Default checklists seeded on first load
+// Each stage value: { steps: [...], milestones: [...] }
 const DEFAULT_CHECKLISTS = {
   gc: {
-    'pre-qualification': [
-      { id: 'pap', label: 'PAP' },
-      { id: 'ob_clearance', label: 'OB Clearance Letter' },
-      { id: 'records_reviewed', label: 'Records Reviewed' },
-    ],
-    'screening': [
-      { id: 'background_check', label: 'Background Check' },
-      { id: 'psych_screening', label: 'Psych Screening' },
-      { id: 'mitera', label: 'Mitera' },
-      { id: 'insurance', label: 'Insurance' },
-    ],
-    'matching': [],
-    'journey-oversight': [],
-    'journey-ending': [],
-    'journey-closed': [],
+    'pre-qualification': {
+      steps: [
+        { id: 'pap', label: 'PAP' },
+        { id: 'ob_clearance', label: 'OB Clearance Letter' },
+        { id: 'records_reviewed', label: 'Records Reviewed' },
+      ],
+      milestones: [
+        { id: 'records', label: 'Records', stepIds: ['pap', 'ob_clearance'] },
+        { id: 'review', label: 'Review', stepIds: ['records_reviewed'] },
+      ],
+    },
+    'screening': {
+      steps: [
+        { id: 'background_check', label: 'Background Check' },
+        { id: 'psych_screening', label: 'Psych Screening' },
+        { id: 'mitera', label: 'Mitera' },
+        { id: 'insurance', label: 'Insurance' },
+      ],
+      milestones: [
+        { id: 'bg', label: 'BG', stepIds: ['background_check'] },
+        { id: 'psych', label: 'Psych', stepIds: ['psych_screening'] },
+        { id: 'mfm', label: 'MFM', stepIds: ['mitera'] },
+        { id: 'ins', label: 'Insurance', stepIds: ['insurance'] },
+      ],
+    },
+    'matching': { steps: [], milestones: [] },
+    'journey-oversight': { steps: [], milestones: [] },
+    'journey-ending': { steps: [], milestones: [] },
+    'journey-closed': { steps: [], milestones: [] },
   },
   ip: {
-    'pre-qualification': [],
-    'screening': [],
-    'matching': [],
-    'journey-oversight': [],
-    'journey-ending': [],
-    'journey-closed': [],
+    'pre-qualification': { steps: [], milestones: [] },
+    'screening': { steps: [], milestones: [] },
+    'matching': { steps: [], milestones: [] },
+    'journey-oversight': { steps: [], milestones: [] },
+    'journey-ending': { steps: [], milestones: [] },
+    'journey-closed': { steps: [], milestones: [] },
   },
 }
 
@@ -60,16 +76,15 @@ function save(config) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
 }
 
-function ensureDefaults(config) {
+// Migrate old flat array format to { steps, milestones } format
+function migrateIfNeeded(config) {
   let changed = false
   for (const userType of ['gc', 'ip']) {
-    if (!config[userType]) {
-      config[userType] = DEFAULT_CHECKLISTS[userType]
-      changed = true
-    }
-    for (const stageId of Object.keys(DEFAULT_CHECKLISTS[userType])) {
-      if (!config[userType][stageId]) {
-        config[userType][stageId] = DEFAULT_CHECKLISTS[userType][stageId]
+    if (!config[userType]) continue
+    for (const stageId of Object.keys(config[userType])) {
+      const val = config[userType][stageId]
+      if (Array.isArray(val)) {
+        config[userType][stageId] = { steps: val, milestones: [] }
         changed = true
       }
     }
@@ -77,7 +92,24 @@ function ensureDefaults(config) {
   return changed
 }
 
-/** Get full config: { gc: { stageId: [...steps] }, ip: { stageId: [...steps] } } */
+function ensureDefaults(config) {
+  let changed = false
+  for (const userType of ['gc', 'ip']) {
+    if (!config[userType]) {
+      config[userType] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType]))
+      changed = true
+    }
+    for (const stageId of Object.keys(DEFAULT_CHECKLISTS[userType])) {
+      if (!config[userType][stageId]) {
+        config[userType][stageId] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType][stageId]))
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+/** Get full config */
 export function getChecklistConfig() {
   let config = load()
   if (!config) {
@@ -85,21 +117,56 @@ export function getChecklistConfig() {
     save(config)
     return config
   }
-  if (ensureDefaults(config)) save(config)
+  let changed = migrateIfNeeded(config)
+  if (ensureDefaults(config)) changed = true
+  if (changed) save(config)
   return config
 }
 
 /** Get steps for a specific user type + stage */
 export function getChecklistSteps(userType, stageId) {
   const config = getChecklistConfig()
-  return config[userType]?.[stageId] || []
+  return config[userType]?.[stageId]?.steps || []
 }
 
-/** Set the full step list for a user type + stage (replaces all steps) */
+/** Get milestones for a specific user type + stage */
+export function getChecklistMilestones(userType, stageId) {
+  const config = getChecklistConfig()
+  return config[userType]?.[stageId]?.milestones || []
+}
+
+/** Get all steps across all stages for a user type (for dashboard sheet) */
+export function getAllChecklistSteps(userType) {
+  const config = getChecklistConfig()
+  const allSteps = []
+  for (const stageId of Object.keys(config[userType] || {})) {
+    const steps = config[userType][stageId]?.steps || []
+    for (const step of steps) {
+      allSteps.push({ ...step, stageId })
+    }
+  }
+  return allSteps
+}
+
+/** Get all milestones across all stages for a user type (for card display) */
+export function getAllChecklistMilestones(userType) {
+  const config = getChecklistConfig()
+  const all = []
+  for (const stageId of Object.keys(config[userType] || {})) {
+    const milestones = config[userType][stageId]?.milestones || []
+    for (const ms of milestones) {
+      all.push({ ...ms, stageId })
+    }
+  }
+  return all
+}
+
+/** Set the full step list for a user type + stage */
 export function setChecklistSteps(userType, stageId, steps) {
   const config = getChecklistConfig()
   if (!config[userType]) config[userType] = {}
-  config[userType][stageId] = steps
+  if (!config[userType][stageId]) config[userType][stageId] = { steps: [], milestones: [] }
+  config[userType][stageId].steps = steps
   save(config)
 }
 
@@ -107,36 +174,86 @@ export function setChecklistSteps(userType, stageId, steps) {
 export function addChecklistStep(userType, stageId, label) {
   const config = getChecklistConfig()
   if (!config[userType]) config[userType] = {}
-  if (!config[userType][stageId]) config[userType][stageId] = []
+  if (!config[userType][stageId]) config[userType][stageId] = { steps: [], milestones: [] }
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + Date.now()
-  config[userType][stageId].push({ id, label })
+  config[userType][stageId].steps.push({ id, label })
   save(config)
-  return config[userType][stageId]
+  return config[userType][stageId].steps
 }
 
 /** Edit a step label */
 export function editChecklistStep(userType, stageId, stepId, newLabel) {
   const config = getChecklistConfig()
-  const steps = config[userType]?.[stageId]
+  const steps = config[userType]?.[stageId]?.steps
   if (!steps) return
   const step = steps.find(s => s.id === stepId)
   if (step) step.label = newLabel
   save(config)
 }
 
-/** Delete a step */
+/** Delete a step (also removes from any milestones) */
 export function deleteChecklistStep(userType, stageId, stepId) {
   const config = getChecklistConfig()
-  const steps = config[userType]?.[stageId]
-  if (!steps) return
-  config[userType][stageId] = steps.filter(s => s.id !== stepId)
+  const stageData = config[userType]?.[stageId]
+  if (!stageData) return
+  stageData.steps = stageData.steps.filter(s => s.id !== stepId)
+  for (const ms of stageData.milestones || []) {
+    ms.stepIds = ms.stepIds.filter(id => id !== stepId)
+  }
+  save(config)
+}
+
+/** Set milestones for a user type + stage */
+export function setChecklistMilestones(userType, stageId, milestones) {
+  const config = getChecklistConfig()
+  if (!config[userType]?.[stageId]) return
+  config[userType][stageId].milestones = milestones
+  save(config)
+}
+
+/** Add a milestone */
+export function addChecklistMilestone(userType, stageId, label) {
+  const config = getChecklistConfig()
+  if (!config[userType]?.[stageId]) return
+  const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + Date.now()
+  config[userType][stageId].milestones.push({ id, label, stepIds: [] })
+  save(config)
+}
+
+/** Edit a milestone label */
+export function editChecklistMilestone(userType, stageId, milestoneId, newLabel) {
+  const config = getChecklistConfig()
+  const ms = config[userType]?.[stageId]?.milestones?.find(m => m.id === milestoneId)
+  if (ms) ms.label = newLabel
+  save(config)
+}
+
+/** Delete a milestone */
+export function deleteChecklistMilestone(userType, stageId, milestoneId) {
+  const config = getChecklistConfig()
+  const stageData = config[userType]?.[stageId]
+  if (!stageData) return
+  stageData.milestones = stageData.milestones.filter(m => m.id !== milestoneId)
+  save(config)
+}
+
+/** Toggle a step in/out of a milestone */
+export function toggleStepInMilestone(userType, stageId, milestoneId, stepId) {
+  const config = getChecklistConfig()
+  const ms = config[userType]?.[stageId]?.milestones?.find(m => m.id === milestoneId)
+  if (!ms) return
+  if (ms.stepIds.includes(stepId)) {
+    ms.stepIds = ms.stepIds.filter(id => id !== stepId)
+  } else {
+    ms.stepIds.push(stepId)
+  }
   save(config)
 }
 
 /** Reset a user type + stage to defaults */
 export function resetChecklistToDefaults(userType, stageId) {
   const config = getChecklistConfig()
-  config[userType][stageId] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType]?.[stageId] || []))
+  config[userType][stageId] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType]?.[stageId] || { steps: [], milestones: [] }))
   save(config)
   return config[userType][stageId]
 }

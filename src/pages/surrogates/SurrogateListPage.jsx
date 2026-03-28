@@ -16,6 +16,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StatusSettingsDialog from '@/components/surrogates/StatusSettingsDialog'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, getAllSurrogateStageStatuses } from '@/lib/stageStatusStore'
+import { getAllChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
@@ -92,14 +93,7 @@ function GTPALBadge({ gtpal }) {
 // ── Screening Progress ─────────────────────────────────────
 const SCREENING_STEPS = ['medical', 'psychological', 'background', 'homeStudy']
 const SCREENING_LABELS = { medical: 'Med', psychological: 'Psych', background: 'BG', homeStudy: 'Home' }
-const CARD_MILESTONES = [
-  { id: 'records', label: 'Records' },
-  { id: 'review', label: 'Review' },
-  { id: 'bg', label: 'BG' },
-  { id: 'psych', label: 'Psych' },
-  { id: 'mfm', label: 'MFM' },
-  { id: 'ins', label: 'Ins' },
-]
+// Milestones are now loaded dynamically from checklistStore
 const SCREENING_ICONS = { cleared: CheckCircle, pending: Clock, failed: XCircle, not_started: Circle }
 const SCREENING_COLORS = {
   cleared: 'text-emerald-500',
@@ -109,28 +103,20 @@ const SCREENING_COLORS = {
 }
 
 function ScreeningProgress({ screening, recordTracking, surrogateId }) {
-  // Use record tracking milestones if available, fallback to old screening
-  const milestoneMap = {
-    records: ['_ob_summary', '_del_summary', '_ivf_summary', 'pap', 'ob_clearance'],
-    review: ['records_reviewed'],
-    bg: ['background_check'],
-    psych: ['psych_screening'],
-    mfm: ['mitera'],
-    ins: ['insurance'],
-  }
+  const cardMilestones = getAllChecklistMilestones('gc')
   const rt = recordTracking || {}
   let completed = 0
-  const total = CARD_MILESTONES.length
+  const total = cardMilestones.length
   const milestoneStatuses = {}
-  for (const ms of CARD_MILESTONES) {
-    const stepIds = milestoneMap[ms.id] || []
+  for (const ms of cardMilestones) {
+    const stepIds = ms.stepIds || []
     const relevantSteps = stepIds.filter(id => rt[id]?.status || (id.startsWith('_') ? false : true))
     const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
     const anyStarted = relevantSteps.some(id => rt[id]?.status && rt[id].status !== 'not_started')
     milestoneStatuses[ms.id] = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
     if (allComplete) completed++
   }
-  const pct = (completed / total) * 100
+  const pct = total > 0 ? (completed / total) * 100 : 0
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
@@ -140,8 +126,9 @@ function ScreeningProgress({ screening, recordTracking, surrogateId }) {
       <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
       </div>
+      {cardMilestones.length > 0 && (
       <div className="flex items-center justify-between">
-        {CARD_MILESTONES.map(ms => {
+        {cardMilestones.map(ms => {
           const status = milestoneStatuses[ms.id]
           return (
             <div key={ms.id} className="flex items-center gap-1">
@@ -157,6 +144,7 @@ function ScreeningProgress({ screening, recordTracking, surrogateId }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

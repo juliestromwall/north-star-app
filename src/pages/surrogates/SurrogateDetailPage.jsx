@@ -14,6 +14,7 @@ import { useRole } from '@/context/RoleContext'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
+import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
@@ -696,7 +697,7 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} />
+          <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} stageId={stageStatus?.stage || 'pre-qualification'} />
         </TabsContent>
 
         {/* Contact Tab */}
@@ -741,12 +742,14 @@ export default function SurrogateDetailPage() {
               const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
               recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
             }
-            const allSteps = [...recordSummarySteps, ...SCREENING_RECORD_STEPS]
+            const currentStageId = stageStatus?.stage || 'pre-qualification'
+            const dynamicSteps = getChecklistSteps('gc', currentStageId)
+            const allSteps = [...recordSummarySteps, ...dynamicSteps]
             return (
               <TrackingTable
                 title="Screening Checklist"
                 steps={allSteps}
-                statuses={SCREENING_STEP_STATUSES}
+                statuses={CHECKLIST_STEP_STATUSES}
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
@@ -1812,7 +1815,7 @@ function countSectionFilled(data, section) {
 }
 
 // ── Overview Tab ───────────────────────────────────────────
-function OverviewTab({ surrogate, screening, heightStr, profileData, recordTracking, updateRecord, currentUserName }) {
+function OverviewTab({ surrogate, screening, heightStr, profileData, recordTracking, updateRecord, currentUserName, stageId }) {
   const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
   const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
   const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
@@ -1833,14 +1836,15 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
     const ivfCount = ivfTotal > 0 ? ivfTotal : numPreg
     recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: numPreg > 0 ? `(${ivfDone}/${ivfCount})` : '' })
   }
-  const allSteps = [...recordSummarySteps, ...SCREENING_RECORD_STEPS]
+  const dynamicSteps = getChecklistSteps('gc', stageId || 'pre-qualification')
+  const allSteps = [...recordSummarySteps, ...dynamicSteps]
 
   return (
     <div className="space-y-6">
       <TrackingTable
         title="Screening Checklist"
         steps={allSteps}
-        statuses={SCREENING_STEP_STATUSES}
+        statuses={CHECKLIST_STEP_STATUSES}
         tracking={recordTracking}
         onUpdate={updateRecord}
         currentUserName={currentUserName}
