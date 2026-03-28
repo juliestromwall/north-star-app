@@ -727,7 +727,7 @@ export default function SurrogateDetailPage() {
 
             // Only show medical record summary rows for Pre-Qualification stage
             const recordSummarySteps = []
-            if (currentStageId === 'pre-qualification') {
+            if (currentStageId === 'screening') {
               const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
               const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
               const isExperiencedSurrogate = profileData?.experiencedSurrogate?.previousSurrogate === 'yes'
