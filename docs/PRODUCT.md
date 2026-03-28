@@ -104,8 +104,8 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Partner Dashboard | /dashboard | surrogate_partner | Built |
 | Surrogates List | /surrogates | admin+ | Built (stages, statuses, search, grid/list) |
 | Surrogate Detail | /surrogates/:id | admin+ | Built (interactive hero, documents, notes) |
-| Intended Parents List | /intended-parents | admin+ | Built (needs IP intake) |
-| IP Detail | /intended-parents/:id | admin+ | Built (needs live data) |
+| Intended Parents List | /intended-parents | admin+ | Built (live Supabase, tile/list, search, filters) |
+| IP Detail | /intended-parents/:id | admin+ | Built (live Supabase, overview/contact/intake tabs) |
 | My Profile | /my-profile | surrogate | Built (Supabase sync, photo upload) |
 | Forms List | /forms | all | Built |
 | Surrogate Quiz | /surrogatequiz | public | Built (bot protected) |

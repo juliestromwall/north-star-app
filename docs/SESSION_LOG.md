@@ -1,5 +1,63 @@
 # Session Log
 
+## 2026-03-27 (Late Night Session — IP Intake & Bot Protection Fix)
+
+**Worked on:** IP intake form rebuild from PDF specs, IP confirmation page, IP admin cases (live Supabase), Turnstile fix, rapid-fill bot detection fix
+
+**Changes made:**
+
+IP Intake Form (rebuilt from Couple/Single IP PDF specs):
+- Replaced familyType choice cards with Yes/No "Are you going through this journey with a partner?"
+- Partner fields (name, DOB, email, phone) show conditionally when hasPartner=true
+- Added conditional "What is your doctor's name?" field when hasRE=true
+- Added conditional "How many frozen embryos?" field when hasFrozenEmbryos=true
+- Changed "How did you hear" from choice cards to free-text textarea
+- Removed agreeToConsultation checkbox
+- Submit button label: "Submit application"
+- IPs never disqualify (dqReasons always empty)
+
+IP Confirmation Page:
+- IPs always see simple thank-you: "Please be sure to check your spam folder... A member of our team will reach out to you within 48 hours."
+- No password creation (ABC invites IPs manually when ready)
+- No DQ path for IPs
+- GC flow unchanged
+
+IP Admin Cases (live Supabase):
+- Added fetchIPsFromIntake() in db.js — queries intake_submissions where intake_type='ip'
+- IPListPage now pulls live data from Supabase (replaced mockIntendedParents)
+- Tile/list view, search by name/email/location, status & type filters
+- Cards show RE doctor, embryo details, consultation preference
+- IPDetailPage rebuilt with Overview (IP1, IP2, fertility), Contact (copy buttons), Intake Answers tabs
+- Updated IPAnswerDetail in IntakeSubmissionsPage for new form fields
+
+Bot Protection Fix:
+- Rapid-fill detection was too aggressive (80ms/5 hits) — caught real users using autofill/tabbing
+- Changed to 30ms/10 hits — still catches bots but not humans
+- Fixed Turnstile by adding correct hostnames (app.abcsurrogacy.com, abc-surrogacy.pages.dev, localhost)
+
+Deploy:
+- Confirmed Cloudflare Pages auto-deploys on push to main
+- Confirmed Supabase connection works on production
+- Tested end-to-end: IP form → Supabase insert → admin list page
+
+**Next steps:**
+- Build IP Profile (matching profile builder, similar to surrogate profile)
+- Text API integration (Twilio recommended, iMessage not possible)
+- Fax API, Contract/E-Signature API
+- Auto Emails, Gmail API integration
+- Google Calendar API integration
+- Logout sessions, TFA, User Settings
+- Admin Images/Settings/Preferences
+- Deactivate Profile questions
+- Ability to send Profiles externally
+
+**Open questions:**
+- Which text messaging provider to use? (Twilio recommended, team wants personal numbers)
+- Should IP cases have stages/statuses like surrogates?
+- What fields should the IP matching profile include?
+
+---
+
 ## 2026-03-27 (Evening Session)
 
 **Worked on:** Admin dashboard tile updates, screening overview UX improvements, IP intake form rework, IP confirmation flow changes
