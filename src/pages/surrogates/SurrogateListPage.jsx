@@ -16,7 +16,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StatusSettingsDialog from '@/components/surrogates/StatusSettingsDialog'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, getAllSurrogateStageStatuses } from '@/lib/stageStatusStore'
-import { getAllChecklistMilestones } from '@/lib/checklistStore'
+import { getChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
@@ -102,8 +102,8 @@ const SCREENING_COLORS = {
   not_started: 'text-stone-300',
 }
 
-function ScreeningProgress({ screening, recordTracking, surrogateId }) {
-  const cardMilestones = getAllChecklistMilestones('gc')
+function ScreeningProgress({ screening, recordTracking, surrogateId, stageId }) {
+  const cardMilestones = getChecklistMilestones('gc', stageId || 'pre-qualification')
   const rt = recordTracking || {}
   let completed = 0
   const total = cardMilestones.length
@@ -269,7 +269,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
         </div>
 
         {/* Screening */}
-        <ScreeningProgress screening={surrogate.screening} recordTracking={(() => { try { const d = localStorage.getItem(`abc_records_${surrogate.id}`); return d ? JSON.parse(d) : {} } catch { return {} } })()} surrogateId={surrogate.id} />
+        <ScreeningProgress screening={surrogate.screening} recordTracking={(() => { try { const d = localStorage.getItem(`abc_records_${surrogate.id}`); return d ? JSON.parse(d) : {} } catch { return {} } })()} surrogateId={surrogate.id} stageId={stageStatus.stage} />
 
         {/* Footer: assignment + view link */}
         <div className="pt-2 border-t border-stone-100">

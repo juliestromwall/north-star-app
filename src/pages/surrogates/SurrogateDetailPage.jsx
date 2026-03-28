@@ -14,7 +14,7 @@ import { useRole } from '@/context/RoleContext'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
-import { getChecklistSteps, getAllChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
@@ -1817,7 +1817,7 @@ function countSectionFilled(data, section) {
 
 // ── Overview Tab ───────────────────────────────────────────
 function OverviewTab({ surrogate, screening, heightStr, profileData, recordTracking, updateRecord, currentUserName, stageId }) {
-  const milestones = getAllChecklistMilestones('gc')
+  const milestones = getChecklistMilestones('gc', stageId || 'pre-qualification')
   const rt = recordTracking || {}
 
   let completed = 0
