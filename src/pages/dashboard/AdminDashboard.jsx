@@ -308,8 +308,17 @@ export default function AdminDashboard() {
             </Card>
           </button>
         )}
-        <button onClick={() => setDashView(dashView === 'surrogates' ? 'home' : 'surrogates')} className={`text-left rounded-xl transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] shadow-md' : ''}`}>
-          <StatCard title="Surrogates" value={surrogateCount} icon={Heart} description="In program" />
+        <button onClick={() => setDashView(dashView === 'surrogates' ? 'home' : 'surrogates')} className="text-left">
+          <Card className={`h-full transition-all ${dashView === 'surrogates' ? 'ring-2 ring-[#283693] shadow-md' : 'hover:shadow-sm'}`}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Surrogates</p>
+              <Heart className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-heading font-bold">{surrogateCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">In program</p>
+            </CardContent>
+          </Card>
         </button>
         <StatCard title="Active IPs" value={0} icon={Users} description="In program" />
         <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
