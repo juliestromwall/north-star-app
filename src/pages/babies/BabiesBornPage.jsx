@@ -224,7 +224,7 @@ export default function BabiesBornPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Our Journey of Growth</CardTitle>
-            <p className="text-sm text-stone-400">{totalBirths} families created since 2013</p>
+            <p className="text-sm text-stone-400">{totalBirths} families grown since 2013</p>
           </div>
         </CardHeader>
         <CardContent>
