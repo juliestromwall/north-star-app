@@ -223,31 +223,106 @@ export default function BabiesBornPage() {
         </CardContent>
       </Card>
 
-      {/* Chart visualization */}
+      {/* Line chart */}
       <Card className="rounded-2xl">
         <CardHeader>
-          <CardTitle>Growth Over Time</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Our Journey of Growth</CardTitle>
+            <p className="text-sm text-stone-400">{totalBirths} families created since 2013</p>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-end gap-1.5 h-48">
-            {data.years.map(y => {
-              const maxBirths = Math.max(...data.years.map(yr => yr.births || 1))
-              const pct = ((y.births || 0) / maxBirths) * 100
-              return (
-                <div key={y.year} className="flex-1 flex flex-col items-center gap-1 group cursor-pointer" onClick={() => startEdit(y)}>
-                  <span className="text-[10px] font-bold text-stone-500 opacity-0 group-hover:opacity-100 transition-opacity">{y.births}</span>
-                  <div
-                    className="w-full rounded-t-lg transition-all duration-300 group-hover:opacity-80"
-                    style={{
-                      height: `${Math.max(pct, 4)}%`,
-                      background: `linear-gradient(180deg, #ed148c, #283693)`,
-                    }}
-                  />
-                  <span className="text-[9px] text-stone-400 font-medium">{String(y.year).slice(2)}</span>
+          {(() => {
+            const years = data.years
+            const maxB = Math.max(...years.map(y => y.births || 0), 1)
+            const chartH = 220
+            const chartW = '100%'
+            const padL = 40
+            const padR = 20
+            const padT = 20
+            const padB = 40
+            // Calculate cumulative total for area chart
+            let cumulative = 0
+            const cumulativeData = years.map(y => { cumulative += (y.births || 0); return cumulative })
+            const maxCum = Math.max(...cumulativeData, 1)
+
+            const getX = (i) => padL + (i / (years.length - 1)) * (1000 - padL - padR)
+            const getYBirths = (v) => padT + (1 - v / maxB) * (chartH - padT - padB)
+            const getYCum = (v) => padT + (1 - v / maxCum) * (chartH - padT - padB)
+
+            // Births line points
+            const birthPoints = years.map((y, i) => `${getX(i)},${getYBirths(y.births || 0)}`).join(' ')
+            // Cumulative area
+            const cumPoints = cumulativeData.map((v, i) => `${getX(i)},${getYCum(v)}`).join(' ')
+            const cumArea = `${getX(0)},${chartH - padB} ${cumPoints} ${getX(years.length - 1)},${chartH - padB}`
+
+            return (
+              <div className="relative">
+                <svg viewBox={`0 0 1000 ${chartH}`} className="w-full" style={{ height: '280px' }}>
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ed148c" stopOpacity="0.15" />
+                      <stop offset="100%" stopColor="#283693" stopOpacity="0.03" />
+                    </linearGradient>
+                    <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#ed148c" />
+                      <stop offset="100%" stopColor="#283693" />
+                    </linearGradient>
+                    <linearGradient id="cumLineGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#ed148c" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#283693" stopOpacity="0.4" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid lines */}
+                  {[0, 0.25, 0.5, 0.75, 1].map(pct => (
+                    <line key={pct} x1={padL} y1={padT + pct * (chartH - padT - padB)} x2={1000 - padR} y2={padT + pct * (chartH - padT - padB)} stroke="#e7e5e4" strokeWidth="1" strokeDasharray={pct === 1 ? '' : '4,4'} />
+                  ))}
+
+                  {/* Cumulative area fill */}
+                  <polygon points={cumArea} fill="url(#areaGrad)" />
+
+                  {/* Cumulative line */}
+                  <polyline points={cumPoints} fill="none" stroke="url(#cumLineGrad)" strokeWidth="2" strokeLinejoin="round" />
+
+                  {/* Births per year line */}
+                  <polyline points={birthPoints} fill="none" stroke="url(#lineGrad)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+
+                  {/* Data points + labels for births */}
+                  {years.map((y, i) => {
+                    const x = getX(i)
+                    const yPos = getYBirths(y.births || 0)
+                    return (
+                      <g key={y.year}>
+                        {/* Dot */}
+                        <circle cx={x} cy={yPos} r="5" fill="white" stroke="#ed148c" strokeWidth="2.5" />
+                        {/* Birth count label */}
+                        <text x={x} y={yPos - 12} textAnchor="middle" className="text-[11px] font-bold" fill="#283693">{y.births}</text>
+                        {/* Year label */}
+                        <text x={x} y={chartH - 10} textAnchor="middle" className="text-[10px]" fill="#a8a29e">{y.year}</text>
+                      </g>
+                    )
+                  })}
+
+                  {/* Cumulative labels at start and end */}
+                  <text x={getX(0) - 5} y={getYCum(cumulativeData[0]) - 8} textAnchor="end" className="text-[10px]" fill="#a8a29e">{cumulativeData[0]}</text>
+                  <text x={getX(years.length - 1) + 5} y={getYCum(cumulativeData[cumulativeData.length - 1]) - 8} textAnchor="start" className="text-[11px] font-bold" fill="#283693">{cumulativeData[cumulativeData.length - 1]} total</text>
+                </svg>
+
+                {/* Legend */}
+                <div className="flex items-center justify-center gap-6 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-0.5 rounded-full bg-gradient-to-r from-[#ed148c] to-[#283693]" />
+                    <span className="text-xs text-stone-500">Births per year</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-3 rounded-sm bg-gradient-to-b from-[#ed148c]/15 to-[#283693]/5" />
+                    <span className="text-xs text-stone-500">Cumulative total</span>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
     </div>
