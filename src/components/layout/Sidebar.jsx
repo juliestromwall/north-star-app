@@ -66,10 +66,15 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS }) {
         </nav>
       </ScrollArea>
       {showBabiesBorn && (
-        <div className="flex items-center justify-center gap-2 py-4 border-t border-sidebar-foreground/10 text-abc-coral">
+        <NavLink
+          to="/babies-born"
+          className={({ isActive }) =>
+            `flex items-center justify-center gap-2 py-4 border-t border-sidebar-foreground/10 transition-colors cursor-pointer ${isActive ? 'text-white bg-sidebar-accent/30' : 'text-abc-coral hover:text-white'}`
+          }
+        >
           <Baby className="size-4" />
-          <span className="text-sm font-semibold">{BABIES_BORN}</span>
-        </div>
+          <span className="text-sm font-semibold">{(() => { try { const d = JSON.parse(localStorage.getItem('abc_babies_born')); return d?.years?.reduce((s, y) => s + (y.births || 0), 0) } catch {} return BABIES_BORN })()}</span>
+        </NavLink>
       )}
     </>
   )
