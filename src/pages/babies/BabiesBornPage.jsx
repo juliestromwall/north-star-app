@@ -159,7 +159,7 @@ export default function BabiesBornPage() {
                 {data.years.map(y => {
                   const isEditing = editingYear === y.year
                   return (
-                    <tr key={y.year} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors">
+                    <tr key={y.year} className="border-b border-stone-100 hover:bg-stone-50/50 transition-colors cursor-pointer" onClick={() => !isEditing && startEdit(y)}>
                       <td className="py-3 px-5">
                         <span className="font-bold text-[#283693]">{y.year}</span>
                       </td>
@@ -195,12 +195,8 @@ export default function BabiesBornPage() {
                               <span className="text-stone-300">—</span>
                             )}
                           </td>
-                          <td className="py-3 px-4 text-stone-500">{y.notes || ''}</td>
-                          <td className="py-3 px-4">
-                            <button onClick={() => startEdit(y)} className="p-1.5 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Pencil className="size-3.5" />
-                            </button>
-                          </td>
+                          <td className="py-3 px-4 text-stone-500">{y.notes || <span className="text-stone-300 italic text-xs">Click to edit</span>}</td>
+                          <td className="py-3 px-4" />
                         </>
                       )}
                     </tr>
