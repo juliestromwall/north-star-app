@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -1908,16 +1908,89 @@ function GTPALChip({ label, value, color }) {
 
 // ── Profile section config ─────────────────────────────────
 const PROFILE_SECTIONS = [
-  { key: 'personal', title: 'Personal Information', fields: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'] },
-  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: ['numberOfPregnancies'] },
-  { key: 'fertility', title: 'Fertility Information', fields: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'] },
-  { key: 'general', title: 'General Information', fields: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'] },
-  { key: 'health', title: 'Health Information', fields: ['mentalHealthDiagnosis', 'openToVaccinations'] },
-  { key: 'employment', title: 'Employment Information', fields: ['currentlyEmployed', 'healthInsurance'] },
-  { key: 'interests', title: 'Interests', fields: ['personality'] },
-  { key: 'academic', title: 'Academic Information', fields: ['educationLevel'] },
-  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [] },
-  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: ['reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'] },
+  { key: 'personal', title: 'Personal Information', fields: [
+    'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
+    'usCitizen', 'realId', 'validPassport', 'otherLanguages', 'otherLanguagesDetails',
+    'maritalStatus', 'monogamous', 'sexualPartners', 'relationshipLength', 'partnerName',
+    'partnerDob', 'partnerUsCitizen', 'householdMembers'
+  ] },
+  { key: 'pregnancyHistory', title: 'Pregnancy History', fields: [
+    'numberOfPregnancies', 'pregnancies'
+  ] },
+  { key: 'fertility', title: 'Fertility Information', fields: [
+    'sameBioFather', 'sameBioFatherDetails', 'pregnancyDetails',
+    'infertilityTreatment', 'infertilityTreatmentDetails',
+    'gynecologicalProblems', 'gynecologicalProblemsDetails',
+    'contraceptiveMethod', 'lastPeriod', 'cycleLength', 'cycleLengthDetails',
+    'breastfeeding', 'breastfeedingStopDate', 'timeToConceive',
+    'pregnancyMedication', 'pregnancyMedicationList',
+    'nearestNICU', 'willingToTravelNICU'
+  ] },
+  { key: 'general', title: 'General Information', fields: [
+    'homeOwnership', 'homeDuration', 'childrenFullTime', 'childrenFullTimeDetails',
+    'childrenSpecialNeeds', 'childrenSpecialNeedsDetails',
+    'placedForAdoption', 'placedForAdoptionDetails', 'divorcedRelationship',
+    'planMoreChildren', 'planMoreChildrenDetails',
+    'smokeVape', 'smokingHistory', 'smokingHistoryDetails',
+    'householdSmoker', 'householdSmokerDetails',
+    'alcoholDrugs', 'alcoholDrugsDetails',
+    'advisedLimitSubstances', 'advisedLimitDetails',
+    'householdControlledSubstances', 'householdSubstancesDetails', 'householdSubstancesPurpose',
+    'gunsOwned', 'gunsDetails',
+    'piercingsTattoos', 'piercingsTattoosDetails', 'lastTattooDate', 'nonSterilePiercing',
+    'eatingDisorders', 'eatingDisordersDetails', 'typicalDiet',
+    'partnerFdaTests', 'ethnicity', 'religion', 'religionImportance', 'differentReligion',
+    'criminalHistory', 'criminalHistoryDetails',
+    'recentTravel', 'recentTravelDetails', 'travelPlans', 'travelPlansDetails',
+    'exerciseFrequency', 'sleepIssues', 'sleepIssuesDetails', 'sleepHours',
+    'reliableVehicle', 'autoInsurance', 'validLicense'
+  ] },
+  { key: 'health', title: 'Health Information', fields: [
+    'mentalHealthDiagnosis', 'mentalHealthDetails',
+    'mentalHealthHospitalization', 'mentalHealthHospDetails',
+    'mentalHealthMedication', 'mentalHealthMedDetails',
+    'counselingTherapy', 'counselingDetails',
+    'familyMentalHealth', 'familyMentalHealthDetails',
+    'domesticViolence', 'domesticViolenceDetails',
+    'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
+    'allergies', 'medicalConditions', 'lastPhysical', 'lastPap',
+    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails',
+    'openToVaccinations', 'vaccinationReasons',
+    'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling'
+  ] },
+  { key: 'employment', title: 'Employment Information', fields: [
+    'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
+    'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
+    'partnerOccupation', 'partnerWeeklyIncome',
+    'healthInsurance', 'insuranceType',
+    'governmentAssistance', 'governmentAssistanceDetails'
+  ] },
+  { key: 'interests', title: 'Interests', fields: [
+    'favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
+    'favoriteColor', 'favoriteFlower', 'pets', 'catLitter',
+    'hobbies', 'collections', 'dreamTravel', 'personality'
+  ] },
+  { key: 'academic', title: 'Academic Information', fields: [
+    'educationLevel', 'currentlyInSchool', 'currentlyInSchoolDetails'
+  ] },
+  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [
+    'previousSurrogate', 'surrogacyTimes', 'journeys', 'overallExperience'
+  ] },
+  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: [
+    'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
+    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'lifestyleChangesDetails',
+    'pumpBreastmilk',
+    'idealIPs', 'preferredCommunication', 'ipInvolvement',
+    'ipsAtAppointments', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers', 'ipsCantAttend',
+    'ipsWithChildren', 'openLGBTQ', 'openSingleIP', 'transferAnotherState', 'ipsOutsideUS',
+    'childCareTraveling',
+    'whenReadyToBegin', 'postBirthRelationship',
+    'cvsAmnio', 'cvsAmnioDetails', 'willingnessToTerminate',
+    'partnerAgreesTermination', 'conditionsWontTerminate',
+    'embryosToTransfer', 'carryTwins',
+    'desiredCompensation', 'compensationNegotiable',
+    'additionalComments'
+  ] },
 ]
 
 function countSectionFilled(data, section) {
@@ -1925,7 +1998,7 @@ function countSectionFilled(data, section) {
   let filled = 0
   for (const f of section.fields) {
     const val = data[section.key][f]
-    if (val !== undefined && val !== '' && val !== null) filled++
+    if (val !== undefined && val !== '' && val !== null && !(Array.isArray(val) && val.length === 0)) filled++
   }
   return { filled, total: section.fields.length }
 }
@@ -2133,12 +2206,30 @@ function formatFieldValue(value) {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (Array.isArray(value)) {
     if (value.length === 0) return '—'
-    // Handle array of objects (e.g. pregnancies, household members)
-    if (typeof value[0] === 'object') return null // render custom below
+    if (typeof value[0] === 'object') return null
     return value.join(', ')
   }
-  if (typeof value === 'object') return null // render custom below
+  if (typeof value === 'object') return null
   return String(value)
+}
+
+function isBooleanField(value) {
+  if (typeof value === 'boolean') return true
+  if (typeof value === 'string') {
+    const lower = value.toLowerCase().trim()
+    return lower === 'yes' || lower === 'no' || lower === 'true' || lower === 'false'
+  }
+  return false
+}
+
+function toBooleanDisplay(value) {
+  if (typeof value === 'boolean') return value ? 'yes' : 'no'
+  if (typeof value === 'string') {
+    const lower = value.toLowerCase().trim()
+    if (lower === 'true' || lower === 'yes') return 'yes'
+    if (lower === 'false' || lower === 'no') return 'no'
+  }
+  return ''
 }
 
 function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, heightStr }) {
@@ -2150,12 +2241,10 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   const previewRef = useRef(null)
 
   function downloadPDF() {
-    // Show preview if needed so content renders
     if (!previewOpen) setPreviewOpen(true)
     setTimeout(() => {
       if (!previewRef.current) return
       const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
-      // Clone the preview into a new tab (not a popup) so print doesn't block parent
       const printWin = window.open('', '_blank')
       if (!printWin) { alert('Please allow popups to save as PDF'); return }
       const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
@@ -2184,10 +2273,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         </div>
         <div class="print-container">${previewRef.current.innerHTML}</div>
         <script>
-          // Auto-prompt print after a short delay for images to load
-          setTimeout(function() {
-            // Don't auto-print, let user click the button
-          }, 1000);
+          setTimeout(function() {}, 1000);
         </script>
         </body></html>`
       printWin.document.write(html)
@@ -2198,8 +2284,50 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   const isApproved = profileStatus === 'approved'
   const data = profileData || {}
 
+  const hiddenFields = data._hiddenFields || []
+
+  function isFieldHidden(sectionKey, fieldKey) {
+    return hiddenFields.includes(`${sectionKey}.${fieldKey}`)
+  }
+
+  async function toggleFieldHidden(sectionKey, fieldKey) {
+    const path = `${sectionKey}.${fieldKey}`
+    const current = data._hiddenFields || []
+    const updated = current.includes(path)
+      ? current.filter(p => p !== path)
+      : [...current, path]
+    const newData = { ...data, _hiddenFields: updated }
+    setProfileData(newData)
+    if (surrogate.email) {
+      try {
+        await adminUpdateSurrogateProfile(surrogate.email, newData)
+      } catch {}
+    }
+  }
+
+  function HideToggle({ sectionKey, fieldKey }) {
+    const hidden = isFieldHidden(sectionKey, fieldKey)
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); toggleFieldHidden(sectionKey, fieldKey) }}
+        className={`shrink-0 p-0.5 rounded transition-colors ${hidden ? 'text-red-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
+        title={hidden ? 'Hidden from IPs — click to show' : 'Visible to IPs — click to hide'}
+      >
+        {hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+      </button>
+    )
+  }
+
   function startSectionEdit(sec) {
-    setEditData({ ...(data[sec.key] || {}), ...Object.fromEntries(sec.fields.filter(f => !(f in (data[sec.key] || {}))).map(f => [f, ''])) })
+    const sectionData = data[sec.key] || {}
+    const merged = { ...sectionData }
+    for (const f of sec.fields) {
+      if (!(f in merged)) {
+        merged[f] = ''
+      }
+    }
+    setEditData(merged)
     setEditingSection(sec)
     setTimeout(() => {
       document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -2230,6 +2358,26 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
     } catch {} finally { setStatusLoading(false) }
   }
 
+  function addArrayItem(field) {
+    const current = editData[field] || []
+    let newItem = {}
+    if (field === 'pregnancies') {
+      newItem = { id: Date.now(), name: '', dob: '', sex: '', outcome: '', deliveryType: '', singleOrMultiples: 'Single', weight: '', length: '', gestationWeeks: '', gestationDays: '', wasSurrogacy: '', complications: '' }
+    } else if (field === 'householdMembers') {
+      newItem = { id: Date.now(), name: '', relationship: '' }
+    } else if (field === 'journeys') {
+      newItem = { id: Date.now(), reName: '', reLocation: '', reDates: '', outcome: '', complications: '', weeksDelivered: '', transfers: '', embryoSource: '', unsuccessfulCycles: '' }
+    } else {
+      newItem = { id: Date.now() }
+    }
+    updateEditField(field, [...current, newItem])
+  }
+
+  function removeArrayItem(field, index) {
+    const current = editData[field] || []
+    updateEditField(field, current.filter((_, i) => i !== index))
+  }
+
   let totalFields = 0, totalFilled = 0
   for (const sec of PROFILE_SECTIONS) {
     const { filled, total } = countSectionFilled(data, sec)
@@ -2237,6 +2385,285 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
     totalFilled += filled
   }
   const overallPercent = totalFields > 0 ? Math.round((totalFilled / totalFields) * 100) : 0
+
+  function renderScalarFieldEdit(field, secKey) {
+    const val = editData[field]
+    const hidden = isFieldHidden(secKey, field)
+    if (isBooleanField(val)) {
+      return (
+        <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
+            <HideToggle sectionKey={secKey} fieldKey={field} />
+          </div>
+          <SelectUI value={toBooleanDisplay(val)} onValueChange={v => updateEditField(field, v)}>
+            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+            <SelectContentUI>
+              <SelectItemUI value="yes">Yes</SelectItemUI>
+              <SelectItemUI value="no">No</SelectItemUI>
+            </SelectContentUI>
+          </SelectUI>
+        </div>
+      )
+    }
+    return (
+      <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+        <div className="flex items-center gap-1">
+          <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
+          <HideToggle sectionKey={secKey} fieldKey={field} />
+        </div>
+        <input
+          className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+          value={Array.isArray(val) ? val.join(', ') : String(val || '')}
+          onChange={e => updateEditField(field, e.target.value)}
+        />
+      </div>
+    )
+  }
+
+  function renderPregnancyEdit(item, i, field) {
+    const updateItem = (k, val) => {
+      const updated = [...editData[field]]
+      updated[i] = { ...updated[i], [k]: val }
+      updateEditField(field, updated)
+    }
+    return (
+      <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
+            <Trash2 className="size-3" /> Remove
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
+            <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                {['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination'].map(o => (
+                  <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
+                ))}
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Surrogacy?</span>
+            <SelectUI value={item.wasSurrogacy || ''} onValueChange={v => updateItem('wasSurrogacy', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                <SelectItemUI value="yes">Yes</SelectItemUI>
+                <SelectItemUI value="no">No</SelectItemUI>
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">{item.outcome === 'Live Birth' ? "Child's Name" : 'Notes'}</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Date</span>
+            <input type="date" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.dob || ''} onChange={e => updateItem('dob', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Gestation (weeks)</span>
+            <input type="number" min="0" max="45" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationWeeks || ''} onChange={e => updateItem('gestationWeeks', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Gestation (days)</span>
+            <input type="number" min="0" max="6" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationDays || ''} onChange={e => updateItem('gestationDays', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+            <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                {(item.outcome === 'Live Birth' || item.outcome === 'Stillborn'
+                  ? ['Vaginal', 'C-Section']
+                  : ['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']
+                ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          {item.outcome === 'Live Birth' && (
+            <>
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 uppercase">Sex</span>
+                <SelectUI value={item.sex || ''} onValueChange={v => updateItem('sex', v)}>
+                  <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="Male">Male</SelectItemUI>
+                    <SelectItemUI value="Female">Female</SelectItemUI>
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 uppercase">Single/Multiples</span>
+                <SelectUI value={item.singleOrMultiples || ''} onValueChange={v => updateItem('singleOrMultiples', v)}>
+                  <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="Single">Single</SelectItemUI>
+                    <SelectItemUI value="Twins">Twins</SelectItemUI>
+                    <SelectItemUI value="Triplets+">Triplets+</SelectItemUI>
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 uppercase">Birth Weight</span>
+                <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weight || ''} onChange={e => updateItem('weight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] text-gray-400 uppercase">Birth Length</span>
+                <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.length || ''} onChange={e => updateItem('length', e.target.value)} placeholder="inches" />
+              </div>
+            </>
+          )}
+        </div>
+        <div className="space-y-1">
+          <span className="text-[10px] text-gray-400 uppercase">Complications / Details</span>
+          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderHouseholdMemberEdit(item, i, field) {
+    const updateItem = (k, val) => {
+      const updated = [...editData[field]]
+      updated[i] = { ...updated[i], [k]: val }
+      updateEditField(field, updated)
+    }
+    return (
+      <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-semibold text-[#283693]">Member #{i + 1}</span>
+          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
+            <Trash2 className="size-3" /> Remove
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Name</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Relationship</span>
+            <SelectUI value={item.relationship || ''} onValueChange={v => updateItem('relationship', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                {['Spouse','Partner','Son','Daughter','Stepson','Stepdaughter','Mother','Father','Sibling','Cousin','Aunt','Uncle','Grandparent','Grandchild','Roommate','Friend','Other'].map(r => (
+                  <SelectItemUI key={r} value={r}>{r}</SelectItemUI>
+                ))}
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderJourneyEdit(item, i, field) {
+    const updateItem = (k, val) => {
+      const updated = [...editData[field]]
+      updated[i] = { ...updated[i], [k]: val }
+      updateEditField(field, updated)
+    }
+    return (
+      <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-[#283693]">Journey #{i + 1}</p>
+          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
+            <Trash2 className="size-3" /> Remove
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">RE Doctor Name</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reName || ''} onChange={e => updateItem('reName', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">RE Location</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reLocation || ''} onChange={e => updateItem('reLocation', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">RE Dates</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reDates || ''} onChange={e => updateItem('reDates', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
+            <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                {['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other'].map(o => (
+                  <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
+                ))}
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Weeks Delivered</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weeksDelivered || ''} onChange={e => updateItem('weeksDelivered', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Transfers</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.transfers || ''} onChange={e => updateItem('transfers', e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Embryo Source</span>
+            <SelectUI value={item.embryoSource || ''} onValueChange={v => updateItem('embryoSource', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                {['Donor eggs', "IM's eggs", 'Unknown'].map(o => (
+                  <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
+                ))}
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <span className="text-[10px] text-gray-400 uppercase">Complications</span>
+          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <span className="text-[10px] text-gray-400 uppercase">Unsuccessful Cycles</span>
+          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.unsuccessfulCycles || ''} onChange={e => updateItem('unsuccessfulCycles', e.target.value)} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderGenericItemEdit(item, i, field) {
+    const updateItem = (k, val) => {
+      const updated = [...editData[field]]
+      updated[i] = { ...updated[i], [k]: val }
+      updateEditField(field, updated)
+    }
+    return (
+      <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-semibold text-[#283693]">#{i + 1}</p>
+          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
+            <Trash2 className="size-3" /> Remove
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
+            <div key={k} className="space-y-0.5">
+              <span className="text-[10px] text-gray-400 uppercase">{formatFieldLabel(k)}</span>
+              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white" value={Array.isArray(v) ? v.join(', ') : String(v || '')} onChange={e => updateItem(k, e.target.value)} />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  function getAddButtonLabel(field) {
+    if (field === 'pregnancies') return 'Add Pregnancy'
+    if (field === 'householdMembers') return 'Add Member'
+    if (field === 'journeys') return 'Add Journey'
+    return 'Add Entry'
+  }
 
   return (
     <div className="space-y-6">
@@ -2301,7 +2728,6 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
       </Card>
 
       {previewOpen ? (
-        /* ── Inline Preview (same as surrogate sees) ── */
         <div className="max-w-[850px] mx-auto" ref={previewRef}>
           <ProfilePreview profile={data} photos={photos} />
         </div>
@@ -2326,7 +2752,21 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
             {PROFILE_SECTIONS.map(sec => {
               const sectionData = data[sec.key] || {}
               const isEditing = editingSection?.key === sec.key
-              const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
+              const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && k !== '_hiddenFields' && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
+
+              const scalarFields = allFields.filter(f => {
+                const val = isEditing && editData ? editData[f] : sectionData[f]
+                return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
+              })
+              const arrayFields = allFields.filter(f => {
+                const val = isEditing && editData ? editData[f] : sectionData[f]
+                return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
+              })
+              const emptyArrayFields = isEditing && editData ? allFields.filter(f => {
+                const val = editData[f]
+                return Array.isArray(val) && val.length === 0
+              }) : []
+
               return (
                 <Card
                   key={sec.key}
@@ -2353,189 +2793,57 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                     {isEditing && editData ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {allFields.filter(f => {
-                            const val = editData[f]
-                            return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
-                          }).map(field => (
-                            <div key={field} className="space-y-1">
-                              <label className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</label>
-                              <input
-                                className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-                                value={typeof editData[field] === 'boolean' ? (editData[field] ? 'yes' : 'no') : Array.isArray(editData[field]) ? editData[field].join(', ') : String(editData[field] || '')}
-                                onChange={e => updateEditField(field, e.target.value)}
-                              />
-                            </div>
-                          ))}
+                          {scalarFields.map(field => renderScalarFieldEdit(field, sec.key))}
                         </div>
-                        {/* Render complex array fields (pregnancies, household) */}
-                        {allFields.filter(f => {
-                          const val = editData[f]
-                          return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
-                        }).map(field => (
+                        {arrayFields.map(field => (
                           <div key={field}>
-                            <p className="text-xs text-muted-foreground font-medium mb-2">{formatFieldLabel(field)}</p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
+                              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
+                                <Plus className="size-3" /> {getAddButtonLabel(field)}
+                              </Button>
+                            </div>
                             <div className="space-y-3">
                               {editData[field].map((item, i) => {
-                                const updateItem = (k, val) => {
-                                  const updated = [...editData[field]]
-                                  updated[i] = { ...updated[i], [k]: val }
-                                  updateEditField(field, updated)
-                                }
-                                // Pregnancy-specific rendering
-                                if (field === 'pregnancies') {
-                                  return (
-                                    <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
-                                      <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
-                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
-                                          <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
-                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                            <SelectContentUI>
-                                              {['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination'].map(o => (
-                                                <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
-                                              ))}
-                                            </SelectContentUI>
-                                          </SelectUI>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Surrogacy?</span>
-                                          <SelectUI value={item.wasSurrogacy || ''} onValueChange={v => updateItem('wasSurrogacy', v)}>
-                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                            <SelectContentUI>
-                                              <SelectItemUI value="yes">Yes</SelectItemUI>
-                                              <SelectItemUI value="no">No</SelectItemUI>
-                                            </SelectContentUI>
-                                          </SelectUI>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">{item.outcome === 'Live Birth' ? "Child's Name" : 'Notes'}</span>
-                                          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Date</span>
-                                          <input type="date" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.dob || ''} onChange={e => updateItem('dob', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Gestation (weeks)</span>
-                                          <input type="number" min="0" max="45" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationWeeks || ''} onChange={e => updateItem('gestationWeeks', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Gestation (days)</span>
-                                          <input type="number" min="0" max="6" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationDays || ''} onChange={e => updateItem('gestationDays', e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                          <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
-                                          <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
-                                            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                            <SelectContentUI>
-                                              {(item.outcome === 'Live Birth' || item.outcome === 'Stillborn'
-                                                ? ['Vaginal', 'C-Section']
-                                                : ['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']
-                                              ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
-                                            </SelectContentUI>
-                                          </SelectUI>
-                                        </div>
-                                        {item.outcome === 'Live Birth' && (
-                                          <>
-                                            <div className="space-y-1">
-                                              <span className="text-[10px] text-gray-400 uppercase">Sex</span>
-                                              <SelectUI value={item.sex || ''} onValueChange={v => updateItem('sex', v)}>
-                                                <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                                <SelectContentUI>
-                                                  <SelectItemUI value="Male">Male</SelectItemUI>
-                                                  <SelectItemUI value="Female">Female</SelectItemUI>
-                                                </SelectContentUI>
-                                              </SelectUI>
-                                            </div>
-                                            <div className="space-y-1">
-                                              <span className="text-[10px] text-gray-400 uppercase">Single/Multiples</span>
-                                              <SelectUI value={item.singleOrMultiples || ''} onValueChange={v => updateItem('singleOrMultiples', v)}>
-                                                <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                                <SelectContentUI>
-                                                  <SelectItemUI value="Single">Single</SelectItemUI>
-                                                  <SelectItemUI value="Twins">Twins</SelectItemUI>
-                                                  <SelectItemUI value="Triplets+">Triplets+</SelectItemUI>
-                                                </SelectContentUI>
-                                              </SelectUI>
-                                            </div>
-                                            <div className="space-y-1">
-                                              <span className="text-[10px] text-gray-400 uppercase">Birth Weight</span>
-                                              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weight || ''} onChange={e => updateItem('weight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
-                                            </div>
-                                            <div className="space-y-1">
-                                              <span className="text-[10px] text-gray-400 uppercase">Birth Length</span>
-                                              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.length || ''} onChange={e => updateItem('length', e.target.value)} placeholder="inches" />
-                                            </div>
-                                          </>
-                                        )}
-                                      </div>
-                                      <div className="space-y-1">
-                                        <span className="text-[10px] text-gray-400 uppercase">Complications / Details</span>
-                                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
-                                      </div>
-                                    </div>
-                                  )
-                                }
-                                // Household members
-                                if (field === 'householdMembers') {
-                                  return (
-                                    <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3 grid grid-cols-2 gap-3">
-                                      <div className="space-y-1">
-                                        <span className="text-[10px] text-gray-400 uppercase">Name</span>
-                                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
-                                      </div>
-                                      <div className="space-y-1">
-                                        <span className="text-[10px] text-gray-400 uppercase">Relationship</span>
-                                        <SelectUI value={item.relationship || ''} onValueChange={v => updateItem('relationship', v)}>
-                                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                                          <SelectContentUI>
-                                            {['Spouse','Partner','Son','Daughter','Stepson','Stepdaughter','Mother','Father','Sibling','Cousin','Aunt','Uncle','Grandparent','Grandchild','Roommate','Friend','Other'].map(r => (
-                                              <SelectItemUI key={r} value={r}>{r}</SelectItemUI>
-                                            ))}
-                                          </SelectContentUI>
-                                        </SelectUI>
-                                      </div>
-                                    </div>
-                                  )
-                                }
-                                // Generic fallback
-                                return (
-                                  <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
-                                    <p className="text-xs font-semibold text-[#283693] mb-2">#{i + 1}</p>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                                      {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
-                                        <div key={k} className="space-y-0.5">
-                                          <span className="text-[10px] text-gray-400 uppercase">{formatFieldLabel(k)}</span>
-                                          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white" value={Array.isArray(v) ? v.join(', ') : String(v || '')} onChange={e => updateItem(k, e.target.value)} />
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )
+                                if (field === 'pregnancies') return renderPregnancyEdit(item, i, field)
+                                if (field === 'householdMembers') return renderHouseholdMemberEdit(item, i, field)
+                                if (field === 'journeys') return renderJourneyEdit(item, i, field)
+                                return renderGenericItemEdit(item, i, field)
                               })}
                             </div>
+                          </div>
+                        ))}
+                        {emptyArrayFields.map(field => (
+                          <div key={field}>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
+                              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
+                                <Plus className="size-3" /> {getAddButtonLabel(field)}
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-400 italic">No entries yet.</p>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="space-y-2 text-sm">
-                        {allFields.filter(f => {
-                          const val = sectionData[f]
-                          return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
-                        }).map(field => (
-                          <div key={field} className="flex justify-between gap-4">
-                            <span className="text-muted-foreground">{formatFieldLabel(field)}</span>
-                            <span className={`font-medium text-right ${sectionData[field] !== undefined && sectionData[field] !== '' && sectionData[field] !== null ? '' : 'text-gray-300'}`}>
-                              {formatFieldValue(sectionData[field]) ?? '—'}
-                            </span>
-                          </div>
-                        ))}
-                        {/* Render complex array fields read-only */}
-                        {allFields.filter(f => {
-                          const val = sectionData[f]
-                          return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
-                        }).map(field => (
+                        {scalarFields.map(field => {
+                          const hidden = isFieldHidden(sec.key, field)
+                          const val = sectionData[field]
+                          const hasValue = val !== undefined && val !== '' && val !== null
+                          return (
+                            <div key={field} className={`flex items-center justify-between gap-4 ${hidden ? 'opacity-40' : ''}`}>
+                              <span className={`text-muted-foreground ${hidden ? 'line-through' : ''}`}>{formatFieldLabel(field)}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className={`font-medium text-right ${hasValue ? '' : 'text-gray-300'} ${hidden ? 'line-through' : ''}`}>
+                                  {formatFieldValue(val) ?? '—'}
+                                </span>
+                                <HideToggle sectionKey={sec.key} fieldKey={field} />
+                              </div>
+                            </div>
+                          )
+                        })}
+                        {arrayFields.map(field => (
                           <div key={field} className="pt-2">
                             <p className="text-muted-foreground mb-2">{formatFieldLabel(field)}</p>
                             <div className="space-y-2">

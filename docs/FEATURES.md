@@ -20,8 +20,10 @@
 | RichTextEditor | src/components/shared/RichTextEditor.jsx | Tiptap-based editor with bold, italic, underline, strikethrough, text color (8), highlight color (6), lists, undo/redo |
 | StatusSettingsDialog | src/components/surrogates/StatusSettingsDialog.jsx | Admin dialog to manage statuses per stage (add/edit/delete with in-use warnings) |
 | ProfilePreview | src/pages/profile/SurrogateProfilePage.jsx | Exported component showing full surrogate profile as IPs will see it — used inline on both surrogate and admin sides (850px, letter-size PDF width) |
-| HouseholdMembers | src/pages/profile/SurrogateProfilePage.jsx | Structured table for entering household members with name + relationship dropdown |
-| CurrencyField | src/pages/profile/SurrogateProfilePage.jsx | Auto-formatting currency input ($xx,xxx) for compensation fields |
+| ProfileFields | src/components/profile/ProfileFields.jsx | Reusable field components (Field, TextField, TextAreaField, SelectField, YesNoField, CheckboxGroupField, CurrencyField, HouseholdMembers) with optional wrapper prop for admin toggle-off |
+| profileConstants | src/components/profile/profileConstants.js | Shared profile constants (SECTION_META, REQUIRED_FIELDS, US_STATES) and helpers (isPregnancyComplete, countCompleted) |
+| HouseholdMembers | src/components/profile/ProfileFields.jsx | Structured table for entering household members with name + relationship dropdown |
+| CurrencyField | src/components/profile/ProfileFields.jsx | Auto-formatting currency input ($xx,xxx) for compensation fields |
 | TrackingTable | src/pages/surrogates/SurrogateDetailPage.jsx | Reusable table for step/status tracking with log history, edit/delete, admin attribution, progress bar |
 | MatchedJourneysPage | src/pages/journeys/MatchedJourneysPage.jsx | Dashboard for matched surrogacy journeys with tile/list views, stage filters, search |
 | ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |

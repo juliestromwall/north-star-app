@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react'
 import {
   User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
   Heart, Camera, ChevronDown, CheckCircle2, Circle, Plus, Trash2,
@@ -801,6 +801,9 @@ export default function SurrogateProfilePage() {
 // ─────────────────────────────────────────────────────────
 // Profile Preview — shows what IPs will see
 // ─────────────────────────────────────────────────────────
+// Context for hidden fields in profile preview
+const HiddenFieldsContext = createContext([])
+
 function PVSection({ title, icon: Icon, children }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden print:rounded-none print:shadow-none print:border-x-0 print:break-inside-avoid">
@@ -815,7 +818,9 @@ function PVSection({ title, icon: Icon, children }) {
   )
 }
 
-function PVField({ label, value, className = '' }) {
+function PVField({ label, value, className = '', fp }) {
+  const hiddenFields = useContext(HiddenFieldsContext)
+  if (fp && hiddenFields.includes(fp)) return null
   return (
     <div className={className}>
       <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">{label}</p>
@@ -824,7 +829,9 @@ function PVField({ label, value, className = '' }) {
   )
 }
 
-function PVYesNo({ label, value }) {
+function PVYesNo({ label, value, fp }) {
+  const hiddenFields = useContext(HiddenFieldsContext)
+  if (fp && hiddenFields.includes(fp)) return null
   return (
     <div className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
       <span className="text-sm text-gray-700">{label}</span>
@@ -836,6 +843,7 @@ function PVYesNo({ label, value }) {
 }
 
 export function ProfilePreview({ profile, photos }) {
+  const hiddenFields = profile?._hiddenFields || []
   const p = profile?.personal || profile?.about || {}
   const family = profile?.family || {}
   const about = { ...p, ...family }
@@ -868,6 +876,7 @@ export function ProfilePreview({ profile, photos }) {
   })()
 
   return (
+    <HiddenFieldsContext.Provider value={hiddenFields}>
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
       {/* ── Cover Photo ── */}
       {heroPhoto ? (
@@ -956,12 +965,12 @@ export function ProfilePreview({ profile, photos }) {
         {/* Personal Information */}
         <PVSection title="Personal Information" icon={User}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
-            <PVField label="U.S. Citizen" value={about.usCitizen === 'yes' ? 'Yes' : about.usCitizen === 'no' ? 'No' : null} />
-            <PVField label="Real ID" value={about.realId === 'yes' ? 'Yes' : about.realId === 'no' ? 'No' : null} />
-            <PVField label="Valid Passport" value={about.validPassport === 'yes' ? 'Yes' : about.validPassport === 'no' ? 'No' : null} />
-            <PVField label="Other Languages" value={about.otherLanguages === 'yes' ? (about.otherLanguagesDetails || 'Yes') : about.otherLanguages === 'no' ? 'No' : null} />
-            {hasPartner && <PVField label="Partner" value={about.partnerName} />}
-            {hasPartner && <PVField label="Together" value={about.relationshipLength} />}
+            <PVField label="U.S. Citizen" value={about.usCitizen === 'yes' ? 'Yes' : about.usCitizen === 'no' ? 'No' : null} fp="personal.usCitizen" />
+            <PVField label="Real ID" value={about.realId === 'yes' ? 'Yes' : about.realId === 'no' ? 'No' : null} fp="personal.realId" />
+            <PVField label="Valid Passport" value={about.validPassport === 'yes' ? 'Yes' : about.validPassport === 'no' ? 'No' : null} fp="personal.validPassport" />
+            <PVField label="Other Languages" value={about.otherLanguages === 'yes' ? (about.otherLanguagesDetails || 'Yes') : about.otherLanguages === 'no' ? 'No' : null} fp="personal.otherLanguages" />
+            {hasPartner && <PVField label="Partner" value={about.partnerName} fp="personal.partnerName" />}
+            {hasPartner && <PVField label="Together" value={about.relationshipLength} fp="personal.relationshipLength" />}
           </div>
           {householdMembers.length > 0 && (
             <div className="mt-5 pt-4 border-t border-gray-100">
@@ -980,7 +989,7 @@ export function ProfilePreview({ profile, photos }) {
 
         {/* Pregnancy History */}
         <PVSection title="Pregnancy History" icon={Baby}>
-          <PVField label="Total Pregnancies" value={pregHistory.numberOfPregnancies} />
+          <PVField label="Total Pregnancies" value={pregHistory.numberOfPregnancies} fp="pregnancyHistory.numberOfPregnancies" />
           {pregnancies.length > 0 && (
             <div className="mt-4 space-y-3">
               {pregnancies.map((pr, i) => (
@@ -1006,43 +1015,43 @@ export function ProfilePreview({ profile, photos }) {
         {/* Fertility */}
         <PVSection title="Fertility Information" icon={Stethoscope}>
           <div className="space-y-1">
-            <PVYesNo label="Same biological father for all children" value={fertility.sameBioFather} />
-            <PVYesNo label="Infertility treatment" value={fertility.infertilityTreatment} />
-            <PVYesNo label="Gynecological problems" value={fertility.gynecologicalProblems} />
-            <PVYesNo label="Currently breastfeeding" value={fertility.breastfeeding} />
+            <PVYesNo label="Same biological father for all children" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
+            <PVYesNo label="Infertility treatment" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
+            <PVYesNo label="Gynecological problems" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
+            <PVYesNo label="Currently breastfeeding" value={fertility.breastfeeding} fp="fertility.breastfeeding" />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Contraceptive Method" value={fertility.contraceptiveMethod} />
-            <PVField label="Cycles 28–30 days" value={fertility.cycleLength === 'yes' ? 'Yes' : fertility.cycleLength === 'no' ? (fertility.cycleLengthDetails || 'No') : null} />
-            <PVField label="Nearest NICU" value={fertility.nearestNICU} />
+            <PVField label="Contraceptive Method" value={fertility.contraceptiveMethod} fp="fertility.contraceptiveMethod" />
+            <PVField label="Cycles 28–30 days" value={fertility.cycleLength === 'yes' ? 'Yes' : fertility.cycleLength === 'no' ? (fertility.cycleLengthDetails || 'No') : null} fp="fertility.cycleLength" />
+            <PVField label="Nearest NICU" value={fertility.nearestNICU} fp="fertility.nearestNICU" />
           </div>
         </PVSection>
 
         {/* General Information */}
         <PVSection title="General Information" icon={Home}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-            <PVField label="Home" value={general.homeOwnership} />
-            <PVField label="Time at Home" value={general.homeDuration} />
-            <PVField label="Children Full Time" value={general.childrenFullTime === 'yes' ? 'Yes' : general.childrenFullTime === 'no' ? 'No' : null} />
-            <PVField label="Plan More Children" value={general.planMoreChildren === 'yes' ? 'Yes' : general.planMoreChildren === 'no' ? 'No' : null} />
-            <PVField label="Ethnicity" value={general.ethnicity} />
-            <PVField label="Religion" value={general.religion} />
+            <PVField label="Home" value={general.homeOwnership} fp="general.homeOwnership" />
+            <PVField label="Time at Home" value={general.homeDuration} fp="general.homeDuration" />
+            <PVField label="Children Full Time" value={general.childrenFullTime === 'yes' ? 'Yes' : general.childrenFullTime === 'no' ? 'No' : null} fp="general.childrenFullTime" />
+            <PVField label="Plan More Children" value={general.planMoreChildren === 'yes' ? 'Yes' : general.planMoreChildren === 'no' ? 'No' : null} fp="general.planMoreChildren" />
+            <PVField label="Ethnicity" value={general.ethnicity} fp="general.ethnicity" />
+            <PVField label="Religion" value={general.religion} fp="general.religion" />
           </div>
           <div className="mt-4 pt-4 border-t border-gray-50 space-y-1">
-            <PVYesNo label="Smoke or vape" value={general.smokeVape} />
-            <PVYesNo label="Alcohol or recreational drugs" value={general.alcoholDrugs} />
-            <PVYesNo label="Piercings or tattoos" value={general.piercingsTattoos} />
-            <PVYesNo label="Reliable vehicle" value={general.reliableVehicle} />
-            <PVYesNo label="Valid driver's license" value={general.validLicense} />
+            <PVYesNo label="Smoke or vape" value={general.smokeVape} fp="general.smokeVape" />
+            <PVYesNo label="Alcohol or recreational drugs" value={general.alcoholDrugs} fp="general.alcoholDrugs" />
+            <PVYesNo label="Piercings or tattoos" value={general.piercingsTattoos} fp="general.piercingsTattoos" />
+            <PVYesNo label="Reliable vehicle" value={general.reliableVehicle} fp="general.reliableVehicle" />
+            <PVYesNo label="Valid driver's license" value={general.validLicense} fp="general.validLicense" />
           </div>
           {general.typicalDiet && (
             <div className="mt-4 pt-4 border-t border-gray-50">
-              <PVField label="Diet & Eating Habits" value={general.typicalDiet} />
+              <PVField label="Diet & Eating Habits" value={general.typicalDiet} fp="general.typicalDiet" />
             </div>
           )}
           {general.exerciseFrequency && (
             <div className="mt-3">
-              <PVField label="Exercise" value={general.exerciseFrequency} />
+              <PVField label="Exercise" value={general.exerciseFrequency} fp="general.exerciseFrequency" />
             </div>
           )}
         </PVSection>
@@ -1050,22 +1059,22 @@ export function ProfilePreview({ profile, photos }) {
         {/* Health */}
         <PVSection title="Health Information" icon={HeartPulse}>
           <div className="space-y-1">
-            <PVYesNo label="Mental health challenge diagnosis" value={health.mentalHealthDiagnosis} />
-            <PVYesNo label="Hospitalized for mental health" value={health.mentalHealthHospitalization} />
-            <PVYesNo label="Mental health medication" value={health.mentalHealthMedication} />
-            <PVYesNo label="Counseling or psychotherapy" value={health.counselingTherapy} />
-            <PVYesNo label="Family mental health history" value={health.familyMentalHealth} />
-            <PVYesNo label="Open to vaccinations" value={health.openToVaccinations} />
-            <PVYesNo label="Covid-19 vaccinated" value={health.covidVaccine} />
+            <PVYesNo label="Mental health challenge diagnosis" value={health.mentalHealthDiagnosis} fp="health.mentalHealthDiagnosis" />
+            <PVYesNo label="Hospitalized for mental health" value={health.mentalHealthHospitalization} fp="health.mentalHealthHospitalization" />
+            <PVYesNo label="Mental health medication" value={health.mentalHealthMedication} fp="health.mentalHealthMedication" />
+            <PVYesNo label="Counseling or psychotherapy" value={health.counselingTherapy} fp="health.counselingTherapy" />
+            <PVYesNo label="Family mental health history" value={health.familyMentalHealth} fp="health.familyMentalHealth" />
+            <PVYesNo label="Open to vaccinations" value={health.openToVaccinations} fp="health.openToVaccinations" />
+            <PVYesNo label="Covid-19 vaccinated" value={health.covidVaccine} fp="health.covidVaccine" />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Allergies" value={health.allergies} />
-            <PVField label="Last Physical" value={health.lastPhysical} />
-            <PVField label="Last Pap" value={health.lastPap} />
+            <PVField label="Allergies" value={health.allergies} fp="health.allergies" />
+            <PVField label="Last Physical" value={health.lastPhysical} fp="health.lastPhysical" />
+            <PVField label="Last Pap" value={health.lastPap} fp="health.lastPap" />
           </div>
           {health.medicalConditions && (
             <div className="mt-3">
-              <PVField label="Medical Conditions" value={health.medicalConditions} />
+              <PVField label="Medical Conditions" value={health.medicalConditions} fp="health.medicalConditions" />
             </div>
           )}
         </PVSection>
@@ -1073,33 +1082,33 @@ export function ProfilePreview({ profile, photos }) {
         {/* Employment */}
         <PVSection title="Employment" icon={Briefcase}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-            <PVField label="Currently Employed" value={employment.currentlyEmployed === 'yes' ? 'Yes' : employment.currentlyEmployed === 'no' ? 'No' : null} />
+            <PVField label="Currently Employed" value={employment.currentlyEmployed === 'yes' ? 'Yes' : employment.currentlyEmployed === 'no' ? 'No' : null} fp="employment.currentlyEmployed" />
             {employment.currentlyEmployed === 'yes' && (
               <>
-                <PVField label="Occupation" value={employment.occupation} />
-                <PVField label="Work Hours" value={employment.workHours} />
+                <PVField label="Occupation" value={employment.occupation} fp="employment.occupation" />
+                <PVField label="Work Hours" value={employment.workHours} fp="employment.workHours" />
               </>
             )}
-            <PVField label="Health Insurance" value={employment.healthInsurance || (employment.insuranceType === 'No insurance' ? 'None' : null)} />
+            <PVField label="Health Insurance" value={employment.healthInsurance || (employment.insuranceType === 'No insurance' ? 'None' : null)} fp="employment.healthInsurance" />
           </div>
         </PVSection>
 
         {/* Interests */}
         <PVSection title="Interests & Personality" icon={Heart}>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-            <PVField label="Favorite Music" value={interests.favoriteMusic} />
-            <PVField label="Favorite Movie" value={interests.favoriteMovie} />
-            <PVField label="Favorite Book" value={interests.favoriteBook} />
-            <PVField label="Favorite Foods" value={interests.favoriteFoods} />
-            <PVField label="Favorite Color" value={interests.favoriteColor} />
-            <PVField label="Favorite Flower" value={interests.favoriteFlower} />
+            <PVField label="Favorite Music" value={interests.favoriteMusic} fp="interests.favoriteMusic" />
+            <PVField label="Favorite Movie" value={interests.favoriteMovie} fp="interests.favoriteMovie" />
+            <PVField label="Favorite Book" value={interests.favoriteBook} fp="interests.favoriteBook" />
+            <PVField label="Favorite Foods" value={interests.favoriteFoods} fp="interests.favoriteFoods" />
+            <PVField label="Favorite Color" value={interests.favoriteColor} fp="interests.favoriteColor" />
+            <PVField label="Favorite Flower" value={interests.favoriteFlower} fp="interests.favoriteFlower" />
           </div>
           {(interests.pets || interests.hobbies || interests.dreamTravel) && (
             <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
-              <PVField label="Pets" value={interests.pets} />
-              <PVField label="Hobbies & Free Time" value={interests.hobbies} />
-              <PVField label="Dream Travel Destination" value={interests.dreamTravel} />
-              <PVField label="Collections" value={interests.collections} />
+              <PVField label="Pets" value={interests.pets} fp="interests.pets" />
+              <PVField label="Hobbies & Free Time" value={interests.hobbies} fp="interests.hobbies" />
+              <PVField label="Dream Travel Destination" value={interests.dreamTravel} fp="interests.dreamTravel" />
+              <PVField label="Collections" value={interests.collections} fp="interests.collections" />
             </div>
           )}
         </PVSection>
@@ -1107,8 +1116,8 @@ export function ProfilePreview({ profile, photos }) {
         {/* Academic */}
         <PVSection title="Academic Information" icon={Apple}>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-            <PVField label="Education Level" value={academic.educationLevel} />
-            <PVField label="Currently in School" value={academic.currentlyInSchool === 'yes' ? (academic.currentlyInSchoolDetails || 'Yes') : academic.currentlyInSchool === 'no' ? 'No' : null} />
+            <PVField label="Education Level" value={academic.educationLevel} fp="academic.educationLevel" />
+            <PVField label="Currently in School" value={academic.currentlyInSchool === 'yes' ? (academic.currentlyInSchoolDetails || 'Yes') : academic.currentlyInSchool === 'no' ? 'No' : null} fp="academic.currentlyInSchool" />
           </div>
         </PVSection>
 
@@ -1123,19 +1132,19 @@ export function ProfilePreview({ profile, photos }) {
                 <div key={i} className="rounded-xl bg-[#fdf8f3] p-4 space-y-2">
                   <p className="text-xs font-bold text-[#283693] uppercase">Journey #{i + 1}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
-                    <PVField label="RE Doctor" value={j.reName} />
-                    <PVField label="Location" value={j.reLocation} />
-                    <PVField label="Dates" value={j.reDates} />
-                    <PVField label="Outcome" value={j.outcome} />
-                    <PVField label="Weeks Delivered" value={j.weeksDelivered} />
-                    <PVField label="Transfers" value={j.transfers} />
-                    <PVField label="Embryo Source" value={j.embryoSource} />
+                    <PVField label="RE Doctor" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
+                    <PVField label="Location" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
+                    <PVField label="Dates" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
+                    <PVField label="Outcome" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
+                    <PVField label="Weeks Delivered" value={j.weeksDelivered} fp={`experiencedSurrogate.journeys.${i}.weeksDelivered`} />
+                    <PVField label="Transfers" value={j.transfers} fp={`experiencedSurrogate.journeys.${i}.transfers`} />
+                    <PVField label="Embryo Source" value={j.embryoSource} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
                   </div>
-                  {j.complications && <PVField label="Complications" value={j.complications} />}
-                  {j.unsuccessfulCycles && <PVField label="Unsuccessful Cycles" value={j.unsuccessfulCycles} />}
+                  {j.complications && <PVField label="Complications" value={j.complications} fp={`experiencedSurrogate.journeys.${i}.complications`} />}
+                  {j.unsuccessfulCycles && <PVField label="Unsuccessful Cycles" value={j.unsuccessfulCycles} fp={`experiencedSurrogate.journeys.${i}.unsuccessfulCycles`} />}
                 </div>
               ))}
-              {expSurr.overallExperience && <PVField label="Overall Experience" value={expSurr.overallExperience} />}
+              {expSurr.overallExperience && <PVField label="Overall Experience" value={expSurr.overallExperience} fp="experiencedSurrogate.overallExperience" />}
             </div>
           </PVSection>
         )}
@@ -1143,30 +1152,30 @@ export function ProfilePreview({ profile, photos }) {
         {/* Journey Hopes & Wishes */}
         <PVSection title="Journey Hopes & Wishes" icon={Heart}>
           <div className="space-y-4">
-            <PVField label="Why I Want to Be a Surrogate" value={hopes.reasonForSurrogacy} />
-            <PVField label="How I'll Use the Compensation" value={hopes.compensationUse} />
-            <PVField label="How Surrogacy Fits Into My Life" value={hopes.surrogacyFit} />
-            <PVField label="My Support System" value={hopes.supportSystem} />
+            <PVField label="Why I Want to Be a Surrogate" value={hopes.reasonForSurrogacy} fp="hopesWishes.reasonForSurrogacy" />
+            <PVField label="How I'll Use the Compensation" value={hopes.compensationUse} fp="hopesWishes.compensationUse" />
+            <PVField label="How Surrogacy Fits Into My Life" value={hopes.surrogacyFit} fp="hopesWishes.surrogacyFit" />
+            <PVField label="My Support System" value={hopes.supportSystem} fp="hopesWishes.supportSystem" />
           </div>
           <div className="mt-5 pt-4 border-t border-gray-50 space-y-1">
-            <PVYesNo label="Willing to have 3 transfer attempts" value={hopes.threeTransferAttempts} />
-            <PVYesNo label="Willing to reduce caffeine" value={hopes.reduceCaffeine} />
-            <PVYesNo label="Open to lifestyle changes at IP request" value={hopes.lifestyleChanges} />
-            <PVYesNo label="Open to pumping colostrum/breast milk" value={hopes.pumpBreastmilk} />
-            <PVYesNo label="IPs at appointments and delivery" value={hopes.ipsAtAppointments} />
-            <PVYesNo label="Match with IPs who have children" value={hopes.ipsWithChildren} />
-            <PVYesNo label="Open to LGBTQ+ IPs" value={hopes.openLGBTQ} />
-            <PVYesNo label="Open to single IP" value={hopes.openSingleIP} />
-            <PVYesNo label="Embryo transfer in another state" value={hopes.transferAnotherState} />
-            <PVYesNo label="IPs outside the U.S." value={hopes.ipsOutsideUS} />
+            <PVYesNo label="Willing to have 3 transfer attempts" value={hopes.threeTransferAttempts} fp="hopesWishes.threeTransferAttempts" />
+            <PVYesNo label="Willing to reduce caffeine" value={hopes.reduceCaffeine} fp="hopesWishes.reduceCaffeine" />
+            <PVYesNo label="Open to lifestyle changes at IP request" value={hopes.lifestyleChanges} fp="hopesWishes.lifestyleChanges" />
+            <PVYesNo label="Open to pumping colostrum/breast milk" value={hopes.pumpBreastmilk} fp="hopesWishes.pumpBreastmilk" />
+            <PVYesNo label="IPs at appointments and delivery" value={hopes.ipsAtAppointments} fp="hopesWishes.ipsAtAppointments" />
+            <PVYesNo label="Match with IPs who have children" value={hopes.ipsWithChildren} fp="hopesWishes.ipsWithChildren" />
+            <PVYesNo label="Open to LGBTQ+ IPs" value={hopes.openLGBTQ} fp="hopesWishes.openLGBTQ" />
+            <PVYesNo label="Open to single IP" value={hopes.openSingleIP} fp="hopesWishes.openSingleIP" />
+            <PVYesNo label="Embryo transfer in another state" value={hopes.transferAnotherState} fp="hopesWishes.transferAnotherState" />
+            <PVYesNo label="IPs outside the U.S." value={hopes.ipsOutsideUS} fp="hopesWishes.ipsOutsideUS" />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Ideal Intended Parents" value={hopes.idealIPs} />
-            <PVField label="Preferred Communication" value={hopes.preferredCommunication} />
-            <PVField label="IP Involvement During Pregnancy" value={hopes.ipInvolvement} />
-            <PVField label="Ready to Begin" value={hopes.whenReadyToBegin} />
-            <PVField label="Post-Birth Relationship" value={hopes.postBirthRelationship} />
-            <PVField label="Embryos to Transfer" value={hopes.embryosToTransfer} />
+            <PVField label="Ideal Intended Parents" value={hopes.idealIPs} fp="hopesWishes.idealIPs" />
+            <PVField label="Preferred Communication" value={hopes.preferredCommunication} fp="hopesWishes.preferredCommunication" />
+            <PVField label="IP Involvement During Pregnancy" value={hopes.ipInvolvement} fp="hopesWishes.ipInvolvement" />
+            <PVField label="Ready to Begin" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
+            <PVField label="Post-Birth Relationship" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
+            <PVField label="Embryos to Transfer" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
           </div>
           {hopes.additionalComments && (
             <div className="mt-4 p-4 rounded-xl bg-[#fdf8f3] border border-gray-100">
@@ -1185,6 +1194,7 @@ export function ProfilePreview({ profile, photos }) {
         </div>
       </div>
     </div>
+    </HiddenFieldsContext.Provider>
   )
 }
 
