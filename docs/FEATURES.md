@@ -91,11 +91,13 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Cloudflare Pages | Hosting |
 | Supabase Auth | Live |
 | Supabase Storage | Live (profile-photos, case-documents) |
+| Twilio SMS | Trial (send/receive via Cloudflare Pages Functions) |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-28 | Configurable checklists & milestones (Settings UI, per-stage, GC/IP/Journey tabs). Twilio SMS integration (send/receive, text messages page, case thread, unread tracking). Admin profile editor: rich forms, add/remove arrays, field visibility toggles (_hiddenFields). Team management in Settings. Real admin staff names. Medical records: IVF count fix, N/A toggle. Milestone timeline on overview tab. |
 | 2026-03-27 | IP intake form rebuilt from PDF specs (partner yes/no, conditional RE doctor/embryo fields, free-text referral). IP confirmation: simple thank-you, no password, no DQ. IP admin pages live from Supabase (list with tile/list view, detail with overview/contact/intake tabs). Bot protection fix: rapid-fill threshold loosened (30ms/10), Turnstile hostnames fixed. |
 | 2026-03-27 | Dashboard: renamed tiles (Intended Parents, Matched Journeys), clickable Surrogates → screening overview with card-style stage filters, table UX cleanup. IP intake: partner yes/no, RE/embryo follow-ups, free-text referral. IP confirmation: no account creation. |
 | 2026-03-27 | Profile restructure (9→11 sections per ABC spreadsheet), inline preview (850px PDF-width), admin profile tab overhaul with animated edit expansion, per-journey experienced surrogate cards, household structured table, conditional partner questions, currency formatting, profile/cover photo uploads |

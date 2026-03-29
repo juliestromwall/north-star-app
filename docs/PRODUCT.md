@@ -117,7 +117,8 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Matched Journeys | /journeys | admin+ | Built (dashboard, tile/list, stage filters) |
 | Calendar | /calendar | admin+ | Built |
 | Time Clock | /time-clock | admin+ | Built |
-| Settings | /settings | master_admin+ | Built |
+| Text Messages | /text-messages | admin+ | Built (Twilio SMS, read/unread, case matching) |
+| Settings | /settings | master_admin+ | Built (notes, team mgmt, checklists) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
 | E-Signature | /e-signature | admin+ | Stub |

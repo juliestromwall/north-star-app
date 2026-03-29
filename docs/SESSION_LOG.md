@@ -1,5 +1,86 @@
 # Session Log
 
+## 2026-03-28 / 2026-03-29 (Full Day Session)
+
+**Worked on:** Configurable checklists & milestones, admin settings (team management, collapsible sections), Twilio SMS integration, admin profile editor upgrade with visibility toggles, real admin staff names, various UX fixes
+
+**Changes made:**
+
+Configurable Checklists & Milestones:
+- checklistStore.js: localStorage-backed CRUD for steps + milestones per (userType, stageId)
+- Settings page: Checklists section with GC/IP/Matched Journeys tabs
+- Each stage has drag-to-reorder steps, add/edit/delete, reset to defaults
+- Milestones: add/edit/delete, expand to assign steps via checkboxes
+- Milestones shown on case cards (filtered by surrogate's current stage)
+- Dashboard screening sheet reads steps dynamically from checklistStore per stage
+- SurrogateDetailPage: Overview tab shows horizontal milestone timeline (gradient pink→blue dots)
+- Checklist tab title dynamic per stage (e.g. "Pre-Qualification Checklist")
+- OB/Delivery/IVF record summaries only in Screening stage checklist
+- IVF Records count fixed: only counts pregnancies where wasSurrogacy=yes
+- N/A toggle button on medical record rows (for miscarriage cases)
+- Checklists split: GC/IP show Pre-Qualification/Screening/Matching; Matched Journeys tab for journey stages
+
+Admin Settings:
+- Checklists section is collapsible (closed by default)
+- Team Members section: add, edit, deactivate users with role selection (Master Admin, Admin, Marketing)
+- Super Admin (developer) hidden from agency-visible user list
+- Real ABC Surrogacy staff names: Julie Allgood, Nicole Lawson, Emily Rotter, Stacie Adler, Desiree Melchiori, Jennifer Rose
+- Removed placeholder admin note seed data
+
+Twilio SMS Integration:
+- Cloudflare Pages Function at /api/sms/send (server-side Twilio API call)
+- Cloudflare Pages Function at /api/sms/list (fetches sent & received messages)
+- src/lib/sms.js: sendSMS() and fetchSMSMessages() helpers
+- Text button on surrogate detail opens send dialog with success/error feedback
+- Text Messages page at /text-messages: table of all SMS with direction, contact, case link, status, date
+- Case matching: phone numbers matched to GC/IP cases from Supabase
+- Read/unread tracking via localStorage (per message SID, inbound only)
+- Blinking pink dot: sidebar "Text Messages" link, table rows, "Texts" tab on case detail
+- Texts tab on surrogate detail: iMessage-style conversation thread with inline compose
+- Default filter set to "Received" messages
+- Polls for new messages every 60 seconds
+
+Admin Profile Editor:
+- ProfileTab rewritten with rich form controls (Yes/No dropdowns, proper Select fields)
+- Add/Remove pregnancies, household members, surrogacy journeys
+- PROFILE_SECTIONS expanded to include ALL fields from surrogate profile builder
+- Eye/EyeOff toggle on every field to hide from IPs (_hiddenFields in profile_data)
+- Hidden fields immediately saved to Supabase on toggle
+- ProfilePreview respects _hiddenFields via HiddenFieldsContext + fp props
+- All 88+ preview fields tagged with fp props for automatic hiding
+- PDF and share views automatically exclude hidden fields
+
+Other Fixes:
+- Contact tab save now updates applicant_name + applicant_phone in Supabase
+- Milestones wrap on surrogate cards when too many for one line
+- "Screening" tab renamed to "Checklist"
+- "Screening Checklists" → "Checklists" in settings
+
+Shared Profile Components Created:
+- src/components/profile/ProfileFields.jsx: reusable field components with optional wrapper prop
+- src/components/profile/profileConstants.js: SECTION_META, REQUIRED_FIELDS, US_STATES, helpers
+
+**Next steps:**
+- Fix admin profile question labels to match exact surrogate form wording (300+ fields) — waiting for ABC feedback
+- Complete field label mapping shared between admin and surrogate views
+- IP Profile builder (matching profile, similar to surrogate)
+- Ability to share/send profiles externally
+- Auto Emails, Gmail API
+- Google Calendar API
+- Fax API, Contract/E-Signature API
+- Logout sessions, TFA, User Settings
+- Deactivate Profile questions feature refinement
+- Persist checklist config to Supabase (currently localStorage)
+- Twilio: upgrade from trial, set up incoming webhook, per-admin numbers
+
+**Open questions:**
+- Should admin profile labels exactly match surrogate form or use shorter labels? (waiting for ABC feedback)
+- Should checklist configuration be per-admin or shared across agency?
+- Twilio: upgrade plan needed for production texting to non-verified numbers
+- Should IP cases have the same stage/status system as surrogates?
+
+---
+
 ## 2026-03-27 (Late Night Session — IP Intake & Bot Protection Fix)
 
 **Worked on:** IP intake form rebuild from PDF specs, IP confirmation page, IP admin cases (live Supabase), Turnstile fix, rapid-fill bot detection fix
