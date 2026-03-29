@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchIPsFromIntake } from '@/lib/db'
+import IPProfileTab from '@/components/intended-parents/IPProfileTab'
+import { fetchIPsFromIntake, updateIntakeSubmission } from '@/lib/db'
 
 const STATUS_STYLES = {
   new:             'bg-pink-100 text-pink-700 border-pink-200',
@@ -133,6 +134,7 @@ export default function IPDetailPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="intake">Intake Answers</TabsTrigger>
         </TabsList>
 
@@ -258,6 +260,21 @@ export default function IPDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6 mt-4">
+          <IPProfileTab
+            ip={ip}
+            onUpdate={async (updatedAnswers) => {
+              try {
+                await updateIntakeSubmission(ip.id, { answers: updatedAnswers })
+                setIp(prev => ({ ...prev, answers: updatedAnswers }))
+              } catch (err) {
+                console.error('Failed to save IP profile:', err)
+              }
+            }}
+          />
         </TabsContent>
 
         {/* Intake Answers Tab */}
