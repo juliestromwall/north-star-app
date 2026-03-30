@@ -2284,7 +2284,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   const isApproved = profileStatus === 'approved'
   const data = profileData || {}
 
-  const hiddenFields = data._hiddenFields || []
+  const hiddenFields = Array.isArray(data._hiddenFields) ? data._hiddenFields : []
 
   function isFieldHidden(sectionKey, fieldKey) {
     return hiddenFields.includes(`${sectionKey}.${fieldKey}`)
@@ -2292,7 +2292,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
 
   async function toggleFieldHidden(sectionKey, fieldKey) {
     const path = `${sectionKey}.${fieldKey}`
-    const current = data._hiddenFields || []
+    const current = Array.isArray(data._hiddenFields) ? data._hiddenFields : []
     const updated = current.includes(path)
       ? current.filter(p => p !== path)
       : [...current, path]
