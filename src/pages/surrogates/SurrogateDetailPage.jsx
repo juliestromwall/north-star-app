@@ -449,7 +449,7 @@ export default function SurrogateDetailPage() {
         <div className="p-6 space-y-6">
           {/* Name row */}
           <div className="flex flex-col sm:flex-row items-start gap-5">
-            <ProfileAvatar name={surrogate.name} size="xl" className="ring-4 ring-white shadow-lg" />
+            <ProfileAvatar name={surrogate.name} avatar={profileData?.personal?.profilePhotoUrl} size="xl" className="ring-4 ring-white shadow-lg" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>

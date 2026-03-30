@@ -184,6 +184,25 @@ export async function fetchSurrogatesFromIntake() {
   })
 }
 
+// ── Profile Photo URL lookup ─────────────────────────────
+
+export async function getProfilePhotoUrls(userIds) {
+  if (!supabase || !userIds.length) return {}
+  const result = await withTimeout(
+    () => supabase.from('surrogate_profiles')
+      .select('user_id, profile_data')
+      .in('user_id', userIds),
+    15000
+  )
+  if (!result || result.error) return {}
+  const map = {}
+  for (const row of result.data) {
+    const url = row.profile_data?.personal?.profilePhotoUrl
+    if (url) map[row.user_id] = url
+  }
+  return map
+}
+
 // ── Intended Parents (from intake submissions) ─────────
 
 export async function fetchIPsFromIntake() {

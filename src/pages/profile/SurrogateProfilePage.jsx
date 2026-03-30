@@ -359,7 +359,7 @@ function getCroppedImg(imageSrc, crop, rotation = 0) {
   })
 }
 
-function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder = 'headshot' }) {
+function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder = 'headshot', onPhotoChange }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -380,7 +380,10 @@ function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder =
       if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
       const jpeg = await convertToJpeg(file)
       const result = await uploadProfilePhoto(`${userId}/${subfolder}`, jpeg)
-      if (result) setPhoto(result)
+      if (result) {
+        setPhoto(result)
+        if (onPhotoChange) onPhotoChange(result.url)
+      }
     } catch (err) {
       setError(err.message || 'Upload failed')
     } finally {
@@ -394,6 +397,7 @@ function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder =
     try {
       await deleteProfilePhoto(photo.path)
       setPhoto(null)
+      if (onPhotoChange) onPhotoChange(null)
     } catch (err) {
       setError(err.message || 'Delete failed')
     }
@@ -1237,7 +1241,7 @@ function PersonalSection({ v, u }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} subfolder="portrait" />
+        <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} subfolder="portrait" onPhotoChange={(url) => { u('personal', 'profilePhotoUrl', url || ''); }} />
         <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} subfolder="headshot" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

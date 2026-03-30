@@ -18,6 +18,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, getAllSurrogateStageStatuses } from '@/lib/stageStatusStore'
 import { getChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
+import { getProfilePhotoUrls } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -210,7 +211,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
         {/* Header: avatar + name + status */}
         <div className="flex items-start gap-3.5">
           <div className="relative shrink-0">
-            <ProfileAvatar name={surrogate.name} size="lg" className="ring-2 ring-white shadow-md" />
+            <ProfileAvatar name={surrogate.name} avatar={avatarUrls[surrogate.id]} size="lg" className="ring-2 ring-white shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -321,13 +322,28 @@ export default function SurrogateListPage() {
 
   const canSeeAll = isSuperAdmin || isMasterAdmin
 
+  const [avatarUrls, setAvatarUrls] = useState({})
+
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles()])
       .then(([data, profileList]) => {
         setSurrogates(data || [])
         const map = {}
-        for (const p of (profileList || [])) { map[p.email] = p.profile_data }
+        for (const p of (profileList || [])) {
+          map[p.email] = p.profile_data
+        }
         setProfiles(map)
+        // Load avatar URLs from profiles
+        const avatars = {}
+        for (const p of (profileList || [])) {
+          const url = p.profile_data?.personal?.profilePhotoUrl
+          if (url) {
+            // Match by email to surrogate
+            const match = (data || []).find(s => s.email === p.email)
+            if (match) avatars[match.id] = url
+          }
+        }
+        setAvatarUrls(avatars)
       })
       .catch(() => setSurrogates([]))
       .finally(() => setLoading(false))
@@ -562,7 +578,7 @@ export default function SurrogateListPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <ProfileAvatar name={surrogate.name} size="sm" />
+                        <ProfileAvatar name={surrogate.name} avatar={avatarUrls[surrogate.id]} size="sm" />
                         <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {rowIsNew && (
                           <span className="relative flex size-2.5 shrink-0">
