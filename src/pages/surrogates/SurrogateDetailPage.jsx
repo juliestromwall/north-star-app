@@ -27,7 +27,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
@@ -388,6 +388,7 @@ export default function SurrogateDetailPage() {
   const [smsSending, setSmsSending] = useState(false)
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
+  const [portraitUrl, setPortraitUrl] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
@@ -426,6 +427,10 @@ export default function SurrogateDetailPage() {
         listProfilePhotos(found.userId).then(setPhotos).catch(() => {})
         listProfilePhotos(`${found.userId}/headshot`).then(hs => {
           if (hs.length > 0) setPhotos(prev => [hs[0], ...prev])
+        }).catch(() => {})
+        // Auto-detect portrait photo for avatar
+        getPortraitPhotoUrl(found.userId).then(url => {
+          if (url) setPortraitUrl(url)
         }).catch(() => {})
       }
     }).catch(() => {})
@@ -480,7 +485,7 @@ export default function SurrogateDetailPage() {
         <div className="p-6 space-y-6">
           {/* Name row */}
           <div className="flex flex-col sm:flex-row items-start gap-5">
-            <ProfileAvatar name={surrogate.name} avatar={profileData?.personal?.profilePhotoUrl} size="xl" className="ring-4 ring-white shadow-lg" />
+            <ProfileAvatar name={surrogate.name} avatar={portraitUrl || profileData?.personal?.profilePhotoUrl} size="xl" className="ring-4 ring-white shadow-lg" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>

@@ -548,6 +548,20 @@ export async function listProfilePhotos(userId) {
     })
 }
 
+export async function getPortraitPhotoUrl(userId) {
+  if (!supabase) return null
+  const { data, error } = await supabase.storage.from(BUCKET).list(`${userId}/portrait`, {
+    sortBy: { column: 'created_at', order: 'desc' },
+    limit: 1,
+  })
+  if (error || !data || data.length === 0) return null
+  const file = data.find(f => f.id && !f.name.startsWith('.'))
+  if (!file) return null
+  const path = `${userId}/portrait/${file.name}`
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  return urlData?.publicUrl || null
+}
+
 // ── Case Documents ─────────────────────────────────────────
 
 const DOC_BUCKET = 'case-documents'
