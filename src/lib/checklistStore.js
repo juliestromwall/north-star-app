@@ -1,9 +1,15 @@
 // ── Checklist Configuration Store ──────────────────────────
 // Manages screening/tracking checklist steps + milestones per user type + stage.
-// Persisted to localStorage. One checklist per (userType, stageId) pair.
-// Each stage has: steps[] and milestones[] (milestones group steps for card display).
+// Persisted to Supabase app_config table (key: 'checklist_config').
+// Memory-cached for synchronous reads; async load on app startup.
+
+import { getAppConfig, setAppConfig } from './db'
 
 const STORAGE_KEY = 'abc_checklist_config'
+const CONFIG_KEY = 'checklist_config'
+
+// Module-level cache (synchronous reads after initial load)
+let _cache = null
 
 // Default step statuses available for all checklists
 export const CHECKLIST_STEP_STATUSES = [
@@ -21,7 +27,6 @@ export const CHECKLIST_STEP_STATUSES = [
 ]
 
 // Default checklists seeded on first load
-// Each stage value: { steps: [...], milestones: [...] }
 const DEFAULT_CHECKLISTS = {
   gc: {
     'pre-qualification': {
@@ -64,7 +69,7 @@ const DEFAULT_CHECKLISTS = {
   },
 }
 
-function load() {
+function loadFromLocalStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
@@ -72,8 +77,12 @@ function load() {
   return null
 }
 
-function save(config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+function saveToLocalStorage(config) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)) } catch {}
+}
+
+function clearLocalStorage() {
+  try { localStorage.removeItem(STORAGE_KEY) } catch {}
 }
 
 // Migrate old flat array format to { steps, milestones } format
@@ -109,17 +118,73 @@ function ensureDefaults(config) {
   return changed
 }
 
-/** Get full config */
+function saveToSupabase(config) {
+  // Fire-and-forget write to Supabase
+  setAppConfig(CONFIG_KEY, config).catch(() => {})
+}
+
+/** Load checklist config from Supabase into memory cache. Call on app startup. */
+export async function loadChecklistConfig() {
+  try {
+    const remote = await getAppConfig(CONFIG_KEY)
+    if (remote) {
+      let config = remote
+      let changed = migrateIfNeeded(config)
+      if (ensureDefaults(config)) changed = true
+      _cache = config
+      saveToLocalStorage(config)
+      if (changed) saveToSupabase(config)
+      clearLocalStorage()
+      return config
+    }
+
+    // Supabase empty — check localStorage for migration
+    const local = loadFromLocalStorage()
+    if (local) {
+      migrateIfNeeded(local)
+      ensureDefaults(local)
+      _cache = local
+      saveToSupabase(local)
+      clearLocalStorage()
+      return local
+    }
+
+    // Nothing anywhere — seed defaults
+    const defaults = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
+    _cache = defaults
+    saveToSupabase(defaults)
+    return defaults
+  } catch {
+    // Fallback to localStorage or defaults
+    const local = loadFromLocalStorage()
+    if (local) {
+      migrateIfNeeded(local)
+      ensureDefaults(local)
+      _cache = local
+      return local
+    }
+    _cache = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
+    return _cache
+  }
+}
+
+function save(config) {
+  _cache = config
+  saveToLocalStorage(config)
+  saveToSupabase(config)
+}
+
+/** Get full config (synchronous — reads from cache) */
 export function getChecklistConfig() {
-  let config = load()
+  if (_cache) return _cache
+  // Fallback: if cache not loaded yet, read from localStorage
+  let config = loadFromLocalStorage()
   if (!config) {
     config = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
-    save(config)
-    return config
   }
-  let changed = migrateIfNeeded(config)
-  if (ensureDefaults(config)) changed = true
-  if (changed) save(config)
+  migrateIfNeeded(config)
+  ensureDefaults(config)
+  _cache = config
   return config
 }
 

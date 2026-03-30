@@ -142,3 +142,24 @@ alter table case_notes enable row level security;
 
 create policy "Admins can do everything with case notes"
   on case_notes for all using (true);
+
+-- ── App Config (shared key-value store) ─────────────────────
+-- Run this in Supabase SQL Editor
+
+create table app_config (
+  id bigint generated always as identity primary key,
+  config_key text unique not null,
+  config_value jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table app_config enable row level security;
+
+create policy "Anyone can read app_config"
+  on app_config for select using (true);
+
+create policy "Anyone can insert app_config"
+  on app_config for insert with check (true);
+
+create policy "Anyone can update app_config"
+  on app_config for update using (true);

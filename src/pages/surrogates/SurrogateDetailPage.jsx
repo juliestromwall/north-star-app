@@ -15,6 +15,7 @@ import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEdi
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
@@ -345,6 +346,35 @@ export default function SurrogateDetailPage() {
       return saved ? JSON.parse(saved) : {}
     } catch { return {} }
   })
+
+  // Load record tracking from Supabase on mount
+  useEffect(() => {
+    let cancelled = false
+    async function loadTracking() {
+      try {
+        const remote = await getRecordTracking(id)
+        if (cancelled) return
+        if (remote && Object.keys(remote).length > 0) {
+          setRecordTracking(remote)
+          try { localStorage.removeItem(`abc_records_${id}`) } catch {}
+        } else {
+          // Migration: if localStorage has data, push to Supabase
+          try {
+            const local = localStorage.getItem(`abc_records_${id}`)
+            if (local) {
+              const parsed = JSON.parse(local)
+              if (Object.keys(parsed).length > 0) {
+                setRecordTrackingDB(id, parsed).catch(() => {})
+                try { localStorage.removeItem(`abc_records_${id}`) } catch {}
+              }
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+    loadTracking()
+    return () => { cancelled = true }
+  }, [id])
   const [notes, setNotes] = useState([])
   const [noteText, setNoteText] = useState('')
   const [noteSaving, setNoteSaving] = useState(false)
@@ -363,10 +393,11 @@ export default function SurrogateDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
-  // Persist record tracking to localStorage
+  // Persist record tracking to localStorage + Supabase
   useEffect(() => {
     if (Object.keys(recordTracking).length > 0) {
       localStorage.setItem(`abc_records_${id}`, JSON.stringify(recordTracking))
+      setRecordTrackingDB(id, recordTracking).catch(() => {})
     }
   }, [recordTracking, id])
 

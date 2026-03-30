@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Baby, Heart, Plus, Pencil, Check, X, Trash2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import PageHeader from '@/components/shared/PageHeader'
+import { getAppConfig, setAppConfig } from '@/lib/db'
 
 const STORAGE_KEY = 'abc_babies_born'
+const SUPABASE_KEY = 'babies_born'
 
 // Historical data from ABC Surrogacy spreadsheet
 const DEFAULT_DATA = {
@@ -28,7 +30,7 @@ const DEFAULT_DATA = {
   currentPregnant: 13,
 }
 
-function loadData() {
+function loadFromLS() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
@@ -36,12 +38,43 @@ function loadData() {
   return null
 }
 
+function saveToLS(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch {}
+}
+
 function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  saveToLS(data)
+  setAppConfig(SUPABASE_KEY, data).catch(() => {})
 }
 
 export default function BabiesBornPage() {
-  const [data, setData] = useState(() => loadData() || DEFAULT_DATA)
+  const [data, setData] = useState(() => loadFromLS() || DEFAULT_DATA)
+
+  // Load from Supabase on mount
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const remote = await getAppConfig(SUPABASE_KEY)
+        if (cancelled) return
+        if (remote) {
+          setData(remote)
+          saveToLS(remote)
+          try { localStorage.removeItem(STORAGE_KEY) } catch {}
+        } else {
+          // Migration: push current data to Supabase
+          const local = loadFromLS()
+          const toSave = local || DEFAULT_DATA
+          setAppConfig(SUPABASE_KEY, toSave).catch(() => {})
+          if (local) {
+            try { localStorage.removeItem(STORAGE_KEY) } catch {}
+          }
+        }
+      } catch {}
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
   const [editingYear, setEditingYear] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [editPregnant, setEditPregnant] = useState(false)

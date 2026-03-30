@@ -13,6 +13,56 @@ async function withTimeout(buildQuery, ms = 12000) {
   }
 }
 
+// ── App Config (shared key-value store) ──────────────────
+
+export async function getAppConfig(key) {
+  const result = await withTimeout(
+    () => supabase.from('app_config').select('config_value').eq('config_key', key).single()
+  )
+  if (!result) return null
+  if (result.error) return null
+  return result.data?.config_value ?? null
+}
+
+export async function setAppConfig(key, value) {
+  const result = await withTimeout(
+    () => supabase.from('app_config').upsert(
+      { config_key: key, config_value: value, updated_at: new Date().toISOString() },
+      { onConflict: 'config_key' }
+    ).select().single()
+  )
+  if (!result) return null
+  if (result.error) return null
+  return result.data
+}
+
+// ── Record Tracking (per-surrogate, stored in intake_submissions.answers) ──
+
+export async function getRecordTracking(surrogateId) {
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('answers').eq('id', surrogateId).single()
+  )
+  if (!result) return null
+  if (result.error) return null
+  return result.data?.answers?._recordTracking ?? null
+}
+
+export async function setRecordTracking(surrogateId, tracking) {
+  // First fetch current answers to merge
+  const fetchResult = await withTimeout(
+    () => supabase.from('intake_submissions').select('answers').eq('id', surrogateId).single()
+  )
+  if (!fetchResult || fetchResult.error) return null
+  const currentAnswers = fetchResult.data?.answers || {}
+  const updatedAnswers = { ...currentAnswers, _recordTracking: tracking }
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', surrogateId).select().single()
+  )
+  if (!result) return null
+  if (result.error) return null
+  return result.data
+}
+
 // ── Admin Notes ──────────────────────────────────────────
 
 export async function fetchActiveAdminNotes() {
