@@ -186,7 +186,7 @@ function BeBadge({ className = '' }) {
 }
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
-function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
+function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl }) {
   const navigate = useNavigate()
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
@@ -211,7 +211,7 @@ function SurrogateCard({ surrogate, profileData, onAssign, stageStatus }) {
         {/* Header: avatar + name + status */}
         <div className="flex items-start gap-3.5">
           <div className="relative shrink-0">
-            <ProfileAvatar name={surrogate.name} avatar={avatarUrls[surrogate.id]} size="lg" className="ring-2 ring-white shadow-md" />
+            <ProfileAvatar name={surrogate.name} avatar={avatarUrl} size="lg" className="ring-2 ring-white shadow-md" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
@@ -547,6 +547,7 @@ export default function SurrogateListPage() {
               profileData={profiles[surrogate.email]}
               onAssign={handleAssign}
               stageStatus={allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }}
+              avatarUrl={avatarUrls[surrogate.id]}
             />
           ))}
         </div>
@@ -578,7 +579,7 @@ export default function SurrogateListPage() {
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <ProfileAvatar name={surrogate.name} avatar={avatarUrls[surrogate.id]} size="sm" />
+                        <ProfileAvatar name={surrogate.name} avatar={avatarUrls?.[surrogate.id]} size="sm" />
                         <span className="font-semibold text-stone-800">{surrogate.name}</span>
                         {rowIsNew && (
                           <span className="relative flex size-2.5 shrink-0">
