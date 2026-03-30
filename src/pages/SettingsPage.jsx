@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
-import { ROLES, ROLE_LABELS, SURROGATE_STAGES } from '@/lib/constants'
+import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE } from '@/lib/constants'
+import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
 import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -21,7 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle } from 'lucide-react'
 import { mockUsers } from '@/data/mock/users'
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
@@ -663,6 +664,191 @@ function UserManagementSection() {
   )
 }
 
+// ── Stage Statuses Section ──────────────────────────────────
+
+function StageStatusesSection() {
+  const [open, setOpen] = useState(false)
+  const [activeStage, setActiveStage] = useState(SURROGATE_STAGES[0].id)
+  const [config, setConfig] = useState(() => getStatusConfig())
+  const [newStatus, setNewStatus] = useState('')
+  const [editingIdx, setEditingIdx] = useState(null)
+  const [editValue, setEditValue] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+
+  const statuses = config[activeStage] || []
+  const stageObj = SURROGATE_STAGES.find(s => s.id === activeStage)
+
+  function handleAdd() {
+    const trimmed = newStatus.trim()
+    if (!trimmed || statuses.includes(trimmed)) return
+    const updated = addStatus(activeStage, trimmed)
+    setConfig({ ...updated })
+    setNewStatus('')
+  }
+
+  function handleStartEdit(idx) {
+    setEditingIdx(idx)
+    setEditValue(statuses[idx])
+  }
+
+  function handleSaveEdit(idx) {
+    const trimmed = editValue.trim()
+    if (!trimmed || (trimmed !== statuses[idx] && statuses.includes(trimmed))) {
+      setEditingIdx(null)
+      return
+    }
+    if (trimmed !== statuses[idx]) {
+      const updated = editStatus(activeStage, statuses[idx], trimmed)
+      setConfig({ ...updated })
+    }
+    setEditingIdx(null)
+  }
+
+  function handleDeleteClick(label) {
+    const inUseCount = getStatusesInUse(activeStage, label)
+    if (inUseCount > 0) {
+      setDeleteConfirm({ label, inUseCount })
+    } else {
+      const updated = deleteStatus(activeStage, label, 'remove_from_all')
+      setConfig({ ...updated })
+    }
+  }
+
+  function handleDeleteConfirm(mode) {
+    if (!deleteConfirm) return
+    const updated = deleteStatus(activeStage, deleteConfirm.label, mode)
+    setConfig({ ...updated })
+    setDeleteConfirm(null)
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center justify-between cursor-pointer group py-1">
+          <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
+            <Tag className="size-5" />
+            Stage Statuses
+          </h2>
+          <ChevronDown className={`size-5 text-stone-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-4 mt-3">
+          <CardDescription>
+            Configure available statuses for each journey stage. These appear in the status dropdown on surrogate and IP cases.
+          </CardDescription>
+
+          <div className="flex gap-4">
+            {/* Stage tabs */}
+            <div className="w-48 shrink-0 space-y-1">
+              {SURROGATE_STAGES.map(stage => (
+                <button
+                  key={stage.id}
+                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
+                    activeStage === stage.id ? 'font-semibold text-white' : 'text-stone-600 hover:bg-stone-100'
+                  }`}
+                  style={activeStage === stage.id ? { backgroundColor: stage.color } : {}}
+                  onClick={() => { setActiveStage(stage.id); setEditingIdx(null); setDeleteConfirm(null) }}
+                >
+                  <div className="flex items-center justify-between">
+                    {stage.label}
+                    <span className={`text-[10px] ${activeStage === stage.id ? 'text-white/70' : 'text-stone-400'}`}>
+                      {(config[stage.id] || []).length}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Status list */}
+            <div className="flex-1 rounded-xl border bg-white overflow-hidden">
+              <div className="px-5 pt-4 pb-3 border-b">
+                <h3 className="text-base font-bold" style={{ color: stageObj?.color }}>
+                  {stageObj?.label} Statuses
+                </h3>
+              </div>
+
+              <div className="px-5 py-3">
+                {/* Delete confirmation */}
+                {deleteConfirm && (
+                  <div className="mb-3 p-3 rounded-xl border border-amber-200 bg-amber-50 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <AlertTriangle className="size-4" />
+                      <span className="text-sm font-semibold">
+                        "{deleteConfirm.label}" is used by {deleteConfirm.inUseCount} case{deleteConfirm.inUseCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="destructive" className="text-xs" onClick={() => handleDeleteConfirm('remove_from_all')}>
+                        Delete for all cases
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-xs" onClick={() => handleDeleteConfirm('soft_delete')}>
+                        Just hide going forward
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-xs" onClick={() => setDeleteConfirm(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  {statuses.map((status, idx) => (
+                    <div key={`${status}-${idx}`} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-stone-50 group">
+                      {editingIdx === idx ? (
+                        <>
+                          <Input
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            className="h-7 text-sm flex-1"
+                            autoFocus
+                            onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(idx); if (e.key === 'Escape') setEditingIdx(null) }}
+                          />
+                          <button onClick={() => handleSaveEdit(idx)} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-4" /></button>
+                          <button onClick={() => setEditingIdx(null)} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-4" /></button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: stageObj?.color }} />
+                          <span className="flex-1 text-sm text-stone-700">{status}</span>
+                          {idx === 0 && <span className="text-[10px] text-stone-300 uppercase tracking-wider">Default</span>}
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleStartEdit(idx)} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+                            <button onClick={() => handleDeleteClick(status)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {statuses.length === 0 && (
+                    <p className="text-sm text-stone-400 text-center py-6">No statuses configured for this stage.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Add new */}
+              <div className="px-5 py-3 border-t bg-stone-50/50">
+                <div className="flex gap-2">
+                  <Input
+                    value={newStatus}
+                    onChange={e => setNewStatus(e.target.value)}
+                    placeholder="Add a new status..."
+                    className="text-sm"
+                    onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+                  />
+                  <Button size="sm" className="gap-1 shrink-0" style={{ backgroundColor: stageObj?.color, color: '#fff' }} onClick={handleAdd} disabled={!newStatus.trim()}>
+                    <Plus className="size-3.5" /> Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
 // ── Main Settings Page ──────────────────────────────────────
 
 export default function SettingsPage() {
@@ -676,11 +862,13 @@ export default function SettingsPage() {
     <div className="space-y-8">
       <PageHeader
         title="Settings"
-        subtitle="Manage team, checklists, and app configuration"
+        subtitle="Manage team, statuses, checklists, and app configuration"
       />
       <AdminNotesSection />
       <div className="border-t border-stone-200" />
       <UserManagementSection />
+      <div className="border-t border-stone-200" />
+      <StageStatusesSection />
       <div className="border-t border-stone-200" />
       <ChecklistsSection />
     </div>
