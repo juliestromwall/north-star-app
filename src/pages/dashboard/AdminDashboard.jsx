@@ -81,26 +81,57 @@ function SurrogateScreeningSheet({ surrogates }) {
     return pending
   }
 
-  function getCellData(surrogateId, stepId) {
+  // Map step labels to medical record prefixes
+  const RECORD_PREFIXES = {
+    'ob records': 'ob_records_',
+    'delivery records': 'delivery_records_',
+    'ivf records': 'ivf_records_',
+  }
+
+  function getRecordPrefix(stepLabel) {
+    const lower = (stepLabel || '').toLowerCase()
+    for (const [key, prefix] of Object.entries(RECORD_PREFIXES)) {
+      if (lower.includes(key)) return prefix
+    }
+    return null
+  }
+
+  function getSubRecords(surrogateId, prefix) {
+    const rt = allTracking[surrogateId] || {}
+    const records = []
+    for (const key of Object.keys(rt)) {
+      if (key.startsWith(prefix)) {
+        const d = rt[key]
+        const lastEntry = d.history?.length > 0 ? d.history[d.history.length - 1] : null
+        records.push({
+          id: key,
+          label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/^\d+$/, ''),
+          status: d.status || 'not_started',
+          lastDate: lastEntry?.date,
+          lastNote: lastEntry?.note,
+          lastBy: lastEntry?.by,
+          isComplete: d.status === 'complete' || d.status === 'na',
+        })
+      }
+    }
+    return records
+  }
+
+  function getCellData(surrogateId, stepId, stepLabel) {
     const rt = allTracking[surrogateId] || {}
     const data = rt[stepId] || {}
     const status = data.status || 'not_started'
     const history = data.history || []
     const lastEntry = history.length > 0 ? history[history.length - 1] : null
     const isComplete = status === 'complete' || status === 'na'
-    const isRecordStep = stepId.startsWith('_')
-    // For summary rows, check if any underlying records are incomplete
+    const prefix = getRecordPrefix(stepLabel)
+    let subRecords = []
     let hasIncompleteRecords = false
-    if (isRecordStep) {
-      const prefix = stepId === '_ob_summary' ? 'ob_records_' : stepId === '_del_summary' ? 'delivery_records_' : 'ivf_records_'
-      for (const key of Object.keys(rt)) {
-        if (key.startsWith(prefix) && rt[key]?.status && rt[key].status !== 'complete' && rt[key].status !== 'not_started') {
-          hasIncompleteRecords = true
-          break
-        }
-      }
+    if (prefix) {
+      subRecords = getSubRecords(surrogateId, prefix)
+      hasIncompleteRecords = subRecords.some(r => !r.isComplete && r.status !== 'not_started')
     }
-    return { status, lastEntry, isComplete, history, hasIncompleteRecords }
+    return { status, lastEntry, isComplete, history, hasIncompleteRecords, subRecords, isRecordType: !!prefix }
   }
 
   return (
@@ -158,9 +189,11 @@ function SurrogateScreeningSheet({ surrogates }) {
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 text-sm font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                   {filtered.map(s => {
-                    const { status, lastEntry, isComplete, history, hasIncompleteRecords } = getCellData(s.id, row.id)
+                    const { status, lastEntry, isComplete, history, hasIncompleteRecords, subRecords, isRecordType } = getCellData(s.id, row.id, row.label)
                     const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
                     const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
+                    const doneCount = subRecords.filter(r => r.isComplete).length
+                    const totalCount = subRecords.length
                     return (
                       <td key={s.id} className={`px-4 py-3.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                         <div className="flex items-center gap-1.5">
@@ -175,16 +208,22 @@ function SurrogateScreeningSheet({ surrogates }) {
                               {formatDateShort(lastEntry?.date)} <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                             </span>
                           )}
+                          {/* Record count badge for record-type steps */}
+                          {isRecordType && totalCount > 0 && (
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>
+                              {doneCount}/{totalCount}
+                            </span>
+                          )}
                           {/* Log icon */}
                           {history.length > 0 && (
                             <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
                               <ScrollText className="size-3.5" />
                             </button>
                           )}
-                          {/* Document icon — show when records are in progress but not complete */}
-                          {hasIncompleteRecords && (
-                            <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-amber-400 hover:text-amber-600 transition-colors">
-                              <FileWarning className="size-3.5" />
+                          {/* Records detail icon — show for record-type steps with sub-records */}
+                          {isRecordType && totalCount > 0 && (
+                            <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className={`transition-colors ${hasIncompleteRecords ? 'text-amber-400 hover:text-amber-600' : 'text-stone-300 hover:text-stone-500'}`}>
+                              <FileText className="size-3.5" />
                             </button>
                           )}
                         </div>
@@ -207,23 +246,31 @@ function SurrogateScreeningSheet({ surrogates }) {
                             ))}
                           </div>
                         )}
-                        {/* Document tooltip */}
+                        {/* Sub-records detail tooltip */}
                         {isDocOpen && (
                           <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
                             <div className="flex items-center justify-between mb-1">
-                              <p className="text-[10px] font-semibold text-stone-400 uppercase">Pending Records</p>
+                              <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount} complete)</p>
                               <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                             </div>
-                            {getPendingRecords(s.id).map(rec => (
-                              <div key={rec.id} className="text-xs border-b border-stone-50 pb-1 last:border-0">
+                            {subRecords.map(rec => (
+                              <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isComplete ? 'opacity-50' : ''}`}>
                                 <div className="flex items-center justify-between">
-                                  <span className="font-medium text-stone-600 capitalize">{rec.label}</span>
-                                  <span className="text-stone-400">{rec.status?.replace(/_/g, ' ')}</span>
+                                  <span className="font-medium text-stone-600">{rec.label}</span>
+                                  <span className={`font-medium ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
+                                    {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                  </span>
                                 </div>
-                                {rec.lastDate && <p className="text-stone-400 mt-0.5">{formatDateShort(rec.lastDate)}{rec.lastNote ? ` — ${rec.lastNote}` : ''}</p>}
+                                {rec.lastDate && (
+                                  <p className="text-stone-400 mt-0.5">
+                                    {formatDateShort(rec.lastDate)}
+                                    {rec.lastNote ? ` — ${rec.lastNote}` : ''}
+                                    {rec.lastBy ? ` (${rec.lastBy})` : ''}
+                                  </p>
+                                )}
                               </div>
                             ))}
-                            {getPendingRecords(s.id).length === 0 && <p className="text-xs text-stone-400">No pending records</p>}
+                            {totalCount === 0 && <p className="text-xs text-stone-400">No individual records tracked yet</p>}
                           </div>
                         )}
                       </td>
