@@ -795,40 +795,7 @@ export default function SurrogateDetailPage() {
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
-            const dynamicSteps = getChecklistSteps('gc', currentStageId)
-
-            // Only show medical record summary rows for Pre-Qualification stage
-            const recordSummarySteps = []
-            if (currentStageId === 'screening') {
-              const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
-              const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-              let obTotal = 0, obDone = 0, delTotal = 0, delDone = 0, ivfTotal = 0, ivfDone = 0
-              for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
-                const obStatus = recordTracking[`ob_records_${i}`]?.status
-                const delStatus = recordTracking[`delivery_records_${i}`]?.status
-                const ivfStatus = recordTracking[`ivf_records_${i}`]?.status
-                // OB: count unless toggled off (N/A)
-                if (obStatus !== 'na') { obTotal++; if (obStatus === 'complete') obDone++ }
-                // Delivery: count unless toggled off (N/A)
-                if (delStatus !== 'na') { delTotal++; if (delStatus === 'complete') delDone++ }
-                // IVF: only for pregnancies where wasSurrogacy === 'yes'
-                const isSurrogacyPreg = pregnancies[i]?.wasSurrogacy === 'yes'
-                if (isSurrogacyPreg) {
-                  if (ivfStatus !== 'na') { ivfTotal++; if (ivfStatus === 'complete') ivfDone++ }
-                }
-              }
-              if (numPreg > 0) {
-                recordSummarySteps.push(
-                  { id: '_ob_summary', label: 'OB Records', subLabel: `(${obDone}/${obTotal})` },
-                  { id: '_del_summary', label: 'Delivery Records', subLabel: `(${delDone}/${delTotal})` },
-                )
-                if (ivfTotal > 0) {
-                  recordSummarySteps.push({ id: '_ivf_summary', label: 'IVF Records', subLabel: `(${ivfDone}/${ivfTotal})` })
-                }
-              }
-            }
-
-            const allSteps = [...recordSummarySteps, ...dynamicSteps]
+            const allSteps = getChecklistSteps('gc', currentStageId)
             return (
               <TrackingTable
                 title={`${currentStageLabel} Checklist`}

@@ -3,7 +3,7 @@ import { LogOut, Menu } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function TopBar({ onMenuClick }) {
   const { currentUser, isAuthenticated, signOut } = useRole()
@@ -38,6 +38,7 @@ export default function TopBar({ onMenuClick }) {
           <p className="text-xs text-muted-foreground">{ROLE_LABELS[currentUser.role]}</p>
         </div>
         <Avatar className="size-8">
+          {currentUser.avatar && <AvatarImage src={currentUser.avatar} alt={currentUser.name} />}
           <AvatarFallback className="bg-abc-indigo text-white text-xs">
             {initials}
           </AvatarFallback>

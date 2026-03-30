@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
+import { fetchSurrogateProfileByEmail } from '@/lib/db'
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -68,16 +69,37 @@ export function RoleProvider({ children }) {
       return
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const user = session.user
         const role = user.user_metadata?.role || ROLES.SURROGATE
+        let displayName = user.user_metadata?.full_name || user.email
+        let avatar = null
+
+        // Enrich: fetch real name from intake_submissions + profile photo
+        try {
+          if (supabase) {
+            const { data: intake } = await supabase.from('intake_submissions')
+              .select('applicant_name')
+              .eq('applicant_email', user.email.toLowerCase())
+              .order('submitted_at', { ascending: false })
+              .limit(1)
+              .single()
+            if (intake?.applicant_name) displayName = intake.applicant_name
+
+            const profile = await fetchSurrogateProfileByEmail(user.email)
+            if (profile?.profile_data?.personal?.profilePhotoUrl) {
+              avatar = profile.profile_data.personal.profilePhotoUrl
+            }
+          }
+        } catch {}
+
         setAuthUser({
           id: user.id,
-          name: user.user_metadata?.full_name || user.email,
+          name: displayName,
           email: user.email,
           role,
-          avatar: null,
+          avatar,
         })
         setCurrentRole(role)
       }
