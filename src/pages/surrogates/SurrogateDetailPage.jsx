@@ -334,12 +334,12 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                   >
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
-                        {isComplete ? (
-                          <CheckCircle2 className="size-4.5 text-green-500 shrink-0" />
-                        ) : isDeactivated ? (
-                          <div className="size-5 rounded-full bg-stone-200 shrink-0" />
+                        {isDeactivated ? (
+                          <div className="size-4 rounded-full bg-stone-200 shrink-0" />
+                        ) : isComplete ? (
+                          <CheckCircle2 className="size-4 text-green-500 shrink-0" />
                         ) : (
-                          <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-stone-300">{stepIdx + 1}</div>
+                          <div className="size-4 rounded-full border-2 border-stone-200 shrink-0" />
                         )}
                         {editingLabel === step.id ? (
                           <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
@@ -899,7 +899,7 @@ export default function SurrogateDetailPage() {
               }
               const active = stepIds.filter(k => rt[k]?.status !== 'na')
               const done = active.filter(k => rt[k]?.status === 'complete')
-              return active.length > 0 ? `Medical Records ${done.length}/${active.length}` : 'Medical Records'
+              return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
             })()}
           </TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
