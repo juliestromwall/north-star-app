@@ -6,7 +6,7 @@ import StatCard from '@/components/shared/StatCard'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { fetchSurrogatesFromIntake } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch } from '@/lib/db'
 import { matchPipelineCounts } from '@/data/mock/matches'
 import { MATCH_STAGES, SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -55,27 +55,76 @@ function SurrogateScreeningSheet({ surrogates }) {
     return surrogates.filter(s => (allStageStatuses[s.id]?.stage || 'pre-qualification') === stageFilter)
   }, [surrogates, stageFilter, allStageStatuses])
 
-  // Load record tracking for each surrogate
-  const allTracking = useMemo(() => {
-    const map = {}
-    for (const s of filtered) {
-      try {
-        const d = localStorage.getItem(`abc_records_${s.id}`)
-        map[s.id] = d ? JSON.parse(d) : {}
-      } catch { map[s.id] = {} }
-    }
-    return map
+  // Load record tracking from Supabase for each surrogate
+  const [allTracking, setAllTracking] = useState({})
+  useEffect(() => {
+    const ids = filtered.map(s => s.id)
+    if (ids.length === 0) { setAllTracking({}); return }
+    getRecordTrackingBatch(ids).then(setAllTracking).catch(() => setAllTracking({}))
   }, [filtered])
+
+  // Load profile data (pregnancy history) for filtered surrogates
+  const [allProfiles, setAllProfiles] = useState({})
+  useEffect(() => {
+    const emails = filtered.map(s => s.email).filter(Boolean)
+    if (emails.length === 0) { setAllProfiles({}); return }
+    fetchSurrogateProfilesByEmails(emails).then(map => {
+      // Re-key by surrogate id (match email from filtered list)
+      const byId = {}
+      for (const s of filtered) {
+        if (s.email && map[s.email.trim().toLowerCase()]) {
+          byId[s.id] = map[s.email.trim().toLowerCase()]
+        }
+      }
+      setAllProfiles(byId)
+    }).catch(() => {})
+  }, [filtered])
+
+  // Build expected medical records from pregnancy data (same logic as Medical Records tab)
+  function buildExpectedRecords(surrogateId) {
+    const profile = allProfiles[surrogateId]
+    const pregnancies = profile?.pregnancyHistory?.pregnancies || []
+    const numPreg = parseInt(profile?.pregnancyHistory?.numberOfPregnancies) || 0
+    const steps = []
+    for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+      const p = pregnancies[i] || {}
+      const year = p.dob ? new Date(p.dob).getFullYear() : ''
+      const yearLabel = year || `#${i + 1}`
+      steps.push({ id: `ob_records_${i}`, label: `OB ${yearLabel}`, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
+      steps.push({ id: `delivery_records_${i}`, label: `Delivery ${yearLabel}`, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
+      if (p.wasSurrogacy === 'yes') {
+        steps.push({ id: `ivf_records_${i}`, label: `IVF ${yearLabel}`, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
+      }
+    }
+    // Also include custom-added records from tracking
+    const rt = allTracking[surrogateId] || {}
+    for (const key of Object.keys(rt)) {
+      if (key.startsWith('custom_record_') && !steps.some(s => s.id === key)) {
+        const d = rt[key]
+        const badgeType = d.recordType || 'OB'
+        const BADGE_MAP = {
+          'OB': { label: 'OB', color: 'bg-blue-100 text-blue-700' },
+          'Delivery': { label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
+          'IVF': { label: 'IVF', color: 'bg-pink-100 text-pink-700' },
+          'PAP': { label: 'PAP', color: 'bg-amber-100 text-amber-700' },
+        }
+        steps.push({ id: key, label: d.customLabel || key, badge: BADGE_MAP[badgeType] || BADGE_MAP['OB'] })
+      }
+    }
+    return steps
+  }
 
   // Get pending medical records for a surrogate (for document icon tooltip)
   function getPendingRecords(surrogateId) {
+    const expected = buildExpectedRecords(surrogateId)
     const rt = allTracking[surrogateId] || {}
     const pending = []
-    // Check all ob/delivery/ivf records in localStorage
-    for (const key of Object.keys(rt)) {
-      if ((key.startsWith('ob_records_') || key.startsWith('delivery_records_') || key.startsWith('ivf_records_')) && rt[key]?.status && rt[key].status !== 'complete') {
-        const lastEntry = rt[key].history?.[rt[key].history.length - 1]
-        pending.push({ id: key, label: key.replace(/_/g, ' ').replace(/\d+$/, '').trim(), status: rt[key].status, lastDate: lastEntry?.date, lastNote: lastEntry?.note })
+    for (const step of expected) {
+      const d = rt[step.id] || {}
+      const status = d.status || 'not_started'
+      if (status !== 'complete' && status !== 'na') {
+        const lastEntry = d.history?.[d.history.length - 1]
+        pending.push({ id: step.id, label: d.customLabel || step.label, status, lastDate: lastEntry?.date, lastNote: lastEntry?.note })
       }
     }
     return pending
@@ -104,23 +153,40 @@ function SurrogateScreeningSheet({ surrogates }) {
   }
 
   function getSubRecords(surrogateId, prefix) {
+    // Build from pregnancy data so all records appear with correct labels
+    const expected = buildExpectedRecords(surrogateId)
     const rt = allTracking[surrogateId] || {}
     const records = []
+    // Add expected records that match the prefix
+    for (const step of expected) {
+      if (step.id.startsWith(prefix)) {
+        const d = rt[step.id] || {}
+        const lastEntry = d.history?.length > 0 ? d.history[d.history.length - 1] : null
+        records.push({
+          id: step.id,
+          label: d.customLabel || step.label,
+          badge: step.badge,
+          status: d.status || 'not_started',
+          lastDate: lastEntry?.date,
+          lastNote: lastEntry?.note,
+          lastBy: lastEntry?.by,
+          isComplete: d.status === 'complete',
+          isExcluded: d.status === 'na',
+        })
+      }
+    }
+    // Also pick up any tracking entries not in expected (custom records, legacy entries)
     for (const key of Object.keys(rt)) {
-      if (key.startsWith(prefix)) {
+      if (key.startsWith(prefix) && !records.some(r => r.id === key)) {
+        // Skip legacy timestamp-keyed records (real custom records use custom_record_ prefix)
+        const idx = key.match(/\d+$/)?.[0]
+        if (idx && idx.length > 4 && !rt[key]?.customLabel) continue
         const d = rt[key]
         const lastEntry = d.history?.length > 0 ? d.history[d.history.length - 1] : null
         const badge = getRecordTypeBadge(key)
         records.push({
           id: key,
-          label: d.customLabel || (() => {
-            // Generate clean default: "OB 2026" from key like "ob_records_2"
-            const badge = getRecordTypeBadge(key)
-            const idx = key.match(/\d+$/)?.[0]
-            // If it's a timestamp (custom record), just show type
-            if (idx && idx.length > 4) return badge?.label || key
-            return badge ? `${badge.label} #${parseInt(idx) + 1}` : key
-          })(),
+          label: d.customLabel || badge?.label || key,
           badge,
           status: d.status || 'not_started',
           lastDate: lastEntry?.date,

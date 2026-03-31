@@ -63,6 +63,19 @@ export async function setRecordTracking(surrogateId, tracking) {
   return result.data
 }
 
+export async function getRecordTrackingBatch(surrogateIds) {
+  if (!supabase || !surrogateIds.length) return {}
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('id, answers').in('id', surrogateIds)
+  )
+  if (!result || result.error || !result.data) return {}
+  const map = {}
+  for (const row of result.data) {
+    map[row.id] = row.answers?._recordTracking || {}
+  }
+  return map
+}
+
 // ── Admin Notes ──────────────────────────────────────────
 
 export async function fetchActiveAdminNotes() {
@@ -484,6 +497,20 @@ export async function fetchSurrogateProfileByEmail(email) {
     .single()
   if (error) return null
   return data
+}
+
+export async function fetchSurrogateProfilesByEmails(emails) {
+  if (!supabase || !emails.length) return {}
+  const { data, error } = await supabase
+    .from('surrogate_profiles')
+    .select('email, profile_data')
+    .in('email', emails.map(e => e.trim().toLowerCase()))
+  if (error || !data) return {}
+  const map = {}
+  for (const row of data) {
+    map[row.email] = row.profile_data
+  }
+  return map
 }
 
 export async function updateSurrogateProfileStatus(email, status) {
