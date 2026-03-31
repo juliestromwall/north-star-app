@@ -72,6 +72,11 @@ export const SURROGATE_STAGES = [
   { id: 'journey-closed',     label: 'Journey Closed',     color: '#283693', order: 6 },
 ]
 
+// IP-specific stage label overrides
+export const IP_STAGE_LABELS = {
+  'screening': 'Holding',
+}
+
 export const DEFAULT_STATUSES_BY_STAGE = {
   'pre-qualification': [
     'New', '1st Reach Out', '2nd Reach Out', '3rd Reach Out',

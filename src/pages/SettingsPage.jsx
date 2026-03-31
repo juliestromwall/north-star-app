@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
-import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE } from '@/lib/constants'
+import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
 import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
@@ -450,12 +450,26 @@ const JOURNEY_STAGES = ['journey-oversight', 'journey-ending', 'journey-closed']
 function ChecklistsSection() {
   const [open, setOpen] = useState(false)
   const [userType, setUserType] = useState('gc')
+  const [activeStage, setActiveStage] = useState('pre-qualification')
   const [, setTick] = useState(0)
   const forceUpdate = useCallback(() => setTick(t => t + 1), [])
 
   const config = getChecklistConfig()
   const caseStages = SURROGATE_STAGES.filter(s => CASE_STAGES.includes(s.id))
   const journeyStages = SURROGATE_STAGES.filter(s => JOURNEY_STAGES.includes(s.id))
+  const visibleStages = userType === 'journey' ? journeyStages : caseStages
+  const configKey = userType === 'journey' ? 'gc' : userType
+
+  function switchUserType(type) {
+    setUserType(type)
+    const stages = type === 'journey' ? journeyStages : caseStages
+    setActiveStage(stages[0]?.id)
+  }
+
+  const activeStageObj = SURROGATE_STAGES.find(s => s.id === activeStage)
+  const stageData = config[configKey]?.[activeStage]
+  const stepCount = stageData?.steps?.length || 0
+  const milestoneCount = stageData?.milestones?.length || 0
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -483,17 +497,44 @@ function ChecklistsSection() {
               <button
                 key={tab.key}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
-                onClick={() => setUserType(tab.key)}
+                onClick={() => switchUserType(tab.key)}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="space-y-4 mt-4">
-            {(userType === 'journey' ? journeyStages : caseStages).map(stage => (
-              <StageChecklistCard key={stage.id} stage={stage} userType={userType === 'journey' ? 'gc' : userType} stageData={config[userType === 'journey' ? 'gc' : userType]?.[stage.id]} onUpdate={forceUpdate} />
-            ))}
+          <div className="flex gap-4">
+            {/* Stage quick-links */}
+            <div className="w-48 shrink-0 space-y-1">
+              {visibleStages.map(stage => {
+                const label = userType === 'ip' && IP_STAGE_LABELS[stage.id] ? IP_STAGE_LABELS[stage.id] : stage.label
+                const sd = config[configKey]?.[stage.id]
+                const count = (sd?.steps?.length || 0)
+                return (
+                  <button
+                    key={stage.id}
+                    className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
+                      activeStage === stage.id ? 'font-semibold text-white' : 'text-stone-600 hover:bg-stone-100'
+                    }`}
+                    style={activeStage === stage.id ? { backgroundColor: stage.color } : {}}
+                    onClick={() => setActiveStage(stage.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      {label}
+                      <span className={`text-[10px] ${activeStage === stage.id ? 'text-white/70' : 'text-stone-400'}`}>
+                        {count}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Active stage checklist */}
+            <div className="flex-1">
+              <StageChecklistCard key={activeStage} stage={activeStageObj} userType={configKey} stageData={stageData} onUpdate={forceUpdate} />
+            </div>
           </div>
         </div>
       </CollapsibleContent>
@@ -770,7 +811,9 @@ function StageStatusesSection() {
           <div className="flex gap-4">
             {/* Stage tabs */}
             <div className="w-48 shrink-0 space-y-1">
-              {visibleStages.map(stage => (
+              {visibleStages.map(stage => {
+                const stageLabel = userType === 'ip' && IP_STAGE_LABELS[stage.id] ? IP_STAGE_LABELS[stage.id] : stage.label
+                return (
                 <button
                   key={stage.id}
                   className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
@@ -780,20 +823,20 @@ function StageStatusesSection() {
                   onClick={() => { setActiveStage(stage.id); setEditingIdx(null); setDeleteConfirm(null) }}
                 >
                   <div className="flex items-center justify-between">
-                    {stage.label}
+                    {stageLabel}
                     <span className={`text-[10px] ${activeStage === stage.id ? 'text-white/70' : 'text-stone-400'}`}>
                       {(config[userType]?.[stage.id] || []).length}
                     </span>
                   </div>
                 </button>
-              ))}
+              )})}
             </div>
 
             {/* Status list */}
             <div className="flex-1 rounded-xl border bg-white overflow-hidden">
               <div className="px-5 pt-4 pb-3 border-b">
                 <h3 className="text-base font-bold" style={{ color: stageObj?.color }}>
-                  {stageObj?.label} Statuses
+                  {userType === 'ip' && IP_STAGE_LABELS[activeStage] ? IP_STAGE_LABELS[activeStage] : stageObj?.label} Statuses
                 </h3>
               </div>
 
