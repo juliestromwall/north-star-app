@@ -257,6 +257,9 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                           </div>
                         ) : (
                           <>
+                            {step.badge && (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${step.badge.color}`}>{step.badge.label}</span>
+                            )}
                             <span
                               className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
                               onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
@@ -869,10 +872,10 @@ export default function SurrogateDetailPage() {
               const p = pregnancies[i] || {}
               const year = p.dob ? new Date(p.dob).getFullYear() : ''
               const yearLabel = year || `#${i + 1}`
-              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}`, canToggleNA: true })
-              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}`, canToggleNA: true })
+              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}`, canToggleNA: true, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
+              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}`, canToggleNA: true, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
               if (p.wasSurrogacy === 'yes') {
-                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}`, canToggleNA: true })
+                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}`, canToggleNA: true, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
               }
             }
             return (

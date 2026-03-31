@@ -96,6 +96,13 @@ function SurrogateScreeningSheet({ surrogates }) {
     return null
   }
 
+  function getRecordTypeBadge(key) {
+    if (key.startsWith('ob_records_')) return { label: 'OB', color: 'bg-blue-100 text-blue-700' }
+    if (key.startsWith('delivery_records_')) return { label: 'Delivery', color: 'bg-purple-100 text-purple-700' }
+    if (key.startsWith('ivf_records_')) return { label: 'IVF', color: 'bg-pink-100 text-pink-700' }
+    return null
+  }
+
   function getSubRecords(surrogateId, prefix) {
     const rt = allTracking[surrogateId] || {}
     const records = []
@@ -103,14 +110,17 @@ function SurrogateScreeningSheet({ surrogates }) {
       if (key.startsWith(prefix)) {
         const d = rt[key]
         const lastEntry = d.history?.length > 0 ? d.history[d.history.length - 1] : null
+        const badge = getRecordTypeBadge(key)
         records.push({
           id: key,
-          label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace(/^\d+$/, ''),
+          label: d.customLabel || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          badge,
           status: d.status || 'not_started',
           lastDate: lastEntry?.date,
           lastNote: lastEntry?.note,
           lastBy: lastEntry?.by,
           isComplete: d.status === 'complete' || d.status === 'na',
+          isExcluded: d.status === 'na',
         })
       }
     }
@@ -254,15 +264,18 @@ function SurrogateScreeningSheet({ surrogates }) {
                               <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                             </div>
                             {subRecords.map(rec => (
-                              <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isComplete ? 'opacity-50' : ''}`}>
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium text-stone-600">{rec.label}</span>
-                                  <span className={`font-medium ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
-                                    {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isExcluded ? 'opacity-30 line-through' : rec.isComplete ? 'opacity-60' : ''}`}>
+                                <div className="flex items-center gap-1.5">
+                                  {rec.badge && (
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>
+                                  )}
+                                  <span className="font-medium text-stone-600 flex-1">{rec.label}</span>
+                                  <span className={`font-medium shrink-0 ${rec.isExcluded ? 'text-stone-400' : rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
+                                    {rec.isExcluded ? 'Excluded' : rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                   </span>
                                 </div>
-                                {rec.lastDate && (
-                                  <p className="text-stone-400 mt-0.5">
+                                {rec.lastDate && !rec.isExcluded && (
+                                  <p className="text-stone-400 mt-0.5 ml-7">
                                     {formatDateShort(rec.lastDate)}
                                     {rec.lastNote ? ` — ${rec.lastNote}` : ''}
                                     {rec.lastBy ? ` (${rec.lastBy})` : ''}
