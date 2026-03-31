@@ -205,12 +205,12 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
         <table className="w-full border-t border-stone-200 text-sm">
           <thead>
             <tr className="bg-stone-50 border-b border-stone-200">
-              <th className="text-left px-6 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[24%]">Step</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[14%]">Status</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[12%]">Date Updated</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Note</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider w-[12%]">Logged By</th>
-              <th className="w-[70px]" />
+              <th className="text-left px-5 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'30%'}}>Step</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>Status</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'11%'}}>Date</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'30%'}}>Note</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>By</th>
+              <th style={{width:'40px'}} />
             </tr>
           </thead>
           <tbody>
@@ -270,22 +270,18 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                             {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
                           </>
                         )}
-                        {step.canToggleNA && currentStatus !== 'na' && (
+                        {step.canToggleNA && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: 'na', history: [...(data.history || []), { status: 'na', date: new Date().toISOString().split('T')[0], note: 'Not needed', by: currentUserName || 'Admin' }] }) }}
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
-                            title="Exclude — not needed"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const newStatus = currentStatus === 'na' ? 'not_started' : 'na'
+                              const note = newStatus === 'na' ? 'Not needed' : 'Re-enabled'
+                              onUpdate(step.id, { status: newStatus, history: [...(data.history || []), { status: newStatus, date: new Date().toISOString().split('T')[0], note, by: currentUserName || 'Admin' }] })
+                            }}
+                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${currentStatus === 'na' ? 'bg-stone-300' : 'bg-emerald-500'}`}
+                            title={currentStatus === 'na' ? 'Re-activate' : 'Deactivate'}
                           >
-                            Exclude
-                          </button>
-                        )}
-                        {step.canToggleNA && currentStatus === 'na' && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: 'not_started', history: [...(data.history || []), { status: 'not_started', date: new Date().toISOString().split('T')[0], note: 'Re-enabled', by: currentUserName || 'Admin' }] }) }}
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                            title="Re-include this record"
-                          >
-                            Re-enable
+                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${currentStatus === 'na' ? 'translate-x-0' : 'translate-x-3'}`} />
                           </button>
                         )}
                         {currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
@@ -297,7 +293,7 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                       </span>
                     </td>
                     <td className="px-3 py-3.5 text-stone-500">{formatDateMMDDYYYY(lastEntry?.date)}</td>
-                    <td className="px-3 py-3.5 text-stone-500 truncate max-w-0">{lastEntry?.note || ''}</td>
+                    <td className="px-3 py-3.5 text-stone-500 text-xs break-words">{lastEntry?.note || ''}</td>
                     <td className="px-3 py-3.5 text-stone-400">{lastEntry?.by || ''}</td>
                     <td className="px-3 py-3.5" />
                   </tr>
