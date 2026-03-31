@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { useRole } from '@/context/RoleContext'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
-import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusConfig, getDefaultStatus } from '@/lib/stageStatusStore'
+import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
@@ -783,7 +783,7 @@ export default function SurrogateDetailPage() {
                               style={stageStatus.stage === stage.id ? { color: stage.color, backgroundColor: stage.color + '10' } : {}}
                               onClick={e => {
                                 e.stopPropagation()
-                                const newStatus = getDefaultStatus(stage.id)
+                                const newStatus = getDefaultStatus(stage.id, 'gc')
                                 setSurrogateStageStatus(surrogate.id, stage.id, newStatus)
                                 setStageStatus({ stage: stage.id, status: newStatus })
                                 setStageOpen(false)
@@ -808,8 +808,7 @@ export default function SurrogateDetailPage() {
             {/* Status — clickable selector */}
             {(() => {
               const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
-              const config = getStatusConfig()
-              const availableStatuses = config[stageStatus.stage] || []
+              const availableStatuses = getStatusesForStage(stageStatus.stage, 'gc')
               return (
                 <div className="relative">
                   <div

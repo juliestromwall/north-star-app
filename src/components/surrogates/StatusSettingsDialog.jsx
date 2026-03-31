@@ -19,13 +19,14 @@ export default function StatusSettingsDialog() {
   const [editValue, setEditValue] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null) // { label, inUseCount }
 
-  const statuses = config[activeStage] || []
+  const userType = ['journey-oversight', 'journey-ending', 'journey-closed'].includes(activeStage) ? 'journey' : 'gc'
+  const statuses = config[userType]?.[activeStage] || config[activeStage] || []
   const stageObj = SURROGATE_STAGES.find(s => s.id === activeStage)
 
   function handleAdd() {
     const trimmed = newStatus.trim()
     if (!trimmed || statuses.includes(trimmed)) return
-    const updated = addStatus(activeStage, trimmed)
+    const updated = addStatus(activeStage, trimmed, userType)
     setConfig({ ...updated })
     setNewStatus('')
   }
@@ -42,7 +43,7 @@ export default function StatusSettingsDialog() {
       return
     }
     if (trimmed !== statuses[idx]) {
-      const updated = editStatus(activeStage, statuses[idx], trimmed)
+      const updated = editStatus(activeStage, statuses[idx], trimmed, userType)
       setConfig({ ...updated })
     }
     setEditingIdx(null)
@@ -53,14 +54,14 @@ export default function StatusSettingsDialog() {
     if (inUseCount > 0) {
       setDeleteConfirm({ label, inUseCount })
     } else {
-      const updated = deleteStatus(activeStage, label, 'remove_from_all')
+      const updated = deleteStatus(activeStage, label, 'remove_from_all', userType)
       setConfig({ ...updated })
     }
   }
 
   function handleDeleteConfirm(mode) {
     if (!deleteConfirm) return
-    const updated = deleteStatus(activeStage, deleteConfirm.label, mode)
+    const updated = deleteStatus(activeStage, deleteConfirm.label, mode, userType)
     setConfig({ ...updated })
     setDeleteConfirm(null)
   }

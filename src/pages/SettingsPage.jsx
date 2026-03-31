@@ -668,20 +668,36 @@ function UserManagementSection() {
 
 function StageStatusesSection() {
   const [open, setOpen] = useState(false)
-  const [activeStage, setActiveStage] = useState(SURROGATE_STAGES[0].id)
+  const [userType, setUserType] = useState('gc')
+  const visibleStages = userType === 'journey'
+    ? SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+    : SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
+  const [activeStage, setActiveStage] = useState(visibleStages[0]?.id)
   const [config, setConfig] = useState(() => getStatusConfig())
   const [newStatus, setNewStatus] = useState('')
   const [editingIdx, setEditingIdx] = useState(null)
   const [editValue, setEditValue] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-  const statuses = config[activeStage] || []
+  const statuses = config[userType]?.[activeStage] || []
   const stageObj = SURROGATE_STAGES.find(s => s.id === activeStage)
+
+  // Reset active stage when switching user type
+  function switchUserType(type) {
+    setUserType(type)
+    const stages = type === 'journey'
+      ? SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+      : SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
+    setActiveStage(stages[0]?.id)
+    setEditingIdx(null)
+    setDeleteConfirm(null)
+    setNewStatus('')
+  }
 
   function handleAdd() {
     const trimmed = newStatus.trim()
     if (!trimmed || statuses.includes(trimmed)) return
-    const updated = addStatus(activeStage, trimmed)
+    const updated = addStatus(activeStage, trimmed, userType)
     setConfig({ ...updated })
     setNewStatus('')
   }
@@ -698,7 +714,7 @@ function StageStatusesSection() {
       return
     }
     if (trimmed !== statuses[idx]) {
-      const updated = editStatus(activeStage, statuses[idx], trimmed)
+      const updated = editStatus(activeStage, statuses[idx], trimmed, userType)
       setConfig({ ...updated })
     }
     setEditingIdx(null)
@@ -709,14 +725,14 @@ function StageStatusesSection() {
     if (inUseCount > 0) {
       setDeleteConfirm({ label, inUseCount })
     } else {
-      const updated = deleteStatus(activeStage, label, 'remove_from_all')
+      const updated = deleteStatus(activeStage, label, 'remove_from_all', userType)
       setConfig({ ...updated })
     }
   }
 
   function handleDeleteConfirm(mode) {
     if (!deleteConfirm) return
-    const updated = deleteStatus(activeStage, deleteConfirm.label, mode)
+    const updated = deleteStatus(activeStage, deleteConfirm.label, mode, userType)
     setConfig({ ...updated })
     setDeleteConfirm(null)
   }
@@ -738,10 +754,27 @@ function StageStatusesSection() {
             Configure available statuses for each journey stage. These appear in the status dropdown on surrogate and IP cases.
           </CardDescription>
 
+          {/* GC / IP / Matched Journeys tabs */}
+          <div className="flex gap-2 border-b pb-2">
+            {[
+              { key: 'gc', label: 'Surrogate (GC)' },
+              { key: 'ip', label: 'Intended Parent (IP)' },
+              { key: 'journey', label: 'Matched Journeys' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                onClick={() => switchUserType(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-4">
             {/* Stage tabs */}
             <div className="w-48 shrink-0 space-y-1">
-              {SURROGATE_STAGES.map(stage => (
+              {visibleStages.map(stage => (
                 <button
                   key={stage.id}
                   className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
@@ -753,7 +786,7 @@ function StageStatusesSection() {
                   <div className="flex items-center justify-between">
                     {stage.label}
                     <span className={`text-[10px] ${activeStage === stage.id ? 'text-white/70' : 'text-stone-400'}`}>
-                      {(config[stage.id] || []).length}
+                      {(config[userType]?.[stage.id] || []).length}
                     </span>
                   </div>
                 </button>

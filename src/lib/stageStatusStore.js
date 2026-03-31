@@ -6,6 +6,29 @@ const STAGES_KEY = 'abc_surrogate_stages'
 const SUPABASE_CONFIG_KEY = 'status_config'
 const SUPABASE_STAGES_KEY = 'surrogate_stages'
 
+// Stage groupings for settings UI
+export const CASE_STAGES = SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
+export const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+
+// Default statuses per user type
+const DEFAULT_IP_STATUSES = {
+  'pre-qualification': ['New', '1st Reach Out', '2nd Reach Out', '3rd Reach Out', 'Consultation Scheduled', 'Consultation Complete', 'Application Sent', 'Application Complete', 'Zoom Call Scheduled'],
+  'screening': ['Documents Requested', 'Documents Received', 'Background In Progress', 'Background Complete'],
+  'matching': ['Awaiting Match', 'Profile Shared', 'Meeting Scheduled', 'Meeting Complete', 'Match Confirmed'],
+}
+
+const DEFAULT_JOURNEY_STATUSES = {
+  'journey-oversight': DEFAULT_STATUSES_BY_STAGE['journey-oversight'],
+  'journey-ending': DEFAULT_STATUSES_BY_STAGE['journey-ending'],
+  'journey-closed': DEFAULT_STATUSES_BY_STAGE['journey-closed'],
+}
+
+const DEFAULT_GC_STATUSES = {
+  'pre-qualification': DEFAULT_STATUSES_BY_STAGE['pre-qualification'],
+  'screening': DEFAULT_STATUSES_BY_STAGE['screening'],
+  'matching': DEFAULT_STATUSES_BY_STAGE['matching'],
+}
+
 // Module-level caches
 let _configCache = null
 let _stagesCache = null
@@ -53,33 +76,56 @@ function saveStagesToSupabase(stages) {
   setAppConfig(SUPABASE_STAGES_KEY, stages).catch(() => {})
 }
 
+// ── Migration: flat config → typed config ─────────────────
+
+function migrateConfig(config) {
+  // Already migrated if it has gc/ip/journey keys
+  if (config && config.gc && config.ip && config.journey) return config
+
+  // Old flat config: { 'pre-qualification': [...], 'screening': [...], ... }
+  // Migrate GC stages from old config, use defaults for IP, keep journey stages
+  const gcStages = {}
+  const journeyStages = {}
+
+  for (const stage of CASE_STAGES) {
+    gcStages[stage.id] = config?.[stage.id] || DEFAULT_GC_STATUSES[stage.id] || []
+  }
+  for (const stage of JOURNEY_STAGES) {
+    journeyStages[stage.id] = config?.[stage.id] || DEFAULT_JOURNEY_STATUSES[stage.id] || []
+  }
+
+  return {
+    gc: gcStages,
+    ip: structuredClone(DEFAULT_IP_STATUSES),
+    journey: journeyStages,
+  }
+}
+
 // ── Async loader (call on app startup) ────────────────────
 
 export async function loadStageStatuses() {
   try {
-    // Load both config and stages from Supabase in parallel
     const [remoteConfig, remoteStages] = await Promise.all([
       getAppConfig(SUPABASE_CONFIG_KEY),
       getAppConfig(SUPABASE_STAGES_KEY),
     ])
 
-    // Status config
     if (remoteConfig) {
-      _configCache = remoteConfig
-      saveConfigToLS(remoteConfig)
+      _configCache = migrateConfig(remoteConfig)
+      // Save back if migrated
+      if (!remoteConfig.gc) saveConfigToSupabase(_configCache)
+      saveConfigToLS(_configCache)
     } else {
-      // Migration: push localStorage to Supabase
       const localConfig = loadConfigFromLS()
       if (localConfig) {
-        _configCache = localConfig
-        saveConfigToSupabase(localConfig)
+        _configCache = migrateConfig(localConfig)
+        saveConfigToSupabase(_configCache)
       } else {
-        _configCache = structuredClone(DEFAULT_STATUSES_BY_STAGE)
+        _configCache = migrateConfig(null)
         saveConfigToSupabase(_configCache)
       }
     }
 
-    // Surrogate stages
     if (remoteStages) {
       _stagesCache = remoteStages
       saveStagesToLS(remoteStages)
@@ -94,11 +140,9 @@ export async function loadStageStatuses() {
       }
     }
 
-    // Clear localStorage after successful migration
     clearLS()
   } catch {
-    // Fallback to localStorage
-    _configCache = loadConfigFromLS() || structuredClone(DEFAULT_STATUSES_BY_STAGE)
+    _configCache = migrateConfig(loadConfigFromLS())
     _stagesCache = loadStagesFromLS() || {}
   }
 }
@@ -107,10 +151,9 @@ export async function loadStageStatuses() {
 
 export function getStatusConfig() {
   if (_configCache) return _configCache
-  // Fallback if not loaded yet
   const local = loadConfigFromLS()
-  if (local) { _configCache = local; return local }
-  _configCache = structuredClone(DEFAULT_STATUSES_BY_STAGE)
+  if (local) { _configCache = migrateConfig(local); return _configCache }
+  _configCache = migrateConfig(null)
   return _configCache
 }
 
@@ -120,21 +163,36 @@ export function setStatusConfig(config) {
   saveConfigToSupabase(config)
 }
 
-export function addStatus(stageId, statusLabel) {
+// Helper to get the right config sub-object for a userType
+function getTypeConfig(userType) {
   const config = getStatusConfig()
-  if (!config[stageId]) config[stageId] = []
-  if (!config[stageId].includes(statusLabel)) {
-    config[stageId].push(statusLabel)
+  return config[userType] || {}
+}
+
+// Helper to resolve userType from stageId (for backward compat)
+function resolveUserType(stageId) {
+  if (['journey-oversight', 'journey-ending', 'journey-closed'].includes(stageId)) return 'journey'
+  return 'gc' // default to gc for case stages
+}
+
+export function addStatus(stageId, statusLabel, userType) {
+  const type = userType || resolveUserType(stageId)
+  const config = getStatusConfig()
+  if (!config[type]) config[type] = {}
+  if (!config[type][stageId]) config[type][stageId] = []
+  if (!config[type][stageId].includes(statusLabel)) {
+    config[type][stageId].push(statusLabel)
     setStatusConfig(config)
   }
   return config
 }
 
-export function editStatus(stageId, oldLabel, newLabel) {
+export function editStatus(stageId, oldLabel, newLabel, userType) {
+  const type = userType || resolveUserType(stageId)
   const config = getStatusConfig()
-  if (!config[stageId]) return config
-  const idx = config[stageId].indexOf(oldLabel)
-  if (idx !== -1) config[stageId][idx] = newLabel
+  if (!config[type]?.[stageId]) return config
+  const idx = config[type][stageId].indexOf(oldLabel)
+  if (idx !== -1) config[type][stageId][idx] = newLabel
   setStatusConfig(config)
 
   // Also update any surrogates using the old status
@@ -154,14 +212,15 @@ export function editStatus(stageId, oldLabel, newLabel) {
   return config
 }
 
-export function deleteStatus(stageId, statusLabel, mode) {
+export function deleteStatus(stageId, statusLabel, mode, userType) {
+  const type = userType || resolveUserType(stageId)
   const config = getStatusConfig()
-  if (!config[stageId]) return config
-  config[stageId] = config[stageId].filter(s => s !== statusLabel)
+  if (!config[type]?.[stageId]) return config
+  config[type][stageId] = config[type][stageId].filter(s => s !== statusLabel)
   setStatusConfig(config)
 
   if (mode === 'remove_from_all') {
-    const fallback = config[stageId]?.[0] || 'New'
+    const fallback = config[type][stageId]?.[0] || 'New'
     const all = getAllSurrogateStageStatuses()
     let stagesChanged = false
     for (const [id, entry] of Object.entries(all)) {
@@ -176,13 +235,24 @@ export function deleteStatus(stageId, statusLabel, mode) {
       saveStagesToSupabase(all)
     }
   }
-  // 'soft_delete' just removes from config — surrogates keep the label
   return config
 }
 
 export function getStatusesInUse(stageId, statusLabel) {
   const all = getAllSurrogateStageStatuses()
   return Object.entries(all).filter(([, e]) => e.stage === stageId && e.status === statusLabel).length
+}
+
+// Get statuses for a specific stage, trying userType first then falling back
+export function getStatusesForStage(stageId, userType) {
+  const config = getStatusConfig()
+  if (userType && config[userType]?.[stageId]) return config[userType][stageId]
+  // Fallback: try gc, then journey, then flat
+  if (config.gc?.[stageId]) return config.gc[stageId]
+  if (config.journey?.[stageId]) return config.journey[stageId]
+  // Legacy flat fallback
+  if (Array.isArray(config[stageId])) return config[stageId]
+  return DEFAULT_STATUSES_BY_STAGE[stageId] || []
 }
 
 // ── Per-surrogate stage/status ─────────────────────────────
@@ -215,7 +285,7 @@ export function getStageByIdOrLabel(val) {
   return SURROGATE_STAGES.find(s => s.id === val || s.label === val)
 }
 
-export function getDefaultStatus(stageId) {
-  const config = getStatusConfig()
-  return config[stageId]?.[0] || 'New'
+export function getDefaultStatus(stageId, userType) {
+  const statuses = getStatusesForStage(stageId, userType)
+  return statuses[0] || 'New'
 }
