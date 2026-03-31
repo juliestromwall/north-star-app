@@ -352,7 +352,6 @@ function SurrogateScreeningSheet({ surrogates }) {
                                   <p className="text-stone-400 mt-0.5 ml-7">
                                     {formatDateShort(rec.lastDate)}
                                     {rec.lastNote ? ` — ${rec.lastNote}` : ''}
-                                    {rec.lastBy ? ` (${rec.lastBy})` : ''}
                                   </p>
                                 )}
                               </div>
