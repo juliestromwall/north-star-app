@@ -1,5 +1,92 @@
 # Session Log
 
+## 2026-03-29 / 2026-03-30 (Full Day Session — Continued)
+
+**Worked on:** IP Profile builder, Babies Born page, profile photo avatars, Supabase migration for all localStorage stores, medical records UX overhaul, stage statuses in admin settings, admin profile pregnancy editing, numerous bug fixes
+
+**Changes made:**
+
+IP Profile Builder:
+- 5-section profile tab on IP detail page (Fertility, Surrogacy, Personal, Health, Personal History)
+- Couples get IP1/IP2 tabs on per-person sections
+- Edit/save per section, completion progress bar
+- Data stored in answers._ipProfile via updateIntakeSubmission
+
+Babies Born Page:
+- /babies-born page with year-by-year births table, editable counts
+- Line chart with gradient pink→blue, cumulative area fill
+- Hero stats: Total Babies Born (222) + Currently Pregnant (13)
+- Sidebar baby icon links to /babies-born, shows live total
+- Historical data from ABC spreadsheet (2014-2026)
+
+Profile Photo Avatars:
+- ProfilePhotoUpload saves URL to profileData.personal.profilePhotoUrl
+- SurrogateListPage loads avatar URLs from profiles
+- SurrogateDetailPage auto-detects portrait photo from storage (getPortraitPhotoUrl)
+- RoleContext enriches auth user with real name from intake_submissions + profile photo
+- TopBar shows avatar image when available
+
+Supabase Migration:
+- New app_config table (key-value JSONB store)
+- checklistStore: Supabase-backed with memory cache, async load on startup
+- stageStatusStore: same pattern
+- BabiesBornPage: loads/saves via getAppConfig/setAppConfig
+- Record tracking: stored in intake_submissions.answers._recordTracking
+- main.jsx fires loadChecklistConfig() + loadStageStatuses() at startup
+- Auto-migration: existing localStorage data pushed to Supabase on first load
+
+Medical Records UX:
+- Record type badges: OB (blue), Delivery (purple), IVF (pink), PAP (amber)
+- Badge displayed under custom record label
+- "Deactivated" as a status option (not a toggle switch)
+- Deactivated records: gray dot, dimmed, clickable to reactivate
+- Counts exclude deactivated records
+- Dashboard popup hides deactivated, shows custom labels + badges
+- Default labels shortened to "OB 2026" format
+- Click record name to rename (e.g. "Dr. Smith OB 2024")
+- "+ Add Record" button with record type selection
+- Tab shows count "Medical Records 1/6" (smaller text)
+- Removed row numbers from records
+
+Admin Profile Editing:
+- numberOfPregnancies drives pregnancy array (number input, auto-resize)
+- adminUpdateSurrogateProfile changed to upsert (creates row if none exists)
+- Array fields initialize as [] not '' for empty profiles
+
+Stage Statuses in Settings:
+- New collapsible "Stage Statuses" section
+- Stage tabs on left, status list on right
+- Add, edit (inline), delete statuses per stage
+- Delete confirmation: "Delete for all cases" or "Just hide going forward"
+- Count badges per stage
+
+Bug Fixes:
+- avatarUrls undefined in SurrogateCard (passed as prop)
+- hiddenFields.includes crash (Array.isArray check)
+- Profile tab blank page (same hiddenFields fix)
+- Pregnancy data not persisting (upsert fix)
+- Duplicate checklist rows (removed hardcoded OB/Delivery/IVF summary rows)
+- Tab count mismatch for medical records
+- Surrogate name "Testing" on user side (enriched from intake_submissions)
+
+**Next steps:**
+- Journey Manager feature (JA/NL initials on matched journey cards)
+- Fix dashboard checklist step data reconciliation for record-type steps
+- Admin profile question labels to match surrogate form wording (waiting for ABC feedback)
+- Twilio upgrade from trial for production texting
+- Incoming SMS webhook for Twilio
+- Per-admin Twilio numbers
+- Share/send surrogate profiles externally
+- Auto Emails, Gmail API, Google Calendar API
+- Fax API, Contract/E-Signature API
+
+**Open questions:**
+- Dashboard OB Records step shows wrong status — step ID from checklist config doesn't match tracking keys (ob_records_0, etc.)
+- Should IP cases have the same stage/status system as surrogates?
+- How should Journey Manager assignment work on matched journeys?
+
+---
+
 ## 2026-03-28 / 2026-03-29 (Full Day Session)
 
 **Worked on:** Configurable checklists & milestones, admin settings (team management, collapsible sections), Twilio SMS integration, admin profile editor upgrade with visibility toggles, real admin staff names, various UX fixes

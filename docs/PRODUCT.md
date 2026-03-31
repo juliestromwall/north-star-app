@@ -118,7 +118,8 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Calendar | /calendar | admin+ | Built |
 | Time Clock | /time-clock | admin+ | Built |
 | Text Messages | /text-messages | admin+ | Built (Twilio SMS, read/unread, case matching) |
-| Settings | /settings | master_admin+ | Built (notes, team mgmt, checklists) |
+| Babies Born | /babies-born | admin+ | Built (yearly births, line chart, editable) |
+| Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
 | E-Signature | /e-signature | admin+ | Stub |
