@@ -19,6 +19,8 @@ import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/l
 import StageBadge from '@/components/shared/StageBadge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
@@ -2079,6 +2081,19 @@ function GTPALChip({ label, value, color }) {
 }
 
 // ── Profile section config ─────────────────────────────────
+const SECTION_DESCRIPTIONS = {
+  personal: 'Basic info, relationships, and household',
+  pregnancyHistory: 'Previous pregnancies and deliveries',
+  fertility: 'Reproductive health and fertility details',
+  general: 'Housing, lifestyle, habits, and background',
+  health: 'Medical history, medications, and conditions',
+  employment: 'Work, income, and insurance details',
+  interests: 'Favorites, hobbies, and personality',
+  academic: 'Education and training',
+  experiencedSurrogate: 'Previous surrogacy journey details',
+  hopesWishes: 'Surrogacy goals, preferences, and compensation',
+}
+
 const PROFILE_SECTIONS = [
   { key: 'personal', title: 'Personal Information', fields: [
     'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
@@ -2579,56 +2594,193 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
 
   const NUMBER_FIELDS = ['numberOfPregnancies', 'householdMemberCount', 'surrogacyTimes', 'sleepHours', 'heightFt', 'heightIn', 'weight', 'weightLbs']
 
+  // Yes/No toggle fields (match surrogate YesNoField)
+  const YES_NO_FIELDS = new Set([
+    'usCitizen', 'realId', 'validPassport', 'otherLanguages', 'monogamous', 'partnerUsCitizen',
+    'sameBioFather', 'infertilityTreatment', 'gynecologicalProblems', 'cycleLength', 'breastfeeding',
+    'pregnancyMedication', 'willingToTravelNICU',
+    'childrenFullTime', 'childrenSpecialNeeds', 'placedForAdoption', 'planMoreChildren',
+    'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
+    'householdControlledSubstances', 'gunsOwned', 'piercingsTattoos', 'nonSterilePiercing',
+    'eatingDisorders', 'criminalHistory', 'recentTravel', 'travelPlans', 'sleepIssues',
+    'reliableVehicle', 'autoInsurance', 'validLicense', 'partnerFdaTests',
+    'mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
+    'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
+    'openToVaccinations', 'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling',
+    'currentlyEmployed', 'governmentAssistance', 'currentlyInSchool', 'previousSurrogate',
+    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'pumpBreastmilk',
+    'ipsAtAppointments', 'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
+    'transferAnotherState', 'ipsOutsideUS', 'cvsAmnio', 'partnerAgreesTermination',
+    'carryTwins', 'compensationNegotiable',
+  ])
+
+  // Dropdown fields with their options
+  const SELECT_FIELDS = {
+    state: US_STATES_FULL,
+    heightFt: ['4', '5', '6'],
+    heightIn: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+    maritalStatus: ['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed'],
+    sexualPartners: ['0', '1', '2', '3', '4+'],
+    contraceptiveMethod: ['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other'],
+    homeOwnership: ['Own', 'Rent', 'Other'],
+    religionImportance: ['Not Important', 'Somewhat Important', 'Important', 'Very Important'],
+    insuranceType: ['Private/Personal', 'Through my employer', "Through spouse's employer", 'No insurance', 'Other'],
+    educationLevel: ['Some High School', 'High School Diploma / GED', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Vocational / Trade School', 'Other'],
+    preferredCommunication: ['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything'],
+    ipInvolvement: ['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal'],
+    whenReadyToBegin: ['Immediately', 'Within 1-3 months', 'Within 3-6 months', 'Within 6-12 months', '1+ year'],
+    postBirthRelationship: ['Close / Ongoing', 'Occasional Updates', 'Holiday Cards / Photos', 'Clean Break', 'Open to Whatever Develops'],
+    embryosToTransfer: ['1', '2', 'Doctor recommendation', 'Open to discussion'],
+  }
+
+  // Checkbox group fields with their options
+  const CHECKBOX_FIELDS = {
+    diseaseHistory: ['Anemia', 'Autoimmune disorder', 'Blood sugar issues', 'Breast Disorders', 'Cancer', 'Chest Pain', 'Chlamydia', 'CMV', 'Cyst (uterine/ovarian)', 'Gonorrhea (or other STI)', 'Hepatitis B', 'High Blood Pressure', 'High Cholesterol', 'HIV/AIDS', 'HPV', 'Hypoglycemia or hyperglycemia', 'HSV 1 (cold sores)', 'HSV 2 (genital herpes)', 'Leukemia', 'Liver Disease', 'Migraine Headaches', 'Psychiatric Disorders', 'Reproductive Disorders', 'Thyroid Disorder', 'Tumor', 'Tuberculosis', 'Other', 'None of the Above'],
+    complicationsList: ['C-Section', 'Ectopic Pregnancy', 'Gestational Diabetes', 'High Blood Pressure', 'IUGR (Intrauterine Growth Restriction)', 'Physician Ordered Bed Rest', 'Placenta Previa', 'Postpartum Depression', 'Premature Birth', 'Retained Placenta', 'Toxemia', 'Other', 'None of the above'],
+  }
+
+  // Currency fields
+  const CURRENCY_FIELDS = new Set(['desiredCompensation', 'hourlyRate', 'weeklyIncome', 'partnerWeeklyIncome'])
+
+  // Textarea fields (multi-line text)
+  const TEXTAREA_FIELDS = new Set([
+    'sameBioFatherDetails', 'pregnancyDetails', 'infectionAfterDetails', 'birthDefectDetails',
+    'complicationsExplanation', 'infertilityTreatmentDetails', 'gynecologicalProblemsDetails',
+    'pregnancyMedicationList', 'nearestNICU', 'cycleLengthDetails', 'breastfeedingStopDate', 'timeToConceive',
+    'homeDuration', 'childrenFullTimeDetails', 'childrenSpecialNeedsDetails', 'placedForAdoptionDetails',
+    'divorcedRelationship', 'planMoreChildrenDetails', 'smokingHistoryDetails', 'householdSmokerDetails',
+    'alcoholDrugsDetails', 'advisedLimitDetails', 'householdSubstancesDetails', 'householdSubstancesPurpose',
+    'gunsDetails', 'piercingsTattoosDetails', 'eatingDisordersDetails', 'typicalDiet',
+    'religion', 'ethnicity', 'differentReligion', 'criminalHistoryDetails',
+    'recentTravelDetails', 'travelPlansDetails', 'exerciseFrequency', 'sleepIssuesDetails',
+    'mentalHealthDetails', 'mentalHealthHospDetails', 'mentalHealthMedDetails',
+    'counselingDetails', 'familyMentalHealthDetails', 'domesticViolenceDetails',
+    'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds', 'allergies', 'medicalConditions',
+    'surgeries', 'diseaseHistoryDetails', 'vaccinationReasons',
+    'employmentIndustry', 'healthInsurance', 'governmentAssistanceDetails',
+    'hobbies', 'dreamTravel', 'personality', 'currentlyInSchoolDetails', 'overallExperience',
+    'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
+    'lifestyleChangesDetails', 'idealIPs', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers',
+    'ipsCantAttend', 'childCareTraveling', 'cvsAmnioDetails', 'willingnessToTerminate',
+    'conditionsWontTerminate', 'additionalComments',
+  ])
+
+  const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+
   function renderScalarFieldEdit(field, secKey) {
     const val = editData[field]
     const hidden = isFieldHidden(secKey, field)
+
+    const labelRow = (
+      <div className="flex items-center gap-1">
+        <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
+        <HideToggle sectionKey={secKey} fieldKey={field} />
+      </div>
+    )
+
     // Number fields
-    if (NUMBER_FIELDS.includes(field)) {
+    if (NUMBER_FIELDS.includes(field) && !SELECT_FIELDS[field]) {
       return (
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
-          <div className="flex items-center gap-1">
-            <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
-            <HideToggle sectionKey={secKey} fieldKey={field} />
-          </div>
-          <input
-            type="number"
-            min="0"
-            max={field === 'numberOfPregnancies' ? '20' : undefined}
-            className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-            value={val || ''}
-            onChange={e => updateEditField(field, e.target.value)}
-          />
+          {labelRow}
+          <input type="number" min="0" max={field === 'numberOfPregnancies' ? '20' : undefined}
+            className={inputClass} value={val || ''} onChange={e => updateEditField(field, e.target.value)} />
         </div>
       )
     }
-    if (isBooleanField(val)) {
+
+    // Select/dropdown fields
+    if (SELECT_FIELDS[field]) {
       return (
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
-          <div className="flex items-center gap-1">
-            <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
-            <HideToggle sectionKey={secKey} fieldKey={field} />
-          </div>
-          <SelectUI value={toBooleanDisplay(val)} onValueChange={v => updateEditField(field, v)}>
-            <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+          {labelRow}
+          <SelectUI value={val || ''} onValueChange={v => updateEditField(field, v)}>
+            <SelectTriggerUI className="h-9 text-sm bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
             <SelectContentUI>
-              <SelectItemUI value="yes">Yes</SelectItemUI>
-              <SelectItemUI value="no">No</SelectItemUI>
+              {SELECT_FIELDS[field].map(opt => <SelectItemUI key={opt} value={opt}>{opt}</SelectItemUI>)}
             </SelectContentUI>
           </SelectUI>
         </div>
       )
     }
+
+    // Checkbox group fields
+    if (CHECKBOX_FIELDS[field]) {
+      const current = Array.isArray(val) ? val : []
+      const toggle = (opt) => {
+        const set = new Set(current)
+        if (set.has(opt)) set.delete(opt)
+        else set.add(opt)
+        updateEditField(field, [...set])
+      }
+      return (
+        <div key={field} className={`space-y-1.5 col-span-full ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+            {CHECKBOX_FIELDS[field].map(opt => (
+              <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={current.includes(opt)} onCheckedChange={() => toggle(opt)} />
+                <span className="text-gray-700">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    // Currency fields
+    if (CURRENCY_FIELDS.has(field)) {
+      const formatCurrency = (v) => {
+        const digits = String(v).replace(/[^0-9]/g, '')
+        if (!digits) return ''
+        return '$' + Number(digits).toLocaleString('en-US')
+      }
+      return (
+        <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <input className={inputClass} value={formatCurrency(val)} placeholder="$0"
+            onChange={e => { const digits = e.target.value.replace(/[^0-9]/g, ''); updateEditField(field, digits ? '$' + Number(digits).toLocaleString('en-US') : '') }} />
+        </div>
+      )
+    }
+
+    // Yes/No toggle fields
+    if (YES_NO_FIELDS.has(field) || isBooleanField(val)) {
+      const display = typeof val === 'boolean' ? (val ? 'yes' : 'no') : (val === true || val === 'true' ? 'yes' : val === false || val === 'false' ? 'no' : val || '')
+      return (
+        <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <div className="flex items-center gap-2 pt-0.5">
+            <button type="button" onClick={() => updateEditField(field, 'yes')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'yes' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              Yes
+            </button>
+            <button type="button" onClick={() => updateEditField(field, 'no')}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'no' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+              No
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    // Textarea fields
+    if (TEXTAREA_FIELDS.has(field)) {
+      return (
+        <div key={field} className={`space-y-1 col-span-full ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <Textarea className="bg-white text-sm min-h-[60px]" rows={2} value={val || ''}
+            onChange={e => updateEditField(field, e.target.value)} />
+        </div>
+      )
+    }
+
+    // Default: text input
     return (
       <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
-        <div className="flex items-center gap-1">
-          <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
-          <HideToggle sectionKey={secKey} fieldKey={field} />
-        </div>
-        <input
-          className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-          value={Array.isArray(val) ? val.join(', ') : String(val || '')}
-          onChange={e => updateEditField(field, e.target.value)}
-        />
+        {labelRow}
+        <input className={inputClass} value={Array.isArray(val) ? val.join(', ') : String(val || '')}
+          onChange={e => updateEditField(field, e.target.value)} />
       </div>
     )
   }
@@ -2981,7 +3133,10 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                   className={`rounded-2xl transition-all duration-300 ease-in-out ${isEditing ? 'lg:col-span-2 shadow-lg border-[#283693]/30 ring-2 ring-[#283693]/10' : ''}`}
                 >
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-base">{sec.title}</CardTitle>
+                    <div>
+                      <CardTitle className="text-base">{sec.title}</CardTitle>
+                      {SECTION_DESCRIPTIONS[sec.key] && <p className="text-xs text-muted-foreground mt-0.5">{SECTION_DESCRIPTIONS[sec.key]}</p>}
+                    </div>
                     {isEditing ? (
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => setEditingSection(null)}>Cancel</Button>
