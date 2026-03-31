@@ -149,11 +149,11 @@ export default function IPDetailPage() {
 
           {/* Info tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard label="Type" value={ip.type || '—'} icon={Users} />
-            <StatCard label="RE Doctor" value={ip.hasRE ? (ip.reDoctorName || 'Yes') : '—'} icon={Stethoscope} />
-            <StatCard label="Embryos" value={ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos)} icon={Baby} />
-            <StatCard label="Egg Donor" value={boolLabel(ip.usingEggDonor)} icon={Egg} />
-            <StatCard label="Sperm Donor" value={boolLabel(ip.usingSpermDonor)} icon={Heart} />
+            <StatCard title="Type" value={ip.type || '—'} icon={Users} />
+            <StatCard title="RE Doctor" value={ip.hasRE ? (ip.reDoctorName || 'Yes') : '—'} icon={Stethoscope} />
+            <StatCard title="Embryos" value={ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos)} icon={Baby} />
+            <StatCard title="Egg Donor" value={boolLabel(ip.usingEggDonor)} icon={Egg} />
+            <StatCard title="Sperm Donor" value={boolLabel(ip.usingSpermDonor)} icon={Heart} />
           </div>
         </div>
       </div>
