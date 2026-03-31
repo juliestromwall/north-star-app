@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
+import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
@@ -886,7 +887,7 @@ export default function SurrogateDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="contact">Application</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="screening">Checklist</TabsTrigger>
           <TabsTrigger value="records">
@@ -929,9 +930,9 @@ export default function SurrogateDetailPage() {
           <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} stageId={stageStatus?.stage || 'pre-qualification'} />
         </TabsContent>
 
-        {/* Contact Tab */}
-        <TabsContent value="contact" className="mt-4">
-          <ContactTab surrogate={surrogate} setSurrogate={setSurrogate} quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} />
+        {/* Application Tab */}
+        <TabsContent value="contact" className="mt-4 space-y-4">
+          <GCApplicationTab surrogate={surrogate} setSurrogate={setSurrogate} quizAnswers={quizAnswers} setQuizAnswers={setQuizAnswers} profileData={profileData} />
         </TabsContent>
 
         {/* Profile Tab */}

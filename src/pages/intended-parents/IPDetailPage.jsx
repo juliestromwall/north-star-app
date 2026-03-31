@@ -528,7 +528,7 @@ export default function IPDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="intake">Intake Form</TabsTrigger>
+          <TabsTrigger value="intake">Application</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
