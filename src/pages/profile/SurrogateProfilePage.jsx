@@ -847,7 +847,7 @@ function PVYesNo({ label, value, fp }) {
 }
 
 export function ProfilePreview({ profile, photos }) {
-  const hiddenFields = profile?._hiddenFields || []
+  const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
   const p = profile?.personal || profile?.about || {}
   const family = profile?.family || {}
   const about = { ...p, ...family }

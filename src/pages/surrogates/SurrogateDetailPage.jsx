@@ -2325,9 +2325,10 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   function startSectionEdit(sec) {
     const sectionData = data[sec.key] || {}
     const merged = { ...sectionData }
+    const arrayFieldNames = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList']
     for (const f of sec.fields) {
       if (!(f in merged)) {
-        merged[f] = ''
+        merged[f] = arrayFieldNames.includes(f) ? [] : ''
       }
     }
     setEditData(merged)
