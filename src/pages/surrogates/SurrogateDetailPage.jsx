@@ -76,6 +76,7 @@ const MEDICAL_RECORD_STATUSES = [
   { id: 'received', label: 'Received' },
   { id: 'reviewed', label: 'Reviewed' },
   { id: 'complete', label: 'Complete' },
+  { id: 'na', label: 'Deactivated' },
 ]
 
 // ── Screening step statuses ──
@@ -180,7 +181,7 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
 
   function statusColor(statusId) {
     if (statusId === 'complete') return 'text-green-600 bg-green-50 border-green-200'
-    if (statusId === 'na') return 'text-stone-400 bg-stone-50 border-stone-200'
+    if (statusId === 'na') return 'text-stone-400 bg-stone-100 border-stone-300 italic'
     if (statusId === 'not_started') return 'text-stone-400 bg-stone-50 border-stone-200'
     if (statusId === 'received' || statusId === 'reviewed') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
     if (statusId === 'followed_up') return 'text-sky-600 bg-sky-50 border-sky-200'
@@ -205,12 +206,12 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
         <table className="w-full border-t border-stone-200 text-sm">
           <thead>
             <tr className="bg-stone-50 border-b border-stone-200">
-              <th className="text-left px-5 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'30%'}}>Step</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>Status</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'11%'}}>Date</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'30%'}}>Note</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>By</th>
-              <th style={{width:'40px'}} />
+              <th className="text-left px-5 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'35%'}}>{title?.includes('Medical') ? 'Record' : 'Step'}</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'11%'}}>Status</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'10%'}}>Date</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'28%'}}>Note</th>
+              <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>By</th>
+              <th style={{width:'30px'}} />
             </tr>
           </thead>
           <tbody>
@@ -257,32 +258,20 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                           </div>
                         ) : (
                           <>
-                            {step.badge && (
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${step.badge.color}`}>{step.badge.label}</span>
-                            )}
-                            <span
-                              className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
-                              onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
-                              title="Click to rename"
-                            >
-                              {data.customLabel || step.label}
-                            </span>
+                            <div className="flex flex-col">
+                              <span
+                                className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
+                                onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
+                                title="Click to rename"
+                              >
+                                {data.customLabel || step.label}
+                              </span>
+                              {step.badge && (
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded self-start mt-0.5 ${step.badge.color}`}>{step.badge.label}</span>
+                              )}
+                            </div>
                             {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
                           </>
-                        )}
-                        {step.canToggleNA && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              const newStatus = currentStatus === 'na' ? 'not_started' : 'na'
-                              const note = newStatus === 'na' ? 'Not needed' : 'Re-enabled'
-                              onUpdate(step.id, { status: newStatus, history: [...(data.history || []), { status: newStatus, date: new Date().toISOString().split('T')[0], note, by: currentUserName || 'Admin' }] })
-                            }}
-                            className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${currentStatus === 'na' ? 'bg-stone-300' : 'bg-emerald-500'}`}
-                            title={currentStatus === 'na' ? 'Re-activate' : 'Deactivate'}
-                          >
-                            <span className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${currentStatus === 'na' ? 'translate-x-0' : 'translate-x-3'}`} />
-                          </button>
                         )}
                         {currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                       </div>
@@ -294,7 +283,7 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                     </td>
                     <td className="px-3 py-3.5 text-stone-500">{formatDateMMDDYYYY(lastEntry?.date)}</td>
                     <td className="px-3 py-3.5 text-stone-500 text-xs break-words">{lastEntry?.note || ''}</td>
-                    <td className="px-3 py-3.5 text-stone-400">{lastEntry?.by || ''}</td>
+                    <td className="px-4 py-3.5 text-stone-400 text-right text-xs">{lastEntry?.by || ''}</td>
                     <td className="px-3 py-3.5" />
                   </tr>
 
