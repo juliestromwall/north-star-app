@@ -12,7 +12,6 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
-import StatCard from '@/components/shared/StatCard'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
@@ -149,11 +148,19 @@ export default function IPDetailPage() {
 
           {/* Info tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <StatCard title="Type" value={ip.type || '—'} icon={Users} />
-            <StatCard title="RE Doctor" value={ip.hasRE ? (ip.reDoctorName || 'Yes') : '—'} icon={Stethoscope} />
-            <StatCard title="Embryos" value={ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos)} icon={Baby} />
-            <StatCard title="Egg Donor" value={boolLabel(ip.usingEggDonor)} icon={Egg} />
-            <StatCard title="Sperm Donor" value={boolLabel(ip.usingSpermDonor)} icon={Heart} />
+            {[
+              { icon: Users, label: 'Type', value: ip.type || '—' },
+              { icon: Stethoscope, label: 'RE Doctor', value: ip.hasRE ? (ip.reDoctorName || 'Yes') : '—' },
+              { icon: Baby, label: 'Embryos', value: ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos) },
+              { icon: Egg, label: 'Egg Donor', value: boolLabel(ip.usingEggDonor) },
+              { icon: Heart, label: 'Sperm Donor', value: boolLabel(ip.usingSpermDonor) },
+            ].map(tile => (
+              <div key={tile.label} className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
+                <tile.icon className="size-4 text-stone-300 mx-auto mb-1" />
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{tile.label}</p>
+                <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{tile.value}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
