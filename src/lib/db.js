@@ -500,14 +500,25 @@ export async function updateSurrogateProfileStatus(email, status) {
 
 export async function adminUpdateSurrogateProfile(email, profileData) {
   if (!supabase) return null
-  const { data, error } = await supabase
+  const cleanEmail = email.trim().toLowerCase()
+  // Try update first
+  const { data: updated, error: updateErr } = await supabase
     .from('surrogate_profiles')
     .update({ profile_data: profileData, updated_at: new Date().toISOString() })
-    .eq('email', email.trim().toLowerCase())
+    .eq('email', cleanEmail)
     .select()
-    .single()
-  if (error) throw error
-  return data
+  // If no rows matched, insert a new row
+  if (!updateErr && (!updated || updated.length === 0)) {
+    const { data: inserted, error: insertErr } = await supabase
+      .from('surrogate_profiles')
+      .insert({ email: cleanEmail, profile_data: profileData, updated_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (insertErr) throw insertErr
+    return inserted
+  }
+  if (updateErr) throw updateErr
+  return updated?.[0] || null
 }
 
 // ── Profile Photos (Supabase Storage) ───────────────────
