@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope,
-  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg,
+  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -12,9 +12,12 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
+import StageBadge from '@/components/shared/StageBadge'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import { useRole } from '@/context/RoleContext'
+import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
+import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 
@@ -32,11 +35,15 @@ export default function IPDetailPage() {
   const { currentUser } = useRole()
   const [ip, setIp] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
+  const [stageOpen, setStageOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
 
   useEffect(() => {
     fetchIPsFromIntake().then(all => {
       const found = all.find(item => String(item.id) === String(id))
       setIp(found || null)
+      if (found) setStageStatus(getSurrogateStageStatus(found.id))
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [id])
@@ -74,10 +81,10 @@ export default function IPDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
+                <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
                 <Badge variant="outline" className="text-xs bg-sky-100 text-sky-800 border-sky-200">
                   {ip.type}
                 </Badge>
-                <span className="text-xs font-medium text-stone-400 capitalize">{ip.status?.replace(/_/g, ' ')}</span>
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
                 {ip.location && (
@@ -146,8 +153,6 @@ export default function IPDetailPage() {
               { icon: Heart, label: 'Relationship', value: a.maritalStatus || '—' },
               { icon: Stethoscope, label: 'RE Doctor', value: ip.hasRE ? (ip.reDoctorName || 'Yes') : '—' },
               { icon: Baby, label: 'Embryos', value: ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos) },
-              { icon: Egg, label: 'Egg Donor', value: boolLabel(ip.usingEggDonor) },
-              { icon: Users, label: 'Sperm Donor', value: boolLabel(ip.usingSpermDonor) },
             ].map(tile => (
               <div key={tile.label} className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
                 <tile.icon className="size-4 text-stone-300 mx-auto mb-1" />
@@ -155,6 +160,91 @@ export default function IPDetailPage() {
                 <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{tile.value}</p>
               </div>
             ))
+            })()}
+
+            {/* Stage — clickable selector */}
+            {(() => {
+              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
+              const caseStages = SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
+              return (
+                <div className="relative">
+                  <div
+                    className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
+                    onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
+                  >
+                    <Milestone className="size-4 text-stone-300 mx-auto mb-1" />
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
+                    <p className="text-lg font-bold mt-0.5 leading-tight" style={{ color: currentStageObj.color }}>
+                      {IP_STAGE_LABELS[stageStatus.stage] || currentStageObj.label}
+                    </p>
+                  </div>
+                  {stageOpen && (
+                    <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-2" onClick={e => e.stopPropagation()}>
+                      {caseStages.map((stage, i) => (
+                        <button
+                          key={stage.id}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 ${stageStatus.stage === stage.id ? 'font-bold' : ''}`}
+                          style={stageStatus.stage === stage.id ? { color: stage.color, backgroundColor: stage.color + '10' } : {}}
+                          onClick={e => {
+                            e.stopPropagation()
+                            const newStatus = getDefaultStatus(stage.id, 'ip')
+                            setSurrogateStageStatus(ip.id, stage.id, newStatus)
+                            setStageStatus({ stage: stage.id, status: newStatus })
+                            setStageOpen(false)
+                          }}
+                        >
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 1}</span>
+                          {IP_STAGE_LABELS[stage.id] || stage.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Status — clickable selector */}
+            {(() => {
+              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
+              const availableStatuses = getStatusesForStage(stageStatus.stage, 'ip')
+              return (
+                <div className="relative">
+                  <div
+                    className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
+                    onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
+                  >
+                    {stageStatus.status === 'New' ? (
+                      <span className="relative flex size-4 mx-auto mb-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
+                      </span>
+                    ) : (
+                      <Circle className="size-4 text-stone-300 mx-auto mb-1" />
+                    )}
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Status</p>
+                    <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{stageStatus.status}</p>
+                  </div>
+                  {statusOpen && (
+                    <div className="absolute z-30 top-full right-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-stone-200 py-2 max-h-64 overflow-y-auto" onClick={e => e.stopPropagation()}>
+                      {availableStatuses.map(status => (
+                        <button
+                          key={status}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 ${stageStatus.status === status ? 'font-bold' : ''}`}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setSurrogateStageStatus(ip.id, stageStatus.stage, status)
+                            setStageStatus(prev => ({ ...prev, status }))
+                            setStatusOpen(false)
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: currentStageObj.color }} />
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
             })()}
           </div>
         </div>
