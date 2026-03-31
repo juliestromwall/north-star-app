@@ -557,11 +557,15 @@ export default function SurrogateDetailPage() {
         }).catch(() => {})
       }
       if (found?.userId) {
-        listProfilePhotos(found.userId).then(setPhotos).catch(() => {})
-        listProfilePhotos(`${found.userId}/headshot`).then(hs => {
-          if (hs.length > 0) setPhotos(prev => [hs[0], ...prev])
-        }).catch(() => {})
-        // Auto-detect portrait photo for avatar
+        // Load all photo sources and combine
+        Promise.all([
+          listProfilePhotos(found.userId).catch(() => []),
+          listProfilePhotos(`${found.userId}/headshot`).catch(() => []),
+          listProfilePhotos(`${found.userId}/portrait`).catch(() => []),
+        ]).then(([gallery, headshots, portraits]) => {
+          const all = [...portraits, ...headshots, ...gallery]
+          setPhotos(all)
+        })
         getPortraitPhotoUrl(found.userId).then(url => {
           if (url) setPortraitUrl(url)
         }).catch(() => {})
@@ -737,18 +741,19 @@ export default function SurrogateDetailPage() {
             })()}
             {/* Relationship / Partner name */}
             {(() => {
-              const partnerName = profileData?.family?.partnerName
+              const partnerName = profileData?.personal?.partnerName || profileData?.family?.partnerName
+              const ms = profileData?.personal?.maritalStatus || surrogate.maritalStatus || '—'
               if (partnerName) {
                 return (
                   <FlipCard
                     flipped={flipped.relationship}
                     onClick={() => toggleFlip('relationship')}
-                    front={{ icon: Heart, label: 'Relationship', value: surrogate.maritalStatus || '—' }}
+                    front={{ icon: Heart, label: 'Relationship', value: ms }}
                     back={{ icon: Heart, label: 'Partner', value: partnerName }}
                   />
                 )
               }
-              return <StatCard label="Relationship" value={surrogate.maritalStatus || '—'} icon={Heart} />
+              return <StatCard label="Relationship" value={ms} icon={Heart} />
             })()}
             {/* Stage — clickable selector */}
             {(() => {
@@ -933,12 +938,17 @@ export default function SurrogateDetailPage() {
         <TabsContent value="profile" className="space-y-6 mt-4">
           <ProfileTab
             surrogate={surrogate}
+            setSurrogate={setSurrogate}
             profileData={profileData}
             setProfileData={setProfileData}
             profileStatus={profileStatus}
             setProfileStatus={setProfileStatus}
             photos={photos}
+            setPhotos={setPhotos}
+            portraitUrl={portraitUrl}
             heightStr={heightStr}
+            quizAnswers={quizAnswers}
+            setQuizAnswers={setQuizAnswers}
           />
         </TabsContent>
 
@@ -2419,7 +2429,125 @@ function toBooleanDisplay(value) {
   return ''
 }
 
-function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, heightStr }) {
+function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate }) {
+  const [lightboxUrl, setLightboxUrl] = useState(null)
+  const hiddenPhotos = profileData?._hiddenPhotos || []
+
+  async function togglePhotoHidden(photoPath) {
+    const current = profileData?._hiddenPhotos || []
+    const updated = current.includes(photoPath)
+      ? current.filter(p => p !== photoPath)
+      : [...current, photoPath]
+    const newData = { ...profileData, _hiddenPhotos: updated }
+    setProfileData(newData)
+    if (surrogate.email) {
+      try { await adminUpdateSurrogateProfile(surrogate.email, newData) } catch {}
+    }
+  }
+
+  async function handleDeletePhoto(photo) {
+    if (!confirm('Permanently delete this photo?')) return
+    try {
+      await deleteProfilePhoto(photo.path)
+      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+    } catch {}
+  }
+
+  // Separate portrait, cover (headshot), and gallery
+  let portrait = photos.find(p => p.path?.includes('/portrait/')) || null
+  // If no portrait in photos array but profilePhotoUrl exists in profile data, create a virtual entry
+  const profilePhotoUrl = profileData?.personal?.profilePhotoUrl || portraitUrl
+  if (!portrait && profilePhotoUrl) {
+    portrait = { url: profilePhotoUrl, path: '_profile_photo', name: 'Profile Photo' }
+  }
+  const cover = photos.find(p => p.path?.includes('/headshot/'))
+  const gallery = photos.filter(p => p !== portrait && p !== cover && p.path !== '_profile_photo')
+
+  const totalCount = photos.length + (portrait && !photos.includes(portrait) ? 1 : 0)
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader>
+        <CardTitle>Photos ({totalCount})</CardTitle>
+        <p className="text-xs text-muted-foreground">Click to view full size. Use the eye icon to hide from matching profile.</p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Profile & Cover photos */}
+        {(portrait || cover) && (
+          <div className="flex gap-4 flex-wrap">
+            {portrait && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Profile Photo</p>
+                <div className={`relative group w-32 h-32 rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(portrait.path) ? 'opacity-40 border-red-300' : 'border-[#283693]/20'}`}>
+                  <img src={portrait.url} alt="Profile" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(portrait.url)} />
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => togglePhotoHidden(portrait.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(portrait.path) ? 'text-red-500' : 'text-gray-400'}`}>
+                      {hiddenPhotos.includes(portrait.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    </button>
+                    <button onClick={() => handleDeletePhoto(portrait)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {cover && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Cover Photo</p>
+                <div className={`relative group w-48 h-32 rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(cover.path) ? 'opacity-40 border-red-300' : 'border-[#283693]/20'}`}>
+                  <img src={cover.url} alt="Cover" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(cover.url)} />
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => togglePhotoHidden(cover.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(cover.path) ? 'text-red-500' : 'text-gray-400'}`}>
+                      {hiddenPhotos.includes(cover.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    </button>
+                    <button onClick={() => handleDeletePhoto(cover)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Gallery photos */}
+        {gallery.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Gallery ({gallery.length})</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              {gallery.map(p => (
+                <div key={p.path} className={`relative group aspect-square rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(p.path) ? 'opacity-40 border-red-300' : 'border-gray-100'}`}>
+                  <img src={p.url} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(p.url)} />
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => togglePhotoHidden(p.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(p.path) ? 'text-red-500' : 'text-gray-400'}`}>
+                      {hiddenPhotos.includes(p.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                    </button>
+                    <button onClick={() => handleDeletePhoto(p)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                  {hiddenPhotos.includes(p.path) && (
+                    <div className="absolute bottom-1 left-1 bg-red-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">HIDDEN</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </CardContent>
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
+          <button className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={() => setLightboxUrl(null)}>
+            <X className="size-8" />
+          </button>
+          <img src={lightboxUrl} alt="" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
+    </Card>
+  )
+}
+
+function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers }) {
   const [editingSection, setEditingSection] = useState(null)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -2551,6 +2679,23 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
       const updated = { ...data, [editingSection.key]: editData }
       await adminUpdateSurrogateProfile(surrogate.email, updated)
       setProfileData(updated)
+      // Sync shared fields back to intake_submissions so hero/quiz stay in sync
+      if (editingSection.key === 'personal' && surrogate.id) {
+        const syncFields = {}
+        const fieldMap = { maritalStatus: 'maritalStatus', city: 'city', state: 'state', heightFt: 'heightFt', heightIn: 'heightIn', weight: 'weightLbs' }
+        for (const [profileKey, intakeKey] of Object.entries(fieldMap)) {
+          if (editData[profileKey] !== undefined) syncFields[intakeKey] = editData[profileKey]
+        }
+        if (Object.keys(syncFields).length > 0) {
+          // Merge into intake answers
+          const currentAnswers = quizAnswers || {}
+          const mergedAnswers = { ...currentAnswers, ...syncFields }
+          await updateIntakeSubmission(surrogate.id, { answers: mergedAnswers }).catch(() => {})
+          setQuizAnswers(mergedAnswers)
+          // Update local surrogate state so hero refreshes
+          setSurrogate(prev => ({ ...prev, ...syncFields, location: [syncFields.city || prev.location?.split(', ')[0], syncFields.state || prev.location?.split(', ')[1]].filter(Boolean).join(', ') }))
+        }
+      }
       setEditingSection(null)
     } catch {} finally { setSaving(false) }
   }
@@ -3092,19 +3237,15 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
         </div>
       ) : (
         <>
-          {photos.length > 0 && (
-            <Card className="rounded-2xl">
-              <CardHeader><CardTitle>Photos ({photos.length})</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {photos.map(p => (
-                    <div key={p.path} className="aspect-square rounded-xl overflow-hidden border">
-                      <img src={p.url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          {(photos.length > 0 || portraitUrl || data?.personal?.profilePhotoUrl) && (
+            <AdminPhotosSection
+              photos={photos}
+              setPhotos={setPhotos}
+              profileData={data}
+              setProfileData={setProfileData}
+              portraitUrl={portraitUrl}
+              surrogate={surrogate}
+            />
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
