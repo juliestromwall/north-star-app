@@ -294,7 +294,7 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
     <Card className="rounded-2xl">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>{title}</CardTitle>
-        <span className="text-sm font-bold text-[#283693]">{completeCount}/{totalActive}{naCount > 0 ? <span className="text-stone-400 font-normal ml-1 text-xs">({naCount} excluded)</span> : ''}</span>
+        <span className="text-sm font-bold text-[#283693]">{completeCount}/{totalActive}</span>
       </CardHeader>
       <CardContent className="p-0">
         <div className="px-6 pb-5">
@@ -319,7 +319,8 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
               const data = tracking[step.id] || {}
               const history = data.history || []
               const currentStatus = data.status || 'not_started'
-              const isComplete = currentStatus === 'complete' || currentStatus === 'na'
+              const isDeactivated = currentStatus === 'na'
+              const isComplete = currentStatus === 'complete'
               const lastEntry = history.length > 0 ? history[history.length - 1] : null
               const isExpanded = expandedStep === step.id
               const isAddingLog = addingLogFor === step.id
@@ -328,13 +329,15 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                 <React.Fragment key={step.id ?? stepIdx}>
                   {/* Main row — click anywhere to expand/collapse */}
                   <tr
-                    onClick={() => { if (currentStatus === 'na') return; if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
-                    className={`border-b border-stone-100 ${currentStatus === 'na' ? 'bg-stone-50/50 opacity-50' : isComplete ? 'bg-green-50/70 hover:bg-green-50 cursor-pointer' : 'hover:bg-stone-50/50 cursor-pointer'} transition-colors`}
+                    onClick={() => { if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
+                    className={`border-b border-stone-100 cursor-pointer ${isDeactivated ? 'bg-stone-50/50 opacity-40' : isComplete ? 'bg-green-50/70 hover:bg-green-50' : 'hover:bg-stone-50/50'} transition-colors`}
                   >
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
                         {isComplete ? (
                           <CheckCircle2 className="size-4.5 text-green-500 shrink-0" />
+                        ) : isDeactivated ? (
+                          <div className="size-5 rounded-full bg-stone-200 shrink-0" />
                         ) : (
                           <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-stone-300">{stepIdx + 1}</div>
                         )}
@@ -881,10 +884,20 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="screening">Checklist</TabsTrigger>
           <TabsTrigger value="records">
             {(() => {
-              // Count active medical records
+              // Build same medSteps as the tab content to get accurate count
               const rt = recordTracking || {}
-              const medKeys = Object.keys(rt).filter(k => k.startsWith('ob_records_') || k.startsWith('delivery_records_') || k.startsWith('ivf_records_') || k.startsWith('custom_record_'))
-              const active = medKeys.filter(k => rt[k]?.status !== 'na')
+              const pregs = profileData?.pregnancyHistory?.pregnancies || []
+              const numP = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+              let stepIds = []
+              for (let i = 0; i < Math.max(numP, pregs.length); i++) {
+                stepIds.push(`ob_records_${i}`, `delivery_records_${i}`)
+                if (pregs[i]?.wasSurrogacy === 'yes') stepIds.push(`ivf_records_${i}`)
+              }
+              // Add custom records
+              for (const k of Object.keys(rt)) {
+                if (k.startsWith('custom_record_') && !stepIds.includes(k)) stepIds.push(k)
+              }
+              const active = stepIds.filter(k => rt[k]?.status !== 'na')
               const done = active.filter(k => rt[k]?.status === 'complete')
               return active.length > 0 ? `Medical Records ${done.length}/${active.length}` : 'Medical Records'
             })()}
