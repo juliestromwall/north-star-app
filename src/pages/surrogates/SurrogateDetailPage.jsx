@@ -129,10 +129,13 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
   const [editStatus, setEditStatus] = useState('')
   const [editNote, setEditNote] = useState('')
 
-  const completeCount = steps.filter(s => {
-    const status = tracking[s.id]?.status
-    return status === 'complete' || status === 'na'
-  }).length
+  const [editingLabel, setEditingLabel] = useState(null) // stepId being renamed
+  const [labelValue, setLabelValue] = useState('')
+
+  const activeSteps = steps.filter(s => tracking[s.id]?.status !== 'na')
+  const completeCount = activeSteps.filter(s => tracking[s.id]?.status === 'complete').length
+  const totalActive = activeSteps.length
+  const naCount = steps.length - activeSteps.length
 
   function submitLog(stepId) {
     if (!logStatus) return
@@ -190,12 +193,12 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
     <Card className="rounded-2xl">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle>{title}</CardTitle>
-        <span className="text-sm font-bold text-[#283693]">{completeCount}/{steps.length}</span>
+        <span className="text-sm font-bold text-[#283693]">{completeCount}/{totalActive}{naCount > 0 ? <span className="text-stone-400 font-normal ml-1 text-xs">({naCount} excluded)</span> : ''}</span>
       </CardHeader>
       <CardContent className="p-0">
         <div className="px-6 pb-5">
           <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${steps.length > 0 ? (completeCount / steps.length) * 100 : 0}%`, background: completeCount === steps.length ? '#22c55e' : 'linear-gradient(90deg, #10b981, #22c55e)' }} />
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${totalActive > 0 ? (completeCount / totalActive) * 100 : 0}%`, background: completeCount === totalActive && totalActive > 0 ? '#22c55e' : 'linear-gradient(90deg, #10b981, #22c55e)' }} />
           </div>
         </div>
         {/* Table with headers */}
@@ -224,8 +227,8 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                 <React.Fragment key={step.id ?? stepIdx}>
                   {/* Main row — click anywhere to expand/collapse */}
                   <tr
-                    onClick={() => { if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
-                    className={`border-b border-stone-100 cursor-pointer ${isComplete ? 'bg-green-50/70 hover:bg-green-50' : 'hover:bg-stone-50/50'} transition-colors`}
+                    onClick={() => { if (currentStatus === 'na') return; if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
+                    className={`border-b border-stone-100 ${currentStatus === 'na' ? 'bg-stone-50/50 opacity-50' : isComplete ? 'bg-green-50/70 hover:bg-green-50 cursor-pointer' : 'hover:bg-stone-50/50 cursor-pointer'} transition-colors`}
                   >
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
@@ -234,18 +237,55 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
                         ) : (
                           <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-stone-300">{stepIdx + 1}</div>
                         )}
-                        <span className={`font-semibold ${currentStatus === 'na' ? 'text-stone-400 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}>{step.label}</span>
-                        {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
-                        {step.canToggleNA && (
+                        {editingLabel === step.id ? (
+                          <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
+                            <input
+                              className="flex-1 rounded border border-[#283693]/30 px-2 py-0.5 text-sm font-semibold bg-white focus:border-[#283693] outline-none"
+                              value={labelValue}
+                              onChange={e => setLabelValue(e.target.value)}
+                              autoFocus
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() })
+                                  setEditingLabel(null)
+                                }
+                                if (e.key === 'Escape') setEditingLabel(null)
+                              }}
+                            />
+                            <button onClick={() => { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) }} className="p-0.5 text-emerald-600"><Check className="size-3.5" /></button>
+                            <button onClick={() => setEditingLabel(null)} className="p-0.5 text-stone-400"><X className="size-3.5" /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <span
+                              className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
+                              onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
+                              title="Click to rename"
+                            >
+                              {data.customLabel || step.label}
+                            </span>
+                            {step.subLabel && <span className="text-xs text-stone-400 ml-1">{step.subLabel}</span>}
+                          </>
+                        )}
+                        {step.canToggleNA && currentStatus !== 'na' && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: currentStatus === 'na' ? 'not_started' : 'na', history: [...(data.history || []), { status: currentStatus === 'na' ? 'not_started' : 'na', date: new Date().toISOString().split('T')[0], note: currentStatus === 'na' ? 'Reactivated' : 'Not needed', by: currentUserName || 'Admin' }] }) }}
-                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${currentStatus === 'na' ? 'bg-amber-50 border-amber-300 text-amber-600 hover:bg-amber-100' : 'bg-stone-50 border-stone-200 text-stone-400 hover:bg-stone-100'}`}
-                            title={currentStatus === 'na' ? 'Re-enable this record' : 'Mark as not needed'}
+                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: 'na', history: [...(data.history || []), { status: 'na', date: new Date().toISOString().split('T')[0], note: 'Not needed', by: currentUserName || 'Admin' }] }) }}
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-stone-50 border-stone-200 text-stone-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
+                            title="Exclude — not needed"
                           >
-                            {currentStatus === 'na' ? 'UNDO' : 'N/A'}
+                            Exclude
                           </button>
                         )}
-                        <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        {step.canToggleNA && currentStatus === 'na' && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onUpdate(step.id, { status: 'not_started', history: [...(data.history || []), { status: 'not_started', date: new Date().toISOString().split('T')[0], note: 'Re-enabled', by: currentUserName || 'Admin' }] }) }}
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                            title="Re-include this record"
+                          >
+                            Re-enable
+                          </button>
+                        )}
+                        {currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                       </div>
                     </td>
                     <td className="px-3 py-3.5">
