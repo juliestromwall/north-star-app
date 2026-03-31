@@ -387,6 +387,48 @@ export async function adminAddSurrogate(surrogateData) {
   return data
 }
 
+export async function adminAddIP(ipData) {
+  if (!supabase) return null
+  const hasPartner = !!(ipData.ip2FirstName && ipData.ip2FirstName.trim())
+  const ip1Name = `${ipData.firstName} ${ipData.lastName}`.trim()
+  const ip2Name = hasPartner ? `${ipData.ip2FirstName} ${ipData.ip2LastName}`.trim() : ''
+  const submission = {
+    intake_type: 'ip',
+    status: 'qualified',
+    qualified: true,
+    applicant_name: hasPartner ? `${ip1Name} & ${ip2Name}` : ip1Name,
+    applicant_email: ipData.email.trim().toLowerCase(),
+    applicant_phone: ipData.phone,
+    answers: {
+      primaryFirstName: ipData.firstName,
+      primaryLastName: ipData.lastName,
+      email: ipData.email,
+      phone: ipData.phone,
+      country: ipData.country || 'United States',
+      city: ipData.city || '',
+      stateProv: ipData.state || '',
+      hasPartner: hasPartner ? 'yes' : 'no',
+      ...(hasPartner ? {
+        ip2FirstName: ipData.ip2FirstName,
+        ip2LastName: ipData.ip2LastName,
+        ip2Email: ipData.ip2Email || '',
+        ip2Phone: ipData.ip2Phone || '',
+      } : {}),
+    },
+    submitted_at: new Date().toISOString(),
+    assigned_to: ipData.assignedTo || null,
+    state_region: ipData.state || '',
+    dq_reasons: [],
+  }
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .insert(submission)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function unassignSurrogate(submissionId) {
   if (!supabase) return null
   const { data, error } = await supabase

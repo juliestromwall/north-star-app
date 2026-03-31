@@ -5,12 +5,27 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
-import { fetchIPsFromIntake } from '@/lib/db'
+import { useRole } from '@/context/RoleContext'
+import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
+
+const US_STATES = [
+  'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
+  'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+  'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
+  'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada',
+  'New Hampshire','New Jersey','New Mexico','New York','North Carolina',
+  'North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island',
+  'South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont',
+  'Virginia','Washington','West Virginia','Wisconsin','Wyoming'
+]
 
 const STATUS_STYLES = {
   new:             'bg-pink-100 text-pink-700 border-pink-200',
@@ -35,7 +50,15 @@ function StatusBadge({ status }) {
   )
 }
 
+function formatPhone(val) {
+  const digits = val.replace(/\D/g, '').slice(0, 10)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 export default function IPListPage() {
+  const { currentUser } = useRole()
   const [ips, setIps] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -43,6 +66,27 @@ export default function IPListPage() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
+
+  // Add IP dialog state
+  const [addOpen, setAddOpen] = useState(false)
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', hasPartner: false, ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' })
+  const [addSaving, setAddSaving] = useState(false)
+  const [addError, setAddError] = useState(null)
+
+  async function handleAddIP() {
+    if (!addForm.firstName || !addForm.email) return
+    setAddSaving(true)
+    setAddError(null)
+    try {
+      await adminAddIP({ ...addForm, assignedTo: currentUser.email })
+      const data = await fetchIPsFromIntake()
+      setIps(data || [])
+      setAddOpen(false)
+      setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', hasPartner: false, ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' })
+    } catch (err) {
+      setAddError(err.message || 'Failed to add intended parent.')
+    } finally { setAddSaving(false) }
+  }
 
   useEffect(() => {
     fetchIPsFromIntake()
@@ -68,6 +112,11 @@ export default function IPListPage() {
       <PageHeader
         title="Intended Parents"
         subtitle={`${ips.length} intended parent${ips.length !== 1 ? 's' : ''} in program`}
+        actions={
+          <Button className="gap-2" onClick={() => setAddOpen(true)}>
+            <Plus className="size-4" /> Add IP
+          </Button>
+        }
       />
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -242,6 +291,91 @@ export default function IPListPage() {
           </Table>
         </Card>
       )}
+      {/* Add IP Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Intended Parent</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">First Name *</Label>
+                <Input value={addForm.firstName} onChange={e => setAddForm(f => ({ ...f, firstName: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Last Name *</Label>
+                <Input value={addForm.lastName} onChange={e => setAddForm(f => ({ ...f, lastName: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Email *</Label>
+              <Input type="email" value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Phone *</Label>
+                <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">State</Label>
+                <Select value={addForm.state} onValueChange={v => setAddForm(f => ({ ...f, state: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectContent>
+                    {US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Has a Partner?</p>
+                <p className="text-xs text-muted-foreground">Going through the journey with someone</p>
+              </div>
+              <Switch
+                checked={addForm.hasPartner}
+                onCheckedChange={v => setAddForm(f => ({ ...f, hasPartner: v }))}
+              />
+            </div>
+
+            {addForm.hasPartner && (
+              <div className="space-y-3 rounded-lg border p-3 bg-stone-50">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Partner Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">First Name</Label>
+                    <Input value={addForm.ip2FirstName} onChange={e => setAddForm(f => ({ ...f, ip2FirstName: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Last Name</Label>
+                    <Input value={addForm.ip2LastName} onChange={e => setAddForm(f => ({ ...f, ip2LastName: e.target.value }))} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" value={addForm.ip2Email} onChange={e => setAddForm(f => ({ ...f, ip2Email: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Phone</Label>
+                    <Input type="tel" value={addForm.ip2Phone} onChange={e => setAddForm(f => ({ ...f, ip2Phone: formatPhone(e.target.value) }))} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {addError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{addError}</p>
+            )}
+            <Button onClick={handleAddIP}
+              disabled={addSaving || !addForm.firstName || !addForm.lastName || !addForm.email || !addForm.phone}
+              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {addSaving ? 'Adding...' : 'Add Intended Parent'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
