@@ -113,13 +113,20 @@ function SurrogateScreeningSheet({ surrogates }) {
         const badge = getRecordTypeBadge(key)
         records.push({
           id: key,
-          label: d.customLabel || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          label: d.customLabel || (() => {
+            // Generate clean default: "OB 2026" from key like "ob_records_2"
+            const badge = getRecordTypeBadge(key)
+            const idx = key.match(/\d+$/)?.[0]
+            // If it's a timestamp (custom record), just show type
+            if (idx && idx.length > 4) return badge?.label || key
+            return badge ? `${badge.label} #${parseInt(idx) + 1}` : key
+          })(),
           badge,
           status: d.status || 'not_started',
           lastDate: lastEntry?.date,
           lastNote: lastEntry?.note,
           lastBy: lastEntry?.by,
-          isComplete: d.status === 'complete' || d.status === 'na',
+          isComplete: d.status === 'complete',
           isExcluded: d.status === 'na',
         })
       }
@@ -202,8 +209,9 @@ function SurrogateScreeningSheet({ surrogates }) {
                     const { status, lastEntry, isComplete, history, hasIncompleteRecords, subRecords, isRecordType } = getCellData(s.id, row.id, row.label)
                     const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
                     const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
-                    const doneCount = subRecords.filter(r => r.isComplete).length
-                    const totalCount = subRecords.length
+                    const activeRecords = subRecords.filter(r => !r.isExcluded)
+                    const doneCount = activeRecords.filter(r => r.isComplete).length
+                    const totalCount = activeRecords.length
                     return (
                       <td key={s.id} className={`px-4 py-3.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                         <div className="flex items-center gap-1.5">
@@ -263,15 +271,15 @@ function SurrogateScreeningSheet({ surrogates }) {
                               <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount} complete)</p>
                               <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                             </div>
-                            {subRecords.map(rec => (
-                              <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isExcluded ? 'opacity-30 line-through' : rec.isComplete ? 'opacity-60' : ''}`}>
+                            {activeRecords.map(rec => (
+                              <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isComplete ? 'opacity-60' : ''}`}>
                                 <div className="flex items-center gap-1.5">
                                   {rec.badge && (
                                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>
                                   )}
                                   <span className="font-medium text-stone-600 flex-1">{rec.label}</span>
-                                  <span className={`font-medium shrink-0 ${rec.isExcluded ? 'text-stone-400' : rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
-                                    {rec.isExcluded ? 'Excluded' : rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                  <span className={`font-medium shrink-0 ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
+                                    {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                   </span>
                                 </div>
                                 {rec.lastDate && !rec.isExcluded && (

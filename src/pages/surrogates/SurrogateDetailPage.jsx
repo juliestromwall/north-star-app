@@ -979,10 +979,10 @@ export default function SurrogateDetailPage() {
               const p = pregnancies[i] || {}
               const year = p.dob ? new Date(p.dob).getFullYear() : ''
               const yearLabel = year || `#${i + 1}`
-              medSteps.push({ id: `ob_records_${i}`, label: `OB Records ${yearLabel}`, canToggleNA: true, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
-              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery Records ${yearLabel}`, canToggleNA: true, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
+              medSteps.push({ id: `ob_records_${i}`, label: `OB ${yearLabel}`, canToggleNA: true, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
+              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery ${yearLabel}`, canToggleNA: true, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
               if (p.wasSurrogacy === 'yes') {
-                medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}`, canToggleNA: true, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
+                medSteps.push({ id: `ivf_records_${i}`, label: `IVF ${yearLabel}`, canToggleNA: true, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
               }
             }
             // Also include any custom-added records from tracking data
