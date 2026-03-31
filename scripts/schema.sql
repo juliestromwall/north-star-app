@@ -163,3 +163,86 @@ create policy "Anyone can insert app_config"
 
 create policy "Anyone can update app_config"
   on app_config for update using (true);
+
+-- ── E-Signature Templates ─────────────────────────────────
+
+create table esign_templates (
+  id bigint generated always as identity primary key,
+  name text not null,
+  category text default 'General',
+  description text,
+  file_path text not null,
+  file_name text not null,
+  file_size bigint,
+  created_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table esign_templates enable row level security;
+create policy "Anyone can manage esign_templates" on esign_templates for all using (true);
+
+-- ── E-Signature Documents (sent for signing) ──────────────
+
+create table esign_documents (
+  id bigint generated always as identity primary key,
+  template_id bigint references esign_templates(id),
+  case_id bigint,
+  case_type text,
+  title text not null,
+  status text not null default 'draft',
+  signers jsonb not null default '[]'::jsonb,
+  file_path text,
+  document_hash text,
+  created_by text,
+  sent_at timestamptz,
+  completed_at timestamptz,
+  voided_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table esign_documents enable row level security;
+create policy "Anyone can manage esign_documents" on esign_documents for all using (true);
+
+-- ── E-Signature Audit Log ─────────────────────────────────
+
+create table esign_audit_log (
+  id bigint generated always as identity primary key,
+  document_id bigint references esign_documents(id) on delete cascade,
+  action text not null,
+  actor_name text,
+  actor_email text,
+  actor_role text,
+  ip_address text,
+  user_agent text,
+  details jsonb,
+  created_at timestamptz not null default now()
+);
+
+alter table esign_audit_log enable row level security;
+create policy "Anyone can manage esign_audit_log" on esign_audit_log for all using (true);
+
+-- ── Google OAuth Tokens ─────────────────────────────────
+
+create table google_tokens (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  google_email text not null,
+  access_token text not null,
+  refresh_token text not null,
+  token_expires_at timestamptz not null,
+  scopes text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id)
+);
+
+create index google_tokens_user_id_idx on google_tokens (user_id);
+
+alter table google_tokens enable row level security;
+
+create policy "Users can view own google tokens"
+  on google_tokens for select using (auth.uid() = user_id);
+
+create policy "Service role can manage all tokens"
+  on google_tokens for all using (true);
