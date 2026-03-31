@@ -74,6 +74,7 @@ export const SURROGATE_STAGES = [
 
 // IP-specific stage label overrides
 export const IP_STAGE_LABELS = {
+  'pre-qualification': 'Consultation',
   'screening': 'Holding',
 }
 
