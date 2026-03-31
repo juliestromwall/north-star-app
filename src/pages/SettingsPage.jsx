@@ -474,31 +474,27 @@ function ChecklistsSection() {
             Configure the checklist steps that appear for each case stage. Each stage has one checklist per user type.
           </CardDescription>
 
-          <Tabs value={userType} onValueChange={setUserType}>
-            <TabsList>
-              <TabsTrigger value="gc">Surrogate (GC)</TabsTrigger>
-              <TabsTrigger value="ip">Intended Parent (IP)</TabsTrigger>
-              <TabsTrigger value="journey">Matched Journeys</TabsTrigger>
-            </TabsList>
+          <div className="flex gap-2 border-b pb-2">
+            {[
+              { key: 'gc', label: 'Surrogate (GC)' },
+              { key: 'ip', label: 'Intended Parent (IP)' },
+              { key: 'journey', label: 'Matched Journeys' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${userType === tab.key ? 'bg-[#283693] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+                onClick={() => setUserType(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            <TabsContent value="gc" className="space-y-4 mt-4">
-              {caseStages.map(stage => (
-                <StageChecklistCard key={stage.id} stage={stage} userType="gc" stageData={config.gc?.[stage.id]} onUpdate={forceUpdate} />
-              ))}
-            </TabsContent>
-
-            <TabsContent value="ip" className="space-y-4 mt-4">
-              {caseStages.map(stage => (
-                <StageChecklistCard key={stage.id} stage={stage} userType="ip" stageData={config.ip?.[stage.id]} onUpdate={forceUpdate} />
-              ))}
-            </TabsContent>
-
-            <TabsContent value="journey" className="space-y-4 mt-4">
-              {journeyStages.map(stage => (
-                <StageChecklistCard key={stage.id} stage={stage} userType="gc" stageData={config.gc?.[stage.id]} onUpdate={forceUpdate} />
-              ))}
-            </TabsContent>
-          </Tabs>
+          <div className="space-y-4 mt-4">
+            {(userType === 'journey' ? journeyStages : caseStages).map(stage => (
+              <StageChecklistCard key={stage.id} stage={stage} userType={userType === 'journey' ? 'gc' : userType} stageData={config[userType === 'journey' ? 'gc' : userType]?.[stage.id]} onUpdate={forceUpdate} />
+            ))}
+          </div>
         </div>
       </CollapsibleContent>
     </Collapsible>
