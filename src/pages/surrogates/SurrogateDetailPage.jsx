@@ -2339,7 +2339,25 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   }
 
   function updateEditField(field, value) {
-    setEditData(prev => ({ ...prev, [field]: value }))
+    setEditData(prev => {
+      const next = { ...prev, [field]: value }
+      // When numberOfPregnancies changes, auto-resize pregnancies array
+      if (field === 'numberOfPregnancies') {
+        const num = parseInt(value) || 0
+        const current = Array.isArray(prev.pregnancies) ? prev.pregnancies : []
+        if (num > current.length) {
+          const newSlots = Array.from({ length: num - current.length }, () => ({
+            outcome: '', wasSurrogacy: '', name: '', dob: '', gestationWeeks: '', gestationDays: '',
+            deliveryType: '', sex: '', singleOrMultiples: '', weight: '', length: '', complications: '',
+          }))
+          next.pregnancies = [...current, ...newSlots]
+        } else if (num < current.length) {
+          next.pregnancies = current.slice(0, num)
+        }
+      }
+      // When householdMembers count changes (if it's a number field)
+      return next
+    })
   }
 
   async function saveSectionEdit() {
@@ -2390,9 +2408,30 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
   }
   const overallPercent = totalFields > 0 ? Math.round((totalFilled / totalFields) * 100) : 0
 
+  const NUMBER_FIELDS = ['numberOfPregnancies', 'householdMemberCount', 'surrogacyTimes', 'sleepHours', 'heightFt', 'heightIn', 'weight', 'weightLbs']
+
   function renderScalarFieldEdit(field, secKey) {
     const val = editData[field]
     const hidden = isFieldHidden(secKey, field)
+    // Number fields
+    if (NUMBER_FIELDS.includes(field)) {
+      return (
+        <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
+            <HideToggle sectionKey={secKey} fieldKey={field} />
+          </div>
+          <input
+            type="number"
+            min="0"
+            max={field === 'numberOfPregnancies' ? '20' : undefined}
+            className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+            value={val || ''}
+            onChange={e => updateEditField(field, e.target.value)}
+          />
+        </div>
+      )
+    }
     if (isBooleanField(val)) {
       return (
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
@@ -2433,12 +2472,7 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
     }
     return (
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
-            <Trash2 className="size-3" /> Remove
-          </Button>
-        </div>
+        <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
@@ -2803,9 +2837,12 @@ function ProfileTab({ surrogate, profileData, setProfileData, profileStatus, set
                           <div key={field}>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
-                              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
-                                <Plus className="size-3" /> {getAddButtonLabel(field)}
-                              </Button>
+                              {/* Pregnancies count is controlled by numberOfPregnancies input, not add/remove */}
+                              {field !== 'pregnancies' && (
+                                <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
+                                  <Plus className="size-3" /> {getAddButtonLabel(field)}
+                                </Button>
+                              )}
                             </div>
                             <div className="space-y-3">
                               {editData[field].map((item, i) => {
