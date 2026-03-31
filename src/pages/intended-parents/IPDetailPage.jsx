@@ -496,8 +496,14 @@ export default function IPDetailPage() {
           </div>
 
           {/* Info tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+            {(() => {
+              const calcAge = (dob) => { if (!dob) return null; const d = new Date(dob); return Math.floor((Date.now() - d.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) }
+              const age1 = calcAge(a.primaryDob)
+              const age2 = hasPartner ? calcAge(a.ip2Dob) : null
+              const ageDisplay = age1 && age2 ? `${age1} / ${age2}` : age1 ? `${age1}` : '—'
+              return [
+              { icon: Calendar, label: hasPartner ? 'Ages' : 'Age', value: ageDisplay },
               { icon: Users, label: 'Type', value: ip.type || '—' },
               { icon: Heart, label: 'Relationship', value: a.maritalStatus || '—' },
               { icon: Stethoscope, label: 'RE Doctor', value: ip.hasRE ? (ip.reDoctorName || 'Yes') : '—' },
@@ -510,7 +516,8 @@ export default function IPDetailPage() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">{tile.label}</p>
                 <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{tile.value}</p>
               </div>
-            ))}
+            ))
+            })()}
           </div>
         </div>
       </div>
