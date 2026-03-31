@@ -529,7 +529,7 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
 export default function IPProfileTab({ ip, onUpdate }) {
   const answers = ip?.answers || {}
   const profile = answers._ipProfile || {}
-  const hasPartner = answers.hasPartner === true
+  const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
 
   const ip1Name = ip?.ip1Name || answers.primaryFirstName || 'IP1'
   const ip2Name = ip?.ip2Name || answers.ip2FirstName || 'IP2'

@@ -100,7 +100,7 @@ function GCAnswerDetail({ answers }) {
 }
 
 function IPAnswerDetail({ answers }) {
-  const hasPartner = answers.hasPartner === true
+  const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
   return (
     <div className="space-y-6 text-sm">
       <section>

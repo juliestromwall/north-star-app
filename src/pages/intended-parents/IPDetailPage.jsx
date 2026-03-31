@@ -81,7 +81,7 @@ export default function IPDetailPage() {
   }
 
   const a = ip.answers || {}
-  const hasPartner = a.hasPartner === true
+  const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
 
   return (
     <div className="space-y-6">

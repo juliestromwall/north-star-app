@@ -280,7 +280,7 @@ export async function fetchIPsFromIntake() {
   if (!result || result.error) return []
   return result.data.map(row => {
     const a = row.answers || {}
-    const hasPartner = a.hasPartner === true
+    const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
     const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
     const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : null
     const names = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
