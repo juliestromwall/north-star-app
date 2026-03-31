@@ -2,40 +2,23 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope,
-  Calendar, ClipboardList, Copy, Check
+  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
+import StatCard from '@/components/shared/StatCard'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
-import { fetchIPsFromIntake, updateIntakeSubmission } from '@/lib/db'
+import { useRole } from '@/context/RoleContext'
+import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
+import { mockUsers } from '@/data/mock/users'
 
-const STATUS_STYLES = {
-  new:             'bg-pink-100 text-pink-700 border-pink-200',
-  qualified:       'bg-emerald-100 text-emerald-700 border-emerald-200',
-  approved:        'bg-blue-100 text-blue-700 border-blue-200',
-  active:          'bg-blue-100 text-blue-700 border-blue-200',
-  pending_review:  'bg-amber-100 text-amber-700 border-amber-200',
-  reviewed:        'bg-violet-100 text-violet-700 border-violet-200',
-}
-
-const TYPE_STYLES = {
-  'Couple':        'bg-sky-100 text-sky-800 border-sky-200',
-  'Single parent': 'bg-amber-100 text-amber-800 border-amber-200',
-}
-
-function StatusBadge({ status }) {
-  const label = status === 'new' ? 'New' : status === 'pending_review' ? 'Pending Review' : status.charAt(0).toUpperCase() + status.slice(1)
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[status] || 'bg-stone-100 text-stone-500 border-stone-200'}`}>
-      {label}
-    </span>
-  )
-}
+const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
@@ -52,8 +35,15 @@ function CopyButton({ text }) {
   )
 }
 
+function boolLabel(val, yesText = 'Yes', noText = 'No') {
+  if (val === true || val === 'yes' || val === 'Yes') return yesText
+  if (val === false || val === 'no' || val === 'No') return noText
+  return '—'
+}
+
 export default function IPDetailPage() {
   const { id } = useParams()
+  const { currentUser } = useRole()
   const [ip, setIp] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -89,31 +79,61 @@ export default function IPDetailPage() {
         <ArrowLeft className="size-4" /> Back to Intended Parents
       </Link>
 
-      {/* Hero */}
-      <Card className="bg-gradient-to-r from-[#464DA0]/5 to-[#464DA0]/10">
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-start gap-4">
-            <ProfileAvatar name={ip.names} size="xl" />
+      {/* ─── Hero Section ─────────────────────────────────── */}
+      <div className="rounded-2xl border border-stone-200/80 bg-white">
+        <div className="p-6 space-y-6">
+          {/* Name row */}
+          <div className="flex flex-col sm:flex-row items-start gap-5">
+            <ProfileAvatar name={ip.names} size="xl" className="ring-4 ring-white shadow-lg" />
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-heading font-bold">{ip.names}</h1>
-                <StatusBadge status={ip.status} />
-                <Badge variant="outline" className={`text-xs ${TYPE_STYLES[ip.type] || ''}`}>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
+                <Badge variant="outline" className="text-xs bg-sky-100 text-sky-800 border-sky-200">
                   {ip.type}
                 </Badge>
+                <span className="text-xs font-medium text-stone-400 capitalize">{ip.status?.replace(/_/g, ' ')}</span>
               </div>
-              {ip.location && (
-                <p className="text-muted-foreground mt-1 flex items-center gap-1">
-                  <MapPin className="size-3.5" /> {ip.location}{ip.country && ip.country !== 'United States' ? `, ${ip.country}` : ''}
-                </p>
-              )}
-              <p className="text-xs text-stone-400 mt-1">
-                Applied {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
+              <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
+                {ip.location && (
+                  <span className="flex items-center gap-1"><MapPin className="size-3.5" /> {ip.location}{ip.country && ip.country !== 'United States' ? `, ${ip.country}` : ''}</span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3.5" />
+                  Submitted {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+              {/* Assignment */}
+              <div className="flex items-center gap-1.5 mt-2">
+                <UserCog className="size-3.5 text-stone-400" />
+                <span className="text-xs text-stone-400">Assigned to</span>
+                <SelectUI
+                  value={ip.assignedTo || '_unassigned'}
+                  onValueChange={async val => {
+                    const email = val === '_unassigned' ? null : val
+                    await assignSurrogateToAdmin(ip.id, email).catch(() => {})
+                    setIp(prev => ({ ...prev, assignedTo: email }))
+                  }}
+                >
+                  <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]">
+                    <SelectValueUI />
+                  </SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {ADMIN_STAFF.map(a => (
+                      <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>
+                    ))}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
             </div>
 
-            {/* Quick contact buttons */}
+            {/* Contact buttons */}
             <div className="flex gap-2 shrink-0">
+              {ip.phone && (
+                <Button size="sm" className="gap-1.5" asChild>
+                  <a href={`sms:${ip.phone}`}><MessageSquare className="size-3.5" /> Text</a>
+                </Button>
+              )}
               {ip.email && (
                 <Button variant="outline" size="sm" className="gap-1.5" asChild>
                   <a href={`mailto:${ip.email}`}><Mail className="size-3.5" /> Email</a>
@@ -126,15 +146,26 @@ export default function IPDetailPage() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Tabs */}
+          {/* Info tiles */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <StatCard label="Type" value={ip.type || '—'} icon={Users} />
+            <StatCard label="RE Doctor" value={ip.hasRE ? (ip.reDoctorName || 'Yes') : '—'} icon={Stethoscope} />
+            <StatCard label="Embryos" value={ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos)} icon={Baby} />
+            <StatCard label="Egg Donor" value={boolLabel(ip.usingEggDonor)} icon={Egg} />
+            <StatCard label="Sperm Donor" value={boolLabel(ip.usingSpermDonor)} icon={Heart} />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="intake">Intake Answers</TabsTrigger>
         </TabsList>
 
@@ -142,7 +173,7 @@ export default function IPDetailPage() {
         <TabsContent value="overview" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* IP1 Info */}
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Intended Parent 1</CardTitle>
               </CardHeader>
@@ -156,7 +187,7 @@ export default function IPDetailPage() {
             </Card>
 
             {/* IP2 Info */}
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Intended Parent 2</CardTitle>
               </CardHeader>
@@ -175,31 +206,31 @@ export default function IPDetailPage() {
             </Card>
 
             {/* Fertility Info */}
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Fertility Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
-                <InfoRow icon={Stethoscope} label="Has RE" value={ip.hasRE === true ? 'Yes' : ip.hasRE === false ? 'Not yet' : '—'} />
-                {ip.hasRE === true && ip.reDoctorName && (
-                  <InfoRow icon={Stethoscope} label="Doctor" value={ip.reDoctorName} />
+                <InfoRow icon={Stethoscope} label="Has RE" value={boolLabel(ip.hasRE)} />
+                {ip.hasRE && ip.reDoctorName && (
+                  <InfoRow icon={Stethoscope} label="RE Doctor / Clinic" value={ip.reDoctorName} />
                 )}
-                <InfoRow icon={Baby} label="Frozen Embryos" value={ip.hasFrozenEmbryos === true ? 'Yes' : ip.hasFrozenEmbryos === false ? 'No' : '—'} />
-                {ip.hasFrozenEmbryos === true && ip.frozenEmbryoDetails && (
-                  <InfoRow icon={Baby} label="Details" value={ip.frozenEmbryoDetails} />
+                <InfoRow icon={Baby} label="Frozen Embryos" value={boolLabel(ip.hasFrozenEmbryos)} />
+                {ip.hasFrozenEmbryos && ip.frozenEmbryoDetails && (
+                  <InfoRow icon={Baby} label="Embryo Details" value={ip.frozenEmbryoDetails} />
                 )}
-                <InfoRow icon={Baby} label="Egg Donor" value={ip.usingEggDonor === true ? 'Yes' : ip.usingEggDonor === false ? 'No' : '—'} />
-                <InfoRow icon={Baby} label="Sperm Donor" value={ip.usingSpermDonor === true ? 'Yes' : ip.usingSpermDonor === false ? 'No' : '—'} />
+                <InfoRow icon={Egg} label="Using Egg Donor" value={boolLabel(ip.usingEggDonor)} />
+                <InfoRow icon={Heart} label="Using Sperm Donor" value={boolLabel(ip.usingSpermDonor)} />
               </CardContent>
             </Card>
 
             {/* Additional Info */}
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader>
                 <CardTitle>Additional Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
-                <InfoRow icon={ClipboardList} label="Wants Consultation" value={ip.wantsConsultation === true ? 'Yes' : ip.wantsConsultation === false ? 'Not right now' : '—'} />
+                <InfoRow icon={ClipboardList} label="Wants Consultation" value={boolLabel(ip.wantsConsultation, 'Yes', 'Not right now')} />
                 <InfoRow icon={ClipboardList} label="How They Heard" value={ip.hearAboutUs || '—'} />
               </CardContent>
             </Card>
@@ -209,7 +240,7 @@ export default function IPDetailPage() {
         {/* Contact Tab */}
         <TabsContent value="contact" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="rounded-2xl">
               <CardHeader><CardTitle>IP1 Contact</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -230,7 +261,7 @@ export default function IPDetailPage() {
             </Card>
 
             {hasPartner && (
-              <Card>
+              <Card className="rounded-2xl">
                 <CardHeader><CardTitle>IP2 Contact</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -251,11 +282,11 @@ export default function IPDetailPage() {
               </Card>
             )}
 
-            <Card className={hasPartner ? 'lg:col-span-2' : ''}>
+            <Card className={`rounded-2xl ${hasPartner ? 'lg:col-span-2' : ''}`}>
               <CardHeader><CardTitle>Address</CardTitle></CardHeader>
               <CardContent>
-                <p className="text-sm">{a.street}{a.street2 ? `, ${a.street2}` : ''}</p>
-                <p className="text-sm">{a.city}, {a.stateProv} {a.zipCode}</p>
+                <p className="text-sm">{[a.street, a.street2].filter(Boolean).join(', ')}</p>
+                <p className="text-sm">{[a.city, a.stateProv, a.zipCode].filter(Boolean).join(', ')}</p>
                 {a.country && a.country !== 'United States' && <p className="text-sm">{a.country}</p>}
               </CardContent>
             </Card>
@@ -277,16 +308,26 @@ export default function IPDetailPage() {
           />
         </TabsContent>
 
+        {/* Documents Tab */}
+        <TabsContent value="documents" className="space-y-6 mt-4">
+          <EmptyState title="Documents" description="Document management for intended parents coming soon." />
+        </TabsContent>
+
+        {/* Notes Tab */}
+        <TabsContent value="notes" className="space-y-6 mt-4">
+          <EmptyState title="Notes" description="Case notes for intended parents coming soon." />
+        </TabsContent>
+
         {/* Intake Answers Tab */}
         <TabsContent value="intake" className="space-y-6 mt-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader><CardTitle>Raw Intake Answers</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                {Object.entries(a).filter(([_, v]) => v !== null && v !== '' && v !== undefined).map(([key, value]) => (
+                {Object.entries(a).filter(([k, v]) => v !== null && v !== '' && v !== undefined && !k.startsWith('_')).map(([key, value]) => (
                   <div key={key}>
                     <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                    <p className="font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</p>
+                    <p className="font-medium">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : typeof value === 'object' ? JSON.stringify(value) : String(value)}</p>
                   </div>
                 ))}
               </div>
