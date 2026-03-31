@@ -121,6 +121,106 @@ function formatDateMMDDYYYY(dateStr) {
   return `${m}-${d}-${y}`
 }
 
+const RECORD_TYPES = [
+  { value: 'OB', label: 'OB', color: 'bg-blue-100 text-blue-700' },
+  { value: 'Delivery', label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
+  { value: 'IVF', label: 'IVF', color: 'bg-pink-100 text-pink-700' },
+  { value: 'PAP', label: 'PAP', color: 'bg-amber-100 text-amber-700' },
+]
+
+function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName }) {
+  const [addOpen, setAddOpen] = useState(false)
+  const [addLabel, setAddLabel] = useState('')
+  const [addType, setAddType] = useState('OB')
+
+  function handleAdd() {
+    if (!addLabel.trim()) return
+    const id = `custom_record_${Date.now()}`
+    const badge = RECORD_TYPES.find(t => t.value === addType)
+    onUpdate(id, {
+      status: 'not_started',
+      history: [],
+      customLabel: addLabel.trim(),
+      recordType: addType,
+    })
+    setAddLabel('')
+    setAddType('OB')
+    setAddOpen(false)
+  }
+
+  // Rebuild steps including any just-added custom ones
+  const allSteps = [...medSteps]
+  for (const key of Object.keys(tracking)) {
+    if (key.startsWith('custom_record_') && !allSteps.some(s => s.id === key)) {
+      const rt = tracking[key] || {}
+      const badgeType = rt.recordType || 'OB'
+      const badge = RECORD_TYPES.find(t => t.value === badgeType) || RECORD_TYPES[0]
+      allSteps.push({
+        id: key,
+        label: rt.customLabel || 'Custom Record',
+        canToggleNA: true,
+        badge: { label: badge.label, color: badge.color },
+      })
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <TrackingTable
+        title={`Medical Records (${allSteps.length} required)`}
+        steps={allSteps}
+        statuses={statuses}
+        tracking={tracking}
+        onUpdate={onUpdate}
+        currentUserName={currentUserName}
+      />
+      {/* Add Record */}
+      {addOpen ? (
+        <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-3">
+          <p className="text-sm font-semibold text-[#283693]">Add Medical Record</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-stone-500 font-medium">Record Name</label>
+              <input
+                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                value={addLabel}
+                onChange={e => setAddLabel(e.target.value)}
+                placeholder="e.g. Dr. Smith OB Records 2024"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAddOpen(false) }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500 font-medium">Record Type</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {RECORD_TYPES.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => setAddType(t.value)}
+                    className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border-2 transition-all ${addType === t.value ? `${t.color} border-current scale-105` : 'bg-stone-50 text-stone-400 border-transparent hover:bg-stone-100'}`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleAdd} disabled={!addLabel.trim()} style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Plus className="size-3.5 mr-1" /> Add Record
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
+          <Plus className="size-4" /> Add Record
+        </Button>
+      )}
+    </div>
+  )
+}
+
 function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
   const [logStatus, setLogStatus] = useState('')
@@ -863,10 +963,29 @@ export default function SurrogateDetailPage() {
                 medSteps.push({ id: `ivf_records_${i}`, label: `IVF Records ${yearLabel}`, canToggleNA: true, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
               }
             }
+            // Also include any custom-added records from tracking data
+            const customPrefix = 'custom_record_'
+            for (const key of Object.keys(recordTracking)) {
+              if (key.startsWith(customPrefix) && !medSteps.some(s => s.id === key)) {
+                const rt = recordTracking[key] || {}
+                const badgeType = rt.recordType || 'OB'
+                const BADGE_MAP = {
+                  'OB': { label: 'OB', color: 'bg-blue-100 text-blue-700' },
+                  'Delivery': { label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
+                  'IVF': { label: 'IVF', color: 'bg-pink-100 text-pink-700' },
+                  'PAP': { label: 'PAP', color: 'bg-amber-100 text-amber-700' },
+                }
+                medSteps.push({
+                  id: key,
+                  label: rt.customLabel || key.replace(customPrefix, '').replace(/_/g, ' '),
+                  canToggleNA: true,
+                  badge: BADGE_MAP[badgeType] || BADGE_MAP['OB'],
+                })
+              }
+            }
             return (
-              <TrackingTable
-                title={`Medical Records (${medSteps.length} required)`}
-                steps={medSteps}
+              <MedicalRecordsSection
+                medSteps={medSteps}
                 statuses={MEDICAL_RECORD_STATUSES}
                 tracking={recordTracking}
                 onUpdate={updateRecord}
