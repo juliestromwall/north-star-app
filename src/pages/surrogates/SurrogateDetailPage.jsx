@@ -167,7 +167,7 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, current
   return (
     <div className="space-y-4">
       <TrackingTable
-        title={`Medical Records (${allSteps.length} required)`}
+        title="Medical Records"
         steps={allSteps}
         statuses={statuses}
         tracking={tracking}
@@ -879,7 +879,16 @@ export default function SurrogateDetailPage() {
           <TabsTrigger value="contact">Contact</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="screening">Checklist</TabsTrigger>
-          <TabsTrigger value="records">Medical Records</TabsTrigger>
+          <TabsTrigger value="records">
+            {(() => {
+              // Count active medical records
+              const rt = recordTracking || {}
+              const medKeys = Object.keys(rt).filter(k => k.startsWith('ob_records_') || k.startsWith('delivery_records_') || k.startsWith('ivf_records_') || k.startsWith('custom_record_'))
+              const active = medKeys.filter(k => rt[k]?.status !== 'na')
+              const done = active.filter(k => rt[k]?.status === 'complete')
+              return active.length > 0 ? `Medical Records ${done.length}/${active.length}` : 'Medical Records'
+            })()}
+          </TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="texts" onClick={() => setHasUnreadTexts(false)}>
             <span className="flex items-center gap-1.5">
