@@ -147,13 +147,14 @@ export default function IPDetailPage() {
           </div>
 
           {/* Info tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { icon: Users, label: 'Type', value: ip.type || '—' },
+              { icon: Heart, label: 'Relationship', value: a.maritalStatus || a.relationshipStatus || '—' },
               { icon: Stethoscope, label: 'RE Doctor', value: ip.hasRE ? (ip.reDoctorName || 'Yes') : '—' },
               { icon: Baby, label: 'Embryos', value: ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos) },
               { icon: Egg, label: 'Egg Donor', value: boolLabel(ip.usingEggDonor) },
-              { icon: Heart, label: 'Sperm Donor', value: boolLabel(ip.usingSpermDonor) },
+              { icon: Users, label: 'Sperm Donor', value: boolLabel(ip.usingSpermDonor) },
             ].map(tile => (
               <div key={tile.label} className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
                 <tile.icon className="size-4 text-stone-300 mx-auto mb-1" />
