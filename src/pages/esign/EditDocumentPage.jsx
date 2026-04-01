@@ -167,13 +167,17 @@ function PageMarkers({ editor, footerUrl }) {
       {Array.from({ length: pageCount }, (_, i) => (
         <div
           key={`footer-${i}`}
-          className="absolute left-0 right-0 flex flex-col items-center gap-1"
-          style={{ top: (i + 1) * PAGE_HEIGHT_PX - (footerUrl ? 56 : 36) }}
+          className="absolute flex flex-col items-center"
+          style={{
+            top: (i + 1) * PAGE_HEIGHT_PX - (footerUrl ? 58 : 28),
+            left: '0.5in',
+            right: '0.5in',
+          }}
         >
           {footerUrl && (
-            <img src={footerUrl} alt="" style={{ maxWidth: '80%', maxHeight: '20px', opacity: 0.7 }} />
+            <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '28px', objectFit: 'contain' }} />
           )}
-          <span className="text-[10px] text-stone-400 font-medium">{i + 1}</span>
+          <span className="text-[9px] text-stone-400 font-medium mt-0.5">{i + 1}</span>
         </div>
       ))}
     </div>
@@ -648,6 +652,11 @@ export default function EditDocumentPage() {
           background: #d4d4d8;
           padding: 24px;
         }
+        .esign-editor.has-letterhead .ProseMirror {
+          padding-top: 0.3in;
+          border-radius: 0 0 2px 2px;
+          margin-top: 0;
+        }
         .esign-editor .ProseMirror {
           background: white;
           width: 8.5in;
@@ -745,11 +754,11 @@ export default function EditDocumentPage() {
       <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
         <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
-          <div className="esign-editor relative">
+          <div className={`esign-editor relative ${letterhead.header ? 'has-letterhead' : ''}`}>
             {/* Letterhead header — first page only */}
             {letterhead.header && (
-              <div className="esign-letterhead-header" style={{ width: '8.5in', margin: '0 auto', background: 'white', padding: '0.4in 0.75in 0', borderRadius: '2px 2px 0 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)', textAlign: 'center' }}>
-                <img src={letterhead.header} alt="Header" style={{ maxWidth: '250px', height: 'auto' }} />
+              <div style={{ width: '8.5in', margin: '0 auto 0', background: 'white', padding: '0.5in 1in 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)', borderRadius: '2px 2px 0 0', display: 'flex', justifyContent: 'center' }}>
+                <img src={letterhead.header} alt="Header" style={{ maxWidth: '220px', height: 'auto', display: 'block' }} />
               </div>
             )}
             <PageMarkers editor={editor} footerUrl={letterhead.footer} />
