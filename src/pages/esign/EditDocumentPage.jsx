@@ -171,7 +171,7 @@ function PageMarkers({ editor, footerUrl }) {
         const pageBottom = (i + 1) * PAGE_HEIGHT_PX
         // Position so the bottom of the footer block sits ~0.4in from the page edge
         const footerHeight = footerUrl ? 38 : 20
-        const bottomMargin = 0.4 * 96 // 0.4in in px
+        const bottomMargin = 0.15 * 96 // 0.15in from page edge
         return (
           <div
             key={`footer-${i}`}
@@ -189,7 +189,7 @@ function PageMarkers({ editor, footerUrl }) {
             {footerUrl && (
               <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
             )}
-            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 600, marginTop: '4px', alignSelf: 'flex-end' }}>{i + 1}</span>
+            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 600, marginTop: '4px' }}>{i + 1}</span>
           </div>
         )
       })}
