@@ -30,6 +30,7 @@ import TextMessagesPage from './pages/messages/TextMessagesPage'
 import BabiesBornPage from './pages/babies/BabiesBornPage'
 import ESignaturePage from './pages/esign/ESignaturePage'
 import SignDocumentPage from './pages/esign/SignDocumentPage'
+import EditDocumentPage from './pages/esign/EditDocumentPage'
 import EmailPage from './pages/email/EmailPage'
 import FaxPage from './pages/fax/FaxPage'
 
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/email" element={<EmailPage />} />
         <Route path="/fax" element={<FaxPage />} />
         <Route path="/e-signature" element={<ESignaturePage />} />
+        <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
         <Route path="/e-signature/:id" element={<SignDocumentPage />} />
         {stubs.map(s => (
           <Route

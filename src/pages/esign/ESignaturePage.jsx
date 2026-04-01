@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Upload, FileText, Send, Eye, Trash2, Plus, Search, Clock, CheckCircle2,
-  XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download,
+  XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download, Pencil,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -121,16 +121,21 @@ function TemplatesTab() {
                   <span>{t.file_name}</span>
                   <span>{t.file_size ? `${(t.file_size / 1024).toFixed(0)} KB` : ''}</span>
                 </div>
-                <div className="flex gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
+                    <Link to={`/e-signature/edit/${t.id}`}>
+                      <Pencil className="size-3" /> Edit & Send
+                    </Link>
+                  </Button>
                   {getTemplateFileUrl(t.file_path) && (
-                    <Button variant="outline" size="sm" className="gap-1 text-xs flex-1" asChild>
+                    <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
                       <a href={getTemplateFileUrl(t.file_path)} target="_blank" rel="noopener noreferrer">
-                        <Download className="size-3" /> Download
+                        <Download className="size-3" />
                       </a>
                     </Button>
                   )}
                   <Button variant="outline" size="sm" className="gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(t)}>
-                    <Trash2 className="size-3" /> Delete
+                    <Trash2 className="size-3" />
                   </Button>
                 </div>
               </CardContent>
