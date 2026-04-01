@@ -11,12 +11,14 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
+import Image from '@tiptap/extension-image'
 import mammoth from 'mammoth'
 import {
   ArrowLeft, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Send, Loader2, Save, FileText, Eye,
   Plus, Trash2, PenLine, User, Calendar, Hash, CheckSquare, Type, ChevronDown,
+  ImageIcon, SeparatorHorizontal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -207,6 +209,30 @@ function EditorToolbar({ editor }) {
         <option value="3">Heading 3</option>
       </select>
       <div className="w-px h-5 bg-stone-200 mx-1" />
+      <ToolbarButton onClick={() => {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.accept = 'image/*'
+        input.onchange = (e) => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const reader = new FileReader()
+          reader.onload = () => {
+            editor.chain().focus().setImage({ src: reader.result }).run()
+          }
+          reader.readAsDataURL(file)
+        }
+        input.click()
+      }} title="Insert Image">
+        <ImageIcon className="size-4" />
+      </ToolbarButton>
+      <ToolbarButton onClick={() => {
+        editor.chain().focus().setHardBreak().run()
+        editor.chain().focus().insertContent('<div class="page-break" contenteditable="false"><span>— Page Break —</span></div><p></p>').run()
+      }} title="Insert Page Break">
+        <SeparatorHorizontal className="size-4" />
+      </ToolbarButton>
+      <div className="w-px h-5 bg-stone-200 mx-1" />
       <InsertFieldDropdown editor={editor} />
     </div>
   )
@@ -259,12 +285,13 @@ export default function EditDocumentPage() {
       TextStyle,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image.configure({ inline: false, allowBase64: true }),
       SignField,
     ],
     content: htmlContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-8 py-6',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-8 py-6 esign-editor',
       },
     },
   })
@@ -421,6 +448,53 @@ export default function EditDocumentPage() {
           </Button>
         </div>
       </div>
+
+      {/* Editor styles */}
+      <style>{`
+        .esign-editor img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 4px;
+          margin: 8px 0;
+          cursor: pointer;
+        }
+        .esign-editor img.ProseMirror-selectednode {
+          outline: 2px solid #283693;
+          outline-offset: 2px;
+        }
+        .esign-editor .page-break {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 24px 0;
+          padding: 8px 0;
+          border-top: 2px dashed #d1d5db;
+          border-bottom: 2px dashed #d1d5db;
+          background: repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 4px,
+            #f9fafb 4px,
+            #f9fafb 8px
+          );
+          user-select: none;
+          cursor: default;
+        }
+        .esign-editor .page-break span {
+          font-size: 11px;
+          font-weight: 600;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          background: white;
+          padding: 2px 12px;
+          border-radius: 4px;
+        }
+        @media print {
+          .page-break { page-break-after: always; border: none !important; background: none !important; }
+          .page-break span { display: none; }
+        }
+      `}</style>
 
       {/* Editor — toolbar sticky, content scrolls */}
       <div className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
