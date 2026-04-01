@@ -5,7 +5,7 @@ import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getGoogleStatus, getLabel } from '@/lib/google'
+import { getGoogleStatus, getLabel, listEmails } from '@/lib/google'
 
 export default function TopBar({ onMenuClick }) {
   const { currentUser, currentRole, isAuthenticated, signOut } = useRole()
@@ -22,17 +22,13 @@ export default function TopBar({ onMenuClick }) {
   // Fetch inbox unread count
   useEffect(() => {
     if (!isAdmin || !currentUser?.id) return
-    getGoogleStatus(currentUser.id).then(s => {
+    getGoogleStatus(currentUser.id).then(async (s) => {
       if (!s.connected) return
-      // CATEGORY_PRIMARY unread = Gmail's displayed inbox count (excludes Social/Updates/Promotions/Forums)
-      getLabel(currentUser.id, 'CATEGORY_PRIMARY').then(label => {
-        if (label?.messagesUnread) setInboxCount(label.messagesUnread)
-      }).catch(() => {
-        // Fallback to full INBOX count if CATEGORY_PRIMARY unavailable
-        getLabel(currentUser.id, 'INBOX').then(label => {
-          if (label?.messagesUnread) setInboxCount(label.messagesUnread)
-        }).catch(() => {})
-      })
+      try {
+        // Use search query to count primary inbox unread — matches Gmail's displayed count
+        const data = await listEmails(currentUser.id, { query: 'in:inbox category:primary is:unread', maxResults: 1 })
+        if (data.resultSizeEstimate) setInboxCount(data.resultSizeEstimate)
+      } catch {}
     }).catch(() => {})
   }, [isAdmin, currentUser?.id])
 

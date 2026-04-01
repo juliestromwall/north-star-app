@@ -634,7 +634,7 @@ export default function EmailPage() {
       // listLabels doesn't always include counts — fetch individually for key folders
       const counts = {}
       const labelsToFetch = [
-        'INBOX', 'CATEGORY_PRIMARY', 'DRAFT', 'SPAM', 'TRASH', 'STARRED',
+        'INBOX', 'DRAFT', 'SPAM', 'TRASH', 'STARRED',
         'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS',
         ...user.map(l => l.id),
       ]
@@ -646,18 +646,19 @@ export default function EmailPage() {
       results.forEach(r => {
         if (r.status === 'fulfilled' && r.value) labelData[r.value.id] = r.value
       })
-      // Inbox: use CATEGORY_PRIMARY unread (matches Gmail's displayed inbox count)
-      const primaryLabel = labelData['CATEGORY_PRIMARY']
-      if (primaryLabel?.messagesUnread) {
-        counts['INBOX'] = primaryLabel.messagesUnread
-      } else if (labelData['INBOX']?.messagesUnread) {
-        // Fallback if CATEGORY_PRIMARY not available
-        counts['INBOX'] = labelData['INBOX'].messagesUnread
-      }
-      // Categories: show unread count
+      // Categories: show unread count (matches Gmail)
       const CATEGORY_IDS = ['CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS']
       for (const id of CATEGORY_IDS) {
-        if (labelData[id]?.messagesUnread) counts[id] = labelData[id].messagesUnread
+        const unread = labelData[id]?.messagesUnread || 0
+        if (unread) counts[id] = unread
+      }
+      // Inbox: use search query for Primary-only unread (matches Gmail's displayed count)
+      try {
+        const data = await listEmails(userId, { query: 'in:inbox category:primary is:unread', maxResults: 1 })
+        if (data.resultSizeEstimate) counts['INBOX'] = data.resultSizeEstimate
+      } catch {
+        // Fallback to full inbox unread
+        if (labelData['INBOX']?.messagesUnread) counts['INBOX'] = labelData['INBOX'].messagesUnread
       }
       // Other system folders + user labels: show total
       for (const [id, l] of Object.entries(labelData)) {
