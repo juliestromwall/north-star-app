@@ -18,7 +18,7 @@ import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Send, Loader2, Save, FileText, Eye,
   Plus, Trash2, PenLine, User, Calendar, Hash, CheckSquare, Type, ChevronDown,
-  ImageIcon, SeparatorHorizontal,
+  ImageIcon, SeparatorHorizontal, Printer,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -170,8 +170,8 @@ function PageMarkers({ editor, footerUrl }) {
       {Array.from({ length: pageCount }, (_, i) => {
         const pageBottom = (i + 1) * PAGE_HEIGHT_PX
         // Position so the bottom of the footer block sits ~0.4in from the page edge
-        const footerHeight = footerUrl ? 38 : 16
-        const bottomMargin = 4 // 4px from page edge
+        const footerHeight = footerUrl ? 42 : 16
+        const bottomMargin = 14 // px from page edge — room for page number below footer
         return (
           <div
             key={`footer-${i}`}
@@ -646,6 +646,34 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-1.5" onClick={() => {
+            if (!editor) return
+            const html = editor.getHTML()
+            const win = window.open('', '_blank')
+            win.document.write(`<!DOCTYPE html>
+<html><head><title>${docTitle || 'Print Preview'}</title>
+<style>
+  @page { size: letter; margin: 0.75in 1in 0.6in 1in; }
+  @page :first { margin-top: ${letterhead.header ? '0.3in' : '0.75in'}; }
+  body { font-family: 'Century Gothic', 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a2e; margin: 0; padding: 0; }
+  .header { text-align: center; margin-bottom: 16px; }
+  .header img { max-width: 220px; }
+  .content p { margin: 0.5em 0; text-align: justify; }
+  .content ul { list-style-type: disc; padding-left: 1.5em; }
+  .content ol { list-style-type: decimal; padding-left: 1.5em; }
+  .content table { border-collapse: collapse; width: 100%; }
+  .content td, .content th { border: 1px solid #ddd; padding: 6px 10px; }
+  sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
+  .page-break { page-break-after: always; height: 0; }
+</style></head><body>
+${letterhead.header ? `<div class="header"><img src="${letterhead.header}" /></div>` : ''}
+<div class="content">${html}</div>
+<script>window.onload=function(){window.print()}<\/script>
+</body></html>`)
+            win.document.close()
+          }}>
+            <Printer className="size-4" /> Print Preview
+          </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
             <Eye className="size-4" /> {preview ? 'Edit' : 'Preview'}
           </Button>
@@ -679,18 +707,6 @@ export default function EditDocumentPage() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06);
           border-radius: 2px;
           position: relative;
-          /* Page boundary lines every 11in */
-          background-image:
-            linear-gradient(to bottom,
-              transparent calc(11in - 24px),
-              rgba(0,0,0,0.04) calc(11in - 24px),
-              rgba(0,0,0,0.04) calc(11in - 1px),
-              transparent calc(11in - 1px),
-              transparent 11in
-            );
-          background-size: 100% 11in;
-          background-repeat: repeat-y;
-          background-position: top left;
         }
         /* Page number markers */
         .esign-page-markers {
