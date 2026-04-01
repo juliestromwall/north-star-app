@@ -169,15 +169,18 @@ function PageMarkers({ editor, footerUrl }) {
       {/* Footer + page number at bottom of each page */}
       {Array.from({ length: pageCount }, (_, i) => {
         const pageBottom = (i + 1) * PAGE_HEIGHT_PX
+        // Position so the bottom of the footer block sits ~0.4in from the page edge
+        const footerHeight = footerUrl ? 38 : 20
+        const bottomMargin = 0.4 * 96 // 0.4in in px
         return (
           <div
             key={`footer-${i}`}
             style={{
               position: 'absolute',
-              top: pageBottom - (footerUrl ? 52 : 24),
+              top: pageBottom - bottomMargin - footerHeight,
               left: '50%',
               transform: 'translateX(-50%)',
-              width: '7.5in',
+              width: '6.5in',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -186,7 +189,7 @@ function PageMarkers({ editor, footerUrl }) {
             {footerUrl && (
               <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
             )}
-            <span style={{ fontSize: '9px', color: '#a1a1aa', fontWeight: 500, marginTop: '2px' }}>{i + 1}</span>
+            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 600, marginTop: '4px', alignSelf: 'flex-end' }}>{i + 1}</span>
           </div>
         )
       })}
