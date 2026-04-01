@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { fetchUserTasks } from '@/lib/db'
 import { fetchSMSMessages } from '@/lib/sms'
 import { getUnreadSMSCount } from '@/lib/smsReadState'
+import { getGoogleStatus, listLabels } from '@/lib/google'
 
 const BABIES_BORN = 220
 
@@ -22,7 +23,7 @@ function UnreadDot() {
   )
 }
 
-function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS }) {
+function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail }) {
   return (
     <>
       <div className="flex items-center justify-center px-4 py-4 bg-white">
@@ -57,6 +58,11 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS }) {
                         {pendingCount}
                       </span>
                     )}
+                    {item.path === '/email' && unreadEmail > 0 && (
+                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                        {unreadEmail > 999 ? '999+' : unreadEmail}
+                      </span>
+                    )}
                     {item.path === '/text-messages' && unreadSMS > 0 && <UnreadDot />}
                   </NavLink>
                 ))}
@@ -86,6 +92,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const showBabiesBorn = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN].includes(currentRole)
   const [pendingCount, setPendingCount] = useState(0)
   const [unreadSMS, setUnreadSMS] = useState(0)
+  const [unreadEmail, setUnreadEmail] = useState(0)
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return
@@ -110,7 +117,28 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     return () => clearInterval(interval)
   }, [isAuthenticated])
 
-  const sharedProps = { sections, pendingCount, showBabiesBorn, unreadSMS }
+  // Fetch unread email count
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.id) return
+    const checkEmail = () => {
+      getGoogleStatus(currentUser.id)
+        .then(status => {
+          if (!status.connected) return
+          return listLabels(currentUser.id)
+        })
+        .then(labels => {
+          if (!labels) return
+          const inbox = labels.find(l => l.id === 'INBOX')
+          setUnreadEmail(inbox?.messagesUnread || 0)
+        })
+        .catch(() => {})
+    }
+    checkEmail()
+    const interval = setInterval(checkEmail, 120000) // check every 2 min
+    return () => clearInterval(interval)
+  }, [isAuthenticated, currentUser?.id])
+
+  const sharedProps = { sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail }
 
   return (
     <>
