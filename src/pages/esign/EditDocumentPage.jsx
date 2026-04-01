@@ -654,7 +654,7 @@ export default function EditDocumentPage() {
               // Letter size in points: 612 x 792
               const pageW = 612
               const pageH = 792
-              const margin = 54 // 0.75in in points
+              const margin = 72 // 1in in points
               const contentW = pageW - margin * 2
               const contentH = pageH - margin * 2
               const footerH = letterhead.footer ? 24 : 0
