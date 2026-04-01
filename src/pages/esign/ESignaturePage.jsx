@@ -21,7 +21,7 @@ import {
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 
-const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Legal', 'Medical', 'Insurance', 'Background Check', 'Other']
+const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-stone-100 text-stone-600', icon: FileText },
@@ -50,8 +50,14 @@ function TemplatesTab() {
   const [uploadForm, setUploadForm] = useState({ name: '', category: 'General', description: '' })
   const [showUpload, setShowUpload] = useState(false)
   const [search, setSearch] = useState('')
+  const [tagFilter, setTagFilter] = useState('all')
   const fileRef = useRef(null)
   const [selectedFile, setSelectedFile] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [renameTarget, setRenameTarget] = useState(null)
+  const [renameForm, setRenameForm] = useState({ name: '', category: '', description: '' })
+  const [renameSaving, setRenameSaving] = useState(false)
 
   useEffect(() => {
     fetchTemplates().then(setTemplates).catch(() => {}).finally(() => setLoading(false))
@@ -76,15 +82,44 @@ function TemplatesTab() {
     } finally { setUploading(false) }
   }
 
-  async function handleDelete(template) {
-    if (!confirm(`Delete template "${template.name}"?`)) return
-    await deleteTemplate(template.id, template.file_path).catch(() => {})
-    setTemplates(prev => prev.filter(t => t.id !== template.id))
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteTemplate(deleteTarget.id, deleteTarget.file_path)
+      setTemplates(prev => prev.filter(t => t.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } catch {} finally { setDeleting(false) }
   }
 
-  const filtered = templates.filter(t =>
-    !search || t.name.toLowerCase().includes(search.toLowerCase()) || t.category.toLowerCase().includes(search.toLowerCase())
-  )
+  function startRename(t) {
+    setRenameForm({ name: t.name, category: t.category || 'General', description: t.description || '' })
+    setRenameTarget(t)
+  }
+
+  async function handleRename() {
+    if (!renameTarget || !renameForm.name) return
+    setRenameSaving(true)
+    try {
+      const { updateTemplate } = await import('@/lib/esign')
+      const updated = await updateTemplate(renameTarget.id, {
+        name: renameForm.name,
+        category: renameForm.category,
+        description: renameForm.description,
+      })
+      setTemplates(prev => prev.map(t => t.id === renameTarget.id ? { ...t, ...updated } : t))
+      setRenameTarget(null)
+    } catch {} finally { setRenameSaving(false) }
+  }
+
+  // Get unique tags from templates for filter
+  const usedTags = [...new Set(templates.map(t => t.category || 'General'))]
+
+  const filtered = templates.filter(t => {
+    if (tagFilter !== 'all' && (t.category || 'General') !== tagFilter) return false
+    if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !(t.category || '').toLowerCase().includes(search.toLowerCase())) return false
+    return true
+  })
 
   return (
     <div className="space-y-4">
@@ -97,6 +132,25 @@ function TemplatesTab() {
           <Upload className="size-4" /> Upload Template
         </Button>
       </div>
+
+      {/* Tag filter */}
+      {usedTags.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tagFilter === 'all' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+            onClick={() => setTagFilter('all')}
+          >All ({templates.length})</button>
+          {usedTags.map(tag => {
+            const count = templates.filter(t => (t.category || 'General') === tag).length
+            return (
+              <button key={tag}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tagFilter === tag ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                onClick={() => setTagFilter(tagFilter === tag ? 'all' : tag)}
+              >{tag} ({count})</button>
+            )
+          })}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-center py-12 text-stone-400">Loading templates...</p>
@@ -127,14 +181,17 @@ function TemplatesTab() {
                       <Pencil className="size-3" /> Edit & Send
                     </Link>
                   </Button>
+                  <Button variant="outline" size="sm" className="text-xs" title="Rename" onClick={() => startRename(t)}>
+                    <FileText className="size-3" />
+                  </Button>
                   {getTemplateFileUrl(t.file_path) && (
-                    <Button variant="outline" size="sm" className="gap-1 text-xs" asChild>
+                    <Button variant="outline" size="sm" className="text-xs" title="Download" asChild>
                       <a href={getTemplateFileUrl(t.file_path)} target="_blank" rel="noopener noreferrer">
                         <Download className="size-3" />
                       </a>
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" className="gap-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(t)}>
+                  <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50" title="Delete" onClick={() => setDeleteTarget(t)}>
                     <Trash2 className="size-3" />
                   </Button>
                 </div>
@@ -200,6 +257,60 @@ function TemplatesTab() {
             </div>
             <Button onClick={handleUpload} disabled={uploading || !selectedFile || !uploadForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {uploading ? 'Uploading...' : 'Upload Template'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
+              <AlertTriangle className="size-5 text-red-500 shrink-0" />
+              <p className="text-sm text-red-700">
+                Are you sure you want to permanently delete <span className="font-semibold">"{deleteTarget?.name}"</span>? This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+              <Button variant="destructive" size="sm" className="gap-1" onClick={confirmDelete} disabled={deleting}>
+                <Trash2 className="size-3.5" /> {deleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={!!renameTarget} onOpenChange={() => setRenameTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Template Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Template Name</Label>
+              <Input value={renameForm.name} onChange={e => setRenameForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tag / Category</Label>
+              <SelectUI value={renameForm.category} onValueChange={v => setRenameForm(f => ({ ...f, category: v }))}>
+                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  {TEMPLATE_CATEGORIES.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Description</Label>
+              <Input value={renameForm.description} onChange={e => setRenameForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description..." />
+            </div>
+            <Button onClick={handleRename} disabled={renameSaving || !renameForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {renameSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
         </DialogContent>
