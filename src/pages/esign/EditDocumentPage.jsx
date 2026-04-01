@@ -118,74 +118,104 @@ const ResizableImage = BaseImage.extend({
   },
 })
 
-// ── Page Markers ────────────────────────────────────────
+// ── Preview Document (paginated with header/footer) ─────
 
-function PageMarkers({ editor, footerUrl }) {
-  const [pageCount, setPageCount] = useState(1)
+function PreviewDocument({ editor, letterhead }) {
+  // Get the actual rendered innerHTML from ProseMirror — preserves all inline styles
+  const editorEl = editor?.view?.dom
+  const html = editorEl ? editorEl.innerHTML : (editor?.getHTML() || '')
+  const PAGE_H = 11 * 96 // 11in
+  const HEADER_AREA = 0.5 * 96 // header starts at 0.5in
+  const BODY_TOP = 1 * 96 // body at 1in
+  const BODY_BOTTOM = 10 * 96 // body ends at 10in
+  const FOOTER_TOP = 10.5 * 96 // footer at 10.5in
+  const BODY_H = BODY_BOTTOM - BODY_TOP // 9in of content per page
+
+  // We render the full HTML into a measuring div, then calculate how many pages
+  const contentRef = useRef(null)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
-    if (!editor) return
-    const PAGE_HEIGHT_PX = 11 * 96
-
-    const update = () => {
-      const el = editor.view.dom
-      if (!el) return
-      const height = el.scrollHeight
-      setPageCount(Math.max(1, Math.ceil(height / PAGE_HEIGHT_PX)))
+    if (contentRef.current) {
+      const h = contentRef.current.scrollHeight
+      setTotalPages(Math.max(1, Math.ceil(h / BODY_H)))
     }
+  }, [html])
 
-    update()
-    editor.on('update', update)
-    const observer = new ResizeObserver(update)
-    if (editor.view.dom) observer.observe(editor.view.dom)
-
-    return () => {
-      editor.off('update', update)
-      observer.disconnect()
-    }
-  }, [editor])
-
-  const PAGE_HEIGHT_PX = 11 * 96
+  const cs = editorEl ? window.getComputedStyle(editorEl) : null
+  const contentStyle = cs ? { fontFamily: cs.fontFamily, fontSize: cs.fontSize, lineHeight: cs.lineHeight, color: cs.color } : {}
 
   return (
-    <div className="pointer-events-none esign-page-markers" style={{ position: 'absolute', zIndex: 5, top: 0, width: '8.5in', left: '50%', marginLeft: '-4.25in' }}>
-      {/* Subtle page break lines between pages */}
-      {Array.from({ length: pageCount - 1 }, (_, i) => {
-        const y = (i + 1) * PAGE_HEIGHT_PX
-        return (
-          <div
-            key={`break-${i}`}
-            style={{ position: 'absolute', top: y, left: '50%', transform: 'translateX(-50%)', width: '8.5in', height: '1px', background: '#d4d4d8' }}
-          />
-        )
-      })}
-      {/* Footer + page number at bottom of each page */}
-      {Array.from({ length: pageCount }, (_, i) => {
-        const pageBottom = (i + 1) * PAGE_HEIGHT_PX
-        // Position so the bottom of the footer block sits ~0.4in from the page edge
-        const footerHeight = footerUrl ? 42 : 16
-        const bottomMargin = 24 // px from page edge — room for page number below footer
-        return (
-          <div
-            key={`footer-${i}`}
-            style={{
-              position: 'absolute',
-              top: pageBottom - bottomMargin - footerHeight,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '6.5in',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            {footerUrl && (
-              <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
-            )}
-            <span style={{ fontSize: '11px', color: '#71717a', fontWeight: 600, marginTop: '4px' }}>{i + 1}</span>
+    <div style={{ padding: 24 }}>
+      <style>{`
+        .preview-content p { margin: 0.25em 0; }
+        .preview-content ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
+        .preview-content ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+        .preview-content li { margin: 0.25em 0; }
+        .preview-content li p { margin: 0; }
+        .preview-content img { max-width: 100%; height: auto; }
+        .preview-content table { border-collapse: collapse; width: 100%; }
+        .preview-content td, .preview-content th { border: 1px solid #ddd; padding: 6px 10px; }
+        .preview-content mark { border-radius: 2px; padding: 1px 2px; }
+        .preview-content a { color: #283693; text-decoration: underline; }
+        .preview-content sign-field { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; border: 1.5px dashed #ccc; background: #f5f5f5; font-size: 12px; font-weight: 600; color: #666; }
+      `}</style>
+      {/* Hidden measuring div */}
+      <div ref={contentRef} style={{ position: 'absolute', visibility: 'hidden', width: '6.5in', padding: 0, ...contentStyle }}>
+        <div className="preview-content" dangerouslySetInnerHTML={{ __html: html }} />
+      </div>
+
+      {/* Rendered pages */}
+      {Array.from({ length: totalPages }, (_, pageIdx) => (
+        <div
+          key={pageIdx}
+          style={{
+            width: '8.5in',
+            height: `${PAGE_H}px`,
+            margin: '0 auto 24px',
+            background: 'white',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)',
+            borderRadius: 2,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header — page 1 only */}
+          {pageIdx === 0 && letterhead.header && (
+            <div style={{ position: 'absolute', top: HEADER_AREA, left: 0, right: 0, textAlign: 'center' }}>
+              <img src={letterhead.header} alt="Header" style={{ maxWidth: '220px', height: 'auto' }} />
+            </div>
+          )}
+
+          {/* Body content — clipped to this page's slice */}
+          <div style={{
+            position: 'absolute',
+            top: BODY_TOP,
+            left: '1in',
+            right: '1in',
+            height: BODY_H,
+            overflow: 'hidden',
+          }}>
+            <div
+              className="preview-content"
+              style={{ marginTop: -(pageIdx * BODY_H), ...contentStyle }}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
           </div>
-        )
-      })}
+
+          {/* Footer — every page */}
+          {letterhead.footer && (
+            <div style={{ position: 'absolute', top: FOOTER_TOP, left: '0.75in', right: '0.75in', textAlign: 'center' }}>
+              <img src={letterhead.footer} alt="Footer" style={{ width: '100%', height: 'auto' }} />
+            </div>
+          )}
+
+          {/* Page number */}
+          <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, textAlign: 'center', fontSize: 11, color: '#71717a', fontWeight: 600 }}>
+            {pageIdx + 1}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -781,11 +811,6 @@ export default function EditDocumentPage() {
           background: #d4d4d8;
           padding: 24px;
         }
-        .esign-editor.has-letterhead .ProseMirror {
-          padding-top: 0.3in;
-          border-radius: 0 0 2px 2px;
-          margin-top: 0;
-        }
         .esign-editor .ProseMirror {
           background: white;
           width: 8.5in;
@@ -795,26 +820,6 @@ export default function EditDocumentPage() {
           box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06);
           border-radius: 2px;
           position: relative;
-        }
-        /* Page number markers */
-        .esign-page-markers {
-          position: absolute;
-          top: 0;
-          left: -40px;
-          width: 36px;
-          pointer-events: none;
-        }
-        .esign-page-marker {
-          position: absolute;
-          left: 0;
-          width: 36px;
-          text-align: center;
-          font-size: 9px;
-          font-weight: 700;
-          color: #a1a1aa;
-          background: #d4d4d8;
-          border-radius: 4px;
-          padding: 2px 0;
         }
         .esign-editor .page-break {
           display: flex;
@@ -870,31 +875,29 @@ export default function EditDocumentPage() {
           .esign-editor-scroll { background: white !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
           .esign-editor { position: static !important; }
 
-          /* Hide overlay page markers */
-          .esign-page-markers { display: none !important; }
-
           /* Page breaks */
           .page-break { page-break-after: always !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background: none !important; border: none !important; overflow: hidden !important; }
           .page-break * { display: none !important; }
         }
       `}</style>
 
-      {/* Editor — toolbar sticky, content scrolls */}
-      <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
-        <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
-          <div className={`esign-editor relative ${letterhead.header ? 'has-letterhead' : ''}`}>
-            {/* Letterhead header — first page only */}
-            {letterhead.header && (
-              <div style={{ width: '8.5in', margin: '0 auto 0', background: 'white', padding: '0.5in 1in 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)', borderRadius: '2px 2px 0 0', display: 'flex', justifyContent: 'center' }}>
-                <img src={letterhead.header} alt="Header" style={{ maxWidth: '220px', height: 'auto', display: 'block' }} />
-              </div>
-            )}
-            <PageMarkers editor={editor} footerUrl={letterhead.footer} />
-            <EditorContent editor={editor} />
+      {/* Editor or Preview */}
+      {preview ? (
+        /* ── Preview Mode: scrollable paginated view with header/footer ── */
+        <div className="rounded-2xl border shadow-sm flex-1 min-h-0 overflow-y-auto esign-editor-scroll">
+          <PreviewDocument editor={editor} letterhead={letterhead} />
+        </div>
+      ) : (
+        /* ── Edit Mode: clean editor, no header/footer overlays ── */
+        <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+          <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>
+          <div className="flex-1 overflow-y-auto esign-editor-scroll">
+            <div className="esign-editor">
+              <EditorContent editor={editor} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Send Dialog */}
       <Dialog open={showSend} onOpenChange={setShowSend}>
