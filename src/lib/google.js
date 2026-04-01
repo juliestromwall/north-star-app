@@ -50,6 +50,18 @@ export async function listLabels(userId) {
   return data.labels || []
 }
 
+/** Get a single label's details (includes unread count) */
+export async function getLabel(userId, labelId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/labels/${encodeURIComponent(labelId)}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to get label')
+  return data
+}
+
 /** List emails from Gmail — supports labelIds filter */
 export async function listEmails(userId, { query = '', maxResults = 20, pageToken, labelIds } = {}) {
   const token = await getAccessToken(userId)

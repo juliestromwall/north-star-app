@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { fetchUserTasks } from '@/lib/db'
 import { fetchSMSMessages } from '@/lib/sms'
 import { getUnreadSMSCount } from '@/lib/smsReadState'
-import { getGoogleStatus, listLabels } from '@/lib/google'
+import { getGoogleStatus, getLabel } from '@/lib/google'
 
 const BABIES_BORN = 220
 
@@ -124,12 +124,11 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       getGoogleStatus(currentUser.id)
         .then(status => {
           if (!status.connected) return
-          return listLabels(currentUser.id)
+          return getLabel(currentUser.id, 'INBOX')
         })
-        .then(labels => {
-          if (!labels) return
-          const inbox = labels.find(l => l.id === 'INBOX')
-          setUnreadEmail(inbox?.messagesUnread || 0)
+        .then(label => {
+          if (!label) return
+          setUnreadEmail(label.messagesUnread || 0)
         })
         .catch(() => {})
     }
