@@ -52,7 +52,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
             </div>
           </div>
         `
-        await sendEmail(currentUser.id, { to: form.email, subject, htmlBody: body })
+        await sendEmail(currentUser.id, { to: form.email, subject, body })
       } catch (emailErr) {
         console.error('Failed to send email:', emailErr)
       }
