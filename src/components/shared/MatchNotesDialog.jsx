@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { updateIntakeSubmission } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 export default function MatchNotesDialog({ open, onOpenChange, caseId, answers, onSaved, currentUser }) {
   const [notes, setNotes] = useState('')
@@ -16,7 +17,13 @@ export default function MatchNotesDialog({ open, onOpenChange, caseId, answers, 
   async function handleSave() {
     setSaving(true)
     try {
-      const updatedAnswers = { ...answers, _matchNotes: notes }
+      // Always fetch fresh answers from DB to avoid overwriting other fields
+      let currentAnswers = answers || {}
+      if (supabase) {
+        const { data } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+        if (data?.answers) currentAnswers = data.answers
+      }
+      const updatedAnswers = { ...currentAnswers, _matchNotes: notes }
       await updateIntakeSubmission(caseId, { answers: updatedAnswers })
       if (onSaved) onSaved(updatedAnswers)
       onOpenChange(false)
