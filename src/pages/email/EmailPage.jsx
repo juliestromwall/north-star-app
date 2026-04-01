@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
+import { useDrafts } from '@/context/DraftContext'
 import {
-  listEmails, getEmail, sendEmail, modifyEmail, getAttachment, listLabels,
+  listEmails, getEmail, modifyEmail, getAttachment, listLabels,
   getGoogleStatus, parseEmailHeaders, parseEmailBody, parseEmailAttachments,
   connectGoogle,
 } from '@/lib/google'
@@ -9,7 +10,6 @@ import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
@@ -20,10 +20,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Search, RefreshCw, Mail, MailOpen, Send, Paperclip, ArrowLeft,
-  Star, Archive, Trash2, Reply, Forward, X, Loader2, Plus, LinkIcon,
-  Inbox, AlertCircle, CheckCircle2, Download, Tag, ChevronDown,
-  FileText, SendHorizonal, FileWarning, AlertTriangle, Clock,
-  MailPlus, Pencil,
+  Star, Archive, Trash2, Reply, Forward, X, Loader2, LinkIcon,
+  Inbox, CheckCircle2, Download, Tag,
+  SendHorizonal, FileText, AlertTriangle,
+  MailPlus,
 } from 'lucide-react'
 
 // ── System folder config ────────────────────────────────
@@ -114,159 +114,11 @@ function NotConnectedState({ userId }) {
       <h3 className="text-lg font-semibold mb-2">Connect your Google account</h3>
       <p className="text-sm text-muted-foreground mb-6 max-w-md">
         Connect your Gmail to send and receive emails directly from ABC Surrogacy.
-        You can manage your connection in Settings.
       </p>
       <Button onClick={() => connectGoogle(userId)}>
         Connect Google Account
       </Button>
     </div>
-  )
-}
-
-// ── Compose Dialog ──────────────────────────────────────
-
-function ComposeDialog({ open, onOpenChange, userId, replyTo, forwardMsg, onSent }) {
-  const [to, setTo] = useState('')
-  const [cc, setCc] = useState('')
-  const [bcc, setBcc] = useState('')
-  const [subject, setSubject] = useState('')
-  const [body, setBody] = useState('')
-  const [attachments, setAttachments] = useState([])
-  const [sending, setSending] = useState(false)
-  const [showCcBcc, setShowCcBcc] = useState(false)
-  const fileRef = useRef(null)
-
-  useEffect(() => {
-    if (!open) return
-    if (replyTo) {
-      const from = extractEmail(replyTo.from)
-      setTo(from)
-      setSubject(replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject || ''}`)
-      setBody(`\n\n> On ${replyTo.date}, ${replyTo.from} wrote:\n> ${(replyTo.bodyHtml || '').replace(/<[^>]*>/g, '').slice(0, 500)}`)
-    } else if (forwardMsg) {
-      setTo('')
-      setSubject(`Fwd: ${forwardMsg.subject || ''}`)
-      setBody(`\n\n---------- Forwarded message ----------\nFrom: ${forwardMsg.from}\nDate: ${forwardMsg.date}\nSubject: ${forwardMsg.subject}\n\n${(forwardMsg.bodyHtml || '').replace(/<[^>]*>/g, '').slice(0, 1000)}`)
-    } else {
-      setTo('')
-      setSubject('')
-      setBody('')
-    }
-    setCc('')
-    setBcc('')
-    setAttachments([])
-    setShowCcBcc(false)
-  }, [open, replyTo, forwardMsg])
-
-  const handleFileAdd = (e) => {
-    const files = Array.from(e.target.files || [])
-    for (const file of files) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1]
-        setAttachments(prev => [...prev, {
-          filename: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          base64Data: base64,
-          size: file.size,
-        }])
-      }
-      reader.readAsDataURL(file)
-    }
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  const handleSend = async () => {
-    if (!to.trim()) return
-    setSending(true)
-    try {
-      const htmlBody = body.replace(/\n/g, '<br/>')
-      await sendEmail(userId, {
-        to: to.trim(),
-        subject,
-        body: htmlBody || '<p></p>',
-        cc: cc || undefined,
-        bcc: bcc || undefined,
-        attachments,
-      })
-      onSent?.()
-      onOpenChange(false)
-    } catch (err) {
-      alert('Failed to send: ' + err.message)
-    }
-    setSending(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {replyTo ? <Reply className="size-4" /> : forwardMsg ? <Forward className="size-4" /> : <Pencil className="size-4" />}
-            {replyTo ? 'Reply' : forwardMsg ? 'Forward' : 'New Message'}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 flex-1 overflow-y-auto">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground w-8">To</span>
-              <Input value={to} onChange={e => setTo(e.target.value)} placeholder="recipient@email.com" className="h-9" />
-              {!showCcBcc && (
-                <button onClick={() => setShowCcBcc(true)} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
-                  Cc/Bcc
-                </button>
-              )}
-            </div>
-            {showCcBcc && (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground w-8">Cc</span>
-                  <Input value={cc} onChange={e => setCc(e.target.value)} placeholder="cc@email.com" className="h-9" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground w-8">Bcc</span>
-                  <Input value={bcc} onChange={e => setBcc(e.target.value)} placeholder="bcc@email.com" className="h-9" />
-                </div>
-              </>
-            )}
-          </div>
-          <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="h-9" />
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            placeholder="Write your message..."
-            rows={12}
-            className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 resize-none font-sans"
-          />
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((att, i) => (
-                <div key={i} className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2.5 py-1.5 text-xs">
-                  <Paperclip className="size-3" />
-                  <span className="max-w-[150px] truncate">{att.filename}</span>
-                  <span className="text-muted-foreground">{fileSizeLabel(att.size)}</span>
-                  <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="ml-1 hover:text-destructive">
-                    <X className="size-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between border-t pt-3">
-          <div className="flex items-center gap-2">
-            <input type="file" ref={fileRef} onChange={handleFileAdd} multiple hidden />
-            <Button variant="ghost" size="sm" onClick={() => fileRef.current?.click()}>
-              <Paperclip className="size-4" />
-            </Button>
-          </div>
-          <Button onClick={handleSend} disabled={sending || !to.trim()} className="gap-2">
-            {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-            Send
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -405,8 +257,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-4 py-2 border-b bg-card shrink-0">
         <Button variant="ghost" size="sm" onClick={onBack} className="gap-1.5">
-          <ArrowLeft className="size-4" />
-          Back
+          <ArrowLeft className="size-4" /> Back
         </Button>
         <div className="w-px h-5 bg-border mx-1" />
         <Button variant="ghost" size="icon-sm" onClick={onArchive} title="Archive" className="size-8">
@@ -429,12 +280,10 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
       </div>
 
       {/* Email content */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-5 max-w-4xl">
-          {/* Subject */}
           <h2 className="text-xl font-semibold mb-4">{email.subject || '(no subject)'}</h2>
 
-          {/* Sender row */}
           <div className="flex items-start gap-3 mb-5">
             <div className={`size-10 rounded-full flex items-center justify-center text-white text-sm font-medium shrink-0 ${getAvatarColor(senderName)}`}>
               {getInitials(senderName)}
@@ -452,7 +301,6 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
             <span className="text-xs text-muted-foreground shrink-0">{formatFullDate(email.date)}</span>
           </div>
 
-          {/* Labels */}
           {email.labelIds?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-4">
               {email.labelIds
@@ -466,7 +314,6 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
             </div>
           )}
 
-          {/* Attachments */}
           {email.attachments?.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-5 pb-4 border-b">
               {email.attachments.map((att, i) => (
@@ -476,11 +323,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
                   disabled={downloading === att.attachmentId}
                   className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2 text-sm hover:bg-muted transition-colors"
                 >
-                  {downloading === att.attachmentId ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Download className="size-4 text-muted-foreground" />
-                  )}
+                  {downloading === att.attachmentId ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4 text-muted-foreground" />}
                   <span className="max-w-[200px] truncate">{att.filename}</span>
                   <span className="text-xs text-muted-foreground">{fileSizeLabel(att.size)}</span>
                 </button>
@@ -488,21 +331,14 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
             </div>
           )}
 
-          {/* Body */}
           <div
             className="prose prose-sm max-w-none"
             dangerouslySetInnerHTML={{ __html: email.bodyHtml || '<p>' + (email.snippet || '') + '</p>' }}
           />
         </div>
-      </ScrollArea>
+      </div>
 
-      <LogToCaseDialog
-        open={logOpen}
-        onOpenChange={setLogOpen}
-        email={email}
-        userId={userId}
-        userName={userName}
-      />
+      <LogToCaseDialog open={logOpen} onOpenChange={setLogOpen} email={email} userId={userId} userName={userName} />
     </div>
   )
 }
@@ -519,9 +355,8 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
         </Button>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <nav className="px-2 pb-4">
-          {/* System folders */}
           {SYSTEM_FOLDERS.map(folder => {
             const isActive = activeFolder === folder.id
             const Icon = folder.icon
@@ -531,9 +366,7 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
                 key={folder.id}
                 onClick={() => onFolderChange(folder.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'text-foreground/70 hover:bg-muted'
+                  isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'
                 }`}
               >
                 <Icon className={`size-4 shrink-0 ${isActive ? 'text-blue-600' : FOLDER_COLORS[folder.id] || 'text-muted-foreground'}`} />
@@ -545,7 +378,6 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
             )
           })}
 
-          {/* User labels */}
           {userLabels.length > 0 && (
             <>
               <div className="flex items-center gap-2 px-3 mt-4 mb-1">
@@ -558,9 +390,7 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
                     key={label.id}
                     onClick={() => onFolderChange(label.id)}
                     className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-foreground/70 hover:bg-muted'
+                      isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'
                     }`}
                   >
                     <Tag className="size-3.5 shrink-0 text-muted-foreground" />
@@ -571,7 +401,7 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
             </>
           )}
         </nav>
-      </ScrollArea>
+      </div>
     </div>
   )
 }
@@ -603,8 +433,8 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
         </form>
       </div>
 
-      {/* Message list */}
-      <ScrollArea className="flex-1">
+      {/* Message list — native scroll */}
+      <div className="flex-1 overflow-y-auto">
         {loading && messages.length === 0 ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -621,7 +451,6 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
             {messages.map(msg => {
               const senderName = extractName(msg.from)
               const isSelected = selectedIds.has(msg.id)
-              const hasAttachment = msg.labelIds?.includes('ATTACHMENT') || msg.snippet?.includes('attachment')
 
               return (
                 <div
@@ -641,20 +470,15 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
                     disabled={loadingEmail}
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                   >
-                    {/* Avatar */}
                     <div className={`size-8 rounded-full flex items-center justify-center text-white text-xs font-medium shrink-0 ${getAvatarColor(senderName)}`}>
                       {getInitials(senderName)}
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className={`text-sm truncate max-w-[180px] ${msg.isUnread ? 'font-semibold text-foreground' : 'text-foreground/80'}`}>
                           {senderName || extractEmail(msg.from)}
                         </span>
-                        {msg.isUnread && (
-                          <span className="size-2 rounded-full bg-blue-500 shrink-0" />
-                        )}
+                        {msg.isUnread && <span className="size-2 rounded-full bg-blue-500 shrink-0" />}
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm truncate ${msg.isUnread ? 'text-foreground' : 'text-muted-foreground'}`}>
@@ -665,10 +489,7 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
                         </span>
                       </div>
                     </div>
-
-                    {/* Meta */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {hasAttachment && <Paperclip className="size-3.5 text-muted-foreground" />}
                       <span className={`text-xs whitespace-nowrap ${msg.isUnread ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
                         {formatDate(msg.date)}
                       </span>
@@ -687,7 +508,7 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
             )}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }
@@ -696,6 +517,7 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
 
 export default function EmailPage() {
   const { currentUser } = useRole()
+  const { openDraft } = useDrafts()
   const userId = currentUser?.id
 
   const [connected, setConnected] = useState(null)
@@ -706,9 +528,6 @@ export default function EmailPage() {
   const [nextPageToken, setNextPageToken] = useState(null)
   const [selectedEmail, setSelectedEmail] = useState(null)
   const [loadingEmail, setLoadingEmail] = useState(false)
-  const [composeOpen, setComposeOpen] = useState(false)
-  const [replyTo, setReplyTo] = useState(null)
-  const [forwardMsg, setForwardMsg] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [activeFolder, setActiveFolder] = useState('INBOX')
   const [userLabels, setUserLabels] = useState([])
@@ -731,12 +550,8 @@ export default function EmailPage() {
         .filter(l => l.type === 'user')
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
       setUserLabels(user)
-
-      // Build counts from label data
       const counts = {}
-      labels.forEach(l => {
-        if (l.messagesUnread) counts[l.id] = l.messagesUnread
-      })
+      labels.forEach(l => { if (l.messagesUnread) counts[l.id] = l.messagesUnread })
       setLabelCounts(counts)
     }).catch(() => {})
   }, [connected, userId])
@@ -747,8 +562,6 @@ export default function EmailPage() {
     setLoading(true)
     try {
       const opts = { maxResults: 30, pageToken }
-
-      // If searching, use query directly; otherwise use labelIds filter
       if (query) {
         opts.query = query
       } else {
@@ -765,7 +578,6 @@ export default function EmailPage() {
         return
       }
 
-      // Fetch metadata for each message
       const fetched = await Promise.all(
         msgIds.map(m => getEmail(userId, m.id, 'metadata'))
       )
@@ -794,7 +606,6 @@ export default function EmailPage() {
     }
   }, [connected, activeFolder])
 
-  // Re-fetch when search query changes
   useEffect(() => {
     if (connected && searchQuery) {
       fetchMessages(searchQuery, null, activeFolder)
@@ -839,23 +650,10 @@ export default function EmailPage() {
     setLoadingEmail(false)
   }
 
-  const handleReply = () => {
-    setReplyTo(selectedEmail)
-    setForwardMsg(null)
-    setComposeOpen(true)
-  }
-
-  const handleForward = () => {
-    setForwardMsg(selectedEmail)
-    setReplyTo(null)
-    setComposeOpen(true)
-  }
-
-  const handleCompose = () => {
-    setReplyTo(null)
-    setForwardMsg(null)
-    setComposeOpen(true)
-  }
+  // Compose actions — all use DraftContext now
+  const handleCompose = () => openDraft()
+  const handleReply = () => openDraft({ replyTo: selectedEmail })
+  const handleForward = () => openDraft({ forwardMsg: selectedEmail })
 
   const handleArchive = async () => {
     if (!selectedEmail || !userId) return
@@ -881,14 +679,9 @@ export default function EmailPage() {
   }
 
   const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedIds(new Set(messages.map(m => m.id)))
-    } else {
-      setSelectedIds(new Set())
-    }
+    setSelectedIds(checked ? new Set(messages.map(m => m.id)) : new Set())
   }
 
-  // Loading / not connected
   if (connected === null) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
@@ -903,7 +696,6 @@ export default function EmailPage() {
 
   return (
     <div className="flex h-[calc(100vh-120px)] rounded-xl border bg-card overflow-hidden shadow-sm">
-      {/* Folder Sidebar */}
       <FolderSidebar
         activeFolder={activeFolder}
         onFolderChange={handleFolderChange}
@@ -912,7 +704,6 @@ export default function EmailPage() {
         onCompose={handleCompose}
       />
 
-      {/* Email list or detail view */}
       {selectedEmail ? (
         <div className="flex-1 flex flex-col min-w-0">
           <EmailDetail
@@ -946,16 +737,6 @@ export default function EmailPage() {
           allSelected={selectedIds.size === messages.length}
         />
       )}
-
-      {/* Compose Dialog */}
-      <ComposeDialog
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-        userId={userId}
-        replyTo={replyTo}
-        forwardMsg={forwardMsg}
-        onSent={handleRefresh}
-      />
     </div>
   )
 }
