@@ -23,7 +23,7 @@ import {
   Star, Archive, Trash2, Reply, Forward, X, Loader2, LinkIcon,
   Inbox, CheckCircle2, Download, Tag,
   SendHorizonal, FileText, AlertTriangle,
-  MailPlus,
+  MailPlus, Clock, ChevronRight, Users, Info, MessageSquare, ShoppingBag, Megaphone, ChevronDown,
 } from 'lucide-react'
 
 // ── System folder config ────────────────────────────────
@@ -31,19 +31,36 @@ import {
 const SYSTEM_FOLDERS = [
   { id: 'INBOX', label: 'Inbox', icon: Inbox },
   { id: 'STARRED', label: 'Starred', icon: Star },
+  { id: 'SNOOZED', label: 'Snoozed', icon: Clock },
+  { id: 'IMPORTANT', label: 'Important', icon: ChevronRight },
   { id: 'SENT', label: 'Sent', icon: SendHorizonal },
   { id: 'DRAFT', label: 'Drafts', icon: FileText },
   { id: 'SPAM', label: 'Spam', icon: AlertTriangle },
   { id: 'TRASH', label: 'Trash', icon: Trash2 },
 ]
 
+const CATEGORY_FOLDERS = [
+  { id: 'CATEGORY_SOCIAL', label: 'Social', icon: Users },
+  { id: 'CATEGORY_UPDATES', label: 'Updates', icon: Info },
+  { id: 'CATEGORY_FORUMS', label: 'Forums', icon: MessageSquare },
+  { id: 'CATEGORY_PROMOTIONS', label: 'Promotions', icon: Megaphone },
+  { id: 'CATEGORY_PURCHASES', label: 'Purchases', icon: ShoppingBag },
+]
+
 const FOLDER_COLORS = {
   INBOX: 'text-blue-600',
   STARRED: 'text-amber-500',
+  SNOOZED: 'text-stone-500',
+  IMPORTANT: 'text-amber-600',
   SENT: 'text-emerald-600',
   DRAFT: 'text-orange-500',
   SPAM: 'text-red-500',
   TRASH: 'text-gray-500',
+  CATEGORY_SOCIAL: 'text-blue-500',
+  CATEGORY_UPDATES: 'text-stone-500',
+  CATEGORY_FORUMS: 'text-cyan-600',
+  CATEGORY_PROMOTIONS: 'text-green-600',
+  CATEGORY_PURCHASES: 'text-purple-500',
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -346,6 +363,29 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
 // ── Folder Sidebar ──────────────────────────────────────
 
 function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, onCompose }) {
+  const [showMore, setShowMore] = useState(false)
+
+  function renderFolder(folder) {
+    const isActive = activeFolder === folder.id
+    const Icon = folder.icon
+    const count = labelCounts[folder.id] || 0
+    return (
+      <button
+        key={folder.id}
+        onClick={() => onFolderChange(folder.id)}
+        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+          isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'
+        }`}
+      >
+        <Icon className={`size-4 shrink-0 ${isActive ? 'text-blue-600' : FOLDER_COLORS[folder.id] || 'text-muted-foreground'}`} />
+        <span className="flex-1 text-left">{folder.label}</span>
+        {count > 0 && (
+          <span className={`text-xs font-semibold ${isActive ? 'text-blue-600' : 'text-muted-foreground'}`}>{count.toLocaleString()}</span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <div className="w-56 shrink-0 flex flex-col border-r bg-card">
       <div className="p-3">
@@ -357,27 +397,20 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
 
       <div className="flex-1 overflow-y-auto">
         <nav className="px-2 pb-4">
-          {SYSTEM_FOLDERS.map(folder => {
-            const isActive = activeFolder === folder.id
-            const Icon = folder.icon
-            const count = labelCounts[folder.id] || 0
-            return (
-              <button
-                key={folder.id}
-                onClick={() => onFolderChange(folder.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'
-                }`}
-              >
-                <Icon className={`size-4 shrink-0 ${isActive ? 'text-blue-600' : FOLDER_COLORS[folder.id] || 'text-muted-foreground'}`} />
-                <span className="flex-1 text-left">{folder.label}</span>
-                {count > 0 && folder.id === 'INBOX' && (
-                  <span className="text-xs font-semibold text-blue-600">{count}</span>
-                )}
-              </button>
-            )
-          })}
+          {SYSTEM_FOLDERS.map(renderFolder)}
 
+          {/* Categories (collapsible) */}
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-foreground/70 hover:bg-muted transition-colors"
+          >
+            <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform ${showMore ? 'rotate-180' : ''}`} />
+            <span className="flex-1 text-left">{showMore ? 'Less' : 'More'}</span>
+          </button>
+
+          {showMore && CATEGORY_FOLDERS.map(renderFolder)}
+
+          {/* User Labels */}
           {userLabels.length > 0 && (
             <>
               <div className="flex items-center gap-2 px-3 mt-4 mb-1">
@@ -385,6 +418,7 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
               </div>
               {userLabels.map(label => {
                 const isActive = activeFolder === label.id
+                const count = labelCounts[label.id] || 0
                 return (
                   <button
                     key={label.id}
@@ -395,6 +429,9 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
                   >
                     <Tag className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="flex-1 text-left truncate">{label.name}</span>
+                    {count > 0 && (
+                      <span className={`text-xs font-semibold ${isActive ? 'text-blue-600' : 'text-muted-foreground'}`}>{count.toLocaleString()}</span>
+                    )}
                   </button>
                 )
               })}
@@ -594,7 +631,14 @@ export default function EmailPage() {
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
       setUserLabels(user)
       const counts = {}
-      labels.forEach(l => { if (l.messagesUnread) counts[l.id] = l.messagesUnread })
+      labels.forEach(l => {
+        // Inbox shows unread count; others show total
+        if (l.id === 'INBOX') {
+          if (l.messagesUnread) counts[l.id] = l.messagesUnread
+        } else {
+          if (l.messagesTotal) counts[l.id] = l.messagesTotal
+        }
+      })
       setLabelCounts(counts)
     }).catch(() => {})
   }, [connected, userId])

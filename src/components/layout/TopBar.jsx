@@ -5,11 +5,13 @@ import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { getGoogleStatus, listLabels } from '@/lib/google'
 
 export default function TopBar({ onMenuClick }) {
   const { currentUser, currentRole, isAuthenticated, signOut } = useRole()
   const navigate = useNavigate()
   const isAdmin = ADMIN_ROLES.includes(currentRole)
+  const [inboxCount, setInboxCount] = useState(0)
 
   const initials = currentUser.name
     .split(' ')
@@ -17,16 +19,28 @@ export default function TopBar({ onMenuClick }) {
     .join('')
     .slice(0, 2)
 
+  // Fetch inbox unread count
+  useEffect(() => {
+    if (!isAdmin || !currentUser?.id) return
+    getGoogleStatus(currentUser.id).then(s => {
+      if (!s.connected) return
+      listLabels(currentUser.id).then(labels => {
+        const inbox = labels.find(l => l.id === 'INBOX')
+        if (inbox?.messagesUnread) setInboxCount(inbox.messagesUnread)
+      }).catch(() => {})
+    }).catch(() => {})
+  }, [isAdmin, currentUser?.id])
+
   async function handleSignOut() {
     await signOut()
     navigate('/login')
   }
 
   const quickLinks = [
-    { path: '/dashboard', icon: Home, label: 'Home', show: true },
-    { path: '/email', icon: Mail, label: 'Email', show: isAdmin },
-    { path: '/text-messages', icon: MessageSquare, label: 'Texts', show: isAdmin },
-    { path: '/calendar', icon: Calendar, label: 'Calendar', show: isAdmin },
+    { path: '/dashboard', icon: Home, label: 'Home', show: true, badge: 0 },
+    { path: '/email', icon: Mail, label: 'Email', show: isAdmin, badge: inboxCount },
+    { path: '/text-messages', icon: MessageSquare, label: 'Texts', show: isAdmin, badge: 0 },
+    { path: '/calendar', icon: Calendar, label: 'Calendar', show: isAdmin, badge: 0 },
   ]
 
   return (
@@ -58,6 +72,11 @@ export default function TopBar({ onMenuClick }) {
           >
             <link.icon className="size-3.5" />
             <span>{link.label}</span>
+            {link.badge > 0 && (
+              <span className="bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none">
+                {link.badge > 999 ? '999+' : link.badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
