@@ -60,7 +60,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                     )}
                     {item.path === '/email' && unreadEmail > 0 && (
                       <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
-                        {unreadEmail > 999 ? '999+' : unreadEmail}
+                        {unreadEmail.toLocaleString()}
                       </span>
                     )}
                     {item.path === '/text-messages' && unreadSMS > 0 && <UnreadDot />}
