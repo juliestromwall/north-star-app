@@ -846,7 +846,7 @@ function PVYesNo({ label, value, fp }) {
   )
 }
 
-export function ProfilePreview({ profile, photos }) {
+export function ProfilePreview({ profile, photos, hideFooter = false }) {
   const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
   const p = profile?.personal || profile?.about || {}
   const family = profile?.family || {}
@@ -1190,12 +1190,14 @@ export function ProfilePreview({ profile, photos }) {
         </PVSection>
 
         {/* Footer */}
-        <div className="text-center py-6 print:hidden">
-          <div className="inline-flex items-center gap-2 text-xs text-gray-400">
-            <img src="/abc-logo.png" alt="" className="h-5 opacity-30" />
-            This is a preview of how intended parents will see your profile.
+        {!hideFooter && (
+          <div className="text-center py-6 print:hidden">
+            <div className="inline-flex items-center gap-2 text-xs text-gray-400">
+              <img src="/abc-logo.png" alt="" className="h-5 opacity-30" />
+              This is a preview of how intended parents will see your profile.
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
     </HiddenFieldsContext.Provider>

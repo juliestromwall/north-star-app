@@ -131,6 +131,7 @@ export default function SharedProfilePage() {
 
   const hoursLeft = Math.max(0, Math.round((new Date(share.expires_at) - new Date()) / (60 * 60 * 1000)))
   const isGC = share.case_type === 'gc'
+  const adminFirstName = share.shared_by ? share.shared_by.split(' ')[0] : 'the agency'
 
   return (
     <div className="min-h-screen bg-[#fdf8f3]">
@@ -167,7 +168,10 @@ export default function SharedProfilePage() {
         {/* Profile Content */}
         {isGC && profileData ? (
           <div className="rounded-2xl border bg-white overflow-hidden">
-            <ProfilePreview profile={profileData} photos={photos} />
+            <div className="flex items-center justify-center py-4 border-b bg-white">
+              <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 w-auto" />
+            </div>
+            <ProfilePreview profile={profileData} photos={photos} hideFooter />
           </div>
         ) : caseData ? (
           <Card className="rounded-2xl">
@@ -232,11 +236,11 @@ export default function SharedProfilePage() {
             {/* Ask a question */}
             {asked ? (
               <div className="flex items-center gap-2 text-sm text-emerald-600 py-3">
-                <CheckCircle2 className="size-4" /> Your question has been sent to the agency. They'll get back to you soon.
+                <CheckCircle2 className="size-4" /> Your question has been sent to {adminFirstName}. They'll get back to you soon.
               </div>
             ) : (
               <div className="space-y-3 pt-2 border-t">
-                <p className="text-xs text-stone-500 font-medium">Have a question? Ask the agency below:</p>
+                <p className="text-xs text-stone-500 font-medium">Have a question? Ask {adminFirstName} below:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Input value={askForm.name} onChange={e => setAskForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" className="text-sm" />
                   <Input type="email" value={askForm.email} onChange={e => setAskForm(f => ({ ...f, email: e.target.value }))} placeholder="Your email" className="text-sm" />
