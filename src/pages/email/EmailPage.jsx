@@ -634,7 +634,7 @@ export default function EmailPage() {
       // listLabels doesn't always include counts — fetch individually for key folders
       const counts = {}
       const labelsToFetch = [
-        'INBOX', 'DRAFT', 'SPAM', 'TRASH', 'STARRED',
+        'INBOX', 'CATEGORY_PRIMARY', 'DRAFT', 'SPAM', 'TRASH', 'STARRED',
         'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS',
         ...user.map(l => l.id),
       ]
@@ -646,24 +646,22 @@ export default function EmailPage() {
       results.forEach(r => {
         if (r.status === 'fulfilled' && r.value) labelData[r.value.id] = r.value
       })
-      // For categories, show unread count (matches Gmail)
+      // Inbox: use CATEGORY_PRIMARY unread (matches Gmail's displayed inbox count)
+      const primaryLabel = labelData['CATEGORY_PRIMARY']
+      if (primaryLabel?.messagesUnread) {
+        counts['INBOX'] = primaryLabel.messagesUnread
+      } else if (labelData['INBOX']?.messagesUnread) {
+        // Fallback if CATEGORY_PRIMARY not available
+        counts['INBOX'] = labelData['INBOX'].messagesUnread
+      }
+      // Categories: show unread count
       const CATEGORY_IDS = ['CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS']
-      let categoryUnread = 0
       for (const id of CATEGORY_IDS) {
-        const l = labelData[id]
-        if (l) {
-          if (l.messagesUnread) counts[id] = l.messagesUnread
-          categoryUnread += (l.messagesUnread || 0)
-        }
+        if (labelData[id]?.messagesUnread) counts[id] = labelData[id].messagesUnread
       }
-      // Inbox: subtract category unread to get Primary-only unread (like Gmail UI)
-      const inboxLabel = labelData['INBOX']
-      if (inboxLabel?.messagesUnread) {
-        counts['INBOX'] = Math.max(0, inboxLabel.messagesUnread - categoryUnread)
-      }
-      // Other system folders: show total
+      // Other system folders + user labels: show total
       for (const [id, l] of Object.entries(labelData)) {
-        if (id === 'INBOX' || CATEGORY_IDS.includes(id)) continue
+        if (id === 'INBOX' || id === 'CATEGORY_PRIMARY' || CATEGORY_IDS.includes(id)) continue
         if (l.messagesTotal) counts[id] = l.messagesTotal
       }
       setLabelCounts(counts)
