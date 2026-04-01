@@ -170,8 +170,8 @@ function PageMarkers({ editor, footerUrl }) {
       {Array.from({ length: pageCount }, (_, i) => {
         const pageBottom = (i + 1) * PAGE_HEIGHT_PX
         // Position so the bottom of the footer block sits ~0.4in from the page edge
-        const footerHeight = footerUrl ? 38 : 20
-        const bottomMargin = 0.15 * 96 // 0.15in from page edge
+        const footerHeight = footerUrl ? 38 : 16
+        const bottomMargin = 4 // 4px from page edge
         return (
           <div
             key={`footer-${i}`}
