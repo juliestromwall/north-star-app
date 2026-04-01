@@ -408,7 +408,10 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
 
 // ── Email List ──────────────────────────────────────────
 
-function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, hasMore, activeFolder, onRefresh, refreshing, searchInput, onSearchInput, onSearch, selectedIds, onToggleSelect, onSelectAll, allSelected }) {
+function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, hasMore, activeFolder, onRefresh, refreshing, searchInput, onSearchInput, onSearch, selectedIds, onToggleSelect, onSelectAll, allSelected, onBulkTrash, onBulkArchive, onBulkLabel, userLabels }) {
+  const [labelMenuOpen, setLabelMenuOpen] = useState(false)
+  const hasSelection = selectedIds.size > 0
+
   return (
     <div className="flex flex-col flex-1 min-w-0">
       {/* Toolbar */}
@@ -418,19 +421,59 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
           onCheckedChange={onSelectAll}
           className="mr-1"
         />
-        <Button variant="ghost" size="icon-sm" onClick={onRefresh} disabled={refreshing} className="size-8">
-          <RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </Button>
-        <div className="w-px h-5 bg-border" />
-        <form onSubmit={onSearch} className="flex-1 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={e => onSearchInput(e.target.value)}
-            placeholder="Search mail"
-            className="pl-9 h-8 bg-muted/50 border-none"
-          />
-        </form>
+
+        {hasSelection ? (
+          <>
+            <span className="text-xs text-muted-foreground font-medium">{selectedIds.size} selected</span>
+            <div className="w-px h-5 bg-border" />
+            <Button variant="ghost" size="icon-sm" className="size-8" title="Archive" onClick={onBulkArchive}>
+              <Archive className="size-4" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" className="size-8 text-red-500 hover:text-red-700" title="Delete" onClick={onBulkTrash}>
+              <Trash2 className="size-4" />
+            </Button>
+            <div className="relative">
+              <Button variant="ghost" size="icon-sm" className="size-8" title="Apply label" onClick={() => setLabelMenuOpen(!labelMenuOpen)}>
+                <Tag className="size-4" />
+              </Button>
+              {labelMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setLabelMenuOpen(false)} />
+                  <div className="absolute top-full left-0 mt-1 z-20 bg-white rounded-xl border shadow-xl py-2 w-56 max-h-64 overflow-y-auto">
+                    <p className="px-3 py-1 text-[10px] font-semibold text-stone-400 uppercase">Apply label</p>
+                    {userLabels.map(label => (
+                      <button
+                        key={label.id}
+                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-stone-50 flex items-center gap-2"
+                        onClick={() => { onBulkLabel(label.id); setLabelMenuOpen(false) }}
+                      >
+                        <span className="size-2 rounded-full bg-stone-400 shrink-0" />
+                        {label.name}
+                      </button>
+                    ))}
+                    {userLabels.length === 0 && <p className="px-3 py-2 text-xs text-stone-400">No labels</p>}
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <Button variant="ghost" size="icon-sm" onClick={onRefresh} disabled={refreshing} className="size-8">
+              <RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            <div className="w-px h-5 bg-border" />
+            <form onSubmit={onSearch} className="flex-1 relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                value={searchInput}
+                onChange={e => onSearchInput(e.target.value)}
+                placeholder="Search mail"
+                className="pl-9 h-8 bg-muted/50 border-none"
+              />
+            </form>
+          </>
+        )}
       </div>
 
       {/* Message list — native scroll */}
@@ -682,6 +725,36 @@ export default function EmailPage() {
     setSelectedIds(checked ? new Set(messages.map(m => m.id)) : new Set())
   }
 
+  const handleBulkTrash = async () => {
+    if (selectedIds.size === 0 || !userId) return
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id =>
+      modifyEmail(userId, id, { addLabels: ['TRASH'], removeLabels: ['INBOX'] }).catch(() => {})
+    ))
+    setSelectedIds(new Set())
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
+  const handleBulkArchive = async () => {
+    if (selectedIds.size === 0 || !userId) return
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id =>
+      modifyEmail(userId, id, { removeLabels: ['INBOX'] }).catch(() => {})
+    ))
+    setSelectedIds(new Set())
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
+  const handleBulkLabel = async (labelId) => {
+    if (selectedIds.size === 0 || !userId) return
+    const ids = [...selectedIds]
+    await Promise.all(ids.map(id =>
+      modifyEmail(userId, id, { addLabels: [labelId] }).catch(() => {})
+    ))
+    setSelectedIds(new Set())
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
   if (connected === null) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-120px)]">
@@ -735,6 +808,10 @@ export default function EmailPage() {
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
           allSelected={selectedIds.size === messages.length}
+          onBulkTrash={handleBulkTrash}
+          onBulkArchive={handleBulkArchive}
+          onBulkLabel={handleBulkLabel}
+          userLabels={userLabels}
         />
       )}
     </div>
