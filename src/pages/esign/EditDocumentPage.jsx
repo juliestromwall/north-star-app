@@ -16,6 +16,7 @@ import {
   ArrowLeft, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Send, Loader2, Save, FileText, Eye,
+  Plus, Trash2, PenLine, User, Calendar, Hash, CheckSquare, Type, ChevronDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,7 +26,9 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import { useRole } from '@/context/RoleContext'
 import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
-import { Plus, Trash2 } from 'lucide-react'
+import { SignField, FIELD_TYPES, FIELD_ROLES } from '@/lib/signFieldExtension'
+
+// ── Toolbar ─────────────────────────────────────────────
 
 function ToolbarButton({ active, onClick, children, title }) {
   return (
@@ -33,6 +36,117 @@ function ToolbarButton({ active, onClick, children, title }) {
       className={`p-1.5 rounded transition-colors ${active ? 'bg-stone-200 text-stone-900' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'}`}>
       {children}
     </button>
+  )
+}
+
+const FIELD_ICONS = {
+  signature: PenLine,
+  name: User,
+  date: Calendar,
+  initials: Hash,
+  checkbox: CheckSquare,
+  text: Type,
+}
+
+function InsertFieldDropdown({ editor }) {
+  const [open, setOpen] = useState(false)
+  const [fieldType, setFieldType] = useState('signature')
+  const [role, setRole] = useState('gc')
+  const [label, setLabel] = useState('')
+
+  function insertField() {
+    if (!editor) return
+    const fieldId = `field_${Date.now()}`
+    editor.chain().focus().insertContent({
+      type: 'signField',
+      attrs: { fieldType, role, label, fieldId },
+    }).run()
+    setOpen(false)
+    setLabel('')
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        title="Insert signing field"
+        className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-colors bg-[#283693]/10 text-[#283693] hover:bg-[#283693]/20"
+      >
+        <PenLine className="size-3.5" />
+        Insert Field
+        <ChevronDown className="size-3" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-full left-0 mt-1 z-20 bg-white rounded-xl border shadow-xl p-4 w-72 space-y-3">
+            <p className="text-xs font-semibold text-stone-500 uppercase">Insert Signing Field</p>
+
+            {/* Field type */}
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500">Field Type</label>
+              <div className="grid grid-cols-3 gap-1">
+                {FIELD_TYPES.map(ft => {
+                  const Icon = FIELD_ICONS[ft.type] || Type
+                  return (
+                    <button
+                      key={ft.type}
+                      onClick={() => setFieldType(ft.type)}
+                      className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-[10px] font-medium transition-colors ${
+                        fieldType === ft.type
+                          ? 'bg-[#283693] text-white'
+                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
+                      }`}
+                    >
+                      <Icon className="size-3.5" />
+                      {ft.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Role */}
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500">Assigned To</label>
+              <div className="grid grid-cols-2 gap-1">
+                {FIELD_ROLES.map(r => (
+                  <button
+                    key={r.value}
+                    onClick={() => setRole(r.value)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      role === r.value
+                        ? 'bg-[#283693] text-white'
+                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom label */}
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500">Custom Label (optional)</label>
+              <Input
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                placeholder={`e.g. "${FIELD_TYPES.find(f => f.type === fieldType)?.label || 'Field'}"`}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <Button onClick={insertField} size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              <Plus className="size-3.5" />
+              Insert Field
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -92,9 +206,13 @@ function EditorToolbar({ editor }) {
         <option value="2">Heading 2</option>
         <option value="3">Heading 3</option>
       </select>
+      <div className="w-px h-5 bg-stone-200 mx-1" />
+      <InsertFieldDropdown editor={editor} />
     </div>
   )
 }
+
+// ── Main Page ───────────────────────────────────────────
 
 export default function EditDocumentPage() {
   const { templateId } = useParams()
@@ -141,6 +259,7 @@ export default function EditDocumentPage() {
       TextStyle,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      SignField,
     ],
     content: htmlContent,
     editorProps: {
@@ -150,14 +269,12 @@ export default function EditDocumentPage() {
     },
   })
 
-  // Update editor content when HTML is loaded
   useEffect(() => {
     if (editor && htmlContent) {
       editor.commands.setContent(htmlContent)
     }
   }, [editor, htmlContent])
 
-  // Load template and convert to HTML
   useEffect(() => {
     async function load() {
       try {
@@ -167,10 +284,8 @@ export default function EditDocumentPage() {
         setTemplate(tmpl)
         setDocTitle(tmpl.name)
 
-        // Fetch the file and convert
         const url = getTemplateFileUrl(tmpl.file_path)
         if (url && tmpl.file_name.endsWith('.html')) {
-          // Previously saved HTML template
           setConverting(true)
           const response = await fetch(url)
           const html = await response.text()
@@ -192,7 +307,6 @@ export default function EditDocumentPage() {
     }
     load()
 
-    // Load cases for send dialog
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
       .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
       .catch(() => {})
@@ -236,7 +350,6 @@ export default function EditDocumentPage() {
     try {
       const editedHtml = editor.getHTML()
 
-      // Create document with edited content stored in signers metadata
       const doc = await createDocument({
         templateId: Number(templateId),
         caseId: sendForm.caseId ? Number(sendForm.caseId) : null,
@@ -247,11 +360,11 @@ export default function EditDocumentPage() {
         createdBy: currentUser.name,
       })
 
-      // Store the edited HTML content
+      // Store edited HTML as document_hash (base64-encoded)
       const { updateDocument } = await import('@/lib/esign')
-      await updateDocument(doc.id, { document_hash: btoa(unescape(encodeURIComponent(editedHtml))).substring(0, 100) })
+      const encoded = btoa(unescape(encodeURIComponent(editedHtml)))
+      await updateDocument(doc.id, { document_hash: encoded })
 
-      // Send
       await sendDocument(doc.id)
       navigate('/e-signature')
     } catch (err) {

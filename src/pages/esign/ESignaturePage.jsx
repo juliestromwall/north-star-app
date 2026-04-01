@@ -89,7 +89,9 @@ function TemplatesTab() {
       await deleteTemplate(deleteTarget.id, deleteTarget.file_path)
       setTemplates(prev => prev.filter(t => t.id !== deleteTarget.id))
       setDeleteTarget(null)
-    } catch {} finally { setDeleting(false) }
+    } catch (err) {
+      alert('Failed to delete template: ' + (err.message || 'Unknown error'))
+    } finally { setDeleting(false) }
   }
 
   function startRename(t) {

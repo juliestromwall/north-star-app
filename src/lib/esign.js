@@ -62,9 +62,14 @@ export async function saveTemplateHtml(templateId, html) {
 }
 
 export async function deleteTemplate(id, filePath) {
-  if (!supabase) return
+  if (!supabase) throw new Error('Database not configured')
+  // Remove any documents referencing this template first (FK constraint)
+  await supabase.from('esign_documents').delete().eq('template_id', id)
+  // Delete the file from storage
   if (filePath) await supabase.storage.from(BUCKET).remove([filePath]).catch(() => {})
-  await supabase.from('esign_templates').delete().eq('id', id)
+  // Delete the database record
+  const { error } = await supabase.from('esign_templates').delete().eq('id', id)
+  if (error) throw new Error(error.message)
 }
 
 export function getTemplateFileUrl(filePath) {
