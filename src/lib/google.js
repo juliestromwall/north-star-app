@@ -38,12 +38,25 @@ export async function getAccessToken(userId) {
 
 // ── Gmail API ───────────────────────────────────────────
 
-/** List emails from Gmail inbox */
-export async function listEmails(userId, { query = '', maxResults = 20, pageToken } = {}) {
+/** List all Gmail labels */
+export async function listLabels(userId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to list labels')
+  return data.labels || []
+}
+
+/** List emails from Gmail — supports labelIds filter */
+export async function listEmails(userId, { query = '', maxResults = 20, pageToken, labelIds } = {}) {
   const token = await getAccessToken(userId)
   const params = new URLSearchParams({ maxResults: String(maxResults) })
   if (query) params.set('q', query)
   if (pageToken) params.set('pageToken', pageToken)
+  if (labelIds?.length) labelIds.forEach(id => params.append('labelIds', id))
 
   const res = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params}`,
