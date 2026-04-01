@@ -395,9 +395,9 @@ export default function EditDocumentPage() {
   const caseOptions = sendForm.caseType === 'ip' ? cases.ip : sendForm.caseType === 'gc' ? cases.gc : []
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Header — sticky */}
+      <div className="flex items-center justify-between pb-3 shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/e-signature" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> Back
@@ -422,10 +422,10 @@ export default function EditDocumentPage() {
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="rounded-2xl border bg-white shadow-sm overflow-hidden">
-        {!preview && <EditorToolbar editor={editor} />}
-        <div className={`bg-white ${preview ? 'pointer-events-none' : ''}`}>
+      {/* Editor — toolbar sticky, content scrolls */}
+      <div className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+        {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white"><EditorToolbar editor={editor} /></div>}
+        <div className={`flex-1 overflow-y-auto bg-white ${preview ? 'pointer-events-none' : ''}`}>
           <EditorContent editor={editor} />
         </div>
       </div>
