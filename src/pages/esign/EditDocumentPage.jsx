@@ -11,7 +11,7 @@ import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
-import Image from '@tiptap/extension-image'
+import BaseImage from '@tiptap/extension-image'
 import mammoth from 'mammoth'
 import {
   ArrowLeft, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
@@ -29,6 +29,94 @@ import { useRole } from '@/context/RoleContext'
 import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { SignField, FIELD_TYPES, FIELD_ROLES } from '@/lib/signFieldExtension'
+
+// ── Custom Image with resize + alignment ────────────────
+
+const ResizableImage = BaseImage.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px', '') || null },
+      alignment: { default: 'left', parseHTML: el => el.getAttribute('data-alignment') || 'left' },
+    }
+  },
+
+  addNodeView() {
+    return ({ node, editor, getPos }) => {
+      const wrapper = document.createElement('div')
+      wrapper.style.textAlign = node.attrs.alignment || 'left'
+      wrapper.style.margin = '8px 0'
+      wrapper.setAttribute('data-alignment', node.attrs.alignment || 'left')
+
+      const container = document.createElement('span')
+      container.style.display = 'inline-block'
+      container.style.position = 'relative'
+      container.style.lineHeight = '0'
+
+      const img = document.createElement('img')
+      img.src = node.attrs.src
+      img.alt = node.attrs.alt || ''
+      if (node.attrs.width) {
+        img.style.width = node.attrs.width + 'px'
+      }
+      img.style.maxWidth = '100%'
+      img.style.height = 'auto'
+      img.style.borderRadius = '4px'
+      img.style.cursor = 'pointer'
+
+      // Resize handle
+      const handle = document.createElement('div')
+      handle.style.cssText = 'position:absolute;bottom:0;right:0;width:12px;height:12px;background:#283693;border-radius:2px;cursor:nwse-resize;opacity:0;transition:opacity 0.15s;'
+      container.addEventListener('mouseenter', () => { handle.style.opacity = '1' })
+      container.addEventListener('mouseleave', () => { if (!resizing) handle.style.opacity = '0' })
+
+      let resizing = false
+      let startX = 0
+      let startW = 0
+
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        resizing = true
+        startX = e.clientX
+        startW = img.offsetWidth
+
+        const onMove = (ev) => {
+          const newW = Math.max(50, startW + (ev.clientX - startX))
+          img.style.width = newW + 'px'
+        }
+        const onUp = (ev) => {
+          resizing = false
+          handle.style.opacity = '0'
+          document.removeEventListener('mousemove', onMove)
+          document.removeEventListener('mouseup', onUp)
+          const pos = getPos()
+          if (typeof pos === 'number') {
+            editor.chain().setNodeSelection(pos).updateAttributes('image', { width: Math.round(img.offsetWidth) }).run()
+          }
+        }
+        document.addEventListener('mousemove', onMove)
+        document.addEventListener('mouseup', onUp)
+      })
+
+      container.appendChild(img)
+      container.appendChild(handle)
+      wrapper.appendChild(container)
+
+      return {
+        dom: wrapper,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== 'image') return false
+          img.src = updatedNode.attrs.src
+          if (updatedNode.attrs.width) img.style.width = updatedNode.attrs.width + 'px'
+          else img.style.width = ''
+          wrapper.style.textAlign = updatedNode.attrs.alignment || 'left'
+          return true
+        },
+      }
+    }
+  },
+})
 
 // ── Toolbar ─────────────────────────────────────────────
 
@@ -226,6 +314,33 @@ function EditorToolbar({ editor }) {
       }} title="Insert Image">
         <ImageIcon className="size-4" />
       </ToolbarButton>
+      {editor.isActive('image') && (
+        <>
+          <div className="w-px h-5 bg-stone-200 mx-1" />
+          <span className="text-[10px] text-stone-400 mr-1">Image:</span>
+          <ToolbarButton active={editor.getAttributes('image').alignment === 'left'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'left' }).run()} title="Align Left">
+            <AlignLeft className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton active={editor.getAttributes('image').alignment === 'center'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'center' }).run()} title="Center">
+            <AlignCenter className="size-3.5" />
+          </ToolbarButton>
+          <ToolbarButton active={editor.getAttributes('image').alignment === 'right'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'right' }).run()} title="Align Right">
+            <AlignRight className="size-3.5" />
+          </ToolbarButton>
+          <select className="text-[10px] border rounded px-1 py-0.5 bg-white text-stone-600 ml-1"
+            value={editor.getAttributes('image').width || ''}
+            onChange={e => editor.chain().focus().updateAttributes('image', { width: e.target.value ? Number(e.target.value) : null }).run()}>
+            <option value="">Auto</option>
+            <option value="100">100px</option>
+            <option value="200">200px</option>
+            <option value="300">300px</option>
+            <option value="400">400px</option>
+            <option value="500">500px</option>
+            <option value="600">600px</option>
+            <option value="750">750px</option>
+          </select>
+        </>
+      )}
       <ToolbarButton onClick={() => {
         editor.chain().focus().setHardBreak().run()
         editor.chain().focus().insertContent('<div class="page-break" contenteditable="false"><span>— Page Break —</span></div><p></p>').run()
@@ -285,13 +400,13 @@ export default function EditDocumentPage() {
       TextStyle,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Image.configure({ inline: false, allowBase64: true }),
+      ResizableImage.configure({ inline: false, allowBase64: true }),
       SignField,
     ],
     content: htmlContent,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[500px] px-8 py-6 esign-editor',
+        class: 'prose prose-sm max-w-none focus:outline-none',
       },
     },
   })
@@ -449,58 +564,78 @@ export default function EditDocumentPage() {
         </div>
       </div>
 
-      {/* Editor styles */}
+      {/* Editor styles — paginated view */}
       <style>{`
-        .esign-editor img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 4px;
-          margin: 8px 0;
-          cursor: pointer;
+        .esign-editor-scroll {
+          background: #e5e7eb;
+          padding: 24px;
         }
-        .esign-editor img.ProseMirror-selectednode {
-          outline: 2px solid #283693;
-          outline-offset: 2px;
+        .esign-editor .ProseMirror {
+          background: white;
+          width: 8.5in;
+          min-height: 11in;
+          margin: 0 auto;
+          padding: 1in;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+          border-radius: 2px;
         }
         .esign-editor .page-break {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 24px 0;
-          padding: 8px 0;
-          border-top: 2px dashed #d1d5db;
-          border-bottom: 2px dashed #d1d5db;
-          background: repeating-linear-gradient(
-            -45deg,
-            transparent,
-            transparent 4px,
-            #f9fafb 4px,
-            #f9fafb 8px
-          );
+          margin: 0 -1in;
+          padding: 0;
+          height: 48px;
+          background: #e5e7eb;
           user-select: none;
           cursor: default;
+          position: relative;
+          border: none;
+        }
+        .esign-editor .page-break::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .esign-editor .page-break::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1);
         }
         .esign-editor .page-break span {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
           color: #9ca3af;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          background: white;
-          padding: 2px 12px;
-          border-radius: 4px;
+        }
+        .esign-editor img.ProseMirror-selectednode {
+          outline: 2px solid #283693;
+          outline-offset: 2px;
         }
         @media print {
-          .page-break { page-break-after: always; border: none !important; background: none !important; }
-          .page-break span { display: none; }
+          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0; }
+          .esign-editor-scroll { background: white; padding: 0; }
+          .page-break { page-break-after: always; height: 0 !important; background: none !important; }
+          .page-break span, .page-break::before, .page-break::after { display: none; }
         }
       `}</style>
 
       {/* Editor — toolbar sticky, content scrolls */}
-      <div className="rounded-2xl border bg-white shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white"><EditorToolbar editor={editor} /></div>}
-        <div className={`flex-1 overflow-y-auto bg-white ${preview ? 'pointer-events-none' : ''}`}>
-          <EditorContent editor={editor} />
+      <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+        {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
+        <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
+          <div className="esign-editor">
+            <EditorContent editor={editor} />
+          </div>
         </div>
       </div>
 

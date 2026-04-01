@@ -174,7 +174,7 @@ function TemplatesTab() {
                 </div>
                 {t.description && <p className="text-xs text-stone-500 line-clamp-2">{t.description}</p>}
                 <div className="flex items-center justify-between text-xs text-stone-400">
-                  <span>{t.file_name?.replace(/_edited\.html$/, '').replace(/^\d+_/, '') || t.name}</span>
+                  <span>{t.file_name?.endsWith('_edited.html') ? '' : t.file_name?.replace(/^\d+_/, '') || ''}</span>
                   <span>{t.file_size ? `${(t.file_size / 1024).toFixed(0)} KB` : ''}</span>
                 </div>
                 <div className="flex gap-2 pt-1">
