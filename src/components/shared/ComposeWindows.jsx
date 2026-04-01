@@ -1,16 +1,24 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import { StarterKit } from '@tiptap/starter-kit'
+import { Highlight } from '@tiptap/extension-highlight'
+import { Color } from '@tiptap/extension-color'
+import { TextStyle } from '@tiptap/extension-text-style'
+import TiptapUnderline from '@tiptap/extension-underline'
+import Link from '@tiptap/extension-link'
 import { useDrafts } from '@/context/DraftContext'
 import { useRole } from '@/context/RoleContext'
-import { sendEmail } from '@/lib/google'
+import { sendEmail, createGmailDraft } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
-  Send, Paperclip, X, Loader2, Minus, Maximize2, Minimize2, Trash2, ChevronDown,
+  Send, Paperclip, X, Loader2, Minus, Maximize2, Minimize2, Trash2,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
+  List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
 } from 'lucide-react'
 
 function fileSizeLabel(bytes) {
@@ -20,16 +28,178 @@ function fileSizeLabel(bytes) {
   return `${(bytes / 1048576).toFixed(1)} MB`
 }
 
-function ComposeWindow({ draft, index, totalExpanded }) {
+// ── Formatting Toolbar ──────────────────────────────────
+
+const TEXT_COLORS = [
+  { color: '#000000', label: 'Black' },
+  { color: '#283693', label: 'Indigo' },
+  { color: '#ed148c', label: 'Pink' },
+  { color: '#ef4444', label: 'Red' },
+  { color: '#f59e0b', label: 'Amber' },
+  { color: '#10b981', label: 'Green' },
+  { color: '#8b5cf6', label: 'Purple' },
+  { color: '#6b7280', label: 'Gray' },
+]
+
+const HIGHLIGHT_COLORS = [
+  { color: '#fef08a', label: 'Yellow' },
+  { color: '#bbf7d0', label: 'Green' },
+  { color: '#bfdbfe', label: 'Blue' },
+  { color: '#fbcfe8', label: 'Pink' },
+  { color: '#fcd6bb', label: 'Orange' },
+  { color: '#ddd6fe', label: 'Purple' },
+]
+
+function TBtn({ active, onClick, children, title }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`p-1 rounded transition-colors ${active ? 'bg-stone-200 text-stone-900' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function ColorDrop({ colors, onSelect, onClear, icon: Icon, title }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <TBtn active={open} onClick={() => setOpen(!open)} title={title}>
+        <Icon className="size-3.5" />
+      </TBtn>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute bottom-full left-0 mb-1 z-20 bg-white rounded-lg border shadow-lg p-2 flex gap-1.5 flex-wrap w-max">
+            {colors.map(c => (
+              <button
+                key={c.color}
+                className="size-5 rounded-full border border-stone-200 hover:scale-110 transition-transform"
+                style={{ backgroundColor: c.color }}
+                title={c.label}
+                onClick={() => { onSelect(c.color); setOpen(false) }}
+              />
+            ))}
+            <button
+              className="size-5 rounded-full border border-stone-200 hover:scale-110 transition-transform flex items-center justify-center text-[9px] text-stone-400"
+              onClick={() => { onClear(); setOpen(false) }}
+              title="Remove"
+            >
+              ✕
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function FormattingToolbar({ editor }) {
+  if (!editor) return null
+
+  const setLink = () => {
+    const url = prompt('Enter URL:')
+    if (url === null) return
+    if (url === '') {
+      editor.chain().focus().unsetLink().run()
+      return
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+  }
+
+  return (
+    <div className="flex items-center gap-0.5 px-2 py-1 border-t bg-stone-50/50 flex-wrap">
+      <TBtn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
+        <Bold className="size-3.5" />
+      </TBtn>
+      <TBtn active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic">
+        <Italic className="size-3.5" />
+      </TBtn>
+      <TBtn active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline">
+        <UnderlineIcon className="size-3.5" />
+      </TBtn>
+      <TBtn active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="Strikethrough">
+        <Strikethrough className="size-3.5" />
+      </TBtn>
+      <div className="w-px h-4 bg-stone-200 mx-0.5" />
+      <ColorDrop
+        colors={TEXT_COLORS}
+        onSelect={color => editor.chain().focus().setColor(color).run()}
+        onClear={() => editor.chain().focus().unsetColor().run()}
+        icon={Palette}
+        title="Text color"
+      />
+      <ColorDrop
+        colors={HIGHLIGHT_COLORS}
+        onSelect={color => editor.chain().focus().toggleHighlight({ color }).run()}
+        onClear={() => editor.chain().focus().unsetHighlight().run()}
+        icon={Highlighter}
+        title="Highlight"
+      />
+      <div className="w-px h-4 bg-stone-200 mx-0.5" />
+      <TBtn active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet list">
+        <List className="size-3.5" />
+      </TBtn>
+      <TBtn active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered list">
+        <ListOrdered className="size-3.5" />
+      </TBtn>
+      <div className="w-px h-4 bg-stone-200 mx-0.5" />
+      <TBtn active={editor.isActive('link')} onClick={setLink} title="Link">
+        <LinkIcon className="size-3.5" />
+      </TBtn>
+      <div className="w-px h-4 bg-stone-200 mx-0.5" />
+      <TBtn onClick={() => editor.chain().focus().undo().run()} title="Undo">
+        <Undo2 className="size-3.5" />
+      </TBtn>
+      <TBtn onClick={() => editor.chain().focus().redo().run()} title="Redo">
+        <Redo2 className="size-3.5" />
+      </TBtn>
+    </div>
+  )
+}
+
+// ── Compose Window ──────────────────────────────────────
+
+function ComposeWindow({ draft, index }) {
   const { updateDraft, closeDraft, minimizeDraft, expandDraft } = useDrafts()
   const { currentUser } = useRole()
   const userId = currentUser?.id
   const [sending, setSending] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
   const [cases, setCases] = useState(null)
-  const [expanded, setExpanded] = useState(false) // full-size mode
+  const [compact, setCompact] = useState(false) // false = big, true = small
   const fileRef = useRef(null)
 
-  // Load cases lazily when dropdown is first opened
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Highlight.configure({ multicolor: true }),
+      Color,
+      TextStyle,
+      TiptapUnderline,
+      Link.configure({ openOnClick: false }),
+    ],
+    content: draft.body || '',
+    onUpdate: ({ editor }) => {
+      updateDraft(draft.id, { body: editor.getHTML() })
+    },
+    editorProps: {
+      attributes: {
+        class: 'focus:outline-none px-3 py-2 text-sm h-full',
+      },
+    },
+  })
+
+  // Sync editor content if draft body changes externally (e.g. reply/forward init)
+  useEffect(() => {
+    if (editor && draft.body && editor.getHTML() !== draft.body && !editor.isFocused) {
+      editor.commands.setContent(draft.body)
+    }
+  }, [draft.body, editor])
+
   const loadCases = () => {
     if (cases) return
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
@@ -78,17 +248,16 @@ function ComposeWindow({ draft, index, totalExpanded }) {
     if (!draft.to.trim() || !userId) return
     setSending(true)
     try {
-      const htmlBody = draft.body.replace(/\n/g, '<br/>')
+      const htmlBody = editor?.getHTML() || draft.body || '<p></p>'
       const result = await sendEmail(userId, {
         to: draft.to.trim(),
         subject: draft.subject,
-        body: htmlBody || '<p></p>',
+        body: htmlBody,
         cc: draft.cc || undefined,
         bcc: draft.bcc || undefined,
         attachments: draft.attachments,
       })
 
-      // Log to case if one was selected
       if (draft.caseId && supabase) {
         const c = cases?.find(c => String(c.id) === draft.caseId)
         if (c) {
@@ -100,7 +269,7 @@ function ComposeWindow({ draft, index, totalExpanded }) {
             from_address: currentUser?.email || '',
             to_address: draft.to,
             date: new Date().toISOString(),
-            snippet: draft.body.replace(/<[^>]*>/g, '').slice(0, 200),
+            snippet: (editor?.getText() || '').slice(0, 200),
             logged_by: userId,
             logged_by_name: currentUser?.name || '',
           }).catch(() => {})
@@ -114,15 +283,43 @@ function ComposeWindow({ draft, index, totalExpanded }) {
     setSending(false)
   }
 
+  const handleClose = async () => {
+    const hasContent = draft.to || draft.subject || (editor?.getText()?.trim())
+    if (!hasContent) {
+      closeDraft(draft.id)
+      return
+    }
+
+    // Save to Gmail drafts
+    if (userId) {
+      setSavingDraft(true)
+      try {
+        const htmlBody = editor?.getHTML() || draft.body || ''
+        await createGmailDraft(userId, {
+          to: draft.to,
+          subject: draft.subject,
+          body: htmlBody,
+          cc: draft.cc || undefined,
+          bcc: draft.bcc || undefined,
+          attachments: draft.attachments,
+        })
+      } catch (err) {
+        console.error('Failed to save draft:', err)
+      }
+      setSavingDraft(false)
+    }
+    closeDraft(draft.id)
+  }
+
   const handleDiscard = () => {
-    if (draft.to || draft.subject || draft.body) {
+    if (draft.to || draft.subject || editor?.getText()?.trim()) {
       if (!confirm('Discard this draft?')) return
     }
     closeDraft(draft.id)
   }
 
-  // Calculate position — stack from right, each 24rem wide + 8px gap
-  const rightOffset = index * (384 + 8) + 16
+  // Position — stack from right
+  const rightOffset = index * (compact ? 392 : 8) + 16
 
   if (draft.minimized) {
     return (
@@ -136,16 +333,10 @@ function ComposeWindow({ draft, index, totalExpanded }) {
             {draft.subject || 'New Message'}
           </span>
           <div className="flex items-center gap-0.5 ml-2 shrink-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); expandDraft(draft.id) }}
-              className="p-1 hover:bg-white/20 rounded"
-            >
+            <button onClick={(e) => { e.stopPropagation(); expandDraft(draft.id) }} className="p-1 hover:bg-white/20 rounded">
               <Maximize2 className="size-3.5" />
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleDiscard() }}
-              className="p-1 hover:bg-white/20 rounded"
-            >
+            <button onClick={(e) => { e.stopPropagation(); handleClose() }} className="p-1 hover:bg-white/20 rounded">
               <X className="size-3.5" />
             </button>
           </div>
@@ -154,14 +345,42 @@ function ComposeWindow({ draft, index, totalExpanded }) {
     )
   }
 
-  const windowWidth = expanded ? 600 : 384
-  const windowHeight = expanded ? 520 : 440
+  // Big mode: roughly fills the email content area
+  // Compact mode: small Gmail-style window
+  const bigStyle = {
+    right: 16,
+    bottom: 0,
+    width: 'calc(100vw - 300px)',  // full width minus sidebar
+    maxWidth: 900,
+    height: 'calc(100vh - 140px)',
+  }
+  const compactStyle = {
+    right: rightOffset,
+    bottom: 0,
+    width: 384,
+    height: 440,
+  }
+
+  const style = compact ? compactStyle : bigStyle
 
   return (
     <div
-      className="fixed bottom-0 z-50 flex flex-col shadow-2xl rounded-t-xl overflow-hidden border border-border bg-card"
-      style={{ right: rightOffset, width: windowWidth, height: windowHeight }}
+      className="fixed z-50 flex flex-col shadow-2xl rounded-t-xl overflow-hidden border border-border bg-card"
+      style={style}
     >
+      {/* Tiptap styles */}
+      <style>{`
+        .compose-editor .tiptap { height: 100%; overflow-y: auto; }
+        .compose-editor .tiptap ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
+        .compose-editor .tiptap ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+        .compose-editor .tiptap li { margin: 0.25em 0; }
+        .compose-editor .tiptap li p { margin: 0; }
+        .compose-editor .tiptap p { margin: 0.25em 0; }
+        .compose-editor .tiptap mark { border-radius: 2px; padding: 1px 2px; }
+        .compose-editor .tiptap a { color: #283693; text-decoration: underline; }
+        .compose-editor .ProseMirror { height: 100%; }
+      `}</style>
+
       {/* Title bar */}
       <div className="flex items-center justify-between px-3 py-2 bg-[#283693] text-white shrink-0">
         <span className="text-sm font-medium truncate flex-1">
@@ -171,11 +390,11 @@ function ComposeWindow({ draft, index, totalExpanded }) {
           <button onClick={() => minimizeDraft(draft.id)} className="p-1 hover:bg-white/20 rounded" title="Minimize">
             <Minus className="size-3.5" />
           </button>
-          <button onClick={() => setExpanded(!expanded)} className="p-1 hover:bg-white/20 rounded" title={expanded ? 'Shrink' : 'Expand'}>
-            {expanded ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+          <button onClick={() => setCompact(!compact)} className="p-1 hover:bg-white/20 rounded" title={compact ? 'Expand' : 'Shrink'}>
+            {compact ? <Maximize2 className="size-3.5" /> : <Minimize2 className="size-3.5" />}
           </button>
-          <button onClick={handleDiscard} className="p-1 hover:bg-white/20 rounded" title="Close">
-            <X className="size-3.5" />
+          <button onClick={handleClose} className="p-1 hover:bg-white/20 rounded" title="Save & close">
+            {savingDraft ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
           </button>
         </div>
       </div>
@@ -192,10 +411,7 @@ function ComposeWindow({ draft, index, totalExpanded }) {
               className="flex-1 text-sm outline-none bg-transparent"
             />
             {!draft.showCcBcc && (
-              <button
-                onClick={() => updateDraft(draft.id, { showCcBcc: true })}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
+              <button onClick={() => updateDraft(draft.id, { showCcBcc: true })} className="text-xs text-muted-foreground hover:text-foreground">
                 Cc/Bcc
               </button>
             )}
@@ -204,19 +420,11 @@ function ComposeWindow({ draft, index, totalExpanded }) {
             <>
               <div className="flex items-center gap-2 border-b pb-1.5">
                 <span className="text-xs text-muted-foreground w-6">Cc</span>
-                <input
-                  value={draft.cc}
-                  onChange={e => updateDraft(draft.id, { cc: e.target.value })}
-                  className="flex-1 text-sm outline-none bg-transparent"
-                />
+                <input value={draft.cc} onChange={e => updateDraft(draft.id, { cc: e.target.value })} className="flex-1 text-sm outline-none bg-transparent" />
               </div>
               <div className="flex items-center gap-2 border-b pb-1.5">
                 <span className="text-xs text-muted-foreground w-6">Bcc</span>
-                <input
-                  value={draft.bcc}
-                  onChange={e => updateDraft(draft.id, { bcc: e.target.value })}
-                  className="flex-1 text-sm outline-none bg-transparent"
-                />
+                <input value={draft.bcc} onChange={e => updateDraft(draft.id, { bcc: e.target.value })} className="flex-1 text-sm outline-none bg-transparent" />
               </div>
             </>
           )}
@@ -230,19 +438,14 @@ function ComposeWindow({ draft, index, totalExpanded }) {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 px-3 py-2 overflow-hidden">
-          <textarea
-            value={draft.body}
-            onChange={e => updateDraft(draft.id, { body: e.target.value })}
-            placeholder="Write your message..."
-            className="w-full h-full text-sm outline-none bg-transparent resize-none"
-          />
+        {/* Rich text body */}
+        <div className="flex-1 overflow-hidden compose-editor">
+          <EditorContent editor={editor} className="h-full" />
         </div>
 
         {/* Attachments */}
         {draft.attachments.length > 0 && (
-          <div className="px-3 pb-1.5 flex flex-wrap gap-1.5 shrink-0">
+          <div className="px-3 pb-1.5 flex flex-wrap gap-1.5 shrink-0 border-t pt-1.5">
             {draft.attachments.map((att, i) => (
               <div key={i} className="flex items-center gap-1 rounded border bg-muted/50 px-2 py-1 text-[11px]">
                 <Paperclip className="size-3 shrink-0" />
@@ -256,7 +459,9 @@ function ComposeWindow({ draft, index, totalExpanded }) {
           </div>
         )}
 
-        {/* Bottom toolbar */}
+        {/* Formatting toolbar + actions */}
+        <FormattingToolbar editor={editor} />
+
         <div className="flex items-center gap-1.5 px-3 py-2 border-t bg-muted/30 shrink-0">
           <Button onClick={handleSend} disabled={sending || !draft.to.trim()} size="sm" className="gap-1.5">
             {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
@@ -268,7 +473,6 @@ function ComposeWindow({ draft, index, totalExpanded }) {
             <Paperclip className="size-3.5" />
           </Button>
 
-          {/* Case selector */}
           <div className="ml-auto flex items-center gap-1.5">
             <Select
               value={draft.caseId || ''}
@@ -301,22 +505,20 @@ function ComposeWindow({ draft, index, totalExpanded }) {
   )
 }
 
+// ── Render all compose windows ──────────────────────────
+
 export default function ComposeWindows() {
   const { drafts } = useDrafts()
-
   if (drafts.length === 0) return null
 
-  // Separate expanded and minimized drafts, render expanded on top
   const minimized = drafts.filter(d => d.minimized)
   const expanded = drafts.filter(d => !d.minimized)
-
-  // Index all for positioning — minimized first (right side), then expanded
   const allOrdered = [...minimized, ...expanded]
 
   return (
     <>
       {allOrdered.map((draft, i) => (
-        <ComposeWindow key={draft.id} draft={draft} index={i} totalExpanded={expanded.length} />
+        <ComposeWindow key={draft.id} draft={draft} index={i} />
       ))}
     </>
   )

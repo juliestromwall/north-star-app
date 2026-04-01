@@ -91,17 +91,14 @@ export async function getAttachment(userId, messageId, attachmentId) {
   return data
 }
 
-/** Send an email (with optional attachments) */
-export async function sendEmail(userId, { to, subject, body, cc, bcc, attachments = [] }) {
-  const token = await getAccessToken(userId)
-
-  // Build MIME message
+/** Build a base64url-encoded MIME message */
+function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
   const boundary = 'abc_surrogacy_' + Date.now()
   const mimeLines = [
-    `To: ${to}`,
+    `To: ${to || ''}`,
     cc ? `Cc: ${cc}` : null,
     bcc ? `Bcc: ${bcc}` : null,
-    `Subject: ${subject}`,
+    `Subject: ${subject || ''}`,
     'MIME-Version: 1.0',
   ].filter(Boolean)
 
@@ -111,8 +108,7 @@ export async function sendEmail(userId, { to, subject, body, cc, bcc, attachment
     mimeLines.push(`--${boundary}`)
     mimeLines.push('Content-Type: text/html; charset="UTF-8"')
     mimeLines.push('')
-    mimeLines.push(body)
-
+    mimeLines.push(body || '')
     for (const att of attachments) {
       mimeLines.push(`--${boundary}`)
       mimeLines.push(`Content-Type: ${att.mimeType}; name="${att.filename}"`)
@@ -125,13 +121,19 @@ export async function sendEmail(userId, { to, subject, body, cc, bcc, attachment
   } else {
     mimeLines.push('Content-Type: text/html; charset="UTF-8"')
     mimeLines.push('')
-    mimeLines.push(body)
+    mimeLines.push(body || '')
   }
 
-  const raw = btoa(unescape(encodeURIComponent(mimeLines.join('\r\n'))))
+  return btoa(unescape(encodeURIComponent(mimeLines.join('\r\n'))))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '')
+}
+
+/** Send an email (with optional attachments) */
+export async function sendEmail(userId, { to, subject, body, cc, bcc, attachments = [] }) {
+  const token = await getAccessToken(userId)
+  const raw = buildMimeRaw({ to, subject, body, cc, bcc, attachments })
 
   const res = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
@@ -146,6 +148,27 @@ export async function sendEmail(userId, { to, subject, body, cc, bcc, attachment
   )
   const data = await res.json()
   if (!res.ok) throw new Error(data.error?.message || 'Failed to send email')
+  return data
+}
+
+/** Save a draft to Gmail */
+export async function createGmailDraft(userId, { to, subject, body, cc, bcc, attachments = [] }) {
+  const token = await getAccessToken(userId)
+  const raw = buildMimeRaw({ to, subject, body, cc, bcc, attachments })
+
+  const res = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/drafts',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: { raw } }),
+    }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to save draft')
   return data
 }
 
