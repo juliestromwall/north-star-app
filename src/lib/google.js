@@ -499,6 +499,30 @@ export function parseFieldPlaceholders(text) {
   return fields
 }
 
+/** List all Google Docs in the ABC Templates folder */
+export async function listTemplateDocs(userId) {
+  const token = await getAccessToken(userId)
+  const folderId = await getOrCreateTemplatesFolder(userId)
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${folderId}' in parents and mimeType='application/vnd.google-apps.document' and trashed=false`)}&fields=files(id,name,modifiedTime,createdTime)&orderBy=modifiedTime desc&pageSize=100`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to list templates')
+  return data.files || []
+}
+
+/** Get a Google Doc's thumbnail/preview as HTML */
+export async function getDocAsHtml(userId, fileId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/html`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) throw new Error('Failed to export as HTML')
+  return await res.text()
+}
+
 /** Make a Google Doc publicly viewable (for embedding) */
 export async function shareDocPublicly(userId, fileId) {
   const token = await getAccessToken(userId)

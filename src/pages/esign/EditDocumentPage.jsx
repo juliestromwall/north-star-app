@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Send, Loader2, Save, FileText, Download, Plus, Trash2,
+  ArrowLeft, Send, Loader2, FileText, Download, Plus, Trash2, Eye,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,27 +9,27 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import {
-  fetchTemplates, createDocument, sendDocument, updateTemplate, updateDocument,
-} from '@/lib/esign'
+import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
   exportDocAsPdf, getDocPlainText, parseFieldPlaceholders, copyGoogleDoc,
-  getOrCreateTemplatesFolder, shareDocPublicly,
+  getOrCreateTemplatesFolder, getDocAsHtml,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
-  const { templateId } = useParams()
+  const { id: googleDocId } = useParams()
+  const [searchParams] = useSearchParams()
+  const showPreview = searchParams.get('preview') === '1'
   const navigate = useNavigate()
   const { currentUser } = useRole()
   const userId = currentUser?.id
 
-  const [template, setTemplate] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [docTitle, setDocTitle] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [preview, setPreview] = useState(showPreview)
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [loadingPreview, setLoadingPreview] = useState(false)
 
   // Send dialog
   const [showSend, setShowSend] = useState(false)
@@ -40,48 +40,50 @@ export default function EditDocumentPage() {
   // PDF download
   const [downloading, setDownloading] = useState(false)
 
-  // Load template
+  // Load doc title from Drive
   useEffect(() => {
-    async function load() {
-      try {
-        const templates = await fetchTemplates()
-        const tmpl = templates.find(t => t.id === Number(templateId))
-        if (!tmpl) { setLoading(false); return }
-        setTemplate(tmpl)
-        setDocTitle(tmpl.name)
-
-        // If this template has a Google Doc, make sure it's shared for embedding
-        if (tmpl.google_doc_id && userId) {
-          shareDocPublicly(userId, tmpl.google_doc_id).catch(() => {})
-        }
-      } catch (err) {
-        console.error('Failed to load template:', err)
-      } finally { setLoading(false) }
-    }
-    load()
+    if (!googleDocId || !userId) { setLoading(false); return }
+    import('@/lib/google').then(({ getAccessToken }) => {
+      getAccessToken(userId).then(token => {
+        fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}?fields=name`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.json()).then(data => {
+          setDocTitle(data.name || 'Untitled')
+        }).catch(() => {})
+      }).catch(() => {})
+    }).finally(() => setLoading(false))
 
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
       .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
       .catch(() => {})
-  }, [templateId, userId])
 
-  async function handleSaveTitle() {
-    if (!template || !docTitle.trim()) return
-    setSaving(true)
+    if (showPreview) loadPreview()
+  }, [googleDocId, userId])
+
+  async function loadPreview() {
+    if (!userId || !googleDocId) return
+    setLoadingPreview(true)
     try {
-      await updateTemplate(template.id, { name: docTitle.trim() })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      const html = await getDocAsHtml(userId, googleDocId)
+      setPreviewHtml(html)
     } catch (err) {
-      alert('Failed to save: ' + (err.message || 'Unknown error'))
-    } finally { setSaving(false) }
+      setPreviewHtml('<p style="color:red">Failed to load preview: ' + err.message + '</p>')
+    }
+    setLoadingPreview(false)
+  }
+
+  async function togglePreview() {
+    if (!preview) {
+      await loadPreview()
+    }
+    setPreview(!preview)
   }
 
   async function handleDownloadPdf() {
-    if (!template?.google_doc_id || !userId) return
+    if (!googleDocId || !userId) return
     setDownloading(true)
     try {
-      const blob = await exportDocAsPdf(userId, template.google_doc_id)
+      const blob = await exportDocAsPdf(userId, googleDocId)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -129,14 +131,14 @@ export default function EditDocumentPage() {
   }
 
   async function handleSend() {
-    if (!template?.google_doc_id || !userId || sendForm.signers.length === 0) return
+    if (!googleDocId || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
-      // 1. Export as PDF
+      // 1. Export as PDF and store in Supabase
       let pdfPath = null
       try {
-        const pdfBlob = await exportDocAsPdf(userId, template.google_doc_id)
-        pdfPath = `documents/sent_${template.id}_${Date.now()}.pdf`
+        const pdfBlob = await exportDocAsPdf(userId, googleDocId)
+        pdfPath = `documents/sent_${googleDocId}_${Date.now()}.pdf`
         if (supabase) {
           const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
             contentType: 'application/pdf',
@@ -144,31 +146,31 @@ export default function EditDocumentPage() {
           })
           if (uploadErr) { console.error('PDF upload failed:', uploadErr); pdfPath = null }
         }
-      } catch (e) { console.error('PDF export failed:', e); pdfPath = null }
+      } catch (e) { console.error('PDF export failed:', e) }
 
       // 2. Copy the Google Doc as a frozen "sent" copy
       let sentDocId = null
       try {
         const folderId = await getOrCreateTemplatesFolder(userId)
-        const sentCopy = await copyGoogleDoc(userId, template.google_doc_id, `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`, folderId)
+        const sentCopy = await copyGoogleDoc(userId, googleDocId, `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`, folderId)
         sentDocId = sentCopy.id
       } catch (e) { console.error('Doc copy failed:', e) }
 
-      // 3. Parse field placeholders from the doc
+      // 3. Parse field placeholders
       let fields = []
       try {
-        const plainText = await getDocPlainText(userId, template.google_doc_id)
+        const plainText = await getDocPlainText(userId, googleDocId)
         fields = parseFieldPlaceholders(plainText)
       } catch (e) { console.error('Field parse failed:', e) }
 
-      // 4. Create esign document record
+      // 4. Create esign document record (use google doc ID as template reference)
       const doc = await createDocument({
-        templateId: Number(templateId),
+        templateId: null,
         caseId: sendForm.caseId ? Number(sendForm.caseId) : null,
         caseType: sendForm.caseType || null,
-        title: docTitle || template?.name || 'Untitled',
+        title: docTitle || 'Untitled',
         signers: sendForm.signers,
-        filePath: pdfPath || template.google_doc_id,
+        filePath: pdfPath || googleDocId,
         createdBy: currentUser.name,
       })
 
@@ -177,7 +179,7 @@ export default function EditDocumentPage() {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
             googleDocId: sentDocId,
-            templateDocId: template.google_doc_id,
+            templateDocId: googleDocId,
             fields,
             pdfPath,
           }),
@@ -198,27 +200,12 @@ export default function EditDocumentPage() {
     return (
       <div className="text-center py-12">
         <Loader2 className="size-8 animate-spin text-[#283693] mx-auto mb-3" />
-        <p className="text-stone-400">Loading template...</p>
+        <p className="text-stone-400">Loading...</p>
       </div>
     )
   }
 
-  if (!template) {
-    return (
-      <div className="space-y-6">
-        <Link to="/e-signature" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back to E-Signature
-        </Link>
-        <p className="text-center py-12 text-stone-400">Template not found.</p>
-      </div>
-    )
-  }
-
-  const googleDocId = template.google_doc_id
-  const embedUrl = googleDocId
-    ? `https://docs.google.com/document/d/${googleDocId}/edit?embedded=true`
-    : null
-
+  const embedUrl = `https://docs.google.com/document/d/${googleDocId}/edit?embedded=true`
   const caseOptions = sendForm.caseType === 'ip' ? cases.ip : sendForm.caseType === 'gc' ? cases.gc : []
 
   return (
@@ -232,30 +219,47 @@ export default function EditDocumentPage() {
           <div className="w-px h-6 bg-stone-200" />
           <div className="flex items-center gap-2">
             <FileText className="size-5 text-[#283693]" />
-            <Input
-              value={docTitle}
-              onChange={e => setDocTitle(e.target.value)}
-              onBlur={handleSaveTitle}
-              className="text-lg font-semibold border-none shadow-none px-1 h-auto focus-visible:ring-0 w-80"
-            />
+            <span className="text-lg font-semibold">{docTitle}</span>
           </div>
-          {saved && <span className="text-xs text-emerald-600 font-medium">Saved!</span>}
         </div>
         <div className="flex gap-2">
-          {googleDocId && (
-            <Button variant="outline" className="gap-1.5" onClick={handleDownloadPdf} disabled={downloading}>
-              {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-              Download PDF
-            </Button>
-          )}
+          <Button variant="outline" className="gap-1.5" onClick={togglePreview}>
+            <Eye className="size-4" /> {preview ? 'Close Preview' : 'Preview'}
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={handleDownloadPdf} disabled={downloading}>
+            {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Download PDF
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={() => window.open(`https://docs.google.com/document/d/${googleDocId}/edit`, '_blank')}>
+            Edit in Google Docs
+          </Button>
           <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowSend(true)}>
             <Send className="size-4" /> Send for Signature
           </Button>
         </div>
       </div>
 
-      {/* Google Doc or fallback message */}
-      {embedUrl ? (
+      {/* Content: Preview or Embedded Editor */}
+      {preview ? (
+        <div className="flex-1 rounded-2xl border shadow-sm overflow-y-auto bg-white">
+          {loadingPreview ? (
+            <div className="text-center py-12">
+              <Loader2 className="size-6 animate-spin text-[#283693] mx-auto mb-2" />
+              <p className="text-sm text-stone-400">Loading preview...</p>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto py-8 px-4">
+              <style>{`
+                .gdoc-preview img { max-width: 100%; height: auto; }
+                .gdoc-preview table { border-collapse: collapse; width: 100%; }
+                .gdoc-preview td, .gdoc-preview th { border: 1px solid #ddd; padding: 6px 10px; }
+                .gdoc-preview { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; }
+              `}</style>
+              <div className="gdoc-preview" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            </div>
+          )}
+        </div>
+      ) : (
         <div className="flex-1 rounded-2xl border shadow-sm overflow-hidden bg-white">
           <iframe
             src={embedUrl}
@@ -263,34 +267,6 @@ export default function EditDocumentPage() {
             title={docTitle}
             allow="clipboard-write"
           />
-        </div>
-      ) : (
-        <div className="flex-1 rounded-2xl border shadow-sm flex items-center justify-center bg-stone-50">
-          <div className="text-center space-y-3">
-            <FileText className="size-12 text-stone-300 mx-auto" />
-            <p className="text-stone-500 text-sm">This template was uploaded as a file.</p>
-            <p className="text-stone-400 text-xs">To use the Google Docs editor, create a new template using "Create Template".</p>
-          </div>
-        </div>
-      )}
-
-      {/* Field placeholders help */}
-      {googleDocId && (
-        <div className="mt-2 px-1 shrink-0">
-          <p className="text-[11px] text-stone-400">
-            <span className="font-semibold">Signing fields:</span>{' '}
-            Type these placeholders in the Google Doc where you need signatures:{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Signature:GC}}'}</code>{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Name:GC}}'}</code>{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Date:GC}}'}</code>{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Initials:GC}}'}</code>{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Checkbox:GC}}'}</code>{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Text:GC}}'}</code>{' '}
-            — Replace <code className="bg-stone-100 px-1 rounded text-[10px]">GC</code> with{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">IP1</code>,{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">IP2</code>, or{' '}
-            <code className="bg-stone-100 px-1 rounded text-[10px]">Admin</code> for other signers.
-          </p>
         </div>
       )}
 

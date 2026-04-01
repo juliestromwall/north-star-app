@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Upload, FileText, Send, Eye, Trash2, Plus, Search, Clock, CheckCircle2,
-  XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download, Pencil,
+  XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download, Pencil, Loader2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ import {
   createBlankTemplate, uploadLetterhead, getLetterhead,
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
-import { getGoogleStatus, createGoogleDoc, getOrCreateTemplatesFolder, shareDocPublicly } from '@/lib/google'
+import { getGoogleStatus, listTemplateDocs, getOrCreateTemplatesFolder } from '@/lib/google'
 
 const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
 
@@ -43,137 +43,59 @@ function StatusBadge({ status }) {
   )
 }
 
-// ── Templates Tab ───────────────────────────────────────
+// ── Templates Tab — pulls from Google Drive "ABC Templates" folder ──
 function TemplatesTab() {
   const { currentUser } = useRole()
-  const navigate = useNavigate()
+  const userId = currentUser?.id
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [uploadForm, setUploadForm] = useState({ name: '', category: 'General', description: '' })
-  const [showUpload, setShowUpload] = useState(false)
-  const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState({ name: '', category: 'General', description: '' })
-  const [creating, setCreating] = useState(false)
+  const [connected, setConnected] = useState(null)
   const [search, setSearch] = useState('')
-  const [tagFilter, setTagFilter] = useState('all')
-  const fileRef = useRef(null)
-  const [selectedFile, setSelectedFile] = useState(null)
-  const [deleteTarget, setDeleteTarget] = useState(null)
-  const [deleting, setDeleting] = useState(false)
-  const [renameTarget, setRenameTarget] = useState(null)
-  const [renameForm, setRenameForm] = useState({ name: '', category: '', description: '' })
-  const [renameSaving, setRenameSaving] = useState(false)
-  // Letterhead
-  const [letterhead, setLetterhead] = useState({ header: null, footer: null })
-  const [uploadingLetterhead, setUploadingLetterhead] = useState(null) // 'header' | 'footer' | null
-  const headerRef = useRef(null)
-  const footerRef = useRef(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    fetchTemplates().then(setTemplates).catch(() => {}).finally(() => setLoading(false))
-    getLetterhead().then(config => { if (config) setLetterhead(config) }).catch(() => {})
-  }, [])
-
-  async function handleCreate() {
-    if (!createForm.name || !currentUser?.id) return
-    setCreating(true)
-    try {
-      // Create Google Doc in "ABC Templates" folder
-      const folderId = await getOrCreateTemplatesFolder(currentUser.id)
-      const doc = await createGoogleDoc(currentUser.id, createForm.name, folderId)
-      await shareDocPublicly(currentUser.id, doc.id)
-
-      // Create template record in Supabase with the Google Doc ID
-      const newTemplate = await createBlankTemplate({
-        name: createForm.name,
-        category: createForm.category,
-        description: createForm.description,
-        createdBy: currentUser.name,
+    if (!userId) return
+    getGoogleStatus(userId)
+      .then(s => {
+        setConnected(s.connected)
+        if (s.connected) return listTemplateDocs(userId)
+        return []
       })
-      // Update the template with the Google Doc ID
-      const { updateTemplate: updateTmpl } = await import('@/lib/esign')
-      await updateTmpl(newTemplate.id, { google_doc_id: doc.id })
+      .then(docs => setTemplates(docs || []))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [userId])
 
-      setShowCreate(false)
-      setCreateForm({ name: '', category: 'General', description: '' })
-      navigate(`/e-signature/edit/${newTemplate.id}`)
-    } catch (err) {
-      alert('Failed to create: ' + (err.message || 'Unknown error'))
-    } finally { setCreating(false) }
-  }
-
-  async function handleLetterheadUpload(type, e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadingLetterhead(type)
+  async function handleRefresh() {
+    if (!userId) return
+    setRefreshing(true)
     try {
-      const url = await uploadLetterhead(file, type)
-      setLetterhead(prev => ({ ...prev, [type]: url }))
-    } catch (err) {
-      alert('Failed to upload: ' + (err.message || 'Unknown error'))
-    } finally { setUploadingLetterhead(null) }
+      const docs = await listTemplateDocs(userId)
+      setTemplates(docs || [])
+    } catch {}
+    setRefreshing(false)
   }
 
-  async function handleUpload() {
-    if (!selectedFile || !uploadForm.name) return
-    setUploading(true)
-    try {
-      const newTemplate = await uploadTemplate(selectedFile, {
-        name: uploadForm.name,
-        category: uploadForm.category,
-        description: uploadForm.description,
-        createdBy: currentUser.name,
-      })
-      setTemplates(prev => [newTemplate, ...prev])
-      setShowUpload(false)
-      setUploadForm({ name: '', category: 'General', description: '' })
-      setSelectedFile(null)
-    } catch (err) {
-      alert('Failed to upload: ' + (err.message || 'Unknown error'))
-    } finally { setUploading(false) }
+  function openInDrive(docId) {
+    window.open(`https://docs.google.com/document/d/${docId}/edit`, '_blank')
   }
 
-  async function confirmDelete() {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      await deleteTemplate(deleteTarget.id, deleteTarget.file_path)
-      setTemplates(prev => prev.filter(t => t.id !== deleteTarget.id))
-      setDeleteTarget(null)
-    } catch (err) {
-      alert('Failed to delete template: ' + (err.message || 'Unknown error'))
-    } finally { setDeleting(false) }
+  const filtered = templates.filter(t =>
+    !search || t.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  if (connected === false) {
+    return (
+      <div className="flex flex-col items-center py-16 text-center">
+        <FileText className="size-12 text-stone-300 mb-4" />
+        <h3 className="text-lg font-semibold mb-2">Connect Google to manage templates</h3>
+        <p className="text-sm text-muted-foreground mb-4 max-w-md">
+          Templates are stored as Google Docs in your "ABC Templates" Drive folder. Connect your Google account in Settings to get started.
+        </p>
+        <Button asChild><Link to="/settings">Go to Settings</Link></Button>
+      </div>
+    )
   }
-
-  function startRename(t) {
-    setRenameForm({ name: t.name, category: t.category || 'General', description: t.description || '' })
-    setRenameTarget(t)
-  }
-
-  async function handleRename() {
-    if (!renameTarget || !renameForm.name) return
-    setRenameSaving(true)
-    try {
-      const { updateTemplate } = await import('@/lib/esign')
-      const updated = await updateTemplate(renameTarget.id, {
-        name: renameForm.name,
-        category: renameForm.category,
-        description: renameForm.description,
-      })
-      setTemplates(prev => prev.map(t => t.id === renameTarget.id ? { ...t, ...updated } : t))
-      setRenameTarget(null)
-    } catch {} finally { setRenameSaving(false) }
-  }
-
-  // Get unique tags from templates for filter
-  const usedTags = [...new Set(templates.map(t => t.category || 'General'))]
-
-  const filtered = templates.filter(t => {
-    if (tagFilter !== 'all' && (t.category || 'General') !== tagFilter) return false
-    if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !(t.category || '').toLowerCase().includes(search.toLowerCase())) return false
-    return true
-  })
 
   return (
     <div className="space-y-4">
@@ -182,74 +104,65 @@ function TemplatesTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="Search templates..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button variant="outline" className="gap-1.5" onClick={() => setShowUpload(true)}>
-          <Upload className="size-4" /> Upload
+        <Button variant="outline" className="gap-1.5" onClick={handleRefresh} disabled={refreshing}>
+          {refreshing ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+          Refresh
         </Button>
-        <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowCreate(true)}>
-          <Plus className="size-4" /> Create Template
+        <Button variant="outline" className="gap-1.5" onClick={() => {
+          if (!userId) return
+          getOrCreateTemplatesFolder(userId).then(folderId => {
+            window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank')
+          }).catch(err => alert('Failed: ' + err.message))
+        }}>
+          Open Drive Folder
         </Button>
       </div>
 
-      {/* Tag filter */}
-      {usedTags.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tagFilter === 'all' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
-            onClick={() => setTagFilter('all')}
-          >All ({templates.length})</button>
-          {usedTags.map(tag => {
-            const count = templates.filter(t => (t.category || 'General') === tag).length
-            return (
-              <button key={tag}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tagFilter === tag ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
-                onClick={() => setTagFilter(tagFilter === tag ? 'all' : tag)}
-              >{tag} ({count})</button>
-            )
-          })}
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground">
+        Create and edit templates in your <strong>Google Drive → ABC Templates</strong> folder. They appear here automatically.
+        Use <code className="bg-stone-100 px-1 rounded">{'{{Signature:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Name:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Date:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Email:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Initials:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Checkbox:GC}}'}</code>, <code className="bg-stone-100 px-1 rounded">{'{{Text:GC}}'}</code> as placeholders for signing fields.
+        Replace <code className="bg-stone-100 px-1 rounded">GC</code> with <code className="bg-stone-100 px-1 rounded">IP1</code>, <code className="bg-stone-100 px-1 rounded">IP2</code>, or <code className="bg-stone-100 px-1 rounded">Admin</code>.
+      </p>
 
       {loading ? (
-        <p className="text-center py-12 text-stone-400">Loading templates...</p>
+        <div className="text-center py-12">
+          <Loader2 className="size-6 animate-spin text-[#283693] mx-auto mb-2" />
+          <p className="text-sm text-stone-400">Loading templates from Google Drive...</p>
+        </div>
       ) : filtered.length === 0 ? (
-        <EmptyState title="No templates" description="Upload a Word document (.docx) to use as a signing template." />
+        <EmptyState
+          title={search ? 'No matching templates' : 'No templates yet'}
+          description={search ? 'Try a different search.' : 'Create a Google Doc in your "ABC Templates" Drive folder to get started.'}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(t => (
-            <Card key={t.id} className="rounded-2xl group hover:shadow-md transition-shadow">
-              <CardContent className="p-4 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(doc => (
+            <Card key={doc.id} className="rounded-2xl hover:shadow-md transition-shadow">
+              <CardContent className="p-5 space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#283693]/10 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-[#283693]/10 flex items-center justify-center shrink-0">
                     <FileText className="size-5 text-[#283693]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.category}</p>
+                    <p className="font-semibold text-sm truncate">{doc.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Modified {new Date(doc.modifiedTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </p>
                   </div>
                 </div>
-                {t.description && <p className="text-xs text-stone-500 line-clamp-2">{t.description}</p>}
-                <div className="flex items-center justify-between text-xs text-stone-400">
-                  <span>{t.file_name?.endsWith('_edited.html') ? '' : t.file_name?.replace(/^\d+_/, '') || ''}</span>
-                  <span>{t.file_size ? `${(t.file_size / 1024).toFixed(0)} KB` : ''}</span>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
-                    <Link to={`/e-signature/edit/${t.id}`}>
-                      <Pencil className="size-3" /> Edit & Send
+                <div className="flex gap-2">
+                  <Button size="sm" className="gap-1.5 flex-1 text-xs" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
+                    <Link to={`/e-signature/edit/${doc.id}`}>
+                      <Send className="size-3" /> Send for Signature
                     </Link>
                   </Button>
-                  <Button variant="outline" size="sm" className="text-xs" title="Rename" onClick={() => startRename(t)}>
-                    <FileText className="size-3" />
+                  <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => openInDrive(doc.id)}>
+                    <Pencil className="size-3" /> Edit
                   </Button>
-                  {getTemplateFileUrl(t.file_path) && (
-                    <Button variant="outline" size="sm" className="text-xs" title="Download" asChild>
-                      <a href={getTemplateFileUrl(t.file_path)} target="_blank" rel="noopener noreferrer">
-                        <Download className="size-3" />
-                      </a>
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50" title="Delete" onClick={() => setDeleteTarget(t)}>
-                    <Trash2 className="size-3" />
+                  <Button size="sm" variant="outline" className="gap-1 text-xs" asChild>
+                    <Link to={`/e-signature/edit/${doc.id}?preview=1`}>
+                      <Eye className="size-3" />
+                    </Link>
                   </Button>
                 </div>
               </CardContent>
@@ -257,203 +170,12 @@ function TemplatesTab() {
           ))}
         </div>
       )}
-
-      {/* Upload Dialog */}
-      <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Upload Template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Template Name *</Label>
-              <Input value={uploadForm.name} onChange={e => setUploadForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g., Agency Agreement" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Category</Label>
-              <SelectUI value={uploadForm.category} onValueChange={v => setUploadForm(f => ({ ...f, category: v }))}>
-                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  {TEMPLATE_CATEGORIES.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Description</Label>
-              <Textarea value={uploadForm.description} onChange={e => setUploadForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Brief description of this template..." />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">File (.docx, .pdf) *</Label>
-              <div
-                className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-[#283693]/50 transition-colors"
-                onClick={() => fileRef.current?.click()}
-              >
-                {selectedFile ? (
-                  <div className="flex items-center gap-2 justify-center">
-                    <FileText className="size-5 text-[#283693]" />
-                    <span className="text-sm font-medium">{selectedFile.name}</span>
-                    <span className="text-xs text-stone-400">({(selectedFile.size / 1024).toFixed(0)} KB)</span>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="size-8 text-stone-300 mx-auto mb-2" />
-                    <p className="text-sm text-stone-500">Click to select a file</p>
-                    <p className="text-xs text-stone-400">.docx or .pdf</p>
-                  </>
-                )}
-              </div>
-              <input ref={fileRef} type="file" accept=".docx,.pdf,.doc" className="hidden"
-                onChange={e => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    setSelectedFile(file)
-                    if (!uploadForm.name) setUploadForm(f => ({ ...f, name: file.name.replace(/\.[^.]+$/, '') }))
-                  }
-                }}
-              />
-            </div>
-            <Button onClick={handleUpload} disabled={uploading || !selectedFile || !uploadForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              {uploading ? 'Uploading...' : 'Upload Template'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
-              <AlertTriangle className="size-5 text-red-500 shrink-0" />
-              <p className="text-sm text-red-700">
-                Are you sure you want to permanently delete <span className="font-semibold">"{deleteTarget?.name}"</span>? This cannot be undone.
-              </p>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)}>Cancel</Button>
-              <Button variant="destructive" size="sm" className="gap-1" onClick={confirmDelete} disabled={deleting}>
-                <Trash2 className="size-3.5" /> {deleting ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Rename Dialog */}
-      <Dialog open={!!renameTarget} onOpenChange={() => setRenameTarget(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Template Details</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Template Name</Label>
-              <Input value={renameForm.name} onChange={e => setRenameForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Tag / Category</Label>
-              <SelectUI value={renameForm.category} onValueChange={v => setRenameForm(f => ({ ...f, category: v }))}>
-                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  {TEMPLATE_CATEGORIES.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Description</Label>
-              <Input value={renameForm.description} onChange={e => setRenameForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description..." />
-            </div>
-            <Button onClick={handleRename} disabled={renameSaving || !renameForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              {renameSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Template Dialog */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create Template</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Template Name *</Label>
-              <Input value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Agency Agreement - GC" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Tag / Category</Label>
-              <SelectUI value={createForm.category} onValueChange={v => setCreateForm(f => ({ ...f, category: v }))}>
-                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  {TEMPLATE_CATEGORIES.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Description</Label>
-              <Input value={createForm.description} onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description..." />
-            </div>
-            <Button onClick={handleCreate} disabled={creating || !createForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              {creating ? 'Creating...' : 'Create & Open Editor'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Letterhead Section */}
-      <div className="border-t pt-4 mt-6">
-        <h3 className="text-sm font-semibold mb-1">Company Letterhead</h3>
-        <p className="text-xs text-muted-foreground mb-4">Header appears on page 1 only. Footer appears on every page.</p>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* Header */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-stone-500 uppercase">Header (Logo)</span>
-              <div>
-                <input type="file" ref={headerRef} accept="image/*" hidden onChange={e => handleLetterheadUpload('header', e)} />
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => headerRef.current?.click()} disabled={uploadingLetterhead === 'header'}>
-                  <Upload className="size-3" /> {uploadingLetterhead === 'header' ? '...' : letterhead.header ? 'Replace' : 'Upload'}
-                </Button>
-              </div>
-            </div>
-            {letterhead.header ? (
-              <div className="bg-white rounded border p-3 flex justify-center">
-                <img src={letterhead.header} alt="Header" className="max-h-20 w-auto" />
-              </div>
-            ) : (
-              <p className="text-xs text-stone-400 text-center py-4">No header uploaded</p>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="rounded-lg border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-stone-500 uppercase">Footer (Address bar)</span>
-              <div>
-                <input type="file" ref={footerRef} accept="image/*" hidden onChange={e => handleLetterheadUpload('footer', e)} />
-                <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => footerRef.current?.click()} disabled={uploadingLetterhead === 'footer'}>
-                  <Upload className="size-3" /> {uploadingLetterhead === 'footer' ? '...' : letterhead.footer ? 'Replace' : 'Upload'}
-                </Button>
-              </div>
-            </div>
-            {letterhead.footer ? (
-              <div className="bg-white rounded border p-3 flex justify-center">
-                <img src={letterhead.footer} alt="Footer" className="max-h-12 w-auto" />
-              </div>
-            ) : (
-              <p className="text-xs text-stone-400 text-center py-4">No footer uploaded</p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
+
+// ── (old TemplatesTab code removed — now synced from Google Drive) ──
+// Skip to Documents Tab below
 
 // ── Documents Tab ───────────────────────────────────────
 function DocumentsTab() {
