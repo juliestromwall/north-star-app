@@ -132,29 +132,34 @@ export default function EditDocumentPage() {
     if (!template?.google_doc_id || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
-      // 1. Export as PDF and store in Supabase
-      const pdfBlob = await exportDocAsPdf(userId, template.google_doc_id)
-      const pdfPath = `documents/sent_${template.id}_${Date.now()}.pdf`
-
-      if (supabase) {
-        await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
-          contentType: 'application/pdf',
-          cacheControl: '3600',
-        })
-      }
+      // 1. Export as PDF
+      let pdfPath = null
+      try {
+        const pdfBlob = await exportDocAsPdf(userId, template.google_doc_id)
+        pdfPath = `documents/sent_${template.id}_${Date.now()}.pdf`
+        if (supabase) {
+          const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+          })
+          if (uploadErr) { console.error('PDF upload failed:', uploadErr); pdfPath = null }
+        }
+      } catch (e) { console.error('PDF export failed:', e); pdfPath = null }
 
       // 2. Copy the Google Doc as a frozen "sent" copy
-      const folderId = await getOrCreateTemplatesFolder(userId)
-      const sentCopy = await copyGoogleDoc(
-        userId,
-        template.google_doc_id,
-        `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`,
-        folderId
-      )
+      let sentDocId = null
+      try {
+        const folderId = await getOrCreateTemplatesFolder(userId)
+        const sentCopy = await copyGoogleDoc(userId, template.google_doc_id, `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`, folderId)
+        sentDocId = sentCopy.id
+      } catch (e) { console.error('Doc copy failed:', e) }
 
       // 3. Parse field placeholders from the doc
-      const plainText = await getDocPlainText(userId, template.google_doc_id)
-      const fields = parseFieldPlaceholders(plainText)
+      let fields = []
+      try {
+        const plainText = await getDocPlainText(userId, template.google_doc_id)
+        fields = parseFieldPlaceholders(plainText)
+      } catch (e) { console.error('Field parse failed:', e) }
 
       // 4. Create esign document record
       const doc = await createDocument({
@@ -163,18 +168,21 @@ export default function EditDocumentPage() {
         caseType: sendForm.caseType || null,
         title: docTitle || template?.name || 'Untitled',
         signers: sendForm.signers,
-        filePath: pdfPath,
+        filePath: pdfPath || template.google_doc_id,
         createdBy: currentUser.name,
       })
 
-      // Store the sent Google Doc copy ID and parsed fields
-      await updateDocument(doc.id, {
-        document_hash: JSON.stringify({
-          googleDocId: sentCopy.id,
-          templateDocId: template.google_doc_id,
-          fields,
-        }),
-      })
+      // Store metadata
+      if (doc) {
+        await updateDocument(doc.id, {
+          document_hash: JSON.stringify({
+            googleDocId: sentDocId,
+            templateDocId: template.google_doc_id,
+            fields,
+            pdfPath,
+          }),
+        })
+      }
 
       // 5. Send
       await sendDocument(doc.id)
