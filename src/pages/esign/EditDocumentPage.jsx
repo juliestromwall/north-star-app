@@ -120,7 +120,7 @@ const ResizableImage = BaseImage.extend({
 
 // ── Page Markers ────────────────────────────────────────
 
-function PageMarkers({ editor }) {
+function PageMarkers({ editor, footerUrl }) {
   const [pageCount, setPageCount] = useState(1)
 
   useEffect(() => {
@@ -163,13 +163,16 @@ function PageMarkers({ editor }) {
           </div>
         </div>
       ))}
-      {/* Page numbers at bottom of each page */}
+      {/* Footer + page number at bottom of each page */}
       {Array.from({ length: pageCount }, (_, i) => (
         <div
-          key={`num-${i}`}
-          className="absolute left-0 right-0 flex justify-center"
-          style={{ top: (i + 1) * PAGE_HEIGHT_PX - 36 }}
+          key={`footer-${i}`}
+          className="absolute left-0 right-0 flex flex-col items-center gap-1"
+          style={{ top: (i + 1) * PAGE_HEIGHT_PX - (footerUrl ? 56 : 36) }}
         >
+          {footerUrl && (
+            <img src={footerUrl} alt="" style={{ maxWidth: '80%', maxHeight: '20px', opacity: 0.7 }} />
+          )}
           <span className="text-[10px] text-stone-400 font-medium">{i + 1}</span>
         </div>
       ))}
@@ -440,7 +443,7 @@ export default function EditDocumentPage() {
   const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
   const [preview, setPreview] = useState(false)
-  const [letterheadUrl, setLetterheadUrl] = useState(null)
+  const [letterhead, setLetterhead] = useState({ header: null, footer: null })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -526,7 +529,7 @@ export default function EditDocumentPage() {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
       .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
       .catch(() => {})
-    getLetterhead().then(url => { if (url) setLetterheadUrl(url) }).catch(() => {})
+    getLetterhead().then(config => { if (config) setLetterhead(config) }).catch(() => {})
   }, [templateId])
 
   function addSigner() {
@@ -743,13 +746,13 @@ export default function EditDocumentPage() {
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
         <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
           <div className="esign-editor relative">
-            {/* Letterhead — first page only */}
-            {letterheadUrl && (
-              <div className="flex justify-center" style={{ width: '8.5in', margin: '0 auto', background: 'white', paddingTop: '0.5in', paddingLeft: '1in', paddingRight: '1in', borderRadius: '2px 2px 0 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)' }}>
-                <img src={letterheadUrl} alt="Letterhead" style={{ maxWidth: '100%', maxHeight: '120px', objectFit: 'contain' }} />
+            {/* Letterhead header — first page only */}
+            {letterhead.header && (
+              <div className="esign-letterhead-header" style={{ width: '8.5in', margin: '0 auto', background: 'white', padding: '0.4in 0.75in 0', borderRadius: '2px 2px 0 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)', textAlign: 'center' }}>
+                <img src={letterhead.header} alt="Header" style={{ maxWidth: '250px', height: 'auto' }} />
               </div>
             )}
-            <PageMarkers editor={editor} />
+            <PageMarkers editor={editor} footerUrl={letterhead.footer} />
             <EditorContent editor={editor} />
           </div>
         </div>

@@ -56,26 +56,27 @@ export async function createBlankTemplate(metadata) {
   return data
 }
 
-/** Upload letterhead image and store URL in app_config */
-export async function uploadLetterhead(file) {
+/** Upload a letterhead image (header or footer) and store URL in app_config */
+export async function uploadLetterhead(file, type = 'header') {
   if (!supabase) return null
-  const path = `letterhead/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+  const path = `letterhead/${type}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(path, file, { cacheControl: '3600', upsert: true })
   if (uploadError) throw uploadError
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
-  // Store in app_config
-  const { setAppConfig } = await import('./db')
-  await setAppConfig('esign_letterhead', { url: urlData.publicUrl, path })
+  // Merge into existing config
+  const { getAppConfig, setAppConfig } = await import('./db')
+  const existing = (await getAppConfig('esign_letterhead')) || {}
+  await setAppConfig('esign_letterhead', { ...existing, [type]: urlData.publicUrl })
   return urlData.publicUrl
 }
 
-/** Get letterhead URL from app_config */
+/** Get letterhead config from app_config — returns { header, footer } */
 export async function getLetterhead() {
   const { getAppConfig } = await import('./db')
   const config = await getAppConfig('esign_letterhead')
-  return config?.url || null
+  return config || {}
 }
 
 export async function fetchTemplates() {

@@ -64,13 +64,14 @@ function TemplatesTab() {
   const [renameForm, setRenameForm] = useState({ name: '', category: '', description: '' })
   const [renameSaving, setRenameSaving] = useState(false)
   // Letterhead
-  const [letterheadUrl, setLetterheadUrl] = useState(null)
-  const [uploadingLetterhead, setUploadingLetterhead] = useState(false)
-  const letterheadRef = useRef(null)
+  const [letterhead, setLetterhead] = useState({ header: null, footer: null })
+  const [uploadingLetterhead, setUploadingLetterhead] = useState(null) // 'header' | 'footer' | null
+  const headerRef = useRef(null)
+  const footerRef = useRef(null)
 
   useEffect(() => {
     fetchTemplates().then(setTemplates).catch(() => {}).finally(() => setLoading(false))
-    getLetterhead().then(url => { if (url) setLetterheadUrl(url) }).catch(() => {})
+    getLetterhead().then(config => { if (config) setLetterhead(config) }).catch(() => {})
   }, [])
 
   async function handleCreate() {
@@ -91,16 +92,16 @@ function TemplatesTab() {
     } finally { setCreating(false) }
   }
 
-  async function handleLetterheadUpload(e) {
+  async function handleLetterheadUpload(type, e) {
     const file = e.target.files?.[0]
     if (!file) return
-    setUploadingLetterhead(true)
+    setUploadingLetterhead(type)
     try {
-      const url = await uploadLetterhead(file)
-      setLetterheadUrl(url)
+      const url = await uploadLetterhead(file, type)
+      setLetterhead(prev => ({ ...prev, [type]: url }))
     } catch (err) {
-      alert('Failed to upload letterhead: ' + (err.message || 'Unknown error'))
-    } finally { setUploadingLetterhead(false) }
+      alert('Failed to upload: ' + (err.message || 'Unknown error'))
+    } finally { setUploadingLetterhead(null) }
   }
 
   async function handleUpload() {
@@ -394,23 +395,50 @@ function TemplatesTab() {
 
       {/* Letterhead Section */}
       <div className="border-t pt-4 mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-sm font-semibold">Company Letterhead</h3>
-            <p className="text-xs text-muted-foreground">Appears on the first page of all templates</p>
+        <h3 className="text-sm font-semibold mb-1">Company Letterhead</h3>
+        <p className="text-xs text-muted-foreground mb-4">Header appears on page 1 only. Footer appears on every page.</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Header */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500 uppercase">Header (Logo)</span>
+              <div>
+                <input type="file" ref={headerRef} accept="image/*" hidden onChange={e => handleLetterheadUpload('header', e)} />
+                <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => headerRef.current?.click()} disabled={uploadingLetterhead === 'header'}>
+                  <Upload className="size-3" /> {uploadingLetterhead === 'header' ? '...' : letterhead.header ? 'Replace' : 'Upload'}
+                </Button>
+              </div>
+            </div>
+            {letterhead.header ? (
+              <div className="bg-white rounded border p-3 flex justify-center">
+                <img src={letterhead.header} alt="Header" className="max-h-20 w-auto" />
+              </div>
+            ) : (
+              <p className="text-xs text-stone-400 text-center py-4">No header uploaded</p>
+            )}
           </div>
-          <div>
-            <input type="file" ref={letterheadRef} accept="image/*" hidden onChange={handleLetterheadUpload} />
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => letterheadRef.current?.click()} disabled={uploadingLetterhead}>
-              <Upload className="size-3.5" /> {uploadingLetterhead ? 'Uploading...' : letterheadUrl ? 'Replace' : 'Upload Letterhead'}
-            </Button>
+
+          {/* Footer */}
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-stone-500 uppercase">Footer (Address bar)</span>
+              <div>
+                <input type="file" ref={footerRef} accept="image/*" hidden onChange={e => handleLetterheadUpload('footer', e)} />
+                <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => footerRef.current?.click()} disabled={uploadingLetterhead === 'footer'}>
+                  <Upload className="size-3" /> {uploadingLetterhead === 'footer' ? '...' : letterhead.footer ? 'Replace' : 'Upload'}
+                </Button>
+              </div>
+            </div>
+            {letterhead.footer ? (
+              <div className="bg-white rounded border p-3 flex justify-center">
+                <img src={letterhead.footer} alt="Footer" className="max-h-12 w-auto" />
+              </div>
+            ) : (
+              <p className="text-xs text-stone-400 text-center py-4">No footer uploaded</p>
+            )}
           </div>
         </div>
-        {letterheadUrl && (
-          <div className="rounded-lg border bg-white p-4">
-            <img src={letterheadUrl} alt="Company Letterhead" className="max-h-24 w-auto" />
-          </div>
-        )}
       </div>
     </div>
   )
