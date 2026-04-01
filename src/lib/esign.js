@@ -40,6 +40,27 @@ export async function fetchTemplates() {
   return data || []
 }
 
+export async function updateTemplate(id, updates) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('esign_templates')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function saveTemplateHtml(templateId, html) {
+  if (!supabase) return null
+  const blob = new Blob([html], { type: 'text/html' })
+  const path = `templates/${templateId}_edited.html`
+  await supabase.storage.from(BUCKET).upload(path, blob, { cacheControl: '3600', upsert: true })
+  // Store edited HTML path on the template
+  return await updateTemplate(templateId, { file_path: path, file_name: `${templateId}_edited.html` })
+}
+
 export async function deleteTemplate(id, filePath) {
   if (!supabase) return
   if (filePath) await supabase.storage.from(BUCKET).remove([filePath]).catch(() => {})

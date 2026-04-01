@@ -23,7 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument } from '@/lib/esign'
+import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -108,6 +108,24 @@ export default function EditDocumentPage() {
   const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
   const [preview, setPreview] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function handleSaveTemplate() {
+    if (!editor || !template) return
+    setSaving(true)
+    try {
+      const html = editor.getHTML()
+      await saveTemplateHtml(template.id, html)
+      if (docTitle !== template.name) {
+        await updateTemplate(template.id, { name: docTitle })
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      alert('Failed to save: ' + (err.message || 'Unknown error'))
+    } finally { setSaving(false) }
+  }
 
   // Send dialog
   const [showSend, setShowSend] = useState(false)
@@ -151,7 +169,14 @@ export default function EditDocumentPage() {
 
         // Fetch the file and convert
         const url = getTemplateFileUrl(tmpl.file_path)
-        if (url && (tmpl.file_name.endsWith('.docx') || tmpl.file_name.endsWith('.doc'))) {
+        if (url && tmpl.file_name.endsWith('.html')) {
+          // Previously saved HTML template
+          setConverting(true)
+          const response = await fetch(url)
+          const html = await response.text()
+          setHtmlContent(html)
+          setConverting(false)
+        } else if (url && (tmpl.file_name.endsWith('.docx') || tmpl.file_name.endsWith('.doc'))) {
           setConverting(true)
           const response = await fetch(url)
           const arrayBuffer = await response.arrayBuffer()
@@ -273,6 +298,10 @@ export default function EditDocumentPage() {
         <div className="flex gap-2">
           <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
             <Eye className="size-4" /> {preview ? 'Edit' : 'Preview'}
+          </Button>
+          <Button variant="outline" className="gap-1.5" onClick={handleSaveTemplate} disabled={saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {saved ? 'Saved!' : 'Save Template'}
           </Button>
           <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowSend(true)}>
             <Send className="size-4" /> Send for Signature
