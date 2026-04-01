@@ -1,96 +1,97 @@
-import { useState, useMemo } from 'react'
-import { Plus, Heart, Search, LayoutGrid, List as ListIcon, GitMerge } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
-import { MATCH_STAGES } from '@/lib/constants'
-import { mockMatches } from '@/data/mock/matches'
-import { mockSurrogates } from '@/data/mock/surrogates'
-import { mockIntendedParents } from '@/data/mock/intendedParents'
+import StageBadge from '@/components/shared/StageBadge'
+import { SURROGATE_STAGES } from '@/lib/constants'
+import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 
-const JOURNEY_STAGES = [
-  { id: 'Profile Review', label: 'Profile Review', color: '#ed148c' },
-  { id: 'Introduction', label: 'Introduction', color: '#c4219a' },
-  { id: 'Meeting Scheduled', label: 'Meeting Scheduled', color: '#9b2ea7' },
-  { id: 'Meeting Complete', label: 'Meeting Complete', color: '#723bb4' },
-  { id: 'Match Confirmed', label: 'Match Confirmed', color: '#4d3da4' },
-  { id: 'Legal', label: 'Legal', color: '#283693' },
-  { id: 'Medical Clearance', label: 'Medical Clearance', color: '#10b981' },
-  { id: 'Transfer Prep', label: 'Transfer Prep', color: '#0ea5e9' },
-  { id: 'Active Pregnancy', label: 'Active Pregnancy', color: '#f59e0b' },
-  { id: 'Delivered', label: 'Delivered', color: '#22c55e' },
-]
+const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
 export default function MatchedJourneysPage() {
-  const [matches] = useState(mockMatches)
+  const [journeys, setJourneys] = useState([])
+  const [surrogates, setSurrogates] = useState([])
+  const [ips, setIps] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [view, setView] = useState('tile')
 
-  const surrogateMap = useMemo(() => Object.fromEntries(mockSurrogates.map(s => [s.id, s])), [])
-  const ipMap = useMemo(() => Object.fromEntries(mockIntendedParents.map(ip => [ip.id, ip])), [])
+  useEffect(() => {
+    Promise.all([fetchMatchedJourneys(), fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
+      .then(([js, gcs, allIps]) => { setJourneys(js); setSurrogates(gcs); setIps(allIps) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
 
-  const stageCounts = useMemo(() => {
-    const counts = {}
-    for (const s of JOURNEY_STAGES) counts[s.id] = 0
-    for (const m of matches) {
-      if (counts[m.stage] !== undefined) counts[m.stage]++
-    }
-    return counts
-  }, [matches])
+  const enriched = useMemo(() => {
+    return journeys.map(j => {
+      const gc = surrogates.find(s => s.id === j.gc_case_id)
+      const ip = ips.find(i => i.id === j.ip_case_id)
+      return { ...j, gc, ip }
+    })
+  }, [journeys, surrogates, ips])
 
   const filtered = useMemo(() => {
-    return matches.filter(m => {
-      if (stageFilter !== 'all' && m.stage !== stageFilter) return false
+    return enriched.filter(j => {
+      if (stageFilter !== 'all' && j.stage !== stageFilter) return false
       if (search) {
-        const s = surrogateMap[m.surrogateId]
-        const ip = ipMap[m.ipId]
         const q = search.toLowerCase()
-        if (!s?.name?.toLowerCase().includes(q) && !ip?.name?.toLowerCase().includes(q)) return false
+        const gcName = (j.gc?.name || '').toLowerCase()
+        const ipName = (j.ip?.names || '').toLowerCase()
+        if (!gcName.includes(q) && !ipName.includes(q)) return false
       }
       return true
     })
-  }, [matches, stageFilter, search])
+  }, [enriched, search, stageFilter])
 
-  const getStageInfo = (stageId) => JOURNEY_STAGES.find(s => s.id === stageId) || { color: '#6b7280', label: stageId }
+  // Stage counts
+  const stageCounts = useMemo(() => {
+    const counts = {}
+    for (const s of JOURNEY_STAGES) counts[s.id] = 0
+    for (const j of journeys) { if (counts[j.stage] !== undefined) counts[j.stage]++ }
+    return counts
+  }, [journeys])
+
+  if (loading) return <div className="text-center py-12 text-stone-400">Loading journeys...</div>
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Matched Journeys"
-        subtitle={`${filtered.length} of ${matches.length} journey${matches.length !== 1 ? 's' : ''} shown`}
+        subtitle={`${journeys.length} active journey${journeys.length !== 1 ? 's' : ''}`}
       />
 
-      {/* Hero stats — click to filter */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* Stage filter pills */}
+      <div className="flex flex-wrap gap-2">
         <button
+          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${stageFilter === 'all' ? 'bg-[#283693] text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
           onClick={() => setStageFilter('all')}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
-          style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{matches.length}</p>
-          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+          All ({journeys.length})
         </button>
         {JOURNEY_STAGES.map(stage => (
           <button
             key={stage.id}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${stageFilter === stage.id ? 'text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+            style={stageFilter === stage.id ? { backgroundColor: stage.color } : {}}
             onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
-            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
-            style={{ backgroundColor: stage.color + '08' }}
           >
-            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
-            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
+            {stage.label} ({stageCounts[stage.id] || 0})
           </button>
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* Search + view toggle */}
+      <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Search by surrogate or IP name..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by surrogate or IP name..." className="pl-9" />
         </div>
         <div className="flex items-center border rounded-md">
           <Button variant={view === 'tile' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setView('tile')}>
@@ -102,79 +103,95 @@ export default function MatchedJourneysPage() {
         </div>
       </div>
 
-      {/* Journey tiles or list */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <GitMerge className="size-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">{search || stageFilter !== 'all' ? 'No journeys match your filter.' : 'No matched journeys yet.'}</p>
+        <div className="text-center py-16">
+          <Heart className="size-12 text-stone-200 mx-auto mb-3" />
+          <p className="text-stone-400">{journeys.length === 0 ? 'No matched journeys yet. Create a match from the Matching page.' : 'No journeys match your search.'}</p>
         </div>
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map(m => {
-            const surrogate = surrogateMap[m.surrogateId]
-            const ip = ipMap[m.ipId]
-            const stage = getStageInfo(m.stage)
-            return (
-              <Card key={m.id} className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
-                <div className="h-1.5" style={{ backgroundColor: stage.color }} />
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ backgroundColor: stage.color + '15', color: stage.color }}>
-                      {stage.label}
-                    </span>
-                    {m.startDate && <span className="text-[10px] text-stone-400">Started {m.startDate}</span>}
+          {filtered.map(j => (
+            <Link key={j.id} to={`/journeys/${j.id}`}>
+              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden">
+                {/* Stacked mini hero */}
+                <div className="bg-gradient-to-r from-pink-50 to-pink-25 px-4 pt-3 pb-2 border-b border-pink-100">
+                  <div className="flex items-center gap-2.5">
+                    <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-pink-500 text-white">GC</span>
+                        <span className="text-sm font-semibold truncate">{j.gc?.name || '—'}</span>
+                      </div>
+                      <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 text-center">
-                      <ProfileAvatar name={surrogate?.name || '?'} size={48} />
-                      <p className="text-sm font-semibold text-stone-800 mt-2 truncate">{surrogate?.name || 'Unknown'}</p>
-                      <p className="text-[10px] text-stone-400 uppercase">Surrogate</p>
+                </div>
+                <div className="bg-gradient-to-r from-purple-50 to-purple-25 px-4 pt-2 pb-3 border-b border-purple-100">
+                  <div className="flex items-center gap-2.5">
+                    <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-purple-500 text-white">IP</span>
+                        <span className="text-sm font-semibold truncate">{j.ip?.names || '—'}</span>
+                      </div>
+                      <p className="text-[10px] text-stone-400">{j.ip?.type || ''} {j.ip?.location ? `· ${j.ip.location}` : ''}</p>
                     </div>
-                    <div className="shrink-0">
-                      <Heart className="size-5 text-[#ed148c] fill-[#ed148c]/20" />
-                    </div>
-                    <div className="flex-1 text-center">
-                      <ProfileAvatar name={ip?.name || '?'} size={48} />
-                      <p className="text-sm font-semibold text-stone-800 mt-2 truncate">{ip?.name || 'Unknown'}</p>
-                      <p className="text-[10px] text-stone-400 uppercase">Intended Parent</p>
-                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <StageBadge stage={j.stage} status={j.status} />
+                    <ArrowRight className="size-4 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] text-stone-400">
+                    {j.journey_data?.journeyManager && (
+                      <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
+                    )}
+                    <span>Created {new Date(j.created_at).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
               </Card>
-            )
-          })}
+            </Link>
+          ))}
         </div>
       ) : (
-        <Card className="rounded-2xl overflow-hidden">
-          <div className="divide-y divide-stone-100">
-            <div className="grid grid-cols-[1fr_1fr_1fr_auto] px-5 py-3 bg-stone-50 text-xs font-semibold text-stone-500 uppercase tracking-wider">
-              <span>Surrogate</span>
-              <span>Intended Parent</span>
-              <span>Stage</span>
-              <span>Started</span>
-            </div>
-            {filtered.map(m => {
-              const surrogate = surrogateMap[m.surrogateId]
-              const ip = ipMap[m.ipId]
-              const stage = getStageInfo(m.stage)
-              return (
-                <div key={m.id} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center px-5 py-3 hover:bg-stone-50 cursor-pointer">
-                  <div className="flex items-center gap-2.5">
-                    <ProfileAvatar name={surrogate?.name || '?'} size={32} />
-                    <span className="text-sm font-medium text-stone-800">{surrogate?.name || 'Unknown'}</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <ProfileAvatar name={ip?.name || '?'} size={32} />
-                    <span className="text-sm font-medium text-stone-800">{ip?.name || 'Unknown'}</span>
-                  </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full w-fit" style={{ backgroundColor: stage.color + '15', color: stage.color }}>
-                    {stage.label}
-                  </span>
-                  <span className="text-xs text-stone-400">{m.startDate || '—'}</span>
-                </div>
-              )
-            })}
-          </div>
+        <Card className="rounded-2xl">
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-stone-50/50">
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Intended Parent</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Stage</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Manager</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(j => (
+                  <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+                        <span className="font-medium">{j.gc?.name || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+                        <span className="font-medium">{j.ip?.names || '—'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3"><StageBadge stage={j.stage} status={j.status} /></td>
+                    <td className="px-4 py-3 text-stone-600">{j.status}</td>
+                    <td className="px-4 py-3 text-stone-500 text-xs">{j.journey_data?.journeyManager || j.assigned_to || '—'}</td>
+                    <td className="px-4 py-3 text-stone-400 text-xs">{new Date(j.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
         </Card>
       )}
     </div>
