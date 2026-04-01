@@ -174,6 +174,7 @@ create table esign_templates (
   file_path text not null,
   file_name text not null,
   file_size bigint,
+  google_doc_id text,
   created_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

@@ -21,6 +21,7 @@ import {
   createBlankTemplate, uploadLetterhead, getLetterhead,
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { getGoogleStatus, createGoogleDoc, getOrCreateTemplatesFolder, shareDocPublicly } from '@/lib/google'
 
 const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
 
@@ -75,15 +76,25 @@ function TemplatesTab() {
   }, [])
 
   async function handleCreate() {
-    if (!createForm.name) return
+    if (!createForm.name || !currentUser?.id) return
     setCreating(true)
     try {
+      // Create Google Doc in "ABC Templates" folder
+      const folderId = await getOrCreateTemplatesFolder(currentUser.id)
+      const doc = await createGoogleDoc(currentUser.id, createForm.name, folderId)
+      await shareDocPublicly(currentUser.id, doc.id)
+
+      // Create template record in Supabase with the Google Doc ID
       const newTemplate = await createBlankTemplate({
         name: createForm.name,
         category: createForm.category,
         description: createForm.description,
         createdBy: currentUser.name,
       })
+      // Update the template with the Google Doc ID
+      const { updateTemplate: updateTmpl } = await import('@/lib/esign')
+      await updateTmpl(newTemplate.id, { google_doc_id: doc.id })
+
       setShowCreate(false)
       setCreateForm({ name: '', category: 'General', description: '' })
       navigate(`/e-signature/edit/${newTemplate.id}`)

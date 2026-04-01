@@ -386,3 +386,131 @@ export async function deleteEvent(userId, calendarId = 'primary', eventId) {
     throw new Error(data.error?.message || 'Failed to delete event')
   }
 }
+
+// ── Google Drive API ────────────────────────────────────
+
+/** Find or create the "ABC Templates" folder in Drive */
+export async function getOrCreateTemplatesFolder(userId) {
+  const token = await getAccessToken(userId)
+
+  // Search for existing folder
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("name='ABC Templates' and mimeType='application/vnd.google-apps.folder' and trashed=false")}&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const searchData = await searchRes.json()
+  if (searchData.files?.length > 0) return searchData.files[0].id
+
+  // Create folder
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: 'ABC Templates',
+      mimeType: 'application/vnd.google-apps.folder',
+    }),
+  })
+  const folder = await createRes.json()
+  if (!createRes.ok) throw new Error(folder.error?.message || 'Failed to create folder')
+  return folder.id
+}
+
+/** Create a new Google Doc in the templates folder */
+export async function createGoogleDoc(userId, title, folderId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: title,
+      mimeType: 'application/vnd.google-apps.document',
+      parents: folderId ? [folderId] : [],
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to create Google Doc')
+  return data
+}
+
+/** Copy an existing Google Doc (for creating a send copy) */
+export async function copyGoogleDoc(userId, fileId, newTitle, folderId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/copy`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: newTitle,
+      parents: folderId ? [folderId] : [],
+    }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to copy document')
+  return data
+}
+
+/** Export a Google Doc as PDF (returns Blob) */
+export async function exportDocAsPdf(userId, fileId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=application/pdf`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || 'Failed to export as PDF')
+  }
+  return await res.blob()
+}
+
+/** Get the plain text content of a Google Doc (for parsing field placeholders) */
+export async function getDocPlainText(userId, fileId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/plain`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  if (!res.ok) throw new Error('Failed to get document text')
+  return await res.text()
+}
+
+/** Parse {{Field:Role}} placeholders from text */
+export function parseFieldPlaceholders(text) {
+  const regex = /\{\{(\w+):(\w+)\}\}/g
+  const fields = []
+  let match
+  while ((match = regex.exec(text)) !== null) {
+    fields.push({
+      fieldType: match[1].toLowerCase(),
+      role: match[2].toLowerCase(),
+      placeholder: match[0],
+      index: fields.length,
+      fieldId: `field_${fields.length}`,
+    })
+  }
+  return fields
+}
+
+/** Make a Google Doc publicly viewable (for embedding) */
+export async function shareDocPublicly(userId, fileId) {
+  const token = await getAccessToken(userId)
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      role: 'writer',
+      type: 'anyone',
+    }),
+  })
+}

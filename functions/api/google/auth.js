@@ -25,7 +25,7 @@ export async function onRequestGet(context) {
   // Build callback URL based on current origin
   const redirectUri = `${url.origin}/api/google/callback`
 
-  // Scopes for Gmail + Calendar
+  // Scopes for Gmail + Calendar + Drive
   const scopes = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send',
@@ -33,6 +33,7 @@ export async function onRequestGet(context) {
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/calendar.events',
     'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/drive.file',
   ].join(' ')
 
   // State parameter carries user_id back through the callback
