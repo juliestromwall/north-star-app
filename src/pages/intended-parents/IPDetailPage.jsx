@@ -21,6 +21,7 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
@@ -39,6 +40,7 @@ export default function IPDetailPage() {
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
+  const [matchNotesOpen, setMatchNotesOpen] = useState(false)
 
   useEffect(() => {
     fetchIPsFromIntake().then(all => {
@@ -248,8 +250,24 @@ export default function IPDetailPage() {
               )
             })()}
           </div>
+
+          {/* Match Notes */}
+          <MatchNotesPreview
+            notes={a._matchNotes}
+            onClick={() => setMatchNotesOpen(true)}
+          />
         </div>
       </div>
+
+      {/* Match Notes Dialog */}
+      <MatchNotesDialog
+        open={matchNotesOpen}
+        onOpenChange={setMatchNotesOpen}
+        caseId={ip.id}
+        answers={a}
+        currentUser={currentUser}
+        onSaved={(updated) => setIp(prev => ({ ...prev, answers: updated }))}
+      />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">

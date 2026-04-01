@@ -236,6 +236,7 @@ export async function fetchSurrogatesFromIntake() {
       healthyPregnancy: a.healthyPregnancy,
       hearAboutUs: a.hearAboutUs,
       preferredContact: a.preferredContact,
+      matchNotes: a._matchNotes || '',
       userId: row.user_id || null,
       matchStage: null,
       dueDate: null,

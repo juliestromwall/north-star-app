@@ -13,6 +13,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import EmptyState from '@/components/shared/EmptyState'
 import ShareProfileDialog from '@/components/shared/ShareProfileDialog'
+import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -52,6 +53,7 @@ export default function MatchingPage() {
   const [shareHistory, setShareHistory] = useState({}) // { caseId: [shares] }
 
   const [shareTarget, setShareTarget] = useState(null)
+  const [matchNotesTarget, setMatchNotesTarget] = useState(null) // { id, answers }
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState({ gcId: '', ipId: '' })
   const [creating, setCreating] = useState(false)
@@ -260,6 +262,12 @@ export default function MatchingPage() {
                       <span className="flex items-center gap-1"><Heart className="size-3" />{profile?.personal?.maritalStatus || gc.maritalStatus || '—'}</span>
                     </div>
 
+                    {/* Match Notes */}
+                    <MatchNotesPreview
+                      notes={gc.matchNotes}
+                      onClick={() => setMatchNotesTarget({ id: gc.id, answers: { _matchNotes: gc.matchNotes } })}
+                    />
+
                     {/* Actions */}
                     <div className="flex gap-2">
                       <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }}
@@ -350,6 +358,22 @@ export default function MatchingPage() {
       {shareTarget && (
         <ShareProfileDialog open={!!shareTarget} onOpenChange={() => setShareTarget(null)}
           caseId={shareTarget.id} caseType={shareTarget.type} caseName={shareTarget.name} currentUser={currentUser} />
+      )}
+
+      {/* Match Notes Dialog */}
+      {matchNotesTarget && (
+        <MatchNotesDialog
+          open={!!matchNotesTarget}
+          onOpenChange={() => setMatchNotesTarget(null)}
+          caseId={matchNotesTarget.id}
+          answers={matchNotesTarget.answers}
+          currentUser={currentUser}
+          onSaved={(updated) => {
+            // Update local state so card refreshes
+            setSurrogates(prev => prev.map(s => s.id === matchNotesTarget.id ? { ...s, matchNotes: updated._matchNotes } : s))
+            setMatchNotesTarget(null)
+          }}
+        />
       )}
 
       {/* Create Match Dialog */}

@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
+import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
@@ -526,6 +527,7 @@ export default function SurrogateDetailPage() {
   const [portraitUrl, setPortraitUrl] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
+  const [matchNotesOpen, setMatchNotesOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
 
@@ -880,8 +882,24 @@ export default function SurrogateDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Match Notes */}
+          <MatchNotesPreview
+            notes={quizAnswers?._matchNotes}
+            onClick={() => setMatchNotesOpen(true)}
+          />
         </div>
       </div>
+
+      {/* Match Notes Dialog */}
+      <MatchNotesDialog
+        open={matchNotesOpen}
+        onOpenChange={setMatchNotesOpen}
+        caseId={surrogate.id}
+        answers={quizAnswers || {}}
+        currentUser={currentUser}
+        onSaved={(updated) => setQuizAnswers(updated)}
+      />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
