@@ -89,35 +89,116 @@ function FormSection({ title, description, children, defaultOpen = false, search
 }
 
 // ── Quiz Answers Section ────────────────────────────────
-function QuizSection({ quizAnswers, search }) {
-  if (!quizAnswers) return null
-  const qa = quizAnswers
-  const fields = [
-    { label: 'First Name', value: qa.firstName },
-    { label: 'Last Name', value: qa.lastName },
-    { label: 'Email', value: qa.email },
-    { label: 'Phone', value: qa.phone },
-    { label: 'Date of Birth', value: qa.dob },
-    { label: 'State', value: qa.state },
-    { label: 'Height (ft)', value: qa.heightFt },
-    { label: 'Height (in)', value: qa.heightIn },
-    { label: 'Weight (lbs)', value: qa.weightLbs },
-    { label: 'Marital Status', value: qa.maritalStatus },
-    { label: 'US Citizen', value: boolDisplay(qa.usCitizen) },
-    { label: 'Healthy Pregnancy', value: boolDisplay(qa.healthyPregnancy) },
-    { label: 'Preferred Contact', value: qa.preferredContact },
-    { label: 'How did you hear about us?', value: qa.hearAboutUs },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== '')
+const MARITAL_OPTIONS = ['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed']
+const CONTACT_OPTIONS = ['Text', 'Email', 'Phone']
+const HEAR_OPTIONS = ['Google', 'Instagram', 'TikTok', 'Facebook', 'Friend/Family', 'Previous Surrogate', 'Agency Referral', 'Other']
 
-  const filtered = search ? fields.filter(f => f.label.toLowerCase().includes(search) || String(f.value).toLowerCase().includes(search)) : fields
-  const hasMatch = search ? filtered.length > 0 : true
+function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
+  const qa = quizAnswers || {}
+  const QUIZ_FIELDS = [
+    { key: 'firstName', label: 'First Name' },
+    { key: 'lastName', label: 'Last Name' },
+    { key: 'email', label: 'Email', type: 'email' },
+    { key: 'phone', label: 'Phone', type: 'tel' },
+    { key: 'dob', label: 'Date of Birth', type: 'date' },
+    { key: 'state', label: 'State', type: 'select', options: US_STATES },
+    { key: 'heightFt', label: 'Height (ft)', type: 'select', options: ['4', '5', '6'] },
+    { key: 'heightIn', label: 'Height (in)', type: 'select', options: ['0','1','2','3','4','5','6','7','8','9','10','11'] },
+    { key: 'weightLbs', label: 'Weight (lbs)', type: 'number' },
+    { key: 'maritalStatus', label: 'Marital Status', type: 'select', options: MARITAL_OPTIONS },
+    { key: 'usCitizen', label: 'US Citizen', type: 'yesno' },
+    { key: 'healthyPregnancy', label: 'Healthy Pregnancy History', type: 'yesno' },
+    { key: 'preferredContact', label: 'Preferred Contact', type: 'select', options: CONTACT_OPTIONS },
+    { key: 'hearAboutUs', label: 'How did you hear about us?', type: 'select', options: HEAR_OPTIONS },
+    { key: 'hearAboutUsOther', label: 'Other (specify)' },
+    { key: 'agreeBackgroundCheck', label: 'Agreed to Background Check', type: 'yesno' },
+  ]
+
+  const allLabels = QUIZ_FIELDS.map(f => f.label.toLowerCase())
+  const hasMatch = search ? allLabels.some(l => l.includes(search)) || QUIZ_FIELDS.some(f => String(qa[f.key] || '').toLowerCase().includes(search)) : true
+
+  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
+    surrogate?.id, quizAnswers, null,
+    (_, answers) => {
+      const init = {}
+      for (const f of QUIZ_FIELDS) init[f.key] = answers?.[f.key] ?? ''
+      return init
+    }
+  )
+
+  // Override handleSave to save directly to root answers (not a sub-key)
+  async function saveQuiz() {
+    if (!surrogate?.id) return
+    const origSaving = saving
+    try {
+      // Fetch fresh answers to merge
+      const { supabase } = await import('@/lib/supabase')
+      let currentAnswers = quizAnswers || {}
+      if (supabase) {
+        const { data } = await supabase.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+        if (data?.answers) currentAnswers = data.answers
+      }
+      const merged = { ...currentAnswers, ...form }
+      await updateIntakeSubmission(surrogate.id, {
+        answers: merged,
+        applicant_name: `${form.firstName || ''} ${form.lastName || ''}`.trim(),
+        applicant_email: (form.email || '').trim().toLowerCase(),
+        applicant_phone: form.phone || '',
+        state_region: form.state || '',
+      })
+      if (onSaved) onSaved(merged)
+      cancel()
+    } catch (err) {
+      alert('Failed to save: ' + (err.message || ''))
+    }
+  }
+
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
+  if (!hasMatch) return null
 
   return (
-    <FormSection title="Surrogate Quiz" description="Answers from the initial screening quiz" defaultOpen={!search} searchMatch={hasMatch}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(f => <ReadField key={f.label} label={f.label} value={String(f.value)} />)}
-      </div>
-    </FormSection>
+    <Card className="rounded-2xl">
+      <EditHeader
+        title="Surrogate Quiz"
+        description="Answers from the initial screening quiz"
+        editing={editing}
+        saving={saving}
+        startEdit={startEdit}
+        handleSave={saveQuiz}
+        cancel={cancel}
+      />
+      <CardContent>
+        {editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {QUIZ_FIELDS.map(f => {
+              if (f.type === 'yesno') return (
+                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
+              )
+              if (f.type === 'select') return (
+                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={f.options} /></div>
+              )
+              return (
+                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel>
+                  <input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
+                    className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" />
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {QUIZ_FIELDS.map(f => {
+              const val = qa[f.key]
+              if (val === undefined || val === null || val === '') return null
+              const display = f.type === 'yesno' ? boolDisplay(val) : String(val)
+              if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
+              return <ReadField key={f.key} label={f.label} value={display} />
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -597,7 +678,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
         />
       </div>
 
-      <QuizSection quizAnswers={quizAnswers} search={searchLower} />
+      <QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} />
       <ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
       <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
