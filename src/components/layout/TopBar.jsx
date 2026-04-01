@@ -25,9 +25,8 @@ export default function TopBar({ onMenuClick }) {
     getGoogleStatus(currentUser.id).then(async (s) => {
       if (!s.connected) return
       try {
-        // Use search query to count primary inbox unread — matches Gmail's displayed count
-        const data = await listEmails(currentUser.id, { query: 'in:inbox category:primary is:unread', maxResults: 1 })
-        if (data.resultSizeEstimate) setInboxCount(data.resultSizeEstimate)
+        const label = await getLabel(currentUser.id, 'INBOX')
+        if (label?.messagesUnread) setInboxCount(label.messagesUnread)
       } catch {}
     }).catch(() => {})
   }, [isAdmin, currentUser?.id])

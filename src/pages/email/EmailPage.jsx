@@ -652,14 +652,8 @@ export default function EmailPage() {
         const unread = labelData[id]?.messagesUnread || 0
         if (unread) counts[id] = unread
       }
-      // Inbox: use search query for Primary-only unread (matches Gmail's displayed count)
-      try {
-        const data = await listEmails(userId, { query: 'in:inbox category:primary is:unread', maxResults: 1 })
-        if (data.resultSizeEstimate) counts['INBOX'] = data.resultSizeEstimate
-      } catch {
-        // Fallback to full inbox unread
-        if (labelData['INBOX']?.messagesUnread) counts['INBOX'] = labelData['INBOX'].messagesUnread
-      }
+      // Inbox: show unread count from label API
+      if (labelData['INBOX']?.messagesUnread) counts['INBOX'] = labelData['INBOX'].messagesUnread
       // Other system folders + user labels: show total
       for (const [id, l] of Object.entries(labelData)) {
         if (id === 'INBOX' || id === 'CATEGORY_PRIMARY' || CATEGORY_IDS.includes(id)) continue
