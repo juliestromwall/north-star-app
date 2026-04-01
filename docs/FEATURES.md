@@ -43,7 +43,12 @@
 | IntakeSubmissionsPage | src/pages/intake/IntakeSubmissionsPage.jsx | Admin intake review with live Supabase data |
 | MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics with source breakdown |
 | MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board |
-| CalendarPage | src/pages/calendar/CalendarPage.jsx | Google Calendar integration: view/create/edit/delete events, multi-calendar support, case-linked events |
+| CalendarPage | src/pages/calendar/CalendarPage.jsx | Google Calendar-style with sidebar calendar selector, colored events, upcoming sidebar |
+| ESignaturePage | src/pages/esign/ESignaturePage.jsx | Template management (upload/edit/tag/delete) + document tracking (send/void/audit) |
+| EditDocumentPage | src/pages/esign/EditDocumentPage.jsx | Rich text editor for .docx templates (mammoth→HTML→Tiptap), save template, send for signature |
+| SignDocumentPage | src/pages/esign/SignDocumentPage.jsx | Signing experience: type or draw signature, ESIGN/UETA agreement, audit trail |
+| GCApplicationTab | src/components/surrogates/GCApplicationTab.jsx | 6 collapsible form sections (Quiz, Application, References, Confidential, Clinic, Social Media) with search |
+| IPApplicationTab | src/components/intended-parents/IPApplicationTab.jsx | 4 collapsible form sections (Intake, Contact Info, Clinic, References) with search |
 | EmailPage | src/pages/email/EmailPage.jsx | Gmail integration: inbox, read, compose/send with attachments, search, log to case |
 | FaxPage | src/pages/fax/FaxPage.jsx | SRFax integration: send fax with file upload, inbox/outbox, download received faxes, cover pages |
 | CaseEmailsTab | src/components/shared/CaseEmailsTab.jsx | Reusable tab showing logged emails for a case (used in surrogate & IP detail pages) |
@@ -87,6 +92,9 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Auth | auth.users | Live |
 | Google OAuth tokens | google_tokens | Live |
 | Logged emails | case_emails | Live |
+| E-sign templates | esign_templates | Live |
+| E-sign documents | esign_documents | Live |
+| E-sign audit log | esign_audit_log | Live |
 
 ## External Integrations
 
@@ -96,7 +104,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Cloudflare Turnstile | Configured (site key in env) |
 | Cloudflare Pages | Hosting |
 | Supabase Auth | Live |
-| Supabase Storage | Live (profile-photos, case-documents) |
+| Supabase Storage | Live (profile-photos, case-documents, esign-documents) |
 | Twilio SMS | Trial (send/receive via Cloudflare Pages Functions) |
 | Google OAuth2 | Live (Gmail + Calendar scopes, token storage in Supabase) |
 | Gmail API | Live (inbox, send with attachments, log to case) |
@@ -107,6 +115,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-03-31 | E-Signature feature (template upload/edit/tag/delete, .docx→HTML editor, send for signature, type/draw signature, audit trail, HIPAA compliant). Admin profile UX overhaul (toggle buttons, dropdowns, checkboxes, currency). Photos section on admin profile tab (lightbox, hide/delete). Application tabs for GC (6 collapsible form sections with search) and IP (4 sections). Add IP button. IP detail redesign (hero tiles, stage/status selectors). Stage statuses split by GC/IP/Journey. Calendar Google-style with calendar selector sidebar. Dashboard OB records fix. |
 | 2026-03-31 | Google OAuth integration (Gmail + Calendar scopes, token storage, connect/disconnect in Settings). Email page (/email) with Gmail inbox, read, compose/send with attachments, search, log-to-case. Calendar page rebuilt with Google Calendar API (multi-calendar, create/edit/delete events). Fax page (/fax) with SRFax API (send with cover pages, inbox/outbox, download). Emails tab on surrogate & IP detail pages. Case emails Supabase table. Fax nav link added. |
 | 2026-03-30 | Babies Born page (/babies-born) with line chart, editable year data. Profile photo avatars on list/detail/topbar. Supabase migration for all localStorage stores (app_config table). Medical records: type badges, custom labels, deactivate-as-status, add records, dashboard popup fixes. Stage Statuses in admin settings with CRUD. Admin profile upsert fix. Number-driven pregnancy editing. |
 | 2026-03-27 | IP Profile tab: 5-section profile builder (Fertility, Surrogacy, Personal, Health, Personal History) with collapsible cards, per-person IP1/IP2 tabs for couples, edit/save per section, completion progress bar. Data stored in answers._ipProfile via updateIntakeSubmission. |

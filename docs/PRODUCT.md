@@ -103,9 +103,9 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | IP Dashboard | /dashboard | intended_parent | Built |
 | Partner Dashboard | /dashboard | surrogate_partner | Built |
 | Surrogates List | /surrogates | admin+ | Built (stages, statuses, search, grid/list) |
-| Surrogate Detail | /surrogates/:id | admin+ | Built (interactive hero, documents, notes) |
+| Surrogate Detail | /surrogates/:id | admin+ | Built (interactive hero, application tab, documents, notes, photos) |
 | Intended Parents List | /intended-parents | admin+ | Built (live Supabase, tile/list, search, filters) |
-| IP Detail | /intended-parents/:id | admin+ | Built (live Supabase, overview/contact/intake tabs) |
+| IP Detail | /intended-parents/:id | admin+ | Built (hero with stage/status, application tab, profile, emails) |
 | My Profile | /my-profile | surrogate | Built (Supabase sync, photo upload) |
 | Forms List | /forms | all | Built |
 | Surrogate Quiz | /surrogatequiz | public | Built (bot protected) |
@@ -122,7 +122,9 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists, Google connect) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
-| E-Signature | /e-signature | admin+ | Stub |
+| E-Signature | /e-signature | admin+ | Built (templates, editor, send, sign, audit) |
+| E-Sign Edit | /e-signature/edit/:templateId | admin+ | Built (.docx→HTML editor, save, send) |
+| E-Sign Sign | /e-signature/:id | all | Built (type/draw signature, audit trail) |
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
 | Fax | /fax | admin+ | Built (SRFax API, send/inbox/outbox, awaiting credentials) |
@@ -152,3 +154,6 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | UTM Parameters | URL tracking for marketing attribution |
 | GTM | Google Tag Manager — marketing team manages pixels here |
 | Turnstile | Cloudflare's bot protection CAPTCHA on intake forms |
+| Application | Combined tab containing intake quiz/answers + multi-section forms (address, references, confidential info, clinic, social media release) |
+| E-Signature | Document signing feature: upload templates, edit in rich text editor, send for signature, type/draw signature with audit trail |
+| IP Stage Labels | IP stages use different names: Pre-Qualification→Screening, Screening→Holding, Matching stays same |

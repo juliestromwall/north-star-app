@@ -1,5 +1,99 @@
 # Session Log
 
+## 2026-03-31 (Full Day Session)
+
+**Worked on:** Dashboard OB records fix, admin profile UX overhaul, photos section, hero sync, Add IP, IP detail page redesign with stage/status, Application tabs (GC + IP), stage statuses split by user type, e-signature feature, calendar Google-style redesign
+
+**Changes made:**
+
+Dashboard OB Records Fix:
+- Dashboard now reads record tracking from Supabase (was reading empty localStorage after migration)
+- Builds expected records from pregnancy profile data with year-based labels ("OB 2026" not "OB #2")
+- Filters legacy orphan timestamp-keyed records
+- Removed admin name from records popup
+
+Admin Profile UX Overhaul:
+- Yes/No fields: toggle pill buttons instead of dropdowns (matching surrogate side)
+- Select fields: proper dropdowns for marital status, state, height, education, etc.
+- Checkbox groups: disease history and complications as checkbox grids
+- Currency fields: auto-formatting with $ and thousands separators
+- Textarea fields: multi-line inputs for detail/explanation fields
+- Section descriptions shown under each card title
+
+Photos Section (Admin Profile Tab):
+- Shows profile photo, cover photo, and gallery with labels
+- Click to view full-size lightbox
+- Eye icon to hide/show photos from matching profile (_hiddenPhotos)
+- Delete button with confirmation
+- Loads all photo sources via Promise.all
+
+Hero & Sync Improvements:
+- Relationship tile reads partner name from profileData.personal (was broken)
+- Marital status reads from profile data first
+- Saving Personal section syncs maritalStatus, city, state, height, weight back to intake_submissions
+
+Add IP Feature:
+- "+ Add IP" button on Intended Parents list page
+- Dialog with name, email, phone, state, partner toggle with IP2 fields
+- adminAddIP() in db.js creates intake_submission with type 'ip'
+- Fixed hasPartner check across 4 files (accepts both 'yes' string and true boolean)
+
+IP Detail Page Redesign:
+- Hero section matching GC layout: avatar, StageBadge, type badge, Text/Email/Call buttons, admin assignment dropdown
+- 7 info tiles: Age(s), Type, Relationship, RE Doctor, Embryos, Egg Donor, Sperm Donor (centered icon + label like GC)
+- Interactive Stage selector (Screening/Holding/Matching with IP-specific labels)
+- Interactive Status selector reading IP-specific status config
+- Tabs: Overview, Application, Profile, Documents, Texts, Emails, Notes
+
+Application Tabs (GC + IP):
+- Renamed "Contact" to "Application" on surrogate side
+- GC Application: 6 collapsible sections with search bar
+  - Surrogate Quiz (read-only), Application (address, ID, NICU), References (3), Confidential Personal Info (SSN, DL, insurance, spouse), Clinic & Hospital (per-delivery), Social Media Release
+  - All sections independently editable, saved to Supabase under _application, _references, _confidential, _clinicHospital, _socialMediaRelease keys
+  - Pre-fills from profile data where applicable
+- IP Application: 4 collapsible sections with search bar
+  - Intake Answers (read-only), Contact Information (IP1+IP2 with employer details), Clinic Information, Personal References
+  - Editable with save, syncs to hero tiles
+- Renamed IP "Intake Form" to "Application"
+
+Stage Statuses Split by User Type:
+- Settings: 3 tabs — Surrogate (GC), Intended Parent (IP), Matched Journeys
+- GC & IP show Pre-Qualification/Screening/Matching (IP uses custom labels: Screening, Holding, Matching)
+- Matched Journeys shows Journey Oversight/Ending/Closed (existing statuses preserved)
+- Config structure: { gc: {}, ip: {}, journey: {} } with auto-migration from flat config
+- IP default statuses include Consultation Scheduled/Complete, Application Sent/Complete
+- Checklists section updated with matching button style + stage quick-link sidebar
+
+E-Signature Feature:
+- Database: esign_templates, esign_documents, esign_audit_log tables + esign-documents storage bucket
+- Templates tab: upload .docx/.pdf, organize by tag/category (Agency Agreement, Medical Records Release, HIPAA, Background Check Authorization, Credit Card Authorization, etc.), rename, delete with confirmation dialog, tag filter pills
+- Documents tab: track sent documents (draft/pending/partially_signed/completed/voided), signer progress dots, audit trail dialog
+- Document Editor: converts .docx to HTML via mammoth, full Tiptap rich text editor (bold, italic, underline, lists, alignment, headings, undo/redo), preview mode, save template, send for signature
+- Signing page: view document, type or draw signature (canvas), legal agreement checkbox (ESIGN Act/UETA), HIPAA notice, audit trail logging
+- Send flow: select template, assign to GC/IP case, auto-populate signers, send
+
+Calendar Redesign:
+- Google Calendar-style layout with left sidebar
+- "My Calendars" section with colored checkboxes to toggle calendar visibility
+- Calendar colors from Google API
+- Today button, upcoming events sidebar with calendar-colored dots
+- Events colored by their calendar, time shown inline before title
+
+**Next steps:**
+- E-signature: template merge fields for auto-filling case data
+- IP stage/status on list page (hero is done, list cards need badges)
+- Journey Manager feature on matched journey cards
+- Twilio upgrade from trial for production texting
+- Per-admin Twilio numbers
+- Share/send surrogate profiles externally
+
+**Open questions:**
+- Should IP cases appear on the dashboard screening overview?
+- How should the e-signature notification flow work? (email vs in-app)
+- Should signed documents generate a combined PDF with signatures embedded?
+
+---
+
 ## 2026-03-29 / 2026-03-30 (Full Day Session — Continued)
 
 **Worked on:** IP Profile builder, Babies Born page, profile photo avatars, Supabase migration for all localStorage stores, medical records UX overhaul, stage statuses in admin settings, admin profile pregnancy editing, numerous bug fixes
