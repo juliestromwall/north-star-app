@@ -625,7 +625,7 @@ export default function EditDocumentPage() {
   const caseOptions = sendForm.caseType === 'ip' ? cases.ip : sendForm.caseType === 'gc' ? cases.gc : []
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div className="flex flex-col h-[calc(100vh-120px)] esign-print-root">
       {/* Header — sticky */}
       <div className="flex items-center justify-between pb-3 shrink-0">
         <div className="flex items-center gap-3">
@@ -639,57 +639,7 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5" onClick={() => {
-            // Clone the actual rendered editor content — WYSIWYG print
-            const editorEl = editor?.view?.dom
-            if (!editorEl) return
-            const clonedHtml = editorEl.innerHTML
-            const footerImg = letterhead.footer || ''
-            const headerImg = letterhead.header || ''
-            const computedStyles = window.getComputedStyle(editorEl)
-            const win = window.open('', '_blank')
-            win.document.write(`<!DOCTYPE html>
-<html><head><title>${docTitle || 'Print Preview'}</title>
-<style>
-  @page {
-    size: letter;
-    margin: 0.5in 0.75in ${footerImg ? '1in' : '0.75in'} 0.75in;
-  }
-  @page :first { margin-top: ${headerImg ? '0' : '0.5in'}; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: ${computedStyles.fontFamily};
-    font-size: ${computedStyles.fontSize};
-    line-height: ${computedStyles.lineHeight};
-    color: ${computedStyles.color};
-    margin: 0;
-    padding: 0;
-  }
-  .header { text-align: center; padding: 0.3in 0 0.15in; }
-  .header img { max-width: 220px; }
-  .footer-wrap { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 0 0.75in 0.1in; }
-  .footer-wrap img { width: 100%; max-width: 6.5in; height: auto; }
-  .footer-wrap .page-num { font-size: 11px; color: #71717a; margin-top: 3px; }
-  .content { padding: 0; }
-  .content p { margin: 0.25em 0; }
-  .content ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
-  .content ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
-  .content li { margin: 0.25em 0; }
-  .content li p { margin: 0; }
-  .content table { border-collapse: collapse; width: 100%; }
-  .content td, .content th { border: 1px solid #ddd; padding: 6px 10px; }
-  .content img { max-width: 100%; height: auto; }
-  .content mark { border-radius: 2px; padding: 1px 2px; }
-  sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
-  .page-break { page-break-after: always; height: 0; visibility: hidden; margin: 0; padding: 0; }
-</style></head><body>
-${headerImg ? `<div class="header"><img src="${headerImg}" /></div>` : ''}
-${footerImg ? `<div class="footer-wrap"><img src="${footerImg}" /></div>` : ''}
-<div class="content">${clonedHtml}</div>
-<script>window.onload=function(){window.print()}<\/script>
-</body></html>`)
-            win.document.close()
-          }}>
+          <Button variant="outline" className="gap-1.5 print-hide" onClick={() => window.print()}>
             <Printer className="size-4" /> Print Preview
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
@@ -785,15 +735,42 @@ ${footerImg ? `<div class="footer-wrap"><img src="${footerImg}" /></div>` : ''}
           outline: 2px solid #283693;
           outline-offset: 2px;
         }
-        @page { margin: 0.75in 1in; @bottom-center { content: counter(page); font-size: 10px; color: #999; } }
-        @page :first { margin-top: 0.5in; }
         @media print {
-          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0; background-image: none; }
-          .esign-editor-scroll { background: white; padding: 0; }
-          .esign-page-markers, .page-markers-overlay { display: none; }
-          .page-break { page-break-after: always; height: 0 !important; margin: 0 !important; background: none !important; }
-          .page-break span, .page-break::before, .page-break::after { display: none; }
-          .esign-letterhead-print { display: block !important; }
+          @page { size: letter; margin: 0.75in 1in 0.5in 1in; }
+
+          /* Hide everything except the editor content */
+          body > *:not(.esign-print-root) { display: none !important; }
+          aside, nav, header, .print-hide, [class*="Sidebar"],
+          [class*="TopBar"], [class*="PageHeader"] { display: none !important; }
+
+          /* Show the editor container */
+          .esign-print-root { display: block !important; }
+          .esign-print-root > *:not(.esign-editor-scroll) { display: none !important; }
+          .esign-editor-scroll { background: white !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
+          .esign-editor { position: static !important; }
+
+          /* Page content */
+          .esign-editor .ProseMirror {
+            box-shadow: none !important;
+            width: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            border-radius: 0 !important;
+          }
+
+          /* Letterhead header — keep on first page */
+          .esign-letterhead-header { box-shadow: none !important; padding: 0 !important; width: auto !important; margin-bottom: 12px !important; }
+
+          /* Hide overlay markers — they're not part of content flow */
+          .pointer-events-none { display: none !important; }
+
+          /* Page breaks */
+          .page-break { page-break-after: always !important; height: 0 !important; margin: 0 !important; background: none !important; border: none !important; overflow: hidden !important; }
+          .page-break * { display: none !important; }
+
+          /* Toolbar */
+          .esign-editor-scroll > div:first-child:has(button) { display: none !important; }
         }
       `}</style>
 
