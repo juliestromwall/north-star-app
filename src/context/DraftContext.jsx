@@ -1,30 +1,55 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
+import { getGmailSignature } from '@/lib/google'
 
 const DraftContext = createContext(null)
 
 let nextDraftId = 1
 
 export function DraftProvider({ children }) {
-  const [drafts, setDrafts] = useState([]) // array of draft objects
+  const [drafts, setDrafts] = useState([])
+  const signatureCache = useRef({ userId: null, html: null, loading: false })
 
-  const openDraft = useCallback(({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId } = {}) => {
+  // Fetch and cache signature
+  const fetchSignature = useCallback(async (userId) => {
+    if (!userId) return ''
+    if (signatureCache.current.userId === userId && signatureCache.current.html !== null) {
+      return signatureCache.current.html
+    }
+    if (signatureCache.current.loading) return ''
+    signatureCache.current.loading = true
+    try {
+      const html = await getGmailSignature(userId)
+      signatureCache.current = { userId, html, loading: false }
+      return html
+    } catch {
+      signatureCache.current.loading = false
+      return ''
+    }
+  }, [])
+
+  const openDraft = useCallback(async ({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId, userId } = {}) => {
     const id = nextDraftId++
 
     let initialSubject = subject || ''
     let initialBody = body || ''
     let initialTo = to || ''
 
+    // Fetch signature
+    const sig = await fetchSignature(userId)
+    const sigBlock = sig ? `<br/><div>--</div><div>${sig}</div>` : ''
+
     if (replyTo) {
       const fromEmail = replyTo.from?.match(/<([^>]+)>/)?.[1] || replyTo.from
       initialTo = fromEmail || ''
       initialSubject = replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject || ''}`
-      const plainBody = (replyTo.bodyHtml || '').replace(/<[^>]*>/g, '').slice(0, 500)
-      initialBody = `\n\n> On ${replyTo.date}, ${replyTo.from} wrote:\n> ${plainBody}`
+      initialBody = `<p></p>${sigBlock}<br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">On ${replyTo.date}, ${replyTo.from} wrote:<br/>${replyTo.bodyHtml || ''}</div>`
     } else if (forwardMsg) {
       initialTo = ''
       initialSubject = `Fwd: ${forwardMsg.subject || ''}`
-      const plainBody = (forwardMsg.bodyHtml || '').replace(/<[^>]*>/g, '').slice(0, 1000)
-      initialBody = `\n\n---------- Forwarded message ----------\nFrom: ${forwardMsg.from}\nDate: ${forwardMsg.date}\nSubject: ${forwardMsg.subject}\n\n${plainBody}`
+      initialBody = `<p></p>${sigBlock}<br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">---------- Forwarded message ----------<br/>From: ${forwardMsg.from}<br/>Date: ${forwardMsg.date}<br/>Subject: ${forwardMsg.subject}<br/><br/>${forwardMsg.bodyHtml || ''}</div>`
+    } else {
+      // New message — just signature
+      initialBody = `<p></p>${sigBlock}`
     }
 
     const draft = {
@@ -42,7 +67,7 @@ export function DraftProvider({ children }) {
 
     setDrafts(prev => [...prev, draft])
     return id
-  }, [])
+  }, [fetchSignature])
 
   const updateDraft = useCallback((id, updates) => {
     setDrafts(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d))

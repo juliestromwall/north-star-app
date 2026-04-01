@@ -91,6 +91,19 @@ export async function getAttachment(userId, messageId, attachmentId) {
   return data
 }
 
+/** Fetch the user's Gmail signature (primary send-as address) */
+export async function getGmailSignature(userId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs',
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) return ''
+  const primary = (data.sendAs || []).find(s => s.isPrimary)
+  return primary?.signature || ''
+}
+
 /** Build a base64url-encoded MIME message */
 function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
   const boundary = 'abc_surrogacy_' + Date.now()

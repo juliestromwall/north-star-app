@@ -651,9 +651,9 @@ export default function EmailPage() {
   }
 
   // Compose actions — all use DraftContext now
-  const handleCompose = () => openDraft()
-  const handleReply = () => openDraft({ replyTo: selectedEmail })
-  const handleForward = () => openDraft({ forwardMsg: selectedEmail })
+  const handleCompose = () => openDraft({ userId })
+  const handleReply = () => openDraft({ replyTo: selectedEmail, userId })
+  const handleForward = () => openDraft({ forwardMsg: selectedEmail, userId })
 
   const handleArchive = async () => {
     if (!selectedEmail || !userId) return
