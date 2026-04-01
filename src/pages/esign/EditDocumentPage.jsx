@@ -148,7 +148,7 @@ function PageMarkers({ editor, footerUrl }) {
   const PAGE_HEIGHT_PX = 11 * 96
 
   return (
-    <div className="pointer-events-none" style={{ position: 'absolute', zIndex: 5, top: 0, left: 0, right: 0, bottom: 0 }}>
+    <div className="pointer-events-none esign-page-markers" style={{ position: 'absolute', zIndex: 5, top: 0, left: 0, right: 0, bottom: 0 }}>
       {/* Subtle page break lines between pages */}
       {Array.from({ length: pageCount - 1 }, (_, i) => {
         const y = (i + 1) * PAGE_HEIGHT_PX
@@ -639,7 +639,40 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5 print-hide" onClick={() => window.print()}>
+          <Button variant="outline" className="gap-1.5" onClick={() => {
+            const editorEl = editor?.view?.dom
+            if (!editorEl) return
+            const content = editorEl.innerHTML
+            const headerImg = letterhead.header || ''
+            const footerImg = letterhead.footer || ''
+            const win = window.open('', '_blank')
+            win.document.write(`<!DOCTYPE html><html><head>
+<title>${docTitle || 'Document'}</title>
+<style>
+@page { size: letter; margin: 0.75in 1in 0.75in 1in; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; font-family: ui-serif, Georgia, serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; }
+.header { text-align: center; margin-bottom: 12px; }
+.header img { max-width: 220px; }
+.content p { margin: 0.4em 0; }
+.content ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
+.content ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+.content li { margin: 0.2em 0; }
+.content li p { margin: 0; }
+.content img { max-width: 100%; height: auto; }
+.content table { border-collapse: collapse; width: 100%; }
+.content td, .content th { border: 1px solid #ddd; padding: 6px 10px; }
+.content mark { border-radius: 2px; padding: 1px 2px; }
+sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
+.page-break { page-break-after: always; height: 0; overflow: hidden; margin: 0; padding: 0; border: none; }
+.page-break * { display: none; }
+</style></head><body>
+${headerImg ? '<div class="header"><img src="' + headerImg + '" /></div>' : ''}
+<div class="content">${content}</div>
+<script>setTimeout(function(){window.print()},300)<\/script>
+</body></html>`)
+            win.document.close()
+          }}>
             <Printer className="size-4" /> Print Preview
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
@@ -736,20 +769,9 @@ export default function EditDocumentPage() {
           outline-offset: 2px;
         }
         @media print {
-          @page { size: letter; margin: 0.75in 1in 0.5in 1in; }
+          @page { size: letter; margin: 0.75in 1in; }
 
-          /* Hide everything except the editor content */
-          body > *:not(.esign-print-root) { display: none !important; }
-          aside, nav, header, .print-hide, [class*="Sidebar"],
-          [class*="TopBar"], [class*="PageHeader"] { display: none !important; }
-
-          /* Show the editor container */
-          .esign-print-root { display: block !important; }
-          .esign-print-root > *:not(.esign-editor-scroll) { display: none !important; }
-          .esign-editor-scroll { background: white !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
-          .esign-editor { position: static !important; }
-
-          /* Page content */
+          /* The editor page content */
           .esign-editor .ProseMirror {
             box-shadow: none !important;
             width: auto !important;
@@ -758,19 +780,15 @@ export default function EditDocumentPage() {
             min-height: auto !important;
             border-radius: 0 !important;
           }
+          .esign-editor-scroll { background: white !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
+          .esign-editor { position: static !important; }
 
-          /* Letterhead header — keep on first page */
-          .esign-letterhead-header { box-shadow: none !important; padding: 0 !important; width: auto !important; margin-bottom: 12px !important; }
-
-          /* Hide overlay markers — they're not part of content flow */
-          .pointer-events-none { display: none !important; }
+          /* Hide overlay page markers */
+          .esign-page-markers { display: none !important; }
 
           /* Page breaks */
-          .page-break { page-break-after: always !important; height: 0 !important; margin: 0 !important; background: none !important; border: none !important; overflow: hidden !important; }
+          .page-break { page-break-after: always !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background: none !important; border: none !important; overflow: hidden !important; }
           .page-break * { display: none !important; }
-
-          /* Toolbar */
-          .esign-editor-scroll > div:first-child:has(button) { display: none !important; }
         }
       `}</style>
 
