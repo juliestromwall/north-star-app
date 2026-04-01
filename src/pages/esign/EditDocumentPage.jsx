@@ -148,38 +148,48 @@ function PageMarkers({ editor, footerUrl }) {
   const PAGE_HEIGHT_PX = 11 * 96
 
   return (
-    <div className="absolute left-0 top-0 w-full pointer-events-none" style={{ zIndex: 5, width: '8.5in', left: '50%', transform: 'translateX(-50%)' }}>
+    <div className="pointer-events-none" style={{ position: 'absolute', zIndex: 5, top: 0, left: 0, right: 0, bottom: 0 }}>
       {/* Page break lines between pages */}
-      {Array.from({ length: pageCount - 1 }, (_, i) => (
-        <div
-          key={`break-${i}`}
-          className="absolute left-0 right-0 flex items-center justify-center"
-          style={{ top: (i + 1) * PAGE_HEIGHT_PX }}
-        >
-          <div className="w-full border-t-2 border-dashed border-stone-400/40 relative">
-            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-stone-400/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-              Page {i + 1} / {pageCount}
-            </span>
+      {Array.from({ length: pageCount - 1 }, (_, i) => {
+        // Position relative to the ProseMirror content area
+        const y = (i + 1) * PAGE_HEIGHT_PX
+        return (
+          <div
+            key={`break-${i}`}
+            style={{ position: 'absolute', top: y, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div className="border-t-2 border-dashed border-stone-400/40 relative" style={{ width: '8.5in' }}>
+              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-stone-400/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+                Page {i + 1} / {pageCount}
+              </span>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
       {/* Footer + page number at bottom of each page */}
-      {Array.from({ length: pageCount }, (_, i) => (
-        <div
-          key={`footer-${i}`}
-          className="absolute flex flex-col items-center"
-          style={{
-            top: (i + 1) * PAGE_HEIGHT_PX - (footerUrl ? 58 : 28),
-            left: '0.5in',
-            right: '0.5in',
-          }}
-        >
-          {footerUrl && (
-            <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '28px', objectFit: 'contain' }} />
-          )}
-          <span className="text-[9px] text-stone-400 font-medium mt-0.5">{i + 1}</span>
-        </div>
-      ))}
+      {Array.from({ length: pageCount }, (_, i) => {
+        const pageBottom = (i + 1) * PAGE_HEIGHT_PX
+        return (
+          <div
+            key={`footer-${i}`}
+            style={{
+              position: 'absolute',
+              top: pageBottom - (footerUrl ? 52 : 24),
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '7.5in',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            {footerUrl && (
+              <img src={footerUrl} alt="" style={{ width: '100%', height: 'auto', display: 'block' }} />
+            )}
+            <span style={{ fontSize: '9px', color: '#a1a1aa', fontWeight: 500, marginTop: '2px' }}>{i + 1}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
