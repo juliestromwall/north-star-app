@@ -163,9 +163,21 @@ function TextField({ value, onChange }) {
   )
 }
 
+function EmailField({ value, onChange, signerEmail }) {
+  return (
+    <input
+      type="email"
+      value={value || signerEmail || ''}
+      onChange={e => onChange(e.target.value)}
+      placeholder="email@example.com"
+      className="inline-block w-[220px] text-sm border-b-2 border-sky-300 bg-sky-50/50 outline-none px-2 py-1 rounded-t align-middle"
+    />
+  )
+}
+
 // ── Document with Interactive Fields ────────────────────
 
-function InteractiveDocument({ html, signerRole, signerName, fieldValues, onFieldChange }) {
+function InteractiveDocument({ html, signerRole, signerName, signerEmail, fieldValues, onFieldChange }) {
   // Parse the HTML and replace <sign-field> elements with React components
   // We use a simple approach: split on sign-field tags and render inline
 
@@ -264,6 +276,8 @@ function InteractiveDocument({ html, signerRole, signerName, fieldValues, onFiel
               return <CheckboxField key={i} value={val} onChange={onChange} />
             case 'text':
               return <TextField key={i} value={val} onChange={onChange} />
+            case 'email':
+              return <EmailField key={i} value={val} onChange={onChange} signerEmail={signerEmail} />
             default:
               return <TextField key={i} value={val} onChange={onChange} />
           }
@@ -511,6 +525,7 @@ export default function SignDocumentPage() {
                 html={documentHtml}
                 signerRole={mySigner.role}
                 signerName={mySigner.name}
+                signerEmail={mySigner.email}
                 fieldValues={fieldValues}
                 onFieldChange={handleFieldChange}
               />
