@@ -148,7 +148,7 @@ function PageMarkers({ editor, footerUrl }) {
   const PAGE_HEIGHT_PX = 11 * 96
 
   return (
-    <div className="pointer-events-none esign-page-markers" style={{ position: 'absolute', zIndex: 5, top: 0, left: 0, right: 0, bottom: 0 }}>
+    <div className="pointer-events-none esign-page-markers" style={{ position: 'absolute', zIndex: 5, top: 0, width: '8.5in', left: '50%', marginLeft: '-4.25in' }}>
       {/* Subtle page break lines between pages */}
       {Array.from({ length: pageCount - 1 }, (_, i) => {
         const y = (i + 1) * PAGE_HEIGHT_PX
@@ -642,34 +642,43 @@ export default function EditDocumentPage() {
           <Button variant="outline" className="gap-1.5" onClick={() => {
             const editorEl = editor?.view?.dom
             if (!editorEl) return
-            const content = editorEl.innerHTML
+            // Clone the full outerHTML to preserve all inline styles, attributes, and structure
+            const clone = editorEl.cloneNode(true)
+            // Remove any ProseMirror-specific classes/attributes but keep content
+            clone.removeAttribute('contenteditable')
+            clone.removeAttribute('role')
+            clone.className = 'content'
+            const content = clone.outerHTML
             const headerImg = letterhead.header || ''
             const footerImg = letterhead.footer || ''
+            const cs = window.getComputedStyle(editorEl)
             const win = window.open('', '_blank')
             win.document.write(`<!DOCTYPE html><html><head>
 <title>${docTitle || 'Document'}</title>
 <style>
-@page { size: letter; margin: 0.4in 0.75in 0.4in 0.75in; }
+@page { size: letter; margin: 0.6in 0.75in 0.6in 0.75in; }
 * { box-sizing: border-box; }
 body { margin: 0; padding: 0; }
 
-/* Table trick: thead/tfoot repeat on every printed page */
-.print-table { width: 100%; border-collapse: collapse; }
-.print-table td, .print-table th { padding: 0; border: none; }
-
-/* Header row — only first page via CSS */
-.print-header td { text-align: center; padding-bottom: 8px; }
-.print-header img { max-width: 200px; }
-
-/* Footer row — repeats on every page */
-.print-footer td { text-align: center; padding-top: 12px; vertical-align: bottom; }
+/* Footer repeats via tfoot */
+.print-wrap { width: 100%; border-collapse: collapse; }
+.print-wrap td { padding: 0; border: none; }
+.print-footer td { text-align: center; padding-top: 8px; vertical-align: bottom; }
 .print-footer img { width: 100%; max-width: 500px; height: auto; }
-.print-footer .page-num { font-size: 11px; color: #71717a; margin-top: 4px; font-family: sans-serif; }
 
-/* Content */
-.print-body td { vertical-align: top; }
-.content { font-family: ui-serif, Georgia, 'Times New Roman', serif; font-size: 13px; line-height: 1.65; color: #1a1a2e; }
-.content p { margin: 0.4em 0; }
+/* Header — NOT in thead so it only shows once */
+.first-page-header { text-align: center; margin-bottom: 10px; }
+.first-page-header img { max-width: 200px; }
+
+/* Content — inherit editor styles */
+.content {
+  font-family: ${cs.fontFamily};
+  font-size: ${cs.fontSize};
+  line-height: ${cs.lineHeight};
+  color: ${cs.color};
+  text-align: ${cs.textAlign};
+}
+.content p { margin: 0.25em 0; }
 .content ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
 .content ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
 .content li { margin: 0.2em 0; }
@@ -683,11 +692,11 @@ sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px;
 .page-break * { display: none; }
 </style></head><body>
 
-<table class="print-table">
-  ${headerImg ? '<thead class="print-header"><tr><td><img src="' + headerImg + '" /></td></tr></thead>' : ''}
+<table class="print-wrap">
   ${footerImg ? '<tfoot class="print-footer"><tr><td><img src="' + footerImg + '" /></td></tr></tfoot>' : ''}
-  <tbody class="print-body"><tr><td>
-    <div class="content">${content}</div>
+  <tbody><tr><td>
+    ${headerImg ? '<div class="first-page-header"><img src="' + headerImg + '" /></div>' : ''}
+    ${content}
   </td></tr></tbody>
 </table>
 
