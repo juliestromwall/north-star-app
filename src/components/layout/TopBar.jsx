@@ -24,9 +24,14 @@ export default function TopBar({ onMenuClick }) {
     if (!isAdmin || !currentUser?.id) return
     getGoogleStatus(currentUser.id).then(s => {
       if (!s.connected) return
-      getLabel(currentUser.id, 'INBOX').then(label => {
-        if (label?.messagesUnread) setInboxCount(label.messagesUnread)
-      }).catch(() => {})
+      // Fetch inbox + category labels to calculate Primary-only unread (like Gmail UI)
+      const labels = ['INBOX', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS']
+      Promise.all(labels.map(id => getLabel(currentUser.id, id).catch(() => null))).then(results => {
+        const inbox = results[0]
+        if (!inbox?.messagesUnread) return
+        const categoryUnread = results.slice(1).reduce((sum, l) => sum + (l?.messagesUnread || 0), 0)
+        setInboxCount(Math.max(0, inbox.messagesUnread - categoryUnread))
+      })
     }).catch(() => {})
   }, [isAdmin, currentUser?.id])
 

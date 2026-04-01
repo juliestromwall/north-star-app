@@ -642,16 +642,30 @@ export default function EmailPage() {
       const results = await Promise.allSettled(
         labelsToFetch.map(id => getLabel(userId, id))
       )
+      const labelData = {}
       results.forEach(r => {
-        if (r.status === 'fulfilled' && r.value) {
-          const l = r.value
-          if (l.id === 'INBOX') {
-            if (l.messagesUnread) counts[l.id] = l.messagesUnread
-          } else {
-            if (l.messagesTotal) counts[l.id] = l.messagesTotal
-          }
-        }
+        if (r.status === 'fulfilled' && r.value) labelData[r.value.id] = r.value
       })
+      // For categories, show unread count (matches Gmail)
+      const CATEGORY_IDS = ['CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS']
+      let categoryUnread = 0
+      for (const id of CATEGORY_IDS) {
+        const l = labelData[id]
+        if (l) {
+          if (l.messagesUnread) counts[id] = l.messagesUnread
+          categoryUnread += (l.messagesUnread || 0)
+        }
+      }
+      // Inbox: subtract category unread to get Primary-only unread (like Gmail UI)
+      const inboxLabel = labelData['INBOX']
+      if (inboxLabel?.messagesUnread) {
+        counts['INBOX'] = Math.max(0, inboxLabel.messagesUnread - categoryUnread)
+      }
+      // Other system folders: show total
+      for (const [id, l] of Object.entries(labelData)) {
+        if (id === 'INBOX' || CATEGORY_IDS.includes(id)) continue
+        if (l.messagesTotal) counts[id] = l.messagesTotal
+      }
       setLabelCounts(counts)
     }).catch(() => {})
   }, [connected, userId])
