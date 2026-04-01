@@ -33,6 +33,8 @@ import SignDocumentPage from './pages/esign/SignDocumentPage'
 import EditDocumentPage from './pages/esign/EditDocumentPage'
 import EmailPage from './pages/email/EmailPage'
 import FaxPage from './pages/fax/FaxPage'
+import SharedProfilePage from './pages/matching/SharedProfilePage'
+import JourneyDetailPage from './pages/journeys/JourneyDetailPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -61,6 +63,7 @@ export default function App() {
       <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
       <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
+      <Route path="/share/:token" element={<SharedProfilePage />} />
 
       {/* Authenticated app */}
       <Route element={<AppLayout />}>
@@ -86,6 +89,7 @@ export default function App() {
         <Route path="/babies-born" element={<BabiesBornPage />} />
         <Route path="/email" element={<EmailPage />} />
         <Route path="/fax" element={<FaxPage />} />
+        <Route path="/journeys/:id" element={<JourneyDetailPage />} />
         <Route path="/e-signature" element={<ESignaturePage />} />
         <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
         <Route path="/e-signature/:id" element={<SignDocumentPage />} />
