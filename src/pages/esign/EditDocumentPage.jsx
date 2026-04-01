@@ -650,32 +650,34 @@ export default function EditDocumentPage() {
 <style>
   @page {
     size: letter;
-    margin: 0.75in 1in 1in 1in;
-    @bottom-center {
-      content: counter(page);
-      font-family: 'Century Gothic', 'Segoe UI', sans-serif;
-      font-size: 11px;
-      color: #71717a;
-    }
+    margin: 0.75in 1in 1.2in 1in;
   }
   @page :first { margin-top: ${headerImg ? '0.3in' : '0.75in'}; }
   body { font-family: 'Century Gothic', 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a2e; margin: 0; padding: 0; }
   .header { text-align: center; margin-bottom: 16px; }
   .header img { max-width: 220px; }
-  .footer-bar { position: fixed; bottom: 0.3in; left: 1in; right: 1in; text-align: center; }
-  .footer-bar img { width: 100%; max-height: 24px; object-fit: contain; }
+  .footer-wrap { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding-bottom: 0.15in; }
+  .footer-wrap img { max-width: 6.5in; height: auto; }
+  .footer-wrap .page-num { font-size: 11px; color: #71717a; margin-top: 4px; }
   .content p { margin: 0.5em 0; text-align: justify; }
   .content ul { list-style-type: disc; padding-left: 1.5em; }
   .content ol { list-style-type: decimal; padding-left: 1.5em; }
+  .content li { margin: 0.3em 0; }
   .content table { border-collapse: collapse; width: 100%; }
   .content td, .content th { border: 1px solid #ddd; padding: 6px 10px; }
   sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
-  .page-break { page-break-after: always; height: 0; }
+  .page-break { page-break-after: always; height: 0; visibility: hidden; }
 </style></head><body>
 ${headerImg ? `<div class="header"><img src="${headerImg}" /></div>` : ''}
-${footerImg ? `<div class="footer-bar"><img src="${footerImg}" /></div>` : ''}
+${footerImg ? `<div class="footer-wrap"><img src="${footerImg}" /></div>` : ''}
 <div class="content">${html}</div>
-<script>window.onload=function(){window.print()}<\/script>
+<script>
+  // Add page numbers after render
+  window.onload = function() {
+    // CSS counters don't work in all browsers for @page, so we just print
+    window.print()
+  }
+<\/script>
 </body></html>`)
             win.document.close()
           }}>
