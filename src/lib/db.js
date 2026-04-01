@@ -752,3 +752,20 @@ export async function deleteCaseNote(noteId) {
     .eq('id', noteId)
   if (error) throw error
 }
+
+// ── Case Emails (logged Gmail messages) ─────────────────
+
+export async function fetchCaseEmails(caseId) {
+  const result = await withTimeout(
+    () => supabase.from('case_emails').select('*').eq('case_id', caseId).order('date', { ascending: false })
+  )
+  if (!result) return []
+  if (result.error) return []
+  return result.data || []
+}
+
+export async function deleteCaseEmail(id) {
+  if (!supabase) return
+  const { error } = await supabase.from('case_emails').delete().eq('id', id)
+  if (error) throw error
+}

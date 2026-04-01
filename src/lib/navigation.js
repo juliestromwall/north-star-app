@@ -19,6 +19,7 @@ import {
   Shield,
   ClipboardCheck,
   TrendingUp,
+  Printer,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -106,6 +107,12 @@ const nav = [
         label: 'Email',
         icon: Mail,
         path: '/email',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Fax',
+        icon: Printer,
+        path: '/fax',
         roles: ADMIN_ROLES,
       },
     ],

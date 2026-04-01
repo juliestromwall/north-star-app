@@ -43,9 +43,12 @@
 | IntakeSubmissionsPage | src/pages/intake/IntakeSubmissionsPage.jsx | Admin intake review with live Supabase data |
 | MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics with source breakdown |
 | MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board |
-| CalendarPage | src/pages/calendar/CalendarPage.jsx | Monthly calendar view |
+| CalendarPage | src/pages/calendar/CalendarPage.jsx | Google Calendar integration: view/create/edit/delete events, multi-calendar support, case-linked events |
+| EmailPage | src/pages/email/EmailPage.jsx | Gmail integration: inbox, read, compose/send with attachments, search, log to case |
+| FaxPage | src/pages/fax/FaxPage.jsx | SRFax integration: send fax with file upload, inbox/outbox, download received faxes, cover pages |
+| CaseEmailsTab | src/components/shared/CaseEmailsTab.jsx | Reusable tab showing logged emails for a case (used in surrogate & IP detail pages) |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
-| SettingsPage | src/pages/SettingsPage.jsx | Admin notes management |
+| SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
 
 ## Bot Protection
 
@@ -82,6 +85,8 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Case notes | case_notes | Live |
 | Case documents | case_documents + case-documents bucket | Live |
 | Auth | auth.users | Live |
+| Google OAuth tokens | google_tokens | Live |
+| Logged emails | case_emails | Live |
 
 ## External Integrations
 
@@ -93,11 +98,16 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Supabase Auth | Live |
 | Supabase Storage | Live (profile-photos, case-documents) |
 | Twilio SMS | Trial (send/receive via Cloudflare Pages Functions) |
+| Google OAuth2 | Live (Gmail + Calendar scopes, token storage in Supabase) |
+| Gmail API | Live (inbox, send with attachments, log to case) |
+| Google Calendar API | Live (view/create/edit/delete events, multi-calendar) |
+| SRFax API | Ready (send/receive/retrieve, awaiting credentials) |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-03-31 | Google OAuth integration (Gmail + Calendar scopes, token storage, connect/disconnect in Settings). Email page (/email) with Gmail inbox, read, compose/send with attachments, search, log-to-case. Calendar page rebuilt with Google Calendar API (multi-calendar, create/edit/delete events). Fax page (/fax) with SRFax API (send with cover pages, inbox/outbox, download). Emails tab on surrogate & IP detail pages. Case emails Supabase table. Fax nav link added. |
 | 2026-03-30 | Babies Born page (/babies-born) with line chart, editable year data. Profile photo avatars on list/detail/topbar. Supabase migration for all localStorage stores (app_config table). Medical records: type badges, custom labels, deactivate-as-status, add records, dashboard popup fixes. Stage Statuses in admin settings with CRUD. Admin profile upsert fix. Number-driven pregnancy editing. |
 | 2026-03-27 | IP Profile tab: 5-section profile builder (Fertility, Surrogacy, Personal, Health, Personal History) with collapsible cards, per-person IP1/IP2 tabs for couples, edit/save per section, completion progress bar. Data stored in answers._ipProfile via updateIntakeSubmission. |
 | 2026-03-28 | Configurable checklists & milestones (Settings UI, per-stage, GC/IP/Journey tabs). Twilio SMS integration (send/receive, text messages page, case thread, unread tracking). Admin profile editor: rich forms, add/remove arrays, field visibility toggles (_hiddenFields). Team management in Settings. Real admin staff names. Medical records: IVF count fix, N/A toggle. Milestone timeline on overview tab. |

@@ -33,7 +33,8 @@ import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon } from 'lucide-react'
+import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -921,6 +922,7 @@ export default function SurrogateDetailPage() {
               )}
             </span>
           </TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -1037,6 +1039,11 @@ export default function SurrogateDetailPage() {
         {/* Texts Tab */}
         <TabsContent value="texts" className="mt-4">
           <CaseTextsTab phone={surrogate.phone} caseName={surrogate.name} />
+        </TabsContent>
+
+        {/* Emails Tab */}
+        <TabsContent value="emails" className="mt-4">
+          <CaseEmailsTab caseId={surrogate.id} />
         </TabsContent>
 
         {/* Notes Tab */}

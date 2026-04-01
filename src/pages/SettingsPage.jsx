@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { Navigate } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
@@ -22,8 +22,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { mockUsers } from '@/data/mock/users'
+import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
 
@@ -923,6 +924,138 @@ function StageStatusesSection() {
 
 // ── Main Settings Page ──────────────────────────────────────
 
+// ── Google Integration Section ──────────────────────────────
+
+function GoogleIntegrationSection() {
+  const { currentUser } = useRole()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [status, setStatus] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [disconnecting, setDisconnecting] = useState(false)
+  const [flash, setFlash] = useState(null) // 'success' | 'denied' | 'error'
+
+  useEffect(() => {
+    // Check for OAuth callback result in URL
+    const googleParam = searchParams.get('google')
+    if (googleParam) {
+      setFlash(googleParam)
+      searchParams.delete('google')
+      setSearchParams(searchParams, { replace: true })
+      // Auto-dismiss flash after 5s
+      setTimeout(() => setFlash(null), 5000)
+    }
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
+    if (!currentUser?.id) return
+    setLoading(true)
+    getGoogleStatus(currentUser.id)
+      .then(setStatus)
+      .catch(() => setStatus({ connected: false }))
+      .finally(() => setLoading(false))
+  }, [currentUser?.id, flash])
+
+  const handleConnect = () => {
+    if (!currentUser?.id) return
+    connectGoogle(currentUser.id)
+  }
+
+  const handleDisconnect = async () => {
+    if (!currentUser?.id) return
+    setDisconnecting(true)
+    try {
+      await disconnectGoogle(currentUser.id)
+      setStatus({ connected: false })
+    } catch {}
+    setDisconnecting(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold font-heading flex items-center gap-2">
+        <Mail className="size-5" />
+        Google Integration
+      </h2>
+      <p className="text-sm text-muted-foreground">
+        Connect your Google account to enable Gmail and Google Calendar features.
+      </p>
+
+      {flash === 'success' && (
+        <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <CheckCircle2 className="size-4" />
+          Google account connected successfully!
+        </div>
+      )}
+      {flash === 'denied' && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <XCircle className="size-4" />
+          Google authorization was cancelled.
+        </div>
+      )}
+      {flash === 'error' && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <XCircle className="size-4" />
+          Something went wrong connecting Google. Please try again.
+        </div>
+      )}
+
+      <Card>
+        <CardContent className="pt-6">
+          {loading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+              <Loader2 className="size-4 animate-spin" />
+              Checking connection...
+            </div>
+          ) : status?.connected ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle2 className="size-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Connected</p>
+                  <p className="text-sm text-muted-foreground">{status.google_email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Mail className="size-3.5" /> Gmail
+                  <Calendar className="size-3.5 ml-2" /> Calendar
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="text-destructive hover:text-destructive"
+                >
+                  {disconnecting ? <Loader2 className="size-4 animate-spin" /> : <Unplug className="size-4" />}
+                  Disconnect
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-muted flex items-center justify-center">
+                  <Mail className="size-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Not connected</p>
+                  <p className="text-sm text-muted-foreground">Sign in with Google to enable email and calendar</p>
+                </div>
+              </div>
+              <Button onClick={handleConnect}>
+                Connect Google Account
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { currentRole, isMasterAdmin } = useRole()
 
@@ -936,6 +1069,8 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Manage team, statuses, checklists, and app configuration"
       />
+      <GoogleIntegrationSection />
+      <div className="border-t border-stone-200" />
       <AdminNotesSection />
       <div className="border-t border-stone-200" />
       <UserManagementSection />

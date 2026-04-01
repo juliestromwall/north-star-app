@@ -20,6 +20,7 @@ import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
+import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
@@ -258,6 +259,7 @@ export default function IPDetailPage() {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
@@ -341,6 +343,11 @@ export default function IPDetailPage() {
         {/* Texts Tab */}
         <TabsContent value="texts" className="space-y-6 mt-4">
           <EmptyState title="Text Messages" description="SMS messaging for intended parents coming soon." />
+        </TabsContent>
+
+        {/* Emails Tab */}
+        <TabsContent value="emails" className="space-y-6 mt-4">
+          <CaseEmailsTab caseId={ip?.id} />
         </TabsContent>
 
         {/* Notes Tab */}

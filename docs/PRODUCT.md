@@ -115,16 +115,17 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Marketing Dashboard | /marketing | marketing+ | Built |
 | Matching | /matching | admin+ | Built (Kanban pipeline) |
 | Matched Journeys | /journeys | admin+ | Built (dashboard, tile/list, stage filters) |
-| Calendar | /calendar | admin+ | Built |
+| Calendar | /calendar | admin+ | Built (Google Calendar API, multi-calendar, create/edit/delete) |
 | Time Clock | /time-clock | admin+ | Built |
 | Text Messages | /text-messages | admin+ | Built (Twilio SMS, read/unread, case matching) |
 | Babies Born | /babies-born | admin+ | Built (yearly births, line chart, editable) |
-| Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists) |
+| Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists, Google connect) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
 | E-Signature | /e-signature | admin+ | Stub |
 | Messages | /messages | all | Stub |
-| Email | /email | admin+ | Stub |
+| Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
+| Fax | /fax | admin+ | Built (SRFax API, send/inbox/outbox, awaiting credentials) |
 | HR Management | /hr | master_admin+ | Stub |
 | Payroll | /payroll | master_admin+ | Stub |
 

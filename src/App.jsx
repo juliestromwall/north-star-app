@@ -30,12 +30,13 @@ import TextMessagesPage from './pages/messages/TextMessagesPage'
 import BabiesBornPage from './pages/babies/BabiesBornPage'
 import ESignaturePage from './pages/esign/ESignaturePage'
 import SignDocumentPage from './pages/esign/SignDocumentPage'
+import EmailPage from './pages/email/EmailPage'
+import FaxPage from './pages/fax/FaxPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
   { path: '/documents', title: 'Documents' },
   { path: '/messages', title: 'Messages' },
-  { path: '/email', title: 'Email' },
   { path: '/hr', title: 'HR Management' },
   { path: '/payroll', title: 'Payroll' },
   { path: '/financials', title: 'Financials' },
@@ -82,6 +83,8 @@ export default function App() {
         <Route path="/my-profile" element={<SurrogateProfilePage />} />
         <Route path="/text-messages" element={<TextMessagesPage />} />
         <Route path="/babies-born" element={<BabiesBornPage />} />
+        <Route path="/email" element={<EmailPage />} />
+        <Route path="/fax" element={<FaxPage />} />
         <Route path="/e-signature" element={<ESignaturePage />} />
         <Route path="/e-signature/:id" element={<SignDocumentPage />} />
         {stubs.map(s => (
