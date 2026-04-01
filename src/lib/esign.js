@@ -30,6 +30,54 @@ export async function uploadTemplate(file, metadata) {
   return data
 }
 
+/** Create a blank template (no file upload) */
+export async function createBlankTemplate(metadata) {
+  if (!supabase) return null
+  // Create a blank HTML file
+  const blankHtml = '<p></p>'
+  const blob = new Blob([blankHtml], { type: 'text/html' })
+  const path = `templates/${Date.now()}_blank.html`
+  await supabase.storage.from(BUCKET).upload(path, blob, { cacheControl: '3600', upsert: false })
+
+  const { data, error } = await supabase
+    .from('esign_templates')
+    .insert({
+      name: metadata.name || 'Untitled Template',
+      category: metadata.category || 'General',
+      description: metadata.description || '',
+      file_path: path,
+      file_name: `${Date.now()}_blank.html`,
+      file_size: blob.size,
+      created_by: metadata.createdBy || '',
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+/** Upload letterhead image and store URL in app_config */
+export async function uploadLetterhead(file) {
+  if (!supabase) return null
+  const path = `letterhead/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: true })
+  if (uploadError) throw uploadError
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
+  // Store in app_config
+  const { setAppConfig } = await import('./db')
+  await setAppConfig('esign_letterhead', { url: urlData.publicUrl, path })
+  return urlData.publicUrl
+}
+
+/** Get letterhead URL from app_config */
+export async function getLetterhead() {
+  const { getAppConfig } = await import('./db')
+  const config = await getAppConfig('esign_letterhead')
+  return config?.url || null
+}
+
 export async function fetchTemplates() {
   if (!supabase) return []
   const { data, error } = await supabase

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Upload, FileText, Send, Eye, Trash2, Plus, Search, Clock, CheckCircle2,
   XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download, Pencil,
@@ -18,6 +18,7 @@ import { useRole } from '@/context/RoleContext'
 import {
   uploadTemplate, fetchTemplates, deleteTemplate, getTemplateFileUrl,
   createDocument, sendDocument, fetchDocuments, voidDocument, fetchAuditLog,
+  createBlankTemplate, uploadLetterhead, getLetterhead,
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 
@@ -44,11 +45,15 @@ function StatusBadge({ status }) {
 // ── Templates Tab ───────────────────────────────────────
 function TemplatesTab() {
   const { currentUser } = useRole()
+  const navigate = useNavigate()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadForm, setUploadForm] = useState({ name: '', category: 'General', description: '' })
   const [showUpload, setShowUpload] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const [createForm, setCreateForm] = useState({ name: '', category: 'General', description: '' })
+  const [creating, setCreating] = useState(false)
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState('all')
   const fileRef = useRef(null)
@@ -58,10 +63,45 @@ function TemplatesTab() {
   const [renameTarget, setRenameTarget] = useState(null)
   const [renameForm, setRenameForm] = useState({ name: '', category: '', description: '' })
   const [renameSaving, setRenameSaving] = useState(false)
+  // Letterhead
+  const [letterheadUrl, setLetterheadUrl] = useState(null)
+  const [uploadingLetterhead, setUploadingLetterhead] = useState(false)
+  const letterheadRef = useRef(null)
 
   useEffect(() => {
     fetchTemplates().then(setTemplates).catch(() => {}).finally(() => setLoading(false))
+    getLetterhead().then(url => { if (url) setLetterheadUrl(url) }).catch(() => {})
   }, [])
+
+  async function handleCreate() {
+    if (!createForm.name) return
+    setCreating(true)
+    try {
+      const newTemplate = await createBlankTemplate({
+        name: createForm.name,
+        category: createForm.category,
+        description: createForm.description,
+        createdBy: currentUser.name,
+      })
+      setShowCreate(false)
+      setCreateForm({ name: '', category: 'General', description: '' })
+      navigate(`/e-signature/edit/${newTemplate.id}`)
+    } catch (err) {
+      alert('Failed to create: ' + (err.message || 'Unknown error'))
+    } finally { setCreating(false) }
+  }
+
+  async function handleLetterheadUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingLetterhead(true)
+    try {
+      const url = await uploadLetterhead(file)
+      setLetterheadUrl(url)
+    } catch (err) {
+      alert('Failed to upload letterhead: ' + (err.message || 'Unknown error'))
+    } finally { setUploadingLetterhead(false) }
+  }
 
   async function handleUpload() {
     if (!selectedFile || !uploadForm.name) return
@@ -130,8 +170,11 @@ function TemplatesTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="Search templates..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Button className="gap-1.5" onClick={() => setShowUpload(true)}>
-          <Upload className="size-4" /> Upload Template
+        <Button variant="outline" className="gap-1.5" onClick={() => setShowUpload(true)}>
+          <Upload className="size-4" /> Upload
+        </Button>
+        <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowCreate(true)}>
+          <Plus className="size-4" /> Create Template
         </Button>
       </div>
 
@@ -317,6 +360,58 @@ function TemplatesTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Create Template Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Template Name *</Label>
+              <Input value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Agency Agreement - GC" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tag / Category</Label>
+              <SelectUI value={createForm.category} onValueChange={v => setCreateForm(f => ({ ...f, category: v }))}>
+                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  {TEMPLATE_CATEGORIES.map(c => <SelectItemUI key={c} value={c}>{c}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Description</Label>
+              <Input value={createForm.description} onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description..." />
+            </div>
+            <Button onClick={handleCreate} disabled={creating || !createForm.name} className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {creating ? 'Creating...' : 'Create & Open Editor'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Letterhead Section */}
+      <div className="border-t pt-4 mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold">Company Letterhead</h3>
+            <p className="text-xs text-muted-foreground">Appears on the first page of all templates</p>
+          </div>
+          <div>
+            <input type="file" ref={letterheadRef} accept="image/*" hidden onChange={handleLetterheadUpload} />
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => letterheadRef.current?.click()} disabled={uploadingLetterhead}>
+              <Upload className="size-3.5" /> {uploadingLetterhead ? 'Uploading...' : letterheadUrl ? 'Replace' : 'Upload Letterhead'}
+            </Button>
+          </div>
+        </div>
+        {letterheadUrl && (
+          <div className="rounded-lg border bg-white p-4">
+            <img src={letterheadUrl} alt="Company Letterhead" className="max-h-24 w-auto" />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

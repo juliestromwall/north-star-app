@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate } from '@/lib/esign'
+import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate, getLetterhead } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { SignField, FIELD_TYPES, FIELD_ROLES } from '@/lib/signFieldExtension'
 
@@ -125,10 +125,9 @@ function PageMarkers({ editor }) {
 
   useEffect(() => {
     if (!editor) return
-    const PAGE_HEIGHT_PX = 11 * 96 // 11in at 96dpi = 1056px
+    const PAGE_HEIGHT_PX = 11 * 96
 
     const update = () => {
-      // Find the ProseMirror element
       const el = editor.view.dom
       if (!el) return
       const height = el.scrollHeight
@@ -137,7 +136,6 @@ function PageMarkers({ editor }) {
 
     update()
     editor.on('update', update)
-    // Also check on resize
     const observer = new ResizeObserver(update)
     if (editor.view.dom) observer.observe(editor.view.dom)
 
@@ -147,23 +145,32 @@ function PageMarkers({ editor }) {
     }
   }, [editor])
 
-  if (pageCount <= 1) return null
-
   const PAGE_HEIGHT_PX = 11 * 96
 
   return (
-    <div className="absolute left-0 top-0 w-full pointer-events-none" style={{ zIndex: 5 }}>
+    <div className="absolute left-0 top-0 w-full pointer-events-none" style={{ zIndex: 5, width: '8.5in', left: '50%', transform: 'translateX(-50%)' }}>
+      {/* Page break lines between pages */}
       {Array.from({ length: pageCount - 1 }, (_, i) => (
         <div
-          key={i}
+          key={`break-${i}`}
           className="absolute left-0 right-0 flex items-center justify-center"
-          style={{ top: (i + 1) * PAGE_HEIGHT_PX + 24 }} // +24 for scroll padding
+          style={{ top: (i + 1) * PAGE_HEIGHT_PX }}
         >
           <div className="w-full border-t-2 border-dashed border-stone-400/40 relative">
             <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-stone-400/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
               Page {i + 1} / {pageCount}
             </span>
           </div>
+        </div>
+      ))}
+      {/* Page numbers at bottom of each page */}
+      {Array.from({ length: pageCount }, (_, i) => (
+        <div
+          key={`num-${i}`}
+          className="absolute left-0 right-0 flex justify-center"
+          style={{ top: (i + 1) * PAGE_HEIGHT_PX - 36 }}
+        >
+          <span className="text-[10px] text-stone-400 font-medium">{i + 1}</span>
         </div>
       ))}
     </div>
@@ -433,6 +440,7 @@ export default function EditDocumentPage() {
   const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
   const [preview, setPreview] = useState(false)
+  const [letterheadUrl, setLetterheadUrl] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -518,6 +526,7 @@ export default function EditDocumentPage() {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
       .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
       .catch(() => {})
+    getLetterhead().then(url => { if (url) setLetterheadUrl(url) }).catch(() => {})
   }, [templateId])
 
   function addSigner() {
@@ -717,12 +726,15 @@ export default function EditDocumentPage() {
           outline: 2px solid #283693;
           outline-offset: 2px;
         }
+        @page { margin: 0.75in 1in; @bottom-center { content: counter(page); font-size: 10px; color: #999; } }
+        @page :first { margin-top: 0.5in; }
         @media print {
-          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0.75in 1in; background-image: none; }
+          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0; background-image: none; }
           .esign-editor-scroll { background: white; padding: 0; }
-          .esign-page-markers { display: none; }
+          .esign-page-markers, .page-markers-overlay { display: none; }
           .page-break { page-break-after: always; height: 0 !important; margin: 0 !important; background: none !important; }
           .page-break span, .page-break::before, .page-break::after { display: none; }
+          .esign-letterhead-print { display: block !important; }
         }
       `}</style>
 
@@ -731,6 +743,12 @@ export default function EditDocumentPage() {
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
         <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
           <div className="esign-editor relative">
+            {/* Letterhead — first page only */}
+            {letterheadUrl && (
+              <div className="flex justify-center" style={{ width: '8.5in', margin: '0 auto', background: 'white', paddingTop: '0.5in', paddingLeft: '1in', paddingRight: '1in', borderRadius: '2px 2px 0 0', boxShadow: '0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06)' }}>
+                <img src={letterheadUrl} alt="Letterhead" style={{ maxWidth: '100%', maxHeight: '120px', objectFit: 'contain' }} />
+              </div>
+            )}
             <PageMarkers editor={editor} />
             <EditorContent editor={editor} />
           </div>
