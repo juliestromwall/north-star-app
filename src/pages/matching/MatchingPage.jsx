@@ -102,8 +102,11 @@ export default function MatchingPage() {
 
   const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
   const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
-  const filteredGCs = matchingGCs.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()))
-  const filteredIPs = ips.filter(i => !search || (i.names || '').toLowerCase().includes(search.toLowerCase()))
+  // Hide already-matched cases from the pipeline
+  const unmatchedGCs = matchingGCs.filter(s => !matchedGcIds.has(s.id))
+  const unmatchedIPs = ips.filter(i => !matchedIpIds.has(i.id))
+  const filteredGCs = unmatchedGCs.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()))
+  const filteredIPs = unmatchedIPs.filter(i => !search || (i.names || '').toLowerCase().includes(search.toLowerCase()))
 
   async function handleCreateMatch() {
     if (!createForm.gcId || !createForm.ipId) return
@@ -129,23 +132,19 @@ export default function MatchingPage() {
     <div className="space-y-6">
       <PageHeader
         title="Matching Pipeline"
-        subtitle={`${matchingGCs.length} surrogates ready · ${ips.length} intended parents · ${journeys.length} matched`}
+        subtitle={`${unmatchedGCs.length} surrogates ready · ${unmatchedIPs.length} intended parents`}
         actions={<Button className="gap-1.5" onClick={() => setShowCreate(true)}><Plus className="size-4" /> Create Match</Button>}
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Card className="rounded-2xl"><CardContent className="p-4 flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-pink-100 flex items-center justify-center"><Heart className="size-5 text-pink-600" /></div>
-          <div><p className="text-2xl font-bold">{journeys.length}</p><p className="text-xs text-stone-500">Matched Journeys</p></div>
+          <div className="size-10 rounded-xl bg-pink-100 flex items-center justify-center"><Users className="size-5 text-pink-600" /></div>
+          <div><p className="text-2xl font-bold">{unmatchedGCs.length}</p><p className="text-xs text-stone-500">GCs Ready to Match</p></div>
         </CardContent></Card>
         <Card className="rounded-2xl"><CardContent className="p-4 flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-emerald-100 flex items-center justify-center"><Users className="size-5 text-emerald-600" /></div>
-          <div><p className="text-2xl font-bold">{matchingGCs.length}</p><p className="text-xs text-stone-500">GCs Ready to Match</p></div>
-        </CardContent></Card>
-        <Card className="rounded-2xl"><CardContent className="p-4 flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-sky-100 flex items-center justify-center"><Baby className="size-5 text-sky-600" /></div>
-          <div><p className="text-2xl font-bold">{ips.length}</p><p className="text-xs text-stone-500">Intended Parents</p></div>
+          <div className="size-10 rounded-xl bg-purple-100 flex items-center justify-center"><Baby className="size-5 text-purple-600" /></div>
+          <div><p className="text-2xl font-bold">{unmatchedIPs.length}</p><p className="text-xs text-stone-500">Intended Parents</p></div>
         </CardContent></Card>
       </div>
 
@@ -153,44 +152,6 @@ export default function MatchingPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search surrogates or intended parents..." className="pl-9" />
       </div>
-
-      {/* Matched Journeys */}
-      {journeys.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-3">Matched Journeys</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {journeys.map(j => {
-              const gc = surrogates.find(s => s.id === j.gc_case_id)
-              const ip = ips.find(i => i.id === j.ip_case_id)
-              return (
-                <Link key={j.id} to={`/journeys/${j.id}`}>
-                  <Card className="rounded-2xl hover:shadow-md transition-shadow cursor-pointer group">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Heart className="size-4 text-pink-500" />
-                        <span className="text-xs font-medium text-stone-500">{j.stage?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} · {j.status}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-pink-100 text-pink-700">GC</span>
-                            <span className="text-sm font-semibold truncate">{gc?.name || '—'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-sky-100 text-sky-700">IP</span>
-                            <span className="text-sm font-semibold truncate">{ip?.names || '—'}</span>
-                          </div>
-                        </div>
-                        <ArrowRight className="size-4 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Surrogates in Matching */}
       <div>
@@ -223,8 +184,7 @@ export default function MatchingPage() {
                           <span className="text-[10px] text-stone-400">{timeAgo(gc.submittedAt)}</span>
                         </div>
                       </div>
-                      {matchedGcIds.has(gc.id) && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MATCHED</span>}
-                    </div>
+                      </div>
 
                     {/* Stats: Age, Height, BMI */}
                     <div className="grid grid-cols-3 gap-2">
@@ -336,7 +296,6 @@ export default function MatchingPage() {
                       <p className="text-xs text-stone-500">{ip.type}{ip.location ? ` · ${ip.location}` : ''}</p>
                       {ip.reDoctorName && <p className="text-xs text-stone-400 flex items-center gap-1"><Stethoscope className="size-3" />{ip.reDoctorName}</p>}
                     </div>
-                    {matchedIpIds.has(ip.id) && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">MATCHED</span>}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" className="gap-1 text-xs flex-1" style={{ backgroundColor: '#283693', color: '#fff' }}
