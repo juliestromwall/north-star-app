@@ -18,7 +18,7 @@ import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Undo2, Redo2, Send, Loader2, Save, FileText, Eye,
   Plus, Trash2, PenLine, User, Calendar, Hash, CheckSquare, Type, ChevronDown,
-  ImageIcon, SeparatorHorizontal, Printer,
+  ImageIcon, SeparatorHorizontal, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -453,6 +453,7 @@ export default function EditDocumentPage() {
   const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
   const [preview, setPreview] = useState(false)
+  const [generatingPdf, setGeneratingPdf] = useState(false)
   const [letterhead, setLetterhead] = useState({ header: null, footer: null })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -639,75 +640,130 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5" onClick={() => {
-            const editorEl = editor?.view?.dom
-            if (!editorEl) return
-            // Clone the full outerHTML to preserve all inline styles, attributes, and structure
-            const clone = editorEl.cloneNode(true)
-            // Remove any ProseMirror-specific classes/attributes but keep content
-            clone.removeAttribute('contenteditable')
-            clone.removeAttribute('role')
-            clone.className = 'content'
-            const content = clone.outerHTML
-            const headerImg = letterhead.header || ''
-            const footerImg = letterhead.footer || ''
-            const cs = window.getComputedStyle(editorEl)
-            const win = window.open('', '_blank')
-            win.document.write(`<!DOCTYPE html><html><head>
-<title>${docTitle || 'Document'}</title>
-<style>
-@page { size: letter; margin: 0.6in 0.75in 0.6in 0.75in; }
-* { box-sizing: border-box; }
-body { margin: 0; padding: 0; }
-
-/* Footer repeats via tfoot */
-.print-wrap { width: 100%; border-collapse: collapse; }
-.print-wrap td { padding: 0; border: none; }
-.print-footer td { text-align: center; padding-top: 8px; vertical-align: bottom; }
-.print-footer img { width: 100%; max-width: 500px; height: auto; }
-
-/* Header — NOT in thead so it only shows once */
-.first-page-header { text-align: center; margin-bottom: 10px; }
-.first-page-header img { max-width: 200px; }
-
-/* Content — inherit editor styles */
-.content {
-  font-family: ${cs.fontFamily};
-  font-size: ${cs.fontSize};
-  line-height: ${cs.lineHeight};
-  color: ${cs.color};
-  text-align: ${cs.textAlign};
-}
-.content p { margin: 0.25em 0; }
-.content ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
-.content ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
-.content li { margin: 0.2em 0; }
-.content li p { margin: 0; }
-.content img { max-width: 100%; height: auto; }
-.content table { border-collapse: collapse; width: 100%; }
-.content td, .content th { border: 1px solid #ddd; padding: 6px 10px; }
-.content mark { border-radius: 2px; padding: 1px 2px; }
-sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
-.page-break { page-break-after: always; height: 0; overflow: hidden; margin: 0; padding: 0; border: none; }
-.page-break * { display: none; }
-</style></head><body>
-
-<table class="print-wrap">
-  ${footerImg ? '<tfoot class="print-footer"><tr><td><img src="' + footerImg + '" /></td></tr></tfoot>' : ''}
-  <tbody><tr><td>
-    ${headerImg ? '<div class="first-page-header"><img src="' + headerImg + '" /></div>' : ''}
-    ${content}
-  </td></tr></tbody>
-</table>
-
-<script>setTimeout(function(){window.print()},400)<\/script>
-</body></html>`)
-            win.document.close()
-          }}>
-            <Printer className="size-4" /> Print Preview
-          </Button>
           <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
             <Eye className="size-4" /> {preview ? 'Edit' : 'Preview'}
+          </Button>
+          <Button variant="outline" className="gap-1.5" disabled={generatingPdf} onClick={async () => {
+            const editorEl = editor?.view?.dom
+            if (!editorEl) return
+            setGeneratingPdf(true)
+            try {
+              const html2canvas = (await import('html2canvas')).default
+              const { jsPDF } = await import('jspdf')
+
+              // Letter size in points: 612 x 792
+              const pageW = 612
+              const pageH = 792
+              const margin = 54 // 0.75in in points
+              const contentW = pageW - margin * 2
+              const contentH = pageH - margin * 2
+              const footerH = letterhead.footer ? 24 : 0
+              const usableH = contentH - footerH - 16 // space for footer + page number
+
+              // Capture the editor content
+              const canvas = await html2canvas(editorEl, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                width: editorEl.scrollWidth,
+                height: editorEl.scrollHeight,
+                windowWidth: editorEl.scrollWidth,
+                windowHeight: editorEl.scrollHeight,
+              })
+
+              const imgData = canvas.toDataURL('image/jpeg', 0.92)
+              const imgW = canvas.width
+              const imgH = canvas.height
+
+              // Scale: fit the editor width to the PDF content width
+              const scale = contentW / (imgW / 2) // /2 because scale:2
+              const scaledH = (imgH / 2) * scale
+              const totalPages = Math.ceil(scaledH / usableH)
+
+              const pdf = new jsPDF({ unit: 'pt', format: 'letter' })
+
+              // Load footer image if available
+              let footerImgData = null
+              if (letterhead.footer) {
+                try {
+                  const fCanvas = document.createElement('canvas')
+                  const fImg = new Image()
+                  fImg.crossOrigin = 'anonymous'
+                  await new Promise((res, rej) => { fImg.onload = res; fImg.onerror = rej; fImg.src = letterhead.footer })
+                  fCanvas.width = fImg.naturalWidth
+                  fCanvas.height = fImg.naturalHeight
+                  fCanvas.getContext('2d').drawImage(fImg, 0, 0)
+                  footerImgData = fCanvas.toDataURL('image/png')
+                } catch {}
+              }
+
+              // Load header image if available
+              let headerImgData = null
+              if (letterhead.header) {
+                try {
+                  const hCanvas = document.createElement('canvas')
+                  const hImg = new Image()
+                  hImg.crossOrigin = 'anonymous'
+                  await new Promise((res, rej) => { hImg.onload = res; hImg.onerror = rej; hImg.src = letterhead.header })
+                  hCanvas.width = hImg.naturalWidth
+                  hCanvas.height = hImg.naturalHeight
+                  hCanvas.getContext('2d').drawImage(hImg, 0, 0)
+                  headerImgData = hCanvas.toDataURL('image/png')
+                } catch {}
+              }
+
+              for (let page = 0; page < totalPages; page++) {
+                if (page > 0) pdf.addPage()
+
+                const srcY = page * (usableH / scale) * 2 // source Y in canvas pixels
+                const srcH = Math.min((usableH / scale) * 2, imgH - srcY)
+                if (srcH <= 0) break
+
+                // Create a slice of the canvas for this page
+                const sliceCanvas = document.createElement('canvas')
+                sliceCanvas.width = imgW
+                sliceCanvas.height = srcH
+                sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH)
+                const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.92)
+
+                let yOffset = margin
+
+                // Header on page 1 only
+                if (page === 0 && headerImgData) {
+                  const hAspect = 200 / 73 // approximate aspect ratio
+                  const hW = 150
+                  const hH = hW / hAspect
+                  pdf.addImage(headerImgData, 'PNG', (pageW - hW) / 2, margin - 10, hW, hH)
+                  yOffset = margin + hH + 8
+                }
+
+                // Content slice
+                const sliceDisplayH = (srcH / 2) * scale
+                pdf.addImage(sliceData, 'JPEG', margin, yOffset, contentW, sliceDisplayH)
+
+                // Footer on every page
+                if (footerImgData) {
+                  const fW = contentW * 0.8
+                  const fH = 16
+                  pdf.addImage(footerImgData, 'PNG', (pageW - fW) / 2, pageH - margin - footerH + 2, fW, fH)
+                }
+
+                // Page number
+                pdf.setFontSize(9)
+                pdf.setTextColor(113, 113, 122)
+                pdf.text(String(page + 1), pageW / 2, pageH - margin + 8, { align: 'center' })
+              }
+
+              pdf.save((docTitle || 'document') + '.pdf')
+            } catch (err) {
+              alert('PDF generation failed: ' + err.message)
+              console.error(err)
+            }
+            setGeneratingPdf(false)
+          }}>
+            {generatingPdf ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            {generatingPdf ? 'Generating...' : 'Download PDF'}
           </Button>
           <Button variant="outline" className="gap-1.5" onClick={handleSaveTemplate} disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
