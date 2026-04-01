@@ -48,6 +48,28 @@ const DOT_COLORS = {
   default: 'bg-blue-500',
 }
 
+// Calendar background colors (Google uses hex)
+const CALENDAR_COLORS = [
+  '#4285f4', '#7cb342', '#8e24aa', '#e67c73', '#f6bf26',
+  '#f4511e', '#039be5', '#616161', '#3f51b5', '#0b8043', '#d50000',
+]
+
+function getCalendarColor(index) {
+  return CALENDAR_COLORS[index % CALENDAR_COLORS.length]
+}
+
+function getCalendarEventStyle(event, calendars) {
+  const cal = calendars.find(c => c.id === event._calendarId)
+  const bgColor = cal?.backgroundColor || getCalendarColor(calendars.indexOf(cal))
+  if (!bgColor) return {}
+  return { backgroundColor: bgColor + '20', color: bgColor, borderColor: bgColor + '40' }
+}
+
+function getCalendarDotColor(event, calendars) {
+  const cal = calendars.find(c => c.id === event._calendarId)
+  return cal?.backgroundColor || getCalendarColor(calendars.indexOf(cal)) || '#4285f4'
+}
+
 function getDaysInMonth(year, month) {
   return new Date(year, month + 1, 0).getDate()
 }
@@ -257,6 +279,17 @@ export default function CalendarPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editEvent, setEditEvent] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [visibleCalendars, setVisibleCalendars] = useState(new Set())
+  const [view, setView] = useState('month') // 'month' | 'week'
+
+  function toggleCalendar(calId) {
+    setVisibleCalendars(prev => {
+      const next = new Set(prev)
+      if (next.has(calId)) next.delete(calId)
+      else next.add(calId)
+      return next
+    })
+  }
 
   // Check connection
   useEffect(() => {
@@ -270,7 +303,11 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!connected || !userId) return
     listCalendars(userId)
-      .then(cals => setCalendars(cals.filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')))
+      .then(cals => {
+        const writable = cals.filter(c => c.accessRole === 'owner' || c.accessRole === 'writer' || c.accessRole === 'reader')
+        setCalendars(writable)
+        setVisibleCalendars(new Set(writable.map(c => c.id)))
+      })
       .catch(() => {})
   }, [connected, userId])
 
@@ -337,19 +374,24 @@ export default function CalendarPage() {
     return cells
   }, [currentYear, currentMonth])
 
+  const filteredEvents = useMemo(() => {
+    if (visibleCalendars.size === 0) return events
+    return events.filter(ev => visibleCalendars.has(ev._calendarId))
+  }, [events, visibleCalendars])
+
   const eventsByDate = useMemo(() => {
     const map = {}
-    events.forEach(ev => {
+    filteredEvents.forEach(ev => {
       const key = getEventDateKey(ev)
       if (!map[key]) map[key] = []
       map[key].push(ev)
     })
     return map
-  }, [events])
+  }, [filteredEvents])
 
   const upcomingEvents = useMemo(() => {
     const now = new Date()
-    return events
+    return filteredEvents
       .filter(ev => {
         const d = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date + 'T23:59:59') : null
         return d && d >= now
@@ -438,9 +480,80 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex gap-6">
+        {/* Left Sidebar — My Calendars */}
+        <div className="w-56 shrink-0 space-y-4 hidden lg:block">
+          {/* Today button */}
+          <Button variant="outline" size="sm" className="w-full" onClick={() => { setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear()) }}>
+            Today
+          </Button>
+
+          {/* My Calendars */}
+          {calendars.length > 0 && (
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">My Calendars</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {calendars.map((cal, idx) => {
+                  const color = cal.backgroundColor || getCalendarColor(idx)
+                  const isVisible = visibleCalendars.has(cal.id)
+                  return (
+                    <label key={cal.id} className="flex items-center gap-2.5 py-1 cursor-pointer group">
+                      <div
+                        className={`w-3.5 h-3.5 rounded-sm border-2 flex items-center justify-center transition-colors ${isVisible ? '' : 'opacity-30'}`}
+                        style={{ borderColor: color, backgroundColor: isVisible ? color : 'transparent' }}
+                        onClick={() => toggleCalendar(cal.id)}
+                      >
+                        {isVisible && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                      </div>
+                      <span className={`text-xs truncate group-hover:text-foreground transition-colors ${isVisible ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {cal.summary || 'Calendar'}
+                      </span>
+                    </label>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Upcoming */}
+          <Card className="rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Upcoming</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {upcomingEvents.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No upcoming events.</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {upcomingEvents.map(ev => {
+                    const dotColor = getCalendarDotColor(ev, calendars)
+                    return (
+                      <button key={ev.id} onClick={() => setSelectedEvent(ev)}
+                        className="flex items-start gap-2 w-full text-left group cursor-pointer">
+                        <div className="size-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: dotColor }} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate group-hover:text-abc-indigo transition-colors">
+                            {ev.summary || '(No title)'}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {ev.start?.dateTime ? formatEventTime(ev) : 'All day'}
+                            {ev.start?.date && ` · ${new Date(ev.start.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                            {ev.start?.dateTime && ` · ${new Date(ev.start.dateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Calendar Grid */}
-        <Card className="lg:col-span-2">
+        <Card className="flex-1 rounded-2xl">
           <CardContent>
             <div className="grid grid-cols-7 mb-1">
               {DAY_NAMES.map(d => (
@@ -457,32 +570,33 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={i}
-                    className={`border-r border-b min-h-[90px] p-1 ${cell.inMonth ? 'bg-card' : 'bg-muted/30'}`}
+                    className={`border-r border-b min-h-[100px] p-1 ${cell.inMonth ? 'bg-card' : 'bg-muted/30'}`}
                   >
                     <div className={`text-xs font-medium mb-0.5 px-1 ${
                       todayHighlight
-                        ? 'inline-flex items-center justify-center size-6 rounded-full bg-abc-indigo text-white'
+                        ? 'inline-flex items-center justify-center size-6 rounded-full bg-[#4285f4] text-white'
                         : cell.inMonth ? 'text-foreground' : 'text-muted-foreground/50'
                     }`}>
                       {cell.day}
                     </div>
                     <div className="space-y-0.5">
                       {dayEvents.slice(0, MAX_VISIBLE_EVENTS).map(ev => {
-                        const colorClass = EVENT_COLORS[ev.colorId] || EVENT_COLORS.default
+                        const style = getCalendarEventStyle(ev, calendars)
                         return (
                           <button
                             key={ev.id}
                             onClick={() => setSelectedEvent(ev)}
-                            className={`block w-full text-left text-[10px] leading-tight font-medium px-1.5 py-0.5 rounded truncate cursor-pointer transition-opacity hover:opacity-80 ${colorClass}`}
+                            className="block w-full text-left text-[10px] leading-tight font-medium px-1.5 py-0.5 rounded truncate cursor-pointer transition-opacity hover:opacity-80 border"
+                            style={style}
                           >
-                            {ev.summary || '(No title)'}
+                            {ev.start?.dateTime ? formatEventTime(ev) + ' ' : ''}{ev.summary || '(No title)'}
                           </button>
                         )
                       })}
                       {overflow && (
                         <button
                           onClick={() => setSelectedEvent(dayEvents[MAX_VISIBLE_EVENTS])}
-                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 cursor-pointer"
+                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 cursor-pointer font-medium"
                         >
                           +{dayEvents.length - MAX_VISIBLE_EVENTS} more
                         </button>
@@ -492,45 +606,6 @@ export default function CalendarPage() {
                 )
               })}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Sidebar */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming events this month.</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingEvents.map(ev => {
-                  const dotColor = DOT_COLORS[ev.colorId] || DOT_COLORS.default
-                  const startDate = ev.start?.dateTime ? formatDateFull(ev.start.dateTime) : formatDateFull(ev.start?.date + 'T00:00:00')
-                  return (
-                    <button
-                      key={ev.id}
-                      onClick={() => setSelectedEvent(ev)}
-                      className="flex items-start gap-3 w-full text-left group cursor-pointer"
-                    >
-                      <div className={`size-2 rounded-full mt-1.5 shrink-0 ${dotColor}`} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate group-hover:text-abc-indigo transition-colors">
-                          {ev.summary || '(No title)'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {startDate}{ev.start?.dateTime ? ` · ${formatEventTime(ev)}` : ' · All day'}
-                        </p>
-                      </div>
-                      {ev._calendarName && ev._calendarName !== 'Calendar' && (
-                        <span className="text-[10px] text-muted-foreground shrink-0">{ev._calendarName}</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
