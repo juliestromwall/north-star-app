@@ -149,21 +149,14 @@ function PageMarkers({ editor, footerUrl }) {
 
   return (
     <div className="pointer-events-none" style={{ position: 'absolute', zIndex: 5, top: 0, left: 0, right: 0, bottom: 0 }}>
-      {/* Page break lines between pages */}
+      {/* Subtle page break lines between pages */}
       {Array.from({ length: pageCount - 1 }, (_, i) => {
-        // Position relative to the ProseMirror content area
         const y = (i + 1) * PAGE_HEIGHT_PX
         return (
           <div
             key={`break-${i}`}
-            style={{ position: 'absolute', top: y, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <div className="border-t-2 border-dashed border-stone-400/40 relative" style={{ width: '8.5in' }}>
-              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-stone-400/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                Page {i + 1} / {pageCount}
-              </span>
-            </div>
-          </div>
+            style={{ position: 'absolute', top: y, left: '50%', transform: 'translateX(-50%)', width: '8.5in', height: '1px', background: '#d4d4d8' }}
+          />
         )
       })}
       {/* Footer + page number at bottom of each page */}
@@ -171,7 +164,7 @@ function PageMarkers({ editor, footerUrl }) {
         const pageBottom = (i + 1) * PAGE_HEIGHT_PX
         // Position so the bottom of the footer block sits ~0.4in from the page edge
         const footerHeight = footerUrl ? 42 : 16
-        const bottomMargin = 14 // px from page edge — room for page number below footer
+        const bottomMargin = 24 // px from page edge — room for page number below footer
         return (
           <div
             key={`footer-${i}`}
@@ -649,15 +642,28 @@ export default function EditDocumentPage() {
           <Button variant="outline" className="gap-1.5" onClick={() => {
             if (!editor) return
             const html = editor.getHTML()
+            const footerImg = letterhead.footer || ''
+            const headerImg = letterhead.header || ''
             const win = window.open('', '_blank')
             win.document.write(`<!DOCTYPE html>
 <html><head><title>${docTitle || 'Print Preview'}</title>
 <style>
-  @page { size: letter; margin: 0.75in 1in 0.6in 1in; }
-  @page :first { margin-top: ${letterhead.header ? '0.3in' : '0.75in'}; }
+  @page {
+    size: letter;
+    margin: 0.75in 1in 1in 1in;
+    @bottom-center {
+      content: counter(page);
+      font-family: 'Century Gothic', 'Segoe UI', sans-serif;
+      font-size: 11px;
+      color: #71717a;
+    }
+  }
+  @page :first { margin-top: ${headerImg ? '0.3in' : '0.75in'}; }
   body { font-family: 'Century Gothic', 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.6; color: #1a1a2e; margin: 0; padding: 0; }
   .header { text-align: center; margin-bottom: 16px; }
   .header img { max-width: 220px; }
+  .footer-bar { position: fixed; bottom: 0.3in; left: 1in; right: 1in; text-align: center; }
+  .footer-bar img { width: 100%; max-height: 24px; object-fit: contain; }
   .content p { margin: 0.5em 0; text-align: justify; }
   .content ul { list-style-type: disc; padding-left: 1.5em; }
   .content ol { list-style-type: decimal; padding-left: 1.5em; }
@@ -666,7 +672,8 @@ export default function EditDocumentPage() {
   sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
   .page-break { page-break-after: always; height: 0; }
 </style></head><body>
-${letterhead.header ? `<div class="header"><img src="${letterhead.header}" /></div>` : ''}
+${headerImg ? `<div class="header"><img src="${headerImg}" /></div>` : ''}
+${footerImg ? `<div class="footer-bar"><img src="${footerImg}" /></div>` : ''}
 <div class="content">${html}</div>
 <script>window.onload=function(){window.print()}<\/script>
 </body></html>`)
