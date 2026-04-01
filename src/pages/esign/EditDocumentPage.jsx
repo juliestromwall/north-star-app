@@ -649,11 +649,26 @@ export default function EditDocumentPage() {
             win.document.write(`<!DOCTYPE html><html><head>
 <title>${docTitle || 'Document'}</title>
 <style>
-@page { size: letter; margin: 0.75in 1in 0.75in 1in; }
+@page { size: letter; margin: 0.4in 0.75in 0.4in 0.75in; }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; font-family: ui-serif, Georgia, serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; }
-.header { text-align: center; margin-bottom: 12px; }
-.header img { max-width: 220px; }
+body { margin: 0; padding: 0; }
+
+/* Table trick: thead/tfoot repeat on every printed page */
+.print-table { width: 100%; border-collapse: collapse; }
+.print-table td, .print-table th { padding: 0; border: none; }
+
+/* Header row — only first page via CSS */
+.print-header td { text-align: center; padding-bottom: 8px; }
+.print-header img { max-width: 200px; }
+
+/* Footer row — repeats on every page */
+.print-footer td { text-align: center; padding-top: 12px; vertical-align: bottom; }
+.print-footer img { width: 100%; max-width: 500px; height: auto; }
+.print-footer .page-num { font-size: 11px; color: #71717a; margin-top: 4px; font-family: sans-serif; }
+
+/* Content */
+.print-body td { vertical-align: top; }
+.content { font-family: ui-serif, Georgia, 'Times New Roman', serif; font-size: 13px; line-height: 1.65; color: #1a1a2e; }
 .content p { margin: 0.4em 0; }
 .content ul { list-style: disc; padding-left: 1.5em; margin: 0.5em 0; }
 .content ol { list-style: decimal; padding-left: 1.5em; margin: 0.5em 0; }
@@ -667,9 +682,16 @@ sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px;
 .page-break { page-break-after: always; height: 0; overflow: hidden; margin: 0; padding: 0; border: none; }
 .page-break * { display: none; }
 </style></head><body>
-${headerImg ? '<div class="header"><img src="' + headerImg + '" /></div>' : ''}
-<div class="content">${content}</div>
-<script>setTimeout(function(){window.print()},300)<\/script>
+
+<table class="print-table">
+  ${headerImg ? '<thead class="print-header"><tr><td><img src="' + headerImg + '" /></td></tr></thead>' : ''}
+  ${footerImg ? '<tfoot class="print-footer"><tr><td><img src="' + footerImg + '" /></td></tr></tfoot>' : ''}
+  <tbody class="print-body"><tr><td>
+    <div class="content">${content}</div>
+  </td></tr></tbody>
+</table>
+
+<script>setTimeout(function(){window.print()},400)<\/script>
 </body></html>`)
             win.document.close()
           }}>
