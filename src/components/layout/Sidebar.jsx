@@ -124,7 +124,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       getGoogleStatus(currentUser.id)
         .then(status => {
           if (!status.connected) return
-          return getLabel(currentUser.id, 'INBOX')
+          return getLabel(currentUser.id, 'CATEGORY_PERSONAL')
         })
         .then(label => {
           if (!label) return
