@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useEditor, EditorContent } from '@tiptap/react'
 import { StarterKit } from '@tiptap/starter-kit'
@@ -117,6 +117,58 @@ const ResizableImage = BaseImage.extend({
     }
   },
 })
+
+// ── Page Markers ────────────────────────────────────────
+
+function PageMarkers({ editor }) {
+  const [pageCount, setPageCount] = useState(1)
+
+  useEffect(() => {
+    if (!editor) return
+    const PAGE_HEIGHT_PX = 11 * 96 // 11in at 96dpi = 1056px
+
+    const update = () => {
+      // Find the ProseMirror element
+      const el = editor.view.dom
+      if (!el) return
+      const height = el.scrollHeight
+      setPageCount(Math.max(1, Math.ceil(height / PAGE_HEIGHT_PX)))
+    }
+
+    update()
+    editor.on('update', update)
+    // Also check on resize
+    const observer = new ResizeObserver(update)
+    if (editor.view.dom) observer.observe(editor.view.dom)
+
+    return () => {
+      editor.off('update', update)
+      observer.disconnect()
+    }
+  }, [editor])
+
+  if (pageCount <= 1) return null
+
+  const PAGE_HEIGHT_PX = 11 * 96
+
+  return (
+    <div className="absolute left-0 top-0 w-full pointer-events-none" style={{ zIndex: 5 }}>
+      {Array.from({ length: pageCount - 1 }, (_, i) => (
+        <div
+          key={i}
+          className="absolute left-0 right-0 flex items-center justify-center"
+          style={{ top: (i + 1) * PAGE_HEIGHT_PX + 24 }} // +24 for scroll padding
+        >
+          <div className="w-full border-t-2 border-dashed border-stone-400/40 relative">
+            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-stone-400/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+              Page {i + 1} / {pageCount}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ── Toolbar ─────────────────────────────────────────────
 
@@ -241,7 +293,21 @@ function InsertFieldDropdown({ editor }) {
 }
 
 function EditorToolbar({ editor }) {
+  // Force re-render on selection/transaction changes so image toolbar shows
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (!editor) return
+    const handler = () => setTick(t => t + 1)
+    editor.on('selectionUpdate', handler)
+    editor.on('transaction', handler)
+    return () => {
+      editor.off('selectionUpdate', handler)
+      editor.off('transaction', handler)
+    }
+  }, [editor])
+
   if (!editor) return null
+  const imageActive = editor.isActive('image')
   return (
     <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b bg-stone-50/50">
       <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
@@ -314,7 +380,7 @@ function EditorToolbar({ editor }) {
       }} title="Insert Image">
         <ImageIcon className="size-4" />
       </ToolbarButton>
-      {editor.isActive('image') && (
+      {imageActive && (
         <>
           <div className="w-px h-5 bg-stone-200 mx-1" />
           <span className="text-[10px] text-stone-400 mr-1">Image:</span>
@@ -567,7 +633,7 @@ export default function EditDocumentPage() {
       {/* Editor styles — paginated view */}
       <style>{`
         .esign-editor-scroll {
-          background: #e5e7eb;
+          background: #d4d4d8;
           padding: 24px;
         }
         .esign-editor .ProseMirror {
@@ -576,55 +642,86 @@ export default function EditDocumentPage() {
           min-height: 11in;
           margin: 0 auto;
           padding: 1in;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06);
           border-radius: 2px;
+          position: relative;
+          /* Page boundary lines every 11in */
+          background-image:
+            linear-gradient(to bottom,
+              transparent calc(11in - 24px),
+              rgba(0,0,0,0.04) calc(11in - 24px),
+              rgba(0,0,0,0.04) calc(11in - 1px),
+              transparent calc(11in - 1px),
+              transparent 11in
+            );
+          background-size: 100% 11in;
+          background-repeat: repeat-y;
+          background-position: top left;
+        }
+        /* Page number markers */
+        .esign-page-markers {
+          position: absolute;
+          top: 0;
+          left: -40px;
+          width: 36px;
+          pointer-events: none;
+        }
+        .esign-page-marker {
+          position: absolute;
+          left: 0;
+          width: 36px;
+          text-align: center;
+          font-size: 9px;
+          font-weight: 700;
+          color: #a1a1aa;
+          background: #d4d4d8;
+          border-radius: 4px;
+          padding: 2px 0;
         }
         .esign-editor .page-break {
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 -1in;
+          margin: 24px -1in;
           padding: 0;
-          height: 48px;
-          background: #e5e7eb;
+          height: 32px;
+          background: #d4d4d8;
           user-select: none;
           cursor: default;
           position: relative;
-          border: none;
         }
-        .esign-editor .page-break::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .esign-editor .page-break::before,
         .esign-editor .page-break::after {
           content: '';
           position: absolute;
-          bottom: 0;
           left: 0;
           right: 0;
-          height: 4px;
-          box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1);
+          height: 3px;
+        }
+        .esign-editor .page-break::before {
+          top: 0;
+          box-shadow: inset 0 2px 3px rgba(0,0,0,0.1);
+        }
+        .esign-editor .page-break::after {
+          bottom: 0;
+          box-shadow: inset 0 -2px 3px rgba(0,0,0,0.1);
         }
         .esign-editor .page-break span {
-          font-size: 10px;
-          font-weight: 600;
-          color: #9ca3af;
+          font-size: 9px;
+          font-weight: 700;
+          color: #a1a1aa;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.15em;
         }
         .esign-editor img.ProseMirror-selectednode {
           outline: 2px solid #283693;
           outline-offset: 2px;
         }
         @media print {
-          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0; }
+          .esign-editor .ProseMirror { box-shadow: none; width: auto; margin: 0; padding: 0.75in 1in; background-image: none; }
           .esign-editor-scroll { background: white; padding: 0; }
-          .page-break { page-break-after: always; height: 0 !important; background: none !important; }
+          .esign-page-markers { display: none; }
+          .page-break { page-break-after: always; height: 0 !important; margin: 0 !important; background: none !important; }
           .page-break span, .page-break::before, .page-break::after { display: none; }
         }
       `}</style>
@@ -633,7 +730,8 @@ export default function EditDocumentPage() {
       <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
         <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
-          <div className="esign-editor">
+          <div className="esign-editor relative">
+            <PageMarkers editor={editor} />
             <EditorContent editor={editor} />
           </div>
         </div>
