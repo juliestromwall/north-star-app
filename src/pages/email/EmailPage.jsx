@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
 import {
-  listEmails, getEmail, modifyEmail, getAttachment, listLabels,
+  listEmails, getEmail, modifyEmail, getAttachment, listLabels, getLabel,
   getGoogleStatus, parseEmailHeaders, parseEmailBody, parseEmailAttachments,
   connectGoogle,
 } from '@/lib/google'
@@ -625,18 +625,31 @@ export default function EmailPage() {
   // Fetch labels on connect
   useEffect(() => {
     if (!connected || !userId) return
-    listLabels(userId).then(labels => {
+    listLabels(userId).then(async (labels) => {
       const user = labels
         .filter(l => l.type === 'user')
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
       setUserLabels(user)
+
+      // listLabels doesn't always include counts — fetch individually for key folders
       const counts = {}
-      labels.forEach(l => {
-        // Inbox shows unread count; others show total
-        if (l.id === 'INBOX') {
-          if (l.messagesUnread) counts[l.id] = l.messagesUnread
-        } else {
-          if (l.messagesTotal) counts[l.id] = l.messagesTotal
+      const labelsToFetch = [
+        'INBOX', 'DRAFT', 'SPAM', 'TRASH', 'STARRED',
+        'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CATEGORY_PROMOTIONS',
+        ...user.map(l => l.id),
+      ]
+      // Batch in parallel (max ~15 calls)
+      const results = await Promise.allSettled(
+        labelsToFetch.map(id => getLabel(userId, id))
+      )
+      results.forEach(r => {
+        if (r.status === 'fulfilled' && r.value) {
+          const l = r.value
+          if (l.id === 'INBOX') {
+            if (l.messagesUnread) counts[l.id] = l.messagesUnread
+          } else {
+            if (l.messagesTotal) counts[l.id] = l.messagesTotal
+          }
         }
       })
       setLabelCounts(counts)

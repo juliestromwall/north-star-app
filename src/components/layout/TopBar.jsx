@@ -5,7 +5,7 @@ import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { getGoogleStatus, listLabels } from '@/lib/google'
+import { getGoogleStatus, getLabel } from '@/lib/google'
 
 export default function TopBar({ onMenuClick }) {
   const { currentUser, currentRole, isAuthenticated, signOut } = useRole()
@@ -24,9 +24,8 @@ export default function TopBar({ onMenuClick }) {
     if (!isAdmin || !currentUser?.id) return
     getGoogleStatus(currentUser.id).then(s => {
       if (!s.connected) return
-      listLabels(currentUser.id).then(labels => {
-        const inbox = labels.find(l => l.id === 'INBOX')
-        if (inbox?.messagesUnread) setInboxCount(inbox.messagesUnread)
+      getLabel(currentUser.id, 'INBOX').then(label => {
+        if (label?.messagesUnread) setInboxCount(label.messagesUnread)
       }).catch(() => {})
     }).catch(() => {})
   }, [isAdmin, currentUser?.id])
