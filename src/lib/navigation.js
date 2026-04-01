@@ -33,12 +33,6 @@ const nav = [
         path: '/dashboard',
         roles: 'all',
       },
-      {
-        label: 'Text Messages',
-        icon: MessageSquare,
-        path: '/text-messages',
-        roles: ADMIN_ROLES,
-      },
     ],
   },
   {
@@ -104,12 +98,6 @@ const nav = [
         roles: 'all',
       },
       {
-        label: 'Email',
-        icon: Mail,
-        path: '/email',
-        roles: ADMIN_ROLES,
-      },
-      {
         label: 'Fax',
         icon: Printer,
         path: '/fax',
@@ -121,12 +109,6 @@ const nav = [
     section: 'Operations',
     roles: ADMIN_ROLES,
     items: [
-      {
-        label: 'Calendar',
-        icon: Calendar,
-        path: '/calendar',
-        roles: ADMIN_ROLES,
-      },
       {
         label: 'HR Management',
         icon: UserCog,

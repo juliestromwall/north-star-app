@@ -1,13 +1,15 @@
-import { useNavigate } from 'react-router-dom'
-import { LogOut, Menu } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useNavigate, NavLink } from 'react-router-dom'
+import { LogOut, Menu, Home, Mail, MessageSquare, Calendar } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
-import { ROLE_LABELS } from '@/lib/constants'
+import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function TopBar({ onMenuClick }) {
-  const { currentUser, isAuthenticated, signOut } = useRole()
+  const { currentUser, currentRole, isAuthenticated, signOut } = useRole()
   const navigate = useNavigate()
+  const isAdmin = ADMIN_ROLES.includes(currentRole)
 
   const initials = currentUser.name
     .split(' ')
@@ -19,6 +21,13 @@ export default function TopBar({ onMenuClick }) {
     await signOut()
     navigate('/login')
   }
+
+  const quickLinks = [
+    { path: '/dashboard', icon: Home, label: 'Home', show: true },
+    { path: '/email', icon: Mail, label: 'Email', show: isAdmin },
+    { path: '/text-messages', icon: MessageSquare, label: 'Texts', show: isAdmin },
+    { path: '/calendar', icon: Calendar, label: 'Calendar', show: isAdmin },
+  ]
 
   return (
     <header className="h-14 border-b bg-abc-cream flex items-center justify-between px-4 sm:px-6">
@@ -32,6 +41,27 @@ export default function TopBar({ onMenuClick }) {
         </button>
         <RoleSwitcher />
       </div>
+
+      {/* Quick Links — center */}
+      <nav className="hidden sm:flex items-center gap-1">
+        {quickLinks.filter(l => l.show).map(link => (
+          <NavLink
+            key={link.path}
+            to={link.path}
+            className={({ isActive }) =>
+              `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                isActive
+                  ? 'bg-[#283693] text-white shadow-sm'
+                  : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'
+              }`
+            }
+          >
+            <link.icon className="size-3.5" />
+            <span>{link.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
