@@ -103,10 +103,14 @@ function InlineSignaturePad({ value, onChange, signerName }) {
 function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail, fieldValues, onFieldChange, signatureValue, onSignatureChange }) {
   function roleMatches(fieldRole) {
     const r = signerRole?.toLowerCase() || ''
-    if (fieldRole === 'gc' && (r.includes('surrogate') || r.includes('gc'))) return true
-    if (fieldRole === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) return true
-    if (fieldRole === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) return true
-    if (fieldRole === 'admin' && (r.includes('admin') || r.includes('agency'))) return true
+    const f = fieldRole?.toLowerCase() || ''
+    if (f === 'gc' && (r.includes('surrogate') || r.includes('gc'))) return true
+    if (f === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) return true
+    if (f === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) return true
+    if (f === 'admin' && (r.includes('admin') || r.includes('agency'))) return true
+    if (f === 'partner' && r.includes('partner')) return true
+    // Also try exact match (e.g. custom role codes)
+    if (f === r) return true
     return false
   }
 
@@ -271,10 +275,13 @@ export default function SignDocumentPage() {
       const prefilled = {}
       fields.forEach(f => {
         const r = found.role?.toLowerCase() || ''
-        const matches = (f.role === 'gc' && (r.includes('surrogate') || r.includes('gc'))) ||
-          (f.role === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) ||
-          (f.role === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) ||
-          (f.role === 'admin' && (r.includes('admin') || r.includes('agency')))
+        const fr = f.role?.toLowerCase() || ''
+        const matches = (fr === 'gc' && (r.includes('surrogate') || r.includes('gc'))) ||
+          (fr === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) ||
+          (fr === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) ||
+          (fr === 'admin' && (r.includes('admin') || r.includes('agency'))) ||
+          (fr === 'partner' && r.includes('partner')) ||
+          (fr === r)
         if (!matches) return
         if (f.fieldType === 'name') prefilled[f.fieldId] = found.name
         if (f.fieldType === 'email') prefilled[f.fieldId] = found.email
