@@ -117,8 +117,8 @@ export default function MatchedJourneysPage() {
             <Link key={j.id} to={`/journeys/${j.id}`}>
               <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0">
                 {/* GC */}
-                <div className="px-3 pt-2.5 pb-1.5" style={{ backgroundColor: '#ed148c06' }}>
-                  <p className="text-[8px] font-semibold text-pink-400 uppercase tracking-widest mb-0.5">Surrogate</p>
+                <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#ed148c08' }}>
+                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
                   <div className="flex items-center gap-2">
                     <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
@@ -128,8 +128,8 @@ export default function MatchedJourneysPage() {
                   </div>
                 </div>
                 {/* IP */}
-                <div className="px-3 pt-1.5 pb-1.5" style={{ backgroundColor: '#28369306' }}>
-                  <p className="text-[8px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-0.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
+                <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#28369308' }}>
+                  <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
                   <div className="flex items-center gap-2">
                     <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
@@ -138,7 +138,7 @@ export default function MatchedJourneysPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="px-3 py-2 space-y-1">
+                <CardContent className="px-4 py-2.5 space-y-1.5 border-t border-stone-100">
                   <div className="flex items-center gap-2">
                     <StageBadge stage={j.stage} status={j.status} />
                   </div>
