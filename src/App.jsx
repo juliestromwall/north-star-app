@@ -64,6 +64,7 @@ export default function App() {
       <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
       <Route path="/share/:token" element={<SharedProfilePage />} />
+      <Route path="/e-signature/:id" element={<SignDocumentPage />} />
 
       {/* Authenticated app */}
       <Route element={<AppLayout />}>
@@ -92,7 +93,6 @@ export default function App() {
         <Route path="/journeys/:id" element={<JourneyDetailPage />} />
         <Route path="/e-signature" element={<ESignaturePage />} />
         <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
-        <Route path="/e-signature/:id" element={<SignDocumentPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}
