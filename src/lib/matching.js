@@ -158,6 +158,43 @@ export async function updateMatchedJourney(id, updates) {
   return data
 }
 
+export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCaseId }) {
+  if (!supabase) return null
+
+  // 1. Get all journey notes to copy to both cases
+  const { data: notes } = await supabase
+    .from('journey_notes')
+    .select('*')
+    .eq('journey_id', journeyId)
+
+  // 2. Store break record in both GC and IP intake_submissions answers
+  for (const caseId of [gcCaseId, ipCaseId]) {
+    const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+    if (row?.answers) {
+      const history = row.answers._matchHistory || []
+      history.push({
+        journeyId,
+        partnerId: caseId === gcCaseId ? ipCaseId : gcCaseId,
+        partnerType: caseId === gcCaseId ? 'ip' : 'gc',
+        status: 'broken',
+        reason,
+        brokenBy,
+        brokenAt: new Date().toISOString(),
+        notes: (notes || []).map(n => ({ content: n.content, type: n.note_type, by: n.created_by, at: n.created_at })),
+      })
+      await supabase.from('intake_submissions').update({ answers: { ...row.answers, _matchHistory: history } }).eq('id', caseId)
+    }
+  }
+
+  // 3. Delete journey notes
+  await supabase.from('journey_notes').delete().eq('journey_id', journeyId)
+
+  // 4. Delete the matched journey record
+  await supabase.from('matched_journeys').delete().eq('id', journeyId)
+
+  return true
+}
+
 // ── Journey Notes ─────────────────────────────────────────
 
 export async function fetchJourneyNotes(journeyId, noteType) {

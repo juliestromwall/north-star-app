@@ -18,7 +18,9 @@ import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEdi
 import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch } from '@/lib/matching'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 
@@ -291,6 +293,9 @@ export default function JourneyDetailPage() {
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [profileView, setProfileView] = useState('gc')
+  const [breakOpen, setBreakOpen] = useState(false)
+  const [breakReason, setBreakReason] = useState('')
+  const [breaking, setBreaking] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
   const [ipFlip, setIpFlip] = useState({})
   const toggleGcFlip = (key) => setGcFlip(prev => ({ ...prev, [key]: !prev[key] }))
@@ -329,6 +334,23 @@ export default function JourneyDetailPage() {
     setStatusOpen(false)
   }
 
+  async function handleBreakMatch() {
+    if (!breakReason.trim()) return
+    setBreaking(true)
+    try {
+      await breakMatch(journey.id, {
+        reason: breakReason,
+        brokenBy: currentUser.name,
+        gcCaseId: journey.gc_case_id,
+        ipCaseId: journey.ip_case_id,
+      })
+      window.location.href = '/journeys'
+    } catch (err) {
+      alert('Failed to break match: ' + (err.message || ''))
+      setBreaking(false)
+    }
+  }
+
   if (loading) return <div className="text-center py-12 text-stone-400">Loading journey...</div>
   if (!journey) return (
     <div className="space-y-6">
@@ -343,7 +365,41 @@ export default function JourneyDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/journeys" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to Journeys</Link>
+      <div className="flex items-center justify-between">
+        <Link to="/journeys" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to Journeys</Link>
+        <div className="flex items-center gap-3 text-xs text-stone-400">
+          <span>Match Created {new Date(journey.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
+            <X className="size-3" /> Break Match
+          </Button>
+        </div>
+      </div>
+
+      {/* Break Match Dialog */}
+      <Dialog open={breakOpen} onOpenChange={setBreakOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Break Match</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+              <p className="font-semibold">Are you sure you want to break this match?</p>
+              <p className="mt-1 text-xs">This will separate <strong>{gcCase?.name}</strong> and <strong>{ipCase?.names}</strong>. The journey record will be deleted, but notes and emails will be preserved in both case histories.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500 font-medium">Reason for breaking match *</label>
+              <Textarea value={breakReason} onChange={e => setBreakReason(e.target.value)} placeholder="Explain why this match is being broken..." rows={3} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setBreakOpen(false)}>Cancel</Button>
+              <Button variant="destructive" size="sm" onClick={handleBreakMatch} disabled={breaking || !breakReason.trim()} className="gap-1">
+                {breaking ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                {breaking ? 'Breaking...' : 'Break Match'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Hero Section ─────────────────────────────────── */}
       <div className="rounded-2xl border border-stone-200/80 bg-white overflow-hidden">

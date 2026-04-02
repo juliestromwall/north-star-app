@@ -138,7 +138,15 @@ export default function MatchedJourneysPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="px-4 py-2.5 space-y-1.5 border-t border-stone-100">
+                {/* Milestones placeholder */}
+                <div className="px-4 py-1.5 border-t border-stone-100">
+                  <div className="flex items-center gap-1.5 text-[9px] text-stone-400">
+                    <span className="uppercase tracking-wider font-semibold">Milestones</span>
+                    <span>0/0</span>
+                  </div>
+                  <div className="w-full h-1 bg-stone-100 rounded-full mt-1" />
+                </div>
+                <CardContent className="px-4 py-2 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <StageBadge stage={j.stage} status={j.status} />
                   </div>
@@ -157,12 +165,11 @@ export default function MatchedJourneysPage() {
                   </div>
                   <div className="flex items-center gap-3 text-[10px] text-stone-400">
                     {j.assigned_to && (
-                      <span className="flex items-center gap-0.5"><Users className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || j.assigned_to}</span>
+                      <span className="flex items-center gap-0.5"><Users className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || '—'}</span>
                     )}
                     {j.journey_data?.journeyManager && (
                       <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
                     )}
-                    <span className="ml-auto">{new Date(j.created_at).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
               </Card>
