@@ -115,7 +115,7 @@ export default function MatchedJourneysPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(j => (
             <Link key={j.id} to={`/journeys/${j.id}`}>
-              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0">
+              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
                 {/* GC */}
                 <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#ed148c08' }}>
                   <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
