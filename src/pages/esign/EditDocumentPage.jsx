@@ -13,7 +13,7 @@ import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
-  exportDocAsPdf, getDocPlainText, parseFieldPlaceholders,
+  exportDocAsPdf, getDocPlainText, getDocAsHtml, parseFieldPlaceholders,
   shareDocPublicly, getAccessToken, sendEmail,
 } from '@/lib/google'
 
@@ -169,14 +169,30 @@ export default function EditDocumentPage() {
         pdfPath = null
       }
 
-      // 2. Parse field placeholders
+      // 2. Export as HTML (for inline signing fields) and parse field placeholders
+      let docHtml = ''
       let fields = []
       try {
+        docHtml = await getDocAsHtml(userId, googleDocId)
         const plainText = await getDocPlainText(userId, googleDocId)
         fields = parseFieldPlaceholders(plainText)
-      } catch (e) { console.error('Field parse failed:', e) }
+      } catch (e) { console.error('HTML/field export failed:', e) }
 
-      // 3. Create esign document record
+      // 3. Store HTML in Supabase storage
+      let htmlPath = null
+      if (docHtml && supabase) {
+        try {
+          const htmlBlob = new Blob([docHtml], { type: 'text/html' })
+          htmlPath = `documents/sent_${Date.now()}.html`
+          const uploadResult = await supabase.storage.from('esign-documents').upload(htmlPath, htmlBlob, {
+            contentType: 'text/html',
+            cacheControl: '3600',
+          })
+          if (uploadResult?.error) { console.error('HTML upload failed:', uploadResult.error); htmlPath = null }
+        } catch (e) { console.error('HTML upload failed:', e); htmlPath = null }
+      }
+
+      // 4. Create esign document record
       const doc = await createDocument({
         templateId: null,
         caseId: sendForm.caseId ? Number(sendForm.caseId) : null,
@@ -187,14 +203,14 @@ export default function EditDocumentPage() {
         createdBy: currentUser.name,
       })
 
-      // Store metadata (template doc ID for preview, fields for signing)
+      // Store metadata
       if (doc) {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
             templateDocId: googleDocId,
-            editDocId: googleDocId,
             fields,
             pdfPath,
+            htmlPath,
           }),
         })
       }
