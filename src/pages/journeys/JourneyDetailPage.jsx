@@ -100,7 +100,7 @@ function NotesTab({ journeyId, currentUser }) {
   const NOTE_TYPES = [
     { key: 'shared', label: 'Shared Notes', color: 'bg-[#283693]' },
     { key: 'gc', label: 'GC Notes', color: 'bg-pink-500' },
-    { key: 'ip', label: 'IP Notes', color: 'bg-purple-500' },
+    { key: 'ip', label: 'IP Notes', color: 'bg-[#283693]' },
     { key: 'all', label: 'All Notes', color: 'bg-stone-500' },
   ]
 
@@ -125,7 +125,7 @@ function NotesTab({ journeyId, currentUser }) {
           {notes.map(note => (
             <Card key={note.id} className="rounded-2xl"><CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-purple-500' : 'bg-[#283693]'}`}>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#283693]' : 'bg-[#283693]'}`}>
                   {note.note_type === 'gc' ? 'GC' : note.note_type === 'ip' ? 'IP' : 'SHARED'}
                 </span>
                 <span className="text-xs text-stone-400">{note.created_by}</span>
@@ -226,9 +226,9 @@ export default function JourneyDetailPage() {
         </div>
 
         {/* IP Section — purple gradient */}
-        <div className="p-5 border-b bg-gradient-to-r from-purple-50/50 to-white">
+        <div className="p-5 border-b bg-gradient-to-r from-[#283693]/5 to-white">
           <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500 text-white uppercase tracking-wider">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#283693] text-white uppercase tracking-wider">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</span>
           </div>
           {ipCase ? (
             <div className="flex items-center gap-4">
@@ -352,8 +352,8 @@ export default function JourneyDetailPage() {
                 <p><span className="text-stone-400">Phone:</span> <span className="font-medium">{gcCase?.phone || '—'}</span></p>
               </CardContent>
             </Card>
-            <Card className="rounded-2xl border-l-4 border-l-purple-400">
-              <CardHeader><CardTitle className="flex items-center gap-2"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500 text-white">IP</span> Intended Parent</CardTitle></CardHeader>
+            <Card className="rounded-2xl border-l-4 border-l-[#283693]">
+              <CardHeader><CardTitle className="flex items-center gap-2"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white">IP</span> Intended Parent</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p><span className="text-stone-400">Name:</span> <span className="font-medium">{ipCase?.names || '—'}</span></p>
                 <p><span className="text-stone-400">Location:</span> <span className="font-medium">{ipCase?.location || '—'}</span></p>
@@ -380,7 +380,7 @@ export default function JourneyDetailPage() {
               Surrogate Profile
             </button>
             <button onClick={() => setProfileView('ip')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'ip' ? 'bg-purple-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${profileView === 'ip' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
               IP Profile
             </button>
           </div>
@@ -393,7 +393,7 @@ export default function JourneyDetailPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="rounded-2xl border-l-4 border-l-purple-400">
+            <Card className="rounded-2xl border-l-4 border-l-[#283693]">
               <CardContent className="py-6 text-center">
                 <Link to={`/intended-parents/${journey.ip_case_id}`} className="text-[#283693] font-semibold hover:underline">
                   Open {ipCase?.names || 'Intended Parent'}'s Full Case →

@@ -126,12 +126,12 @@ export default function MatchedJourneysPage() {
                     </div>
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-purple-50 to-purple-25 px-4 pt-2 pb-3 border-b border-purple-100">
+                <div className="bg-gradient-to-r from-[#283693]/5 to-white px-4 pt-2 pb-3 border-b border-[#283693]/10">
                   <div className="flex items-center gap-2.5">
                     <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-purple-500 text-white">IP</span>
+                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-[#283693] text-white">IP</span>
                         <span className="text-sm font-semibold truncate">{j.ip?.names || '—'}</span>
                       </div>
                       <p className="text-[10px] text-stone-400">{j.ip?.type || ''} {j.ip?.location ? `· ${j.ip.location}` : ''}</p>
