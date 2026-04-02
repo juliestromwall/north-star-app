@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
   exportDocAsPdf, getDocPlainText, parseFieldPlaceholders,
-  shareDocPublicly, getAccessToken,
+  shareDocPublicly, getAccessToken, copyGoogleDoc, getOrCreateTemplatesFolder,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -27,6 +27,7 @@ export default function EditDocumentPage() {
   const [loading, setLoading] = useState(true)
   const [iframeReady, setIframeReady] = useState(false)
   const [shareError, setShareError] = useState(null)
+  const [editDocId, setEditDocId] = useState(null) // The copy we're editing (not the template)
 
   // Send dialog
   const [showSend, setShowSend] = useState(false)
@@ -58,23 +59,25 @@ export default function EditDocumentPage() {
         })
         const meta = await metaRes.json()
         if (!metaRes.ok) {
-          setShareError(meta.error?.message || 'Could not find this document. Make sure it exists in your ABC Templates folder.')
+          setShareError(meta.error?.message || 'Could not find this document.')
           setLoading(false)
           return
         }
         setDocTitle(meta.name || 'Untitled')
 
-        // Share the doc so the iframe can load it
+        // Copy the template so edits don't affect the original
+        const folderId = await getOrCreateTemplatesFolder(userId)
+        const copy = await copyGoogleDoc(userId, googleDocId, `[Draft] ${meta.name || 'Untitled'}`, folderId)
+        setEditDocId(copy.id)
+
+        // Share the copy so the iframe can load it
         try {
-          await shareDocPublicly(userId, googleDocId)
+          await shareDocPublicly(userId, copy.id)
         } catch (e) {
-          console.warn('Share failed (may already be shared):', e.message)
-          // Continue anyway — it might already be shared
+          console.warn('Share failed:', e.message)
         }
 
-        // Small delay to let sharing propagate
         await new Promise(r => setTimeout(r, 1500))
-
         setIframeReady(true)
       } catch (err) {
         console.error('Setup failed:', err)
@@ -93,10 +96,11 @@ export default function EditDocumentPage() {
 
   // PDF download
   async function handleDownloadPdf() {
-    if (!googleDocId || !userId) return
+    if ((!editDocId && !googleDocId) || !userId) return
+    const docId = editDocId || googleDocId
     setDownloading(true)
     try {
-      const blob = await exportDocAsPdf(userId, googleDocId)
+      const blob = await exportDocAsPdf(userId, docId)
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -143,13 +147,14 @@ export default function EditDocumentPage() {
   }
 
   async function handleSend() {
-    if (!googleDocId || !userId || sendForm.signers.length === 0) return
+    const sendDocId = editDocId || googleDocId
+    if (!sendDocId || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
-      // 1. Export as PDF and store in Supabase (no Google Drive copy)
+      // 1. Export the edited copy as PDF and store in Supabase
       let pdfPath = null
       try {
-        const pdfBlob = await exportDocAsPdf(userId, googleDocId)
+        const pdfBlob = await exportDocAsPdf(userId, sendDocId)
         pdfPath = `documents/sent_${Date.now()}.pdf`
         if (supabase) {
           try {
@@ -174,7 +179,7 @@ export default function EditDocumentPage() {
       // 2. Parse field placeholders
       let fields = []
       try {
-        const plainText = await getDocPlainText(userId, googleDocId)
+        const plainText = await getDocPlainText(userId, sendDocId)
         fields = parseFieldPlaceholders(plainText)
       } catch (e) { console.error('Field parse failed:', e) }
 
@@ -194,6 +199,7 @@ export default function EditDocumentPage() {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
             templateDocId: googleDocId,
+            editDocId: sendDocId,
             fields,
             pdfPath,
           }),
@@ -259,7 +265,7 @@ export default function EditDocumentPage() {
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/edit`}
+            src={`https://docs.google.com/document/d/${editDocId}/edit`}
             className="w-full flex-1 border-0"
             title={docTitle}
           />
