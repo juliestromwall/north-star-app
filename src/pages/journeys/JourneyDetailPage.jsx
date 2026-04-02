@@ -349,14 +349,14 @@ export default function JourneyDetailPage() {
 
         {/* Journey Info — compact bar */}
         <div className="px-5 py-4 space-y-3">
-          {/* Row 1: Stage/Status + Key metrics inline */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Row 1: Stage/Status + toggles + pregnancy */}
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Stage selector */}
             <div className="relative">
               <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
-                className="px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all hover:shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 transition-all hover:shadow-sm"
                 style={{ color: stageObj.color, borderColor: stageObj.color }}>
-                {stageObj.label}
+                <Milestone className="size-4" /> {stageObj.label}
               </button>
               {stageOpen && (
                 <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2">
@@ -372,8 +372,8 @@ export default function JourneyDetailPage() {
             {/* Status selector */}
             <div className="relative">
               <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
-                className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 text-stone-700 hover:shadow-sm transition-all">
-                {journey.status}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-stone-200 text-stone-700 hover:shadow-sm transition-all">
+                <Circle className="size-4 text-stone-400" /> {journey.status}
               </button>
               {statusOpen && (
                 <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
@@ -386,24 +386,23 @@ export default function JourneyDetailPage() {
               )}
             </div>
 
-            <div className="w-px h-5 bg-stone-200" />
+            <div className="w-px h-6 bg-stone-200" />
 
-            {/* Inline metrics — compact chips */}
             <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')}
-              className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
+              className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
               Lost Wages: <span className="font-bold">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</span>
             </button>
             <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')}
-              className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
+              className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
               Pumping: <span className="font-bold">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</span>
             </button>
             <button onClick={() => updateField('pregnant', jd.pregnant === 'yes' ? 'no' : 'yes')}
-              className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200'}`}>
-              {jd.pregnant === 'yes' ? (jd.dueDate ? `🤰 ${calcGestationalWeeks(jd.dueDate) || ''} · Due ${new Date(jd.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '🤰 Pregnant') : 'Not Pregnant'}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200'}`}>
+              {jd.pregnant === 'yes' ? (jd.dueDate ? `🤰 ${calcGestationalWeeks(jd.dueDate) || ''} · Due ${new Date(jd.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : '🤰 Pregnant') : 'Not Pregnant'}
             </button>
           </div>
 
-          {/* Row 2: Escrow + OB/Hospital + Managers */}
+          {/* Row 2: Escrow + OB/Hospital + Managers stacked */}
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="text-stone-400">Escrow Min:</span>
@@ -416,7 +415,7 @@ export default function JourneyDetailPage() {
             </div>
             {jd.pregnant === 'yes' && (
               <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Due Date:</span>
+                <span className="text-stone-400">Due:</span>
                 <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
               </div>
             )}
@@ -429,115 +428,92 @@ export default function JourneyDetailPage() {
               <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
             </div>
 
-            <div className="w-px h-4 bg-stone-200 ml-auto" />
-
-            <div className="flex items-center gap-1.5">
-              <UserCog className="size-3.5 text-stone-400" />
-              <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
-                const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
-                if (updated) setJourney(updated)
-              }}>
-                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                  {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Crown className="size-3.5 text-amber-500" />
-              <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
-                updateField('journeyManager', val === '_unassigned' ? '' : val)
-              }}>
-                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                  {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
+            {/* Managers — stacked on right */}
+            <div className="ml-auto flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <UserCog className="size-3.5 text-stone-400" />
+                <span className="text-[10px] text-stone-400">CM</span>
+                <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
+                  const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
+                  if (updated) setJourney(updated)
+                }}>
+                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Crown className="size-3.5 text-amber-500" />
+                <span className="text-[10px] text-stone-400">JM</span>
+                <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
+                  updateField('journeyManager', val === '_unassigned' ? '' : val)
+                }}>
+                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* GC Section — flip-card contacts like surrogate case */}
-        <div className="p-5 border-t bg-gradient-to-r from-pink-50/50 to-white">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-pink-500 text-white uppercase tracking-wider">Surrogate</span>
-          </div>
+        {/* GC Section — compact */}
+        <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
           {gcCase ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <ProfileAvatar name={gcCase.name} size="lg" className="ring-2 ring-white shadow" />
-                <div className="flex-1 min-w-0">
-                  <Link to={`/surrogates/${gcCase.id}`} className="text-lg font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
-                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
-                    {gcCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{gcCase.location}</span>}
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  {gcCase.phone && (
-                    <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
-                      className={`gap-1.5 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                      asChild><a href={`sms:${gcCase.phone}`}><MessageSquare className="size-3.5" /> Text</a>
-                    </Button>
-                  )}
-                  <CopyFlipButton icon={Mail} label="Email" value={gcCase.email} flipped={gcFlip.email} onFlip={() => toggleGcFlip('email')} preferred={gcCase.preferredContact === 'Email'} />
-                  {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">GC</span>
+              <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
+              <div className="flex-1 min-w-0">
+                <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
+                <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
+                  {gcCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{gcCase.location}</span>}
+                  {gcCase.age && <span>Age {gcCase.age}</span>}
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
+                    <Heart className="size-3" />{gcFlip.relationship ? '—' : (gcCase.maritalStatus || '—')}
+                  </span>
                 </div>
               </div>
-              {/* GC info tiles — Age, Relationship, Address */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                <FlipCard flipped={gcFlip.age} onClick={() => toggleGcFlip('age')}
-                  front={{ icon: Calendar, label: 'Age', value: gcCase.age || '—' }}
-                  back={{ icon: Calendar, label: 'DOB', value: gcCase.dob || '—' }} />
-                <FlipCard flipped={gcFlip.relationship} onClick={() => toggleGcFlip('relationship')}
-                  front={{ icon: Heart, label: 'Relationship', value: gcCase.maritalStatus || '—' }}
-                  back={{ icon: Heart, label: 'Partner', value: '—' }} />
-                <AddressTile caseData={gcCase} />
+              <div className="flex gap-1.5 shrink-0">
+                {gcCase.phone && (
+                  <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
+                    className={`gap-1 rounded-full text-xs h-7 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                    asChild><a href={`sms:${gcCase.phone}`}><MessageSquare className="size-3" /> Text</a>
+                  </Button>
+                )}
+                <CopyFlipButton icon={Mail} label="Email" value={gcCase.email} flipped={gcFlip.email} onFlip={() => toggleGcFlip('email')} preferred={gcCase.preferredContact === 'Email'} />
+                {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
               </div>
             </div>
           ) : <p className="text-sm text-stone-400">GC case not found</p>}
         </div>
 
-        {/* IP Section — flip-card contacts like IP case */}
-        <div className="p-5 border-t bg-gradient-to-r from-[#283693]/5 to-white">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#283693] text-white uppercase tracking-wider">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</span>
-          </div>
+        {/* IP Section — compact */}
+        <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
           {ipCase ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <ProfileAvatar name={ipCase.names} size="lg" className="ring-2 ring-white shadow" />
-                <div className="flex-1 min-w-0">
-                  <Link to={`/intended-parents/${ipCase.id}`} className="text-lg font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
-                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
-                    {ipCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{ipCase.location}</span>}
-                    {ipCase.type && <span className="flex items-center gap-1"><Users className="size-3" />{ipCase.type}</span>}
-                  </div>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  {ipCase.phone && (
-                    <Button size="sm" className="gap-1.5 rounded-full" asChild>
-                      <a href={`sms:${ipCase.phone}`}><MessageSquare className="size-3.5" /> Text</a>
-                    </Button>
-                  )}
-                  <CopyFlipButton icon={Mail} label="Email" value={ipCase.email} flipped={ipFlip.email} onFlip={() => toggleIpFlip('email')} preferred={false} />
-                  {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
+            <div className="flex items-center gap-3">
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">IP</span>
+              <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
+              <div className="flex-1 min-w-0">
+                <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
+                <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
+                  {ipCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{ipCase.location}</span>}
+                  {ipCase.type && <span className="flex items-center gap-0.5"><Users className="size-3" />{ipCase.type}</span>}
+                  {ipCase.reDoctorName && <span className="flex items-center gap-0.5"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
+                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5"><Baby className="size-3" />{ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
                 </div>
               </div>
-              {/* IP info tiles — Type, RE Doctor, Embryos, Address */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
-                  <Stethoscope className="size-4 text-stone-300 mx-auto mb-1" />
-                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">RE Doctor</p>
-                  <p className="text-lg font-bold mt-0.5 text-stone-800 truncate">{ipCase.reDoctorName || '—'}</p>
-                </div>
-                <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center">
-                  <Baby className="size-4 text-stone-300 mx-auto mb-1" />
-                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Embryos</p>
-                  <p className="text-lg font-bold mt-0.5 text-stone-800">{ipCase.hasFrozenEmbryos ? (ipCase.frozenEmbryoDetails || 'Yes') : '—'}</p>
-                </div>
-                <AddressTile caseData={ipCase} />
+              <div className="flex gap-1.5 shrink-0">
+                {ipCase.phone && (
+                  <Button size="sm" className="gap-1 rounded-full text-xs h-7" asChild>
+                    <a href={`sms:${ipCase.phone}`}><MessageSquare className="size-3" /> Text</a>
+                  </Button>
+                )}
+                <CopyFlipButton icon={Mail} label="Email" value={ipCase.email} flipped={ipFlip.email} onFlip={() => toggleIpFlip('email')} preferred={false} />
+                {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
             </div>
           ) : <p className="text-sm text-stone-400">IP case not found</p>}
