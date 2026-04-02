@@ -547,6 +547,41 @@ export async function replaceTextInDoc(userId, docId, replacements) {
   }
 }
 
+/** Find text position within a Google Doc body */
+function findTextInDoc(doc, searchText) {
+  function searchElements(elements) {
+    for (const el of elements || []) {
+      if (el.paragraph) {
+        for (const pe of el.paragraph.elements || []) {
+          const text = pe.textRun?.content || ''
+          const idx = text.indexOf(searchText)
+          if (idx !== -1) return { startIndex: pe.startIndex + idx, endIndex: pe.startIndex + idx + searchText.length }
+        }
+      }
+      if (el.table) {
+        for (const row of el.table.tableRows || []) {
+          for (const cell of row.tableCells || []) {
+            const found = searchElements(cell.content)
+            if (found) return found
+          }
+        }
+      }
+    }
+    return null
+  }
+  return searchElements(doc.body?.content)
+}
+
+/** Get the role code for a signer */
+function getSignerRoleCode(role) {
+  const r = role?.toLowerCase() || ''
+  if (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2'))) return 'IP1'
+  if (r.includes('intended parent 2') || r.includes('ip2')) return 'IP2'
+  if (r.includes('admin') || r.includes('agency')) return 'Admin'
+  if (r.includes('partner')) return 'Partner'
+  return 'GC'
+}
+
 /** Copy a Google Doc, fill in fields, export as PDF, delete the copy */
 export async function generateSignedPdf(userId, templateDocId, fieldValues, signers) {
   const token = await getAccessToken(userId)
@@ -562,97 +597,224 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
   const copyId = copy.id
 
   try {
-    // 2. Build replacement map from field values and signer data
-    const replacements = {}
+    // 2. Build replacement map — keep signatures separate for special handling
+    const nonSigReplacements = {}
+    const signatureInfo = [] // { placeholders, signer }
 
-    // Replace fields from signer data — try multiple role code variations
     for (const signer of signers) {
-      const role = signer.role?.toLowerCase() || ''
-      const roleCodes = ['GC'] // default
-      if (role.includes('intended parent 1') || role.includes('ip1') || (role.includes('intended parent') && !role.includes('2'))) roleCodes[0] = 'IP1'
-      else if (role.includes('intended parent 2') || role.includes('ip2')) roleCodes[0] = 'IP2'
-      else if (role.includes('admin') || role.includes('agency')) roleCodes[0] = 'Admin'
-      else if (role.includes('partner')) roleCodes[0] = 'Partner'
-      else if (role.includes('surrogate') || role.includes('gc')) roleCodes[0] = 'GC'
+      const roleCode = getSignerRoleCode(signer.role)
+      const signDate = signer.signedAt
+        ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
 
-      for (const roleCode of roleCodes) {
-        const signName = signer.signatureName || signer.name || ''
-        const signDate = signer.signedAt
-          ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-          : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-        const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
+      // Role code variants including common typos
+      const variants = [roleCode, roleCode.toLowerCase()]
+      if (roleCode === 'Partner') variants.push('Parnter', 'parnter')
 
-        // Try exact case and lowercase versions
-        const pairs = [
-          [`{{Signature:${roleCode}}}`, signName],
-          [`{{Name:${roleCode}}}`, signer.name || ''],
-          [`{{Email:${roleCode}}}`, signer.email || ''],
-          [`{{Date:${roleCode}}}`, signDate],
-          [`{{Initials:${roleCode}}}`, initials],
-          [`{{Text:${roleCode}}}`, signer.name || ''],
-          [`{{Checkbox:${roleCode}}}`, '☑'],
-        ]
-        for (const [find, replace] of pairs) {
-          replacements[find] = replace
-          // Also try lowercase role
-          replacements[find.replace(`:${roleCode}`, `:${roleCode.toLowerCase()}`)] = replace
-        }
+      const sigPlaceholders = []
+      for (const rv of variants) {
+        nonSigReplacements[`{{Name:${rv}}}`] = signer.name || ''
+        nonSigReplacements[`{{Email:${rv}}}`] = signer.email || ''
+        nonSigReplacements[`{{Date:${rv}}}`] = signDate
+        nonSigReplacements[`{{Initials:${rv}}}`] = initials
+        nonSigReplacements[`{{Text:${rv}}}`] = signer.name || ''
+        nonSigReplacements[`{{Checkbox:${rv}}}`] = '☑'
+        sigPlaceholders.push(`{{Signature:${rv}}}`)
       }
+      signatureInfo.push({ placeholders: sigPlaceholders, signer })
     }
 
-    // 3. Replace all placeholders in the copy
-    await replaceTextInDoc(userId, copyId, replacements)
+    // 3. Replace non-signature fields first
+    await replaceTextInDoc(userId, copyId, nonSigReplacements)
 
-    // 4. Append audit trail page via Docs API
+    // 4. Handle signature fields — drawn images or styled handwriting text
     try {
-      const auditLines = [
-        '\n\n',
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        'ELECTRONIC SIGNATURE AUDIT TRAIL',
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        '',
-        `Document: ${signers[0]?.name ? 'Signed Document' : 'Document'}`,
-        `Completed: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'long' })}`,
-        '',
-      ]
-      for (const signer of signers) {
-        auditLines.push(`Signer: ${signer.name}`)
-        auditLines.push(`  Role: ${signer.role}`)
-        auditLines.push(`  Email: ${signer.email}`)
-        auditLines.push(`  Status: ${signer.status === 'signed' ? 'SIGNED' : 'Pending'}`)
-        if (signer.signedAt) auditLines.push(`  Signed: ${new Date(signer.signedAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'long' })}`)
-        auditLines.push(`  Signature Type: ${signer.signatureType === 'drawn' ? 'Hand-drawn' : 'Typed'}`)
-        if (signer.signatureName) auditLines.push(`  Signature: "${signer.signatureName}"`)
-        auditLines.push('')
+      // Upload drawn signature images to Supabase for public URLs
+      const { supabase: sb } = await import('./supabase')
+      const sigImageUrls = {}
+      for (const { signer } of signatureInfo) {
+        if (signer.signatureType === 'drawn' && signer.signatureImage && sb) {
+          try {
+            const base64 = signer.signatureImage.split(',')[1]
+            const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+            const blob = new Blob([bytes], { type: 'image/png' })
+            const path = `signatures/sig_${Date.now()}_${(signer.name || '').replace(/[^a-zA-Z0-9]/g, '_')}.png`
+            await sb.storage.from('esign-documents').upload(path, blob, { contentType: 'image/png' })
+            const { data } = sb.storage.from('esign-documents').getPublicUrl(path)
+            sigImageUrls[signer.email] = data.publicUrl
+          } catch (e) { console.error('Signature image upload failed:', e) }
+        }
       }
-      auditLines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-      auditLines.push('This document was electronically signed via ABC Surrogacy (app.abcsurrogacy.com)')
-      auditLines.push('in accordance with the ESIGN Act and UETA.')
-      auditLines.push('A tamper-proof audit trail has been recorded for each signature event.')
 
-      // Insert at end of document
-      // First get doc length
-      const docInfoRes = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+      // Read the document to find signature placeholder positions
+      const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const docInfo = await docInfoRes.json()
-      const endIndex = docInfo.body?.content?.slice(-1)?.[0]?.endIndex || 1
+      const docData = await docRes.json()
+
+      // Find positions of each signature placeholder
+      const sigPositions = []
+      for (const { placeholders, signer } of signatureInfo) {
+        for (const placeholder of placeholders) {
+          const pos = findTextInDoc(docData, placeholder)
+          if (pos) { sigPositions.push({ ...pos, signer, placeholder }); break }
+        }
+      }
+
+      // Process from end to start so index shifts don't affect earlier positions
+      sigPositions.sort((a, b) => b.startIndex - a.startIndex)
+
+      const requests = []
+      for (const pos of sigPositions) {
+        const { signer, startIndex, endIndex } = pos
+        const isDrawn = signer.signatureType === 'drawn' && sigImageUrls[signer.email]
+        const name = signer.signatureName || signer.name || ''
+
+        // Delete the placeholder text
+        requests.push({ deleteContentRange: { range: { startIndex, endIndex } } })
+
+        if (isDrawn) {
+          // Insert the hand-drawn signature image
+          requests.push({
+            insertInlineImage: {
+              location: { index: startIndex },
+              uri: sigImageUrls[signer.email],
+              objectSize: {
+                height: { magnitude: 30, unit: 'PT' },
+                width: { magnitude: 110, unit: 'PT' },
+              },
+            },
+          })
+        } else {
+          // Insert typed name with a handwriting-style font
+          requests.push({ insertText: { location: { index: startIndex }, text: name } })
+          if (name.length > 0) {
+            requests.push({
+              updateTextStyle: {
+                range: { startIndex, endIndex: startIndex + name.length },
+                textStyle: {
+                  weightedFontFamily: { fontFamily: 'Dancing Script' },
+                  fontSize: { magnitude: 14, unit: 'PT' },
+                  foregroundColor: { color: { rgbColor: { red: 0.05, green: 0.1, blue: 0.35 } } },
+                },
+                fields: 'weightedFontFamily,fontSize,foregroundColor',
+              },
+            })
+          }
+        }
+      }
+
+      if (requests.length > 0) {
+        const styleRes = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}:batchUpdate`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requests }),
+        })
+        if (!styleRes.ok) throw new Error('Signature styling batch failed')
+      }
+    } catch (sigErr) {
+      console.error('Signature styling failed, using plain text fallback:', sigErr)
+      const fallback = {}
+      for (const { placeholders, signer } of signatureInfo) {
+        const name = signer.signatureName || signer.name || ''
+        for (const p of placeholders) fallback[p] = name
+      }
+      await replaceTextInDoc(userId, copyId, fallback)
+    }
+
+    // 5. Append compact, styled audit trail on a new page
+    try {
+      // Insert page break first
+      const docInfo1 = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json())
+      const endIdx1 = docInfo1.body?.content?.slice(-1)?.[0]?.endIndex || 1
+
+      await fetch(`https://docs.googleapis.com/v1/documents/${copyId}:batchUpdate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [{ insertPageBreak: { location: { index: endIdx1 - 1 } } }],
+        }),
+      })
+
+      // Read doc again for new end index
+      const docInfo2 = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json())
+      const endIdx2 = docInfo2.body?.content?.slice(-1)?.[0]?.endIndex || 1
+
+      const completed = new Date().toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+      })
+
+      // Build compact audit trail text
+      const header = 'ELECTRONIC SIGNATURE CERTIFICATE'
+      const divider = '─────────────────────────────────────────────────────────────────'
+      const signerLines = signers.map(s => {
+        const signedAt = s.signedAt
+          ? new Date(s.signedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : '—'
+        const type = s.signatureType === 'drawn' ? 'Hand-drawn' : 'Typed'
+        return `✓  ${s.name}  ·  ${s.role}  ·  ${type}\n     ${s.email}  ·  ${signedAt}`
+      })
+
+      const auditText = [
+        '\n',
+        divider,
+        header,
+        `Completed: ${completed}`,
+        divider,
+        ...signerLines,
+        divider,
+        'Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA.',
+        'A tamper-proof audit trail has been recorded for each signature event.',
+      ].join('\n')
+
+      const insertIdx = endIdx2 - 1
+      const headerStart = insertIdx + auditText.indexOf(header)
+      const headerEnd = headerStart + header.length
 
       await fetch(`https://docs.googleapis.com/v1/documents/${copyId}:batchUpdate`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           requests: [
-            { insertText: { location: { index: endIndex - 1 }, text: auditLines.join('\n') } },
+            // Insert the audit trail text
+            { insertText: { location: { index: insertIdx }, text: auditText } },
+            // Style the entire audit trail: small, gray, clean font
+            {
+              updateTextStyle: {
+                range: { startIndex: insertIdx, endIndex: insertIdx + auditText.length },
+                textStyle: {
+                  fontSize: { magnitude: 8, unit: 'PT' },
+                  foregroundColor: { color: { rgbColor: { red: 0.35, green: 0.35, blue: 0.35 } } },
+                },
+                fields: 'fontSize,foregroundColor,bold',
+              },
+            },
+            // Style the header: slightly larger, bold, darker
+            {
+              updateTextStyle: {
+                range: { startIndex: headerStart, endIndex: headerEnd },
+                textStyle: {
+                  fontSize: { magnitude: 10, unit: 'PT' },
+                  bold: true,
+                  foregroundColor: { color: { rgbColor: { red: 0.15, green: 0.15, blue: 0.15 } } },
+                },
+                fields: 'fontSize,bold,foregroundColor',
+              },
+            },
           ],
         }),
       })
     } catch (auditErr) {
       console.error('Audit trail append failed:', auditErr)
-      // Continue — PDF will still be generated without audit trail
     }
 
-    // 5. Export as PDF
+    // 6. Export as PDF
     const pdfRes = await fetch(
       `https://www.googleapis.com/drive/v3/files/${copyId}/export?mimeType=application/pdf`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -660,7 +822,7 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
     if (!pdfRes.ok) throw new Error('Failed to export PDF')
     const pdfBlob = await pdfRes.blob()
 
-    // 6. Delete the temporary copy
+    // 7. Delete the temporary copy
     await fetch(`https://www.googleapis.com/drive/v3/files/${copyId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
