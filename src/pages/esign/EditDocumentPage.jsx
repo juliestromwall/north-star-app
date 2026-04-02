@@ -133,6 +133,7 @@ export default function EditDocumentPage() {
     const signers = []
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
+      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: '', status: 'pending' })
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
@@ -335,11 +336,11 @@ export default function EditDocumentPage() {
 
       {/* Send Dialog */}
       <Dialog open={showSend} onOpenChange={setShowSend}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Send "{docTitle}" for Signature</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Case Type</Label>
@@ -356,7 +357,20 @@ export default function EditDocumentPage() {
                 <SelectUI value={sendForm.caseId ? String(sendForm.caseId) : ''} onValueChange={v => handleCaseSelect(sendForm.caseType, v)}>
                   <SelectTriggerUI><SelectValueUI placeholder="Select case..." /></SelectTriggerUI>
                   <SelectContentUI>
-                    {caseOptions.map(c => <SelectItemUI key={c.id} value={String(c.id)}>{c.names || c.name}</SelectItemUI>)}
+                    {caseOptions.map(c => (
+                      <SelectItemUI key={c.id} value={String(c.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {(c.names || c.name || '?').charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-medium">{c.names || c.name}</span>
+                            <span className="text-stone-400 text-xs ml-1.5">{c.email || ''}</span>
+                            {c.assignedTo && <span className="text-stone-300 text-xs ml-1.5">· {c.assignedTo}</span>}
+                          </div>
+                        </div>
+                      </SelectItemUI>
+                    ))}
                   </SelectContentUI>
                 </SelectUI>
               </div>
@@ -379,7 +393,16 @@ export default function EditDocumentPage() {
                     <button onClick={() => removeSigner(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <Input placeholder="Role" value={s.role} onChange={e => updateSigner(i, 'role', e.target.value)} className="text-xs h-8" />
+                    <SelectUI value={s.role} onValueChange={v => updateSigner(i, 'role', v)}>
+                      <SelectTriggerUI className="text-xs h-8"><SelectValueUI placeholder="Role..." /></SelectTriggerUI>
+                      <SelectContentUI>
+                        <SelectItemUI value="Surrogate">Surrogate</SelectItemUI>
+                        <SelectItemUI value="Partner">Partner</SelectItemUI>
+                        <SelectItemUI value="Intended Parent 1">Intended Parent 1</SelectItemUI>
+                        <SelectItemUI value="Intended Parent 2">Intended Parent 2</SelectItemUI>
+                        <SelectItemUI value="Admin">Admin</SelectItemUI>
+                      </SelectContentUI>
+                    </SelectUI>
                     <Input placeholder="Name" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} className="text-xs h-8" />
                     <Input placeholder="Email" type="email" value={s.email} onChange={e => updateSigner(i, 'email', e.target.value)} className="text-xs h-8" />
                   </div>

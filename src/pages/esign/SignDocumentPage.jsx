@@ -188,11 +188,9 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
             case 'date':
               return <input key={i} type="text" value={val || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 readOnly className="inline-block w-[180px] text-sm border-b-2 border-green-300 bg-green-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
-            case 'initials': {
-              const defaultInit = signerName ? signerName.split(' ').map(w => w[0]).join('').toUpperCase() : ''
-              return <input key={i} type="text" value={val || defaultInit} onChange={e => onFieldChange(key, e.target.value)}
+            case 'initials':
+              return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder="Initials" maxLength={5} className="inline-block w-[80px] text-sm font-semibold text-center border-b-2 border-purple-300 bg-purple-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
-            }
             case 'checkbox':
               return <label key={i} className="inline-flex items-center gap-1.5 align-middle mx-0.5 cursor-pointer">
                 <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#283693]" />
@@ -293,8 +291,62 @@ export default function SignDocumentPage() {
     }
   }
 
+  // Check if all required fields for this signer are filled
+  function getIncompleteFields() {
+    if (!doc || !mySigner) return []
+    const meta = JSON.parse(doc.document_hash || '{}')
+    const fields = meta.fields || []
+    const signerRole = mySigner.role?.toLowerCase() || ''
+    const missing = []
+    let fieldIdx = 0
+
+    // Parse the HTML to find all fields (same order as DocumentWithFields)
+    const regex = /\{\{(\w+):(\w+)\}\}/g
+    let match
+    const htmlContent = docHtml || ''
+    while ((match = regex.exec(htmlContent)) !== null) {
+      const fieldType = match[1].toLowerCase()
+      const role = match[2].toLowerCase()
+      const fieldId = `field_${fieldIdx}`
+      fieldIdx++
+
+      // Check if this field belongs to this signer
+      const r = signerRole
+      const f = role
+      const isMyField = (f === 'gc' && (r.includes('surrogate') || r.includes('gc'))) ||
+        (f === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) ||
+        (f === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) ||
+        (f === 'admin' && (r.includes('admin') || r.includes('agency'))) ||
+        ((f === 'partner' || f === 'parnter') && r.includes('partner')) ||
+        (f === r)
+
+      if (!isMyField) continue
+
+      // Check if field has a value
+      if (fieldType === 'signature') {
+        if (!signatureValue?.name && !signatureValue?.image) missing.push('Signature')
+      } else if (fieldType === 'checkbox') {
+        // Checkboxes are optional
+      } else if (fieldType === 'date') {
+        // Date is auto-filled
+      } else {
+        const val = fieldValues[fieldId]
+        if (!val || !val.toString().trim()) {
+          const label = fieldType.charAt(0).toUpperCase() + fieldType.slice(1)
+          missing.push(label)
+        }
+      }
+    }
+    return [...new Set(missing)] // deduplicate
+  }
+
   async function handleSign() {
     if (!doc || !mySigner || !agreed) return
+    const incomplete = getIncompleteFields()
+    if (incomplete.length > 0) {
+      alert(`Please complete all required fields before signing:\n\n• ${incomplete.join('\n• ')}`)
+      return
+    }
     if (!signatureValue?.name && !signatureValue?.image) {
       alert('Please provide your signature.')
       return

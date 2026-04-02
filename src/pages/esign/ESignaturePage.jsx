@@ -21,6 +21,7 @@ import {
   createBlankTemplate, uploadLetterhead, getLetterhead,
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchMatchedJourneys } from '@/lib/matching'
 import { supabase } from '@/lib/supabase'
 import { getGoogleStatus, listTemplateDocs, getOrCreateTemplatesFolder } from '@/lib/google'
 
@@ -172,6 +173,7 @@ function DocumentsTab() {
   const [documents, setDocuments] = useState([])
   const [templates, setTemplates] = useState([])
   const [cases, setCases] = useState({ gc: [], ip: [] })
+  const [journeys, setJourneys] = useState([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [search, setSearch] = useState('')
@@ -189,10 +191,12 @@ function DocumentsTab() {
       fetchTemplates(),
       fetchSurrogatesFromIntake(),
       fetchIPsFromIntake(),
-    ]).then(([docs, tmpls, gcs, ips]) => {
+      fetchMatchedJourneys(),
+    ]).then(([docs, tmpls, gcs, ips, jrnys]) => {
       setDocuments(docs)
       setTemplates(tmpls)
       setCases({ gc: gcs, ip: ips })
+      setJourneys(jrnys || [])
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
@@ -201,6 +205,19 @@ function DocumentsTab() {
     const list = doc.case_type === 'ip' ? cases.ip : cases.gc
     const c = list.find(x => x.id === doc.case_id)
     return c ? (c.names || c.name || '—') : `#${doc.case_id}`
+  }
+
+  /** Get the link for a case — matched journey if exists, else individual case */
+  function getCaseLink(doc) {
+    if (!doc.case_id) return null
+    // Check if this case is part of a matched journey
+    const journey = journeys.find(j =>
+      (doc.case_type === 'gc' && j.gc_case_id === doc.case_id) ||
+      (doc.case_type === 'ip' && j.ip_case_id === doc.case_id)
+    )
+    if (journey) return `/journeys/${journey.id}`
+    // Fallback to individual case
+    return doc.case_type === 'ip' ? `/intended-parents/${doc.case_id}` : `/surrogates/${doc.case_id}`
   }
 
   async function handleCreate() {
@@ -256,6 +273,7 @@ function DocumentsTab() {
     const signers = []
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
+      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: '', status: 'pending' })
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
@@ -332,12 +350,21 @@ function DocumentsTab() {
                       </td>
                       <td className="px-4 py-3 text-stone-600">{getCaseName(doc)}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs font-medium">{signedCount}/{totalSigners} signed</span>
-                        <div className="flex gap-1 mt-1">
-                          {(doc.signers || []).map((s, i) => (
-                            <span key={i} title={`${s.name} (${s.role}) — ${s.status}`}
-                              className={`w-2 h-2 rounded-full ${s.status === 'signed' ? 'bg-emerald-500' : 'bg-stone-300'}`} />
-                          ))}
+                        <div className="space-y-0.5">
+                          {(doc.signers || []).map((s, si) => {
+                            const caseLink = getCaseLink(doc)
+                            return (
+                              <div key={si} className="flex items-center gap-1.5 text-xs">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${s.status === 'signed' ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+                                {caseLink ? (
+                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{s.name}</Link>
+                                ) : (
+                                  <span className="font-medium">{s.name}</span>
+                                )}
+                                <span className="text-stone-400">({s.role})</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={doc.status} /></td>
@@ -381,7 +408,7 @@ function DocumentsTab() {
 
       {/* New Document Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Send Document for Signature</DialogTitle>
           </DialogHeader>
@@ -418,7 +445,20 @@ function DocumentsTab() {
                 <SelectUI value={newDoc.caseId ? String(newDoc.caseId) : ''} onValueChange={v => handleCaseSelect(newDoc.caseType, v)}>
                   <SelectTriggerUI><SelectValueUI placeholder="Select case..." /></SelectTriggerUI>
                   <SelectContentUI>
-                    {caseOptions.map(c => <SelectItemUI key={c.id} value={String(c.id)}>{c.names || c.name}</SelectItemUI>)}
+                    {caseOptions.map(c => (
+                      <SelectItemUI key={c.id} value={String(c.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {(c.names || c.name || '?').charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-medium">{c.names || c.name}</span>
+                            <span className="text-stone-400 text-xs ml-1.5">{c.email || ''}</span>
+                            {c.assignedTo && <span className="text-stone-300 text-xs ml-1.5">· {c.assignedTo}</span>}
+                          </div>
+                        </div>
+                      </SelectItemUI>
+                    ))}
                   </SelectContentUI>
                 </SelectUI>
               </div>
@@ -442,7 +482,16 @@ function DocumentsTab() {
                     <button onClick={() => removeSigner(i)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <Input placeholder="Role" value={s.role} onChange={e => updateSigner(i, 'role', e.target.value)} className="text-xs h-8" />
+                    <SelectUI value={s.role} onValueChange={v => updateSigner(i, 'role', v)}>
+                      <SelectTriggerUI className="text-xs h-8"><SelectValueUI placeholder="Role..." /></SelectTriggerUI>
+                      <SelectContentUI>
+                        <SelectItemUI value="Surrogate">Surrogate</SelectItemUI>
+                        <SelectItemUI value="Partner">Partner</SelectItemUI>
+                        <SelectItemUI value="Intended Parent 1">Intended Parent 1</SelectItemUI>
+                        <SelectItemUI value="Intended Parent 2">Intended Parent 2</SelectItemUI>
+                        <SelectItemUI value="Admin">Admin</SelectItemUI>
+                      </SelectContentUI>
+                    </SelectUI>
                     <Input placeholder="Name" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} className="text-xs h-8" />
                     <Input placeholder="Email" type="email" value={s.email} onChange={e => updateSigner(i, 'email', e.target.value)} className="text-xs h-8" />
                   </div>
