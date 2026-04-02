@@ -282,15 +282,23 @@ export default function SignDocumentPage() {
           if (docEl) {
             // Clone and sanitize — html2pdf can't handle oklab/oklch colors
             const clone = docEl.cloneNode(true)
-            clone.innerHTML = clone.innerHTML.replace(/oklab\([^)]*\)/g, '#000000').replace(/oklch\([^)]*\)/g, '#000000')
-            // Also strip from inline styles
-            clone.querySelectorAll('[style]').forEach(el => {
-              el.style.cssText = el.style.cssText.replace(/oklab\([^)]*\)/g, '#000000').replace(/oklch\([^)]*\)/g, '#000000')
+            // Remove ALL oklab/oklch from the entire HTML including <style> blocks
+            const fullHtml = clone.innerHTML
+            const sanitized = fullHtml
+              .replace(/oklab\([^)]*\)/gi, '#000000')
+              .replace(/oklch\([^)]*\)/gi, '#000000')
+              .replace(/color-mix\([^)]*\)/gi, '#000000')
+              .replace(/lab\(\s*[\d.]+[^)]*\)/gi, '#000000')
+            clone.innerHTML = sanitized
+            // Also process computed styles
+            clone.querySelectorAll('style').forEach(styleEl => {
+              styleEl.textContent = styleEl.textContent
+                .replace(/oklab\([^)]*\)/gi, '#000000')
+                .replace(/oklch\([^)]*\)/gi, '#000000')
+                .replace(/color-mix\([^)]*\)/gi, '#000000')
             })
             document.body.appendChild(clone)
-            clone.style.position = 'absolute'
-            clone.style.left = '-9999px'
-            clone.style.width = '6.5in'
+            clone.style.cssText = 'position:absolute;left:-9999px;width:6.5in;background:#fff;'
 
             const html2pdf = (await import('html2pdf.js')).default
             const pdfBlob = await html2pdf().set({
