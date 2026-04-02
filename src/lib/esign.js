@@ -258,6 +258,30 @@ export async function signDocument(docId, signerEmail, signatureData) {
     allSigned,
   })
 
+  // Auto-file to case documents when all signers complete
+  if (allSigned && data.case_id) {
+    try {
+      const meta = JSON.parse(data.document_hash || '{}')
+      const pdfPath = meta.pdfPath || data.file_path
+      if (pdfPath) {
+        const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+        if (urlData?.publicUrl) {
+          await supabase.from('case_documents').insert({
+            surrogate_id: data.case_id,
+            category: 'E-Signature',
+            file_name: `${data.title || 'Signed Document'}.pdf`,
+            file_type: 'application/pdf',
+            storage_path: pdfPath,
+            public_url: urlData.publicUrl,
+            uploaded_by: 'System (E-Sign)',
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Auto-file to case documents failed:', e)
+    }
+  }
+
   return data
 }
 

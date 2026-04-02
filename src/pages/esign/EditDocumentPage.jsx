@@ -31,7 +31,7 @@ export default function EditDocumentPage() {
   // Send dialog
   const [showSend, setShowSend] = useState(false)
   const [sending, setSending] = useState(false)
-  const [sendForm, setSendForm] = useState({ caseType: '', caseId: '', signers: [] })
+  const [sendForm, setSendForm] = useState({ caseType: '', caseId: '', signers: [], note: '' })
   const [cases, setCases] = useState({ gc: [], ip: [] })
 
   // PDF download
@@ -236,7 +236,7 @@ export default function EditDocumentPage() {
                 <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a document to sign:</p>
                 <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   <p style="font-weight: 600; margin: 0;">${docTitle || 'Document'}</p>
-                  <p style="color: #666; font-size: 13px; margin: 4px 0 0;">Role: ${signer.role || 'Signer'}</p>
+                  ${sendForm.note ? `<p style="color: #444; font-size: 13px; margin: 8px 0 0; white-space: pre-line;">${sendForm.note}</p>` : ''}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
                   <a href="${signUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
@@ -384,6 +384,17 @@ export default function EditDocumentPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Note to Signer (optional)</Label>
+              <textarea
+                value={sendForm.note}
+                onChange={e => setSendForm(prev => ({ ...prev, note: e.target.value }))}
+                placeholder="Add a personal note that will appear in the email..."
+                rows={3}
+                className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+              />
             </div>
 
             <Button onClick={handleSend} disabled={sending || sendForm.signers.length === 0}

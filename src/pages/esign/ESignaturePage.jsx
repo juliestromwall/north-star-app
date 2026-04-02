@@ -21,6 +21,7 @@ import {
   createBlankTemplate, uploadLetterhead, getLetterhead,
 } from '@/lib/esign'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 import { getGoogleStatus, listTemplateDocs, getOrCreateTemplatesFolder } from '@/lib/google'
 
 const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
@@ -345,10 +346,24 @@ function DocumentsTab() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => {
+                            try {
+                              const meta = JSON.parse(doc.document_hash || '{}')
+                              const pdfPath = meta.pdfPath || doc.file_path
+                              if (pdfPath && supabase) {
+                                const { data } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+                                if (data?.publicUrl) window.open(data.publicUrl, '_blank')
+                              } else {
+                                alert('No PDF available for this document.')
+                              }
+                            } catch { alert('Could not load PDF.') }
+                          }}>
+                            <Download className="size-3" /> PDF
+                          </Button>
                           <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => showAudit(doc)}>
                             <Eye className="size-3" /> Audit
                           </Button>
-                          {doc.status === 'pending' && (
+                          {(doc.status === 'pending' || doc.status === 'partially_signed') && (
                             <Button variant="ghost" size="sm" className="text-xs gap-1 text-red-500" onClick={() => handleVoid(doc)}>
                               <XCircle className="size-3" /> Void
                             </Button>
