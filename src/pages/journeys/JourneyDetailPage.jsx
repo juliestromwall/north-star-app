@@ -349,6 +349,9 @@ export default function JourneyDetailPage() {
 
         {/* Journey Info — compact bar */}
         <div className="px-5 py-4 space-y-3">
+          {/* Top row: pills left + managers right */}
+          <div className="flex items-start gap-4">
+          <div className="flex-1 space-y-3">
           {/* Row 1: Stage/Status + toggles + pregnancy */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Stage selector */}
@@ -402,9 +405,8 @@ export default function JourneyDetailPage() {
             </button>
           </div>
 
-          {/* Row 2: Escrow + OB/Hospital + Managers on right */}
+          {/* Row 2: Escrow + OB/Hospital */}
           <div className="flex flex-wrap items-center gap-4 text-xs">
-            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="text-stone-400">Escrow Min:</span>
                 <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
@@ -428,45 +430,46 @@ export default function JourneyDetailPage() {
                 <span className="text-stone-400">Hospital:</span>
                 <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
               </div>
-            </div>
+          </div>
+          </div>
 
-            {/* Managers — stacked on right */}
-            <div className="ml-auto flex flex-col gap-0.5">
-              <div className="flex items-center gap-1.5">
-                <UserCog className="size-3.5 text-stone-400" />
-                <span className="text-[10px] text-stone-400">Case Manager</span>
-                <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
-                  const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
-                  if (updated) setJourney(updated)
-                }}>
-                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                  <SelectContentUI>
-                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
-                  </SelectContentUI>
-                </SelectUI>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Crown className="size-3.5 text-amber-500" />
-                <span className="text-[10px] text-stone-400">Journey Manager</span>
-                <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
-                  updateField('journeyManager', val === '_unassigned' ? '' : val)
-                }}>
-                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                  <SelectContentUI>
-                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
-                  </SelectContentUI>
-                </SelectUI>
-              </div>
+          {/* Managers — stacked, top right */}
+          <div className="shrink-0 flex flex-col gap-1 text-right">
+            <div className="flex items-center gap-1.5 justify-end">
+              <UserCog className="size-3.5 text-stone-400" />
+              <span className="text-[10px] text-stone-400">Case Manager</span>
+              <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
+                const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
+                if (updated) setJourney(updated)
+              }}>
+                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                  {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
             </div>
+            <div className="flex items-center gap-1.5 justify-end">
+              <Crown className="size-3.5 text-amber-500" />
+              <span className="text-[10px] text-stone-400">Journey Manager</span>
+              <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
+                updateField('journeyManager', val === '_unassigned' ? '' : val)
+              }}>
+                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                  {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
+            </div>
+          </div>
           </div>
         </div>
 
         {/* GC Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
           {gcCase ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">Surrogate</span>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
@@ -505,7 +508,7 @@ export default function JourneyDetailPage() {
         {/* IP Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
           {ipCase ? (
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
