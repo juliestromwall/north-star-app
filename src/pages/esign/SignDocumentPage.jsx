@@ -274,6 +274,49 @@ export default function SignDocumentPage() {
         fieldValues,
       }
       const updated = await signDocument(doc.id, mySigner.email, signatureData)
+
+      // If all signers done, generate a signed PDF from the rendered document
+      if (updated.status === 'completed' && updated.case_id) {
+        try {
+          const docEl = document.querySelector('.signing-doc')
+          if (docEl) {
+            const html2pdf = (await import('html2pdf.js')).default
+            const pdfBlob = await html2pdf().set({
+              margin: [54, 54, 54, 54],
+              image: { type: 'jpeg', quality: 0.95 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fff' },
+              jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
+            }).from(docEl).outputPdf('blob')
+
+            // Upload signed PDF
+            const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
+            if (supabase) {
+              const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(signedPath, pdfBlob, {
+                contentType: 'application/pdf',
+                cacheControl: '3600',
+              })
+              if (!uploadErr) {
+                // File to case documents
+                const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
+                if (urlData?.publicUrl) {
+                  await supabase.from('case_documents').insert({
+                    surrogate_id: updated.case_id,
+                    category: 'e-signature',
+                    file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
+                    file_type: 'application/pdf',
+                    storage_path: signedPath,
+                    public_url: urlData.publicUrl,
+                    uploaded_by: 'System (E-Sign)',
+                  })
+                }
+              }
+            }
+          }
+        } catch (pdfErr) {
+          console.error('Signed PDF generation failed:', pdfErr)
+        }
+      }
+
       setDoc(updated)
       setSigned(true)
     } catch (err) {
