@@ -322,7 +322,7 @@ export default function SignDocumentPage() {
         <Card className="max-w-lg rounded-2xl border-emerald-200 bg-emerald-50/30"><CardContent className="py-12 text-center space-y-4">
           <CheckCircle2 className="size-16 text-emerald-500 mx-auto" />
           <h2 className="text-2xl font-bold text-emerald-700">Document Signed</h2>
-          <p className="text-stone-600">{mySigner?.name || 'You'} signed on {mySigner?.signedAt ? new Date(mySigner.signedAt).toLocaleString() : 'just now'}.</p>
+          <p className="text-stone-600">Thank you! You can view a copy of this in your Documents.</p>
           <div className="flex items-center justify-center gap-2 text-xs text-stone-400 pt-4">
             <Shield className="size-3.5" /><span>Legally binding. Recorded with tamper-proof audit trail.</span>
           </div>
