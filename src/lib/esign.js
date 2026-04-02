@@ -268,7 +268,7 @@ export async function signDocument(docId, signerEmail, signatureData) {
         if (urlData?.publicUrl) {
           await supabase.from('case_documents').insert({
             surrogate_id: data.case_id,
-            category: 'E-Signature',
+            category: 'e-signature',
             file_name: `${data.title || 'Signed Document'}.pdf`,
             file_type: 'application/pdf',
             storage_path: pdfPath,

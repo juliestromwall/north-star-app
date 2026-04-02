@@ -1293,6 +1293,7 @@ const DOC_CATEGORIES = [
   { id: 'legal', label: 'Legal Documents', icon: FileText, color: '#723bb4' },
   { id: 'background-check', label: 'Background Check', icon: FileText, color: '#c4219a' },
   { id: 'psych-evaluation', label: 'Psych Evaluation', icon: FileText, color: '#4d3da4' },
+  { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
   { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
 ]
 
