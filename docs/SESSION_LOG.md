@@ -1,5 +1,68 @@
 # Session Log
 
+## 2026-04-01 / 2026-04-02 (Multi-Day Session — APIs + E-Signature)
+
+**Worked on:** Gmail API, Google Calendar API, SRFax API, E-Signature overhaul with Google Docs integration, floating compose email windows, Gmail signature, unread email badge
+
+**Changes made:**
+
+Google OAuth & APIs:
+- Google OAuth2 flow via Cloudflare Pages Functions (auth, callback, refresh, status, disconnect)
+- Token storage in Supabase google_tokens table
+- Gmail API: inbox, send with attachments, search, log to case, signature auto-insert
+- Google Calendar API: multi-calendar, create/edit/delete events, replaced mock calendar
+- SRFax API: send/receive/retrieve Cloudflare functions + client helpers + Fax page (awaiting credentials)
+- Google Drive API: list docs from ABC Templates folder, export as PDF, share publicly, copy docs
+- Connect/disconnect Google in Settings page
+
+Email (/email):
+- Gmail-style UI: folder sidebar (Inbox, Starred, Sent, Drafts, Spam, Trash + user labels)
+- Sender avatars, unread indicators, checkboxes for bulk actions
+- Bulk archive, trash, apply label
+- Floating compose windows (Gmail-style, bottom-right anchored)
+- Multiple simultaneous drafts with minimize/expand
+- Rich text toolbar (bold, italic, underline, strikethrough, colors, highlights, lists, links)
+- Gmail signature auto-inserted in compose/reply/forward
+- Save as Gmail draft on close
+- Case selector in compose to auto-log sent emails
+- Unread email count badge on sidebar nav (Primary tab count)
+- Emails tab on surrogate and IP detail pages showing logged emails
+
+Calendar (/calendar):
+- Rebuilt with Google Calendar API (replaced mock data)
+- Multi-calendar support, create/edit/delete events
+- Calendar selector sidebar with colored calendars
+
+Fax (/fax):
+- SRFax API integration (send with file upload, inbox/outbox, download, cover pages)
+- Awaiting SRFax credentials to go live
+
+E-Signature (major overhaul):
+- Evolved through multiple approaches: Tiptap editor → Google Docs iframe → final hybrid approach
+- Final approach: templates stored as Google Docs in "ABC Templates" Drive folder
+- Templates tab syncs from Google Drive, shows all docs with Edit & Send button
+- Edit page embeds Google Docs in iframe — full editing with toolbar, pagination, headers/footers
+- Send for Signature: exports PDF to Supabase, creates document record, emails signers via Gmail
+- Signing field placeholders: {{Signature:GC}}, {{Name:GC}}, {{Date:GC}}, {{Email:GC}}, {{Text:GC}}, {{Initials:GC}}, {{Checkbox:GC}}
+- Template delete fix (FK constraint + error surfacing)
+- Branded signature request email sent to signers with "Review & Sign Document" button
+- Download PDF button exports directly from Google Drive API
+
+**Next steps:**
+- Make /e-signature/:id signing page work without login (public route for signers)
+- Parse {{Field:Role}} placeholders and render as interactive form inputs on signing page
+- After all signers complete, save final PDF to case documents (e-sign folder)
+- Add ability to view sent document preview from Documents tab
+- Copy-on-edit flow: when editing a template for sending, copy it first so template stays clean
+- Clean up [Draft] copies from ABC Templates folder
+
+**Open questions:**
+- How should the signing page authenticate signers without an account? (email verification? link token?)
+- Should completed documents auto-file to the case documents, or require manual action?
+- Should there be email reminders for unsigned documents?
+
+---
+
 ## 2026-04-01 (Full Day Session)
 
 **Worked on:** Email bulk actions/counts/categories, Matching pipeline rebuild, Profile sharing, Journey detail page, Match creation, Match notes, Journey hero redesign, Application tab quiz editing

@@ -122,9 +122,9 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists, Google connect) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
-| E-Signature | /e-signature | admin+ | Built (templates, editor, send, sign, audit) |
-| E-Sign Edit | /e-signature/edit/:templateId | admin+ | Built (.docx→HTML editor, save, send) |
-| E-Sign Sign | /e-signature/:id | all | Built (type/draw signature, audit trail) |
+| E-Signature | /e-signature | admin+ | Built (Google Docs templates, send, sign, audit, email notifications) |
+| E-Sign Edit | /e-signature/edit/:templateId | admin+ | Built (Google Docs iframe editor, PDF export, send for signature) |
+| E-Sign Sign | /e-signature/:id | public | Built (type/draw signature, audit trail) — needs public route |
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
 | Fax | /fax | admin+ | Built (SRFax API, send/inbox/outbox, awaiting credentials) |

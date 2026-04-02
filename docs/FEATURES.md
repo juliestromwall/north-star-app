@@ -106,15 +106,17 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | Supabase Auth | Live |
 | Supabase Storage | Live (profile-photos, case-documents, esign-documents) |
 | Twilio SMS | Trial (send/receive via Cloudflare Pages Functions) |
-| Google OAuth2 | Live (Gmail + Calendar scopes, token storage in Supabase) |
-| Gmail API | Live (inbox, send with attachments, log to case) |
+| Google OAuth2 | Live (Gmail + Calendar + Drive scopes, token storage in Supabase) |
+| Gmail API | Live (inbox, send with attachments, log to case, signature, draft saving) |
 | Google Calendar API | Live (view/create/edit/delete events, multi-calendar) |
+| Google Drive API | Live (list/create/copy/export docs, ABC Templates folder sync) |
 | SRFax API | Ready (send/receive/retrieve, awaiting credentials) |
 
 ## Changelog
 
 | Date | Change |
 |------|--------|
+| 2026-04-02 | E-Signature: Google Docs iframe editing (full toolbar, pagination, headers/footers in-app), templates synced from Google Drive ABC Templates folder, signature request emails via Gmail API, signing field placeholders ({{Signature:GC}} etc.), PDF export from Drive, template delete fix. Email: Gmail-style floating compose with minimize/multi-draft/rich text/signature/draft saving, unread badge, bulk actions. Calendar: Google Calendar API integration. Fax: SRFax page ready. |
 | 2026-03-31 | E-Signature feature (template upload/edit/tag/delete, .docx→HTML editor, send for signature, type/draw signature, audit trail, HIPAA compliant). Admin profile UX overhaul (toggle buttons, dropdowns, checkboxes, currency). Photos section on admin profile tab (lightbox, hide/delete). Application tabs for GC (6 collapsible form sections with search) and IP (4 sections). Add IP button. IP detail redesign (hero tiles, stage/status selectors). Stage statuses split by GC/IP/Journey. Calendar Google-style with calendar selector sidebar. Dashboard OB records fix. |
 | 2026-03-31 | Google OAuth integration (Gmail + Calendar scopes, token storage, connect/disconnect in Settings). Email page (/email) with Gmail inbox, read, compose/send with attachments, search, log-to-case. Calendar page rebuilt with Google Calendar API (multi-calendar, create/edit/delete events). Fax page (/fax) with SRFax API (send with cover pages, inbox/outbox, download). Emails tab on surrogate & IP detail pages. Case emails Supabase table. Fax nav link added. |
 | 2026-03-30 | Babies Born page (/babies-born) with line chart, editable year data. Profile photo avatars on list/detail/topbar. Supabase migration for all localStorage stores (app_config table). Medical records: type badges, custom labels, deactivate-as-status, add records, dashboard popup fixes. Stage Statuses in admin settings with CRUD. Admin profile upsert fix. Number-driven pregnancy editing. |
