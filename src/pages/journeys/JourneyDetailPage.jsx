@@ -202,54 +202,18 @@ export default function JourneyDetailPage() {
     <div className="space-y-6">
       <Link to="/journeys" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to Journeys</Link>
 
-      {/* ─── Hero Section (Stacked) ─────────────────────────── */}
+      {/* ─── Hero Section ─────────────────────────────────── */}
       <div className="rounded-2xl border border-stone-200/80 bg-white overflow-hidden">
-        {/* GC Section */}
-        <div className="p-5 border-b bg-gradient-to-r from-pink-50/50 to-white">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-pink-500 text-white uppercase tracking-wider">Surrogate</span>
-          </div>
-          {gcCase ? (
-            <div className="flex items-center gap-4">
-              <ProfileAvatar name={gcCase.name} size="lg" />
-              <div className="flex-1 min-w-0">
-                <p className="text-lg font-heading font-bold">{gcCase.name}</p>
-                <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
-                  {gcCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{gcCase.location}</span>}
-                  {gcCase.age && <span>Age {gcCase.age}</span>}
-                  {gcCase.phone && <span className="flex items-center gap-1"><Phone className="size-3" />{gcCase.phone}</span>}
-                  {gcCase.email && <span className="flex items-center gap-1"><Mail className="size-3" />{gcCase.email}</span>}
-                </div>
-              </div>
-            </div>
-          ) : <p className="text-sm text-stone-400">GC case not found</p>}
-        </div>
 
-        {/* IP Section — purple gradient */}
-        <div className="p-5 border-b bg-gradient-to-r from-[#283693]/5 to-white">
-          <div className="flex items-center gap-1.5 mb-3">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#283693] text-white uppercase tracking-wider">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</span>
-          </div>
-          {ipCase ? (
-            <div className="flex items-center gap-4">
-              <ProfileAvatar name={ipCase.names} size="lg" />
-              <div className="flex-1 min-w-0">
-                <p className="text-lg font-heading font-bold">{ipCase.names}</p>
-                <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
-                  {ipCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{ipCase.location}</span>}
-                  {ipCase.type && <span className="flex items-center gap-1"><Users className="size-3" />{ipCase.type}</span>}
-                  {ipCase.reDoctorName && <span className="flex items-center gap-1"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
-                  {ipCase.email && <span className="flex items-center gap-1"><Mail className="size-3" />{ipCase.email}</span>}
-                </div>
-              </div>
-            </div>
-          ) : <p className="text-sm text-stone-400">IP case not found</p>}
-        </div>
-
-        {/* Journey Controls */}
+        {/* Journey Info — on top */}
         <div className="p-5 space-y-4">
-          {/* Stage + Status tiles (like GC/IP cases) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          {/* Tiles: Lost Wages, Pumping, Escrow Min, Escrow Balance, Stage, Status */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <EditableTile icon={Briefcase} label="Lost Wages" value={jd.lostWages} type="yesno" onSave={v => updateField('lostWages', v)} />
+            <EditableTile icon={Droplets} label="Pumping" value={jd.pumping} type="yesno" onSave={v => updateField('pumping', v)} />
+            <EditableTile icon={DollarSign} label="Escrow Min" value={jd.escrowMin} type="currency" onSave={v => updateField('escrowMin', v)} />
+            <EditableTile icon={DollarSign} label="Escrow Balance" value={jd.escrowBalance} type="currency" onSave={v => updateField('escrowBalance', v)} />
+
             {/* Stage tile */}
             <div className="relative">
               <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
@@ -259,7 +223,7 @@ export default function JourneyDetailPage() {
                 <p className="text-lg font-bold mt-0.5 leading-tight" style={{ color: stageObj.color }}>{stageObj.label}</p>
               </div>
               {stageOpen && (
-                <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2">
+                <div className="absolute z-30 top-full right-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2">
                   {JOURNEY_STAGES.map((stage, i) => (
                     <button key={stage.id} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStage(stage.id)}>
                       <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
@@ -279,7 +243,7 @@ export default function JourneyDetailPage() {
                 <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journey.status}</p>
               </div>
               {statusOpen && (
-                <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
+                <div className="absolute z-30 top-full right-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
                   {statuses.map(status => (
                     <button key={status} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStatus(status)}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
@@ -288,12 +252,6 @@ export default function JourneyDetailPage() {
                 </div>
               )}
             </div>
-
-            {/* Journey data tiles — click to edit */}
-            <EditableTile icon={Briefcase} label="Lost Wages" value={jd.lostWages} type="yesno" onSave={v => updateField('lostWages', v)} />
-            <EditableTile icon={Droplets} label="Pumping" value={jd.pumping} type="yesno" onSave={v => updateField('pumping', v)} />
-            <EditableTile icon={DollarSign} label="Escrow Min" value={jd.escrowMin} type="currency" onSave={v => updateField('escrowMin', v)} />
-            <EditableTile icon={DollarSign} label="Escrow Balance" value={jd.escrowBalance} type="currency" onSave={v => updateField('escrowBalance', v)} />
           </div>
 
           {/* Case Manager + Journey Manager */}
@@ -326,6 +284,116 @@ export default function JourneyDetailPage() {
               </SelectUI>
             </div>
           </div>
+        </div>
+
+        {/* GC Section — rich detail like surrogate case hero */}
+        <div className="p-5 border-t bg-gradient-to-r from-pink-50/50 to-white">
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-pink-500 text-white uppercase tracking-wider">Surrogate</span>
+          </div>
+          {gcCase ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <ProfileAvatar name={gcCase.name} size="lg" className="ring-2 ring-white shadow" />
+                <div className="flex-1 min-w-0">
+                  <Link to={`/surrogates/${gcCase.id}`} className="text-lg font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
+                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
+                    {gcCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{gcCase.location}</span>}
+                    {gcCase.age && <span>Age {gcCase.age}</span>}
+                    {gcCase.phone && <span className="flex items-center gap-1"><Phone className="size-3" />{gcCase.phone}</span>}
+                    {gcCase.email && <span className="flex items-center gap-1"><Mail className="size-3" />{gcCase.email}</span>}
+                    {gcCase.preferredContact && <span className="flex items-center gap-1 font-medium text-pink-600">Prefers {gcCase.preferredContact}</span>}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" className="gap-1.5 text-xs" asChild>
+                    <a href={gcCase.phone ? `sms:${gcCase.phone}` : '#'}><Phone className="size-3" /> Text</a>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" asChild>
+                    <a href={gcCase.email ? `mailto:${gcCase.email}` : '#'}><Mail className="size-3" /> Email</a>
+                  </Button>
+                </div>
+              </div>
+              {/* GC stat tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Age</p>
+                  <p className="text-base font-bold">{gcCase.age || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Height</p>
+                  <p className="text-base font-bold">{gcCase.heightFt ? `${gcCase.heightFt}'${gcCase.heightIn || 0}"` : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Weight</p>
+                  <p className="text-base font-bold">{gcCase.weightLbs ? `${gcCase.weightLbs} lbs` : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">BMI</p>
+                  <p className="text-base font-bold">{gcCase.bmi || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Relationship</p>
+                  <p className="text-base font-bold">{gcCase.maritalStatus || '—'}</p>
+                </div>
+              </div>
+            </div>
+          ) : <p className="text-sm text-stone-400">GC case not found</p>}
+        </div>
+
+        {/* IP Section — rich detail like IP case hero */}
+        <div className="p-5 border-t bg-gradient-to-r from-[#283693]/5 to-white">
+          <div className="flex items-center gap-1.5 mb-3">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#283693] text-white uppercase tracking-wider">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</span>
+          </div>
+          {ipCase ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <ProfileAvatar name={ipCase.names} size="lg" className="ring-2 ring-white shadow" />
+                <div className="flex-1 min-w-0">
+                  <Link to={`/intended-parents/${ipCase.id}`} className="text-lg font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
+                  <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
+                    {ipCase.location && <span className="flex items-center gap-1"><MapPin className="size-3" />{ipCase.location}</span>}
+                    {ipCase.type && <span className="flex items-center gap-1"><Users className="size-3" />{ipCase.type}</span>}
+                    {ipCase.reDoctorName && <span className="flex items-center gap-1"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
+                    {ipCase.email && <span className="flex items-center gap-1"><Mail className="size-3" />{ipCase.email}</span>}
+                    {ipCase.phone && <span className="flex items-center gap-1"><Phone className="size-3" />{ipCase.phone}</span>}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" className="gap-1.5 text-xs" asChild>
+                    <a href={ipCase.phone ? `sms:${ipCase.phone}` : '#'}><Phone className="size-3" /> Text</a>
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs" asChild>
+                    <a href={ipCase.email ? `mailto:${ipCase.email}` : '#'}><Mail className="size-3" /> Email</a>
+                  </Button>
+                </div>
+              </div>
+              {/* IP stat tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Type</p>
+                  <p className="text-base font-bold">{ipCase.type || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">RE Doctor</p>
+                  <p className="text-base font-bold truncate">{ipCase.reDoctorName || '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Embryos</p>
+                  <p className="text-base font-bold">{ipCase.hasFrozenEmbryos ? (ipCase.frozenEmbryoDetails || 'Yes') : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Egg Donor</p>
+                  <p className="text-base font-bold">{ipCase.usingEggDonor === true ? 'Yes' : ipCase.usingEggDonor === false ? 'No' : '—'}</p>
+                </div>
+                <div className="rounded-lg bg-white/80 border border-stone-100 p-2 text-center">
+                  <p className="text-[9px] text-stone-400 uppercase font-semibold">Sperm Donor</p>
+                  <p className="text-base font-bold">{ipCase.usingSpermDonor === true ? 'Yes' : ipCase.usingSpermDonor === false ? 'No' : '—'}</p>
+                </div>
+              </div>
+            </div>
+          ) : <p className="text-sm text-stone-400">IP case not found</p>}
         </div>
       </div>
 
