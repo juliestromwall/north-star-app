@@ -7,6 +7,7 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Highlight } from '@tiptap/extension-highlight'
 import { TextAlign } from '@tiptap/extension-text-align'
+import FontFamily from '@tiptap/extension-font-family'
 import { Table } from '@tiptap/extension-table'
 import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
@@ -415,6 +416,7 @@ export default function EditDocumentPage() {
       TextStyle,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      FontFamily,
       ResizableImage.configure({ inline: false, allowBase64: true }),
       SignField,
     ],
@@ -423,6 +425,15 @@ export default function EditDocumentPage() {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none',
       },
+      // Preserve rich formatting on paste from Google Docs / Word
+      transformPastedHTML(html) {
+        // Google Docs wraps content in <b> with style instead of <strong>,
+        // and uses inline styles heavily. Keep them.
+        return html
+      },
+    },
+    parseOptions: {
+      preserveWhitespace: 'full',
     },
   })
 
