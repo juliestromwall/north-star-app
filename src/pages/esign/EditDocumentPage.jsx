@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
   exportDocAsPdf, getDocPlainText, parseFieldPlaceholders,
-  shareDocPublicly, getAccessToken,
+  shareDocPublicly, getAccessToken, sendEmail,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -201,6 +201,44 @@ export default function EditDocumentPage() {
 
       // 4. Send
       await sendDocument(doc.id)
+
+      // 5. Email each signer with a link to sign
+      const signUrl = `${window.location.origin}/e-signature/${doc.id}`
+      for (const signer of sendForm.signers) {
+        if (!signer.email) continue
+        try {
+          await sendEmail(userId, {
+            to: signer.email,
+            subject: `Please sign: ${docTitle || 'Document'}`,
+            body: `
+              <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 180px;" />
+                </div>
+                <h2 style="color: #283693; margin-bottom: 8px;">Document Ready for Signature</h2>
+                <p>Hi ${signer.name || ''},</p>
+                <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a document to sign:</p>
+                <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="font-weight: 600; margin: 0;">${docTitle || 'Document'}</p>
+                  <p style="color: #666; font-size: 13px; margin: 4px 0 0;">Role: ${signer.role || 'Signer'}</p>
+                </div>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${signUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                    Review & Sign Document
+                  </a>
+                </div>
+                <p style="color: #888; font-size: 12px; margin-top: 24px;">
+                  This is a legally binding electronic signature request from Abundant Beginnings Company, LLC.
+                  If you have questions, please contact us at info@abcsurrogacy.com.
+                </p>
+              </div>
+            `,
+          })
+        } catch (emailErr) {
+          console.error('Failed to email signer:', signer.email, emailErr)
+        }
+      }
+
       navigate('/e-signature')
     } catch (err) {
       alert('Failed to send: ' + (err.message || 'Unknown error'))
