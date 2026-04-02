@@ -120,45 +120,171 @@ function useFormSection(ipId, answers, storageKey, initFn) {
   return { editing, saving, form, set, setForm, startEdit, handleSave, cancel: () => setEditing(false) }
 }
 
-// ── Intake Answers (read-only) ──────────────────────────
-function IntakeAnswersSection({ ip, search }) {
+// ── Intake Answers (editable) ───────────────────────────
+function IntakeAnswersSection({ ip, setIp, search }) {
   const a = ip.answers || {}
   const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
-  const fields = [
-    { label: 'IP1 First Name', value: a.primaryFirstName },
-    { label: 'IP1 Last Name', value: a.primaryLastName },
-    { label: 'Email', value: a.email },
-    { label: 'Phone', value: a.phone },
-    { label: 'Date of Birth', value: a.primaryDob },
-    { label: 'Country', value: a.country },
-    { label: 'City', value: a.city },
-    { label: 'State', value: a.stateProv },
-    { label: 'Has Partner', value: boolDisplay(a.hasPartner) },
-    ...(hasPartner ? [
-      { label: 'IP2 First Name', value: a.ip2FirstName },
-      { label: 'IP2 Last Name', value: a.ip2LastName },
-      { label: 'IP2 Email', value: a.ip2Email },
-      { label: 'IP2 Phone', value: a.ip2Phone },
-    ] : []),
-    { label: 'Has RE Doctor', value: boolDisplay(a.hasRE) },
-    { label: 'RE Doctor Name', value: a.reDoctorName },
-    { label: 'Frozen Embryos', value: boolDisplay(a.hasFrozenEmbryos) },
-    { label: 'Embryo Details', value: a.frozenEmbryoDetails },
-    { label: 'Using Egg Donor', value: boolDisplay(a.usingEggDonor) },
-    { label: 'Using Sperm Donor', value: boolDisplay(a.usingSpermDonor) },
-    { label: 'Wants Consultation', value: boolDisplay(a.wantsConsultation) },
-    { label: 'How They Heard', value: a.hearAboutUs },
-  ].filter(f => f.value !== undefined && f.value !== null && f.value !== '')
 
-  const filtered = search ? fields.filter(f => f.label.toLowerCase().includes(search) || String(f.value).toLowerCase().includes(search)) : fields
-  if (search && filtered.length === 0) return null
+  const INTAKE_FIELDS = [
+    { key: 'primaryFirstName', label: 'IP1 First Name' },
+    { key: 'primaryLastName', label: 'IP1 Last Name' },
+    { key: 'email', label: 'Email', type: 'email' },
+    { key: 'phone', label: 'Phone', type: 'tel' },
+    { key: 'primaryDob', label: 'Date of Birth', type: 'date' },
+    { key: 'country', label: 'Country' },
+    { key: 'city', label: 'City' },
+    { key: 'stateProv', label: 'State', type: 'select', options: US_STATES },
+    { key: 'hasPartner', label: 'Has Partner', type: 'yesno' },
+    ...(hasPartner ? [
+      { key: 'ip2FirstName', label: 'IP2 First Name' },
+      { key: 'ip2LastName', label: 'IP2 Last Name' },
+      { key: 'ip2Email', label: 'IP2 Email', type: 'email' },
+      { key: 'ip2Phone', label: 'IP2 Phone', type: 'tel' },
+      { key: 'ip2Dob', label: 'IP2 Date of Birth', type: 'date' },
+    ] : []),
+    { key: 'maritalStatus', label: 'Marital Status' },
+    { key: 'hasRE', label: 'Has RE Doctor', type: 'yesno' },
+    { key: 'reDoctorName', label: 'RE Doctor Name' },
+    { key: 'hasFrozenEmbryos', label: 'Frozen Embryos', type: 'yesno' },
+    { key: 'frozenEmbryoDetails', label: 'Embryo Details' },
+    { key: 'usingEggDonor', label: 'Using Egg Donor', type: 'yesno' },
+    { key: 'usingSpermDonor', label: 'Using Sperm Donor', type: 'yesno' },
+    { key: 'wantsConsultation', label: 'Wants Consultation', type: 'yesno' },
+    { key: 'hearAboutUs', label: 'How They Heard' },
+  ]
+
+  const allLabels = INTAKE_FIELDS.map(f => f.label.toLowerCase())
+  const hasMatch = search ? allLabels.some(l => l.includes(search)) || INTAKE_FIELDS.some(f => String(a[f.key] || '').toLowerCase().includes(search)) : true
+
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({})
+
+  function startEdit() {
+    const init = {}
+    for (const f of INTAKE_FIELDS) init[f.key] = a[f.key] ?? ''
+    setForm(init)
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      // Fetch fresh answers from DB
+      const { supabase } = await import('@/lib/supabase')
+      let currentAnswers = a
+      if (supabase) {
+        const { data } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
+        if (data?.answers) currentAnswers = data.answers
+      }
+      const merged = { ...currentAnswers, ...form }
+      const hp = form.hasPartner === true || form.hasPartner === 'yes'
+      const ip1Name = `${form.primaryFirstName || ''} ${form.primaryLastName || ''}`.trim()
+      const ip2Name = hp ? `${form.ip2FirstName || ''} ${form.ip2LastName || ''}`.trim() : ''
+      const displayName = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+
+      await updateIntakeSubmission(ip.id, {
+        answers: merged,
+        applicant_name: displayName || undefined,
+        applicant_email: (form.email || '').trim().toLowerCase() || undefined,
+        applicant_phone: form.phone || undefined,
+        state_region: form.stateProv || undefined,
+      })
+      setIp(prev => ({
+        ...prev,
+        names: displayName || prev.names,
+        ip1Name: ip1Name || prev.ip1Name,
+        ip2Name: ip2Name || prev.ip2Name,
+        email: form.email || prev.email,
+        phone: form.phone || prev.phone,
+        ip2Email: form.ip2Email || prev.ip2Email,
+        ip2Phone: form.ip2Phone || prev.ip2Phone,
+        location: [form.city, form.stateProv].filter(Boolean).join(', ') || prev.location,
+        type: hp ? 'Couple' : 'Single parent',
+        hasRE: form.hasRE,
+        reDoctorName: form.reDoctorName,
+        hasFrozenEmbryos: form.hasFrozenEmbryos,
+        frozenEmbryoDetails: form.frozenEmbryoDetails,
+        usingEggDonor: form.usingEggDonor,
+        usingSpermDonor: form.usingSpermDonor,
+        wantsConsultation: form.wantsConsultation,
+        hearAboutUs: form.hearAboutUs,
+        answers: merged,
+      }))
+      setEditing(false)
+    } catch (err) {
+      alert('Failed to save: ' + (err.message || ''))
+    } finally { setSaving(false) }
+  }
+
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
+  if (!hasMatch) return null
 
   return (
-    <FormSection title="Intake Answers" description="Answers from the intake form submission" defaultOpen={!search} searchMatch={true}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(f => <ReadField key={f.label} label={f.label} value={String(f.value)} />)}
-      </div>
-    </FormSection>
+    <Card className="rounded-2xl">
+      <CardHeader className={editing ? 'flex flex-row items-center justify-between' : 'cursor-pointer select-none'}>
+        <div>
+          <CardTitle className="text-base">Intake Answers</CardTitle>
+          <p className="text-xs text-muted-foreground">Answers from the intake form submission</p>
+        </div>
+        {editing ? (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+            </Button>
+          </div>
+        ) : (
+          <CardAction>
+            <Button variant="ghost" size="sm" className="gap-1" onClick={startEdit}>
+              <Pencil className="size-3.5" /> Edit
+            </Button>
+          </CardAction>
+        )}
+      </CardHeader>
+      <CardContent>
+        {editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {INTAKE_FIELDS.map(f => {
+              if (f.type === 'yesno') return (
+                <div key={f.key} className="space-y-1">
+                  <FieldLabel>{f.label}</FieldLabel>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <button type="button" onClick={() => set(f.key, true)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === true || form[f.key] === 'yes' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Yes</button>
+                    <button type="button" onClick={() => set(f.key, false)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${form[f.key] === false || form[f.key] === 'no' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>No</button>
+                  </div>
+                </div>
+              )
+              if (f.type === 'select') return (
+                <div key={f.key} className="space-y-1">
+                  <FieldLabel>{f.label}</FieldLabel>
+                  <SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={f.options} />
+                </div>
+              )
+              return (
+                <div key={f.key} className="space-y-1">
+                  <FieldLabel>{f.label}</FieldLabel>
+                  <Input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} />
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {INTAKE_FIELDS.map(f => {
+              const val = a[f.key]
+              if (val === undefined || val === null || val === '') return null
+              const display = f.type === 'yesno' ? boolDisplay(val) : String(val)
+              if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
+              return <ReadField key={f.key} label={f.label} value={display} />
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -402,7 +528,7 @@ export default function IPApplicationTab({ ip, setIp }) {
         />
       </div>
 
-      <IntakeAnswersSection ip={ip} search={searchLower} />
+      <IntakeAnswersSection ip={ip} setIp={setIp} search={searchLower} />
       <ContactInfoSection ip={ip} setIp={setIp} search={searchLower} />
       <ClinicSection ip={ip} setIp={setIp} search={searchLower} />
       <ReferencesSection ip={ip} setIp={setIp} search={searchLower} />
