@@ -280,13 +280,27 @@ export default function SignDocumentPage() {
         try {
           const docEl = document.querySelector('.signing-doc')
           if (docEl) {
+            // Clone and sanitize — html2pdf can't handle oklab/oklch colors
+            const clone = docEl.cloneNode(true)
+            clone.innerHTML = clone.innerHTML.replace(/oklab\([^)]*\)/g, '#000000').replace(/oklch\([^)]*\)/g, '#000000')
+            // Also strip from inline styles
+            clone.querySelectorAll('[style]').forEach(el => {
+              el.style.cssText = el.style.cssText.replace(/oklab\([^)]*\)/g, '#000000').replace(/oklch\([^)]*\)/g, '#000000')
+            })
+            document.body.appendChild(clone)
+            clone.style.position = 'absolute'
+            clone.style.left = '-9999px'
+            clone.style.width = '6.5in'
+
             const html2pdf = (await import('html2pdf.js')).default
             const pdfBlob = await html2pdf().set({
               margin: [54, 54, 54, 54],
               image: { type: 'jpeg', quality: 0.95 },
               html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fff' },
               jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
-            }).from(docEl).outputPdf('blob')
+            }).from(clone).outputPdf('blob')
+
+            document.body.removeChild(clone)
 
             // Upload signed PDF
             const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
