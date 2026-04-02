@@ -18,7 +18,7 @@ import {
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
-  const { id: googleDocId } = useParams()
+  const { templateId: googleDocId } = useParams()
   const navigate = useNavigate()
   const { currentUser } = useRole()
   const userId = currentUser?.id
