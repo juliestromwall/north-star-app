@@ -15,55 +15,82 @@ import { supabase } from '@/lib/supabase'
 function InlineSignaturePad({ value, onChange, signerName }) {
   const [mode, setMode] = useState('typed')
   const canvasRef = useRef(null)
-  const [isDrawing, setIsDrawing] = useState(false)
+  const drawingRef = useRef(false)
+
+  useEffect(() => {
+    // Track mouse on window so drawing continues outside canvas
+    function handleMove(e) {
+      if (!drawingRef.current) return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      const rect = canvas.getBoundingClientRect()
+      const x = Math.max(0, Math.min(canvas.width, (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left))
+      const y = Math.max(0, Math.min(canvas.height, (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top))
+      ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a1a2e'
+      ctx.lineTo(x, y)
+      ctx.stroke()
+    }
+    function handleUp() {
+      if (!drawingRef.current) return
+      drawingRef.current = false
+      if (canvasRef.current) onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+      window.removeEventListener('touchmove', handleMove)
+      window.removeEventListener('touchend', handleUp)
+    }
+  }, [onChange, signerName])
 
   function startDraw(e) {
+    e.preventDefault()
     const canvas = canvasRef.current
     if (!canvas) return
-    setIsDrawing(true)
+    drawingRef.current = true
     const ctx = canvas.getContext('2d')
     const rect = canvas.getBoundingClientRect()
+    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left
+    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top
     ctx.beginPath()
-    ctx.moveTo((e.clientX || e.touches?.[0]?.clientX) - rect.left, (e.clientY || e.touches?.[0]?.clientY) - rect.top)
-  }
-  function draw(e) {
-    if (!isDrawing) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const rect = canvas.getBoundingClientRect()
-    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
-    ctx.lineTo((e.clientX || e.touches?.[0]?.clientX) - rect.left, (e.clientY || e.touches?.[0]?.clientY) - rect.top)
-    ctx.stroke()
-  }
-  function endDraw() {
-    setIsDrawing(false)
-    if (canvasRef.current) onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
+    ctx.moveTo(x, y)
   }
 
   return (
-    <span className="inline-block align-middle my-1">
-      <span className="border-2 border-dashed border-pink-300 rounded-lg p-3 bg-pink-50/50 inline-block min-w-[280px]">
-        <span className="flex gap-1 mb-2">
-          <button onClick={() => setMode('typed')} className={`text-[10px] px-2 py-0.5 rounded font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600'}`}>Type</button>
-          <button onClick={() => setMode('drawn')} className={`text-[10px] px-2 py-0.5 rounded font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600'}`}>Draw</button>
+    <span className="inline-block align-middle my-2">
+      <span className="border-2 border-dashed border-[#283693]/30 rounded-xl p-4 bg-[#283693]/5 inline-block" style={{ minWidth: 340 }}>
+        <span className="flex gap-2 mb-3">
+          <button onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
+          <button onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
         </span>
         {mode === 'typed' ? (
           <span className="block">
             <input type="text" value={value?.name || ''} onChange={e => onChange({ type: 'typed', name: e.target.value })}
-              placeholder="Type your full legal name" className="w-full text-base border-b-2 border-stone-300 bg-transparent outline-none pb-1 font-serif italic" />
-            {value?.name && <span className="block text-xl font-serif italic text-[#1a1a2e] mt-2 text-center">{value.name}</span>}
+              placeholder="Type your full legal name" className="w-full text-lg border-b-2 border-[#283693]/30 bg-transparent outline-none pb-2 font-serif italic placeholder:not-italic placeholder:text-stone-300 placeholder:font-sans placeholder:text-sm" />
+            {value?.name && (
+              <span className="block text-2xl font-serif italic text-[#1a1a2e] mt-3 text-center py-2">{value.name}</span>
+            )}
           </span>
         ) : (
           <span className="block">
-            <span className="rounded border bg-white relative inline-block">
-              <canvas ref={canvasRef} width={260} height={80} className="cursor-crosshair touch-none"
-                onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-                onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} />
-              <span className="absolute bottom-0 left-2 right-2 h-px bg-stone-200" />
+            <span className="rounded-lg border-2 border-stone-200 bg-white relative block overflow-hidden" style={{ cursor: 'crosshair' }}>
+              <canvas ref={canvasRef} width={320} height={120} className="w-full touch-none block"
+                onMouseDown={startDraw}
+                onTouchStart={startDraw} />
+              <span className="absolute bottom-3 left-4 right-4 h-px bg-stone-200" />
+              <span className="absolute bottom-1 left-4 text-[9px] text-stone-300">Sign above this line</span>
             </span>
-            <button onClick={() => { canvasRef.current?.getContext('2d').clearRect(0, 0, 260, 80); onChange(null) }}
-              className="text-[10px] text-stone-400 hover:text-stone-600 mt-1 block">Clear</button>
+            <span className="flex justify-between mt-2">
+              <button onClick={() => {
+                const canvas = canvasRef.current;
+                if (canvas) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); onChange(null) }
+              }} className="text-xs text-stone-400 hover:text-red-500 transition-colors">Clear signature</button>
+            </span>
           </span>
         )}
       </span>

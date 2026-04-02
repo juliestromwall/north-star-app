@@ -15,6 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import TrackingTable from '@/components/shared/TrackingTable'
+import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
@@ -640,6 +641,7 @@ export default function JourneyDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="profiles">Profiles</TabsTrigger>
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
+          <TabsTrigger value="match-sheets">Match Sheets</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
@@ -711,6 +713,12 @@ export default function JourneyDetailPage() {
 
         <TabsContent value="checklist" className="mt-4">
           <JourneyChecklistTab journey={journey} onUpdate={async (updates) => {
+            const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
+            if (updated) setJourney(updated)
+          }} />
+        </TabsContent>
+        <TabsContent value="match-sheets" className="mt-4">
+          <MatchSheetsTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />

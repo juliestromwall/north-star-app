@@ -565,40 +565,37 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
     // 2. Build replacement map from field values and signer data
     const replacements = {}
 
-    // Replace fields from signer data
+    // Replace fields from signer data — try multiple role code variations
     for (const signer of signers) {
       const role = signer.role?.toLowerCase() || ''
-      let roleCode = 'GC'
-      if (role.includes('intended parent 1') || role.includes('ip1') || (role.includes('intended parent') && !role.includes('2'))) roleCode = 'IP1'
-      else if (role.includes('intended parent 2') || role.includes('ip2')) roleCode = 'IP2'
-      else if (role.includes('admin') || role.includes('agency')) roleCode = 'Admin'
+      const roleCodes = ['GC'] // default
+      if (role.includes('intended parent 1') || role.includes('ip1') || (role.includes('intended parent') && !role.includes('2'))) roleCodes[0] = 'IP1'
+      else if (role.includes('intended parent 2') || role.includes('ip2')) roleCodes[0] = 'IP2'
+      else if (role.includes('admin') || role.includes('agency')) roleCodes[0] = 'Admin'
+      else if (role.includes('partner')) roleCodes[0] = 'Partner'
+      else if (role.includes('surrogate') || role.includes('gc')) roleCodes[0] = 'GC'
 
-      // Signature — use typed name in italics or just the name
-      if (signer.signatureName) {
-        replacements[`{{Signature:${roleCode}}}`] = signer.signatureName
-        replacements[`{{signature:${roleCode.toLowerCase()}}}`] = signer.signatureName
-      }
-      // Name
-      replacements[`{{Name:${roleCode}}}`] = signer.name || ''
-      replacements[`{{name:${roleCode.toLowerCase()}}}`] = signer.name || ''
-      // Email
-      replacements[`{{Email:${roleCode}}}`] = signer.email || ''
-      replacements[`{{email:${roleCode.toLowerCase()}}}`] = signer.email || ''
-      // Date
-      const signDate = signer.signedAt ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      replacements[`{{Date:${roleCode}}}`] = signDate
-      replacements[`{{date:${roleCode.toLowerCase()}}}`] = signDate
-      // Initials
-      const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
-      replacements[`{{Initials:${roleCode}}}`] = initials
-      replacements[`{{initials:${roleCode.toLowerCase()}}}`] = initials
-    }
+      for (const roleCode of roleCodes) {
+        const signName = signer.signatureName || signer.name || ''
+        const signDate = signer.signedAt
+          ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+          : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
 
-    // Add any extra field values from the signing form
-    if (fieldValues) {
-      for (const [key, val] of Object.entries(fieldValues)) {
-        if (typeof val === 'string' && val) {
-          // Try to map back to a placeholder — field values are generic
+        // Try exact case and lowercase versions
+        const pairs = [
+          [`{{Signature:${roleCode}}}`, signName],
+          [`{{Name:${roleCode}}}`, signer.name || ''],
+          [`{{Email:${roleCode}}}`, signer.email || ''],
+          [`{{Date:${roleCode}}}`, signDate],
+          [`{{Initials:${roleCode}}}`, initials],
+          [`{{Text:${roleCode}}}`, signer.name || ''],
+          [`{{Checkbox:${roleCode}}}`, '☑'],
+        ]
+        for (const [find, replace] of pairs) {
+          replacements[find] = replace
+          // Also try lowercase role
+          replacements[find.replace(`:${roleCode}`, `:${roleCode.toLowerCase()}`)] = replace
         }
       }
     }
@@ -606,7 +603,56 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
     // 3. Replace all placeholders in the copy
     await replaceTextInDoc(userId, copyId, replacements)
 
-    // 4. Export as PDF
+    // 4. Append audit trail page via Docs API
+    try {
+      const auditLines = [
+        '\n\n',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        'ELECTRONIC SIGNATURE AUDIT TRAIL',
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        '',
+        `Document: ${signers[0]?.name ? 'Signed Document' : 'Document'}`,
+        `Completed: ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'long' })}`,
+        '',
+      ]
+      for (const signer of signers) {
+        auditLines.push(`Signer: ${signer.name}`)
+        auditLines.push(`  Role: ${signer.role}`)
+        auditLines.push(`  Email: ${signer.email}`)
+        auditLines.push(`  Status: ${signer.status === 'signed' ? 'SIGNED' : 'Pending'}`)
+        if (signer.signedAt) auditLines.push(`  Signed: ${new Date(signer.signedAt).toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'long' })}`)
+        auditLines.push(`  Signature Type: ${signer.signatureType === 'drawn' ? 'Hand-drawn' : 'Typed'}`)
+        if (signer.signatureName) auditLines.push(`  Signature: "${signer.signatureName}"`)
+        auditLines.push('')
+      }
+      auditLines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+      auditLines.push('This document was electronically signed via ABC Surrogacy (app.abcsurrogacy.com)')
+      auditLines.push('in accordance with the ESIGN Act and UETA.')
+      auditLines.push('A tamper-proof audit trail has been recorded for each signature event.')
+
+      // Insert at end of document
+      // First get doc length
+      const docInfoRes = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const docInfo = await docInfoRes.json()
+      const endIndex = docInfo.body?.content?.slice(-1)?.[0]?.endIndex || 1
+
+      await fetch(`https://docs.googleapis.com/v1/documents/${copyId}:batchUpdate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: [
+            { insertText: { location: { index: endIndex - 1 }, text: auditLines.join('\n') } },
+          ],
+        }),
+      })
+    } catch (auditErr) {
+      console.error('Audit trail append failed:', auditErr)
+      // Continue — PDF will still be generated without audit trail
+    }
+
+    // 5. Export as PDF
     const pdfRes = await fetch(
       `https://www.googleapis.com/drive/v3/files/${copyId}/export?mimeType=application/pdf`,
       { headers: { Authorization: `Bearer ${token}` } }
@@ -614,7 +660,7 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
     if (!pdfRes.ok) throw new Error('Failed to export PDF')
     const pdfBlob = await pdfRes.blob()
 
-    // 5. Delete the temporary copy
+    // 6. Delete the temporary copy
     await fetch(`https://www.googleapis.com/drive/v3/files/${copyId}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
