@@ -1,5 +1,49 @@
 # Session Log
 
+## 2026-04-02 (Continued — E-Signature Signing Page)
+
+**Worked on:** Public signing page, email notifications for signers, field placeholder rendering
+
+**Changes made:**
+
+Public Signing Page:
+- /e-signature/:id is now a public route (no login required)
+- Email verification gate: signer enters email to prove identity
+- Shows document title, sent date, signer progress
+- PDF preview via iframe if available
+- {{Field:Role}} placeholders rendered as form inputs (Name, Email, Date, Initials, Text, Checkbox)
+- Name/Email/Date fields auto-fill from signer data
+- Signature pad (type or draw)
+- Legal agreement checkbox with ESIGN/UETA language
+- Standalone branded page (ABC logo, no app chrome)
+- HIPAA notice and audit trail messaging
+
+Email Notifications:
+- Send for Signature now emails each signer via Gmail API
+- Branded HTML email with ABC logo, document title, signer role
+- "Review & Sign Document" button links to /e-signature/{docId}
+- Legal footer text
+
+Bug Fixes:
+- Fixed "insert(...).catch is not a function" — Supabase query builders don't support .catch(), wrapped in try/catch
+- Fixed undefined Google Doc ID in iframe (route param name mismatch: `id` vs `templateId`)
+- Removed Google Drive draft copies on send
+- Fixed audit log insert error
+
+**Next steps:**
+- After all signers complete, auto-save final PDF to case documents (create "E-Sign" folder)
+- Add document preview from Documents tab (view sent PDF)
+- Add email reminders for unsigned documents
+- Copy-on-edit: when editing template for sending, copy first so template stays clean
+- Handle case where signer has no fields — just show signature pad
+
+**Open questions:**
+- Should completed documents auto-file to case documents or require manual action?
+- Should there be automatic reminders for unsigned documents? If so, how often?
+- How should the copy-on-edit flow work? (Copy on load vs copy on send)
+
+---
+
 ## 2026-04-01 / 2026-04-02 (Multi-Day Session — APIs + E-Signature)
 
 **Worked on:** Gmail API, Google Calendar API, SRFax API, E-Signature overhaul with Google Docs integration, floating compose email windows, Gmail signature, unread email badge

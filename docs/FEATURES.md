@@ -52,6 +52,9 @@
 | EmailPage | src/pages/email/EmailPage.jsx | Gmail integration: inbox, read, compose/send with attachments, search, log to case |
 | FaxPage | src/pages/fax/FaxPage.jsx | SRFax integration: send fax with file upload, inbox/outbox, download received faxes, cover pages |
 | CaseEmailsTab | src/components/shared/CaseEmailsTab.jsx | Reusable tab showing logged emails for a case (used in surrogate & IP detail pages) |
+| SignDocumentPage | src/pages/esign/SignDocumentPage.jsx | Public signing page: email verification, PDF preview, {{Field:Role}} inputs, signature pad, ESIGN/UETA compliance |
+| ComposeWindows | src/components/shared/ComposeWindows.jsx | Gmail-style floating compose windows with minimize, multi-draft, rich text, signature, case logging |
+| DraftContext | src/context/DraftContext.jsx | React context for managing email draft state across pages |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
 
