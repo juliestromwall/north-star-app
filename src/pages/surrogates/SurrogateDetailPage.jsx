@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
+import { useDrafts } from '@/context/DraftContext'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import StatusBadge from '@/components/shared/StatusBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -470,8 +471,10 @@ function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUser
 export default function SurrogateDetailPage() {
   const { id } = useParams()
   const { currentUser } = useRole()
+  const { openDraft } = useDrafts()
   const [surrogate, setSurrogate] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [emailMenuOpen, setEmailMenuOpen] = useState(false)
   const [quizAnswers, setQuizAnswers] = useState(null)
   const [profileData, setProfileData] = useState(null)
   const [profileStatus, setProfileStatus] = useState('draft')
@@ -679,14 +682,33 @@ export default function SurrogateDetailPage() {
                   <MessageSquare className="size-3.5" /> Text
                 </Button>
               )}
-              <CopyFlipButton
-                icon={Mail}
-                label="Email"
-                value={surrogate.email}
-                flipped={flipped.email}
-                onFlip={() => toggleFlip('email')}
-                preferred={surrogate.preferredContact === 'Email'}
-              />
+              <div className="relative">
+                {surrogate.preferredContact === 'Email' ? (
+                  <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                    onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                    <Mail className="size-3.5" /> Email ★
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                    <Mail className="size-3.5" /> Email
+                  </Button>
+                )}
+                {emailMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setEmailMenuOpen(false)} />
+                    <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
+                      <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                        onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id }); setEmailMenuOpen(false) }}>
+                        <Mail className="size-3.5 text-[#283693]" /> Email {surrogate.name?.split(' ')[0]}
+                      </button>
+                      <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                        onClick={() => { navigator.clipboard.writeText(surrogate.email); setEmailMenuOpen(false) }}>
+                        <Copy className="size-3.5 text-stone-400" /> Copy Email Address
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               {surrogate.phone && (
                 <CopyFlipButton
                   icon={Phone}
