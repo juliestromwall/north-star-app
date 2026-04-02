@@ -10,6 +10,9 @@ import StageBadge from '@/components/shared/StageBadge'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { mockUsers } from '@/data/mock/users'
+
+const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
@@ -143,11 +146,27 @@ export default function MatchedJourneysPage() {
                     <StageBadge stage={j.stage} status={j.status} />
                     <ArrowRight className="size-4 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
+                  {/* Pregnancy + Escrow */}
+                  <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                    {j.journey_data?.pregnant === 'yes' && (
+                      <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
+                        🤰 {j.journey_data.dueDate ? `Due ${new Date(j.journey_data.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : 'Pregnant'}
+                      </span>
+                    )}
+                    {j.journey_data?.escrowBalance && (
+                      <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
+                        Escrow: {j.journey_data.escrowBalance}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3 text-[10px] text-stone-400">
+                    {j.assigned_to && (
+                      <span className="flex items-center gap-0.5"><Users className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || j.assigned_to}</span>
+                    )}
                     {j.journey_data?.journeyManager && (
                       <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
                     )}
-                    <span>Created {new Date(j.created_at).toLocaleDateString()}</span>
+                    <span className="ml-auto">{new Date(j.created_at).toLocaleDateString()}</span>
                   </div>
                 </CardContent>
               </Card>
