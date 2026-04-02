@@ -208,7 +208,7 @@ export default function EditDocumentPage() {
     )
   }
 
-  const embedUrl = `https://docs.google.com/document/d/${googleDocId}/edit?embedded=true`
+  const embedUrl = `https://docs.google.com/document/d/${googleDocId}/preview`
   const caseOptions = sendForm.caseType === 'ip' ? cases.ip : sendForm.caseType === 'gc' ? cases.gc : []
 
   return (
