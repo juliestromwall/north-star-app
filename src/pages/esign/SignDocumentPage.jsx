@@ -280,35 +280,42 @@ export default function SignDocumentPage() {
         try {
           const docEl = document.querySelector('.signing-doc')
           if (docEl) {
-            // Clone and sanitize — html2pdf can't handle oklab/oklch colors
-            const clone = docEl.cloneNode(true)
-            // Remove ALL oklab/oklch from the entire HTML including <style> blocks
-            const fullHtml = clone.innerHTML
-            const sanitized = fullHtml
-              .replace(/oklab\([^)]*\)/gi, '#000000')
-              .replace(/oklch\([^)]*\)/gi, '#000000')
-              .replace(/color-mix\([^)]*\)/gi, '#000000')
-              .replace(/lab\(\s*[\d.]+[^)]*\)/gi, '#000000')
-            clone.innerHTML = sanitized
-            // Also process computed styles
-            clone.querySelectorAll('style').forEach(styleEl => {
-              styleEl.textContent = styleEl.textContent
-                .replace(/oklab\([^)]*\)/gi, '#000000')
-                .replace(/oklch\([^)]*\)/gi, '#000000')
-                .replace(/color-mix\([^)]*\)/gi, '#000000')
+            const html2canvas = (await import('html2canvas')).default
+            const { jsPDF } = await import('jspdf')
+
+            // Capture the rendered document as an image
+            const canvas = await html2canvas(docEl, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
             })
-            document.body.appendChild(clone)
-            clone.style.cssText = 'position:absolute;left:-9999px;width:6.5in;background:#fff;'
 
-            const html2pdf = (await import('html2pdf.js')).default
-            const pdfBlob = await html2pdf().set({
-              margin: [54, 54, 54, 54],
-              image: { type: 'jpeg', quality: 0.95 },
-              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fff' },
-              jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
-            }).from(clone).outputPdf('blob')
+            // Create PDF from the captured image
+            const pageW = 612 // letter width in pts
+            const pageH = 792
+            const margin = 54
+            const contentW = pageW - margin * 2
+            const imgW = canvas.width
+            const imgH = canvas.height
+            const scale = contentW / (imgW / 2)
+            const scaledH = (imgH / 2) * scale
+            const usableH = pageH - margin * 2
+            const totalPages = Math.ceil(scaledH / usableH)
 
-            document.body.removeChild(clone)
+            const pdf = new jsPDF({ unit: 'pt', format: 'letter' })
+            for (let page = 0; page < totalPages; page++) {
+              if (page > 0) pdf.addPage()
+              const srcY = page * (usableH / scale) * 2
+              const srcH = Math.min((usableH / scale) * 2, imgH - srcY)
+              if (srcH <= 0) break
+              const sliceCanvas = document.createElement('canvas')
+              sliceCanvas.width = imgW
+              sliceCanvas.height = srcH
+              sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH)
+              pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, contentW, (srcH / 2) * scale)
+            }
+            const pdfBlob = pdf.output('blob')
 
             // Upload signed PDF
             const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
