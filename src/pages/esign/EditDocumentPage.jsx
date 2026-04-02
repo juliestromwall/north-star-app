@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Send, Loader2, FileText, Download, Plus, Trash2,
+  ArrowLeft, Send, Loader2, FileText, Download, Plus, Trash2, Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -230,6 +230,9 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-1.5" onClick={() => window.open(`https://docs.google.com/document/d/${googleDocId}/edit`, '_blank')}>
+            <Pencil className="size-4" /> Edit Document
+          </Button>
           <Button variant="outline" className="gap-1.5" onClick={handleDownloadPdf} disabled={downloading}>
             {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Download PDF
@@ -240,27 +243,23 @@ export default function EditDocumentPage() {
         </div>
       </div>
 
-      {/* Google Doc Editor */}
-      <div className="flex-1 rounded-2xl border shadow-sm overflow-hidden bg-white">
+      {/* Document Preview */}
+      <div className="flex-1 rounded-2xl border shadow-sm overflow-hidden bg-white flex flex-col">
         {shareError ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+          <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
             <FileText className="size-12 text-red-300 mb-4" />
             <p className="text-red-600 font-medium mb-2">Failed to load document</p>
             <p className="text-sm text-stone-500 mb-4">{shareError}</p>
-            <Button variant="outline" onClick={() => window.open(`https://docs.google.com/document/d/${googleDocId}/edit`, '_blank')}>
-              Open in Google Docs instead
-            </Button>
           </div>
         ) : !iframeReady ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center flex-1">
             <Loader2 className="size-6 animate-spin text-[#283693]" />
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/edit`}
-            className="w-full h-full border-0"
+            src={`https://docs.google.com/document/d/${googleDocId}/preview`}
+            className="w-full flex-1 border-0"
             title={docTitle}
-            allow="clipboard-read; clipboard-write"
           />
         )}
       </div>
