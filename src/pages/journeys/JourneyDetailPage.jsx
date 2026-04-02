@@ -19,6 +19,7 @@ import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch } from '@/lib/matching'
+import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
@@ -207,6 +208,94 @@ function calcGestationalWeeks(dueDate) {
   const days = Math.floor((diffMs % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
   if (weeks < 0 || weeks > 42) return null
   return `${weeks}w ${days}d`
+}
+
+// ── Checklist Tab ───────────────────────────────────────
+function JourneyChecklistTab({ journey, onUpdate }) {
+  const stageId = journey.stage || 'journey-oversight'
+  const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
+  const steps = getChecklistSteps('gc', stageId)
+  const milestones = getChecklistMilestones('gc', stageId)
+  const tracking = journey.journey_data?._checklistTracking || {}
+  const { currentUser } = useRole()
+
+  async function updateStep(stepId, status, note) {
+    const ct = { ...(journey.journey_data?._checklistTracking || {}) }
+    const existing = ct[stepId] || { status: 'not_started', history: [] }
+    existing.status = status
+    existing.history = [...(existing.history || []), { status, note: note || '', date: new Date().toISOString().split('T')[0], by: currentUser.name }]
+    ct[stepId] = existing
+    const jd = { ...(journey.journey_data || {}), _checklistTracking: ct }
+    await onUpdate({ journey_data: jd })
+  }
+
+  const completed = steps.filter(s => tracking[s.id]?.status === 'complete').length
+  const total = steps.length
+
+  return (
+    <div className="space-y-4">
+      <Card className="rounded-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="size-3 rounded-full" style={{ backgroundColor: stageObj.color }} />
+            {stageObj.label} Checklist
+            <span className="text-sm font-normal text-stone-400 ml-2">{completed}/{total} complete</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {steps.length === 0 ? (
+            <p className="text-sm text-stone-400 text-center py-6">No checklist steps configured for this stage. Go to Settings → Checklists → Matched Journeys.</p>
+          ) : (
+            <div className="space-y-1">
+              {steps.map(step => {
+                const t = tracking[step.id] || {}
+                const status = t.status || 'not_started'
+                const lastEntry = t.history?.length > 0 ? t.history[t.history.length - 1] : null
+                return (
+                  <div key={step.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${status === 'complete' ? 'bg-emerald-50/50 border-emerald-200' : 'border-stone-100 hover:bg-stone-50'}`}>
+                    <button onClick={() => updateStep(step.id, status === 'complete' ? 'not_started' : 'complete')}
+                      className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${status === 'complete' ? 'bg-emerald-500 border-emerald-500 text-white' : status === 'not_started' ? 'border-stone-300' : 'border-amber-400 bg-amber-50'}`}>
+                      {status === 'complete' && <Check className="size-3" />}
+                      {status !== 'complete' && status !== 'not_started' && <Clock className="size-3 text-amber-500" />}
+                    </button>
+                    <span className={`flex-1 text-sm ${status === 'complete' ? 'text-stone-400 line-through' : 'text-stone-700 font-medium'}`}>{step.label}</span>
+                    {/* Status selector */}
+                    <select value={status} onChange={e => updateStep(step.id, e.target.value)}
+                      className="text-[10px] text-stone-500 bg-transparent border border-stone-200 rounded px-1.5 py-0.5 cursor-pointer">
+                      {CHECKLIST_STEP_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                    {lastEntry && (
+                      <span className="text-[10px] text-stone-400">{lastEntry.date} · {lastEntry.by}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Milestones */}
+          {milestones.length > 0 && (
+            <div className="mt-4 pt-4 border-t space-y-2">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Milestones</p>
+              <div className="flex flex-wrap gap-2">
+                {milestones.map(ms => {
+                  const stepIds = ms.stepIds || []
+                  const allComplete = stepIds.length > 0 && stepIds.every(id => tracking[id]?.status === 'complete')
+                  const anyStarted = stepIds.some(id => tracking[id]?.status && tracking[id].status !== 'not_started')
+                  return (
+                    <div key={ms.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${allComplete ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : anyStarted ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-stone-50 border-stone-200 text-stone-500'}`}>
+                      {allComplete ? <Check className="size-3" /> : anyStarted ? <Clock className="size-3" /> : <Circle className="size-3" />}
+                      {ms.label}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 // ── Notes Tab ───────────────────────────────────────────
@@ -680,7 +769,12 @@ export default function JourneyDetailPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="checklist" className="mt-4"><EmptyState title="Journey Checklist" description="Unified checklist for the matched journey." /></TabsContent>
+        <TabsContent value="checklist" className="mt-4">
+          <JourneyChecklistTab journey={journey} onUpdate={async (updates) => {
+            const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
+            if (updated) setJourney(updated)
+          }} />
+        </TabsContent>
         <TabsContent value="documents" className="mt-4"><EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." /></TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">
