@@ -382,6 +382,9 @@ export default function EditDocumentPage() {
   const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
   const [preview, setPreview] = useState(false)
+  // Letterhead images (stored in public folder)
+  const headerImgUrl = '/abc-letterhead-header.png'
+  const footerImgUrl = '/abc-letterhead-footer.png'
   const [generatingPdf, setGeneratingPdf] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -591,10 +594,10 @@ export default function EditDocumentPage() {
               // Letter size in points: 612 x 792
               const pageW = 612
               const pageH = 792
-              const margin = 54 // 0.75in in points
+              const margin = 72 // 1in in points
               const contentW = pageW - margin * 2
               const contentH = pageH - margin * 2
-              const footerH = letterhead.footer ? 24 : 0
+              const footerH = footerImgUrl ? 24 : 0
               const usableH = contentH - footerH - 16 // space for footer + page number
 
               // Capture the editor content
@@ -622,12 +625,12 @@ export default function EditDocumentPage() {
 
               // Load footer image if available
               let footerImgData = null
-              if (letterhead.footer) {
+              if (footerImgUrl) {
                 try {
                   const fCanvas = document.createElement('canvas')
                   const fImg = new Image()
                   fImg.crossOrigin = 'anonymous'
-                  await new Promise((res, rej) => { fImg.onload = res; fImg.onerror = rej; fImg.src = letterhead.footer })
+                  await new Promise((res, rej) => { fImg.onload = res; fImg.onerror = rej; fImg.src = footerImgUrl })
                   fCanvas.width = fImg.naturalWidth
                   fCanvas.height = fImg.naturalHeight
                   fCanvas.getContext('2d').drawImage(fImg, 0, 0)
@@ -637,12 +640,12 @@ export default function EditDocumentPage() {
 
               // Load header image if available
               let headerImgData = null
-              if (letterhead.header) {
+              if (headerImgUrl) {
                 try {
                   const hCanvas = document.createElement('canvas')
                   const hImg = new Image()
                   hImg.crossOrigin = 'anonymous'
-                  await new Promise((res, rej) => { hImg.onload = res; hImg.onerror = rej; hImg.src = letterhead.header })
+                  await new Promise((res, rej) => { hImg.onload = res; hImg.onerror = rej; hImg.src = headerImgUrl })
                   hCanvas.width = hImg.naturalWidth
                   hCanvas.height = hImg.naturalHeight
                   hCanvas.getContext('2d').drawImage(hImg, 0, 0)
@@ -717,11 +720,6 @@ export default function EditDocumentPage() {
         .esign-editor-scroll {
           background: #d4d4d8;
           padding: 24px;
-        }
-        .esign-editor.has-letterhead .ProseMirror {
-          padding-top: 0.3in;
-          border-radius: 0 0 2px 2px;
-          margin-top: 0;
         }
         .esign-editor .ProseMirror {
           background: white;
@@ -816,13 +814,38 @@ export default function EditDocumentPage() {
         }
       `}</style>
 
-      {/* Editor — toolbar sticky, content scrolls */}
+      {/* Editor or Preview */}
       <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
-        <div className={`flex-1 overflow-y-auto esign-editor-scroll ${preview ? 'pointer-events-none' : ''}`}>
-          <div className={`esign-editor relative `}>
-            <EditorContent editor={editor} />
-          </div>
+        <div className="flex-1 overflow-y-auto esign-editor-scroll">
+          {preview ? (
+            /* Preview mode — read-only with header/footer */
+            <div style={{ padding: 24 }}>
+              {/* Page container */}
+              <div style={{ width: '8.5in', margin: '0 auto', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: 2, padding: '0.5in 1in 0.75in' }}>
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <img src={headerImgUrl} alt="Header" style={{ maxWidth: 220, height: 'auto' }} />
+                </div>
+                {/* Content */}
+                <div
+                  className="prose prose-sm max-w-none"
+                  style={{ minHeight: '8in' }}
+                  dangerouslySetInnerHTML={{ __html: editor?.getHTML() || '' }}
+                />
+                {/* Footer */}
+                <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 8 }}>
+                  <img src={footerImgUrl} alt="Footer" style={{ width: '100%', maxWidth: 500, height: 'auto' }} />
+                  <p style={{ fontSize: 11, color: '#71717a', marginTop: 4 }}>1</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Edit mode — clean editor */
+            <div className="esign-editor">
+              <EditorContent editor={editor} />
+            </div>
+          )}
         </div>
       </div>
 
