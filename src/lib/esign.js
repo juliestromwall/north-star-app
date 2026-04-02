@@ -115,7 +115,9 @@ export async function deleteTemplate(id, filePath) {
   // Remove any documents referencing this template first (FK constraint)
   await supabase.from('esign_documents').delete().eq('template_id', id)
   // Delete the file from storage
-  if (filePath) await supabase.storage.from(BUCKET).remove([filePath]).catch(() => {})
+  if (filePath) {
+    try { await supabase.storage.from(BUCKET).remove([filePath]) } catch {}
+  }
   // Delete the database record
   const { error } = await supabase.from('esign_templates').delete().eq('id', id)
   if (error) throw new Error(error.message)
@@ -263,15 +265,17 @@ export async function signDocument(docId, signerEmail, signatureData) {
 
 export async function logAuditEvent(documentId, action, actorName, actorEmail, details) {
   if (!supabase) return
-  await supabase.from('esign_audit_log').insert({
-    document_id: documentId,
-    action,
-    actor_name: actorName || '',
-    actor_email: actorEmail || '',
-    ip_address: '', // would need server-side for real IP
-    user_agent: navigator?.userAgent || '',
-    details: details || {},
-  }).catch(() => {})
+  try {
+    await supabase.from('esign_audit_log').insert({
+      document_id: documentId,
+      action,
+      actor_name: actorName || '',
+      actor_email: actorEmail || '',
+      ip_address: '',
+      user_agent: navigator?.userAgent || '',
+      details: details || {},
+    })
+  } catch {}
 }
 
 export async function fetchAuditLog(documentId) {
