@@ -523,6 +523,114 @@ export async function getDocAsHtml(userId, fileId) {
   return await res.text()
 }
 
+/** Replace text placeholders in a Google Doc via Docs API */
+export async function replaceTextInDoc(userId, docId, replacements) {
+  const token = await getAccessToken(userId)
+  const requests = Object.entries(replacements).map(([find, replace]) => ({
+    replaceAllText: {
+      containsText: { text: find, matchCase: false },
+      replaceText: replace || '',
+    },
+  }))
+  if (requests.length === 0) return
+  const res = await fetch(`https://docs.googleapis.com/v1/documents/${docId}:batchUpdate`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ requests }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || 'Failed to update document')
+  }
+}
+
+/** Copy a Google Doc, fill in fields, export as PDF, delete the copy */
+export async function generateSignedPdf(userId, templateDocId, fieldValues, signers) {
+  const token = await getAccessToken(userId)
+
+  // 1. Copy the template
+  const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${templateDocId}/copy`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: '[Temp Signed Copy]' }),
+  })
+  const copy = await copyRes.json()
+  if (!copyRes.ok) throw new Error(copy.error?.message || 'Failed to copy document')
+  const copyId = copy.id
+
+  try {
+    // 2. Build replacement map from field values and signer data
+    const replacements = {}
+
+    // Replace fields from signer data
+    for (const signer of signers) {
+      const role = signer.role?.toLowerCase() || ''
+      let roleCode = 'GC'
+      if (role.includes('intended parent 1') || role.includes('ip1') || (role.includes('intended parent') && !role.includes('2'))) roleCode = 'IP1'
+      else if (role.includes('intended parent 2') || role.includes('ip2')) roleCode = 'IP2'
+      else if (role.includes('admin') || role.includes('agency')) roleCode = 'Admin'
+
+      // Signature — use typed name in italics or just the name
+      if (signer.signatureName) {
+        replacements[`{{Signature:${roleCode}}}`] = signer.signatureName
+        replacements[`{{signature:${roleCode.toLowerCase()}}}`] = signer.signatureName
+      }
+      // Name
+      replacements[`{{Name:${roleCode}}}`] = signer.name || ''
+      replacements[`{{name:${roleCode.toLowerCase()}}}`] = signer.name || ''
+      // Email
+      replacements[`{{Email:${roleCode}}}`] = signer.email || ''
+      replacements[`{{email:${roleCode.toLowerCase()}}}`] = signer.email || ''
+      // Date
+      const signDate = signer.signedAt ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      replacements[`{{Date:${roleCode}}}`] = signDate
+      replacements[`{{date:${roleCode.toLowerCase()}}}`] = signDate
+      // Initials
+      const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
+      replacements[`{{Initials:${roleCode}}}`] = initials
+      replacements[`{{initials:${roleCode.toLowerCase()}}}`] = initials
+    }
+
+    // Add any extra field values from the signing form
+    if (fieldValues) {
+      for (const [key, val] of Object.entries(fieldValues)) {
+        if (typeof val === 'string' && val) {
+          // Try to map back to a placeholder — field values are generic
+        }
+      }
+    }
+
+    // 3. Replace all placeholders in the copy
+    await replaceTextInDoc(userId, copyId, replacements)
+
+    // 4. Export as PDF
+    const pdfRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${copyId}/export?mimeType=application/pdf`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+    if (!pdfRes.ok) throw new Error('Failed to export PDF')
+    const pdfBlob = await pdfRes.blob()
+
+    // 5. Delete the temporary copy
+    await fetch(`https://www.googleapis.com/drive/v3/files/${copyId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+
+    return pdfBlob
+  } catch (err) {
+    // Clean up copy on error
+    await fetch(`https://www.googleapis.com/drive/v3/files/${copyId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+    throw err
+  }
+}
+
 /** Make a Google Doc publicly viewable (for embedding) */
 export async function shareDocPublicly(userId, fileId) {
   const token = await getAccessToken(userId)

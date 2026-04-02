@@ -208,6 +208,7 @@ export default function EditDocumentPage() {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
             templateDocId: googleDocId,
+            adminUserId: userId,
             fields,
             pdfPath,
             htmlPath,

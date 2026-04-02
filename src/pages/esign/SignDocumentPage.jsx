@@ -276,117 +276,59 @@ export default function SignDocumentPage() {
       const updated = await signDocument(doc.id, mySigner.email, signatureData)
 
       // If all signers done, generate a signed PDF from the rendered document
-      // Generate signed PDF and file to case documents
+      // Generate signed PDF via Google Docs API and file to case
       if (updated.status === 'completed' && updated.case_id && supabase) {
         try {
-          // Build clean HTML with filled values — isolated from app CSS
-          let signedHtml = docHtml || ''
-          // Replace {{Field:Role}} with actual values
-          const allFieldValues = { ...fieldValues }
-          signedHtml = signedHtml.replace(/\{\{(\w+):(\w+)\}\}/g, (match, type, role) => {
-            const fieldIdx = Object.keys(allFieldValues).find(k => {
-              const v = allFieldValues[k]
-              return v !== undefined
+          const meta = JSON.parse(updated.document_hash || '{}')
+          const templateDocId = meta.templateDocId
+          const adminUserId = meta.adminUserId
+
+          if (templateDocId && adminUserId) {
+            // Use Google Docs API to generate a filled PDF
+            const { generateSignedPdf } = await import('@/lib/google')
+            const pdfBlob = await generateSignedPdf(adminUserId, templateDocId, signatureData.fieldValues, updated.signers)
+
+            // Upload signed PDF
+            const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
+            const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(signedPath, pdfBlob, {
+              contentType: 'application/pdf',
+              cacheControl: '3600',
             })
-            const t = type.toLowerCase()
-            // Find matching field value
-            for (const [key, val] of Object.entries(allFieldValues)) {
-              if (val !== undefined && val !== '') {
-                // Simple sequential match
-                delete allFieldValues[key]
-                if (t === 'signature' && signatureValue?.name) return `<em style="font-family:serif;font-size:24px;">${signatureValue.name}</em>`
-                if (t === 'signature' && signatureValue?.image) return `<img src="${signatureValue.image}" style="max-height:60px;" />`
-                if (t === 'checkbox') return val ? '☑' : '☐'
-                return String(val)
+            if (!uploadErr) {
+              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
+              if (urlData?.publicUrl) {
+                await supabase.from('case_documents').insert({
+                  surrogate_id: updated.case_id,
+                  category: 'e-signature',
+                  file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
+                  file_type: 'application/pdf',
+                  storage_path: signedPath,
+                  public_url: urlData.publicUrl,
+                  uploaded_by: 'System (E-Sign)',
+                })
               }
             }
-            return '_______________'
-          })
-
-          // Create isolated iframe for PDF generation
-          const iframe = document.createElement('iframe')
-          iframe.style.cssText = 'position:fixed;left:-9999px;width:8.5in;height:11in;border:none;'
-          document.body.appendChild(iframe)
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document
-          iframeDoc.open()
-          iframeDoc.write(`<!DOCTYPE html><html><head><style>
-            * { box-sizing: border-box; }
-            body { margin: 0; padding: 0.75in 1in; font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #000; background: #fff; }
-            p { margin: 0.4em 0; }
-            ul { list-style: disc; padding-left: 1.5em; }
-            ol { list-style: decimal; padding-left: 1.5em; }
-            li { margin: 0.3em 0; }
-            table { border-collapse: collapse; width: 100%; }
-            td, th { border: 1px solid #ddd; padding: 6px 10px; }
-            img { max-width: 100%; height: auto; }
-          </style></head><body>${signedHtml}</body></html>`)
-          iframeDoc.close()
-
-          // Wait for images to load
-          await new Promise(r => setTimeout(r, 500))
-
-          const html2canvas = (await import('html2canvas')).default
-          const { jsPDF } = await import('jspdf')
-
-          const canvas = await html2canvas(iframeDoc.body, {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            width: iframeDoc.body.scrollWidth,
-            height: iframeDoc.body.scrollHeight,
-          })
-
-          document.body.removeChild(iframe)
-
-          const pageW = 612
-          const pageH = 792
-          const margin = 54
-          const contentW = pageW - margin * 2
-          const imgW = canvas.width
-          const imgH = canvas.height
-          const scale = contentW / (imgW / 2)
-          const scaledH = (imgH / 2) * scale
-          const usableH = pageH - margin * 2
-          const totalPages = Math.ceil(scaledH / usableH)
-
-          const pdf = new jsPDF({ unit: 'pt', format: 'letter' })
-          for (let page = 0; page < totalPages; page++) {
-            if (page > 0) pdf.addPage()
-            const srcY = page * (usableH / scale) * 2
-            const srcH = Math.min((usableH / scale) * 2, imgH - srcY)
-            if (srcH <= 0) break
-            const sliceCanvas = document.createElement('canvas')
-            sliceCanvas.width = imgW
-            sliceCanvas.height = srcH
-            sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH)
-            pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, contentW, (srcH / 2) * scale)
-          }
-          const pdfBlob = pdf.output('blob')
-
-          // Upload and file
-          const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
-          const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(signedPath, pdfBlob, {
-            contentType: 'application/pdf',
-            cacheControl: '3600',
-          })
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
-            if (urlData?.publicUrl) {
-              await supabase.from('case_documents').insert({
-                surrogate_id: updated.case_id,
-                category: 'e-signature',
-                file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
-                file_type: 'application/pdf',
-                storage_path: signedPath,
-                public_url: urlData.publicUrl,
-                uploaded_by: 'System (E-Sign)',
-              })
+          } else {
+            // Fallback: file the sent PDF
+            const pdfPath = meta.pdfPath || updated.file_path
+            if (pdfPath) {
+              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+              if (urlData?.publicUrl) {
+                await supabase.from('case_documents').insert({
+                  surrogate_id: updated.case_id,
+                  category: 'e-signature',
+                  file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
+                  file_type: 'application/pdf',
+                  storage_path: pdfPath,
+                  public_url: urlData.publicUrl,
+                  uploaded_by: 'System (E-Sign)',
+                })
+              }
             }
           }
         } catch (pdfErr) {
           console.error('Signed PDF generation failed:', pdfErr)
-          // Fallback: file the sent PDF instead
+          // Last resort fallback
           try {
             const meta = JSON.parse(updated.document_hash || '{}')
             const pdfPath = meta.pdfPath || updated.file_path
