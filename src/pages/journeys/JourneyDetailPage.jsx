@@ -402,37 +402,13 @@ export default function JourneyDetailPage() {
             </button>
           </div>
 
-          {/* Row 2: Escrow + OB/Hospital + Managers stacked */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="text-stone-400">Escrow Min:</span>
-              <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-stone-400">Balance:</span>
-              <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
-                className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
-            </div>
-            {jd.pregnant === 'yes' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Due:</span>
-                <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <span className="text-stone-400">OB Clinic:</span>
-              <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-stone-400">Hospital:</span>
-              <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
-            </div>
-
-            {/* Managers — stacked on right */}
-            <div className="ml-auto flex flex-col gap-0.5">
+          {/* Row 2: Managers + Escrow + OB/Hospital */}
+          <div className="flex flex-wrap items-start gap-4 text-xs">
+            {/* Managers — stacked, left-aligned higher */}
+            <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
                 <UserCog className="size-3.5 text-stone-400" />
-                <span className="text-[10px] text-stone-400">CM</span>
+                <span className="text-[10px] text-stone-400">Case Manager</span>
                 <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
                   const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
                   if (updated) setJourney(updated)
@@ -446,7 +422,7 @@ export default function JourneyDetailPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Crown className="size-3.5 text-amber-500" />
-                <span className="text-[10px] text-stone-400">JM</span>
+                <span className="text-[10px] text-stone-400">Journey Manager</span>
                 <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
                   updateField('journeyManager', val === '_unassigned' ? '' : val)
                 }}>
@@ -458,6 +434,34 @@ export default function JourneyDetailPage() {
                 </SelectUI>
               </div>
             </div>
+
+            <div className="w-px h-8 bg-stone-200" />
+
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Escrow Min:</span>
+                <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Balance:</span>
+                <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
+                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
+              </div>
+              {jd.pregnant === 'yes' && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-stone-400">Due:</span>
+                  <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">OB Clinic:</span>
+                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Hospital:</span>
+                <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -465,15 +469,22 @@ export default function JourneyDetailPage() {
         <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
           {gcCase ? (
             <div className="flex items-center gap-3">
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">GC</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">Surrogate</span>
               <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
                 <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
                 <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
                   {gcCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{gcCase.location}</span>}
-                  {gcCase.age && <span>Age {gcCase.age}</span>}
+                  {gcCase.age && (
+                    <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
+                      {gcFlip.age ? `DOB: ${gcCase.dob || '—'}` : `Age ${gcCase.age}`}
+                    </span>
+                  )}
                   <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
                     <Heart className="size-3" />{gcFlip.relationship ? '—' : (gcCase.maritalStatus || '—')}
+                  </span>
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => { const a = gcCase.answers || {}; const addr = [a.city, a.state].filter(Boolean).join(', ') || gcCase.location; navigator.clipboard.writeText(addr) }} title="Click to copy address">
+                    <Home className="size-3" />{gcCase.location || '—'}
                   </span>
                 </div>
               </div>
@@ -495,15 +506,27 @@ export default function JourneyDetailPage() {
         <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
           {ipCase ? (
             <div className="flex items-center gap-3">
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">IP</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
               <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
                 <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
                 <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
                   {ipCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{ipCase.location}</span>}
-                  {ipCase.type && <span className="flex items-center gap-0.5"><Users className="size-3" />{ipCase.type}</span>}
+                  {ipCase.age && (
+                    <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
+                      {ipFlip.age ? `DOB: ${ipCase.answers?.primaryDob || '—'}` : `Age ${ipCase.age}`}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-0.5">
+                    <Heart className="size-3" />{ipCase.answers?.maritalStatus || '—'}
+                  </span>
                   {ipCase.reDoctorName && <span className="flex items-center gap-0.5"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
-                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5"><Baby className="size-3" />{ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
+                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5">🧬 {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
+                  {ipCase.usingEggDonor && <span>🥚 Egg Donor</span>}
+                  {ipCase.usingSpermDonor && <span>🧪 Sperm Donor</span>}
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => { const a = ipCase.answers || {}; const addr = [a.city, a.stateProv].filter(Boolean).join(', ') || ipCase.location; navigator.clipboard.writeText(addr) }} title="Click to copy address">
+                    <Home className="size-3" />{ipCase.location || '—'}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-1.5 shrink-0">
