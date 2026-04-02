@@ -466,11 +466,11 @@ export default function JourneyDetailPage() {
           </div>
         </div>
 
-        {/* GC Section — compact */}
-        <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
+        {/* GC Section */}
+        <div className="px-5 py-4 border-t" style={{ backgroundColor: '#ed148c08' }}>
           {gcCase ? (
-            <div className="space-y-3">
-              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-pink-500 text-white uppercase tracking-wide">Surrogate</span>
+            <div className="space-y-0">
+              <p className="text-[11px] font-semibold text-pink-400 uppercase tracking-widest mb-2">Surrogate</p>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
@@ -505,11 +505,11 @@ export default function JourneyDetailPage() {
           ) : <p className="text-sm text-stone-400">GC case not found</p>}
         </div>
 
-        {/* IP Section — compact */}
-        <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
+        {/* IP Section */}
+        <div className="px-5 py-4 border-t" style={{ backgroundColor: '#28369308' }}>
           {ipCase ? (
-            <div className="space-y-3">
-              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-[#283693] text-white uppercase tracking-wide">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
+            <div className="space-y-0">
+              <p className="text-[11px] font-semibold text-[#283693]/50 uppercase tracking-widest mb-2">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
