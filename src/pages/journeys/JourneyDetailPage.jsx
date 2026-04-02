@@ -90,6 +90,35 @@ function EditableTile({ icon: Icon, label, value, type, onSave, valueColor }) {
   )
 }
 
+// ── Inline Editable Field ───────────────────────────────
+function EditableTileInline({ value, onSave, type = 'text', placeholder = 'Set...', className = '' }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(value)
+
+  if (editing) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        {type === 'currency' ? (
+          <CurrencyInput value={val} onChange={setVal} className="w-24 h-6 text-[11px]" />
+        ) : type === 'date' ? (
+          <Input type="date" value={val || ''} onChange={e => setVal(e.target.value)} className="h-6 text-[11px] w-32" />
+        ) : (
+          <Input value={val || ''} onChange={e => setVal(e.target.value)} className="h-6 text-[11px] w-28" placeholder={placeholder} />
+        )}
+        <button onClick={() => { onSave(val); setEditing(false) }} className="text-[#283693]"><Check className="size-3" /></button>
+        <button onClick={() => setEditing(false)} className="text-stone-400"><X className="size-3" /></button>
+      </span>
+    )
+  }
+
+  return (
+    <button onClick={() => { setVal(value); setEditing(true) }}
+      className={`font-semibold hover:underline cursor-pointer ${className || 'text-stone-800'}`}>
+      {value || <span className="text-stone-300 font-normal">{placeholder}</span>}
+    </button>
+  )
+}
+
 // ── Copy Flip Button (contact) ──────────────────────────
 function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }) {
   const [copied, setCopied] = useState(false)
@@ -318,51 +347,19 @@ export default function JourneyDetailPage() {
       {/* ─── Hero Section ─────────────────────────────────── */}
       <div className="rounded-2xl border border-stone-200/80 bg-white overflow-hidden">
 
-        {/* Journey Info — on top */}
-        <div className="p-5 space-y-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {/* Pumping + Lost Wages stacked (half height each) */}
-            <div className="flex flex-col gap-1.5">
-              <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-2 text-center cursor-pointer hover:border-stone-300 transition-all flex-1"
-                onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')}>
-                <p className="text-[8px] text-stone-400 uppercase tracking-wider font-semibold">Lost Wages</p>
-                <p className="text-sm font-bold text-stone-800">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</p>
-              </div>
-              <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-2 text-center cursor-pointer hover:border-stone-300 transition-all flex-1"
-                onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')}>
-                <p className="text-[8px] text-stone-400 uppercase tracking-wider font-semibold">Pumping</p>
-                <p className="text-sm font-bold text-stone-800">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</p>
-              </div>
-            </div>
-
-            <EditableTile icon={DollarSign} label="Escrow Min" value={jd.escrowMin} type="currency" onSave={v => updateField('escrowMin', v)} />
-            <EditableTile icon={DollarSign} label="Escrow Balance" value={jd.escrowBalance} type="currency" onSave={v => updateField('escrowBalance', v)}
-              valueColor={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : undefined} />
-
-            {/* Pregnancy Status */}
-            <EditableTile icon={Baby} label={jd.pregnant === 'yes' && jd.dueDate ? `${calcGestationalWeeks(jd.dueDate) || '—'}` : 'Pregnancy'} value={jd.pregnant === 'yes' ? (jd.dueDate ? `Due ${new Date(jd.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Pregnant') : (jd.pregnant === 'no' ? 'Not Pregnant' : '—')} type="yesno" onSave={v => updateField('pregnant', v)} />
-            {jd.pregnant === 'yes' && (
-              <EditableTile icon={Calendar} label="Due Date" value={jd.dueDate} type="date" onSave={v => updateField('dueDate', v)} />
-            )}
-
-            {/* OB Clinic + Delivery Hospital stacked */}
-            <div className="flex flex-col gap-1.5">
-              <EditableTile icon={Hospital} label="OB Clinic" value={jd.obClinic} type="text" onSave={v => updateField('obClinic', v)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <EditableTile icon={Building2} label="Delivery Hospital" value={jd.deliveryHospital} type="text" onSave={v => updateField('deliveryHospital', v)} />
-            </div>
-
-            {/* Stage tile */}
+        {/* Journey Info — compact bar */}
+        <div className="px-5 py-4 space-y-3">
+          {/* Row 1: Stage/Status + Key metrics inline */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Stage selector */}
             <div className="relative">
-              <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
-                onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}>
-                <Milestone className="size-4 text-stone-300 mx-auto mb-1" />
-                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Stage</p>
-                <p className="text-lg font-bold mt-0.5 leading-tight" style={{ color: stageObj.color }}>{stageObj.label}</p>
-              </div>
+              <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
+                className="px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all hover:shadow-sm"
+                style={{ color: stageObj.color, borderColor: stageObj.color }}>
+                {stageObj.label}
+              </button>
               {stageOpen && (
-                <div className="absolute z-30 top-full right-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2">
+                <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2">
                   {JOURNEY_STAGES.map((stage, i) => (
                     <button key={stage.id} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStage(stage.id)}>
                       <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
@@ -372,17 +369,14 @@ export default function JourneyDetailPage() {
                 </div>
               )}
             </div>
-
-            {/* Status tile */}
+            {/* Status selector */}
             <div className="relative">
-              <div className="rounded-xl bg-stone-50/80 border border-stone-100 p-3 text-center cursor-pointer hover:border-stone-300 hover:shadow-sm transition-all"
-                onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}>
-                <Circle className="size-4 text-stone-300 mx-auto mb-1" />
-                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Status</p>
-                <p className="text-lg font-bold mt-0.5 leading-tight text-stone-800">{journey.status}</p>
-              </div>
+              <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
+                className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 text-stone-700 hover:shadow-sm transition-all">
+                {journey.status}
+              </button>
               {statusOpen && (
-                <div className="absolute z-30 top-full right-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
+                <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
                   {statuses.map(status => (
                     <button key={status} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStatus(status)}>
                       <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
@@ -391,31 +385,71 @@ export default function JourneyDetailPage() {
                 </div>
               )}
             </div>
+
+            <div className="w-px h-5 bg-stone-200" />
+
+            {/* Inline metrics — compact chips */}
+            <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')}
+              className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
+              Lost Wages: <span className="font-bold">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</span>
+            </button>
+            <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')}
+              className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
+              Pumping: <span className="font-bold">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</span>
+            </button>
+            <button onClick={() => updateField('pregnant', jd.pregnant === 'yes' ? 'no' : 'yes')}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200'}`}>
+              {jd.pregnant === 'yes' ? (jd.dueDate ? `🤰 ${calcGestationalWeeks(jd.dueDate) || ''} · Due ${new Date(jd.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '🤰 Pregnant') : 'Not Pregnant'}
+            </button>
           </div>
 
-          {/* Case Manager + Journey Manager */}
-          <div className="flex flex-wrap items-center gap-6">
-            <div className="flex items-center gap-2">
-              <UserCog className="size-4 text-stone-400" />
-              <span className="text-xs text-stone-400">Case Manager</span>
+          {/* Row 2: Escrow + OB/Hospital + Managers */}
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-stone-400">Escrow Min:</span>
+              <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-stone-400">Balance:</span>
+              <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
+                className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
+            </div>
+            {jd.pregnant === 'yes' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Due Date:</span>
+                <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-stone-400">OB Clinic:</span>
+              <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-stone-400">Hospital:</span>
+              <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
+            </div>
+
+            <div className="w-px h-4 bg-stone-200 ml-auto" />
+
+            <div className="flex items-center gap-1.5">
+              <UserCog className="size-3.5 text-stone-400" />
               <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
                 const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
                 if (updated) setJourney(updated)
               }}>
-                <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
                 <SelectContentUI>
                   <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
                   {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
                 </SelectContentUI>
               </SelectUI>
             </div>
-            <div className="flex items-center gap-2">
-              <Crown className="size-4 text-amber-500" />
-              <span className="text-xs text-stone-400">Journey Manager</span>
+            <div className="flex items-center gap-1.5">
+              <Crown className="size-3.5 text-amber-500" />
               <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
                 updateField('journeyManager', val === '_unassigned' ? '' : val)
               }}>
-                <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
                 <SelectContentUI>
                   <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
                   {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
