@@ -13,8 +13,8 @@ import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
-  exportDocAsPdf, getDocPlainText, parseFieldPlaceholders, copyGoogleDoc,
-  getOrCreateTemplatesFolder, shareDocPublicly, getAccessToken,
+  exportDocAsPdf, getDocPlainText, parseFieldPlaceholders,
+  shareDocPublicly, getAccessToken,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -146,48 +146,53 @@ export default function EditDocumentPage() {
     if (!googleDocId || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
-      // 1. Copy the doc (never modify the template)
-      let sentDocId = null
-      const folderId = await getOrCreateTemplatesFolder(userId)
-      const sentCopy = await copyGoogleDoc(userId, googleDocId, `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`, folderId)
-      sentDocId = sentCopy.id
-
-      // 2. Export copy as PDF and store in Supabase
+      // 1. Export as PDF and store in Supabase (no Google Drive copy)
       let pdfPath = null
       try {
-        const pdfBlob = await exportDocAsPdf(userId, sentDocId || googleDocId)
-        pdfPath = `documents/sent_${googleDocId}_${Date.now()}.pdf`
+        const pdfBlob = await exportDocAsPdf(userId, googleDocId)
+        pdfPath = `documents/sent_${Date.now()}.pdf`
         if (supabase) {
-          const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
-            contentType: 'application/pdf',
-            cacheControl: '3600',
-          })
-          if (uploadErr) { console.error('PDF upload failed:', uploadErr); pdfPath = null }
+          try {
+            const uploadResult = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
+              contentType: 'application/pdf',
+              cacheControl: '3600',
+            })
+            if (uploadResult?.error) {
+              console.error('PDF upload failed:', uploadResult.error)
+              pdfPath = null
+            }
+          } catch (uploadErr) {
+            console.error('PDF upload exception:', uploadErr)
+            pdfPath = null
+          }
         }
-      } catch (e) { console.error('PDF export failed:', e) }
+      } catch (e) {
+        console.error('PDF export failed:', e)
+        pdfPath = null
+      }
 
-      // 3. Parse field placeholders
+      // 2. Parse field placeholders
       let fields = []
       try {
         const plainText = await getDocPlainText(userId, googleDocId)
         fields = parseFieldPlaceholders(plainText)
       } catch (e) { console.error('Field parse failed:', e) }
 
-      // 4. Create esign document record
+      // 3. Create esign document record
       const doc = await createDocument({
         templateId: null,
         caseId: sendForm.caseId ? Number(sendForm.caseId) : null,
         caseType: sendForm.caseType || null,
         title: docTitle || 'Untitled',
         signers: sendForm.signers,
-        filePath: pdfPath || googleDocId,
+        filePath: pdfPath || null,
         createdBy: currentUser.name,
       })
 
+      // Store metadata (template doc ID for preview, fields for signing)
       if (doc) {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
-            googleDocId: sentDocId,
             templateDocId: googleDocId,
             fields,
             pdfPath,
@@ -195,7 +200,7 @@ export default function EditDocumentPage() {
         })
       }
 
-      // 5. Send
+      // 4. Send
       await sendDocument(doc.id)
       navigate('/e-signature')
     } catch (err) {
