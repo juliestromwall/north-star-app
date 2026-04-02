@@ -29,7 +29,7 @@ function fileSizeLabel(bytes) {
   return `${(bytes / 1048576).toFixed(1)} MB`
 }
 
-export default function CaseEmailsTab({ caseId }) {
+export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
   const { currentUser } = useRole()
   const userId = currentUser?.id
   const [emails, setEmails] = useState([])
@@ -43,8 +43,15 @@ export default function CaseEmailsTab({ caseId }) {
   useEffect(() => {
     if (!caseId) return
     setLoading(true)
+    const caseIds = [caseId, ...additionalCaseIds].filter(Boolean)
     Promise.all([
-      fetchCaseEmails(caseId),
+      Promise.all(caseIds.map(id => fetchCaseEmails(id))).then(results => {
+        // Merge and deduplicate by gmail_message_id
+        const all = results.flat()
+        const seen = new Set()
+        return all.filter(e => { if (seen.has(e.gmail_message_id)) return false; seen.add(e.gmail_message_id); return true })
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+      }),
       userId ? getGoogleStatus(userId).catch(() => ({ connected: false })) : Promise.resolve({ connected: false }),
     ]).then(([emailData, status]) => {
       setEmails(emailData)

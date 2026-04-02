@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
+import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
@@ -556,6 +557,7 @@ export default function JourneyDetailPage() {
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
         </TabsList>
 
@@ -625,6 +627,9 @@ export default function JourneyDetailPage() {
         <TabsContent value="checklist" className="mt-4"><EmptyState title="Journey Checklist" description="Unified checklist for the matched journey." /></TabsContent>
         <TabsContent value="documents" className="mt-4"><EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." /></TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
+        <TabsContent value="emails" className="mt-4">
+          <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} />
+        </TabsContent>
         <TabsContent value="texts" className="mt-4"><EmptyState title="Text Messages" description="GC and IP text threads." /></TabsContent>
       </Tabs>
     </div>
