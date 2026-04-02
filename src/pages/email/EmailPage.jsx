@@ -147,17 +147,27 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
   const [selectedCase, setSelectedCase] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [caseSearch, setCaseSearch] = useState('')
 
   useEffect(() => {
     if (!open) return
     setSaved(false)
     setSelectedCase('')
-    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-      .then(([gcs, ips]) => {
+    setCaseSearch('')
+    Promise.all([
+      fetchSurrogatesFromIntake(),
+      fetchIPsFromIntake(),
+      import('@/lib/matching').then(m => m.fetchMatchedJourneys()),
+    ]).then(([gcs, ips, journeys]) => {
         const allCases = [
-          ...(gcs || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'gc', label: `GC: ${c.applicant_name}` })),
-          ...(ips || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'ip', label: `IP: ${c.applicant_name}` })),
-        ].sort((a, b) => a.name.localeCompare(b.name))
+          ...(journeys || []).map(j => {
+            const gcName = (gcs || []).find(g => g.id === j.gc_case_id)?.name || 'GC'
+            const ipName = (ips || []).find(i => i.id === j.ip_case_id)?.names || 'IP'
+            return { id: j.id, name: `${gcName} & ${ipName}`, type: 'journey', group: 'Matched Journeys' }
+          }),
+          ...(gcs || []).map(c => ({ id: c.id, name: c.name || 'Unknown', type: 'gc', group: 'Surrogates' })),
+          ...(ips || []).map(c => ({ id: c.id, name: c.names || 'Unknown', type: 'ip', group: 'Intended Parents' })),
+        ]
         setCases(allCases)
       })
       .finally(() => setLoading(false))
@@ -165,7 +175,8 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
 
   const handleLog = async () => {
     if (!selectedCase || !email || !supabase) return
-    const c = cases.find(c => String(c.id) === selectedCase)
+    const [caseId, caseType] = selectedCase.split(':')
+    const c = cases.find(c => String(c.id) === caseId && c.type === caseType)
     if (!c) return
     setSaving(true)
     try {
@@ -213,16 +224,29 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
                   <Loader2 className="size-4 animate-spin" /> Loading cases...
                 </div>
               ) : (
-                <Select value={selectedCase} onValueChange={setSelectedCase}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a case..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cases.map(c => (
-                      <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Input value={caseSearch} onChange={e => setCaseSearch(e.target.value)} placeholder="Search cases..." className="text-sm" />
+                  <div className="max-h-60 overflow-y-auto rounded-lg border">
+                    {['Matched Journeys', 'Surrogates', 'Intended Parents'].map(group => {
+                      const groupCases = cases.filter(c => c.group === group && (!caseSearch || c.name.toLowerCase().includes(caseSearch.toLowerCase())))
+                      if (groupCases.length === 0) return null
+                      return (
+                        <div key={group}>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider px-3 py-1.5 bg-stone-50 sticky top-0">{group}</p>
+                          {groupCases.map(c => (
+                            <button key={`${c.type}-${c.id}`} onClick={() => setSelectedCase(String(c.id) + ':' + c.type)}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 ${selectedCase === String(c.id) + ':' + c.type ? 'bg-blue-50 text-blue-700 font-medium' : ''}`}>
+                              <span className={`text-[8px] font-bold px-1 py-0.5 rounded text-white ${c.type === 'gc' ? 'bg-pink-500' : c.type === 'ip' ? 'bg-[#283693]' : 'bg-purple-500'}`}>
+                                {c.type === 'gc' ? 'GC' : c.type === 'ip' ? 'IP' : 'MJ'}
+                              </span>
+                              {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               )}
             </div>
             <DialogFooter>
