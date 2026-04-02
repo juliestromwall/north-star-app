@@ -44,23 +44,41 @@ export default function EditDocumentPage() {
     async function setup() {
       try {
         // Get doc title
-        const token = await getAccessToken(userId)
+        let token
+        try {
+          token = await getAccessToken(userId)
+        } catch (e) {
+          setShareError('Google not connected. Go to Settings and reconnect your Google account.')
+          setLoading(false)
+          return
+        }
+
         const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}?fields=name`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const meta = await metaRes.json()
+        if (!metaRes.ok) {
+          setShareError(meta.error?.message || 'Could not find this document. Make sure it exists in your ABC Templates folder.')
+          setLoading(false)
+          return
+        }
         setDocTitle(meta.name || 'Untitled')
 
         // Share the doc so the iframe can load it
-        await shareDocPublicly(userId, googleDocId)
+        try {
+          await shareDocPublicly(userId, googleDocId)
+        } catch (e) {
+          console.warn('Share failed (may already be shared):', e.message)
+          // Continue anyway — it might already be shared
+        }
 
         // Small delay to let sharing propagate
-        await new Promise(r => setTimeout(r, 1000))
+        await new Promise(r => setTimeout(r, 1500))
 
         setIframeReady(true)
       } catch (err) {
         console.error('Setup failed:', err)
-        setShareError(err.message)
+        setShareError(err?.message || 'Failed to load document')
       } finally {
         setLoading(false)
       }
