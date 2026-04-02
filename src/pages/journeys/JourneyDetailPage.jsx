@@ -402,10 +402,36 @@ export default function JourneyDetailPage() {
             </button>
           </div>
 
-          {/* Row 2: Managers + Escrow + OB/Hospital */}
-          <div className="flex flex-wrap items-start gap-4 text-xs">
-            {/* Managers — stacked, left-aligned higher */}
-            <div className="flex flex-col gap-0.5">
+          {/* Row 2: Escrow + OB/Hospital + Managers on right */}
+          <div className="flex flex-wrap items-center gap-4 text-xs">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Escrow Min:</span>
+                <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Balance:</span>
+                <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
+                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
+              </div>
+              {jd.pregnant === 'yes' && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-stone-400">Due:</span>
+                  <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">OB Clinic:</span>
+                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-stone-400">Hospital:</span>
+                <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
+              </div>
+            </div>
+
+            {/* Managers — stacked on right */}
+            <div className="ml-auto flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
                 <UserCog className="size-3.5 text-stone-400" />
                 <span className="text-[10px] text-stone-400">Case Manager</span>
@@ -434,42 +460,15 @@ export default function JourneyDetailPage() {
                 </SelectUI>
               </div>
             </div>
-
-            <div className="w-px h-8 bg-stone-200" />
-
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Escrow Min:</span>
-                <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Balance:</span>
-                <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
-                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
-              </div>
-              {jd.pregnant === 'yes' && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-stone-400">Due:</span>
-                  <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
-                </div>
-              )}
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">OB Clinic:</span>
-                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Hospital:</span>
-                <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
-              </div>
-            </div>
           </div>
         </div>
 
         {/* GC Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
           {gcCase ? (
-            <div className="flex items-center gap-3">
+            <div className="space-y-1.5">
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">Surrogate</span>
+              <div className="flex items-center gap-3">
               <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
                 <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
@@ -498,6 +497,7 @@ export default function JourneyDetailPage() {
                 <CopyFlipButton icon={Mail} label="Email" value={gcCase.email} flipped={gcFlip.email} onFlip={() => toggleGcFlip('email')} preferred={gcCase.preferredContact === 'Email'} />
                 {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
               </div>
+              </div>
             </div>
           ) : <p className="text-sm text-stone-400">GC case not found</p>}
         </div>
@@ -505,8 +505,9 @@ export default function JourneyDetailPage() {
         {/* IP Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
           {ipCase ? (
-            <div className="flex items-center gap-3">
+            <div className="space-y-1.5">
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
+              <div className="flex items-center gap-3">
               <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
                 <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
@@ -537,6 +538,7 @@ export default function JourneyDetailPage() {
                 )}
                 <CopyFlipButton icon={Mail} label="Email" value={ipCase.email} flipped={ipFlip.email} onFlip={() => toggleIpFlip('email')} preferred={false} />
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
+              </div>
               </div>
             </div>
           ) : <p className="text-sm text-stone-400">IP case not found</p>}
