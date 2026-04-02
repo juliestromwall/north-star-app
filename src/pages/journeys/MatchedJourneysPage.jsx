@@ -116,35 +116,31 @@ export default function MatchedJourneysPage() {
           {filtered.map(j => (
             <Link key={j.id} to={`/journeys/${j.id}`}>
               <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden">
-                {/* Stacked mini hero */}
-                <div className="bg-gradient-to-r from-pink-50 to-pink-25 px-4 pt-3 pb-2 border-b border-pink-100">
+                {/* GC */}
+                <div className="px-4 pt-3 pb-1.5" style={{ backgroundColor: '#ed148c06' }}>
+                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
                   <div className="flex items-center gap-2.5">
                     <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-pink-500 text-white">GC</span>
-                        <span className="text-sm font-semibold truncate">{j.gc?.name || '—'}</span>
-                      </div>
+                      <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
                       <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-[#283693]/5 to-white px-4 pt-2 pb-3 border-b border-[#283693]/10">
+                {/* IP */}
+                <div className="px-4 pt-2 pb-2" style={{ backgroundColor: '#28369306' }}>
+                  <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
                   <div className="flex items-center gap-2.5">
                     <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-[#283693] text-white">IP</span>
-                        <span className="text-sm font-semibold truncate">{j.ip?.names || '—'}</span>
-                      </div>
-                      <p className="text-[10px] text-stone-400">{j.ip?.type || ''} {j.ip?.location ? `· ${j.ip.location}` : ''}</p>
+                      <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
+                      <p className="text-[10px] text-stone-400">{j.ip?.location || ''}</p>
                     </div>
                   </div>
                 </div>
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
+                <CardContent className="px-4 py-2.5 space-y-1.5 border-t">
+                  <div className="flex items-center gap-2">
                     <StageBadge stage={j.stage} status={j.status} />
-                    <ArrowRight className="size-4 text-stone-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   {/* Pregnancy + Escrow */}
                   <div className="flex flex-wrap items-center gap-2 text-[10px]">
