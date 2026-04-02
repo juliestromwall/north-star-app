@@ -108,7 +108,7 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
     if (f === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) return true
     if (f === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) return true
     if (f === 'admin' && (r.includes('admin') || r.includes('agency'))) return true
-    if (f === 'partner' && r.includes('partner')) return true
+    if ((f === 'partner' || f === 'parnter') && r.includes('partner')) return true
     // Also try exact match (e.g. custom role codes)
     if (f === r) return true
     return false
@@ -280,7 +280,7 @@ export default function SignDocumentPage() {
           (fr === 'ip1' && (r.includes('intended parent 1') || r.includes('ip1') || (r.includes('intended parent') && !r.includes('2')))) ||
           (fr === 'ip2' && (r.includes('intended parent 2') || r.includes('ip2'))) ||
           (fr === 'admin' && (r.includes('admin') || r.includes('agency'))) ||
-          (fr === 'partner' && r.includes('partner')) ||
+          ((fr === 'partner' || fr === 'parnter') && r.includes('partner')) ||
           (fr === r)
         if (!matches) return
         if (f.fieldType === 'name') prefilled[f.fieldId] = found.name
