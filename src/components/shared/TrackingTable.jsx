@@ -1,0 +1,223 @@
+import React, { useState } from 'react'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Check, X, ChevronDown, CheckCircle2, Clock } from 'lucide-react'
+
+function formatDateMMDDYYYY(dateStr) {
+  if (!dateStr) return '—'
+  const [y, m, d] = dateStr.split('-')
+  return `${m}-${d}-${y}`
+}
+
+export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName }) {
+  const [addingLogFor, setAddingLogFor] = useState(null)
+  const [logStatus, setLogStatus] = useState('')
+  const [logNote, setLogNote] = useState('')
+  const [expandedStep, setExpandedStep] = useState(null)
+  const [editingLog, setEditingLog] = useState(null)
+  const [editStatus, setEditStatus] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editingLabel, setEditingLabel] = useState(null)
+  const [labelValue, setLabelValue] = useState('')
+
+  const activeSteps = steps.filter(s => tracking[s.id]?.status !== 'na')
+  const completeCount = activeSteps.filter(s => tracking[s.id]?.status === 'complete').length
+  const totalActive = activeSteps.length
+
+  function submitLog(stepId) {
+    if (!logStatus) return
+    const current = tracking[stepId] || { history: [] }
+    const history = current.history || []
+    const entry = { status: logStatus, date: new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
+    onUpdate(stepId, { status: logStatus, history: [...history, entry] })
+    setLogStatus('')
+    setLogNote('')
+    setAddingLogFor(null)
+  }
+
+  function deleteLog(stepId, index) {
+    const current = tracking[stepId] || { history: [] }
+    const history = [...(current.history || [])]
+    history.splice(index, 1)
+    const newStatus = history.length > 0 ? history[history.length - 1].status : 'not_started'
+    onUpdate(stepId, { status: newStatus, history })
+  }
+
+  function saveEditLog(stepId, index) {
+    const current = tracking[stepId] || { history: [] }
+    const history = [...(current.history || [])]
+    history[index] = { ...history[index], status: editStatus, note: editNote.trim() || null }
+    const newStatus = history[history.length - 1].status
+    onUpdate(stepId, { status: newStatus, history })
+    setEditingLog(null)
+  }
+
+  function openAddLog(stepId) {
+    setAddingLogFor(stepId)
+    setExpandedStep(stepId)
+    setLogStatus('')
+    setLogNote('')
+    setEditingLog(null)
+  }
+
+  function getStatusLabel(statusId) {
+    if (statusId === 'followed_up') return 'Followed Up'
+    return statuses.find(s => s.id === statusId)?.label || statusId
+  }
+
+  function statusColor(statusId) {
+    if (statusId === 'complete') return 'text-green-600 bg-green-50 border-green-200'
+    if (statusId === 'na') return 'text-stone-400 bg-stone-100 border-stone-300 italic'
+    if (statusId === 'not_started') return 'text-stone-400 bg-stone-50 border-stone-200'
+    if (statusId === 'received' || statusId === 'reviewed') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
+    if (statusId === 'followed_up') return 'text-sky-600 bg-sky-50 border-sky-200'
+    if (statusId === 'requested' || statusId === 'scheduled') return 'text-amber-600 bg-amber-50 border-amber-200'
+    if (statusId === 'incomplete_resubmit') return 'text-red-600 bg-red-50 border-red-200'
+    return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle>{title}</CardTitle>
+        <span className="text-sm font-bold text-[#283693]">{completeCount}/{totalActive}</span>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="px-6 pb-5">
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${totalActive > 0 ? (completeCount / totalActive) * 100 : 0}%`, background: completeCount === totalActive && totalActive > 0 ? '#22c55e' : 'linear-gradient(90deg, #10b981, #22c55e)' }} />
+          </div>
+        </div>
+        <table className="w-full border-t border-stone-200 text-sm">
+          <thead>
+            <tr className="bg-stone-50 border-b border-stone-200">
+              <th className="text-left px-5 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'35%'}}>Step</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'11%'}}>Status</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'10%'}}>Date</th>
+              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'28%'}}>Note</th>
+              <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>By</th>
+              <th style={{width:'30px'}} />
+            </tr>
+          </thead>
+          <tbody>
+            {steps.map((step, stepIdx) => {
+              const data = tracking[step.id] || {}
+              const history = data.history || []
+              const currentStatus = data.status || 'not_started'
+              const isDeactivated = currentStatus === 'na'
+              const isComplete = currentStatus === 'complete'
+              const lastEntry = history.length > 0 ? history[history.length - 1] : null
+              const isExpanded = expandedStep === step.id
+              const isAddingLog = addingLogFor === step.id
+
+              return (
+                <React.Fragment key={step.id ?? stepIdx}>
+                  <tr
+                    onClick={() => { if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
+                    className={`border-b border-stone-100 cursor-pointer ${isDeactivated ? 'bg-stone-50/50 opacity-40' : isComplete ? 'bg-green-50/70 hover:bg-green-50' : 'hover:bg-stone-50/50'} transition-colors`}
+                  >
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-2">
+                        {isDeactivated ? (
+                          <div className="size-4 rounded-full bg-stone-200 shrink-0" />
+                        ) : isComplete ? (
+                          <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+                        ) : (
+                          <div className="size-4 rounded-full border-2 border-stone-200 shrink-0" />
+                        )}
+                        {editingLabel === step.id ? (
+                          <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
+                            <input className="flex-1 rounded border border-[#283693]/30 px-2 py-0.5 text-sm font-semibold bg-white focus:border-[#283693] outline-none" value={labelValue} onChange={e => setLabelValue(e.target.value)} autoFocus
+                              onKeyDown={e => { if (e.key === 'Enter') { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) } if (e.key === 'Escape') setEditingLabel(null) }} />
+                            <button onClick={() => { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) }} className="p-0.5 text-emerald-600"><Check className="size-3.5" /></button>
+                            <button onClick={() => setEditingLabel(null)} className="p-0.5 text-stone-400"><X className="size-3.5" /></button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex flex-col">
+                              <span className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
+                                onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }} title="Click to rename">
+                                {data.customLabel || step.label}
+                              </span>
+                              {step.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded self-start mt-0.5 ${step.badge.color}`}>{step.badge.label}</span>}
+                            </div>
+                          </>
+                        )}
+                        {currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
+                    </td>
+                    <td className="px-3 py-3.5 text-stone-500">{formatDateMMDDYYYY(lastEntry?.date)}</td>
+                    <td className="px-3 py-3.5 text-stone-500 text-xs break-words">{lastEntry?.note || ''}</td>
+                    <td className="px-4 py-3.5 text-stone-400 text-right text-xs">{lastEntry?.by || ''}</td>
+                    <td className="px-3 py-3.5" />
+                  </tr>
+
+                  {isExpanded && history.map((entry, i) => {
+                    const isEditing = editingLog?.stepId === step.id && editingLog?.index === i
+                    if (isEditing) {
+                      return (
+                        <tr key={`h-${i}`} className="bg-white border-b border-stone-100">
+                          <td className="px-6 py-2" />
+                          <td className="px-3 py-2">
+                            <select className="rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white w-full" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+                              {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                          <td className="px-3 py-2"><input className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} /></td>
+                          <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#283693] hover:underline mr-2">Save</button>
+                            <button onClick={() => setEditingLog(null)} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                          </td>
+                        </tr>
+                      )
+                    }
+                    return (
+                      <tr key={`h-${i}`} className="bg-stone-50/60 border-b border-stone-100/50 group">
+                        <td className="px-6 py-2" />
+                        <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{getStatusLabel(entry.status)}</td>
+                        <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                        <td className="px-3 py-2 text-stone-500">{entry.note || ''}</td>
+                        <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || '') }} className="text-[10px] text-stone-400 hover:text-[#283693] mr-2">Edit</button>
+                            <button onClick={() => deleteLog(step.id, i)} className="text-[10px] text-stone-400 hover:text-red-500">Delete</button>
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {isAddingLog && (
+                    <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
+                      <td className="px-6 py-3 text-xs font-semibold text-[#283693]">New Log</td>
+                      <td className="px-3 py-3">
+                        <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
+                          <option value="">Select...</option>
+                          {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-3 text-stone-400 text-xs">Today</td>
+                      <td className="px-3 py-3">
+                        <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
+                      </td>
+                      <td className="px-3 py-3 text-stone-400 text-xs">{currentUserName}</td>
+                      <td className="px-3 py-3 text-right">
+                        <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40 mr-1">Save</button>
+                        <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  )
+}

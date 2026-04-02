@@ -14,6 +14,7 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import TrackingTable from '@/components/shared/TrackingTable'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
@@ -210,114 +211,30 @@ function calcGestationalWeeks(dueDate) {
   return `${weeks}w ${days}d`
 }
 
-// ── Checklist Tab (matches surrogate TrackingTable style) ─
+// ── Checklist Tab (uses shared TrackingTable) ─
 function JourneyChecklistTab({ journey, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
   const steps = getChecklistSteps('gc', stageId)
   const tracking = journey.journey_data?._checklistTracking || {}
   const { currentUser } = useRole()
-  const [logOpen, setLogOpen] = useState(null) // stepId
-  const [logStatus, setLogStatus] = useState('')
-  const [logNote, setLogNote] = useState('')
-  const [logDate, setLogDate] = useState(new Date().toISOString().split('T')[0])
 
-  async function submitLog(stepId) {
-    if (!logStatus) return
+  async function handleUpdate(stepId, updates) {
     const ct = { ...(journey.journey_data?._checklistTracking || {}) }
-    const existing = ct[stepId] || { status: 'not_started', history: [] }
-    existing.status = logStatus
-    existing.history = [...(existing.history || []), { status: logStatus, note: logNote, date: logDate, by: currentUser.name }]
-    ct[stepId] = existing
+    ct[stepId] = { ...(ct[stepId] || {}), ...updates }
     const jd = { ...(journey.journey_data || {}), _checklistTracking: ct }
     await onUpdate({ journey_data: jd })
-    setLogOpen(null)
-    setLogStatus('')
-    setLogNote('')
-    setLogDate(new Date().toISOString().split('T')[0])
   }
 
-  const completed = steps.filter(s => tracking[s.id]?.status === 'complete' || tracking[s.id]?.status === 'na').length
-  const total = steps.length
-  const pct = total > 0 ? (completed / total) * 100 : 0
-
   return (
-    <Card className="rounded-2xl">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle style={{ color: stageObj.color }}>{stageObj.label} Checklist</CardTitle>
-          <span className="text-sm font-bold" style={{ color: stageObj.color }}>{completed}/{total}</span>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-0">
-        {/* Progress bar */}
-        <div className="h-2 rounded-full bg-stone-100 overflow-hidden mb-4">
-          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : stageObj.color }} />
-        </div>
-
-        {steps.length === 0 ? (
-          <p className="text-sm text-stone-400 text-center py-6">No checklist steps configured. Go to Settings → Checklists → Matched Journeys.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-2 text-xs text-stone-400 uppercase font-semibold">Step</th>
-                <th className="text-left py-2 px-2 text-xs text-stone-400 uppercase font-semibold w-32">Status</th>
-                <th className="text-left py-2 px-2 text-xs text-stone-400 uppercase font-semibold w-24">Date</th>
-                <th className="text-left py-2 px-2 text-xs text-stone-400 uppercase font-semibold">Note</th>
-                <th className="text-right py-2 px-2 text-xs text-stone-400 uppercase font-semibold w-28">By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {steps.map(step => {
-                const t = tracking[step.id] || {}
-                const status = t.status || 'not_started'
-                const lastEntry = t.history?.length > 0 ? t.history[t.history.length - 1] : null
-                const isComplete = status === 'complete'
-                const isNA = status === 'na'
-                const statusLabel = CHECKLIST_STEP_STATUSES.find(s => s.id === status)?.label || 'Not Started'
-
-                return (
-                  <tr key={step.id} className={`border-b last:border-0 ${isComplete ? 'bg-emerald-50/40' : ''}`}>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isComplete ? 'bg-emerald-500 border-emerald-500 text-white' : isNA ? 'bg-stone-300 border-stone-300 text-white' : 'border-stone-300'}`}>
-                          {(isComplete || isNA) && <Check className="size-3" />}
-                        </span>
-                        <span className={`font-medium ${isComplete || isNA ? 'text-stone-400' : ''}`}>{step.label}</span>
-                        <button onClick={() => { setLogOpen(step.id); setLogStatus(status !== 'not_started' ? status : '') }}
-                          className="text-stone-300 hover:text-stone-500 ml-1"><ChevronDown className="size-3.5" /></button>
-                      </div>
-                      {/* Inline log entry form */}
-                      {logOpen === step.id && (
-                        <div className="mt-2 ml-7 flex items-center gap-2 flex-wrap">
-                          <select value={logStatus} onChange={e => setLogStatus(e.target.value)} className="text-xs border rounded px-2 py-1 bg-white">
-                            <option value="">Select status...</option>
-                            {CHECKLIST_STEP_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                          </select>
-                          <Input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} className="h-7 text-xs w-32" />
-                          <Input value={logNote} onChange={e => setLogNote(e.target.value)} placeholder="Note..." className="h-7 text-xs flex-1 min-w-[120px]" />
-                          <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Save</button>
-                          <button onClick={() => setLogOpen(null)} className="text-xs text-stone-400 hover:text-stone-600 px-2 py-1">Cancel</button>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${isComplete ? 'bg-emerald-100 text-emerald-700' : isNA ? 'bg-stone-100 text-stone-500' : status !== 'not_started' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>
-                        {statusLabel}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-xs text-stone-400">{lastEntry?.date || '—'}</td>
-                    <td className="py-3 px-2 text-xs text-stone-500">{lastEntry?.note || ''}</td>
-                    <td className="py-3 px-2 text-xs text-stone-400 text-right">{lastEntry?.by || ''}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </CardContent>
-    </Card>
+    <TrackingTable
+      title={`${stageObj.label} Checklist`}
+      steps={steps}
+      statuses={CHECKLIST_STEP_STATUSES}
+      tracking={tracking}
+      onUpdate={handleUpdate}
+      currentUserName={currentUser.name}
+    />
   )
 }
 

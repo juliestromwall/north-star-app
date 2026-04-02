@@ -21,7 +21,10 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
+import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
@@ -41,6 +44,12 @@ export default function IPDetailPage() {
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
+  const [recordTracking, setRecordTracking] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`abc_records_${id}`)
+      return saved ? JSON.parse(saved) : {}
+    } catch { return {} }
+  })
 
   useEffect(() => {
     fetchIPsFromIntake().then(all => {
@@ -50,6 +59,28 @@ export default function IPDetailPage() {
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [id])
+
+  // Load tracking from Supabase on mount
+  useEffect(() => {
+    getRecordTracking(id).then(data => {
+      if (data && Object.keys(data).length > 0) setRecordTracking(data)
+    }).catch(() => {})
+  }, [id])
+
+  // Persist record tracking
+  useEffect(() => {
+    if (Object.keys(recordTracking).length > 0) {
+      localStorage.setItem(`abc_records_${id}`, JSON.stringify(recordTracking))
+      setRecordTrackingDB(id, recordTracking).catch(() => {})
+    }
+  }, [recordTracking, id])
+
+  function updateRecord(recordId, updates) {
+    setRecordTracking(prev => ({
+      ...prev,
+      [recordId]: { ...(prev[recordId] || {}), ...updates }
+    }))
+  }
 
   if (loading) {
     return <div className="text-center py-12 text-stone-400">Loading...</div>
@@ -275,6 +306,7 @@ export default function IPDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
@@ -351,6 +383,25 @@ export default function IPDetailPage() {
               }
             }}
           />
+        </TabsContent>
+
+        {/* Checklist Tab */}
+        <TabsContent value="checklist" className="mt-4 space-y-6">
+          {(() => {
+            const currentStageId = stageStatus?.stage || 'pre-qualification'
+            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
+            const allSteps = getChecklistSteps('ip', currentStageId)
+            return (
+              <TrackingTable
+                title={`${currentStageLabel} Checklist`}
+                steps={allSteps}
+                statuses={CHECKLIST_STEP_STATUSES}
+                tracking={recordTracking}
+                onUpdate={updateRecord}
+                currentUserName={currentUser.name}
+              />
+            )
+          })()}
         </TabsContent>
 
         {/* Documents Tab */}
