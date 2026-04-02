@@ -13,6 +13,8 @@ import { TableRow } from '@tiptap/extension-table-row'
 import { TableCell } from '@tiptap/extension-table-cell'
 import { TableHeader } from '@tiptap/extension-table-header'
 import BaseImage from '@tiptap/extension-image'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import mammoth from 'mammoth'
 import {
   ArrowLeft, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
@@ -588,8 +590,7 @@ export default function EditDocumentPage() {
             if (!editorEl) return
             setGeneratingPdf(true)
             try {
-              const html2canvas = (await import('html2canvas')).default
-              const { jsPDF } = await import('jspdf')
+              // html2canvas and jsPDF imported at top of file
 
               // Letter size in points: 612 x 792
               const pageW = 612
@@ -819,24 +820,37 @@ export default function EditDocumentPage() {
         {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
         <div className="flex-1 overflow-y-auto esign-editor-scroll">
           {preview ? (
-            /* Preview mode — read-only with header/footer */
+            /* Preview mode — read-only with header/footer, preserves formatting */
             <div style={{ padding: 24 }}>
+              <style>{`
+                .preview-content p { margin: 0.25em 0; }
+                .preview-content ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
+                .preview-content ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+                .preview-content li { margin: 0.25em 0; }
+                .preview-content li p { margin: 0; }
+                .preview-content img { max-width: 100%; height: auto; }
+                .preview-content table { border-collapse: collapse; width: 100%; }
+                .preview-content td, .preview-content th { border: 1px solid #ddd; padding: 6px 10px; }
+                .preview-content mark { border-radius: 2px; padding: 1px 2px; }
+                .preview-content a { color: #283693; text-decoration: underline; }
+                .preview-content sign-field { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; border: 1.5px dashed #ccc; background: #f5f5f5; font-size: 12px; font-weight: 600; color: #666; }
+              `}</style>
               {/* Page container */}
-              <div style={{ width: '8.5in', margin: '0 auto', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: 2, padding: '0.5in 1in 0.75in' }}>
-                {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ width: '8.5in', minHeight: '11in', margin: '0 auto', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: 2, padding: '0.5in 1in 0.25in', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                {/* Header — centered */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                   <img src={headerImgUrl} alt="Header" style={{ maxWidth: 220, height: 'auto' }} />
                 </div>
-                {/* Content */}
+                {/* Content — use actual editor DOM for accurate formatting */}
                 <div
-                  className="prose prose-sm max-w-none"
-                  style={{ minHeight: '8in' }}
-                  dangerouslySetInnerHTML={{ __html: editor?.getHTML() || '' }}
+                  className="preview-content"
+                  style={{ flex: 1 }}
+                  dangerouslySetInnerHTML={{ __html: editor?.view?.dom?.innerHTML || editor?.getHTML() || '' }}
                 />
-                {/* Footer */}
-                <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 8 }}>
+                {/* Footer — centered, 0.25in from bottom */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 12 }}>
                   <img src={footerImgUrl} alt="Footer" style={{ width: '100%', maxWidth: 500, height: 'auto' }} />
-                  <p style={{ fontSize: 11, color: '#71717a', marginTop: 4 }}>1</p>
+                  <p style={{ fontSize: 11, color: '#71717a', marginTop: 4, margin: 0 }}>1</p>
                 </div>
               </div>
             </div>
