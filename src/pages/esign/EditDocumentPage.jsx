@@ -1,25 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
-import { useEditor, EditorContent } from '@tiptap/react'
-import { StarterKit } from '@tiptap/starter-kit'
-import { Underline } from '@tiptap/extension-underline'
-import { Color } from '@tiptap/extension-color'
-import { TextStyle } from '@tiptap/extension-text-style'
-import { Highlight } from '@tiptap/extension-highlight'
-import { TextAlign } from '@tiptap/extension-text-align'
-import FontFamily from '@tiptap/extension-font-family'
-import { Table } from '@tiptap/extension-table'
-import { TableRow } from '@tiptap/extension-table-row'
-import { TableCell } from '@tiptap/extension-table-cell'
-import { TableHeader } from '@tiptap/extension-table-header'
-import BaseImage from '@tiptap/extension-image'
-import mammoth from 'mammoth'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Bold, Italic, Underline as UnderlineIcon, Strikethrough,
-  List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
-  Undo2, Redo2, Send, Loader2, Save, FileText, Eye,
-  Plus, Trash2, PenLine, User, Calendar, Hash, CheckSquare, Type, ChevronDown,
-  ImageIcon, SeparatorHorizontal, Download,
+  ArrowLeft, Send, Loader2, FileText, Download, Plus, Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,383 +9,24 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchTemplates, getTemplateFileUrl, createDocument, sendDocument, saveTemplateHtml, updateTemplate } from '@/lib/esign'
+import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
+import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
-import { SignField, FIELD_TYPES, FIELD_ROLES } from '@/lib/signFieldExtension'
-
-// ── Custom Image with resize + alignment ────────────────
-
-const ResizableImage = BaseImage.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      width: { default: null, parseHTML: el => el.getAttribute('width') || el.style.width?.replace('px', '') || null },
-      alignment: { default: 'left', parseHTML: el => el.getAttribute('data-alignment') || 'left' },
-    }
-  },
-
-  addNodeView() {
-    return ({ node, editor, getPos }) => {
-      const wrapper = document.createElement('div')
-      wrapper.style.textAlign = node.attrs.alignment || 'left'
-      wrapper.style.margin = '8px 0'
-      wrapper.setAttribute('data-alignment', node.attrs.alignment || 'left')
-
-      const container = document.createElement('span')
-      container.style.display = 'inline-block'
-      container.style.position = 'relative'
-      container.style.lineHeight = '0'
-
-      const img = document.createElement('img')
-      img.src = node.attrs.src
-      img.alt = node.attrs.alt || ''
-      if (node.attrs.width) {
-        img.style.width = node.attrs.width + 'px'
-      }
-      img.style.maxWidth = '100%'
-      img.style.height = 'auto'
-      img.style.borderRadius = '4px'
-      img.style.cursor = 'pointer'
-
-      // Resize handle
-      const handle = document.createElement('div')
-      handle.style.cssText = 'position:absolute;bottom:0;right:0;width:12px;height:12px;background:#283693;border-radius:2px;cursor:nwse-resize;opacity:0;transition:opacity 0.15s;'
-      container.addEventListener('mouseenter', () => { handle.style.opacity = '1' })
-      container.addEventListener('mouseleave', () => { if (!resizing) handle.style.opacity = '0' })
-
-      let resizing = false
-      let startX = 0
-      let startW = 0
-
-      handle.addEventListener('mousedown', (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        resizing = true
-        startX = e.clientX
-        startW = img.offsetWidth
-
-        const onMove = (ev) => {
-          const newW = Math.max(50, startW + (ev.clientX - startX))
-          img.style.width = newW + 'px'
-        }
-        const onUp = (ev) => {
-          resizing = false
-          handle.style.opacity = '0'
-          document.removeEventListener('mousemove', onMove)
-          document.removeEventListener('mouseup', onUp)
-          const pos = getPos()
-          if (typeof pos === 'number') {
-            editor.chain().setNodeSelection(pos).updateAttributes('image', { width: Math.round(img.offsetWidth) }).run()
-          }
-        }
-        document.addEventListener('mousemove', onMove)
-        document.addEventListener('mouseup', onUp)
-      })
-
-      container.appendChild(img)
-      container.appendChild(handle)
-      wrapper.appendChild(container)
-
-      return {
-        dom: wrapper,
-        update: (updatedNode) => {
-          if (updatedNode.type.name !== 'image') return false
-          img.src = updatedNode.attrs.src
-          if (updatedNode.attrs.width) img.style.width = updatedNode.attrs.width + 'px'
-          else img.style.width = ''
-          wrapper.style.textAlign = updatedNode.attrs.alignment || 'left'
-          return true
-        },
-      }
-    }
-  },
-})
-
-// ── Toolbar ─────────────────────────────────────────────
-
-function ToolbarButton({ active, onClick, children, title }) {
-  return (
-    <button type="button" onClick={onClick} title={title}
-      className={`p-1.5 rounded transition-colors ${active ? 'bg-stone-200 text-stone-900' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-600'}`}>
-      {children}
-    </button>
-  )
-}
-
-const FIELD_ICONS = {
-  signature: PenLine,
-  name: User,
-  date: Calendar,
-  initials: Hash,
-  checkbox: CheckSquare,
-  text: Type,
-}
-
-function InsertFieldDropdown({ editor }) {
-  const [open, setOpen] = useState(false)
-  const [fieldType, setFieldType] = useState('signature')
-  const [role, setRole] = useState('gc')
-  const [label, setLabel] = useState('')
-
-  function insertField() {
-    if (!editor) return
-    const fieldId = `field_${Date.now()}`
-    editor.chain().focus().insertContent({
-      type: 'signField',
-      attrs: { fieldType, role, label, fieldId },
-    }).run()
-    setOpen(false)
-    setLabel('')
-  }
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        title="Insert signing field"
-        className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-colors bg-[#283693]/10 text-[#283693] hover:bg-[#283693]/20"
-      >
-        <PenLine className="size-3.5" />
-        Insert Field
-        <ChevronDown className="size-3" />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 z-20 bg-white rounded-xl border shadow-xl p-4 w-72 space-y-3">
-            <p className="text-xs font-semibold text-stone-500 uppercase">Insert Signing Field</p>
-
-            {/* Field type */}
-            <div className="space-y-1">
-              <label className="text-xs text-stone-500">Field Type</label>
-              <div className="grid grid-cols-3 gap-1">
-                {FIELD_TYPES.map(ft => {
-                  const Icon = FIELD_ICONS[ft.type] || Type
-                  return (
-                    <button
-                      key={ft.type}
-                      onClick={() => setFieldType(ft.type)}
-                      className={`flex flex-col items-center gap-1 px-2 py-2 rounded-lg text-[10px] font-medium transition-colors ${
-                        fieldType === ft.type
-                          ? 'bg-[#283693] text-white'
-                          : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                      }`}
-                    >
-                      <Icon className="size-3.5" />
-                      {ft.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Role */}
-            <div className="space-y-1">
-              <label className="text-xs text-stone-500">Assigned To</label>
-              <div className="grid grid-cols-2 gap-1">
-                {FIELD_ROLES.map(r => (
-                  <button
-                    key={r.value}
-                    onClick={() => setRole(r.value)}
-                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      role === r.value
-                        ? 'bg-[#283693] text-white'
-                        : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom label */}
-            <div className="space-y-1">
-              <label className="text-xs text-stone-500">Custom Label (optional)</label>
-              <Input
-                value={label}
-                onChange={e => setLabel(e.target.value)}
-                placeholder={`e.g. "${FIELD_TYPES.find(f => f.type === fieldType)?.label || 'Field'}"`}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <Button onClick={insertField} size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              <Plus className="size-3.5" />
-              Insert Field
-            </Button>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-function EditorToolbar({ editor }) {
-  // Force re-render on selection/transaction changes so image toolbar shows
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    if (!editor) return
-    const handler = () => setTick(t => t + 1)
-    editor.on('selectionUpdate', handler)
-    editor.on('transaction', handler)
-    return () => {
-      editor.off('selectionUpdate', handler)
-      editor.off('transaction', handler)
-    }
-  }, [editor])
-
-  if (!editor) return null
-  const imageActive = editor.isActive('image')
-  return (
-    <div className="flex flex-wrap items-center gap-0.5 px-3 py-2 border-b bg-stone-50/50">
-      <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
-        <Bold className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic">
-        <Italic className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline">
-        <UnderlineIcon className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="Strikethrough">
-        <Strikethrough className="size-4" />
-      </ToolbarButton>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <ToolbarButton active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List">
-        <List className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered List">
-        <ListOrdered className="size-4" />
-      </ToolbarButton>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <ToolbarButton active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="Align Left">
-        <AlignLeft className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Align Center">
-        <AlignCenter className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="Align Right">
-        <AlignRight className="size-4" />
-      </ToolbarButton>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo">
-        <Undo2 className="size-4" />
-      </ToolbarButton>
-      <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo">
-        <Redo2 className="size-4" />
-      </ToolbarButton>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <select className="text-xs border rounded px-1.5 py-1 bg-white text-stone-600"
-        onChange={e => {
-          const level = parseInt(e.target.value)
-          if (level === 0) editor.chain().focus().setParagraph().run()
-          else editor.chain().focus().toggleHeading({ level }).run()
-          e.target.value = ''
-        }}
-        value=""
-      >
-        <option value="" disabled>Heading</option>
-        <option value="0">Paragraph</option>
-        <option value="1">Heading 1</option>
-        <option value="2">Heading 2</option>
-        <option value="3">Heading 3</option>
-      </select>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <ToolbarButton onClick={() => {
-        const input = document.createElement('input')
-        input.type = 'file'
-        input.accept = 'image/*'
-        input.onchange = (e) => {
-          const file = e.target.files?.[0]
-          if (!file) return
-          const reader = new FileReader()
-          reader.onload = () => {
-            editor.chain().focus().setImage({ src: reader.result }).run()
-          }
-          reader.readAsDataURL(file)
-        }
-        input.click()
-      }} title="Insert Image">
-        <ImageIcon className="size-4" />
-      </ToolbarButton>
-      {imageActive && (
-        <>
-          <div className="w-px h-5 bg-stone-200 mx-1" />
-          <span className="text-[10px] text-stone-400 mr-1">Image:</span>
-          <ToolbarButton active={editor.getAttributes('image').alignment === 'left'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'left' }).run()} title="Align Left">
-            <AlignLeft className="size-3.5" />
-          </ToolbarButton>
-          <ToolbarButton active={editor.getAttributes('image').alignment === 'center'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'center' }).run()} title="Center">
-            <AlignCenter className="size-3.5" />
-          </ToolbarButton>
-          <ToolbarButton active={editor.getAttributes('image').alignment === 'right'} onClick={() => editor.chain().focus().updateAttributes('image', { alignment: 'right' }).run()} title="Align Right">
-            <AlignRight className="size-3.5" />
-          </ToolbarButton>
-          <select className="text-[10px] border rounded px-1 py-0.5 bg-white text-stone-600 ml-1"
-            value={editor.getAttributes('image').width || ''}
-            onChange={e => editor.chain().focus().updateAttributes('image', { width: e.target.value ? Number(e.target.value) : null }).run()}>
-            <option value="">Auto</option>
-            <option value="100">100px</option>
-            <option value="200">200px</option>
-            <option value="300">300px</option>
-            <option value="400">400px</option>
-            <option value="500">500px</option>
-            <option value="600">600px</option>
-            <option value="750">750px</option>
-          </select>
-        </>
-      )}
-      <ToolbarButton onClick={() => {
-        editor.chain().focus().setHardBreak().run()
-        editor.chain().focus().insertContent('<div class="page-break" contenteditable="false"><span>— Page Break —</span></div><p></p>').run()
-      }} title="Insert Page Break">
-        <SeparatorHorizontal className="size-4" />
-      </ToolbarButton>
-      <div className="w-px h-5 bg-stone-200 mx-1" />
-      <InsertFieldDropdown editor={editor} />
-    </div>
-  )
-}
-
-// ── Main Page ───────────────────────────────────────────
+import {
+  exportDocAsPdf, getDocPlainText, parseFieldPlaceholders, copyGoogleDoc,
+  getOrCreateTemplatesFolder, shareDocPublicly, getAccessToken,
+} from '@/lib/google'
 
 export default function EditDocumentPage() {
-  const { templateId } = useParams()
-  const [searchParams] = useSearchParams()
+  const { id: googleDocId } = useParams()
   const navigate = useNavigate()
   const { currentUser } = useRole()
+  const userId = currentUser?.id
 
-  const [template, setTemplate] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [converting, setConverting] = useState(false)
-  const [htmlContent, setHtmlContent] = useState('')
   const [docTitle, setDocTitle] = useState('')
-  const [preview, setPreview] = useState(false)
-  // Letterhead images (stored in public folder)
-  const headerImgUrl = '/abc-letterhead-header.png'
-  const footerImgUrl = '/abc-letterhead-footer.png'
-  const [generatingPdf, setGeneratingPdf] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  async function handleSaveTemplate() {
-    if (!editor || !template) return
-    setSaving(true)
-    try {
-      const html = editor.getHTML()
-      await saveTemplateHtml(template.id, html)
-      if (docTitle !== template.name) {
-        await updateTemplate(template.id, { name: docTitle })
-      }
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
-    } catch (err) {
-      alert('Failed to save: ' + (err.message || 'Unknown error'))
-    } finally { setSaving(false) }
-  }
+  const [loading, setLoading] = useState(true)
+  const [iframeReady, setIframeReady] = useState(false)
+  const [shareError, setShareError] = useState(null)
 
   // Send dialog
   const [showSend, setShowSend] = useState(false)
@@ -411,89 +34,64 @@ export default function EditDocumentPage() {
   const [sendForm, setSendForm] = useState({ caseType: '', caseId: '', signers: [] })
   const [cases, setCases] = useState({ gc: [], ip: [] })
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      Color,
-      TextStyle,
-      Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      FontFamily,
-      ResizableImage.configure({ inline: false, allowBase64: true }),
-      SignField,
-    ],
-    content: htmlContent,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none',
-      },
-      // Preserve rich formatting on paste from Google Docs / Word
-      transformPastedHTML(html) {
-        // Google Docs uses inline styles instead of semantic tags
-        // Convert common inline styles to HTML tags Tiptap understands
-        let cleaned = html
-          // Convert font-weight:700/bold to <strong>
-          .replace(/<span[^>]*font-weight:\s*(700|bold)[^>]*>(.*?)<\/span>/gi, '<strong>$2</strong>')
-          // Convert font-style:italic to <em>
-          .replace(/<span[^>]*font-style:\s*italic[^>]*>(.*?)<\/span>/gi, '<em>$1</em>')
-          // Convert text-decoration:underline to <u>
-          .replace(/<span[^>]*text-decoration:\s*underline[^>]*>(.*?)<\/span>/gi, '<u>$1</u>')
-          // Remove Google Docs class attributes but keep style
-          .replace(/\sclass="[^"]*"/gi, '')
-          // Remove Google Docs IDs
-          .replace(/\sid="[^"]*"/gi, '')
-        return cleaned
-      },
-    },
-    parseOptions: {
-      preserveWhitespace: 'full',
-    },
-  })
+  // PDF download
+  const [downloading, setDownloading] = useState(false)
 
+  // Load doc info and share for embedding
   useEffect(() => {
-    if (editor && htmlContent) {
-      editor.commands.setContent(htmlContent)
-    }
-  }, [editor, htmlContent])
+    if (!googleDocId || !userId) { setLoading(false); return }
 
-  useEffect(() => {
-    async function load() {
+    async function setup() {
       try {
-        const templates = await fetchTemplates()
-        const tmpl = templates.find(t => t.id === Number(templateId))
-        if (!tmpl) { setLoading(false); return }
-        setTemplate(tmpl)
-        setDocTitle(tmpl.name)
+        // Get doc title
+        const token = await getAccessToken(userId)
+        const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}?fields=name`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const meta = await metaRes.json()
+        setDocTitle(meta.name || 'Untitled')
 
-        const url = getTemplateFileUrl(tmpl.file_path)
-        if (url && tmpl.file_name.endsWith('.html')) {
-          setConverting(true)
-          const response = await fetch(url)
-          const html = await response.text()
-          setHtmlContent(html)
-          setConverting(false)
-        } else if (url && (tmpl.file_name.endsWith('.docx') || tmpl.file_name.endsWith('.doc'))) {
-          setConverting(true)
-          const response = await fetch(url)
-          const arrayBuffer = await response.arrayBuffer()
-          const result = await mammoth.convertToHtml({ arrayBuffer })
-          setHtmlContent(result.value)
-          setConverting(false)
-        } else if (url && tmpl.file_name.endsWith('.pdf')) {
-          setHtmlContent('<p><em>PDF files cannot be edited directly. Please upload a .docx version of this template to enable editing.</em></p>')
-        }
+        // Share the doc so the iframe can load it
+        await shareDocPublicly(userId, googleDocId)
+
+        // Small delay to let sharing propagate
+        await new Promise(r => setTimeout(r, 1000))
+
+        setIframeReady(true)
       } catch (err) {
-        console.error('Failed to load template:', err)
-      } finally { setLoading(false) }
+        console.error('Setup failed:', err)
+        setShareError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-    load()
+
+    setup()
 
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
       .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
       .catch(() => {})
-  }, [templateId])
+  }, [googleDocId, userId])
 
+  // PDF download
+  async function handleDownloadPdf() {
+    if (!googleDocId || !userId) return
+    setDownloading(true)
+    try {
+      const blob = await exportDocAsPdf(userId, googleDocId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = (docTitle || 'document') + '.pdf'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Failed to download PDF: ' + err.message)
+    }
+    setDownloading(false)
+  }
+
+  // Send for Signature
   function addSigner() {
     setSendForm(prev => ({ ...prev, signers: [...prev.signers, { role: '', name: '', email: '', status: 'pending' }] }))
   }
@@ -527,26 +125,59 @@ export default function EditDocumentPage() {
   }
 
   async function handleSend() {
-    if (!editor || sendForm.signers.length === 0) return
+    if (!googleDocId || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
-      const editedHtml = editor.getHTML()
+      // 1. Copy the doc (never modify the template)
+      let sentDocId = null
+      const folderId = await getOrCreateTemplatesFolder(userId)
+      const sentCopy = await copyGoogleDoc(userId, googleDocId, `[Sent] ${docTitle} - ${new Date().toLocaleDateString()}`, folderId)
+      sentDocId = sentCopy.id
 
+      // 2. Export copy as PDF and store in Supabase
+      let pdfPath = null
+      try {
+        const pdfBlob = await exportDocAsPdf(userId, sentDocId || googleDocId)
+        pdfPath = `documents/sent_${googleDocId}_${Date.now()}.pdf`
+        if (supabase) {
+          const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, {
+            contentType: 'application/pdf',
+            cacheControl: '3600',
+          })
+          if (uploadErr) { console.error('PDF upload failed:', uploadErr); pdfPath = null }
+        }
+      } catch (e) { console.error('PDF export failed:', e) }
+
+      // 3. Parse field placeholders
+      let fields = []
+      try {
+        const plainText = await getDocPlainText(userId, googleDocId)
+        fields = parseFieldPlaceholders(plainText)
+      } catch (e) { console.error('Field parse failed:', e) }
+
+      // 4. Create esign document record
       const doc = await createDocument({
-        templateId: Number(templateId),
+        templateId: null,
         caseId: sendForm.caseId ? Number(sendForm.caseId) : null,
         caseType: sendForm.caseType || null,
-        title: docTitle || template?.name || 'Untitled',
+        title: docTitle || 'Untitled',
         signers: sendForm.signers,
-        filePath: template?.file_path || null,
+        filePath: pdfPath || googleDocId,
         createdBy: currentUser.name,
       })
 
-      // Store edited HTML as document_hash (base64-encoded)
-      const { updateDocument } = await import('@/lib/esign')
-      const encoded = btoa(unescape(encodeURIComponent(editedHtml)))
-      await updateDocument(doc.id, { document_hash: encoded })
+      if (doc) {
+        await updateDocument(doc.id, {
+          document_hash: JSON.stringify({
+            googleDocId: sentDocId,
+            templateDocId: googleDocId,
+            fields,
+            pdfPath,
+          }),
+        })
+      }
 
+      // 5. Send
       await sendDocument(doc.id)
       navigate('/e-signature')
     } catch (err) {
@@ -554,22 +185,12 @@ export default function EditDocumentPage() {
     } finally { setSending(false) }
   }
 
-  if (loading || converting) {
+  // Render
+  if (loading) {
     return (
       <div className="text-center py-12">
         <Loader2 className="size-8 animate-spin text-[#283693] mx-auto mb-3" />
-        <p className="text-stone-400">{converting ? 'Converting document...' : 'Loading template...'}</p>
-      </div>
-    )
-  }
-
-  if (!template) {
-    return (
-      <div className="space-y-6">
-        <Link to="/e-signature" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Back to E-Signature
-        </Link>
-        <p className="text-center py-12 text-stone-400">Template not found.</p>
+        <p className="text-stone-400">Preparing document...</p>
       </div>
     )
   }
@@ -577,8 +198,8 @@ export default function EditDocumentPage() {
   const caseOptions = sendForm.caseType === 'ip' ? cases.ip : sendForm.caseType === 'gc' ? cases.gc : []
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] esign-print-root">
-      {/* Header — sticky */}
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Header */}
       <div className="flex items-center justify-between pb-3 shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/e-signature" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -587,71 +208,13 @@ export default function EditDocumentPage() {
           <div className="w-px h-6 bg-stone-200" />
           <div className="flex items-center gap-2">
             <FileText className="size-5 text-[#283693]" />
-            <Input value={docTitle} onChange={e => setDocTitle(e.target.value)} className="text-lg font-semibold border-none shadow-none px-1 h-auto focus-visible:ring-0 w-80" />
+            <span className="text-lg font-semibold">{docTitle}</span>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5" onClick={() => setPreview(!preview)}>
-            <Eye className="size-4" /> {preview ? 'Edit' : 'Preview'}
-          </Button>
-          <Button variant="outline" className="gap-1.5" disabled={generatingPdf} onClick={async () => {
-            if (!editor) return
-            setGeneratingPdf(true)
-            try {
-              const html2pdf = (await import('html2pdf.js')).default
-
-              // Build a clean HTML document for PDF
-              const content = editor.view.dom.innerHTML
-              const container = document.createElement('div')
-              container.innerHTML = `
-                <div style="text-align:center;margin-bottom:12px;">
-                  <img src="${headerImgUrl}" style="max-width:200px;height:auto;" />
-                </div>
-                <div class="pdf-content">${content}</div>
-              `
-              container.style.cssText = 'width:6.5in;font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;color:#1a1a2e;'
-
-              // Add styles for content
-              const style = document.createElement('style')
-              style.textContent = `
-                .pdf-content p { margin: 0.3em 0; }
-                .pdf-content ul { list-style: disc; padding-left: 1.5em; }
-                .pdf-content ol { list-style: decimal; padding-left: 1.5em; }
-                .pdf-content li { margin: 0.2em 0; }
-                .pdf-content li p { margin: 0; }
-                .pdf-content img { max-width: 100%; height: auto; }
-                .pdf-content table { border-collapse: collapse; width: 100%; }
-                .pdf-content td, .pdf-content th { border: 1px solid #ddd; padding: 6px 10px; }
-                .pdf-content mark { border-radius: 2px; padding: 1px 2px; }
-                sign-field { display: inline-block; border: 1.5px dashed #ccc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: #666; background: #f5f5f5; }
-              `
-              container.prepend(style)
-
-              // Temporarily add to DOM for rendering
-              document.body.appendChild(container)
-
-              await html2pdf().set({
-                margin: [72, 72, 72, 72], // 1in margins in points
-                filename: (docTitle || 'document') + '.pdf',
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-                jsPDF: { unit: 'pt', format: 'letter', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-              }).from(container).save()
-
-              document.body.removeChild(container)
-            } catch (err) {
-              console.error('PDF generation error:', err)
-              alert('PDF generation failed: ' + (err?.message || err || 'Unknown error'))
-            }
-            setGeneratingPdf(false)
-          }}>
-            {generatingPdf ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            {generatingPdf ? 'Generating...' : 'Download PDF'}
-          </Button>
-          <Button variant="outline" className="gap-1.5" onClick={handleSaveTemplate} disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            {saved ? 'Saved!' : 'Save Template'}
+          <Button variant="outline" className="gap-1.5" onClick={handleDownloadPdf} disabled={downloading}>
+            {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Download PDF
           </Button>
           <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowSend(true)}>
             <Send className="size-4" /> Send for Signature
@@ -659,151 +222,42 @@ export default function EditDocumentPage() {
         </div>
       </div>
 
-      {/* Editor styles — paginated view */}
-      <style>{`
-        .esign-editor-scroll {
-          background: #d4d4d8;
-          padding: 24px;
-        }
-        .esign-editor .ProseMirror {
-          background: white;
-          width: 8.5in;
-          min-height: 11in;
-          margin: 0 auto;
-          padding: 1in;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.06);
-          border-radius: 2px;
-          position: relative;
-        }
-        /* Page number markers */
-        .esign-page-markers {
-          position: absolute;
-          top: 0;
-          left: -40px;
-          width: 36px;
-          pointer-events: none;
-        }
-        .esign-page-marker {
-          position: absolute;
-          left: 0;
-          width: 36px;
-          text-align: center;
-          font-size: 9px;
-          font-weight: 700;
-          color: #a1a1aa;
-          background: #d4d4d8;
-          border-radius: 4px;
-          padding: 2px 0;
-        }
-        .esign-editor .page-break {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 24px -1in;
-          padding: 0;
-          height: 32px;
-          background: #d4d4d8;
-          user-select: none;
-          cursor: default;
-          position: relative;
-        }
-        .esign-editor .page-break::before,
-        .esign-editor .page-break::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          height: 3px;
-        }
-        .esign-editor .page-break::before {
-          top: 0;
-          box-shadow: inset 0 2px 3px rgba(0,0,0,0.1);
-        }
-        .esign-editor .page-break::after {
-          bottom: 0;
-          box-shadow: inset 0 -2px 3px rgba(0,0,0,0.1);
-        }
-        .esign-editor .page-break span {
-          font-size: 9px;
-          font-weight: 700;
-          color: #a1a1aa;
-          text-transform: uppercase;
-          letter-spacing: 0.15em;
-        }
-        .esign-editor img.ProseMirror-selectednode {
-          outline: 2px solid #283693;
-          outline-offset: 2px;
-        }
-        @media print {
-          @page { size: letter; margin: 0.75in 1in; }
+      {/* Google Doc Editor */}
+      <div className="flex-1 rounded-2xl border shadow-sm overflow-hidden bg-white">
+        {shareError ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <FileText className="size-12 text-red-300 mb-4" />
+            <p className="text-red-600 font-medium mb-2">Failed to load document</p>
+            <p className="text-sm text-stone-500 mb-4">{shareError}</p>
+            <Button variant="outline" onClick={() => window.open(`https://docs.google.com/document/d/${googleDocId}/edit`, '_blank')}>
+              Open in Google Docs instead
+            </Button>
+          </div>
+        ) : !iframeReady ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="size-6 animate-spin text-[#283693]" />
+          </div>
+        ) : (
+          <iframe
+            src={`https://docs.google.com/document/d/${googleDocId}/edit?rm=minimal`}
+            className="w-full h-full border-0"
+            title={docTitle}
+            allow="clipboard-read; clipboard-write"
+          />
+        )}
+      </div>
 
-          /* The editor page content */
-          .esign-editor .ProseMirror {
-            box-shadow: none !important;
-            width: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            min-height: auto !important;
-            border-radius: 0 !important;
-          }
-          .esign-editor-scroll { background: white !important; padding: 0 !important; overflow: visible !important; height: auto !important; }
-          .esign-editor { position: static !important; }
-
-          /* Hide overlay page markers */
-          .esign-page-markers { display: none !important; }
-
-          /* Page breaks */
-          .page-break { page-break-after: always !important; height: 0 !important; margin: 0 !important; padding: 0 !important; background: none !important; border: none !important; overflow: hidden !important; }
-          .page-break * { display: none !important; }
-        }
-      `}</style>
-
-      {/* Editor or Preview */}
-      <div className="rounded-2xl border shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        {!preview && <div className="shrink-0 sticky top-0 z-10 bg-white border-b"><EditorToolbar editor={editor} /></div>}
-        <div className="flex-1 overflow-y-auto esign-editor-scroll">
-          {preview ? (
-            /* Preview mode — read-only with header/footer, preserves formatting */
-            <div style={{ padding: 24 }}>
-              <style>{`
-                .preview-content p { margin: 0.25em 0; }
-                .preview-content ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
-                .preview-content ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
-                .preview-content li { margin: 0.25em 0; }
-                .preview-content li p { margin: 0; }
-                .preview-content img { max-width: 100%; height: auto; }
-                .preview-content table { border-collapse: collapse; width: 100%; }
-                .preview-content td, .preview-content th { border: 1px solid #ddd; padding: 6px 10px; }
-                .preview-content mark { border-radius: 2px; padding: 1px 2px; }
-                .preview-content a { color: #283693; text-decoration: underline; }
-                .preview-content sign-field { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; border: 1.5px dashed #ccc; background: #f5f5f5; font-size: 12px; font-weight: 600; color: #666; }
-              `}</style>
-              {/* Page container */}
-              <div style={{ width: '8.5in', minHeight: '11in', margin: '0 auto', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', borderRadius: 2, padding: '0.5in 1in 0.25in', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                {/* Header — centered */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                  <img src={headerImgUrl} alt="Header" style={{ maxWidth: 220, height: 'auto' }} />
-                </div>
-                {/* Content — use actual editor DOM for accurate formatting */}
-                <div
-                  className="preview-content"
-                  style={{ flex: 1 }}
-                  dangerouslySetInnerHTML={{ __html: editor?.view?.dom?.innerHTML || editor?.getHTML() || '' }}
-                />
-                {/* Footer — centered, 0.25in from bottom */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 12 }}>
-                  <img src={footerImgUrl} alt="Footer" style={{ width: '100%', maxWidth: 500, height: 'auto' }} />
-                  <p style={{ fontSize: 11, color: '#71717a', marginTop: 4, margin: 0 }}>1</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Edit mode — clean editor */
-            <div className="esign-editor">
-              <EditorContent editor={editor} />
-            </div>
-          )}
-        </div>
+      {/* Signing fields help */}
+      <div className="mt-2 px-1 shrink-0">
+        <p className="text-[11px] text-stone-400">
+          <span className="font-semibold">Signing fields:</span>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Signature:GC}}'}</code>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Name:GC}}'}</code>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Date:GC}}'}</code>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Email:GC}}'}</code>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Text:GC}}'}</code>{' '}
+          — Replace GC with IP1, IP2, or Admin
+        </p>
       </div>
 
       {/* Send Dialog */}
@@ -862,6 +316,7 @@ export default function EditDocumentPage() {
 
             <Button onClick={handleSend} disabled={sending || sendForm.signers.length === 0}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               {sending ? 'Sending...' : 'Send for Signature'}
             </Button>
           </div>

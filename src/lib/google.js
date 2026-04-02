@@ -526,7 +526,7 @@ export async function getDocAsHtml(userId, fileId) {
 /** Make a Google Doc publicly viewable (for embedding) */
 export async function shareDocPublicly(userId, fileId) {
   const token = await getAccessToken(userId)
-  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -537,4 +537,10 @@ export async function shareDocPublicly(userId, fileId) {
       type: 'anyone',
     }),
   })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    console.error('Failed to share doc:', err)
+    throw new Error(err.error?.message || 'Failed to share document')
+  }
+  return true
 }
