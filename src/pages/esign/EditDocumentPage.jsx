@@ -230,9 +230,6 @@ export default function EditDocumentPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-1.5" onClick={() => window.open(`https://docs.google.com/document/d/${googleDocId}/edit`, '_blank')}>
-            <Pencil className="size-4" /> Edit Document
-          </Button>
           <Button variant="outline" className="gap-1.5" onClick={handleDownloadPdf} disabled={downloading}>
             {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Download PDF
@@ -257,7 +254,7 @@ export default function EditDocumentPage() {
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/edit?rm=minimal`}
+            src={`https://docs.google.com/document/d/${googleDocId}/edit`}
             className="w-full flex-1 border-0"
             title={docTitle}
           />
