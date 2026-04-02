@@ -115,11 +115,11 @@ export default function MatchedJourneysPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(j => (
             <Link key={j.id} to={`/journeys/${j.id}`}>
-              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden">
+              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0">
                 {/* GC */}
-                <div className="px-4 pt-2 pb-1" style={{ backgroundColor: '#ed148c06' }}>
-                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1">Surrogate</p>
-                  <div className="flex items-center gap-2.5">
+                <div className="px-3 pt-2.5 pb-1.5" style={{ backgroundColor: '#ed148c06' }}>
+                  <p className="text-[8px] font-semibold text-pink-400 uppercase tracking-widest mb-0.5">Surrogate</p>
+                  <div className="flex items-center gap-2">
                     <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
@@ -128,9 +128,9 @@ export default function MatchedJourneysPage() {
                   </div>
                 </div>
                 {/* IP */}
-                <div className="px-4 pt-1 pb-1" style={{ backgroundColor: '#28369306' }}>
-                  <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
-                  <div className="flex items-center gap-2.5">
+                <div className="px-3 pt-1.5 pb-1.5" style={{ backgroundColor: '#28369306' }}>
+                  <p className="text-[8px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-0.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
+                  <div className="flex items-center gap-2">
                     <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
@@ -138,7 +138,7 @@ export default function MatchedJourneysPage() {
                     </div>
                   </div>
                 </div>
-                <CardContent className="px-4 py-2 space-y-1.5">
+                <CardContent className="px-3 py-2 space-y-1">
                   <div className="flex items-center gap-2">
                     <StageBadge stage={j.stage} status={j.status} />
                   </div>
