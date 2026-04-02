@@ -257,7 +257,7 @@ export default function EditDocumentPage() {
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/edit?rm=minimal`}
+            src={`https://docs.google.com/document/d/${googleDocId}/edit`}
             className="w-full h-full border-0"
             title={docTitle}
             allow="clipboard-read; clipboard-write"
