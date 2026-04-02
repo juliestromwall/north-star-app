@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown } from 'lucide-react'
+import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown, Circle, Clock, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,6 +9,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys } from '@/lib/matching'
+import { getChecklistMilestones } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 
@@ -138,14 +139,33 @@ export default function MatchedJourneysPage() {
                     </div>
                   </div>
                 </div>
-                {/* Milestones placeholder */}
-                <div className="px-4 py-1.5 border-t border-stone-100">
-                  <div className="flex items-center gap-1.5 text-[9px] text-stone-400">
-                    <span className="uppercase tracking-wider font-semibold">Milestones</span>
-                    <span>0/0</span>
-                  </div>
-                  <div className="w-full h-1 bg-stone-100 rounded-full mt-1" />
-                </div>
+                {/* Milestones */}
+                {(() => {
+                  const milestones = getChecklistMilestones('gc', j.stage)
+                  const total = milestones.length
+                  // For now milestones are always 0 completed on cards (tracking is per-case)
+                  const completed = 0
+                  const pct = total > 0 ? (completed / total) * 100 : 0
+                  return total > 0 ? (
+                    <div className="px-4 py-1.5 border-t border-stone-100 space-y-1">
+                      <div className="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider font-semibold">
+                        <span>Milestones</span>
+                        <span>{completed}/{total}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+                      </div>
+                      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+                        {milestones.map(ms => (
+                          <div key={ms.id} className="flex items-center gap-0.5">
+                            <Circle className="size-2.5 text-stone-300 shrink-0" />
+                            <span className="text-[9px] text-stone-400 whitespace-nowrap">{ms.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null
+                })()}
                 <CardContent className="px-4 py-2 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <StageBadge stage={j.stage} status={j.status} />
