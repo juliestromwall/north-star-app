@@ -276,73 +276,27 @@ export default function SignDocumentPage() {
       const updated = await signDocument(doc.id, mySigner.email, signatureData)
 
       // If all signers done, generate a signed PDF from the rendered document
-      if (updated.status === 'completed' && updated.case_id) {
+      // Auto-file the document PDF to case documents when all signers complete
+      if (updated.status === 'completed' && updated.case_id && supabase) {
         try {
-          const docEl = document.querySelector('.signing-doc')
-          if (docEl) {
-            const html2canvas = (await import('html2canvas')).default
-            const { jsPDF } = await import('jspdf')
-
-            // Capture the rendered document as an image
-            const canvas = await html2canvas(docEl, {
-              scale: 2,
-              useCORS: true,
-              allowTaint: true,
-              backgroundColor: '#ffffff',
-            })
-
-            // Create PDF from the captured image
-            const pageW = 612 // letter width in pts
-            const pageH = 792
-            const margin = 54
-            const contentW = pageW - margin * 2
-            const imgW = canvas.width
-            const imgH = canvas.height
-            const scale = contentW / (imgW / 2)
-            const scaledH = (imgH / 2) * scale
-            const usableH = pageH - margin * 2
-            const totalPages = Math.ceil(scaledH / usableH)
-
-            const pdf = new jsPDF({ unit: 'pt', format: 'letter' })
-            for (let page = 0; page < totalPages; page++) {
-              if (page > 0) pdf.addPage()
-              const srcY = page * (usableH / scale) * 2
-              const srcH = Math.min((usableH / scale) * 2, imgH - srcY)
-              if (srcH <= 0) break
-              const sliceCanvas = document.createElement('canvas')
-              sliceCanvas.width = imgW
-              sliceCanvas.height = srcH
-              sliceCanvas.getContext('2d').drawImage(canvas, 0, srcY, imgW, srcH, 0, 0, imgW, srcH)
-              pdf.addImage(sliceCanvas.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, contentW, (srcH / 2) * scale)
-            }
-            const pdfBlob = pdf.output('blob')
-
-            // Upload signed PDF
-            const signedPath = `documents/signed_${doc.id}_${Date.now()}.pdf`
-            if (supabase) {
-              const { error: uploadErr } = await supabase.storage.from('esign-documents').upload(signedPath, pdfBlob, {
-                contentType: 'application/pdf',
-                cacheControl: '3600',
+          const meta = JSON.parse(updated.document_hash || '{}')
+          const pdfPath = meta.pdfPath || updated.file_path
+          if (pdfPath) {
+            const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+            if (urlData?.publicUrl) {
+              await supabase.from('case_documents').insert({
+                surrogate_id: updated.case_id,
+                category: 'e-signature',
+                file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
+                file_type: 'application/pdf',
+                storage_path: pdfPath,
+                public_url: urlData.publicUrl,
+                uploaded_by: 'System (E-Sign)',
               })
-              if (!uploadErr) {
-                // File to case documents
-                const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
-                if (urlData?.publicUrl) {
-                  await supabase.from('case_documents').insert({
-                    surrogate_id: updated.case_id,
-                    category: 'e-signature',
-                    file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
-                    file_type: 'application/pdf',
-                    storage_path: signedPath,
-                    public_url: urlData.publicUrl,
-                    uploaded_by: 'System (E-Sign)',
-                  })
-                }
-              }
             }
           }
-        } catch (pdfErr) {
-          console.error('Signed PDF generation failed:', pdfErr)
+        } catch (fileErr) {
+          console.error('Auto-file failed:', fileErr)
         }
       }
 
