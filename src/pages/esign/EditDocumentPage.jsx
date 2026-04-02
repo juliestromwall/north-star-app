@@ -257,7 +257,7 @@ export default function EditDocumentPage() {
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/preview`}
+            src={`https://docs.google.com/document/d/${googleDocId}/edit?rm=minimal`}
             className="w-full flex-1 border-0"
             title={docTitle}
           />
