@@ -1,5 +1,64 @@
 # Session Log
 
+## 2026-04-02 (Continued — Matching, Journey UX, Email Fixes)
+
+**Worked on:** Journey hero redesign (multiple iterations), matching pipeline cleanup, IP intake editing, email button dropdown with compose, log-to-case fix, Emails tab on journey, case_emails table creation
+
+**Changes made:**
+
+Journey Hero (multiple iterations):
+- Compact inline layout: Stage/Status as pills with icons (Milestone + Circle)
+- Lost Wages/Pumping as click-to-toggle chips
+- Pregnancy status with gestational weeks + due date (MM/DD/YYYY)
+- Escrow with cents, green/red based on minimum
+- OB Clinic + Delivery Hospital (editable inline)
+- Case Manager + Journey Manager stacked on right (spelled out)
+- GC section: subtle "SURROGATE" label, avatar + name + age(→DOB flip) + relationship + address(click to copy) + flip-card contacts
+- IP section: subtle "INTENDED PARENTS" label, same pattern + RE doctor + embryos + egg/sperm donor
+- Super light pink/indigo background tints
+
+Matching Pipeline:
+- Matched cases hidden from /matching (only on /journeys)
+- MATCHED badges removed
+- IP color changed to ABC indigo (#283693)
+
+Matched Journeys (/journeys):
+- Cards: subtle SURROGATE/INTENDED PARENTS labels, tinted backgrounds, no arrow
+- Added pregnancy status, escrow balance (green/red), case manager, journey manager to cards
+- Removed gaps (Card gap-0 override)
+
+IP Intake Answers:
+- Now fully editable with all fields (name, DOB, email, phone, partner toggle, RE, embryos, donors, etc.)
+- Save fetches fresh answers first, syncs to hero
+
+Email Button Dropdown:
+- Click Email on surrogate hero shows dropdown: "Email [Name]" (opens compose) or "Copy Email Address"
+- Uses DraftContext/ComposeWindows system
+
+Log to Case Fix:
+- Fixed case selector: searchable grouped list (Matched Journeys, Surrogates, IPs)
+- Was using applicant_name (didn't exist), now uses name/names
+- Added matched journeys as a log target
+
+Emails Tab on Journey:
+- Added Emails tab to journey detail page
+- Merges emails from journey + GC case + IP case (deduplicates)
+- Created case_emails table migration (was missing from Supabase)
+
+**Next steps:**
+- Add Email dropdown to IP case hero (same as GC)
+- Add Email dropdown to journey hero contact buttons
+- Embed actual GC/IP profiles in journey Profiles tab (not just links)
+- Journey checklist implementation
+- Journey documents with GC/IP labels
+- System email templates/notifications
+
+**Open questions:**
+- Should logged emails show on both the journey AND individual case Emails tabs?
+- How should the compose modal pre-fill subject when emailing from a case?
+
+---
+
 ## 2026-04-02 (Continued — E-Signature Signing Page)
 
 **Worked on:** Public signing page, email notifications for signers, field placeholder rendering
