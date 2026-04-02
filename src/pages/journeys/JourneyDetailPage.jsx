@@ -469,8 +469,8 @@ export default function JourneyDetailPage() {
         {/* GC Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-pink-50/30 to-white">
           {gcCase ? (
-            <div className="space-y-2.5">
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white uppercase">Surrogate</span>
+            <div className="space-y-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-pink-500 text-white uppercase tracking-wide">Surrogate</span>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
@@ -508,8 +508,8 @@ export default function JourneyDetailPage() {
         {/* IP Section — compact */}
         <div className="px-5 py-3 border-t bg-gradient-to-r from-[#283693]/3 to-white">
           {ipCase ? (
-            <div className="space-y-2.5">
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white uppercase">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
+            <div className="space-y-3">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-[#283693] text-white uppercase tracking-wide">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</span>
               <div className="flex items-center gap-3">
               <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
               <div className="flex-1 min-w-0">
