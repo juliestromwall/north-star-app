@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import {
   exportDocAsPdf, getDocPlainText, parseFieldPlaceholders, copyGoogleDoc,
-  getOrCreateTemplatesFolder, getDocAsHtml,
+  getOrCreateTemplatesFolder, getDocAsHtml, shareDocPublicly,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -40,9 +40,12 @@ export default function EditDocumentPage() {
   // PDF download
   const [downloading, setDownloading] = useState(false)
 
-  // Load doc title from Drive
+  // Load doc title from Drive and ensure it's shared for embedding
   useEffect(() => {
     if (!googleDocId || !userId) { setLoading(false); return }
+    // Share for embedding
+    shareDocPublicly(userId, googleDocId).catch(() => {})
+    // Get title
     import('@/lib/google').then(({ getAccessToken }) => {
       getAccessToken(userId).then(token => {
         fetch(`https://www.googleapis.com/drive/v3/files/${googleDocId}?fields=name`, {
