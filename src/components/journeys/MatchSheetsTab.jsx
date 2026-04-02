@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Card, CardHeader, CardTitle, CardContent, CardAction } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   FileText, Download, Eye, Printer, Scale, Stethoscope, DollarSign,
-  User, Users, MapPin, Mail, Phone, Calendar, Baby, Heart, Building2,
-  Shield, Briefcase, ChevronDown, CheckCircle2, Clock, Send,
+  User, Users, Baby, Heart, Shield, Briefcase, Clock, Pencil,
 } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -54,6 +53,39 @@ function yesNo(val) {
   return '—'
 }
 
+// ── Editable Field (inline in preview, plain text in PDF) ──
+
+function EditableValue({ value, field, msData, onChange, placeholder }) {
+  const [editing, setEditing] = useState(false)
+  const val = msData?.[field] ?? value ?? ''
+  const display = val || null
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={val}
+        onChange={e => onChange(field, e.target.value)}
+        onBlur={() => setEditing(false)}
+        onKeyDown={e => { if (e.key === 'Enter') setEditing(false); if (e.key === 'Escape') setEditing(false) }}
+        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: 'none', borderBottom: '2px solid #283693', outline: 'none', padding: '0 0 1px 0', width: '100%', backgroundColor: 'transparent', fontFamily: 'inherit' }}
+        placeholder={placeholder || 'Click to enter...'}
+        className="no-print-border"
+      />
+    )
+  }
+
+  return (
+    <span
+      onClick={() => setEditing(true)}
+      style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: display ? '#1c1917' : '#a8a29e', borderBottom: display ? 'none' : '1px dashed #d6d3d1', paddingBottom: display ? 0 : 1, fontStyle: display ? 'normal' : 'italic' }}
+      title="Click to edit"
+    >
+      {display || (placeholder || 'Click to enter...')}
+    </span>
+  )
+}
+
 // ── Section Components for the PDF render ──
 
 function SheetHeader({ title, journey, color }) {
@@ -90,32 +122,52 @@ function InfoGrid({ items, columns = 2 }) {
       {items.filter(Boolean).map((item, i) => (
         <div key={i} style={{ backgroundColor: 'white', padding: '10px 16px', ...(item.span ? { gridColumn: `span ${item.span}` } : {}) }}>
           <div style={{ fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>{item.label}</div>
-          <div style={{ fontSize: 13, color: '#1c1917', fontWeight: 500 }}>{item.value || '—'}</div>
+          {item.editable ? item.value : (
+            <div style={{ fontSize: 13, color: '#1c1917', fontWeight: 500 }}>{item.value || '—'}</div>
+          )}
         </div>
       ))}
     </div>
   )
 }
 
-function PartyHeader({ label, name, color, badge }) {
+function PartyLabel({ children, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 24, marginBottom: 8 }}>
-      <span style={{ fontSize: 9, fontWeight: 800, padding: '3px 8px', borderRadius: 6, backgroundColor: color, color: 'white', letterSpacing: '0.5px' }}>{badge}</span>
-      <span style={{ fontSize: 16, fontWeight: 700, color: '#1c1917' }}>{name || '—'}</span>
+    <p style={{ fontSize: 11, fontWeight: 600, color: color || '#a8a29e', textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: 24, marginBottom: 4 }}>{children}</p>
+  )
+}
+
+function PartyName({ name }) {
+  return (
+    <p style={{ fontSize: 18, fontWeight: 700, color: '#1c1917', marginTop: 0, marginBottom: 10 }}>{name || '—'}</p>
+  )
+}
+
+function ConfidentialFooter() {
+  return (
+    <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #e7e5e4', fontSize: 9, color: '#a8a29e', textAlign: 'center' }}>
+      Confidential — Abundant Beginnings Company — This document contains privileged information intended solely for the named recipient(s).
     </div>
   )
 }
 
 // ── Attorney Match Sheet ──
 
-function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
+function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
   const ga = gcCase?.answers || {}
   const jd = journey.journey_data || {}
   const pd = profileData || {}
   const personal = pd.personal || {}
   const employment = pd.employment || {}
+  const pregnancyHistory = pd.pregnancyHistory || {}
   const color = '#283693'
+
+  const pregnancies = pregnancyHistory.pregnancies || []
+  const numPreg = parseInt(pregnancyHistory.numberOfPregnancies) || pregnancies.length
+  const previousSurrogate = pregnancies.some(p => p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true)
+
+  const gcDob = gcCase?.dob || ga.dob || personal.dob
 
   return (
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
@@ -123,7 +175,9 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
 
       {/* Intended Parents */}
       <SectionTitle color={color} icon={Users}>Intended Parents</SectionTitle>
-      <PartyHeader label="IP 1" name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} color={color} badge="IP 1" />
+
+      <PartyLabel color={color}>Intended Parent #1</PartyLabel>
+      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
       <InfoGrid items={[
         { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
         { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}` },
@@ -131,9 +185,10 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
         { label: 'Phone', value: formatPhone(ipCase?.phone) },
       ]} />
 
-      {a.hasPartner === true || a.hasPartner === 'yes' ? (
+      {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
-          <PartyHeader label="IP 2" name={`${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()} color={color} badge="IP 2" />
+          <PartyLabel color={color}>Intended Parent #2</PartyLabel>
+          <PartyName name={`${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()} />
           <InfoGrid items={[
             { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
             { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
@@ -141,9 +196,9 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
             { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
           ]} />
         </>
-      ) : null}
+      )}
 
-      <div style={{ marginTop: 12 }} />
+      <SectionTitle color={color} icon={FileText}>Demographics</SectionTitle>
       <InfoGrid items={[
         { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', '), span: 2 },
         { label: 'City', value: a.city },
@@ -154,76 +209,93 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
 
       <SectionTitle color="#9b2ea7" icon={Baby}>Embryo Creation</SectionTitle>
       <InfoGrid items={[
+        { label: 'Sperm Contribution', value: ipCase?.usingSpermDonor ? 'Donor Sperm' : "IP's Sperm" },
+        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Donor Egg' : "IP's Eggs" },
         { label: 'Frozen Embryos', value: yesNo(ipCase?.hasFrozenEmbryos) },
         { label: 'Embryo Details', value: ipCase?.frozenEmbryoDetails },
-        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Egg Donor' : 'Own Eggs' },
-        { label: 'Sperm Source', value: ipCase?.usingSpermDonor ? 'Sperm Donor' : 'Own Sperm' },
       ]} />
 
-      <SectionTitle color="#9b2ea7" icon={Scale}>IP Attorney</SectionTitle>
+      <SectionTitle color={color} icon={Scale}>Intended Parents' Attorney</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'Attorney Name & Contact', value: jd.ipAttorney || 'Not yet assigned' },
+        { label: 'Name and Email of Attorney', editable: true, value: <EditableValue field="ipAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
       ]} />
 
       {/* Surrogate */}
       <SectionTitle color="#ed148c" icon={User}>Surrogate</SectionTitle>
-      <PartyHeader label="GC" name={gcCase?.name} color="#ed148c" badge="GC" />
+
+      <PartyLabel color="#ed148c">Gestational Carrier</PartyLabel>
+      <PartyName name={gcCase?.name} />
       <InfoGrid items={[
         { label: 'Full Name', value: gcCase?.name },
-        { label: 'Date of Birth', value: `${formatDate(gcCase?.dob || ga.dob || personal.dob)}${(gcCase?.dob || ga.dob || personal.dob) ? ` (Age ${calcAge(gcCase?.dob || ga.dob || personal.dob)})` : ''}` },
+        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
         { label: 'Street Address', value: personal.streetAddress || ga.streetAddress, span: 2 },
         { label: 'City', value: ga.city || personal.city },
         { label: 'State', value: ga.state || personal.state },
+        { label: 'Zip Code', value: personal.zipCode || ga.zipCode },
+        { label: 'Country', value: 'United States' },
+      ]} />
+
+      <SectionTitle color="#ed148c" icon={Heart}>Surrogate Details</SectionTitle>
+      <InfoGrid items={[
+        { label: 'Surrogate Friendly Insurance', editable: true, value: <EditableValue field="surrogacyFriendlyInsurance" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Insurance Carrier', editable: true, value: <EditableValue field="insuranceCarrier" msData={msData} onChange={onChange} placeholder="Enter carrier name..." /> },
+        { label: 'IP to Pay Monthly Premium', editable: true, value: <EditableValue field="ipPayPremium" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Previously Been a Surrogate', value: previousSurrogate ? 'Yes' : 'No' },
         { label: 'Marital Status', value: ga.maritalStatus || personal.maritalStatus },
+        { label: '# of Children Born To', value: numPreg || '—' },
+        { label: 'Surrogacy Type', editable: true, value: <EditableValue field="surrogacyType" msData={msData} onChange={onChange} placeholder="Gestational Surrogacy" value="Gestational Surrogacy" /> },
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
-      {(ga.maritalStatus === 'Married' || personal.maritalStatus === 'Married') && (
-        <>
-          <div style={{ marginTop: 12 }} />
-          <InfoGrid items={[
-            { label: 'Spouse/Partner Name', value: personal.partnerName || ga.partnerName },
-            { label: 'Spouse/Partner DOB', value: formatDate(personal.partnerDob) },
-            { label: 'Spouse/Partner Email', value: personal.partnerEmail },
-            { label: 'Spouse/Partner Phone', value: formatPhone(personal.partnerPhone) },
-          ]} />
-        </>
+      {(ga.maritalStatus === 'Married' || personal.maritalStatus === 'Married' || ga.maritalStatus === 'married') && (
+        <InfoGrid items={[
+          { label: 'Spouse/Partner Name', value: [personal.partnerFirstName || ga.partnerFirstName, personal.partnerLastName || ga.partnerLastName].filter(Boolean).join(' ') || personal.partnerName },
+          { label: 'Spouse/Partner DOB', value: formatDate(personal.partnerDob) },
+          { label: 'Spouse/Partner Email', value: personal.partnerEmail },
+          { label: 'Spouse/Partner Phone', value: formatPhone(personal.partnerPhone) },
+        ]} />
       )}
 
-      <SectionTitle color="#ed148c" icon={Scale}>GC Attorney</SectionTitle>
+      <SectionTitle color="#ed148c" icon={Scale}>Surrogate's Attorney</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'Attorney Name & Contact', value: jd.gcAttorney || 'Not yet assigned' },
+        { label: 'Name and Email of Attorney', editable: true, value: <EditableValue field="gcAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
       ]} />
 
       {/* Journey Details */}
-      <SectionTitle color="#723bb4" icon={FileText}>Journey Terms</SectionTitle>
+      <SectionTitle color="#723bb4" icon={FileText}>Journey Details</SectionTitle>
       <InfoGrid items={[
-        { label: 'Escrow Company', value: jd.escrowCompany || '—' },
-        { label: 'Escrow Funding', value: fmtCurrency(jd.escrowBalance) },
-        { label: 'Escrow Minimum', value: fmtCurrency(jd.escrowMin) },
-        { label: 'Lost Wages', value: yesNo(jd.lostWages) },
-        { label: 'Pumping Compensation', value: yesNo(jd.pumping) },
-        { label: 'Match Date', value: formatDate(journey.created_at) },
+        { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="Enter escrow company..." /> },
+        { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="Enter amount..." /> },
+        { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin)} /> },
+        { label: 'Lost Wages Entitled', value: yesNo(jd.lostWages) },
+        { label: "Surrogate's Employment Status", value: employment.currentlyEmployed ? `Employed — ${employment.occupation || ''}` : 'Not Employed' },
+        { label: "Spouse/Partner's Employment Status", value: employment.partnerOccupation ? `Employed — ${employment.partnerOccupation}` : '—' },
+        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableValue field="amnioTesting" msData={msData} onChange={onChange} placeholder="Only if Medically Necessary" /> },
+        { label: 'Number of Fetuses to Carry', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" /> },
+        { label: 'Willing to Carry Twins (Split)', editable: true, value: <EditableValue field="willingTwins" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Abort/Reduce for Medical Reason', editable: true, value: <EditableValue field="abortReduce" msData={msData} onChange={onChange} placeholder="Any medical reason" /> },
+        { label: 'Psych Counseling', editable: true, value: <EditableValue field="psychCounseling" msData={msData} onChange={onChange} placeholder="Required / Allowed" /> },
+        { label: 'Can Do Over Phone', editable: true, value: <EditableValue field="psychOverPhone" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" /> },
+        { label: 'Support Group Meetings Required', editable: true, value: <EditableValue field="supportGroupMeetings" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
       ]} />
 
       <SectionTitle color="#723bb4" icon={Stethoscope}>IVF Physician</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'RE Doctor / Clinic', value: ipCase?.reDoctorName || '—' },
-        { label: 'Location', value: jd.reClinicLocation || '—' },
+        { label: 'Name of IVF Physician', value: ipCase?.reDoctorName || '—' },
+        { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
       ]} />
 
-      <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #e7e5e4', fontSize: 9, color: '#a8a29e', textAlign: 'center' }}>
-        Confidential — Abundant Beginnings Company — This document contains privileged information intended solely for the named recipient(s).
-      </div>
+      <ConfidentialFooter />
     </div>
   )
 }
 
 // ── Clinic Match Sheet ──
 
-function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
+function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
   const ga = gcCase?.answers || {}
   const jd = journey.journey_data || {}
@@ -234,6 +306,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
   const health = pd.health || {}
   const employment = pd.employment || {}
   const color = '#9b2ea7'
+  const gcDob = gcCase?.dob || ga.dob || personal.dob
 
   const pregnancies = pregnancyHistory.pregnancies || []
   const numPreg = parseInt(pregnancyHistory.numberOfPregnancies) || pregnancies.length
@@ -246,43 +319,47 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
       <SectionTitle color={color} icon={Stethoscope}>IVF Details</SectionTitle>
       <InfoGrid items={[
         { label: 'RE Doctor / Clinic', value: ipCase?.reDoctorName || '—' },
-        { label: 'Clinic Location', value: jd.reClinicLocation || '—' },
+        { label: 'Clinic Location', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
         { label: 'Frozen Embryos', value: yesNo(ipCase?.hasFrozenEmbryos) },
         { label: 'Embryo Details', value: ipCase?.frozenEmbryoDetails || '—' },
-        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Egg Donor' : 'Own Eggs' },
-        { label: 'Sperm Source', value: ipCase?.usingSpermDonor ? 'Sperm Donor' : 'Own Sperm' },
+        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Donor Egg' : "IP's Eggs" },
+        { label: 'Sperm Source', value: ipCase?.usingSpermDonor ? 'Donor Sperm' : "IP's Sperm" },
       ]} />
 
-      {/* Intended Parents — brief */}
+      {/* Intended Parents */}
       <SectionTitle color="#283693" icon={Users}>Intended Parents</SectionTitle>
+
+      <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
+      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
       <InfoGrid items={[
-        { label: 'IP 1 Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
-        { label: 'IP 1 DOB', value: formatDate(a.primaryDob) },
-        { label: 'IP 1 Email', value: ipCase?.email },
-        { label: 'IP 1 Phone', value: formatPhone(ipCase?.phone) },
+        { label: 'Email', value: ipCase?.email },
+        { label: 'Phone', value: formatPhone(ipCase?.phone) },
+        { label: 'Date of Birth', value: formatDate(a.primaryDob) },
+        { label: 'Location', value: [a.city, a.stateProv].filter(Boolean).join(', ') },
         ...(a.hasPartner === true || a.hasPartner === 'yes' ? [
           { label: 'IP 2 Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
           { label: 'IP 2 DOB', value: formatDate(a.ip2Dob) },
           { label: 'IP 2 Email', value: ipCase?.ip2Email },
           { label: 'IP 2 Phone', value: formatPhone(ipCase?.ip2Phone) },
         ] : []),
-        { label: 'Location', value: [a.city, a.stateProv].filter(Boolean).join(', ') },
-        { label: 'Country', value: a.country || 'United States' },
       ]} />
 
       {/* Surrogate — detailed medical */}
       <SectionTitle color="#ed148c" icon={User}>Surrogate</SectionTitle>
+
+      <PartyLabel color="#ed148c">Gestational Carrier</PartyLabel>
+      <PartyName name={gcCase?.name} />
       <InfoGrid items={[
-        { label: 'Full Name', value: gcCase?.name },
-        { label: 'Date of Birth', value: `${formatDate(gcCase?.dob || ga.dob || personal.dob)}${(gcCase?.dob || ga.dob || personal.dob) ? ` (Age ${calcAge(gcCase?.dob || ga.dob || personal.dob)})` : ''}` },
+        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
+        { label: 'Blood Type', value: personal.bloodType || '—' },
         { label: 'Height', value: `${ga.heightFt || personal.heightFt || '—'}'${ga.heightIn || personal.heightIn || '0'}"` },
         { label: 'Weight', value: `${ga.weightLbs || personal.weight || '—'} lbs` },
         { label: 'BMI', value: gcCase?.bmi || '—' },
-        { label: 'Blood Type', value: personal.bloodType || '—' },
+        { label: 'Marital Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
         { label: 'City / State', value: [ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', ') },
-        { label: 'Marital Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
+        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
       {/* Pregnancy History */}
@@ -299,12 +376,9 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr style={{ backgroundColor: '#fafaf9' }}>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>#</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>Year</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>Outcome</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>Delivery</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>Surrogacy</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>Complications</th>
+                {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -345,20 +419,18 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
       <InfoGrid items={[
         { label: 'Has Health Insurance', value: yesNo(employment.healthInsurance) },
         { label: 'Insurance Type', value: employment.insuranceType || '—' },
-        { label: 'Surrogacy-Friendly Policy', value: jd.surrogacyFriendlyInsurance || '—' },
-        { label: 'Insurance Carrier', value: jd.insuranceCarrier || '—' },
+        { label: 'Surrogacy-Friendly Policy', editable: true, value: <EditableValue field="surrogacyFriendlyInsurance" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Insurance Carrier', editable: true, value: <EditableValue field="insuranceCarrier" msData={msData} onChange={onChange} placeholder="Enter carrier..." /> },
       ]} />
 
-      <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #e7e5e4', fontSize: 9, color: '#a8a29e', textAlign: 'center' }}>
-        Confidential — Abundant Beginnings Company — This document contains privileged information intended solely for the named recipient(s).
-      </div>
+      <ConfidentialFooter />
     </div>
   )
 }
 
 // ── Escrow Match Sheet ──
 
-function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
+function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
   const ga = gcCase?.answers || {}
   const jd = journey.journey_data || {}
@@ -367,6 +439,7 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
   const employment = pd.employment || {}
   const hopesWishes = pd.hopesWishes || {}
   const color = '#10b981'
+  const gcDob = gcCase?.dob || ga.dob || personal.dob
 
   return (
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
@@ -375,32 +448,34 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
       {/* Escrow Details */}
       <SectionTitle color={color} icon={DollarSign}>Escrow Details</SectionTitle>
       <InfoGrid items={[
-        { label: 'Escrow Company', value: jd.escrowCompany || '—' },
-        { label: 'Escrow Funding Amount', value: fmtCurrency(jd.escrowBalance) },
-        { label: 'Minimum Balance Requirement', value: fmtCurrency(jd.escrowMin) },
+        { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="Enter escrow company..." /> },
+        { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="Enter amount..." /> },
+        { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin)} /> },
         { label: 'Match Date', value: formatDate(journey.created_at) },
       ]} />
 
       {/* Compensation */}
       <SectionTitle color={color} icon={Briefcase}>Compensation & Terms</SectionTitle>
       <InfoGrid items={[
-        { label: 'Base Compensation', value: hopesWishes.desiredCompensation || jd.baseCompensation || '—' },
+        { label: 'Base Compensation', editable: true, value: <EditableValue field="baseCompensation" msData={msData} onChange={onChange} placeholder="Enter amount..." value={hopesWishes.desiredCompensation} /> },
         { label: 'Lost Wages Entitled', value: yesNo(jd.lostWages) },
         { label: 'Pumping Compensation', value: yesNo(jd.pumping) },
-        { label: 'Number of Fetuses', value: jd.numberOfFetuses || '1' },
-        { label: 'Willing to Carry Twins', value: jd.willingTwins || '—' },
-        { label: 'Amnio / Invasive Testing', value: jd.amnioTesting || '—' },
-        { label: 'Psych Counseling Required', value: jd.psychCounseling || '—' },
-        { label: 'Max Counseling Sessions', value: jd.maxCounselingSessions || '—' },
+        { label: 'Number of Fetuses', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" /> },
+        { label: 'Willing to Carry Twins', editable: true, value: <EditableValue field="willingTwins" msData={msData} onChange={onChange} placeholder="Yes / No" /> },
+        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableValue field="amnioTesting" msData={msData} onChange={onChange} placeholder="Only if Medically Necessary" /> },
+        { label: 'Psych Counseling', editable: true, value: <EditableValue field="psychCounseling" msData={msData} onChange={onChange} placeholder="Required / Allowed" /> },
+        { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" /> },
       ]} />
 
       {/* Intended Parents */}
       <SectionTitle color="#283693" icon={Users}>Intended Parents</SectionTitle>
+      <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
+      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
       <InfoGrid items={[
-        { label: 'IP 1 Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
-        { label: 'IP 1 Email', value: ipCase?.email },
-        { label: 'IP 1 Phone', value: formatPhone(ipCase?.phone) },
+        { label: 'Email', value: ipCase?.email },
+        { label: 'Phone', value: formatPhone(ipCase?.phone) },
         { label: 'Location', value: [a.city, a.stateProv].filter(Boolean).join(', ') },
+        { label: 'Country', value: a.country || 'United States' },
         ...(a.hasPartner === true || a.hasPartner === 'yes' ? [
           { label: 'IP 2 Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
           { label: 'IP 2 Email', value: ipCase?.ip2Email },
@@ -409,14 +484,16 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
 
       {/* Surrogate */}
       <SectionTitle color="#ed148c" icon={User}>Surrogate</SectionTitle>
+      <PartyLabel color="#ed148c">Gestational Carrier</PartyLabel>
+      <PartyName name={gcCase?.name} />
       <InfoGrid items={[
-        { label: 'Full Name', value: gcCase?.name },
-        { label: 'Date of Birth', value: formatDate(gcCase?.dob || ga.dob || personal.dob) },
+        { label: 'Date of Birth', value: formatDate(gcDob) },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
-        { label: 'Address', value: [personal.streetAddress || ga.streetAddress, ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', '), span: 2 },
         { label: 'Marital Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
+        { label: 'Address', value: [personal.streetAddress || ga.streetAddress, ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', '), span: 2 },
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
+        { label: '# Children', value: parseInt(pd.pregnancyHistory?.numberOfPregnancies) || '—' },
       ]} />
 
       {/* Employment */}
@@ -435,13 +512,11 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef }) {
       {/* Attorneys */}
       <SectionTitle color="#723bb4" icon={Scale}>Legal</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'IP Attorney', value: jd.ipAttorney || 'Not yet assigned' },
-        { label: 'GC Attorney', value: jd.gcAttorney || 'Not yet assigned' },
+        { label: 'IP Attorney', editable: true, value: <EditableValue field="ipAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
+        { label: 'GC Attorney', editable: true, value: <EditableValue field="gcAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
       ]} />
 
-      <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #e7e5e4', fontSize: 9, color: '#a8a29e', textAlign: 'center' }}>
-        Confidential — Abundant Beginnings Company — This document contains privileged information intended solely for the named recipient(s).
-      </div>
+      <ConfidentialFooter />
     </div>
   )
 }
@@ -452,9 +527,13 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   const [activeSheet, setActiveSheet] = useState(null)
   const [profileData, setProfileData] = useState(null)
   const [generating, setGenerating] = useState(false)
+  const [saving, setSaving] = useState(false)
   const sheetRef = useRef(null)
 
-  // Load surrogate profile data for detailed fields
+  // Match sheet editable data stored in journey_data._matchSheetData
+  const [msData, setMsData] = useState(journey.journey_data?._matchSheetData || {})
+
+  // Load surrogate profile data
   useEffect(() => {
     if (gcCase?.email) {
       fetchSurrogateProfileByEmail(gcCase.email).then(data => {
@@ -463,10 +542,34 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     }
   }, [gcCase?.email])
 
+  // Sync msData from journey on load
+  useEffect(() => {
+    if (journey.journey_data?._matchSheetData) {
+      setMsData(journey.journey_data._matchSheetData)
+    }
+  }, [journey.journey_data?._matchSheetData])
+
+  function handleFieldChange(field, value) {
+    setMsData(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function saveMatchSheetData() {
+    setSaving(true)
+    try {
+      const jd = { ...(journey.journey_data || {}), _matchSheetData: msData }
+      await onUpdate({ journey_data: jd })
+    } catch {} finally {
+      setSaving(false)
+    }
+  }
+
   async function downloadPDF() {
     if (!sheetRef.current) return
     setGenerating(true)
     try {
+      // Save data first
+      await saveMatchSheetData()
+
       const canvas = await html2canvas(sheetRef.current, {
         scale: 2,
         useCORS: true,
@@ -480,7 +583,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       const imgWidth = pageWidth
       const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-      // Multi-page support
       let heightLeft = imgHeight
       let position = 0
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
@@ -507,7 +609,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     const printWindow = window.open('', '_blank')
     printWindow.document.write(`
       <html><head><title>Match Sheet</title>
-      <style>body { margin: 0; } @media print { @page { margin: 0.25in; } }</style>
+      <style>body { margin: 0; } input { border: none !important; border-bottom: none !important; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit; color: inherit; } @media print { @page { margin: 0.25in; } }</style>
       </head><body>${sheetRef.current.outerHTML}</body></html>
     `)
     printWindow.document.close()
@@ -517,10 +619,12 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
 
   const SheetComponent = activeSheet === 'attorney' ? AttorneySheet : activeSheet === 'clinic' ? ClinicSheet : activeSheet === 'escrow' ? EscrowSheet : null
 
+  // Check if msData has changed from what's saved
+  const hasUnsaved = JSON.stringify(msData) !== JSON.stringify(journey.journey_data?._matchSheetData || {})
+
   return (
     <div className="space-y-6">
       {!activeSheet ? (
-        /* Sheet Type Selection */
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {SHEET_TYPES.map(sheet => (
             <Card key={sheet.id} className="rounded-2xl cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-transparent hover:border-current" style={{ '--tw-border-opacity': 0.2 }}
@@ -541,7 +645,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
           ))}
         </div>
       ) : (
-        /* Sheet Preview */
         <div className="space-y-4">
           {/* Toolbar */}
           <div className="flex items-center justify-between">
@@ -549,6 +652,12 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
               ← Back to Match Sheets
             </button>
             <div className="flex gap-2">
+              {hasUnsaved && (
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-full text-xs border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100" onClick={saveMatchSheetData} disabled={saving}>
+                  {saving ? <Clock className="size-3.5 animate-spin" /> : <Pencil className="size-3.5" />}
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              )}
               <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={printSheet}>
                 <Printer className="size-3.5" /> Print
               </Button>
@@ -559,10 +668,15 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
             </div>
           </div>
 
+          {/* Hint */}
+          <p className="text-xs text-stone-400 flex items-center gap-1.5">
+            <Pencil className="size-3" /> Click any <span className="italic text-stone-500 border-b border-dashed border-stone-300">dashed underline</span> field to enter or edit information. Changes are saved when you download.
+          </p>
+
           {/* Preview Container */}
           <div className="rounded-2xl border border-stone-200 bg-stone-100 p-6 overflow-x-auto">
             <div className="mx-auto shadow-2xl rounded-lg overflow-hidden" style={{ width: 816 }}>
-              <SheetComponent journey={journey} gcCase={gcCase} ipCase={ipCase} profileData={profileData} sheetRef={sheetRef} />
+              <SheetComponent journey={journey} gcCase={gcCase} ipCase={ipCase} profileData={profileData} sheetRef={sheetRef} msData={msData} onChange={handleFieldChange} />
             </div>
           </div>
         </div>
