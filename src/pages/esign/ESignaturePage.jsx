@@ -317,9 +317,6 @@ function DocumentsTab() {
             {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItemUI key={k} value={k}>{v.label}</SelectItemUI>)}
           </SelectContentUI>
         </SelectUI>
-        <Button className="gap-1.5" onClick={() => setShowNew(true)}>
-          <Send className="size-4" /> Send for Signature
-        </Button>
       </div>
 
       {loading ? (
@@ -600,8 +597,8 @@ export default function ESignaturePage() {
 
       <div className="flex gap-2 border-b pb-2">
         {[
-          { key: 'documents', label: 'Documents' },
-          { key: 'templates', label: 'Templates' },
+          { key: 'documents', label: 'Sent Documents' },
+          { key: 'templates', label: 'Send for Signature' },
         ].map(t => (
           <button
             key={t.key}
