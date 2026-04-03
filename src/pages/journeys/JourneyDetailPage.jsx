@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope,
+  ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
   Hospital, Building2, ChevronDown,
@@ -723,7 +723,15 @@ export default function JourneyDetailPage() {
             if (updated) setJourney(updated)
           }} />
         </TabsContent>
-        <TabsContent value="documents" className="mt-4"><EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." /></TabsContent>
+        <TabsContent value="documents" className="mt-4">
+          <div className="flex justify-end mb-4">
+            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+              onClick={() => window.open(`/e-signature?caseType=gc&caseId=${journey.gc_case_id}`, '_blank')}>
+              <FileText className="size-4" /> Send for Signature
+            </Button>
+          </div>
+          <EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." />
+        </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">
           <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} />

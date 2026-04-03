@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Upload, FileText, Send, Eye, Trash2, Plus, Search, Clock, CheckCircle2,
   XCircle, AlertTriangle, ChevronDown, Users, FileSignature, Download, Pencil, Loader2,
@@ -46,7 +46,7 @@ function StatusBadge({ status }) {
 }
 
 // ── Templates Tab (Google Drive) ─────────────────────────
-function TemplatesTab() {
+function TemplatesTab({ prefillCaseType, prefillCaseId } = {}) {
   const { currentUser } = useRole()
   const userId = currentUser?.id
   const [templates, setTemplates] = useState([])
@@ -150,7 +150,7 @@ function TemplatesTab() {
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" className="gap-1.5 flex-1 text-xs" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
-                    <Link to={`/e-signature/edit/${doc.id}`}>
+                    <Link to={`/e-signature/edit/${doc.id}${prefillCaseType ? `?caseType=${prefillCaseType}&caseId=${prefillCaseId}` : ''}`}>
                       <Pencil className="size-3" /> Edit & Send
                     </Link>
                   </Button>
@@ -413,7 +413,7 @@ function DocumentsTab() {
 
       {/* New Document Dialog */}
       <Dialog open={showNew} onOpenChange={v => { setShowNew(v); if (!v) { setCaseSearch(''); setCaseDropdownOpen(false) } }}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Send Document for Signature</DialogTitle>
           </DialogHeader>
@@ -448,10 +448,11 @@ function DocumentsTab() {
               <div className="space-y-1 relative">
                 <Label className="text-xs">Case</Label>
                 <Input
-                  placeholder="Search by name..."
+                  placeholder={newDoc.caseType ? 'Search by name...' : 'Select case type first'}
                   value={caseSearch}
                   onChange={e => { setCaseSearch(e.target.value); setCaseDropdownOpen(true) }}
-                  onFocus={() => setCaseDropdownOpen(true)}
+                  onFocus={() => newDoc.caseType && setCaseDropdownOpen(true)}
+                  disabled={!newDoc.caseType}
                   className="text-sm"
                 />
                 {caseDropdownOpen && caseOptions.length > 0 && (
@@ -579,7 +580,10 @@ function DocumentsTab() {
 
 // ── Main Page ───────────────────────────────────────────
 export default function ESignaturePage() {
-  const [tab, setTab] = useState('documents')
+  const [searchParams] = useSearchParams()
+  const prefillCaseType = searchParams.get('caseType') || ''
+  const prefillCaseId = searchParams.get('caseId') || ''
+  const [tab, setTab] = useState(prefillCaseType ? 'templates' : 'documents')
 
   return (
     <div className="space-y-6">
@@ -587,6 +591,12 @@ export default function ESignaturePage() {
         title="E-Signature"
         subtitle="Manage document templates and track signing status"
       />
+
+      {prefillCaseType && prefillCaseId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-[#283693]">
+          <span className="font-semibold">Sending for case:</span> Select a template below to send for signature. Case will be pre-selected.
+        </div>
+      )}
 
       <div className="flex gap-2 border-b pb-2">
         {[
@@ -603,7 +613,7 @@ export default function ESignaturePage() {
         ))}
       </div>
 
-      {tab === 'documents' ? <DocumentsTab /> : <TemplatesTab />}
+      {tab === 'documents' ? <DocumentsTab /> : <TemplatesTab prefillCaseType={prefillCaseType} prefillCaseId={prefillCaseId} />}
     </div>
   )
 }

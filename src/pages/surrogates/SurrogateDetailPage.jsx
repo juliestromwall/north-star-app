@@ -1450,12 +1450,16 @@ function DocumentsTab({ surrogateId }) {
         </Card>
       )}
 
-      {/* Toolbar: search + view toggle */}
+      {/* Toolbar: search + view toggle + send for signature */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="Search documents..." value={docSearch} onChange={e => setDocSearch(e.target.value)} className="pl-9" />
         </div>
+        <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+          onClick={() => window.open(`/e-signature?caseType=gc&caseId=${surrogateId}`, '_blank')}>
+          <FileText className="size-4" /> Send for Signature
+        </Button>
         <div className="flex items-center border rounded-md">
           <Button variant={docView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setDocView('grid')}>
             <LayoutGrid className="size-4" />

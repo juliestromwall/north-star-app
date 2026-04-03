@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope,
+  ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
   Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -406,6 +406,12 @@ export default function IPDetailPage() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-6 mt-4">
+          <div className="flex justify-end">
+            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+              onClick={() => window.open(`/e-signature?caseType=ip&caseId=${id}`, '_blank')}>
+              <FileText className="size-4" /> Send for Signature
+            </Button>
+          </div>
           <EmptyState title="Documents" description="Document management for intended parents coming soon." />
         </TabsContent>
 

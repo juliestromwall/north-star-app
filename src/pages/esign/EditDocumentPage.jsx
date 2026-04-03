@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Send, Loader2, FileText, Download, Plus, Trash2, Pencil,
 } from 'lucide-react'
@@ -19,9 +19,13 @@ import {
 
 export default function EditDocumentPage() {
   const { templateId: googleDocId } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { currentUser } = useRole()
   const userId = currentUser?.id
+
+  const prefillCaseType = searchParams.get('caseType') || ''
+  const prefillCaseId = searchParams.get('caseId') || ''
 
   const [docTitle, setDocTitle] = useState('')
   const [loading, setLoading] = useState(true)
@@ -31,7 +35,7 @@ export default function EditDocumentPage() {
   // Send dialog
   const [showSend, setShowSend] = useState(false)
   const [sending, setSending] = useState(false)
-  const [sendForm, setSendForm] = useState({ caseType: '', caseId: '', signers: [], note: '' })
+  const [sendForm, setSendForm] = useState({ caseType: prefillCaseType, caseId: prefillCaseId, signers: [], note: '' })
   const [cases, setCases] = useState({ gc: [], ip: [] })
   const [caseSearch, setCaseSearch] = useState('')
   const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
@@ -86,7 +90,18 @@ export default function EditDocumentPage() {
     setup()
 
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-      .then(([gcs, ips]) => setCases({ gc: gcs, ip: ips }))
+      .then(([gcs, ips]) => {
+        setCases({ gc: gcs, ip: ips })
+        // Auto-populate from URL params if present
+        if (prefillCaseType && prefillCaseId) {
+          setTimeout(() => handleCaseSelect(prefillCaseType, prefillCaseId), 100)
+          setCaseSearch((() => {
+            const list = prefillCaseType === 'ip' ? ips : gcs
+            const c = list.find(x => x.id === Number(prefillCaseId))
+            return c ? (c.names || c.name || '') : ''
+          })())
+        }
+      })
       .catch(() => {})
   }, [googleDocId, userId])
 
@@ -338,7 +353,7 @@ export default function EditDocumentPage() {
 
       {/* Send Dialog */}
       <Dialog open={showSend} onOpenChange={v => { setShowSend(v); if (!v) { setCaseSearch(''); setCaseDropdownOpen(false) } }}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Send "{docTitle}" for Signature</DialogTitle>
           </DialogHeader>
@@ -357,10 +372,11 @@ export default function EditDocumentPage() {
               <div className="space-y-1 relative">
                 <Label className="text-xs">Case</Label>
                 <Input
-                  placeholder="Search by name..."
+                  placeholder={sendForm.caseType ? 'Search by name...' : 'Select case type first'}
                   value={caseSearch}
                   onChange={e => { setCaseSearch(e.target.value); setCaseDropdownOpen(true) }}
-                  onFocus={() => setCaseDropdownOpen(true)}
+                  onFocus={() => sendForm.caseType && setCaseDropdownOpen(true)}
+                  disabled={!sendForm.caseType}
                   className="text-sm"
                 />
                 {caseDropdownOpen && caseOptions.length > 0 && (
