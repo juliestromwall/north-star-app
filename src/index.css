@@ -146,10 +146,10 @@
     100% { background-position: 0% 50%; }
 }
 
-/* Section divider — ABC pink fade */
+/* Section divider — ABC pink line */
 .sidebar-section-divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(237, 20, 140, 0.2) 50%, transparent);
+    background: rgba(237, 20, 140, 0.15);
     margin: 0 12px;
 }
 
@@ -164,6 +164,14 @@
 }
 .dock-nav-item:hover {
     transform: scale(1.15);
+}
+
+/* TopBar icon magnify */
+.topbar-icon {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.topbar-icon:hover {
+    transform: scale(1.2);
 }
 
 /* Print styles for share pages */

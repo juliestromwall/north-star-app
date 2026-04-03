@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, NavLink } from 'react-router-dom'
-import { LogOut, Menu, Home, Mail, MessageSquare, Calendar } from 'lucide-react'
+import { LogOut, Menu, Mail, MessagesSquare, Calendar } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
@@ -22,7 +22,6 @@ export default function TopBar({ onMenuClick }) {
     .join('')
     .slice(0, 2)
 
-  // Fetch inbox unread count
   useEffect(() => {
     if (!isAdmin || !currentUser?.id) return
     getGoogleStatus(currentUser.id).then(async (s) => {
@@ -34,7 +33,6 @@ export default function TopBar({ onMenuClick }) {
     }).catch(() => {})
   }, [isAdmin, currentUser?.id])
 
-  // Check for unread SMS
   useEffect(() => {
     if (!isAdmin || !isAuthenticated) return
     const check = () => {
@@ -56,10 +54,9 @@ export default function TopBar({ onMenuClick }) {
   }
 
   const quickLinks = [
-    { path: '/dashboard', icon: Home, label: 'Home', show: true, badge: 0 },
-    { path: '/email', icon: Mail, label: 'Email', show: isAdmin, badge: inboxCount },
-    { path: '/text-messages', icon: MessageSquare, label: 'Texts', show: isAdmin, badge: 0, pulse: hasUnreadSMS },
-    { path: '/calendar', icon: Calendar, label: 'Calendar', show: isAdmin, badge: 0 },
+    { path: '/email', icon: Mail, title: 'Email', show: isAdmin, badge: inboxCount },
+    { path: '/text-messages', icon: MessagesSquare, title: 'Texts', show: isAdmin, badge: 0, pulse: hasUnreadSMS },
+    { path: '/calendar', icon: Calendar, title: 'Calendar', show: isAdmin, badge: 0 },
   ]
 
   return (
@@ -75,31 +72,31 @@ export default function TopBar({ onMenuClick }) {
         <RoleSwitcher />
       </div>
 
-      {/* Quick Links — center */}
-      <nav className="hidden sm:flex items-center gap-1">
+      {/* Quick Links — icon only with magnify */}
+      <nav className="hidden sm:flex items-center gap-2">
         {quickLinks.filter(l => l.show).map(link => (
           <NavLink
             key={link.path}
             to={link.path}
+            title={link.title}
             className={({ isActive }) =>
-              `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              `topbar-icon relative flex items-center justify-center size-9 rounded-xl transition-colors ${
                 isActive
-                  ? 'bg-[#283693] text-white shadow-sm'
-                  : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100'
+                  ? 'sidebar-nav-active text-abc-indigo'
+                  : 'text-stone-400 hover:text-abc-indigo hover:bg-stone-100'
               }`
             }
           >
-            <link.icon className="size-3.5" />
-            <span>{link.label}</span>
+            <link.icon className="size-[18px]" />
             {link.badge > 0 && (
-              <span className="bg-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none">
+              <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] font-bold px-1 py-0.5 rounded-full min-w-[16px] text-center leading-none">
                 {link.badge > 999 ? '999+' : link.badge}
               </span>
             )}
             {link.pulse && (
-              <span className="relative flex size-2.5">
+              <span className="absolute top-0.5 right-0.5 flex size-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+                <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
               </span>
             )}
           </NavLink>

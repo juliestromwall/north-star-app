@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  Heart,
   HeartHandshake,
   Puzzle,
   Route,
@@ -9,6 +10,7 @@ import {
   FolderOpen,
   PenLine,
   MessageCircle,
+  MessagesSquare,
   Mail,
   Calendar,
   DollarSign,
@@ -39,12 +41,36 @@ const nav = [
     ],
   },
   {
+    section: 'Inbox',
+    roles: ADMIN_ROLES,
+    items: [
+      {
+        label: 'Email',
+        icon: Mail,
+        path: '/email',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Text Messages',
+        icon: MessagesSquare,
+        path: '/text-messages',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Fax',
+        icon: Printer,
+        path: '/fax',
+        roles: ADMIN_ROLES,
+      },
+    ],
+  },
+  {
     section: 'Client Management',
     roles: ADMIN_ROLES,
     items: [
       {
         label: 'Surrogates',
-        icon: Baby,
+        icon: Heart,
         path: '/surrogates',
         roles: ADMIN_ROLES,
       },
@@ -99,12 +125,6 @@ const nav = [
         icon: MessageCircle,
         path: '/messages',
         roles: 'all',
-      },
-      {
-        label: 'Fax',
-        icon: Printer,
-        path: '/fax',
-        roles: ADMIN_ROLES,
       },
     ],
   },

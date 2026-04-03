@@ -28,6 +28,7 @@ import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } fr
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance } from '@/lib/db'
+import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
@@ -200,6 +201,28 @@ function AddressTile({ caseData }) {
       </div>
     </div>
   )
+}
+
+// ── Fertilized Egg Icon (for embryos) ──────────────────
+function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" strokeWidth="2" />
+      <circle cx="12" cy="12" r="7.5" />
+      <path d="M8 15 Q8 9, 14 8" />
+      <circle cx="15" cy="14" r="1.8" />
+      <circle cx="13.5" cy="16.5" r="1.2" />
+      <circle cx="16.5" cy="16" r="1" />
+    </svg>
+  )
+}
+
+// ── Date formatter MM/DD/YYYY ──────────────────────────
+function fmtDate(dateStr) {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'))
+  if (isNaN(d)) return dateStr
+  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 }
 
 // ── IVF Clinic Icon (matches match sheets) ─────────────
@@ -416,9 +439,25 @@ export default function JourneyDetailPage() {
   const [gcInsurance, setGcInsurance] = useState(null)
   const [ipFlip, setIpFlip] = useState({})
   const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
+  const [smsOpen, setSmsOpen] = useState(null) // { phone, name }
+  const [smsMessage, setSmsMessage] = useState('')
+  const [smsSending, setSmsSending] = useState(false)
+  const [smsResult, setSmsResult] = useState(null)
   const toggleGcFlip = (key) => setGcFlip(prev => ({ ...prev, [key]: !prev[key] }))
   const toggleIpFlip = (key) => setIpFlip(prev => ({ ...prev, [key]: !prev[key] }))
   const { openDraft } = useDrafts()
+
+  async function handleSendSMS() {
+    if (!smsMessage.trim() || !smsOpen?.phone) return
+    setSmsSending(true)
+    try {
+      await sendSMS(smsOpen.phone, smsMessage.trim())
+      setSmsResult('sent')
+      setSmsMessage('')
+      setTimeout(() => setSmsOpen(null), 1500)
+    } catch { setSmsResult('error') }
+    finally { setSmsSending(false) }
+  }
 
   useEffect(() => {
     async function load() {
@@ -535,14 +574,13 @@ export default function JourneyDetailPage() {
           {/* Top row: pills left + managers right */}
           <div className="flex items-start gap-4">
           <div className="flex-1 space-y-3">
-          {/* Row 1: Stage/Status + toggles + pregnancy */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* Row 1: Stage · Status + toggles + pregnancy */}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             {/* Stage selector */}
             <div className="relative">
               <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold border-2 transition-all hover:shadow-sm"
-                style={{ color: stageObj.color, borderColor: stageObj.color }}>
-                <Milestone className="size-4" /> {stageObj.label}
+                className="font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
+                {stageObj.label}
               </button>
               {stageOpen && (
                 <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2">
@@ -555,11 +593,12 @@ export default function JourneyDetailPage() {
                 </div>
               )}
             </div>
+            <span className="text-stone-300">·</span>
             {/* Status selector */}
             <div className="relative">
               <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border border-stone-200 text-stone-700 hover:shadow-sm transition-all">
-                <Circle className="size-4 text-stone-400" /> {journey.status}
+                className="text-stone-600 hover:underline cursor-pointer">
+                {journey.status}
               </button>
               {statusOpen && (
                 <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
@@ -571,20 +610,12 @@ export default function JourneyDetailPage() {
                 </div>
               )}
             </div>
-
-            <div className="w-px h-6 bg-stone-200" />
-
-            <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')}
-              className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
-              Lost Wages: <span className="font-bold">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</span>
-            </button>
-            <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')}
-              className="px-3 py-1.5 rounded-full text-xs font-medium border border-stone-200 hover:border-stone-300 transition-all cursor-pointer">
-              Pumping: <span className="font-bold">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</span>
-            </button>
+            <span className="text-stone-300">·</span>
+            <span className="text-xs text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
+            <span className="text-xs text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
             <button onClick={() => updateField('pregnant', jd.pregnant === 'yes' ? 'no' : 'yes')}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200'}`}>
-              {jd.pregnant === 'yes' ? (jd.dueDate ? `🤰 ${calcGestationalWeeks(jd.dueDate) || ''} · Due ${new Date(jd.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : '🤰 Pregnant') : 'Not Pregnant'}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200 text-stone-500'}`}>
+              {jd.pregnant === 'yes' ? (jd.dueDate ? `${calcGestationalWeeks(jd.dueDate) || 'Pregnant'} · Due ${fmtDate(jd.dueDate)}` : 'Pregnant') : 'Not Pregnant'}
             </button>
           </div>
 
@@ -605,6 +636,10 @@ export default function JourneyDetailPage() {
                   <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
                 </div>
               )}
+              <div className="flex items-center gap-1.5" title="Escrow Closing Date">
+                <Calendar className="size-3.5 text-stone-400" />
+                <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Escrow close" />
+              </div>
               <div className="flex items-center gap-1.5" title="IVF Clinic">
                 <EmbryoIcon size={14} color="#a8a29e" />
                 <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set IVF clinic" />
@@ -655,7 +690,11 @@ export default function JourneyDetailPage() {
 
         {/* GC Section */}
         <div className="px-5 py-4 border-t" style={{ backgroundColor: '#ed148c08' }}>
-          {gcCase ? (
+          {gcCase ? (() => {
+            const gcA = gcCase.answers || {}
+            const gcPartner = gcA.partnerName || gcA.spouseFullName || ''
+            const gcAddr = [gcA.street, gcA.city, gcA.state, gcA.zipCode].filter(Boolean).join(', ') || gcCase.location || '—'
+            return (
             <div className="space-y-0">
               <p className="text-[11px] font-semibold text-pink-400 uppercase tracking-widest mb-2">Surrogate</p>
               <div className="flex items-center gap-3">
@@ -663,17 +702,14 @@ export default function JourneyDetailPage() {
               <div className="flex-1 min-w-0">
                 <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
                 <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
-                  {gcCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{gcCase.location}</span>}
-                  {gcCase.age && (
-                    <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
-                      {gcFlip.age ? `DOB: ${gcCase.dob || '—'}` : `Age ${gcCase.age}`}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
-                    <Heart className="size-3" />{gcFlip.relationship ? '—' : (gcCase.maritalStatus || '—')}
+                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
+                    {gcFlip.age ? `DOB: ${fmtDate(gcCase.dob || gcA.dob)}` : `Age ${gcCase.age || '—'}`}
                   </span>
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => { const a = gcCase.answers || {}; const addr = [a.city, a.state].filter(Boolean).join(', ') || gcCase.location; navigator.clipboard.writeText(addr) }} title="Click to copy address">
-                    <Home className="size-3" />{gcCase.location || '—'}
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
+                    <Heart className="size-3" />{gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
+                  </span>
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')} title="Click to show address">
+                    <Home className="size-3" />{gcFlip.address ? gcAddr : (gcCase.location || '—')}
                   </span>
                   {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
                     <span className="flex items-center gap-0.5 text-emerald-600">
@@ -686,7 +722,8 @@ export default function JourneyDetailPage() {
                 {gcCase.phone && (
                   <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
                     className={`gap-1 rounded-full text-xs h-7 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                    asChild><a href={`sms:${gcCase.phone}`}><MessageSquare className="size-3" /> Text</a>
+                    onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
+                    <MessageSquare className="size-3" /> Text
                   </Button>
                 )}
                 <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
@@ -700,12 +737,22 @@ export default function JourneyDetailPage() {
               <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
                 onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
             </div>
-          ) : <p className="text-sm text-stone-400">GC case not found</p>}
+            )
+          })() : <p className="text-sm text-stone-400">GC case not found</p>}
         </div>
 
         {/* IP Section */}
         <div className="px-5 py-4 border-t" style={{ backgroundColor: '#28369308' }}>
-          {ipCase ? (
+          {ipCase ? (() => {
+            const ipA = ipCase.answers || {}
+            const ip1Age = ipCase.age
+            const ip2Dob = ipA.ip2Dob ? new Date(ipA.ip2Dob) : null
+            const ip2Age = ip2Dob ? Math.floor((Date.now() - ip2Dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+            const ageDisplay = ip2Age ? `Ages ${ip1Age} & ${ip2Age}` : `Age ${ip1Age || '—'}`
+            const dobDisplay = ip2Dob ? `${fmtDate(ipA.primaryDob)} & ${fmtDate(ipA.ip2Dob)}` : fmtDate(ipA.primaryDob)
+            const ipAddr = [ipA.street, ipA.city, ipA.stateProv, ipA.zipCode].filter(Boolean).join(', ') || ipCase.location || '—'
+            const allPhones = [ipCase.phone, ipCase.ip2Phone].filter(Boolean).join(' / ')
+            return (
             <div className="space-y-0">
               <p className="text-[11px] font-semibold text-[#283693]/50 uppercase tracking-widest mb-2">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
               <div className="flex items-center gap-3">
@@ -713,28 +760,27 @@ export default function JourneyDetailPage() {
               <div className="flex-1 min-w-0">
                 <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
                 <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
-                  {ipCase.location && <span className="flex items-center gap-0.5"><MapPin className="size-3" />{ipCase.location}</span>}
-                  {ipCase.age && (
-                    <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
-                      {ipFlip.age ? `DOB: ${ipCase.answers?.primaryDob || '—'}` : `Age ${ipCase.age}`}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-0.5">
-                    <Heart className="size-3" />{ipCase.answers?.maritalStatus || '—'}
+                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
+                    {ipFlip.age ? `DOB: ${dobDisplay}` : ageDisplay}
+                  </span>
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('relationship')}>
+                    <Heart className="size-3" />{ipFlip.relationship ? (ipCase.ip2Name || '—') : (ipA.maritalStatus || '—')}
                   </span>
                   {ipCase.reDoctorName && <span className="flex items-center gap-0.5"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
-                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5">🧬 {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
-                  {ipCase.usingEggDonor && <span>🥚 Egg Donor</span>}
-                  {ipCase.usingSpermDonor && <span>🧪 Sperm Donor</span>}
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => { const a = ipCase.answers || {}; const addr = [a.city, a.stateProv].filter(Boolean).join(', ') || ipCase.location; navigator.clipboard.writeText(addr) }} title="Click to copy address">
-                    <Home className="size-3" />{ipCase.location || '—'}
+                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5"><FertilizedEggIcon size={12} color="currentColor" /> {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
+                  {ipCase.usingEggDonor && <span>Egg Donor</span>}
+                  {ipCase.usingSpermDonor && <span>Sperm Donor</span>}
+                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')} title="Click to show address">
+                    <Home className="size-3" />{ipFlip.address ? ipAddr : (ipCase.location || '—')}
                   </span>
                 </div>
               </div>
               <div className="flex gap-1.5 shrink-0">
                 {ipCase.phone && (
-                  <Button size="sm" className="gap-1 rounded-full text-xs h-7" asChild>
-                    <a href={`sms:${ipCase.phone}`}><MessageSquare className="size-3" /> Text</a>
+                  <Button variant="outline" size="sm"
+                    className="gap-1 rounded-full text-xs h-7"
+                    onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
+                    <MessageSquare className="size-3" /> Text
                   </Button>
                 )}
                 <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7"
@@ -744,13 +790,14 @@ export default function JourneyDetailPage() {
                   }}>
                   <Mail className="size-3" /> Email
                 </Button>
-                {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
+                {allPhones && <CopyFlipButton icon={Phone} label="Call" value={allPhones} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
               </div>
               <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
                 onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
             </div>
-          ) : <p className="text-sm text-stone-400">IP case not found</p>}
+            )
+          })() : <p className="text-sm text-stone-400">IP case not found</p>}
         </div>
       </div>
 
