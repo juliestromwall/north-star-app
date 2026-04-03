@@ -451,7 +451,7 @@ export default function SurrogateDetailPage() {
                     <div className="fixed inset-0 z-10" onClick={() => setEmailMenuOpen(false)} />
                     <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
-                        onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id, caseId: surrogate.id }); setEmailMenuOpen(false) }}>
+                        onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id, caseId: surrogate.id, caseType: 'gc' }); setEmailMenuOpen(false) }}>
                         <Mail className="size-3.5 text-[#283693]" /> Email {surrogate.name?.split(' ')[0]}
                       </button>
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"

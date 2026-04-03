@@ -178,7 +178,7 @@ export default function IPDetailPage() {
                     {emailMenuOpen && (
                       <div className="absolute z-20 top-full right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border py-1.5">
                         <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
-                          onClick={() => { openDraft({ to: allEmails, userId: currentUser.id, caseId: ip.id }); setEmailMenuOpen(false) }}>
+                          onClick={() => { openDraft({ to: allEmails, userId: currentUser.id, caseId: ip.id, caseType: 'ip' }); setEmailMenuOpen(false) }}>
                           <Mail className="size-3.5 text-[#283693]" /> {emailLabel}
                         </button>
                         <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"

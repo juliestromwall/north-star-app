@@ -27,7 +27,7 @@ export function DraftProvider({ children }) {
     }
   }, [])
 
-  const openDraft = useCallback(async ({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId, userId, attachments: initialAttachments } = {}) => {
+  const openDraft = useCallback(async ({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId, caseType, userId, attachments: initialAttachments } = {}) => {
     const id = nextDraftId++
 
     let initialSubject = subject || ''
@@ -61,6 +61,7 @@ export function DraftProvider({ children }) {
       body: initialBody,
       attachments: initialAttachments || [],
       caseId: caseId ? String(caseId) : '',
+      caseType: caseType || '',
       minimized: false,
       showCcBcc: false,
     }

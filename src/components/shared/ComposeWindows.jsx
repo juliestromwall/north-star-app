@@ -271,20 +271,19 @@ function ComposeWindow({ draft, index }) {
 
       if (draft.caseId && supabase) {
         const c = cases?.find(c => String(c.id) === String(draft.caseId))
-        if (c) {
-          await supabase.from('case_emails').insert({
-            gmail_message_id: result.id || 'sent-' + Date.now(),
-            case_id: c.id,
-            case_type: c.type,
-            subject: draft.subject,
-            from_address: currentUser?.email || '',
-            to_address: draft.to,
-            date: new Date().toISOString(),
-            snippet: (editor?.getText() || '').slice(0, 200),
-            logged_by: userId,
-            logged_by_name: currentUser?.name || '',
-          }).catch(() => {})
-        }
+        const caseType = draft.caseType || c?.type || 'gc'
+        await supabase.from('case_emails').insert({
+          gmail_message_id: result.id || 'sent-' + Date.now(),
+          case_id: Number(draft.caseId) || draft.caseId,
+          case_type: caseType,
+          subject: draft.subject,
+          from_address: currentUser?.email || '',
+          to_address: draft.to,
+          date: new Date().toISOString(),
+          snippet: (editor?.getText() || '').slice(0, 200),
+          logged_by: userId,
+          logged_by_name: currentUser?.name || '',
+        }).catch(err => console.error('Email log failed:', err))
       }
 
       closeDraft(draft.id)

@@ -775,7 +775,7 @@ export default function JourneyDetailPage() {
                 onClick={() => {
                   const conf = emailConfirm
                   setEmailConfirm(null)
-                  openDraft({ to: conf.email, caseId: conf.caseId, userId: currentUser?.userId || currentUser?.id }).catch(() => {})
+                  openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }).catch(() => {})
                 }}>
                 <Mail className="size-3.5" /> Confirm
               </Button>
