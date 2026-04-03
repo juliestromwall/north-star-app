@@ -634,7 +634,10 @@ export default function JourneyDetailPage() {
                   </Button>
                 )}
                 <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7"
-                  onClick={() => setEmailConfirm({ name: ipCase.names, email: ipCase.email, caseId: journey.id })}>
+                  onClick={() => {
+                    const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
+                    setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
+                  }}>
                   <Mail className="size-3" /> Email
                 </Button>
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
@@ -756,13 +759,13 @@ export default function JourneyDetailPage() {
       {/* Email confirmation toast */}
       {emailConfirm && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-6 py-4 flex items-center gap-4 max-w-lg">
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-6 py-4 flex items-center gap-4 max-w-xl">
             <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
               <Mail className="size-5 text-[#283693]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-stone-800">Email {emailConfirm.name}?</p>
-              <p className="text-xs text-stone-500 truncate">{emailConfirm.email}</p>
+              <p className="text-xs text-stone-500">{emailConfirm.email}</p>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={() => setEmailConfirm(null)}>

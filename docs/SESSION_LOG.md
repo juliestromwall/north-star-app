@@ -1,5 +1,54 @@
 # Session Log
 
+## 2026-04-03 (Fax Integration)
+
+**Worked on:** SRFax API credentials setup, complete fax page overhaul with send-from-case, received fax preview, file-to-case functionality
+
+**Changes made:**
+
+SRFax Credentials:
+- User added SRFAX_ACCESS_ID and SRFAX_ACCESS_PWD to Cloudflare Pages environment variables
+- Redeployed to activate SRFax API
+
+Fax Page Overhaul (src/pages/fax/FaxPage.jsx):
+- Received tab (default) with inline PDF preview dialog, file-to-case button, download
+- Sent tab with fax status and download
+- Search by fax number
+- Send Fax dialog with two document source modes: "Upload File" or "From Case"
+- "From Case" mode: case type selector (Surrogate/IP/Journey), searchable case dropdown, pick document from case documents list
+- Cover page options (Standard, Company, Urgent, Confidential)
+- URL params support for prefill from case pages (caseType, caseId)
+
+File to Medical Records Dialog:
+- Preview received fax info (from number, pages, date)
+- Rename document before filing
+- Searchable case selector (Surrogate/IP/Journey)
+- Files directly to "medical-records" category in case documents
+- Confirmation with case name
+
+Send Fax from Case Pages:
+- Added "Send Fax" button to Surrogate Documents tab (next to Send for Signature)
+- Added "Send Fax" button to IP Documents tab
+- Added "Send Fax" button to Journey Documents tab
+- All open /fax in new tab with case pre-selected
+
+New db.js Helper:
+- uploadBase64ToCaseDocuments() — converts base64 PDF to blob, uploads to Supabase storage, creates case_documents record
+
+**Next steps:**
+- Test with live SRFax data (verify credentials work — may need numeric account ID vs email)
+- Test file-to-case flow end-to-end
+- Add fax number to clinic/case data for quick-send
+- Fax confirmation/delivery status tracking
+- Batch fax to multiple numbers
+
+**Open questions:**
+- Are the SRFax credentials email-based or does it need a numeric account ID?
+- Should there be a default fax number per clinic for quick-send?
+- Should sent faxes be logged to the case (like emails)?
+
+---
+
 ## 2026-04-02 (Continued — E-Signature Major Overhaul)
 
 **Worked on:** Comprehensive E-Signature system improvements: signed PDF quality, audit trail redesign, form validation, signer role management, "Send for Signature" from case/journey pages, admin dropdown, journey auto-populate

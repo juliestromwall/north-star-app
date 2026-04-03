@@ -127,7 +127,7 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | E-Sign Sign | /e-signature/:id | public | Built (public route, email verification, field inputs, signature pad, PDF preview) |
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
-| Fax | /fax | admin+ | Built (SRFax API, send/inbox/outbox, awaiting credentials) |
+| Fax | /fax | admin+ | Built (SRFax API, send from case docs or upload, received fax preview, file to Medical Records with rename, case selector) |
 | HR Management | /hr | master_admin+ | Stub |
 | Payroll | /payroll | master_admin+ | Stub |
 
