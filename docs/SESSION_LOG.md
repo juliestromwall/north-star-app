@@ -1,6 +1,122 @@
 # Session Log
 
-## 2026-04-03 (Fax Integration)
+## 2026-04-03 (Match Sheets, Email Integration, Sidebar Redesign)
+
+**Worked on:** Match Sheets feature for matched journeys (Attorney, Escrow, Clinic), email compose integration with auto-logging, glassmorphism sidebar redesign
+
+**Changes made:**
+
+Match Sheets (src/components/journeys/MatchSheetsTab.jsx):
+- Attorney Match Sheet: header with logo/title/case manager, IP section (demographics, embryo creation with dropdown options), Surrogate section (demographics, spouse/partner, details), Journey Details (escrow, terms, psych), IVF Physician, Delivery Hospital
+- Escrow Match Sheet: simplified layout — IP info, Surrogate info, Escrow Details (opening amount $5k, minimum $10k, fund after legal $100k)
+- Clinic Match Sheet: IVF details, IP/Surrogate medical info, pregnancy history, fertility, insurance
+- Custom EditableValue and EditableSelect components for inline editing
+- Custom pink dropdown menus replacing native blue select
+- PDF generation with page breaks (Surrogate on page 2, Journey Details on page 3)
+- "Save to Documents" + "Send Match Sheet" buttons replacing "Download PDF"
+- Send Match Sheet: generates PDF, attaches to email compose, auto-logs to journey
+- Email subject format: "Attorney Match Sheet - IP(s) Name(s) with GC Name"
+- Branded footer with abcsurrogacy.com banner image, address, phone numbers
+- Date format: MM/DD/YYYY with support for MM/DD/YYYY, MM-DD-YYYY, YYYY-MM-DD input
+- Custom EmbryoIcon SVG component
+- PartyBanner component for major section dividers (IP vs Surrogate vs Journey)
+- Defaults: SeedTrust Escrow LLC, Max Counseling Sessions 15
+
+Email Integration:
+- Journey page: confirmation toast before emailing ("Email Nik L? email@...") with Confirm/Cancel
+- Prevents accidental emailing wrong party (GC vs IP)
+- IP page: email dropdown with both IP names, combines both emails in To field
+- Surrogate page: added caseId to openDraft for auto-logging
+- DraftContext: accepts caseType and initial attachments
+- ComposeWindows: auto-loads cases when caseId pre-set, inserts email log directly
+- Fixed crash-proof openDraft with triple try/catch for signature fetch
+
+Sidebar Redesign (src/components/layout/Sidebar.jsx):
+- Glassmorphism design: indigo → purple → pink gradient background
+- Frosted glass active state with backdrop-blur and white border
+- White logo area for clear branding
+- Translucent badges and section headers
+- Mobile sheet matches desktop styling
+
+Other:
+- Renamed "Benefit Package" folder to "Clinic" in surrogate documents
+- Added phone numbers to admin mock users (src/data/mock/users.js)
+- Fixed Desiree's email typo in mock users
+- TrackingTable shared component: fixed scroll cutoff (overflow-hidden removed)
+
+**Next steps:**
+- Build journey Documents tab (duplicate surrogate document UX)
+- Clinic Match Sheet needs same updates as Attorney (dropdowns, demographics, etc.)
+- Email templates for match sheet emails
+- Test PDF page breaks with real data
+- Surrogate address/US citizen data may need profile completion
+
+**Open questions:**
+- Partner email/phone: currently pulls from profile, should also check intake confidential form fields
+- "Previously Been a Surrogate" pulls from pregnancy history — verify data accuracy
+- Email auto-logging to journey works but needs testing with real Gmail sends
+
+---
+
+## 2026-04-03 (Fax Integration — Full Build)
+
+**Worked on:** SRFax API live integration, complete fax page UX overhaul with hero stats, table layout, filing workflow with medical records log updates, auto-advance navigation, sidebar badge
+
+**Changes made:**
+
+SRFax Credentials:
+- Account number 288185 configured on Cloudflare Pages (SRFAX_ACCESS_ID + SRFAX_ACCESS_PWD)
+- API confirmed working — 263 received faxes and 205 sent faxes loaded
+
+Fax Page UX Overhaul (src/pages/fax/FaxPage.jsx):
+- Hero stats bar: 4 clickable tiles (Received, Unread, Filed, Sent) with gradient background, act as filters
+- Table layout with TrackingTable-style headers (10px uppercase stone-400)
+- Received table columns: Fax Number, Document Name, Filed To (case link), Date Filed, Filed By, Log Updated, mark read/unread
+- Sent table columns: Fax Number, Status, Pages, Date Faxed, Sent By
+- Search by fax number or filed case name
+- Mark All Read button
+- Click row to preview (auto-marks as read)
+- Pink animated dot + "New" badge on unread faxes
+
+Fax Preview Modal:
+- Near-fullscreen (95vw × 95vh), scrollable so filing panel can scroll out of view
+- Sticky header with prev/next navigation arrows + counter (e.g., "3 / 263")
+- "File to Case" button toggles inline filing panel
+- Filing panel: rename document, select case type + searchable case selector
+- Medical Records Log update: select record + status + note (collapsible section)
+- Warning when case has no Medical Records tasks
+- Inline amber warning if filing without updating log (Go Back / File Anyway)
+- Auto-advance to next unread fax after filing (1.5s delay for success message)
+- Closes modal when no more unread faxes
+
+Send Fax Dialog:
+- Two modes: Upload File or From Case (pick document from case documents)
+- Case type selector (Surrogate/IP/Journey) + searchable case dropdown
+- Cover page options (Standard, Company, Urgent, Confidential)
+- "Send Fax" button on Surrogate, IP, and Journey Documents tabs
+
+New Files:
+- src/lib/faxState.js — localStorage-backed read/unread tracking + filing info (caseType, caseName, caseId, documentName, filedAt, filedBy, logUpdated)
+- Updated src/lib/db.js — uploadBase64ToCaseDocuments() with filename sanitization
+
+Sidebar:
+- Unread fax count badge (violet) on Fax nav item
+- Checks every 2 minutes via listFaxes API
+
+**Next steps:**
+- Test medical records log updates end-to-end (verify tracking data persists on case page)
+- Add fax number per clinic for quick-send
+- Log sent faxes to cases (like email logging)
+- Fax delivery status tracking / notifications
+
+**Open questions:**
+- Should sent faxes be associated with cases (like email logging)?
+- Should there be a default fax number per clinic/case for quick-send?
+- Should fax filing data be stored in Supabase instead of localStorage for multi-user?
+
+---
+
+## 2026-04-03 (Fax Integration — Initial)
 
 **Worked on:** SRFax API credentials setup, complete fax page overhaul with send-from-case, received fax preview, file-to-case functionality
 
