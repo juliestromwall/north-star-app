@@ -940,6 +940,28 @@ export default function JourneyDetailPage() {
           </div>
         </div>
       )}
+
+      {/* SMS Dialog */}
+      <Dialog open={!!smsOpen} onOpenChange={v => { if (!v) setSmsOpen(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Text {smsOpen?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-stone-400">{smsOpen?.phone}</p>
+            <Textarea value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder="Type your message..." rows={3} />
+            {smsResult === 'sent' && <p className="text-sm text-emerald-600 font-medium">Message sent!</p>}
+            {smsResult === 'error' && <p className="text-sm text-red-600 font-medium">Failed to send</p>}
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setSmsOpen(null)}>Cancel</Button>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSendSMS} disabled={smsSending || !smsMessage.trim()}>
+                {smsSending ? <Loader2 className="size-3 animate-spin" /> : <MessageSquare className="size-3" />}
+                {smsSending ? 'Sending...' : 'Send'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
