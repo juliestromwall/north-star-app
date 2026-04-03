@@ -605,7 +605,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax }) {
 
   return (
     <Dialog open={open} onOpenChange={v => { onOpenChange(v); if (!v) { setPdfData(null) } }}>
-      <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col !p-0">
+      <DialogContent className="sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col !p-0">
         <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="size-5" /> Fax Preview
