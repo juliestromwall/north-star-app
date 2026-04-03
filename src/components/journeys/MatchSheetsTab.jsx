@@ -30,11 +30,21 @@ const SHEET_TYPES = [
   { id: 'attorney', label: 'Attorney Match Sheet', icon: Scale, color: '#283693', description: 'For legal counsel — IP & GC contact info, demographics, embryo creation, attorney details, and journey terms.' },
 ]
 
+function parseDate(dateStr) {
+  if (!dateStr) return null
+  // Handle MM/DD/YYYY or MM-DD-YYYY
+  const mdyMatch = String(dateStr).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+  if (mdyMatch) return new Date(`${mdyMatch[3]}-${mdyMatch[1].padStart(2,'0')}-${mdyMatch[2].padStart(2,'0')}T00:00:00`)
+  // Handle YYYY-MM-DD (ISO)
+  return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'))
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—'
   try {
-    const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'))
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const d = parseDate(dateStr)
+    if (!d || isNaN(d.getTime())) return '—'
+    return `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`
   } catch { return dateStr }
 }
 
@@ -48,7 +58,8 @@ function formatPhone(phone) {
 
 function calcAge(dob) {
   if (!dob) return null
-  const birth = new Date(dob + 'T00:00:00')
+  const birth = parseDate(dob)
+  if (!birth || isNaN(birth.getTime())) return null
   const today = new Date()
   let age = today.getFullYear() - birth.getFullYear()
   const m = today.getMonth() - birth.getMonth()
@@ -166,7 +177,7 @@ function SheetHeader({ title, journey, color }) {
         </div>
       </div>
       {/* Divider */}
-      <div style={{ height: 1, background: '#d6d3d1' }} />
+      <div style={{ height: 1.5, background: '#283693', borderRadius: 1 }} />
     </div>
   )
 }
