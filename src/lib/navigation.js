@@ -1,25 +1,28 @@
 import {
   LayoutDashboard,
   Users,
-  Heart,
-  GitMerge,
+  HeartHandshake,
+  Puzzle,
+  Route,
   FileText,
   ClipboardList,
   FolderOpen,
-  PenTool,
-  MessageSquare,
+  PenLine,
+  MessageCircle,
   Mail,
   Calendar,
   DollarSign,
   BarChart3,
   Settings,
   Clock,
-  CreditCard,
+  Wallet,
   UserCog,
   Shield,
   ClipboardCheck,
   TrendingUp,
   Printer,
+  Baby,
+  UserRound,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -41,25 +44,25 @@ const nav = [
     items: [
       {
         label: 'Surrogates',
-        icon: Heart,
+        icon: Baby,
         path: '/surrogates',
         roles: ADMIN_ROLES,
       },
       {
         label: 'Intended Parents',
-        icon: Users,
+        icon: HeartHandshake,
         path: '/intended-parents',
         roles: ADMIN_ROLES,
       },
       {
         label: 'Matching',
-        icon: GitMerge,
+        icon: Puzzle,
         path: '/matching',
         roles: ADMIN_ROLES,
       },
       {
         label: 'Matched Journeys',
-        icon: Heart,
+        icon: Route,
         path: '/journeys',
         roles: ADMIN_ROLES,
       },
@@ -82,7 +85,7 @@ const nav = [
       },
       {
         label: 'E-Signature',
-        icon: PenTool,
+        icon: PenLine,
         path: '/e-signature',
         roles: ADMIN_ROLES,
       },
@@ -93,7 +96,7 @@ const nav = [
     items: [
       {
         label: 'Messages',
-        icon: MessageSquare,
+        icon: MessageCircle,
         path: '/messages',
         roles: 'all',
       },
@@ -123,7 +126,7 @@ const nav = [
       },
       {
         label: 'Payroll',
-        icon: CreditCard,
+        icon: Wallet,
         path: '/payroll',
         roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN],
       },

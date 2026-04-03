@@ -81,14 +81,14 @@
     --chart-3: #283693;
     --chart-4: #8B8FBF;
     --chart-5: #f9a8d4;
-    --sidebar: #1a1d3a;
-    --sidebar-foreground: #c8c4e0;
-    --sidebar-primary: #ed148c;
+    --sidebar: #FFFFFF;
+    --sidebar-foreground: #57534e;
+    --sidebar-primary: #283693;
     --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: rgba(237, 20, 140, 0.2);
-    --sidebar-accent-foreground: #FFFFFF;
-    --sidebar-border: rgba(255,255,255,0.08);
-    --sidebar-ring: #ed148c;
+    --sidebar-accent: #f5f5f4;
+    --sidebar-accent-foreground: #283693;
+    --sidebar-border: #e7e5e4;
+    --sidebar-ring: #283693;
 }
 
 @layer base {
@@ -105,6 +105,65 @@
     h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-heading);
     }
+}
+
+/* ===== Sidebar nav effects ===== */
+.sidebar-nav-item {
+    position: relative;
+    background: transparent;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-nav-item:hover {
+    background: rgba(40, 54, 147, 0.04);
+    color: #283693;
+}
+.sidebar-nav-item:active {
+    transform: scale(0.97);
+    transition: all 0.1s ease;
+}
+
+/* Active — dreamy liquid glass with ABC dot colors */
+.sidebar-nav-active {
+    position: relative;
+    background: linear-gradient(135deg,
+        rgba(139, 197, 63, 0.12),
+        rgba(41, 171, 226, 0.14),
+        rgba(247, 148, 29, 0.10),
+        rgba(237, 20, 140, 0.12)
+    );
+    background-size: 200% 200%;
+    animation: glass-shimmer 4s ease-in-out infinite;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow:
+        0 2px 16px rgba(41, 171, 226, 0.1),
+        0 1px 4px rgba(237, 20, 140, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+@keyframes glass-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Section divider — ABC pink fade */
+.sidebar-section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(237, 20, 140, 0.2) 50%, transparent);
+    margin: 0 12px;
+}
+
+/* ===== Nav icon animations ===== */
+.group:hover .nav-icon { transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); transform: scale(1.1); }
+.group:active .nav-icon { transform: scale(0.95); }
+
+/* Dock magnification — hovered item grows */
+.dock-nav-item {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: left center;
+}
+.dock-nav-item:hover {
+    transform: scale(1.15);
 }
 
 /* Print styles for share pages */
