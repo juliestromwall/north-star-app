@@ -14,6 +14,7 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
@@ -25,7 +26,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
@@ -411,6 +412,7 @@ export default function JourneyDetailPage() {
   const [breakReason, setBreakReason] = useState('')
   const [breaking, setBreaking] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
+  const [gcInsurance, setGcInsurance] = useState(null)
   const [ipFlip, setIpFlip] = useState({})
   const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
   const toggleGcFlip = (key) => setGcFlip(prev => ({ ...prev, [key]: !prev[key] }))
@@ -426,6 +428,7 @@ export default function JourneyDetailPage() {
         const [gcs, ips] = await Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
         setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
         setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
+        fetchInsurance(j.gc_case_id, 'surrogate').then(setGcInsurance).catch(() => {})
       } catch {} finally { setLoading(false) }
     }
     load()
@@ -671,6 +674,11 @@ export default function JourneyDetailPage() {
                   <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => { const a = gcCase.answers || {}; const addr = [a.city, a.state].filter(Boolean).join(', ') || gcCase.location; navigator.clipboard.writeText(addr) }} title="Click to copy address">
                     <Home className="size-3" />{gcCase.location || '—'}
                   </span>
+                  {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
+                    <span className="flex items-center gap-0.5 text-emerald-600">
+                      <InsuranceCardIcon size={12} color="currentColor" /> {gcInsurance.company || 'Insured'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex gap-1.5 shrink-0">
@@ -753,6 +761,7 @@ export default function JourneyDetailPage() {
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="match-sheets">Match Sheets</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="insurance" className="gap-1"><InsuranceCardIcon size={14} /> Insurance</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
@@ -845,6 +854,9 @@ export default function JourneyDetailPage() {
             </Button>
           </div>
           <EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." />
+        </TabsContent>
+        <TabsContent value="insurance" className="mt-4">
+          <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">

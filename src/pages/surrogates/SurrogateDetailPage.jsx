@@ -32,11 +32,12 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import TrackingTable from '@/components/shared/TrackingTable'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -281,6 +282,7 @@ export default function SurrogateDetailPage() {
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [portraitUrl, setPortraitUrl] = useState(null)
+  const [insuranceStatus, setInsuranceStatus] = useState(null) // null=loading, {has_insurance, company, status}
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
@@ -333,6 +335,15 @@ export default function SurrogateDetailPage() {
     }).catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
+
+  // Load insurance status
+  useEffect(() => {
+    if (surrogate) {
+      fetchInsurance(surrogate.id, 'surrogate').then(ins => {
+        setInsuranceStatus(ins)
+      }).catch(() => {})
+    }
+  }, [surrogate?.id])
 
   // Load stage/status from localStorage
   useEffect(() => {
@@ -399,6 +410,11 @@ export default function SurrogateDetailPage() {
                   <Calendar className="size-3.5" />
                   Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </span>
+                {insuranceStatus && insuranceStatus.has_insurance && insuranceStatus.status === 'active' && (
+                  <span className="flex items-center gap-1 text-emerald-600">
+                    <InsuranceCardIcon size={14} color="currentColor" /> {insuranceStatus.company || 'Insured'}
+                  </span>
+                )}
               </div>
               {/* Assignment */}
               <div className="flex items-center gap-1.5 mt-2">
@@ -715,6 +731,7 @@ export default function SurrogateDetailPage() {
               )}
             </span>
           </TabsTrigger>
+          <TabsTrigger value="insurance" className="gap-1"><InsuranceCardIcon size={14} /> Insurance</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
@@ -832,6 +849,11 @@ export default function SurrogateDetailPage() {
         {/* Texts Tab */}
         <TabsContent value="texts" className="mt-4">
           <CaseTextsTab phone={surrogate.phone} caseName={surrogate.name} />
+        </TabsContent>
+
+        {/* Insurance Tab */}
+        <TabsContent value="insurance" className="mt-4">
+          <InsuranceTab caseId={surrogate.id} caseType="surrogate" surrogateNameForDisplay={surrogate.name} />
         </TabsContent>
 
         {/* Emails Tab */}

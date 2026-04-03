@@ -807,3 +807,86 @@ export async function deleteCaseEmail(id) {
   const { error } = await supabase.from('case_emails').delete().eq('id', id)
   if (error) throw error
 }
+
+// ── Insurance ───────────────────────────────────────────
+
+export async function fetchInsurance(caseId, caseType = 'surrogate') {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_insurance')
+    .select('*')
+    .eq('case_id', caseId)
+    .eq('case_type', caseType)
+    .single()
+  if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows
+  return data || null
+}
+
+export async function upsertInsurance(caseId, caseType, updates) {
+  if (!supabase) return null
+  // Check if exists
+  const existing = await fetchInsurance(caseId, caseType)
+  if (existing) {
+    const { data, error } = await supabase
+      .from('surrogate_insurance')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  } else {
+    const { data, error } = await supabase
+      .from('surrogate_insurance')
+      .insert({ case_id: caseId, case_type: caseType, ...updates })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  }
+}
+
+export async function cancelInsurance(insuranceId) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('surrogate_insurance')
+    .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq('id', insuranceId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function fetchInsurancePayments(insuranceId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('insurance_payments')
+    .select('*')
+    .eq('insurance_id', insuranceId)
+    .order('month_for', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function insertInsurancePayment(payment) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('insurance_payments')
+    .insert(payment)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function fetchAllInsurance() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('surrogate_insurance')
+    .select('*')
+    .eq('status', 'active')
+    .order('premium_due_day', { ascending: true })
+  if (error) throw error
+  return data || []
+}
