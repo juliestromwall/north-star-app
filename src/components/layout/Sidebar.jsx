@@ -28,17 +28,17 @@ function UnreadDot() {
 function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail, unreadFax }) {
   return (
     <>
-      <div className="flex items-center justify-center px-4 py-4 bg-white">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-18 w-auto" />
+      <div className="flex items-center justify-center px-4 py-5" style={{ background: 'rgba(255,255,255,0.95)', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
+        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
       </div>
       <ScrollArea className="flex-1 min-h-0">
-        <nav className="p-4 space-y-6">
+        <nav className="p-3 space-y-5">
           {sections.map(section => (
             <div key={section.section}>
-              <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
+              <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-white/50">
                 {section.section}
               </p>
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {section.items.map(item => (
                   <NavLink
                     key={item.path}
@@ -46,12 +46,18 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                     end={item.path === '/'}
                     className={({ isActive }) =>
                       cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] transition-all',
                         isActive
-                          ? 'bg-sidebar-accent text-white font-medium'
-                          : 'text-sidebar-foreground/70 hover:text-white hover:bg-sidebar-accent/50'
+                          ? 'text-white font-semibold shadow-lg'
+                          : 'text-white/65 hover:text-white hover:bg-white/10'
                       )
                     }
+                    style={({ isActive }) => isActive ? {
+                      background: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                    } : {}}
                   >
                     <item.icon className="size-4 shrink-0" />
                     {item.label}
@@ -61,13 +67,13 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                       </span>
                     )}
                     {item.path === '/email' && unreadEmail > 0 && (
-                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white/25 text-white text-[10px] font-bold backdrop-blur-sm">
                         {unreadEmail.toLocaleString()}
                       </span>
                     )}
                     {item.path === '/text-messages' && unreadSMS > 0 && <UnreadDot />}
                     {item.path === '/fax' && unreadFax > 0 && (
-                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-white/25 text-white text-[10px] font-bold backdrop-blur-sm">
                         {unreadFax}
                       </span>
                     )}
@@ -82,7 +88,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
         <NavLink
           to="/babies-born"
           className={({ isActive }) =>
-            `flex items-center justify-center gap-2 py-4 border-t border-sidebar-foreground/10 transition-colors cursor-pointer ${isActive ? 'text-white bg-sidebar-accent/30' : 'text-abc-coral hover:text-white'}`
+            `flex items-center justify-center gap-2 py-4 transition-colors cursor-pointer ${isActive ? 'text-white bg-white/10' : 'text-white/60 hover:text-white'}`
           }
         >
           <Baby className="size-4" />
@@ -166,13 +172,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   return (
     <>
       {/* Desktop sidebar — hidden on mobile */}
-      <aside className="hidden md:flex w-60 bg-sidebar text-sidebar-foreground flex-col shrink-0">
+      <aside className="hidden md:flex w-60 flex-col shrink-0 border-r border-white/20" style={{ background: 'linear-gradient(135deg, rgba(40,54,147,0.92) 0%, rgba(75,50,140,0.9) 50%, rgba(237,20,140,0.85) 100%)', backdropFilter: 'blur(20px)' }}>
         <SidebarContent {...sharedProps} />
       </aside>
 
       {/* Mobile sidebar — sheet drawer */}
       <Sheet open={mobileOpen} onOpenChange={onMobileClose}>
-        <SheetContent side="left" className="w-60 p-0 bg-sidebar text-sidebar-foreground border-none flex flex-col">
+        <SheetContent side="left" className="w-60 p-0 border-none flex flex-col" style={{ background: 'linear-gradient(135deg, rgba(40,54,147,0.92) 0%, rgba(75,50,140,0.9) 50%, rgba(237,20,140,0.85) 100%)', backdropFilter: 'blur(20px)' }}>
           <SidebarContent {...sharedProps} />
         </SheetContent>
       </Sheet>
