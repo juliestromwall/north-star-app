@@ -773,8 +773,9 @@ export default function JourneyDetailPage() {
               </Button>
               <Button size="sm" className="rounded-full text-xs h-8 gap-1.5" style={{ backgroundColor: '#283693' }}
                 onClick={() => {
-                  openDraft({ to: emailConfirm.email, caseId: emailConfirm.caseId, userId: currentUser?.userId || currentUser?.id })
+                  const conf = emailConfirm
                   setEmailConfirm(null)
+                  openDraft({ to: conf.email, caseId: conf.caseId, userId: currentUser?.userId || currentUser?.id }).catch(() => {})
                 }}>
                 <Mail className="size-3.5" /> Confirm
               </Button>
