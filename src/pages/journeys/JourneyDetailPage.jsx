@@ -200,6 +200,20 @@ function AddressTile({ caseData }) {
   )
 }
 
+// ── IVF Clinic Icon (matches match sheets) ─────────────
+function EmbryoIcon({ size = 14, color = '#000', className = '' }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="12" r="8.5" />
+      <ellipse cx="9.5" cy="13" rx="3.5" ry="4.5" transform="rotate(-20 9.5 13)" />
+      <circle cx="8.5" cy="14.5" r="1.2" fill={color} stroke="none" />
+      <line x1="19.5" y1="8" x2="14" y2="10.5" />
+      <line x1="19.5" y1="8" x2="21.5" y2="7" />
+      <line x1="19.5" y1="8" x2="20.5" y2="6" />
+    </svg>
+  )
+}
+
 // ── Gestational weeks calculator ────────────────────────
 function calcGestationalWeeks(dueDate) {
   if (!dueDate) return null
@@ -587,12 +601,16 @@ export default function JourneyDetailPage() {
                   <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
                 </div>
               )}
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">OB Clinic:</span>
-                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set clinic" />
+              <div className="flex items-center gap-1.5" title="IVF Clinic">
+                <EmbryoIcon size={14} color="#a8a29e" />
+                <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set IVF clinic" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-stone-400">Hospital:</span>
+              <div className="flex items-center gap-1.5" title="OB Clinic">
+                <Stethoscope className="size-3.5 text-stone-400" />
+                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set OB clinic" />
+              </div>
+              <div className="flex items-center gap-1.5" title="Delivery Hospital">
+                <Hospital className="size-3.5 text-stone-400" />
                 <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
               </div>
           </div>
