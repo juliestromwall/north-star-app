@@ -533,8 +533,6 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
   const jd = journey.journey_data || {}
   const pd = profileData || {}
   const personal = pd.personal || {}
-  const employment = pd.employment || {}
-  const hopesWishes = pd.hopesWishes || {}
   const color = '#10b981'
   const gcDob = gcCase?.dob || ga.dob || personal.dob
 
@@ -542,74 +540,45 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
       <SheetHeader title="Escrow Match Sheet" journey={journey} color={color} />
 
-      {/* Escrow Details */}
-      <PartyBanner color={color} icon={DollarSign}>Escrow Details</PartyBanner>
-      <InfoGrid items={[
-        { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="Enter escrow company..." /> },
-        { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="Enter amount..." /> },
-        { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin)} /> },
-        { label: 'Match Date', value: formatDate(journey.created_at) },
-      ]} />
-
-      {/* Compensation */}
-      <SectionTitle color={color} icon={Briefcase}>Compensation & Terms</SectionTitle>
-      <InfoGrid items={[
-        { label: 'Base Compensation', editable: true, value: <EditableValue field="baseCompensation" msData={msData} onChange={onChange} placeholder="Enter amount..." value={hopesWishes.desiredCompensation} /> },
-        { label: 'Lost Wages Entitled', value: yesNo(jd.lostWages) },
-        { label: 'Pumping Compensation', value: yesNo(jd.pumping) },
-        { label: 'Number of Fetuses', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" /> },
-        { label: 'Willing to Carry Twins', editable: true, value: <EditableSelect field="willingTwins" msData={msData} onChange={onChange} placeholder="Select..." /> },
-        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableSelect field="amnioTesting" msData={msData} onChange={onChange} options={['Only if Medically Necessary', 'Yes', 'No']} placeholder="Select..." /> },
-        { label: 'Psych Counseling', editable: true, value: <EditableSelect field="psychCounseling" msData={msData} onChange={onChange} options={['Required', 'Allowed', 'Not Required']} placeholder="Select..." /> },
-        { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" /> },
-      ]} />
-
       {/* Intended Parents */}
       <PartyBanner color="#283693" icon={Users}>Intended Parents</PartyBanner>
+
       <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
-      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
       <InfoGrid items={[
+        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
+        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}` },
         { label: 'Email', value: ipCase?.email },
         { label: 'Phone', value: formatPhone(ipCase?.phone) },
-        { label: 'Location', value: [a.city, a.stateProv].filter(Boolean).join(', ') },
-        { label: 'Country', value: a.country || 'United States' },
-        ...(a.hasPartner === true || a.hasPartner === 'yes' ? [
-          { label: 'IP 2 Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
-          { label: 'IP 2 Email', value: ipCase?.ip2Email },
-        ] : []),
       ]} />
+
+      {(a.hasPartner === true || a.hasPartner === 'yes') && (
+        <>
+          <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
+          <InfoGrid items={[
+            { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
+            { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
+            { label: 'Email', value: ipCase?.ip2Email },
+            { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
+          ]} />
+        </>
+      )}
 
       {/* Surrogate */}
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
-      <PartyName name={gcCase?.name} />
       <InfoGrid items={[
-        { label: 'Date of Birth', value: formatDate(gcDob) },
+        { label: 'Full Name', value: gcCase?.name },
+        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
-        { label: 'Relationship Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
-        { label: 'Address', value: [personal.streetAddress || ga.streetAddress, ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', '), span: 2 },
-        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
-        { label: '# Children', value: parseInt(pd.pregnancyHistory?.numberOfPregnancies) || '—' },
       ]} />
 
-      {/* Employment */}
-      <SectionTitle color="#ed148c" icon={Briefcase}>Employment Details</SectionTitle>
+      {/* Escrow Details */}
+      <PartyBanner color={color} icon={DollarSign}>Escrow Details</PartyBanner>
       <InfoGrid items={[
-        { label: 'Currently Employed', value: yesNo(employment.currentlyEmployed) },
-        { label: 'Occupation', value: employment.occupation || '—' },
-        { label: 'Weekly Income', value: employment.weeklyIncome ? `$${employment.weeklyIncome}` : '—' },
-        { label: 'Hourly Rate', value: employment.hourlyRate ? `$${employment.hourlyRate}/hr` : '—' },
-        { label: 'Spouse/Partner Employed', value: employment.partnerOccupation ? 'Yes' : '—' },
-        { label: 'Partner Occupation', value: employment.partnerOccupation || '—' },
-        { label: 'Partner Weekly Income', value: employment.partnerWeeklyIncome ? `$${employment.partnerWeeklyIncome}` : '—' },
-        { label: 'Government Assistance', value: yesNo(employment.governmentAssistance) },
-      ]} />
-
-      {/* Attorneys */}
-      <SectionTitle color="#723bb4" icon={Scale}>Legal</SectionTitle>
-      <InfoGrid columns={1} items={[
-        { label: 'IP Attorney', editable: true, value: <EditableValue field="ipAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
-        { label: 'GC Attorney', editable: true, value: <EditableValue field="gcAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
+        { label: 'Match Date', value: formatDate(journey.created_at) },
+        { label: 'Escrow Opening Amount', editable: true, value: <EditableValue field="escrowOpeningAmount" msData={msData} onChange={onChange} placeholder="$5,000" value="$5,000" /> },
+        { label: 'Minimum Balance', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin) !== '—' ? fmtCurrency(jd.escrowMin) : '$10,000'} /> },
+        { label: 'Amount to Fund After Legal Clearance', editable: true, value: <EditableValue field="escrowFundAfterLegal" msData={msData} onChange={onChange} placeholder="$100,000" value="$100,000" /> },
       ]} />
 
       <ConfidentialFooter />
