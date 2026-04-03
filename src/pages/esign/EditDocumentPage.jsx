@@ -12,6 +12,8 @@ import { useRole } from '@/context/RoleContext'
 import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchMatchedJourney } from '@/lib/matching'
+import { mockUsers } from '@/data/mock/users'
 import {
   exportDocAsPdf, getDocPlainText, getDocAsHtml, parseFieldPlaceholders,
   shareDocPublicly, getAccessToken, sendEmail,
@@ -26,6 +28,9 @@ export default function EditDocumentPage() {
 
   const prefillCaseType = searchParams.get('caseType') || ''
   const prefillCaseId = searchParams.get('caseId') || ''
+  const prefillJourneyId = searchParams.get('journeyId') || ''
+
+  const adminUsers = mockUsers.filter(u => u.role === 'master_admin' || u.role === 'admin')
 
   const [docTitle, setDocTitle] = useState('')
   const [loading, setLoading] = useState(true)
@@ -92,10 +97,27 @@ export default function EditDocumentPage() {
     setup()
 
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-      .then(([gcs, ips]) => {
+      .then(async ([gcs, ips]) => {
         setCases({ gc: gcs, ip: ips })
-        // Auto-populate from URL params if present
-        if (prefillCaseType && prefillCaseId) {
+        // Auto-populate from journey if journeyId is present
+        if (prefillJourneyId) {
+          try {
+            const journey = await fetchMatchedJourney(Number(prefillJourneyId))
+            if (journey) {
+              const gc = gcs.find(x => x.id === journey.gc_case_id)
+              const ip = ips.find(x => x.id === journey.ip_case_id)
+              const signers = []
+              if (gc) signers.push({ role: 'Surrogate', name: gc.name || '', email: gc.email || '', status: 'pending' })
+              if (gc?.partnerName) signers.push({ role: 'Partner', name: gc.partnerName, email: gc.partnerEmail || '', status: 'pending' })
+              if (ip) {
+                signers.push({ role: 'Intended Parent 1', name: ip.ip1Name || ip.names || '', email: ip.email || '', status: 'pending' })
+                if (ip.ip2Name) signers.push({ role: 'Intended Parent 2', name: ip.ip2Name, email: ip.ip2Email || '', status: 'pending' })
+              }
+              setSendForm(prev => ({ ...prev, caseType: 'gc', caseId: String(journey.gc_case_id), signers }))
+              setCaseSearch(gc?.name || '')
+            }
+          } catch (e) { console.error('Journey prefill failed:', e) }
+        } else if (prefillCaseType && prefillCaseId) {
           setTimeout(() => handleCaseSelect(prefillCaseType, prefillCaseId), 100)
           setCaseSearch((() => {
             const list = prefillCaseType === 'ip' ? ips : gcs
@@ -470,8 +492,24 @@ export default function EditDocumentPage() {
                         <SelectItemUI value="Admin">Admin</SelectItemUI>
                       </SelectContentUI>
                     </SelectUI>
-                    <Input placeholder="Name" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} className="text-xs h-8" />
-                    <Input placeholder="Email" type="email" value={s.email} onChange={e => updateSigner(i, 'email', e.target.value)} className="text-xs h-8" />
+                    {s.role === 'Admin' ? (
+                      <SelectUI value={s.email || ''} onValueChange={v => {
+                        const admin = adminUsers.find(a => a.email === v)
+                        if (admin) { updateSigner(i, 'name', admin.name); updateSigner(i, 'email', admin.email) }
+                      }}>
+                        <SelectTriggerUI className="text-xs h-8 col-span-2"><SelectValueUI placeholder="Select admin..." /></SelectTriggerUI>
+                        <SelectContentUI>
+                          {adminUsers.map(a => (
+                            <SelectItemUI key={a.id} value={a.email}>{a.name} — {a.email}</SelectItemUI>
+                          ))}
+                        </SelectContentUI>
+                      </SelectUI>
+                    ) : (
+                      <>
+                        <Input placeholder="Name" value={s.name} onChange={e => updateSigner(i, 'name', e.target.value)} className="text-xs h-8" />
+                        <Input placeholder="Email" type="email" value={s.email} onChange={e => updateSigner(i, 'email', e.target.value)} className="text-xs h-8" />
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

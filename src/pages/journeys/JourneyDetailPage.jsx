@@ -726,7 +726,7 @@ export default function JourneyDetailPage() {
         <TabsContent value="documents" className="mt-4">
           <div className="flex justify-end mb-4">
             <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
-              onClick={() => window.open(`/e-signature?caseType=gc&caseId=${journey.gc_case_id}`, '_blank')}>
+              onClick={() => window.open(`/e-signature?journeyId=${journey.id}`, '_blank')}>
               <FileText className="size-4" /> Send for Signature
             </Button>
           </div>

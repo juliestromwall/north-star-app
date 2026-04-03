@@ -46,7 +46,7 @@ function StatusBadge({ status }) {
 }
 
 // ── Templates Tab (Google Drive) ─────────────────────────
-function TemplatesTab({ prefillCaseType, prefillCaseId } = {}) {
+function TemplatesTab({ prefillCaseType, prefillCaseId, prefillJourneyId } = {}) {
   const { currentUser } = useRole()
   const userId = currentUser?.id
   const [templates, setTemplates] = useState([])
@@ -150,7 +150,7 @@ function TemplatesTab({ prefillCaseType, prefillCaseId } = {}) {
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" className="gap-1.5 flex-1 text-xs" style={{ backgroundColor: '#283693', color: '#fff' }} asChild>
-                    <Link to={`/e-signature/edit/${doc.id}${prefillCaseType ? `?caseType=${prefillCaseType}&caseId=${prefillCaseId}` : ''}`}>
+                    <Link to={`/e-signature/edit/${doc.id}${prefillJourneyId ? `?journeyId=${prefillJourneyId}` : prefillCaseType ? `?caseType=${prefillCaseType}&caseId=${prefillCaseId}` : ''}`}>
                       <Pencil className="size-3" /> Edit & Send
                     </Link>
                   </Button>
@@ -580,7 +580,8 @@ export default function ESignaturePage() {
   const [searchParams] = useSearchParams()
   const prefillCaseType = searchParams.get('caseType') || ''
   const prefillCaseId = searchParams.get('caseId') || ''
-  const [tab, setTab] = useState(prefillCaseType ? 'templates' : 'documents')
+  const prefillJourneyId = searchParams.get('journeyId') || ''
+  const [tab, setTab] = useState((prefillCaseType || prefillJourneyId) ? 'templates' : 'documents')
 
   return (
     <div className="space-y-6">
@@ -589,9 +590,9 @@ export default function ESignaturePage() {
         subtitle="Manage document templates and track signing status"
       />
 
-      {prefillCaseType && prefillCaseId && (
+      {(prefillCaseType || prefillJourneyId) && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-[#283693]">
-          <span className="font-semibold">Sending for case:</span> Select a template below to send for signature. Case will be pre-selected.
+          <span className="font-semibold">Sending for case:</span> Select a template below to send for signature. {prefillJourneyId ? 'All parties will be pre-populated.' : 'Case will be pre-selected.'}
         </div>
       )}
 
@@ -610,7 +611,7 @@ export default function ESignaturePage() {
         ))}
       </div>
 
-      {tab === 'documents' ? <DocumentsTab /> : <TemplatesTab prefillCaseType={prefillCaseType} prefillCaseId={prefillCaseId} />}
+      {tab === 'documents' ? <DocumentsTab /> : <TemplatesTab prefillCaseType={prefillCaseType} prefillCaseId={prefillCaseId} prefillJourneyId={prefillJourneyId} />}
     </div>
   )
 }

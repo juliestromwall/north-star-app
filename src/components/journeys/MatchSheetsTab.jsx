@@ -1,11 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   FileText, Download, Eye, Printer, Scale, Stethoscope, DollarSign,
   User, Users, Heart, Shield, Briefcase, Clock, Pencil, Mail, Phone, Hospital,
+  Save, Send,
 } from 'lucide-react'
 import { mockUsers } from '@/data/mock/users'
+import { useDrafts } from '@/context/DraftContext'
+import { useRole } from '@/context/RoleContext'
 
 // Custom embryo/IVF icon based on the embryo creation concept
 function EmbryoIcon({ size = 14, color = '#000' }) {
@@ -602,6 +606,9 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const sheetRef = useRef(null)
+  const { openDraft } = useDrafts()
+  const { currentUser } = useRole()
+  const navigate = useNavigate()
 
   // Match sheet editable data stored in journey_data._matchSheetData
   const [msData, setMsData] = useState(journey.journey_data?._matchSheetData || {})
@@ -636,75 +643,93 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     }
   }
 
-  async function downloadPDF() {
-    if (!sheetRef.current) return
+  function getFileName() {
+    const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
+    return `${sheetType?.label || 'Match Sheet'} - ${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}.pdf`
+  }
+
+  async function generatePDF() {
+    if (!sheetRef.current) return null
+    await saveMatchSheetData()
+
+    const container = sheetRef.current
+    const pageBreaks = [...container.querySelectorAll('.pdf-page-break')]
+    const pdf = new jsPDF('p', 'pt', 'letter')
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 24
+
+    if (pageBreaks.length === 0) {
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      const usableWidth = pageWidth - margin * 2
+      const imgHeight = (canvas.height * usableWidth) / canvas.width
+      let heightLeft = imgHeight, position = margin
+      pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight)
+      heightLeft -= (pageHeight - margin * 2)
+      while (heightLeft > 0) { position -= (pageHeight - margin); pdf.addPage(); pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight); heightLeft -= (pageHeight - margin * 2) }
+    } else {
+      const breakOffsets = pageBreaks.map(pb => pb.offsetTop)
+      pageBreaks.forEach(pb => pb.style.display = 'none')
+      const sections = []
+      let prevTop = 0
+      for (const offset of breakOffsets) { sections.push({ top: prevTop, height: offset - prevTop }); prevTop = offset }
+      sections.push({ top: prevTop, height: container.scrollHeight - prevTop })
+      const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+      const renderScale = fullCanvas.width / container.offsetWidth
+      const usableWidth = pageWidth - margin * 2
+      for (let i = 0; i < sections.length; i++) {
+        if (i > 0) pdf.addPage()
+        const s = sections[i]
+        const srcY = Math.round(s.top * renderScale)
+        const srcH = Math.round(s.height * renderScale)
+        const cropCanvas = document.createElement('canvas')
+        cropCanvas.width = fullCanvas.width
+        cropCanvas.height = srcH
+        const ctx = cropCanvas.getContext('2d')
+        ctx.drawImage(fullCanvas, 0, srcY, fullCanvas.width, srcH, 0, 0, cropCanvas.width, srcH)
+        const imgData = cropCanvas.toDataURL('image/jpeg', 0.95)
+        const imgHeight = (srcH * usableWidth) / fullCanvas.width
+        pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight)
+      }
+      pageBreaks.forEach(pb => pb.style.display = '')
+    }
+
+    return pdf
+  }
+
+  async function saveToDocuments() {
     setGenerating(true)
     try {
-      // Save data first
-      await saveMatchSheetData()
-
-      const container = sheetRef.current
-      const pageBreaks = [...container.querySelectorAll('.pdf-page-break')]
-      const pdf = new jsPDF('p', 'pt', 'letter')
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 24
-
-      if (pageBreaks.length === 0) {
-        // No page breaks — render as single image with overflow pages
-        const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
-        const imgData = canvas.toDataURL('image/jpeg', 0.95)
-        const usableWidth = pageWidth - margin * 2
-        const imgHeight = (canvas.height * usableWidth) / canvas.width
-        let heightLeft = imgHeight, position = margin
-        pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight)
-        heightLeft -= (pageHeight - margin * 2)
-        while (heightLeft > 0) { position -= (pageHeight - margin); pdf.addPage(); pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight); heightLeft -= (pageHeight - margin * 2) }
-      } else {
-        // Measure page break positions BEFORE hiding them
-        const breakOffsets = pageBreaks.map(pb => pb.offsetTop)
-
-        // Hide page break markers for rendering
-        pageBreaks.forEach(pb => pb.style.display = 'none')
-
-        // Build section boundaries
-        const sections = []
-        let prevTop = 0
-        for (const offset of breakOffsets) {
-          sections.push({ top: prevTop, height: offset - prevTop })
-          prevTop = offset
-        }
-        sections.push({ top: prevTop, height: container.scrollHeight - prevTop })
-
-        // Render full canvas once
-        const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
-        const renderScale = fullCanvas.width / container.offsetWidth
-        const usableWidth = pageWidth - margin * 2
-
-        for (let i = 0; i < sections.length; i++) {
-          if (i > 0) pdf.addPage()
-          const s = sections[i]
-          const srcY = Math.round(s.top * renderScale)
-          const srcH = Math.round(s.height * renderScale)
-          // Create a cropped canvas for this section
-          const cropCanvas = document.createElement('canvas')
-          cropCanvas.width = fullCanvas.width
-          cropCanvas.height = srcH
-          const ctx = cropCanvas.getContext('2d')
-          ctx.drawImage(fullCanvas, 0, srcY, fullCanvas.width, srcH, 0, 0, cropCanvas.width, srcH)
-          const imgData = cropCanvas.toDataURL('image/jpeg', 0.95)
-          const imgHeight = (srcH * usableWidth) / fullCanvas.width
-          pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight)
-        }
-
-        pageBreaks.forEach(pb => pb.style.display = '')
-      }
-
-      const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
-      const fileName = `${sheetType?.label || 'Match Sheet'} - ${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}.pdf`
-      pdf.save(fileName)
+      const pdf = await generatePDF()
+      if (pdf) pdf.save(getFileName())
     } catch (err) {
       console.error('PDF generation failed:', err)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function sendMatchSheet() {
+    setGenerating(true)
+    try {
+      const pdf = await generatePDF()
+      if (!pdf) return
+      const fileName = getFileName()
+      // Convert PDF to base64 for email attachment
+      const pdfBase64 = pdf.output('datauristring').split(',')[1]
+      // Open compose window with attachment
+      await openDraft({
+        subject: fileName.replace('.pdf', ''),
+        body: '',
+        userId: currentUser?.userId,
+        caseId: journey.id,
+        attachments: [{ filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }],
+      })
+      // Navigate to email page
+      navigate('/email')
+    } catch (err) {
+      console.error('Send match sheet failed:', err)
     } finally {
       setGenerating(false)
     }

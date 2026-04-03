@@ -1040,7 +1040,7 @@ export default function SurrogateDetailPage() {
 const DOC_CATEGORIES = [
   { id: 'photo-id', label: 'Photo IDs', icon: FileImage, color: '#ed148c' },
   { id: 'agency-agreement', label: 'Agency Agreement', icon: FileText, color: '#283693' },
-  { id: 'benefit-package', label: 'Benefit Package', icon: FileText, color: '#10b981' },
+  { id: 'clinic', label: 'Clinic', icon: FileText, color: '#10b981' },
   { id: 'medical-records', label: 'Medical Records', icon: FileText, color: '#8b5cf6' },
   { id: 'insurance', label: 'Insurance', icon: FileText, color: '#f59e0b' },
   { id: 'legal', label: 'Legal Documents', icon: FileText, color: '#723bb4' },
