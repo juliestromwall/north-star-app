@@ -314,7 +314,7 @@ function NotesTab({ journeyId, currentUser }) {
 }
 
 // ── Attorney Row (inline in hero) ──────────────────────
-function AttorneyRow({ prefix, data, onSaveBatch, onEmail }) {
+function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
 
@@ -372,7 +372,9 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail }) {
       <button onClick={startEdit} className="font-medium text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
       {firm && <><span className="text-stone-300">·</span> <span>{firm}</span></>}
       {email && (
-        <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-5 px-2 ml-1" onClick={() => onEmail(email, name)}>
+        <Button size="sm" className="gap-1 rounded-full text-[10px] h-5 px-2 ml-1 text-white border-0"
+          style={{ backgroundColor: color === 'indigo' ? '#283693' : '#ed148c' }}
+          onClick={() => onEmail(email, name)}>
           <Mail className="size-2.5" /> Email Attorney
         </Button>
       )}
@@ -718,7 +720,7 @@ export default function JourneyDetailPage() {
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
               </div>
-              <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields}
+              <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
                 onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
             </div>
           ) : <p className="text-sm text-stone-400">IP case not found</p>}
