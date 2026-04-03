@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   FileText, Download, Eye, Printer, Scale, Stethoscope, DollarSign,
-  User, Users, Heart, Shield, Briefcase, Clock, Pencil, Mail, Phone,
+  User, Users, Heart, Shield, Briefcase, Clock, Pencil, Mail, Phone, Hospital,
 } from 'lucide-react'
 import { mockUsers } from '@/data/mock/users'
 
@@ -105,18 +105,26 @@ function EditableValue({ value, field, msData, onChange, placeholder }) {
 
 function EditableSelect({ value, field, msData, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
+  const selectRef = useRef(null)
   const val = msData?.[field] ?? value ?? ''
   const display = val || null
   const opts = options || ['Yes', 'No']
 
+  useEffect(() => {
+    if (open && selectRef.current) {
+      selectRef.current.focus()
+      try { selectRef.current.showPicker?.() } catch {}
+    }
+  }, [open])
+
   if (open) {
     return (
       <select
-        autoFocus
+        ref={selectRef}
         value={val}
         onChange={e => { onChange(field, e.target.value); setOpen(false) }}
         onBlur={() => setOpen(false)}
-        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: 'none', borderBottom: '2px solid #283693', outline: 'none', padding: '0', backgroundColor: 'transparent', fontFamily: 'inherit', cursor: 'pointer' }}
+        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: '1px solid #283693', borderRadius: 6, outline: 'none', padding: '2px 6px', backgroundColor: 'white', fontFamily: 'inherit', cursor: 'pointer', width: '100%' }}
       >
         <option value="">{placeholder || 'Select...'}</option>
         {opts.map(o => <option key={o} value={o}>{o}</option>)}
@@ -158,7 +166,7 @@ function SheetHeader({ title, journey, color }) {
         </div>
       </div>
       {/* Divider */}
-      <div style={{ height: 3, borderRadius: 2, background: `linear-gradient(90deg, ${color}00, ${color}, ${color}00)` }} />
+      <div style={{ height: 1, background: '#d6d3d1' }} />
     </div>
   )
 }
@@ -249,7 +257,6 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       <PartyBanner color={color} icon={Users}>Intended Parents</PartyBanner>
 
       <PartyLabel color={color}>Intended Parent #1</PartyLabel>
-      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
       <InfoGrid items={[
         { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
         { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}` },
@@ -260,7 +267,6 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
           <PartyLabel color={color}>Intended Parent #2</PartyLabel>
-          <PartyName name={`${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()} />
           <InfoGrid items={[
             { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
             { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
@@ -281,10 +287,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       <SectionTitle color="#9b2ea7" icon={EmbryoIcon}>Embryo Creation</SectionTitle>
       <InfoGrid items={[
-        { label: 'Sperm Contribution', value: ipCase?.usingSpermDonor ? 'Donor Sperm' : "IP's Sperm" },
-        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Donor Egg' : "IP's Eggs" },
-        { label: 'Frozen Embryos', value: yesNo(ipCase?.hasFrozenEmbryos) },
-        { label: 'Embryo Details', value: ipCase?.frozenEmbryoDetails },
+        { label: 'Sperm Contribution', editable: true, value: <EditableSelect field="spermContribution" msData={msData} onChange={onChange} options={["IF's Sperm", "Anonymous Donor Sperm", "Known Sperm Donor", "Embryo Adoption"]} placeholder="Select..." value={ipCase?.usingSpermDonor ? 'Anonymous Donor Sperm' : "IF's Sperm"} /> },
+        { label: 'Egg Source', editable: true, value: <EditableSelect field="eggSource" msData={msData} onChange={onChange} options={["IM's Eggs", "Anonymous Egg Donor", "Known Egg Donor", "Embryo Adoption"]} placeholder="Select..." value={ipCase?.usingEggDonor ? 'Anonymous Egg Donor' : "IM's Eggs"} /> },
       ]} />
 
       <SectionTitle color={color} icon={Scale}>Intended Parents' Attorney</SectionTitle>
@@ -295,7 +299,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       {/* Surrogate */}
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
 
-      <PartyName name={gcCase?.name} />
+      <SectionTitle color="#ed148c" icon={FileText}>Demographics</SectionTitle>
       <InfoGrid items={[
         { label: 'Full Name', value: gcCase?.name },
         { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
@@ -307,6 +311,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Zip Code', value: personal.zipCode || ga.zipCode },
         { label: 'Country', value: 'United States' },
         { label: 'Relationship Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
+        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
       {(ga.maritalStatus === 'Married' || personal.maritalStatus === 'Married' || ga.maritalStatus === 'married' || ga.maritalStatus === 'Domestic Partnership') && (
@@ -329,7 +334,6 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Previously Been a Surrogate', value: previousSurrogate ? 'Yes' : 'No' },
         { label: '# of Children (Live Births)', value: pregnancies.filter(p => p.outcome === 'Live Birth').length || '—' },
         { label: 'Surrogacy Type', editable: true, value: <EditableSelect field="surrogacyType" msData={msData} onChange={onChange} options={['Gestational Surrogacy', 'Traditional Surrogacy']} placeholder="Select type..." value="Gestational Surrogacy" /> },
-        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
       <SectionTitle color="#ed148c" icon={Scale}>Surrogate's Attorney</SectionTitle>
@@ -340,19 +344,19 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       {/* Journey Details */}
       <PartyBanner color="#723bb4" icon={FileText}>Journey Details</PartyBanner>
       <InfoGrid items={[
-        { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="Enter escrow company..." /> },
+        { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="SeedTrust Escrow, LLC" value="SeedTrust Escrow, LLC" /> },
         { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="Enter amount..." /> },
         { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin)} /> },
         { label: 'Lost Wages Entitled', value: yesNo(jd.lostWages) },
         { label: "Surrogate's Employment Status", value: employment.currentlyEmployed ? `Employed — ${employment.occupation || ''}` : 'Not Employed' },
         { label: "Spouse/Partner's Employment Status", value: employment.partnerOccupation ? `Employed — ${employment.partnerOccupation}` : '—' },
-        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableValue field="amnioTesting" msData={msData} onChange={onChange} placeholder="Only if Medically Necessary" /> },
+        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableSelect field="amnioTesting" msData={msData} onChange={onChange} options={['Only if Medically Necessary', 'Yes', 'No']} placeholder="Select..." /> },
         { label: 'Number of Fetuses to Carry', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" /> },
         { label: 'Willing to Carry Twins (Split)', editable: true, value: <EditableSelect field="willingTwins" msData={msData} onChange={onChange} placeholder="Select..." /> },
         { label: 'Abort/Reduce for Medical Reason', editable: true, value: <EditableSelect field="abortReduce" msData={msData} onChange={onChange} options={['Any medical reason', 'Life-threatening only', 'No']} placeholder="Select..." /> },
         { label: 'Psych Counseling', editable: true, value: <EditableSelect field="psychCounseling" msData={msData} onChange={onChange} options={['Required', 'Allowed', 'Not Required']} placeholder="Select..." /> },
         { label: 'Psych Can Be Done Over the Phone', editable: true, value: <EditableSelect field="psychOverPhone" msData={msData} onChange={onChange} placeholder="Select..." /> },
-        { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" /> },
+        { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" value="15" /> },
         { label: 'Support Group Meetings Required', editable: true, value: <EditableSelect field="supportGroupMeetings" msData={msData} onChange={onChange} placeholder="Select..." /> },
       ]} />
 
@@ -360,6 +364,12 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       <InfoGrid columns={1} items={[
         { label: 'Name of IVF Physician', value: ipCase?.reDoctorName || '—' },
         { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
+      ]} />
+
+      <SectionTitle color="#723bb4" icon={Hospital}>Delivery Hospital</SectionTitle>
+      <InfoGrid columns={1} items={[
+        { label: 'Hospital Name', editable: true, value: <EditableValue field="deliveryHospital" msData={msData} onChange={onChange} placeholder="Enter hospital name..." value={jd.hospital} /> },
+        { label: 'City, State', editable: true, value: <EditableValue field="deliveryHospitalLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
       ]} />
 
       <ConfidentialFooter />
