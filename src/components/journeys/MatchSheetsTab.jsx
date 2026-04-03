@@ -718,9 +718,17 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       const fileName = getFileName()
       // Convert PDF to base64 for email attachment
       const pdfBase64 = pdf.output('datauristring').split(',')[1]
+      // Build subject: "Attorney Match Sheet - IPs Name1 & Name2 with GC Name"
+      const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
+      const ipAnswers = ipCase?.answers || {}
+      const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
+      const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
+      const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+      const emailSubject = `${sheetType?.label || 'Match Sheet'} - IPs ${ipNames} with GC ${gcCase?.name || ''}`
+
       // Open compose window with attachment
       await openDraft({
-        subject: fileName.replace('.pdf', ''),
+        subject: emailSubject,
         body: '',
         userId: currentUser?.userId,
         caseId: journey.id,
