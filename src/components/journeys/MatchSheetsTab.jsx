@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -608,7 +607,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   const sheetRef = useRef(null)
   const { openDraft } = useDrafts()
   const { currentUser } = useRole()
-  const navigate = useNavigate()
+
 
   // Match sheet editable data stored in journey_data._matchSheetData
   const [msData, setMsData] = useState(journey.journey_data?._matchSheetData || {})
@@ -734,8 +733,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         caseId: journey.id,
         attachments: [{ filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }],
       })
-      // Navigate to email page
-      navigate('/email')
+      // Compose window floats over current page — no navigation needed
     } catch (err) {
       console.error('Send match sheet failed:', err)
     } finally {
