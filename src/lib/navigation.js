@@ -51,7 +51,7 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Text Messages',
+        label: 'Text Message',
         icon: MessagesSquare,
         path: '/text-messages',
         roles: ADMIN_ROLES,

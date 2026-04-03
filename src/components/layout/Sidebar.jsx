@@ -28,7 +28,7 @@ function UnreadDot() {
 
 function Badge({ children }) {
   return (
-    <span className="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-abc-indigo/10 text-abc-indigo">
+    <span className="ml-1.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-semibold bg-abc-indigo/10 text-abc-indigo">
       {children}
     </span>
   )
