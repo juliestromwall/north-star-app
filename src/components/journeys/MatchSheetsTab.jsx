@@ -116,30 +116,31 @@ function EditableValue({ value, field, msData, onChange, placeholder }) {
 
 function EditableSelect({ value, field, msData, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
-  const selectRef = useRef(null)
+  const dropRef = useRef(null)
   const val = msData?.[field] ?? value ?? ''
   const display = val || null
   const opts = options || ['Yes', 'No']
 
   useEffect(() => {
-    if (open && selectRef.current) {
-      selectRef.current.focus()
-      try { selectRef.current.showPicker?.() } catch {}
-    }
+    if (!open) return
+    function handleClick(e) { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
   if (open) {
     return (
-      <select
-        ref={selectRef}
-        value={val}
-        onChange={e => { onChange(field, e.target.value); setOpen(false) }}
-        onBlur={() => setOpen(false)}
-        style={{ fontSize: 13, fontWeight: 500, color: '#1c1917', border: '1px solid #283693', borderRadius: 6, outline: 'none', padding: '2px 6px', backgroundColor: 'white', fontFamily: 'inherit', cursor: 'pointer', width: '100%' }}
-      >
-        <option value="">{placeholder || 'Select...'}</option>
-        {opts.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
+      <div ref={dropRef} style={{ position: 'relative' }}>
+        <div style={{ position: 'absolute', top: -4, left: 0, zIndex: 50, background: 'white', border: '1px solid #e7e5e4', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: 180, overflow: 'hidden' }}>
+          {opts.map(o => (
+            <div key={o} onClick={() => { onChange(field, o); setOpen(false) }}
+              style={{ padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: val === o ? 600 : 400, color: val === o ? '#ed148c' : '#1c1917', backgroundColor: val === o ? '#ed148c10' : 'white' }}
+              onMouseEnter={e => { if (val !== o) e.target.style.backgroundColor = '#fdf2f8' }}
+              onMouseLeave={e => { e.target.style.backgroundColor = val === o ? '#ed148c10' : 'white' }}
+            >{val === o ? '✓ ' : ''}{o}</div>
+          ))}
+        </div>
+      </div>
     )
   }
 
@@ -296,15 +297,16 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Country', value: a.country || 'United States' },
       ]} />
 
-      <SectionTitle color="#9b2ea7" icon={EmbryoIcon}>Embryo Creation</SectionTitle>
+      <SectionTitle color={color} icon={EmbryoIcon}>Embryo Creation</SectionTitle>
       <InfoGrid items={[
         { label: 'Sperm Contribution', editable: true, value: <EditableSelect field="spermContribution" msData={msData} onChange={onChange} options={["IF's Sperm", "Anonymous Donor Sperm", "Known Sperm Donor", "Embryo Adoption"]} placeholder="Select..." value={ipCase?.usingSpermDonor ? 'Anonymous Donor Sperm' : "IF's Sperm"} /> },
         { label: 'Egg Source', editable: true, value: <EditableSelect field="eggSource" msData={msData} onChange={onChange} options={["IM's Eggs", "Anonymous Egg Donor", "Known Egg Donor", "Embryo Adoption"]} placeholder="Select..." value={ipCase?.usingEggDonor ? 'Anonymous Egg Donor' : "IM's Eggs"} /> },
       ]} />
 
       <SectionTitle color={color} icon={Scale}>Intended Parents' Attorney</SectionTitle>
-      <InfoGrid columns={1} items={[
-        { label: 'Name and Email of Attorney', editable: true, value: <EditableValue field="ipAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
+      <InfoGrid items={[
+        { label: 'Attorney Name', editable: true, value: <EditableValue field="ipAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." /> },
+        { label: 'Attorney Email', editable: true, value: <EditableValue field="ipAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
       ]} />
 
       {/* Surrogate */}
@@ -330,9 +332,9 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
           <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
           <InfoGrid items={[
             { label: 'Full Name', value: [personal.partnerFirstName || ga.partnerFirstName, personal.partnerLastName || ga.partnerLastName].filter(Boolean).join(' ') || personal.partnerName || '—' },
-            { label: 'Date of Birth', value: formatDate(personal.partnerDob) },
-            { label: 'Email', value: personal.partnerEmail || '—' },
-            { label: 'Phone', value: formatPhone(personal.partnerPhone) },
+            { label: 'Date of Birth', value: (() => { const dob = personal.partnerDob || ga.partnerDob; return `${formatDate(dob)}${dob && calcAge(dob) !== null ? ` (Age ${calcAge(dob)})` : ''}` })() },
+            { label: 'Email', value: personal.partnerEmail || ga.partnerEmail || '—' },
+            { label: 'Phone', value: formatPhone(personal.partnerPhone || ga.partnerPhone) },
           ]} />
         </>
       )}
@@ -348,8 +350,9 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       ]} />
 
       <SectionTitle color="#ed148c" icon={Scale}>Surrogate's Attorney</SectionTitle>
-      <InfoGrid columns={1} items={[
-        { label: 'Name and Email of Attorney', editable: true, value: <EditableValue field="gcAttorney" msData={msData} onChange={onChange} placeholder="Enter attorney name & email..." /> },
+      <InfoGrid items={[
+        { label: 'Attorney Name', editable: true, value: <EditableValue field="gcAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." /> },
+        { label: 'Attorney Email', editable: true, value: <EditableValue field="gcAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
       ]} />
 
       {/* Journey Details */}
