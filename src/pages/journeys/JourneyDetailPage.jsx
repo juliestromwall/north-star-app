@@ -372,11 +372,11 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
       <button onClick={startEdit} className="font-medium text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
       {firm && <><span className="text-stone-300">·</span> <span>{firm}</span></>}
       {email && (
-        <Button size="sm" className="gap-1 rounded-full text-[10px] h-5 px-2 ml-1 text-white border-0"
-          style={{ backgroundColor: color === 'indigo' ? '#283693' : '#ed148c' }}
+        <button
+          className={`inline-flex items-center gap-1 rounded-full text-[10px] h-5 px-2 ml-1 border border-stone-200 text-stone-500 transition-all cursor-pointer ${color === 'indigo' ? 'hover:bg-[#283693] hover:border-[#283693] hover:text-white' : 'hover:bg-[#ed148c] hover:border-[#ed148c] hover:text-white'}`}
           onClick={() => onEmail(email, name)}>
           <Mail className="size-2.5" /> Email Attorney
-        </Button>
+        </button>
       )}
     </div>
   )
