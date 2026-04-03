@@ -39,6 +39,8 @@ export default function EditDocumentPage() {
   const [cases, setCases] = useState({ gc: [], ip: [] })
   const [caseSearch, setCaseSearch] = useState('')
   const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
+  const [requiredRoles, setRequiredRoles] = useState([]) // roles detected from doc placeholders
+  const [loadingRoles, setLoadingRoles] = useState(false)
 
   // PDF download
   const [downloading, setDownloading] = useState(false)
@@ -311,7 +313,20 @@ export default function EditDocumentPage() {
             {downloading ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             Download PDF
           </Button>
-          <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setShowSend(true)}>
+          <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={async () => {
+            setShowSend(true)
+            if (requiredRoles.length === 0 && googleDocId && userId) {
+              setLoadingRoles(true)
+              try {
+                const plainText = await getDocPlainText(userId, googleDocId)
+                const fields = parseFieldPlaceholders(plainText)
+                const roleMap = { gc: 'Surrogate', ip1: 'Intended Parent 1', ip2: 'Intended Parent 2', admin: 'Admin', partner: 'Partner', parnter: 'Partner' }
+                const roles = [...new Set(fields.map(f => roleMap[f.role] || f.role))]
+                setRequiredRoles(roles)
+              } catch (e) { console.error('Failed to detect roles:', e) }
+              setLoadingRoles(false)
+            }
+          }}>
             <Send className="size-4" /> Send for Signature
           </Button>
         </div>
@@ -411,6 +426,23 @@ export default function EditDocumentPage() {
               </div>
             </div>
 
+            {/* Required roles from document */}
+            {loadingRoles ? (
+              <div className="flex items-center gap-2 text-xs text-stone-400"><Loader2 className="size-3 animate-spin" /> Detecting required signers...</div>
+            ) : requiredRoles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <span className="text-xs font-semibold text-stone-500 mr-1">Required:</span>
+                {requiredRoles.map(role => {
+                  const hasIt = sendForm.signers.some(s => s.role === role)
+                  return (
+                    <span key={role} className={`text-xs px-2 py-0.5 rounded-full font-medium ${hasIt ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                      {hasIt ? '✓' : '✗'} {role}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold uppercase text-stone-500">Signers</Label>
@@ -456,7 +488,17 @@ export default function EditDocumentPage() {
               />
             </div>
 
-            <Button onClick={handleSend} disabled={sending || sendForm.signers.length === 0}
+            {(() => {
+              const missingRoles = requiredRoles.filter(role => !sendForm.signers.some(s => s.role === role))
+              const missingEmails = sendForm.signers.filter(s => !s.email?.trim())
+              return missingRoles.length > 0 ? (
+                <p className="text-xs text-red-500">Missing signers: {missingRoles.join(', ')}</p>
+              ) : missingEmails.length > 0 ? (
+                <p className="text-xs text-red-500">All signers must have an email address.</p>
+              ) : null
+            })()}
+
+            <Button onClick={handleSend} disabled={sending || sendForm.signers.length === 0 || requiredRoles.some(role => !sendForm.signers.some(s => s.role === role)) || sendForm.signers.some(s => !s.email?.trim())}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               {sending ? 'Sending...' : 'Send for Signature'}
