@@ -478,8 +478,8 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
-      <DialogContent className="sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col !p-0">
-        <DialogHeader className="px-6 pt-4 pb-2 shrink-0">
+      <DialogContent className="sm:max-w-[95vw] w-[95vw] h-[95vh] !p-0 overflow-y-auto">
+        <DialogHeader className="px-6 pt-4 pb-2 sticky top-0 z-10 bg-white border-b">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="size-5" /> Fax Preview
             <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -623,7 +623,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
           </div>
         )}
 
-        <div className="flex-1 min-h-0">
+        <div className="h-[90vh]">
           {loading ? (
             <div className="flex items-center justify-center h-full"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>
           ) : error ? (
