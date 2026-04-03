@@ -420,6 +420,10 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 
   const handleFile = async () => {
     if (!selectedCase || !fax) return
+    // Warn if records tasks exist but no log update selected
+    if (recordKeys.length > 0 && (!selectedRecord || !selectedStatus)) {
+      if (!window.confirm('This case has Medical Records tasks but you haven\'t selected a record to update. File without updating the log?')) return
+    }
     setFiling(true)
     try {
       const data = await retrieveFax(fax.FileName, 'IN')
