@@ -388,6 +388,7 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
     'hasSpouse',
     'spouseFullName', 'spouseRelationshipLength', 'spouseUsCitizen',
     'spouseDLNumber', 'spouseDLState', 'spouseDLExpiration', 'spouseDob',
+    'spouseEmail',
     'spouseHomePhone', 'spouseWorkPhone', 'spouseCellPhone', 'spouseSSN',
     'emergencyName', 'emergencyHomePhone', 'emergencyCellPhone',
   ]
@@ -413,6 +414,7 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
     spouseUsCitizen: 'Spouse US Citizen', spouseDLNumber: "Spouse's DL Number",
     spouseDLState: "Spouse's DL State", spouseDLExpiration: "Spouse's DL Expiration",
     spouseDob: "Spouse's Date of Birth",
+    spouseEmail: "Spouse/Partner Email",
     spouseHomePhone: "Spouse's Home Phone", spouseWorkPhone: "Spouse's Work Phone",
     spouseCellPhone: "Spouse's Cell Phone", spouseSSN: "Spouse's SSN",
     emergencyName: 'Emergency Contact Name', emergencyHomePhone: 'Emergency Home Phone',

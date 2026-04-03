@@ -33,6 +33,8 @@ export default function EditDocumentPage() {
   const [sending, setSending] = useState(false)
   const [sendForm, setSendForm] = useState({ caseType: '', caseId: '', signers: [], note: '' })
   const [cases, setCases] = useState({ gc: [], ip: [] })
+  const [caseSearch, setCaseSearch] = useState('')
+  const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
 
   // PDF download
   const [downloading, setDownloading] = useState(false)
@@ -133,7 +135,7 @@ export default function EditDocumentPage() {
     const signers = []
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
-      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: '', status: 'pending' })
+      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: c.partnerEmail || '', status: 'pending' })
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
@@ -335,16 +337,16 @@ export default function EditDocumentPage() {
       </div>
 
       {/* Send Dialog */}
-      <Dialog open={showSend} onOpenChange={setShowSend}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={showSend} onOpenChange={v => { setShowSend(v); if (!v) { setCaseSearch(''); setCaseDropdownOpen(false) } }}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Send "{docTitle}" for Signature</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[1fr_2fr] gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Case Type</Label>
-                <SelectUI value={sendForm.caseType} onValueChange={v => setSendForm(prev => ({ ...prev, caseType: v, caseId: '' }))}>
+                <SelectUI value={sendForm.caseType} onValueChange={v => { setSendForm(prev => ({ ...prev, caseType: v, caseId: '' })); setCaseSearch(''); }}>
                   <SelectTriggerUI><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="gc">Surrogate (GC)</SelectItemUI>
@@ -352,27 +354,44 @@ export default function EditDocumentPage() {
                   </SelectContentUI>
                 </SelectUI>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 <Label className="text-xs">Case</Label>
-                <SelectUI value={sendForm.caseId ? String(sendForm.caseId) : ''} onValueChange={v => handleCaseSelect(sendForm.caseType, v)}>
-                  <SelectTriggerUI><SelectValueUI placeholder="Select case..." /></SelectTriggerUI>
-                  <SelectContentUI>
-                    {caseOptions.map(c => (
-                      <SelectItemUI key={c.id} value={String(c.id)}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[10px] font-bold shrink-0">
+                <Input
+                  placeholder="Search by name..."
+                  value={caseSearch}
+                  onChange={e => { setCaseSearch(e.target.value); setCaseDropdownOpen(true) }}
+                  onFocus={() => setCaseDropdownOpen(true)}
+                  className="text-sm"
+                />
+                {caseDropdownOpen && caseOptions.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    {caseOptions
+                      .filter(c => {
+                        if (!caseSearch.trim()) return true
+                        const q = caseSearch.toLowerCase()
+                        return (c.names || c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+                      })
+                      .map(c => (
+                        <button key={c.id} type="button" className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 text-left border-b last:border-0"
+                          onClick={() => { handleCaseSelect(sendForm.caseType, String(c.id)); setCaseSearch(c.names || c.name || ''); setCaseDropdownOpen(false) }}>
+                          <div className="w-7 h-7 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[11px] font-bold shrink-0">
                             {(c.names || c.name || '?').charAt(0)}
                           </div>
-                          <div className="min-w-0">
-                            <span className="font-medium">{c.names || c.name}</span>
-                            <span className="text-stone-400 text-xs ml-1.5">{c.email || ''}</span>
-                            {c.assignedTo && <span className="text-stone-300 text-xs ml-1.5">· {c.assignedTo}</span>}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{c.names || c.name}</p>
+                            <p className="text-xs text-stone-400 truncate">{c.email || 'No email'}{c.assignedTo ? ` · ${c.assignedTo}` : ''}</p>
                           </div>
-                        </div>
-                      </SelectItemUI>
-                    ))}
-                  </SelectContentUI>
-                </SelectUI>
+                        </button>
+                      ))}
+                    {caseOptions.filter(c => {
+                      if (!caseSearch.trim()) return true
+                      const q = caseSearch.toLowerCase()
+                      return (c.names || c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+                    }).length === 0 && (
+                      <p className="text-xs text-stone-400 text-center py-3">No cases match "{caseSearch}"</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

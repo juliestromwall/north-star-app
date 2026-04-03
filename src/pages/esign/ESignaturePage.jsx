@@ -184,6 +184,8 @@ function DocumentsTab() {
   // New document form
   const [newDoc, setNewDoc] = useState({ templateId: '', caseType: '', caseId: '', title: '', signers: [] })
   const [creating, setCreating] = useState(false)
+  const [caseSearch, setCaseSearch] = useState('')
+  const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -273,7 +275,7 @@ function DocumentsTab() {
     const signers = []
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
-      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: '', status: 'pending' })
+      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: c.partnerEmail || '', status: 'pending' })
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
@@ -348,23 +350,26 @@ function DocumentsTab() {
                         <p className="font-medium">{doc.title}</p>
                         <p className="text-xs text-stone-400">{doc.case_type === 'ip' ? 'IP' : 'GC'}</p>
                       </td>
-                      <td className="px-4 py-3 text-stone-600">{getCaseName(doc)}</td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const caseLink = getCaseLink(doc)
+                          const name = getCaseName(doc)
+                          return caseLink ? (
+                            <Link to={caseLink} className="text-[#283693] hover:underline font-medium text-sm">{name}</Link>
+                          ) : (
+                            <span className="text-stone-600">{name}</span>
+                          )
+                        })()}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="space-y-0.5">
-                          {(doc.signers || []).map((s, si) => {
-                            const caseLink = getCaseLink(doc)
-                            return (
-                              <div key={si} className="flex items-center gap-1.5 text-xs">
-                                <span className={`w-2 h-2 rounded-full shrink-0 ${s.status === 'signed' ? 'bg-emerald-500' : 'bg-stone-300'}`} />
-                                {caseLink ? (
-                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{s.name}</Link>
-                                ) : (
-                                  <span className="font-medium">{s.name}</span>
-                                )}
-                                <span className="text-stone-400">({s.role})</span>
-                              </div>
-                            )
-                          })}
+                          {(doc.signers || []).map((s, si) => (
+                            <div key={si} className="flex items-center gap-1.5 text-xs">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${s.status === 'signed' ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+                              <span className="font-medium">{s.name}</span>
+                              <span className="text-stone-400">({s.role})</span>
+                            </div>
+                          ))}
                         </div>
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={doc.status} /></td>
@@ -407,8 +412,8 @@ function DocumentsTab() {
       )}
 
       {/* New Document Dialog */}
-      <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={showNew} onOpenChange={v => { setShowNew(v); if (!v) { setCaseSearch(''); setCaseDropdownOpen(false) } }}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Send Document for Signature</DialogTitle>
           </DialogHeader>
@@ -429,10 +434,10 @@ function DocumentsTab() {
               <Label className="text-xs">Document Title *</Label>
               <Input value={newDoc.title} onChange={e => setNewDoc(prev => ({ ...prev, title: e.target.value }))} placeholder="e.g., Agency Agreement — Smith" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[1fr_2fr] gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">Case Type</Label>
-                <SelectUI value={newDoc.caseType} onValueChange={v => { setNewDoc(prev => ({ ...prev, caseType: v, caseId: '' })); }}>
+                <SelectUI value={newDoc.caseType} onValueChange={v => { setNewDoc(prev => ({ ...prev, caseType: v, caseId: '' })); setCaseSearch(''); }}>
                   <SelectTriggerUI><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="gc">Surrogate (GC)</SelectItemUI>
@@ -440,27 +445,44 @@ function DocumentsTab() {
                   </SelectContentUI>
                 </SelectUI>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 <Label className="text-xs">Case</Label>
-                <SelectUI value={newDoc.caseId ? String(newDoc.caseId) : ''} onValueChange={v => handleCaseSelect(newDoc.caseType, v)}>
-                  <SelectTriggerUI><SelectValueUI placeholder="Select case..." /></SelectTriggerUI>
-                  <SelectContentUI>
-                    {caseOptions.map(c => (
-                      <SelectItemUI key={c.id} value={String(c.id)}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[10px] font-bold shrink-0">
+                <Input
+                  placeholder="Search by name..."
+                  value={caseSearch}
+                  onChange={e => { setCaseSearch(e.target.value); setCaseDropdownOpen(true) }}
+                  onFocus={() => setCaseDropdownOpen(true)}
+                  className="text-sm"
+                />
+                {caseDropdownOpen && caseOptions.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    {caseOptions
+                      .filter(c => {
+                        if (!caseSearch.trim()) return true
+                        const q = caseSearch.toLowerCase()
+                        return (c.names || c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+                      })
+                      .map(c => (
+                        <button key={c.id} type="button" className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-stone-50 text-left border-b last:border-0"
+                          onClick={() => { handleCaseSelect(newDoc.caseType, String(c.id)); setCaseSearch(c.names || c.name || ''); setCaseDropdownOpen(false) }}>
+                          <div className="w-7 h-7 rounded-full bg-[#283693]/10 text-[#283693] flex items-center justify-center text-[11px] font-bold shrink-0">
                             {(c.names || c.name || '?').charAt(0)}
                           </div>
-                          <div className="min-w-0">
-                            <span className="font-medium">{c.names || c.name}</span>
-                            <span className="text-stone-400 text-xs ml-1.5">{c.email || ''}</span>
-                            {c.assignedTo && <span className="text-stone-300 text-xs ml-1.5">· {c.assignedTo}</span>}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{c.names || c.name}</p>
+                            <p className="text-xs text-stone-400 truncate">{c.email || 'No email'}{c.assignedTo ? ` · ${c.assignedTo}` : ''}</p>
                           </div>
-                        </div>
-                      </SelectItemUI>
-                    ))}
-                  </SelectContentUI>
-                </SelectUI>
+                        </button>
+                      ))}
+                    {caseOptions.filter(c => {
+                      if (!caseSearch.trim()) return true
+                      const q = caseSearch.toLowerCase()
+                      return (c.names || c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q)
+                    }).length === 0 && (
+                      <p className="text-xs text-stone-400 text-center py-3">No cases match "{caseSearch}"</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
