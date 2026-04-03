@@ -19,10 +19,11 @@ export function DraftProvider({ children }) {
     signatureCache.current.loading = true
     try {
       const html = await getGmailSignature(userId)
-      signatureCache.current = { userId, html, loading: false }
-      return html
-    } catch {
-      signatureCache.current.loading = false
+      signatureCache.current = { userId, html: html || '', loading: false }
+      return html || ''
+    } catch (e) {
+      console.warn('Signature fetch failed:', e)
+      signatureCache.current = { userId, html: '', loading: false }
       return ''
     }
   }, [])
@@ -34,8 +35,9 @@ export function DraftProvider({ children }) {
     let initialBody = body || ''
     let initialTo = to || ''
 
-    // Fetch signature
-    const sig = await fetchSignature(userId)
+    // Fetch signature (safely — never crash)
+    let sig = ''
+    try { sig = await fetchSignature(userId) } catch {}
     const sigBlock = sig ? `<br/><div>--</div><div>${sig}</div>` : ''
 
     if (replyTo) {
@@ -66,7 +68,7 @@ export function DraftProvider({ children }) {
       showCcBcc: false,
     }
 
-    setDrafts(prev => [...prev, draft])
+    try { setDrafts(prev => [...prev, draft]) } catch (e) { console.error('Failed to add draft:', e) }
     return id
   }, [fetchSignature])
 
