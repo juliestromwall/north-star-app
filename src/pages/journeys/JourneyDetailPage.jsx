@@ -615,20 +615,14 @@ export default function JourneyDetailPage() {
             <span className="text-stone-300">·</span>
             <span className="text-sm text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
             <span className="text-sm text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
-            {/* Pregnancy */}
-            {jd.pregnant === 'yes' ? (
+            {/* Pregnancy — only when status is Active Pregnancy or later */}
+            {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && (
               <div className="flex items-center gap-2">
                 {jd.dueDate && calcGestationalWeeks(jd.dueDate) && (
                   <span className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate)}</span>
                 )}
-                {jd.dueDate && (
-                  <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
-                )}
-                <button onClick={() => updateField('pregnant', 'no')} className="text-[10px] text-stone-400 hover:text-red-500 ml-1" title="Mark not pregnant">✕</button>
+                <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
               </div>
-            ) : (
-              <button onClick={() => updateField('pregnant', 'yes')}
-                className="text-sm text-stone-400 hover:text-pink-600 cursor-pointer">Not Pregnant</button>
             )}
             {/* Insurance indicator */}
             {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
