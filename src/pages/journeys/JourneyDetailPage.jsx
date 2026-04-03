@@ -4,7 +4,7 @@ import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, Printer,
+  Hospital, Building2, ChevronDown, Printer, Scale,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -313,6 +313,72 @@ function NotesTab({ journeyId, currentUser }) {
   )
 }
 
+// ── Attorney Row (inline in hero) ──────────────────────
+function AttorneyRow({ prefix, data, onSave, onEmail }) {
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({})
+
+  const name = data[`${prefix}Name`] || ''
+  const firm = data[`${prefix}Firm`] || ''
+  const email = data[`${prefix}Email`] || ''
+  const phone = data[`${prefix}Phone`] || ''
+
+  function startEdit() {
+    setForm({ name, firm, email, phone })
+    setEditing(true)
+  }
+
+  function save() {
+    onSave(`${prefix}Name`, form.name)
+    onSave(`${prefix}Firm`, form.firm)
+    onSave(`${prefix}Email`, form.email)
+    onSave(`${prefix}Phone`, form.phone)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-2 rounded-lg bg-white/60 border border-stone-200 p-3 space-y-2">
+        <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Scale className="size-3" /> Attorney</p>
+        <div className="grid grid-cols-2 gap-2">
+          <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Attorney name" className="h-7 text-xs" />
+          <Input value={form.firm} onChange={e => setForm(f => ({ ...f, firm: e.target.value }))} placeholder="Firm" className="h-7 text-xs" />
+          <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" type="email" className="h-7 text-xs" />
+          <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" className="h-7 text-xs" />
+        </div>
+        <div className="flex gap-1.5">
+          <Button size="sm" className="gap-1 h-6 text-[11px] rounded-full px-3" style={{ backgroundColor: '#283693' }} onClick={save}>
+            <Save className="size-3" /> Save
+          </Button>
+          <Button variant="outline" size="sm" className="h-6 text-[11px] rounded-full px-3" onClick={() => setEditing(false)}>Cancel</Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!name) {
+    return (
+      <button onClick={startEdit} className="mt-1.5 flex items-center gap-1 text-[11px] text-stone-400 hover:text-stone-600 cursor-pointer">
+        <Scale className="size-3" /> + Add attorney
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-stone-500">
+      <Scale className="size-3 text-stone-400" />
+      <span className="font-medium text-stone-700">{name}</span>
+      {firm && <><span className="text-stone-300">·</span> <span>{firm}</span></>}
+      {email && (
+        <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-5 px-2 ml-1" onClick={() => onEmail(email, name)}>
+          <Mail className="size-2.5" /> Email Attorney
+        </Button>
+      )}
+      <button onClick={startEdit} className="text-stone-300 hover:text-stone-500 ml-0.5"><Pencil className="size-3" /></button>
+    </div>
+  )
+}
+
 // ── Main Page ───────────────────────────────────────────
 export default function JourneyDetailPage() {
   const { id } = useParams()
@@ -595,6 +661,8 @@ export default function JourneyDetailPage() {
                 {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
               </div>
               </div>
+              <AttorneyRow prefix="gcAttorney" data={jd} onSave={updateField}
+                onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
             </div>
           ) : <p className="text-sm text-stone-400">GC case not found</p>}
         </div>
@@ -643,6 +711,8 @@ export default function JourneyDetailPage() {
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
               </div>
+              <AttorneyRow prefix="ipAttorney" data={jd} onSave={updateField}
+                onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
             </div>
           ) : <p className="text-sm text-stone-400">IP case not found</p>}
         </div>
