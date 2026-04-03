@@ -792,9 +792,13 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
               <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={printSheet}>
                 <Printer className="size-3.5" /> Print
               </Button>
-              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={downloadPDF} disabled={generating}>
-                {generating ? <Clock className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
-                {generating ? 'Generating...' : 'Download PDF'}
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={saveToDocuments} disabled={generating}>
+                {generating ? <Clock className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+                Save to Documents
+              </Button>
+              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={sendMatchSheet} disabled={generating}>
+                {generating ? <Clock className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                Send Match Sheet
               </Button>
             </div>
           </div>
