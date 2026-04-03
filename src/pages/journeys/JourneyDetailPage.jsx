@@ -314,7 +314,7 @@ function NotesTab({ journeyId, currentUser }) {
 }
 
 // ── Attorney Row (inline in hero) ──────────────────────
-function AttorneyRow({ prefix, data, onSave, onEmail }) {
+function AttorneyRow({ prefix, data, onSaveBatch, onEmail }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({})
 
@@ -329,10 +329,12 @@ function AttorneyRow({ prefix, data, onSave, onEmail }) {
   }
 
   function save() {
-    onSave(`${prefix}Name`, form.name)
-    onSave(`${prefix}Firm`, form.firm)
-    onSave(`${prefix}Email`, form.email)
-    onSave(`${prefix}Phone`, form.phone)
+    onSaveBatch({
+      [`${prefix}Name`]: form.name,
+      [`${prefix}Firm`]: form.firm,
+      [`${prefix}Email`]: form.email,
+      [`${prefix}Phone`]: form.phone,
+    })
     setEditing(false)
   }
 
@@ -416,6 +418,12 @@ export default function JourneyDetailPage() {
 
   async function updateField(key, value) {
     const jd = { ...(journey.journey_data || {}), [key]: value }
+    const updated = await updateMatchedJourney(journey.id, { journey_data: jd }).catch(() => null)
+    if (updated) setJourney(updated)
+  }
+
+  async function updateFields(fields) {
+    const jd = { ...(journey.journey_data || {}), ...fields }
     const updated = await updateMatchedJourney(journey.id, { journey_data: jd }).catch(() => null)
     if (updated) setJourney(updated)
   }
@@ -661,7 +669,7 @@ export default function JourneyDetailPage() {
                 {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
               </div>
               </div>
-              <AttorneyRow prefix="gcAttorney" data={jd} onSave={updateField}
+              <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
                 onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
             </div>
           ) : <p className="text-sm text-stone-400">GC case not found</p>}
@@ -711,7 +719,7 @@ export default function JourneyDetailPage() {
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
               </div>
-              <AttorneyRow prefix="ipAttorney" data={jd} onSave={updateField}
+              <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields}
                 onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
             </div>
           ) : <p className="text-sm text-stone-400">IP case not found</p>}
