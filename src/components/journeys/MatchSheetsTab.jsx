@@ -236,25 +236,13 @@ function PartyName({ name }) {
 }
 
 function ConfidentialFooter() {
-  const dotColors = ['#00bcd4', '#ff9800', '#8bc34a', '#00bcd4', '#ff9800']
-  const dotColorsR = ['#8bc34a', '#ff9800', '#00bcd4', '#8bc34a', '#ff9800']
   return (
-    <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1.5px solid #283693', textAlign: 'center' }}>
-      {/* Colorful dots + website */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 4 }}>{dotColors.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c }} />)}</div>
-        <span style={{ fontSize: 16, fontWeight: 500, color: '#ed148c', letterSpacing: '0.5px' }}>abcsurrogacy.com</span>
-        <div style={{ display: 'flex', gap: 4 }}>{dotColorsR.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c }} />)}</div>
-      </div>
-      {/* Address + phone */}
-      <p style={{ fontSize: 10, color: '#78716c', margin: '0 0 4px', lineHeight: 1.6 }}>
-        5627 Kanan Road #229, Agoura Hills, CA 91301
+    <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1.5px solid #283693', textAlign: 'center' }}>
+      <img src="/abc-website-banner.png" alt="abcsurrogacy.com" style={{ height: 22, margin: '0 auto 6px' }} crossOrigin="anonymous" />
+      <p style={{ fontSize: 9, color: '#78716c', margin: '0 0 2px' }}>
+        5627 Kanan Road #229, Agoura Hills, CA 91301 &nbsp;·&nbsp; O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
       </p>
-      <p style={{ fontSize: 10, color: '#78716c', margin: '0 0 12px' }}>
-        O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
-      </p>
-      {/* Confidential notice */}
-      <p style={{ fontSize: 8, color: '#a8a29e', margin: 0 }}>
+      <p style={{ fontSize: 7, color: '#a8a29e', margin: 0 }}>
         This document contains privileged and confidential information intended solely for the named recipient(s).
       </p>
     </div>
@@ -327,7 +315,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Attorney Email', editable: true, value: <EditableValue field="ipAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
       ]} />
 
-      {/* Surrogate */}
+      {/* Surrogate — page 2 */}
+      <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }} className="pdf-page-break" />
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
 
       <SectionTitle color="#ed148c" icon={FileText}>Demographics</SectionTitle>
@@ -373,7 +362,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'Attorney Email', editable: true, value: <EditableValue field="gcAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
       ]} />
 
-      {/* Journey Details */}
+      {/* Journey Details — page 3 */}
+      <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }} className="pdf-page-break" />
       <PartyBanner color="#723bb4" icon={FileText}>Journey Details</PartyBanner>
       <InfoGrid items={[
         { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="SeedTrust Escrow, LLC" value="SeedTrust Escrow, LLC" /> },
@@ -653,28 +643,56 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       // Save data first
       await saveMatchSheetData()
 
-      const canvas = await html2canvas(sheetRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      })
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      const container = sheetRef.current
+      const pageBreaks = container.querySelectorAll('.pdf-page-break')
       const pdf = new jsPDF('p', 'pt', 'letter')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-      let heightLeft = imgHeight
-      let position = 0
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-      while (heightLeft > 0) {
-        position -= pageHeight
-        pdf.addPage()
+      if (pageBreaks.length === 0) {
+        // No page breaks — render as single image with overflow pages
+        const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+        const imgData = canvas.toDataURL('image/jpeg', 0.95)
+        const imgWidth = pageWidth
+        const imgHeight = (canvas.height * imgWidth) / canvas.width
+        let heightLeft = imgHeight, position = 0
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
+        while (heightLeft > 0) { position -= pageHeight; pdf.addPage(); pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight }
+      } else {
+        // Hide page break markers, capture sections between them
+        pageBreaks.forEach(pb => pb.style.display = 'none')
+
+        // Build section boundaries from page break offsets
+        const breakOffsets = [...pageBreaks].map(pb => pb.offsetTop)
+        const sections = []
+        let prevTop = 0
+        for (const offset of breakOffsets) {
+          sections.push({ top: prevTop, height: offset - prevTop })
+          prevTop = offset
+        }
+        sections.push({ top: prevTop, height: container.scrollHeight - prevTop })
+
+        // Render full canvas once
+        const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+        const scale = fullCanvas.width / container.offsetWidth
+
+        for (let i = 0; i < sections.length; i++) {
+          if (i > 0) pdf.addPage()
+          const s = sections[i]
+          // Create a cropped canvas for this section
+          const cropCanvas = document.createElement('canvas')
+          cropCanvas.width = fullCanvas.width
+          cropCanvas.height = Math.round(s.height * scale)
+          const ctx = cropCanvas.getContext('2d')
+          ctx.drawImage(fullCanvas, 0, Math.round(s.top * scale), fullCanvas.width, Math.round(s.height * scale), 0, 0, cropCanvas.width, cropCanvas.height)
+          const imgData = cropCanvas.toDataURL('image/jpeg', 0.95)
+          const imgWidth = pageWidth
+          const imgHeight = (cropCanvas.height * imgWidth) / cropCanvas.width
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight))
+        }
+
+        pageBreaks.forEach(pb => pb.style.display = '')
       }
 
       const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
