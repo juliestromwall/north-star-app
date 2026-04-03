@@ -125,6 +125,11 @@ function CaseSelector({ caseType, setCaseType, selectedCase, onSelect, onClear, 
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const h = compact ? 'h-8 text-sm' : ''
 
+  const q = search.toLowerCase()
+  const filtered = q
+    ? cases.filter(c => (c._name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.ip1_email || '').toLowerCase().includes(q))
+    : cases
+
   return (
     <div className="flex gap-2">
       <Select value={caseType} onValueChange={v => { setCaseType(v); onClear?.() }}>
@@ -154,9 +159,9 @@ function CaseSelector({ caseType, setCaseType, selectedCase, onSelect, onClear, 
               disabled={!caseType || disabled}
               className={h}
             />
-            {dropdownOpen && cases.length > 0 && (
+            {dropdownOpen && filtered.length > 0 && (
               <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                {cases.slice(0, 20).map(c => (
+                {filtered.slice(0, 20).map(c => (
                   <button key={c.id} onClick={() => { onSelect(c); setSearch(''); setDropdownOpen(false) }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-0">
                     <div className="font-medium">{c._name}</div>
