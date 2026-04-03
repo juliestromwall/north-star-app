@@ -11,6 +11,8 @@ import { fetchUserTasks } from '@/lib/db'
 import { fetchSMSMessages } from '@/lib/sms'
 import { getUnreadSMSCount } from '@/lib/smsReadState'
 import { getGoogleStatus, getLabel } from '@/lib/google'
+import { listFaxes } from '@/lib/fax'
+import { getUnreadFaxCount } from '@/lib/faxState'
 
 const BABIES_BORN = 220
 
@@ -23,7 +25,7 @@ function UnreadDot() {
   )
 }
 
-function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail }) {
+function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail, unreadFax }) {
   return (
     <>
       <div className="flex items-center justify-center px-4 py-4 bg-white">
@@ -64,6 +66,11 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                       </span>
                     )}
                     {item.path === '/text-messages' && unreadSMS > 0 && <UnreadDot />}
+                    {item.path === '/fax' && unreadFax > 0 && (
+                      <span className="ml-auto flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                        {unreadFax}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -93,6 +100,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   const [pendingCount, setPendingCount] = useState(0)
   const [unreadSMS, setUnreadSMS] = useState(0)
   const [unreadEmail, setUnreadEmail] = useState(0)
+  const [unreadFax, setUnreadFax] = useState(0)
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return
@@ -137,7 +145,23 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
     return () => clearInterval(interval)
   }, [isAuthenticated, currentUser?.id])
 
-  const sharedProps = { sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail }
+  // Check for unread faxes
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const checkFax = () => {
+      listFaxes('IN', 'ALL')
+        .then(data => {
+          const fileNames = (data.faxes || []).map(f => f.FileName)
+          setUnreadFax(getUnreadFaxCount(fileNames))
+        })
+        .catch(() => {})
+    }
+    checkFax()
+    const interval = setInterval(checkFax, 120000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated])
+
+  const sharedProps = { sections, pendingCount, showBabiesBorn, unreadSMS, unreadEmail, unreadFax }
 
   return (
     <>
