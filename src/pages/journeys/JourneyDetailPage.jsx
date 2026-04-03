@@ -567,11 +567,11 @@ export default function JourneyDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── 3-Card Hero Grid ────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      {/* ─── Hero: Journey left, GC/IP stacked right ─────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-        {/* Journey Info Card (purple tint, 2 cols) */}
-        <div className="lg:col-span-2 rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#9333ea08' }}>
+        {/* Journey Info Card (purple tint, 3 of 5 cols) */}
+        <div className="lg:col-span-3 rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#9333ea08' }}>
           <div className="p-5 space-y-3">
             {/* Stage · Status */}
             <div className="flex flex-wrap items-center gap-3">
@@ -696,8 +696,11 @@ export default function JourneyDetailPage() {
           </div>
         </div>
 
+        {/* GC + IP stacked (2 of 5 cols) */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+
         {/* GC Card (pink tint) */}
-        <div className="rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#ed148c08' }}>
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#ed148c08' }}>
           <div className="p-4 space-y-3">
             <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
             {gcCase ? (() => {
@@ -750,7 +753,7 @@ export default function JourneyDetailPage() {
         </div>
 
         {/* IP Card (blue tint) */}
-        <div className="rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#28369308' }}>
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#28369308' }}>
           <div className="p-4 space-y-3">
             <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</p>
             {ipCase ? (() => {
@@ -806,6 +809,8 @@ export default function JourneyDetailPage() {
             })() : <p className="text-xs text-stone-400">IP not found</p>}
           </div>
         </div>
+
+        </div>{/* end GC+IP stacked column */}
       </div>
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
