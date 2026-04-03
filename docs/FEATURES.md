@@ -5,7 +5,7 @@
 | Component | Location | Description |
 |-----------|----------|-------------|
 | AppLayout | src/components/layout/AppLayout.jsx | Main layout with responsive Sidebar + TopBar + content area |
-| Sidebar | src/components/layout/Sidebar.jsx | Dark navy sidebar, hidden on mobile with Sheet drawer |
+| Sidebar | src/components/layout/Sidebar.jsx | Glassmorphism sidebar with indigo-purple-pink gradient, frosted glass active states, white logo area, hidden on mobile with Sheet drawer |
 | TopBar | src/components/layout/TopBar.jsx | Cream header with hamburger menu (mobile), role switcher |
 | RoleSwitcher | src/components/layout/RoleSwitcher.jsx | Dropdown to switch between 6 demo roles |
 | RoleContext | src/context/RoleContext.jsx | React context providing role state, auth, mock users |
@@ -54,8 +54,10 @@
 | faxState | src/lib/faxState.js | localStorage-backed fax read/unread tracking + filing info (case, document name, admin, log updated) |
 | CaseEmailsTab | src/components/shared/CaseEmailsTab.jsx | Reusable tab showing logged emails for a case (used in surrogate & IP detail pages) |
 | SignDocumentPage | src/pages/esign/SignDocumentPage.jsx | Public signing page: email verification, PDF preview, {{Field:Role}} inputs, signature pad, ESIGN/UETA compliance |
-| ComposeWindows | src/components/shared/ComposeWindows.jsx | Gmail-style floating compose windows with minimize, multi-draft, rich text, signature, case logging |
-| DraftContext | src/context/DraftContext.jsx | React context for managing email draft state across pages |
+| ComposeWindows | src/components/shared/ComposeWindows.jsx | Gmail-style floating compose windows with minimize, multi-draft, rich text, signature, case logging, auto-load cases for pre-set caseId |
+| DraftContext | src/context/DraftContext.jsx | React context for managing email draft state, supports initial attachments and caseType |
+| MatchSheetsTab | src/components/journeys/MatchSheetsTab.jsx | Attorney/Clinic/Escrow match sheets with inline editing, custom dropdowns, PDF generation with page breaks, Save to Documents + Send Match Sheet actions, branded footer |
+| TrackingTable | src/components/shared/TrackingTable.jsx | Shared tracking table with expand/collapse, history log, edit/delete, rename labels, progress bar (used by surrogate, journey, IP checklists) |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
 
