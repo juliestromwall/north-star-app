@@ -11,7 +11,7 @@ import { matchPipelineCounts } from '@/data/mock/matches'
 import { MATCH_STAGES, SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps } from '@/lib/checklistStore'
-import { Heart, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X, ScrollText, FileWarning, CheckCircle2, Circle } from 'lucide-react'
+import { Heart, HeartHandshake, Puzzle, Route, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X, ScrollText, FileWarning, CheckCircle2, Circle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const recentActivity = []
@@ -444,9 +444,9 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </button>
-        <StatCard title="Intended Parents" value={0} icon={Users} description="In program" />
-        <StatCard title="Matches in Progress" value={0} icon={GitMerge} description="Across all stages" />
-        <StatCard title="Matched Journeys" value={0} icon={Heart} description="Active journeys" />
+        <StatCard title="Intended Parents" value={0} icon={HeartHandshake} description="In program" />
+        <StatCard title="Matches in Progress" value={0} icon={Puzzle} description="Across all stages" />
+        <StatCard title="Matched Journeys" value={0} icon={Route} description="Active journeys" />
       </div>
 
       {dashView === 'surrogates' ? (
@@ -557,7 +557,7 @@ export default function AdminDashboard() {
               </Button>
               <Button variant="outline" className="w-full justify-start" asChild>
                 <Link to="/matching">
-                  <GitMerge className="size-4" /> Match Queue
+                  <Puzzle className="size-4" /> Match Queue
                   <ArrowRight className="size-4 ml-auto" />
                 </Link>
               </Button>
