@@ -17,6 +17,7 @@ import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
+import SortableTabsList from '@/components/shared/SortableTabsList'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
@@ -755,17 +756,17 @@ export default function JourneyDetailPage() {
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="profiles">Profiles</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
-          <TabsTrigger value="match-sheets">Match Sheets</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="insurance">Insurance</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-          <TabsTrigger value="emails">Emails</TabsTrigger>
-          <TabsTrigger value="texts">Texts</TabsTrigger>
-        </TabsList>
+        <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'profiles', label: 'Profiles' },
+          { value: 'checklist', label: 'Checklist' },
+          { value: 'match-sheets', label: 'Match Sheets' },
+          { value: 'documents', label: 'Documents' },
+          { value: 'insurance', label: 'Insurance' },
+          { value: 'notes', label: 'Notes' },
+          { value: 'emails', label: 'Emails' },
+          { value: 'texts', label: 'Texts' },
+        ]} />
 
         <TabsContent value="overview" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

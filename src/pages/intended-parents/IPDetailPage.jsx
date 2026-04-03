@@ -22,6 +22,7 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { mockUsers } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import SortableTabsList from '@/components/shared/SortableTabsList'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
@@ -326,16 +327,16 @@ export default function IPDetailPage() {
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="application">Application</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="checklist">Checklist</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="texts">Texts</TabsTrigger>
-          <TabsTrigger value="emails">Emails</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-        </TabsList>
+        <SortableTabsList configKey={`ip_${ip.id}`} tabs={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'application', label: 'Application' },
+          { value: 'profile', label: 'Profile' },
+          { value: 'checklist', label: 'Checklist' },
+          { value: 'documents', label: 'Documents' },
+          { value: 'texts', label: 'Texts' },
+          { value: 'emails', label: 'Emails' },
+          { value: 'notes', label: 'Notes' },
+        ]} />
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">

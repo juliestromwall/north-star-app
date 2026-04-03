@@ -39,6 +39,7 @@ import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Downloa
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import TrackingTable from '@/components/shared/TrackingTable'
+import SortableTabsList from '@/components/shared/SortableTabsList'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -694,47 +695,33 @@ export default function SurrogateDetailPage() {
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="contact">Application</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="screening">Checklist</TabsTrigger>
-          <TabsTrigger value="records">
-            {(() => {
-              // Build same medSteps as the tab content to get accurate count
-              const rt = recordTracking || {}
-              const pregs = profileData?.pregnancyHistory?.pregnancies || []
-              const numP = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-              let stepIds = []
-              for (let i = 0; i < Math.max(numP, pregs.length); i++) {
-                stepIds.push(`ob_records_${i}`, `delivery_records_${i}`)
-                if (pregs[i]?.wasSurrogacy === 'yes') stepIds.push(`ivf_records_${i}`)
-              }
-              // Add custom records
-              for (const k of Object.keys(rt)) {
-                if (k.startsWith('custom_record_') && !stepIds.includes(k)) stepIds.push(k)
-              }
-              const active = stepIds.filter(k => rt[k]?.status !== 'na')
-              const done = active.filter(k => rt[k]?.status === 'complete')
-              return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
-            })()}
-          </TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="texts" onClick={() => setHasUnreadTexts(false)}>
-            <span className="flex items-center gap-1.5">
-              Texts
-              {hasUnreadTexts && (
-                <span className="relative flex size-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
-                </span>
-              )}
-            </span>
-          </TabsTrigger>
-          <TabsTrigger value="insurance">Insurance</TabsTrigger>
-          <TabsTrigger value="emails">Emails</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-        </TabsList>
+        <SortableTabsList configKey={`surrogate_${surrogate.id}`} tabs={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'contact', label: 'Application' },
+          { value: 'profile', label: 'Profile' },
+          { value: 'screening', label: 'Checklist' },
+          { value: 'records', label: (() => {
+            const rt = recordTracking || {}
+            const pregs = profileData?.pregnancyHistory?.pregnancies || []
+            const numP = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+            let stepIds = []
+            for (let i = 0; i < Math.max(numP, pregs.length); i++) {
+              stepIds.push(`ob_records_${i}`, `delivery_records_${i}`)
+              if (pregs[i]?.wasSurrogacy === 'yes') stepIds.push(`ivf_records_${i}`)
+            }
+            for (const k of Object.keys(rt)) {
+              if (k.startsWith('custom_record_') && !stepIds.includes(k)) stepIds.push(k)
+            }
+            const active = stepIds.filter(k => rt[k]?.status !== 'na')
+            const done = active.filter(k => rt[k]?.status === 'complete')
+            return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
+          })() },
+          { value: 'documents', label: 'Documents' },
+          { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'insurance', label: 'Insurance' },
+          { value: 'emails', label: 'Emails' },
+          { value: 'notes', label: 'Notes' },
+        ]} />
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
