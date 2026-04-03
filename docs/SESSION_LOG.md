@@ -1,5 +1,81 @@
 # Session Log
 
+## 2026-04-03 (Journey Hero, Insurance, Attorneys, Draggable Tabs)
+
+**Worked on:** Journey Detail page hero overhaul, attorney info, insurance tab, draggable tabs, hero UX fixes
+
+**Changes made:**
+- Attorney info for GC/IP in journey hero (editable, Email Attorney button, logged to case)
+- Insurance Tab: policy details, payment logging, cancel policy (Supabase tables: surrogate_insurance + insurance_payments)
+- Insurance indicator on hero cards (green icon, click opens dialog on journey)
+- Draggable tabs (SortableTabsList) on Surrogate, IP, Journey pages — order saved per-case in Supabase
+- Journey hero UX: Milestone icon in stage color, inline stage/status text, pregnancy only for Active Pregnancy+, gestational age large/bold, escrow closing date, clinics on own row
+- GC/IP card fixes: age→DOB flip (MM/DD/YYYY), marital→partner flip, home→address flip, Text opens SMS dialog, IP shows both ages/DOBs/phones, FertilizedEggIcon for embryos
+
+**Next steps:**
+- Major layout redesign: 3-card hero (Journey purple | GC pink | IP blue) + persistent sidebar
+- Journey-specific tasks, milestones as overview default, upcoming appointments, pinned notes, expenses
+- Embryo transfer info, doctor appointments (future)
+- Insurance dashboard page (future)
+
+---
+
+## 2026-04-03 (Complete Sidebar Redesign)
+
+**Worked on:** Full sidebar navigation redesign — white background, liquid glass active state, icon updates, dock magnification, top bar cleanup, nav reorganization
+
+**Changes made:**
+
+Sidebar Design (src/components/layout/Sidebar.jsx, src/index.css):
+- White background replacing old purple-pink glassmorphism gradient
+- Liquid glass active state with ABC dot colors (green, blue, orange, pink) shimmer animation
+- Dock magnification: hovered nav items scale up 15% with springy easing
+- Section headers in indigo blue, pink solid line dividers
+- Collapsible sidebar: click logo to toggle (full logo ↔ buggy icon)
+- Subtle hover background tint + icon scale pop on nav items
+- Logo enlarged (h-12 → h-16)
+- CSS sidebar variables updated for white theme
+
+Top Bar (src/components/layout/TopBar.jsx):
+- Removed "Home" quick link
+- Icon-only display (no text labels) for Email, Texts, Calendar
+- Liquid glass active state matching sidebar
+- Magnify on hover (120% scale)
+- Text Messages uses MessagesSquare (two-bubble) icon
+
+Navigation Reorganization (src/lib/navigation.js):
+- New "Inbox" section (above Client Management): Email, Text Message, Fax
+- Moved E-Signature from Forms & Documents to Operations
+- Added Insurance placeholder to Operations
+- Added Expense Tracking placeholder to Operations (for CC transaction logging by case managers)
+- Hidden stubs: Forms, Documents, Messages, HR Management, Time Clock, Payroll, Finance (Financials/Reports)
+- Kept: Intake/Applications, Marketing/Analytics, Admin/Settings
+
+Icon Updates:
+- Surrogates: Heart, Intended Parents: HeartHandshake, Matching: Puzzle, Matched Journeys: Route
+- Messages: MessageCircle, E-Signature: PenLine, Payroll: Wallet
+- Text Messages: MessagesSquare (two bubbles)
+- Insurance: ShieldCheck, Expense Tracking: CreditCard
+- Dashboard stat cards updated to match sidebar icons
+
+New Files:
+- public/abc-buggy.png — collapsed sidebar logo
+- public/icons/matching.png, surrogate.png — unused ChatGPT-generated icons (kept for reference)
+- src/components/layout/NavIcons.jsx — custom icon map (currently empty, all using lucide)
+
+**Next steps:**
+- Build Insurance page/feature
+- Build Expense Tracking page (CC transaction logging, case-linked, admin-visible)
+- Consider adding Calendar to sidebar or keeping it top-bar only
+- Build out stub pages for new Operations items
+
+**Open questions:**
+- Should Expense Tracking be visible to all admins or just master_admin+?
+- Insurance page scope: tracking surrogate insurance policies? Or broader?
+- Should Calendar get its own sidebar section or stay top-bar only?
+
+---
+
 ## 2026-04-03 (Match Sheets, Email Integration, Sidebar Redesign)
 
 **Worked on:** Match Sheets feature for matched journeys (Attorney, Escrow, Clinic), email compose integration with auto-logging, glassmorphism sidebar redesign

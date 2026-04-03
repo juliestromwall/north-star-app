@@ -567,73 +567,70 @@ export default function JourneyDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Hero Section ─────────────────────────────────── */}
-      <div className="rounded-2xl border border-stone-200/80 bg-white overflow-hidden">
+      {/* ─── 3-Card Hero Grid ────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
-        {/* Journey Info — compact bar */}
-        <div className="px-5 py-4 space-y-2.5">
-          {/* Top row: stage/status left + managers right */}
-          <div className="flex items-start gap-4">
-          <div className="flex-1 space-y-2.5">
-          {/* Row 1: Stage icon + Stage · Status + toggles + pregnancy */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Milestone className="size-5" style={{ color: stageObj.color }} />
-            {/* Stage selector */}
-            <div className="relative">
-              <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
-                className="text-base font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
-                {stageObj.label}
-              </button>
-              {stageOpen && (
-                <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2">
-                  {JOURNEY_STAGES.map((stage, i) => (
-                    <button key={stage.id} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStage(stage.id)}>
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
-                      {stage.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className="text-stone-300">·</span>
-            {/* Status selector */}
-            <div className="relative">
-              <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
-                className="text-base text-stone-600 hover:underline cursor-pointer">
-                {journey.status}
-              </button>
-              {statusOpen && (
-                <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
-                  {statuses.map(status => (
-                    <button key={status} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStatus(status)}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <span className="text-stone-300">·</span>
-            <span className="text-sm text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
-            <span className="text-sm text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
-            {/* Pregnancy — only when status is Active Pregnancy or later */}
-            {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && (
-              <div className="flex items-center gap-2">
-                {jd.dueDate && calcGestationalWeeks(jd.dueDate) && (
-                  <span className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate)}</span>
+        {/* Journey Info Card (purple tint, 2 cols) */}
+        <div className="lg:col-span-2 rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#9333ea08' }}>
+          <div className="p-5 space-y-3">
+            {/* Stage · Status */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Milestone className="size-5" style={{ color: stageObj.color }} />
+              <div className="relative">
+                <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
+                  className="text-base font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
+                  {stageObj.label}
+                </button>
+                {stageOpen && (
+                  <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2">
+                    {JOURNEY_STAGES.map((stage, i) => (
+                      <button key={stage.id} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStage(stage.id)}>
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
+                        {stage.label}
+                      </button>
+                    ))}
+                  </div>
                 )}
-                <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
               </div>
-            )}
-            {/* Insurance indicator */}
-            {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
-              <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 cursor-pointer" title="View insurance">
-                <InsuranceCardIcon size={16} color="currentColor" />
-              </button>
-            )}
-          </div>
+              <span className="text-stone-300">·</span>
+              <div className="relative">
+                <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
+                  className="text-base text-stone-600 hover:underline cursor-pointer">
+                  {journey.status}
+                </button>
+                {statusOpen && (
+                  <div className="absolute z-30 top-full left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
+                    {statuses.map(status => (
+                      <button key={status} className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2" onClick={() => changeStatus(status)}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Pregnancy — only when status is Active Pregnancy or later */}
+              {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && jd.dueDate && (
+                <>
+                  <span className="text-stone-300">·</span>
+                  <span className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
+                  <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
+                </>
+              )}
+            </div>
 
-          {/* Row 2: Escrow + dates */}
-          <div className="flex flex-wrap items-center gap-4 text-sm">
+            {/* Toggles + Insurance */}
+            <div className="flex flex-wrap items-center gap-3 text-sm text-stone-500">
+              <span>LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
+              <span>Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
+              {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
+                <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 cursor-pointer" title="View insurance">
+                  <InsuranceCardIcon size={14} color="currentColor" /> {gcInsurance.company || 'Insured'}
+                </button>
+              )}
+            </div>
+
+            {/* Escrow */}
+            <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <span className="text-stone-400">Escrow Min:</span>
                 <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
@@ -647,10 +644,10 @@ export default function JourneyDetailPage() {
                 <Calendar className="size-3.5 text-stone-400" />
                 <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Escrow close" />
               </div>
-          </div>
+            </div>
 
-          {/* Row 3: Clinics / Hospital */}
-          <div className="flex flex-wrap items-center gap-4 text-sm">
+            {/* Clinics / Hospital */}
+            <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5" title="IVF / Fertility Clinic">
                 <EmbryoIcon size={14} color="#a8a29e" />
                 <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set fertility clinic" />
@@ -663,152 +660,151 @@ export default function JourneyDetailPage() {
                 <Hospital className="size-3.5 text-stone-400" />
                 <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" />
               </div>
-          </div>
-          </div>
+            </div>
 
-          {/* Managers — stacked, top right */}
-          <div className="shrink-0 flex flex-col gap-1 text-right">
-            <div className="flex items-center gap-1.5 justify-end">
-              <UserCog className="size-3.5 text-stone-400" />
-              <span className="text-[10px] text-stone-400">Case Manager</span>
-              <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
-                const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
-                if (updated) setJourney(updated)
-              }}>
-                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                  {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
+            {/* Managers */}
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <UserCog className="size-3.5 text-stone-400" />
+                <span className="text-stone-400">Case Mgr:</span>
+                <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
+                  const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
+                  if (updated) setJourney(updated)
+                }}>
+                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Crown className="size-3.5 text-amber-500" />
+                <span className="text-stone-400">Journey Mgr:</span>
+                <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
+                  updateField('journeyManager', val === '_unassigned' ? '' : val)
+                }}>
+                  <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
+                    {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+              <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
             </div>
-            <div className="flex items-center gap-1.5 justify-end">
-              <Crown className="size-3.5 text-amber-500" />
-              <span className="text-[10px] text-stone-400">Journey Manager</span>
-              <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
-                updateField('journeyManager', val === '_unassigned' ? '' : val)
-              }}>
-                <SelectTriggerUI className="h-6 text-[11px] font-semibold border-none shadow-none px-1 w-auto min-w-20 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
-                <SelectContentUI>
-                  <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                  {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
-                </SelectContentUI>
-              </SelectUI>
-            </div>
-          </div>
           </div>
         </div>
 
-        {/* GC Section */}
-        <div className="px-5 py-4 border-t" style={{ backgroundColor: '#ed148c08' }}>
-          {gcCase ? (() => {
-            const gcA = gcCase.answers || {}
-            const gcPartner = gcA.partnerName || gcA.spouseFullName || ''
-            const gcAddr = [gcA.street, gcA.city, gcA.state, gcA.zipCode].filter(Boolean).join(', ') || gcCase.location || '—'
-            return (
-            <div className="space-y-0">
-              <p className="text-[11px] font-semibold text-pink-400 uppercase tracking-widest mb-2">Surrogate</p>
-              <div className="flex items-center gap-3">
-              <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
-              <div className="flex-1 min-w-0">
-                <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{gcCase.name}</Link>
-                <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
-                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
-                    {gcFlip.age ? `DOB: ${fmtDate(gcCase.dob || gcA.dob)}` : `Age ${gcCase.age || '—'}`}
-                  </span>
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
-                    <Heart className="size-3" />{gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
-                  </span>
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')} title="Click to show address">
-                    <Home className="size-3" />{gcFlip.address ? gcAddr : (gcCase.location || '—')}
-                  </span>
-                  {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
-                    <span className="flex items-center gap-0.5 text-emerald-600">
-                      <InsuranceCardIcon size={12} color="currentColor" /> {gcInsurance.company || 'Insured'}
-                    </span>
+        {/* GC Card (pink tint) */}
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#ed148c08' }}>
+          <div className="p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
+            {gcCase ? (() => {
+              const gcA = gcCase.answers || {}
+              const gcPartner = gcA.partnerName || gcA.spouseFullName || ''
+              const gcAddr = [gcA.street, gcA.city, gcA.state, gcA.zipCode].filter(Boolean).join(', ') || gcCase.location || '—'
+              return (<>
+                <div className="flex items-center gap-2.5">
+                  <ProfileAvatar name={gcCase.name} size="sm" className="ring-2 ring-white shadow" />
+                  <div className="min-w-0">
+                    <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
+                    <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
+                        {gcFlip.age ? fmtDate(gcCase.dob || gcA.dob) : `Age ${gcCase.age || '—'}`}
+                      </span>
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
+                        <Heart className="size-2.5 inline" /> {gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-stone-500 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')}>
+                  <Home className="size-2.5 inline mr-0.5" />{gcFlip.address ? gcAddr : (gcCase.location || '—')}
+                </div>
+                {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
+                  <div className="text-[10px] text-emerald-600">
+                    <InsuranceCardIcon size={11} color="currentColor" className="inline mr-0.5" /> {gcInsurance.company || 'Insured'}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-1.5">
+                  {gcCase.phone && (
+                    <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
+                      className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                      onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
+                      <MessageSquare className="size-2.5" /> Text
+                    </Button>
                   )}
-                </div>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                {gcCase.phone && (
-                  <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
-                    className={`gap-1 rounded-full text-xs h-7 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                    onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
-                    <MessageSquare className="size-3" /> Text
+                  <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
+                    className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                    onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
+                    <Mail className="size-2.5" /> Email
                   </Button>
-                )}
-                <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
-                  className={`gap-1 rounded-full text-xs h-7 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                  onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
-                  <Mail className="size-3" /> Email
-                </Button>
-                {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
-              </div>
-              </div>
-              <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
-                onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
-            </div>
-            )
-          })() : <p className="text-sm text-stone-400">GC case not found</p>}
+                  {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
+                </div>
+                <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
+                  onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
+              </>)
+            })() : <p className="text-xs text-stone-400">GC not found</p>}
+          </div>
         </div>
 
-        {/* IP Section */}
-        <div className="px-5 py-4 border-t" style={{ backgroundColor: '#28369308' }}>
-          {ipCase ? (() => {
-            const ipA = ipCase.answers || {}
-            const ip1Age = ipCase.age
-            const ip2Dob = ipA.ip2Dob ? new Date(ipA.ip2Dob) : null
-            const ip2Age = ip2Dob ? Math.floor((Date.now() - ip2Dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
-            const ageDisplay = ip2Age ? `Ages ${ip1Age} & ${ip2Age}` : `Age ${ip1Age || '—'}`
-            const dobDisplay = ip2Dob ? `${fmtDate(ipA.primaryDob)} & ${fmtDate(ipA.ip2Dob)}` : fmtDate(ipA.primaryDob)
-            const ipAddr = [ipA.street, ipA.city, ipA.stateProv, ipA.zipCode].filter(Boolean).join(', ') || ipCase.location || '—'
-            const allPhones = [ipCase.phone, ipCase.ip2Phone].filter(Boolean).join(' / ')
-            return (
-            <div className="space-y-0">
-              <p className="text-[11px] font-semibold text-[#283693]/50 uppercase tracking-widest mb-2">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
-              <div className="flex items-center gap-3">
-              <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
-              <div className="flex-1 min-w-0">
-                <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors">{ipCase.names}</Link>
-                <div className="flex flex-wrap gap-2.5 mt-0.5 text-[11px] text-stone-500">
-                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
-                    {ipFlip.age ? `DOB: ${dobDisplay}` : ageDisplay}
-                  </span>
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('relationship')}>
-                    <Heart className="size-3" />{ipFlip.relationship ? (ipCase.ip2Name || '—') : (ipA.maritalStatus || '—')}
-                  </span>
-                  {ipCase.reDoctorName && <span className="flex items-center gap-0.5"><Stethoscope className="size-3" />{ipCase.reDoctorName}</span>}
-                  {ipCase.hasFrozenEmbryos && <span className="flex items-center gap-0.5"><FertilizedEggIcon size={12} color="currentColor" /> {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
-                  {ipCase.usingEggDonor && <span>Egg Donor</span>}
-                  {ipCase.usingSpermDonor && <span>Sperm Donor</span>}
-                  <span className="flex items-center gap-0.5 cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')} title="Click to show address">
-                    <Home className="size-3" />{ipFlip.address ? ipAddr : (ipCase.location || '—')}
+        {/* IP Card (blue tint) */}
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#28369308' }}>
+          <div className="p-4 space-y-3">
+            <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</p>
+            {ipCase ? (() => {
+              const ipA = ipCase.answers || {}
+              const ip1Age = ipCase.age
+              const ip2Dob = ipA.ip2Dob ? new Date(ipA.ip2Dob) : null
+              const ip2Age = ip2Dob ? Math.floor((Date.now() - ip2Dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+              const ageDisplay = ip2Age ? `${ip1Age} & ${ip2Age}` : `Age ${ip1Age || '—'}`
+              const dobDisplay = ip2Dob ? `${fmtDate(ipA.primaryDob)} & ${fmtDate(ipA.ip2Dob)}` : fmtDate(ipA.primaryDob)
+              const ipAddr = [ipA.street, ipA.city, ipA.stateProv, ipA.zipCode].filter(Boolean).join(', ') || ipCase.location || '—'
+              const allPhones = [ipCase.phone, ipCase.ip2Phone].filter(Boolean).join(' / ')
+              return (<>
+                <div className="flex items-center gap-2.5">
+                  <ProfileAvatar name={ipCase.names} size="sm" className="ring-2 ring-white shadow" />
+                  <div className="min-w-0">
+                    <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
+                    <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
+                        {ipFlip.age ? dobDisplay : ageDisplay}
+                      </span>
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('relationship')}>
+                        <Heart className="size-2.5 inline" /> {ipFlip.relationship ? (ipCase.ip2Name || '—') : (ipA.maritalStatus || '—')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                  {ipCase.reDoctorName && <span><Stethoscope className="size-2.5 inline" /> {ipCase.reDoctorName}</span>}
+                  {ipCase.hasFrozenEmbryos && <span><FertilizedEggIcon size={11} color="currentColor" className="inline" /> {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
+                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')}>
+                    <Home className="size-2.5 inline" /> {ipFlip.address ? ipAddr : (ipCase.location || '—')}
                   </span>
                 </div>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                {ipCase.phone && (
-                  <Button variant="outline" size="sm"
-                    className="gap-1 rounded-full text-xs h-7"
-                    onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
-                    <MessageSquare className="size-3" /> Text
+                <div className="flex flex-wrap gap-1.5">
+                  {ipCase.phone && (
+                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                      onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
+                      <MessageSquare className="size-2.5" /> Text
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                    onClick={() => {
+                      const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
+                      setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
+                    }}>
+                    <Mail className="size-2.5" /> Email
                   </Button>
-                )}
-                <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7"
-                  onClick={() => {
-                    const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
-                    setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
-                  }}>
-                  <Mail className="size-3" /> Email
-                </Button>
-                {allPhones && <CopyFlipButton icon={Phone} label="Call" value={allPhones} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
-              </div>
-              </div>
-              <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
-                onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
-            </div>
-            )
-          })() : <p className="text-sm text-stone-400">IP case not found</p>}
+                  {allPhones && <CopyFlipButton icon={Phone} label="Call" value={allPhones} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
+                </div>
+                <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
+                  onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
+              </>)
+            })() : <p className="text-xs text-stone-400">IP not found</p>}
+          </div>
         </div>
       </div>
 
@@ -826,36 +822,11 @@ export default function JourneyDetailPage() {
           { value: 'texts', label: 'Texts' },
         ]} />
 
-        <TabsContent value="overview" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="rounded-2xl border-l-4 border-l-pink-400">
-              <CardHeader><CardTitle className="flex items-center gap-2"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-500 text-white">GC</span> Surrogate</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p><span className="text-stone-400">Name:</span> <span className="font-medium">{gcCase?.name || '—'}</span></p>
-                <p><span className="text-stone-400">Location:</span> <span className="font-medium">{gcCase?.location || '—'}</span></p>
-                <p><span className="text-stone-400">Age:</span> <span className="font-medium">{gcCase?.age || '—'}</span></p>
-                <p><span className="text-stone-400">Email:</span> <span className="font-medium">{gcCase?.email || '—'}</span></p>
-                <p><span className="text-stone-400">Phone:</span> <span className="font-medium">{gcCase?.phone || '—'}</span></p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-2xl border-l-4 border-l-[#283693]">
-              <CardHeader><CardTitle className="flex items-center gap-2"><span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#283693] text-white">IP</span> Intended Parent</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p><span className="text-stone-400">Name:</span> <span className="font-medium">{ipCase?.names || '—'}</span></p>
-                <p><span className="text-stone-400">Location:</span> <span className="font-medium">{ipCase?.location || '—'}</span></p>
-                <p><span className="text-stone-400">Type:</span> <span className="font-medium">{ipCase?.type || '—'}</span></p>
-                <p><span className="text-stone-400">RE Doctor:</span> <span className="font-medium">{ipCase?.reDoctorName || '—'}</span></p>
-                <p><span className="text-stone-400">Email:</span> <span className="font-medium">{ipCase?.email || '—'}</span></p>
-              </CardContent>
-            </Card>
-          </div>
-          <Card className="rounded-2xl">
-            <CardHeader><CardTitle>Journey Details</CardTitle></CardHeader>
-            <CardContent className="text-sm space-y-2">
-              <p><span className="text-stone-400">Match Created:</span> <span className="font-medium">{new Date(journey.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span></p>
-              <p><span className="text-stone-400">Created By:</span> <span className="font-medium">{journey.created_by || '—'}</span></p>
-            </CardContent>
-          </Card>
+        <TabsContent value="overview" className="mt-4">
+          <JourneyChecklistTab journey={journey} onUpdate={async (updates) => {
+            const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
+            if (updated) setJourney(updated)
+          }} />
         </TabsContent>
 
         {/* Profiles Tab — toggle between GC and IP */}
