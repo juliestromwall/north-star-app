@@ -418,12 +418,11 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 
   const filteredCases = caseSelector.filter(caseType, '').map(c => ({ ...c, _name: caseSelector.getCaseName(caseType, c) }))
 
+  const [logWarning, setLogWarning] = useState(false)
+
   const handleFile = async () => {
     if (!selectedCase || !fax) return
-    // Warn if records tasks exist but no log update selected
-    if (recordKeys.length > 0 && (!selectedRecord || !selectedStatus)) {
-      if (!window.confirm('This case has Medical Records tasks but you haven\'t selected a record to update. File without updating the log?')) return
-    }
+    setLogWarning(false)
     setFiling(true)
     try {
       const data = await retrieveFax(fax.FileName, 'IN')
@@ -538,12 +537,30 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
                       onClear={() => { setSelectedCase(null); setRecordTracking(null); setRecordKeys([]) }}
                       cases={filteredCases} compact />
                   </div>
-                  <Button size="sm" onClick={handleFile} disabled={filing || !selectedCase}
-                    style={{ backgroundColor: '#8b5cf6' }} className="h-8 gap-1.5">
+                  <Button size="sm" disabled={filing || !selectedCase}
+                    style={{ backgroundColor: '#8b5cf6' }} className="h-8 gap-1.5"
+                    onClick={() => {
+                      if (recordKeys.length > 0 && (!selectedRecord || !selectedStatus)) {
+                        setLogWarning(true)
+                      } else {
+                        setLogWarning(false)
+                        handleFile()
+                      }
+                    }}>
                     {filing ? <Loader2 className="size-3.5 animate-spin" /> : <FolderInput className="size-3.5" />}
                     File to Medical Records
                   </Button>
                 </div>
+
+                {/* Inline warning: records tasks exist but no log update */}
+                {logWarning && (
+                  <div className="flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                    <AlertCircle className="size-4 shrink-0 text-amber-600" />
+                    <p className="text-xs text-amber-800 flex-1">You haven't updated the Medical Records log. File anyway?</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLogWarning(false)}>Go Back</Button>
+                    <Button size="sm" className="h-7 text-xs" style={{ backgroundColor: '#8b5cf6' }} onClick={() => { setLogWarning(false); handleFile() }}>File Anyway</Button>
+                  </div>
+                )}
 
                 {/* Medical Records Log — warning if empty */}
                 {selectedCase && recordTracking !== null && recordKeys.length === 0 && (
