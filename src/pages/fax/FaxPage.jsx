@@ -19,8 +19,8 @@ import {
 import {
   Printer, Send, Loader2, RefreshCw, Download, Plus, Paperclip, X,
   Inbox, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertCircle,
-  FileText, Eye, FolderInput, Search, Pencil, EyeOff, Mail,
-  ClipboardList, ChevronDown,
+  FileText, Eye, FolderInput, Search, Pencil, Mail, MailOpen,
+  ClipboardList, ChevronDown, RotateCcw,
 } from 'lucide-react'
 
 // ── Helpers ──────────────────────────────────────────────
@@ -439,7 +439,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
         await setRecordTrackingDB(caseId, updated)
       }
       // Save filing info locally
-      setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString(), filedBy: currentUser?.name || 'Admin' })
+      setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString(), filedBy: currentUser?.name || 'Admin', logUpdated: !!(selectedRecord && selectedStatus) })
       setFiled(true)
       onFiled?.()
       setTimeout(() => { setFiled(false); setShowFile(false); setSelectedCase(null); setCaseType(''); setSelectedRecord(''); setSelectedStatus(''); setRecordNote(''); setShowMedRecords(false) }, 2000)
@@ -785,14 +785,15 @@ export default function FaxPage() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground w-8"></th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Fax Number</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Document Name</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Filed To</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Date Filed</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Filed By</th>
-                    <th className="py-3 px-4 text-right font-medium text-muted-foreground w-10"></th>
+                  <tr className="border-b">
+                    <th className="py-2.5 px-4 w-8"></th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Fax Number</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Document Name</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Filed To</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Date Filed</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Filed By</th>
+                    <th className="text-center px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Log</th>
+                    <th className="py-2.5 px-4 w-10"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -837,11 +838,18 @@ export default function FaxPage() {
                         <td className="py-3 px-4 text-foreground/70">
                           {filing?.filedBy || <span className="text-muted-foreground/40">—</span>}
                         </td>
+                        <td className="py-3 px-3 text-center">
+                          {filing ? (
+                            filing.logUpdated
+                              ? <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Yes</span>
+                              : <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-stone-100 text-stone-500">No</span>
+                          ) : <span className="text-muted-foreground/40">—</span>}
+                        </td>
                         <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
                           <button onClick={() => toggleRead(fax)}
-                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-                            title={isRead ? 'Mark as unread' : 'Mark as read'}>
-                            {isRead ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                            className="p-1.5 rounded hover:bg-violet-100 text-muted-foreground hover:text-violet-700 opacity-0 group-hover:opacity-100 transition-all"
+                            title={isRead ? 'Mark as new' : 'Mark as read'}>
+                            <RotateCcw className="size-4" />
                           </button>
                         </td>
                       </tr>
@@ -866,12 +874,12 @@ export default function FaxPage() {
             <CardContent className="p-0 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Fax Number</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Status</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Pages</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Date Faxed</th>
-                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Sent By</th>
+                  <tr className="border-b">
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Fax Number</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Pages</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Date Faxed</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Sent By</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
