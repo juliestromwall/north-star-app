@@ -20,7 +20,7 @@ import {
   Printer, Send, Loader2, RefreshCw, Download, Plus, Paperclip, X,
   Inbox, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertCircle,
   FileText, Eye, FolderInput, Search, Pencil, Mail, MailOpen,
-  ClipboardList, ChevronDown, RotateCcw,
+  ClipboardList, ChevronDown, ChevronLeft, ChevronRight, RotateCcw,
 } from 'lucide-react'
 
 // ── Helpers ──────────────────────────────────────────────
@@ -355,7 +355,7 @@ function SendFaxDialog({ open, onOpenChange, onSent, prefillCaseId, prefillCaseT
 
 // ── Fax Preview Dialog with inline filing + medical records ──
 
-function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
+function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate }) {
   const { currentUser } = useRole()
   const [pdfData, setPdfData] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -440,9 +440,18 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
       }
       // Save filing info locally
       setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString(), filedBy: currentUser?.name || 'Admin', logUpdated: !!(selectedRecord && selectedStatus) })
+      markFaxRead(fax.FileName)
       setFiled(true)
       onFiled?.()
-      setTimeout(() => { setFiled(false); setShowFile(false); setSelectedCase(null); setCaseType(''); setSelectedRecord(''); setSelectedStatus(''); setRecordNote(''); setShowMedRecords(false) }, 2000)
+      setTimeout(() => {
+        setFiled(false); setShowFile(false); setSelectedCase(null); setCaseType(''); setSelectedRecord(''); setSelectedStatus(''); setRecordNote(''); setShowMedRecords(false); setRecordTracking(null); setRecordKeys([])
+        // Auto-advance to next unread fax
+        if (inbox && onNavigate) {
+          const nextUnread = inbox.find(f => f.FileName !== fax.FileName && !isFaxRead(f.FileName))
+          if (nextUnread) onNavigate(nextUnread)
+          else onOpenChange(false) // no more unread, close
+        }
+      }, 1500)
     } catch (err) { alert('Failed to file document: ' + err.message) }
     setFiling(false)
   }
@@ -475,6 +484,24 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
               {fax?.Pages && ` · ${fax.Pages} pages`}
             </span>
             <div className="ml-auto flex items-center gap-2">
+              {/* Prev / Next navigation */}
+              {inbox && inbox.length > 1 && (() => {
+                const idx = inbox.findIndex(f => f.FileName === fax?.FileName)
+                const total = inbox.length
+                return (
+                  <div className="flex items-center gap-1 mr-2">
+                    <Button size="icon" variant="ghost" className="size-7" disabled={idx <= 0}
+                      onClick={e => { e.stopPropagation(); if (idx > 0) onNavigate(inbox[idx - 1]) }}>
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground tabular-nums">{idx + 1} / {total}</span>
+                    <Button size="icon" variant="ghost" className="size-7" disabled={idx >= total - 1}
+                      onClick={e => { e.stopPropagation(); if (idx < total - 1) onNavigate(inbox[idx + 1]) }}>
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                )
+              })()}
               <Button size="sm" variant={showFile ? 'default' : 'outline'} className="gap-1.5"
                 style={showFile ? { backgroundColor: '#8b5cf6' } : {}}
                 onClick={() => setShowFile(!showFile)}>
@@ -906,7 +933,10 @@ export default function FaxPage() {
       )}
 
       <SendFaxDialog open={sendOpen} onOpenChange={setSendOpen} onSent={handleRefresh} prefillCaseType={prefillCaseType} prefillCaseId={prefillCaseId} />
-      <FaxPreviewDialog open={!!previewFax} onOpenChange={v => { if (!v) setPreviewFax(null) }} fax={previewFax} onFiled={() => { handleRefresh(); forceUpdate(n => n + 1) }} />
+      <FaxPreviewDialog open={!!previewFax} onOpenChange={v => { if (!v) setPreviewFax(null) }} fax={previewFax}
+        onFiled={() => { handleRefresh(); forceUpdate(n => n + 1) }}
+        inbox={filteredInbox}
+        onNavigate={fax => { markFaxRead(fax.FileName); setPreviewFax(fax); forceUpdate(n => n + 1) }} />
     </div>
   )
 }
