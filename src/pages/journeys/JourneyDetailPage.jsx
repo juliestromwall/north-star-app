@@ -369,14 +369,13 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail }) {
   return (
     <div className="mt-1.5 flex items-center gap-2 text-[11px] text-stone-500">
       <Scale className="size-3 text-stone-400" />
-      <span className="font-medium text-stone-700">{name}</span>
+      <button onClick={startEdit} className="font-medium text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
       {firm && <><span className="text-stone-300">·</span> <span>{firm}</span></>}
       {email && (
         <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-5 px-2 ml-1" onClick={() => onEmail(email, name)}>
           <Mail className="size-2.5" /> Email Attorney
         </Button>
       )}
-      <button onClick={startEdit} className="text-stone-300 hover:text-stone-500 ml-0.5"><Pencil className="size-3" /></button>
     </div>
   )
 }
