@@ -1097,6 +1097,7 @@ export default function FaxPage() {
         open={!!previewFax}
         onOpenChange={v => { if (!v) setPreviewFax(null) }}
         fax={previewFax}
+        onFiled={handleRefresh}
       />
 
       <FileToCaseDialog
