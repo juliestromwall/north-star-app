@@ -723,7 +723,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
       const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
       const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
-      const emailSubject = `${sheetType?.label || 'Match Sheet'} - IPs ${ipNames} with GC ${gcCase?.name || ''}`
+      const ipLabel = ip2Name ? 'IPs' : 'IP'
+      const emailSubject = `${sheetType?.label || 'Match Sheet'} - ${ipLabel} ${ipNames} with GC ${gcCase?.name || ''}`
 
       // Open compose window with attachment
       await openDraft({
