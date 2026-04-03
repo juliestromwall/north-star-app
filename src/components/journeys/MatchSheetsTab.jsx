@@ -236,9 +236,27 @@ function PartyName({ name }) {
 }
 
 function ConfidentialFooter() {
+  const dotColors = ['#00bcd4', '#ff9800', '#8bc34a', '#00bcd4', '#ff9800']
+  const dotColorsR = ['#8bc34a', '#ff9800', '#00bcd4', '#8bc34a', '#ff9800']
   return (
-    <div style={{ marginTop: 40, paddingTop: 16, borderTop: '1px solid #e7e5e4', fontSize: 9, color: '#a8a29e', textAlign: 'center' }}>
-      Confidential — Abundant Beginnings Company — This document contains privileged information intended solely for the named recipient(s).
+    <div style={{ marginTop: 48, paddingTop: 20, borderTop: '1.5px solid #283693', textAlign: 'center' }}>
+      {/* Colorful dots + website */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 4 }}>{dotColors.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c }} />)}</div>
+        <span style={{ fontSize: 16, fontWeight: 500, color: '#ed148c', letterSpacing: '0.5px' }}>abcsurrogacy.com</span>
+        <div style={{ display: 'flex', gap: 4 }}>{dotColorsR.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c }} />)}</div>
+      </div>
+      {/* Address + phone */}
+      <p style={{ fontSize: 10, color: '#78716c', margin: '0 0 4px', lineHeight: 1.6 }}>
+        5627 Kanan Road #229, Agoura Hills, CA 91301
+      </p>
+      <p style={{ fontSize: 10, color: '#78716c', margin: '0 0 12px' }}>
+        O: (323) 207-5762 &nbsp;·&nbsp; F: (323) 843-9433
+      </p>
+      {/* Confidential notice */}
+      <p style={{ fontSize: 8, color: '#a8a29e', margin: 0 }}>
+        This document contains privileged and confidential information intended solely for the named recipient(s).
+      </p>
     </div>
   )
 }
