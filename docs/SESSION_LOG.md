@@ -1,5 +1,63 @@
 # Session Log
 
+## 2026-04-02 (Continued — E-Signature Major Overhaul)
+
+**Worked on:** Comprehensive E-Signature system improvements: signed PDF quality, audit trail redesign, form validation, signer role management, "Send for Signature" from case/journey pages, admin dropdown, journey auto-populate
+
+**Changes made:**
+
+Signed PDF Improvements:
+- Typed signatures now render in "Dancing Script" handwriting font (dark blue)
+- Drawn signatures uploaded to Supabase and inserted as inline images via Google Docs API
+- Audit trail completely redesigned: compact 8pt font, fits on one page, page break separator
+- Fixed Partner/Parnter typo handling in both signing page and PDF generation
+
+Signing Page Validation:
+- All {{Field:Role}} fields are now required before submission (name, initials, text, signature)
+- Shows specific missing field names in alert
+- Initials field no longer auto-fills — signers must type their own
+
+Send Modal Improvements:
+- Modal widened (sm:max-w-3xl), fixed shadcn Dialog sm:max-w-lg override
+- Role field changed from text input to dropdown (Surrogate, Partner, IP1, IP2, Admin)
+- Admin signer role shows dropdown of Master Admins and Admins (auto-fills name + email)
+- Case selector is now searchable input with dropdown (shows name, email, assigned admin)
+- Case type must be selected before case search is enabled
+- Required signer roles auto-detected from document {{Field:Role}} placeholders
+- Green/red badges show which roles are satisfied vs missing
+- Send button disabled until all required roles have signers with emails
+- Partner auto-populates from intake data (spouseFullName + spouseEmail)
+- Added spouseEmail field to GC Application "Confidential Personal Information" section
+
+E-Signature Page Restructured:
+- Tabs renamed: "Sent Documents" + "Send for Signature" (was "Documents" + "Templates")
+- Removed standalone "Send for Signature" button from Documents tab
+- Case name in Documents table is now the clickable link to journey/case (not signer names)
+- Signer names in Documents tab link to matched journey if matched, else individual case
+
+Send for Signature from Case/Journey Pages:
+- Added "Send for Signature" button to Surrogate, IP, and Journey Documents tabs
+- Opens E-Signature page in new tab with case pre-selected
+- Templates tab auto-shows with prefill banner
+- Journey passes journeyId — auto-populates ALL parties (Surrogate, Partner, IP1, IP2)
+
+Match Sheets:
+- Reordered: Clinic → Escrow → Attorney (was Attorney → Clinic → Escrow)
+
+**Next steps:**
+- Test drawn signature images appearing in signed PDFs
+- Email reminders for unsigned documents
+- Build out IP and Journey Documents tabs (currently empty states)
+- Copy-on-edit flow for templates
+- Surrogate dashboard: view signed documents
+
+**Open questions:**
+- Should there be automatic reminders for unsigned documents? If so, how often?
+- Should the IP Documents tab mirror the Surrogate Documents tab features?
+- How should journey documents merge GC and IP documents with labels?
+
+---
+
 ## 2026-04-02 (Continued — Matching, Journey UX, Email Fixes)
 
 **Worked on:** Journey hero redesign (multiple iterations), matching pipeline cleanup, IP intake editing, email button dropdown with compose, log-to-case fix, Emails tab on journey, case_emails table creation

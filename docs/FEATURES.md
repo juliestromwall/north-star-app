@@ -44,9 +44,9 @@
 | MarketingDashboard | src/pages/marketing/MarketingDashboard.jsx | Analytics with source breakdown |
 | MatchingPage | src/pages/matching/MatchingPage.jsx | Kanban pipeline board |
 | CalendarPage | src/pages/calendar/CalendarPage.jsx | Google Calendar-style with sidebar calendar selector, colored events, upcoming sidebar |
-| ESignaturePage | src/pages/esign/ESignaturePage.jsx | Template management (upload/edit/tag/delete) + document tracking (send/void/audit) |
-| EditDocumentPage | src/pages/esign/EditDocumentPage.jsx | Rich text editor for .docx templates (mammoth→HTML→Tiptap), save template, send for signature |
-| SignDocumentPage | src/pages/esign/SignDocumentPage.jsx | Signing experience: type or draw signature, ESIGN/UETA agreement, audit trail |
+| ESignaturePage | src/pages/esign/ESignaturePage.jsx | "Sent Documents" tab (status, signers, audit, void) + "Send for Signature" tab (Google Drive templates). Case names link to journeys. Searchable case selector, role dropdowns, admin user picker, required role validation from doc placeholders |
+| EditDocumentPage | src/pages/esign/EditDocumentPage.jsx | Google Docs iframe editor, send modal with auto-detected required roles, admin dropdown, journey auto-populate, searchable case selector. Supports prefill from case/journey URL params |
+| SignDocumentPage | src/pages/esign/SignDocumentPage.jsx | Public signing page: email verification, inline {{Field:Role}} form inputs, signature pad (type/draw), required field validation, ESIGN/UETA compliance. Generates signed PDF via Google Docs API with handwriting fonts and inline signature images |
 | GCApplicationTab | src/components/surrogates/GCApplicationTab.jsx | 6 collapsible form sections (Quiz, Application, References, Confidential, Clinic, Social Media) with search |
 | IPApplicationTab | src/components/intended-parents/IPApplicationTab.jsx | 4 collapsible form sections (Intake, Contact Info, Clinic, References) with search |
 | EmailPage | src/pages/email/EmailPage.jsx | Gmail integration: inbox, read, compose/send with attachments, search, log to case |

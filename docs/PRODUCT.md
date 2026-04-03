@@ -122,7 +122,7 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Settings | /settings | master_admin+ | Built (notes, team mgmt, statuses, checklists, Google connect) |
 | CRM / Cases | /crm | admin+ | Stub |
 | Documents | /documents | all | Stub (case-level docs built) |
-| E-Signature | /e-signature | admin+ | Built (Google Docs templates, send, sign, audit, email notifications) |
+| E-Signature | /e-signature | admin+ | Built (Google Docs templates, send with required role validation, public signing page, typed/drawn signatures, signed PDF via Google Docs API with handwriting fonts + inline signature images, compact audit trail, auto-file to case documents, "Send for Signature" from case/journey Documents tabs, admin dropdown, journey auto-populate all parties) |
 | E-Sign Edit | /e-signature/edit/:templateId | admin+ | Built (Google Docs iframe editor, PDF export, send for signature) |
 | E-Sign Sign | /e-signature/:id | public | Built (public route, email verification, field inputs, signature pad, PDF preview) |
 | Messages | /messages | all | Stub |
@@ -155,5 +155,5 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | GTM | Google Tag Manager — marketing team manages pixels here |
 | Turnstile | Cloudflare's bot protection CAPTCHA on intake forms |
 | Application | Combined tab containing intake quiz/answers + multi-section forms (address, references, confidential info, clinic, social media release) |
-| E-Signature | Document signing feature: upload templates, edit in rich text editor, send for signature, type/draw signature with audit trail |
+| E-Signature | Full e-signature system: Google Docs templates in Drive, edit in-app via iframe, send for signature with role-based validation, public signing page with inline form fields, typed signatures in handwriting font, drawn signature images in PDF, compact audit trail certificate, auto-file signed PDF to case documents. Accessible from E-Signature page and case/journey Documents tabs. Admin signer dropdown, journey auto-populate (GC + Partner + IP1 + IP2). spouseEmail field in GC application. |
 | IP Stage Labels | IP stages use different names: Pre-Qualification→Screening, Screening→Holding, Matching stays same |
