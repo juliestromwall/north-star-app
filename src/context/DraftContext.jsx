@@ -60,7 +60,7 @@ export function DraftProvider({ children }) {
       subject: initialSubject,
       body: initialBody,
       attachments: initialAttachments || [],
-      caseId: caseId || '',
+      caseId: caseId ? String(caseId) : '',
       minimized: false,
       showCcBcc: false,
     }

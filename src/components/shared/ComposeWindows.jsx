@@ -201,12 +201,9 @@ function ComposeWindow({ draft, index }) {
     }
   }, [draft.body, editor])
 
-  // Auto-load cases if draft has a pre-set caseId
-  useEffect(() => { if (draft.caseId && !cases) loadCases() }, [draft.caseId])
-
   const loadCases = () => {
     if (cases) return
-    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
+    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys().catch(() => [])])
       .then(([gcs, ips, journeys]) => {
         const allCases = [
           { id: '', name: '', label: 'None' },
@@ -222,6 +219,15 @@ function ComposeWindow({ draft, index }) {
       })
       .catch(() => setCases([]))
   }
+
+  // Auto-load cases if draft has a pre-set caseId
+  useEffect(() => {
+    if (draft.caseId && !cases) {
+      // Delay slightly to avoid render cascade
+      const t = setTimeout(loadCases, 100)
+      return () => clearTimeout(t)
+    }
+  }, [draft.caseId])
 
   const handleFileAdd = (e) => {
     const files = Array.from(e.target.files || [])
@@ -264,7 +270,7 @@ function ComposeWindow({ draft, index }) {
       })
 
       if (draft.caseId && supabase) {
-        const c = cases?.find(c => String(c.id) === draft.caseId)
+        const c = cases?.find(c => String(c.id) === String(draft.caseId))
         if (c) {
           await supabase.from('case_emails').insert({
             gmail_message_id: result.id || 'sent-' + Date.now(),
