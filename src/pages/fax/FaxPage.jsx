@@ -439,7 +439,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
         await setRecordTrackingDB(caseId, updated)
       }
       // Save filing info locally
-      setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString() })
+      setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString(), filedBy: currentUser?.name || 'Admin' })
       setFiled(true)
       onFiled?.()
       setTimeout(() => { setFiled(false); setShowFile(false); setSelectedCase(null); setCaseType(''); setSelectedRecord(''); setSelectedStatus(''); setRecordNote(''); setShowMedRecords(false) }, 2000)
@@ -513,6 +513,14 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
                     File to Medical Records
                   </Button>
                 </div>
+
+                {/* Medical Records Log — warning if empty */}
+                {selectedCase && recordTracking !== null && recordKeys.length === 0 && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex items-center gap-2">
+                    <AlertCircle className="size-4 shrink-0" />
+                    This case has no Medical Records tasks to update. You can still file the document.
+                  </div>
+                )}
 
                 {/* Medical Records Log Update */}
                 {selectedCase && recordKeys.length > 0 && (
@@ -758,11 +766,11 @@ export default function FaxPage() {
         )}
       </div>
 
-      {/* Fax List */}
+      {/* Fax Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
       ) : showingReceived ? (
-        /* ── Received ── */
+        /* ── Received Table ── */
         filteredInbox.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -774,77 +782,78 @@ export default function FaxPage() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {filteredInbox.map(fax => {
-                  const isRead = isFaxRead(fax.FileName)
-                  const filing = allFilings[fax.FileName]
-
-                  return (
-                    <div key={fax.FileName || fax.FaxDetailsID}
-                      className={`px-4 py-3.5 flex items-center gap-3 group hover:bg-muted/40 transition-colors cursor-pointer ${!isRead ? 'bg-violet-50/60' : ''}`}
-                      onClick={() => handlePreview(fax)}>
-
-                      {/* Unread dot */}
-                      <div className="w-2 shrink-0 flex justify-center">
-                        {!isRead && <span className="size-2 rounded-full bg-pink-500 animate-pulse" />}
-                      </div>
-
-                      {/* Icon */}
-                      <div className="size-9 rounded-full flex items-center justify-center shrink-0 bg-violet-50 border border-violet-100">
-                        <ArrowDownLeft className="size-4 text-violet-500" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm ${!isRead ? 'font-semibold text-foreground' : 'font-medium text-foreground/80'}`}>
-                            {formatFaxNumber(fax.CallerID || fax.RemoteID)}
-                          </span>
-                          {!isRead && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">New</span>}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                          {fax.Pages && <span>{fax.Pages} page{fax.Pages !== '1' ? 's' : ''}</span>}
-                          {fax.EpochTime && <span>{formatDate(new Date(fax.EpochTime * 1000).toISOString())}</span>}
-                          {fax.Size && <span>{fileSizeLabel(fax.Size)}</span>}
-                        </div>
-                      </div>
-
-                      {/* Filed status */}
-                      {filing ? (
-                        <div className="hidden sm:flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
-                          <Link to={filing.caseType === 'gc' ? `/surrogates/${filing.caseId}` : filing.caseType === 'ip' ? `/intended-parents/${filing.caseId}` : `/journeys/${filing.caseId}`}
-                            className="text-xs font-medium text-violet-700 hover:underline max-w-[180px] truncate">
-                            {filing.caseName}
-                          </Link>
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Filed</span>
-                        </div>
-                      ) : (
-                        <span className="hidden sm:block text-xs text-muted-foreground/50">Not filed</span>
-                      )}
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => toggleRead(fax)}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                          title={isRead ? 'Mark as unread' : 'Mark as read'}>
-                          {isRead ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                        </button>
-                        <button onClick={() => handleDownload(fax, 'IN')}
-                          disabled={downloading === fax.FileName}
-                          className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Download">
-                          {downloading === fax.FileName ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground w-8"></th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Fax Number</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Document Name</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Filed To</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Date Filed</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Filed By</th>
+                    <th className="py-3 px-4 text-right font-medium text-muted-foreground w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredInbox.map(fax => {
+                    const isRead = isFaxRead(fax.FileName)
+                    const filing = allFilings[fax.FileName]
+                    return (
+                      <tr key={fax.FileName || fax.FaxDetailsID}
+                        className={`group hover:bg-muted/40 transition-colors cursor-pointer ${!isRead ? 'bg-violet-50/60' : ''}`}
+                        onClick={() => handlePreview(fax)}>
+                        <td className="py-3 px-4">
+                          {!isRead && <span className="size-2 rounded-full bg-pink-500 animate-pulse inline-block" />}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className={!isRead ? 'font-semibold' : 'font-medium text-foreground/80'}>
+                              {formatFaxNumber(fax.CallerID || fax.RemoteID)}
+                            </span>
+                            {!isRead && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-pink-100 text-pink-700">New</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {fax.Pages && `${fax.Pages} pg`}{fax.Pages && fax.Size && ' · '}{fax.Size && fileSizeLabel(fax.Size)}
+                            {fax.EpochTime && ` · ${formatDate(new Date(fax.EpochTime * 1000).toISOString())}`}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-foreground/70">
+                          {filing?.documentName || <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                          {filing ? (
+                            <Link to={filing.caseType === 'gc' ? `/surrogates/${filing.caseId}` : filing.caseType === 'ip' ? `/intended-parents/${filing.caseId}` : `/journeys/${filing.caseId}`}
+                              className="text-sm font-medium text-violet-700 hover:underline">
+                              {filing.caseName}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-foreground/70 whitespace-nowrap">
+                          {filing?.filedAt ? formatDate(filing.filedAt) : <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="py-3 px-4 text-foreground/70">
+                          {filing?.filedBy || <span className="text-muted-foreground/40">—</span>}
+                        </td>
+                        <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
+                          <button onClick={() => toggleRead(fax)}
+                            className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                            title={isRead ? 'Mark as unread' : 'Mark as read'}>
+                            {isRead ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
         )
       ) : (
-        /* ── Sent ── */
+        /* ── Sent Table ── */
         filteredOutbox.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -854,36 +863,35 @@ export default function FaxPage() {
           </Card>
         ) : (
           <Card>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {filteredOutbox.map(fax => {
-                  const sentStatus = fax.SentStatus || ''
-                  const statusStyle = STATUS_STYLES[sentStatus] || 'bg-gray-100 text-gray-700'
-                  return (
-                    <div key={fax.FileName || fax.FaxDetailsID} className="px-4 py-3.5 flex items-center gap-3 group hover:bg-muted/40 transition-colors">
-                      <div className="w-2 shrink-0" />
-                      <div className="size-9 rounded-full flex items-center justify-center shrink-0 bg-blue-50 border border-blue-100">
-                        <ArrowUpRight className="size-4 text-blue-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{formatFaxNumber(fax.ToFaxNumber)}</span>
+            <CardContent className="p-0 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Fax Number</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Status</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Pages</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Date Faxed</th>
+                    <th className="py-3 px-4 text-left font-medium text-muted-foreground">Sent By</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredOutbox.map(fax => {
+                    const sentStatus = fax.SentStatus || ''
+                    const statusStyle = STATUS_STYLES[sentStatus] || 'bg-gray-100 text-gray-700'
+                    return (
+                      <tr key={fax.FileName || fax.FaxDetailsID} className="hover:bg-muted/40 transition-colors">
+                        <td className="py-3 px-4 font-medium">{formatFaxNumber(fax.ToFaxNumber)}</td>
+                        <td className="py-3 px-4">
                           {sentStatus && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${statusStyle}`}>{sentStatus}</span>}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                          {fax.Pages && <span>{fax.Pages} page{fax.Pages !== '1' ? 's' : ''}</span>}
-                          {fax.DateQueued && <span>{formatDate(fax.DateQueued)}</span>}
-                          {fax.DateSent && <span>Sent: {formatDate(fax.DateSent)}</span>}
-                        </div>
-                      </div>
-                      <button onClick={() => handleDownload(fax, 'OUT')} disabled={downloading === fax.FileName}
-                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all" title="Download">
-                        {downloading === fax.FileName ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
+                        </td>
+                        <td className="py-3 px-4 text-foreground/70">{fax.Pages || '—'}</td>
+                        <td className="py-3 px-4 text-foreground/70 whitespace-nowrap">{fax.DateSent ? formatDate(fax.DateSent) : fax.DateQueued ? formatDate(fax.DateQueued) : '—'}</td>
+                        <td className="py-3 px-4 text-foreground/70">{currentUser?.name || '—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
         )

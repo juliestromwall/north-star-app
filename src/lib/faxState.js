@@ -63,9 +63,9 @@ export function getFaxFiling(fileName) {
 }
 
 /** Record that a fax was filed to a case */
-export function setFaxFiling(fileName, { caseType, caseName, caseId, documentName, filedAt }) {
+export function setFaxFiling(fileName, { caseType, caseName, caseId, documentName, filedAt, filedBy }) {
   const map = getFilingsMap()
-  map[fileName] = { caseType, caseName, caseId, documentName, filedAt: filedAt || new Date().toISOString() }
+  map[fileName] = { caseType, caseName, caseId, documentName, filedAt: filedAt || new Date().toISOString(), filedBy: filedBy || '' }
   saveFilingsMap(map)
 }
 
