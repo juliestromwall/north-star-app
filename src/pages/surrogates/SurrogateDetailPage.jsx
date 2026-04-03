@@ -35,7 +35,7 @@ import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import TrackingTable from '@/components/shared/TrackingTable'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -451,7 +451,7 @@ export default function SurrogateDetailPage() {
                     <div className="fixed inset-0 z-10" onClick={() => setEmailMenuOpen(false)} />
                     <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
-                        onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id }); setEmailMenuOpen(false) }}>
+                        onClick={() => { openDraft({ to: surrogate.email, userId: currentUser.id, caseId: surrogate.id }); setEmailMenuOpen(false) }}>
                         <Mail className="size-3.5 text-[#283693]" /> Email {surrogate.name?.split(' ')[0]}
                       </button>
                       <button className="w-full text-left px-4 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
@@ -1459,6 +1459,10 @@ function DocumentsTab({ surrogateId }) {
         <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
           onClick={() => window.open(`/e-signature?caseType=gc&caseId=${surrogateId}`, '_blank')}>
           <FileText className="size-4" /> Send for Signature
+        </Button>
+        <Button variant="outline" className="gap-1.5"
+          onClick={() => window.open(`/fax?caseType=gc&caseId=${surrogateId}`, '_blank')}>
+          <Printer className="size-4" /> Send Fax
         </Button>
         <div className="flex items-center border rounded-md">
           <Button variant={docView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setDocView('grid')}>

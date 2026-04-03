@@ -4,7 +4,7 @@ import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown,
+  Hospital, Building2, ChevronDown, Printer,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -18,6 +18,7 @@ import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
+import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch } from '@/lib/matching'
@@ -328,8 +329,10 @@ export default function JourneyDetailPage() {
   const [breaking, setBreaking] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
   const [ipFlip, setIpFlip] = useState({})
+  const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
   const toggleGcFlip = (key) => setGcFlip(prev => ({ ...prev, [key]: !prev[key] }))
   const toggleIpFlip = (key) => setIpFlip(prev => ({ ...prev, [key]: !prev[key] }))
+  const { openDraft } = useDrafts()
 
   useEffect(() => {
     async function load() {
@@ -584,7 +587,11 @@ export default function JourneyDetailPage() {
                     asChild><a href={`sms:${gcCase.phone}`}><MessageSquare className="size-3" /> Text</a>
                   </Button>
                 )}
-                <CopyFlipButton icon={Mail} label="Email" value={gcCase.email} flipped={gcFlip.email} onFlip={() => toggleGcFlip('email')} preferred={gcCase.preferredContact === 'Email'} />
+                <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
+                  className={`gap-1 rounded-full text-xs h-7 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                  onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
+                  <Mail className="size-3" /> Email
+                </Button>
                 {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
               </div>
               </div>
@@ -626,7 +633,10 @@ export default function JourneyDetailPage() {
                     <a href={`sms:${ipCase.phone}`}><MessageSquare className="size-3" /> Text</a>
                   </Button>
                 )}
-                <CopyFlipButton icon={Mail} label="Email" value={ipCase.email} flipped={ipFlip.email} onFlip={() => toggleIpFlip('email')} preferred={false} />
+                <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7"
+                  onClick={() => setEmailConfirm({ name: ipCase.names, email: ipCase.email, caseId: journey.id })}>
+                  <Mail className="size-3" /> Email
+                </Button>
                 {ipCase.phone && <CopyFlipButton icon={Phone} label="Call" value={ipCase.phone} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
               </div>
               </div>
@@ -724,10 +734,14 @@ export default function JourneyDetailPage() {
           }} />
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end gap-2 mb-4">
             <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
               onClick={() => window.open(`/e-signature?journeyId=${journey.id}`, '_blank')}>
               <FileText className="size-4" /> Send for Signature
+            </Button>
+            <Button variant="outline" className="gap-1.5"
+              onClick={() => window.open(`/fax?caseType=journey&caseId=${journey.id}`, '_blank')}>
+              <Printer className="size-4" /> Send Fax
             </Button>
           </div>
           <EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." />
@@ -738,6 +752,33 @@ export default function JourneyDetailPage() {
         </TabsContent>
         <TabsContent value="texts" className="mt-4"><EmptyState title="Text Messages" description="GC and IP text threads." /></TabsContent>
       </Tabs>
+
+      {/* Email confirmation toast */}
+      {emailConfirm && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-6 py-4 flex items-center gap-4 max-w-lg">
+            <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
+              <Mail className="size-5 text-[#283693]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-stone-800">Email {emailConfirm.name}?</p>
+              <p className="text-xs text-stone-500 truncate">{emailConfirm.email}</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={() => setEmailConfirm(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" className="rounded-full text-xs h-8 gap-1.5" style={{ backgroundColor: '#283693' }}
+                onClick={() => {
+                  openDraft({ to: emailConfirm.email, caseId: emailConfirm.caseId, userId: currentUser?.userId || currentUser?.id })
+                  setEmailConfirm(null)
+                }}>
+                <Mail className="size-3.5" /> Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

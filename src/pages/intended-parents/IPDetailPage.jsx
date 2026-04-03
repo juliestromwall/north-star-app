@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle,
+  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -16,6 +16,7 @@ import StageBadge from '@/components/shared/StageBadge'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import { useRole } from '@/context/RoleContext'
+import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
@@ -38,8 +39,10 @@ function boolLabel(val, yesText = 'Yes', noText = 'No') {
 export default function IPDetailPage() {
   const { id } = useParams()
   const { currentUser } = useRole()
+  const { openDraft } = useDrafts()
   const [ip, setIp] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [emailMenuOpen, setEmailMenuOpen] = useState(false)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
@@ -162,9 +165,23 @@ export default function IPDetailPage() {
                 </Button>
               )}
               {ip.email && (
-                <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                  <a href={`mailto:${ip.email}`}><Mail className="size-3.5" /> Email</a>
-                </Button>
+                <div className="relative">
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                    <Mail className="size-3.5" /> Email
+                  </Button>
+                  {emailMenuOpen && (
+                    <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
+                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                        onClick={() => { openDraft({ to: ip.email, userId: currentUser.id, caseId: ip.id }); setEmailMenuOpen(false) }}>
+                        <Mail className="size-3.5 text-[#283693]" /> Email {ip.names?.split(' ')[0] || 'IP'}
+                      </button>
+                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                        onClick={() => { navigator.clipboard.writeText(ip.email); setEmailMenuOpen(false) }}>
+                        <Copy className="size-3.5 text-stone-400" /> Copy Email Address
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               {ip.phone && (
                 <Button variant="outline" size="sm" className="gap-1.5" asChild>
@@ -406,10 +423,14 @@ export default function IPDetailPage() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-6 mt-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
               onClick={() => window.open(`/e-signature?caseType=ip&caseId=${id}`, '_blank')}>
               <FileText className="size-4" /> Send for Signature
+            </Button>
+            <Button variant="outline" className="gap-1.5"
+              onClick={() => window.open(`/fax?caseType=ip&caseId=${id}`, '_blank')}>
+              <Printer className="size-4" /> Send Fax
             </Button>
           </div>
           <EmptyState title="Documents" description="Document management for intended parents coming soon." />

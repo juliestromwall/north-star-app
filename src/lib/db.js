@@ -706,6 +706,39 @@ export async function deleteCaseDocument(docId, storagePath) {
   if (error) throw error
 }
 
+/** Upload a base64 PDF (e.g. from SRFax) as a case document */
+export async function uploadBase64ToCaseDocuments({ surrogateId, category, fileName, base64Data, uploadedBy }) {
+  if (!supabase) return null
+  // Convert base64 to Blob
+  const binary = atob(base64Data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+
+  const path = `${surrogateId}/${category}/${Date.now()}-${fileName}`
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(DOC_BUCKET)
+    .upload(path, blob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
+  if (uploadError) throw uploadError
+  const { data: urlData } = supabase.storage.from(DOC_BUCKET).getPublicUrl(uploadData.path)
+  const { data, error } = await supabase
+    .from('case_documents')
+    .insert({
+      surrogate_id: surrogateId,
+      category,
+      file_name: fileName,
+      file_type: 'application/pdf',
+      file_size: blob.size,
+      storage_path: uploadData.path,
+      public_url: urlData.publicUrl,
+      uploaded_by: uploadedBy,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 // ── Case Notes ─────────────────────────────────────────────
 
 export async function fetchCaseNotes(surrogateId) {
