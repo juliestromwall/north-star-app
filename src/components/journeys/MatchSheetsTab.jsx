@@ -316,7 +316,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       ]} />
 
       {/* Surrogate — page 2 */}
-      <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }} className="pdf-page-break" />
+      <div style={{ pageBreakBefore: 'always', breakBefore: 'page', height: 1, margin: 0 }} className="pdf-page-break" />
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
 
       <SectionTitle color="#ed148c" icon={FileText}>Demographics</SectionTitle>
@@ -363,7 +363,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       ]} />
 
       {/* Journey Details — page 3 */}
-      <div style={{ pageBreakBefore: 'always', breakBefore: 'page' }} className="pdf-page-break" />
+      <div style={{ pageBreakBefore: 'always', breakBefore: 'page', height: 1, margin: 0 }} className="pdf-page-break" />
       <PartyBanner color="#723bb4" icon={FileText}>Journey Details</PartyBanner>
       <InfoGrid items={[
         { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="SeedTrust Escrow, LLC" value="SeedTrust Escrow, LLC" /> },
@@ -644,27 +644,30 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       await saveMatchSheetData()
 
       const container = sheetRef.current
-      const pageBreaks = container.querySelectorAll('.pdf-page-break')
+      const pageBreaks = [...container.querySelectorAll('.pdf-page-break')]
       const pdf = new jsPDF('p', 'pt', 'letter')
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 24
 
       if (pageBreaks.length === 0) {
         // No page breaks — render as single image with overflow pages
         const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
         const imgData = canvas.toDataURL('image/jpeg', 0.95)
-        const imgWidth = pageWidth
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-        let heightLeft = imgHeight, position = 0
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
-        while (heightLeft > 0) { position -= pageHeight; pdf.addPage(); pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight); heightLeft -= pageHeight }
+        const usableWidth = pageWidth - margin * 2
+        const imgHeight = (canvas.height * usableWidth) / canvas.width
+        let heightLeft = imgHeight, position = margin
+        pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight)
+        heightLeft -= (pageHeight - margin * 2)
+        while (heightLeft > 0) { position -= (pageHeight - margin); pdf.addPage(); pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight); heightLeft -= (pageHeight - margin * 2) }
       } else {
-        // Hide page break markers, capture sections between them
+        // Measure page break positions BEFORE hiding them
+        const breakOffsets = pageBreaks.map(pb => pb.offsetTop)
+
+        // Hide page break markers for rendering
         pageBreaks.forEach(pb => pb.style.display = 'none')
 
-        // Build section boundaries from page break offsets
-        const breakOffsets = [...pageBreaks].map(pb => pb.offsetTop)
+        // Build section boundaries
         const sections = []
         let prevTop = 0
         for (const offset of breakOffsets) {
@@ -675,21 +678,23 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
 
         // Render full canvas once
         const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
-        const scale = fullCanvas.width / container.offsetWidth
+        const renderScale = fullCanvas.width / container.offsetWidth
+        const usableWidth = pageWidth - margin * 2
 
         for (let i = 0; i < sections.length; i++) {
           if (i > 0) pdf.addPage()
           const s = sections[i]
+          const srcY = Math.round(s.top * renderScale)
+          const srcH = Math.round(s.height * renderScale)
           // Create a cropped canvas for this section
           const cropCanvas = document.createElement('canvas')
           cropCanvas.width = fullCanvas.width
-          cropCanvas.height = Math.round(s.height * scale)
+          cropCanvas.height = srcH
           const ctx = cropCanvas.getContext('2d')
-          ctx.drawImage(fullCanvas, 0, Math.round(s.top * scale), fullCanvas.width, Math.round(s.height * scale), 0, 0, cropCanvas.width, cropCanvas.height)
+          ctx.drawImage(fullCanvas, 0, srcY, fullCanvas.width, srcH, 0, 0, cropCanvas.width, srcH)
           const imgData = cropCanvas.toDataURL('image/jpeg', 0.95)
-          const imgWidth = pageWidth
-          const imgHeight = (cropCanvas.height * imgWidth) / cropCanvas.width
-          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight))
+          const imgHeight = (srcH * usableWidth) / fullCanvas.width
+          pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight)
         }
 
         pageBreaks.forEach(pb => pb.style.display = '')
