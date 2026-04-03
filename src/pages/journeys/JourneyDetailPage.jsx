@@ -437,6 +437,7 @@ export default function JourneyDetailPage() {
   const [breaking, setBreaking] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
+  const [insuranceOpen, setInsuranceOpen] = useState(false)
   const [ipFlip, setIpFlip] = useState({})
   const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
   const [smsOpen, setSmsOpen] = useState(null) // { phone, name }
@@ -570,16 +571,17 @@ export default function JourneyDetailPage() {
       <div className="rounded-2xl border border-stone-200/80 bg-white overflow-hidden">
 
         {/* Journey Info — compact bar */}
-        <div className="px-5 py-4 space-y-3">
-          {/* Top row: pills left + managers right */}
+        <div className="px-5 py-4 space-y-2.5">
+          {/* Top row: stage/status left + managers right */}
           <div className="flex items-start gap-4">
-          <div className="flex-1 space-y-3">
-          {/* Row 1: Stage · Status + toggles + pregnancy */}
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex-1 space-y-2.5">
+          {/* Row 1: Stage icon + Stage · Status + toggles + pregnancy */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Milestone className="size-5" style={{ color: stageObj.color }} />
             {/* Stage selector */}
             <div className="relative">
               <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
-                className="font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
+                className="text-base font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
                 {stageObj.label}
               </button>
               {stageOpen && (
@@ -597,7 +599,7 @@ export default function JourneyDetailPage() {
             {/* Status selector */}
             <div className="relative">
               <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
-                className="text-stone-600 hover:underline cursor-pointer">
+                className="text-base text-stone-600 hover:underline cursor-pointer">
                 {journey.status}
               </button>
               {statusOpen && (
@@ -611,16 +613,33 @@ export default function JourneyDetailPage() {
               )}
             </div>
             <span className="text-stone-300">·</span>
-            <span className="text-xs text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
-            <span className="text-xs text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
-            <button onClick={() => updateField('pregnant', jd.pregnant === 'yes' ? 'no' : 'yes')}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${jd.pregnant === 'yes' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-stone-200 text-stone-500'}`}>
-              {jd.pregnant === 'yes' ? (jd.dueDate ? `${calcGestationalWeeks(jd.dueDate) || 'Pregnant'} · Due ${fmtDate(jd.dueDate)}` : 'Pregnant') : 'Not Pregnant'}
-            </button>
+            <span className="text-sm text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
+            <span className="text-sm text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-700 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
+            {/* Pregnancy */}
+            {jd.pregnant === 'yes' ? (
+              <div className="flex items-center gap-2">
+                {jd.dueDate && calcGestationalWeeks(jd.dueDate) && (
+                  <span className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate)}</span>
+                )}
+                {jd.dueDate && (
+                  <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
+                )}
+                <button onClick={() => updateField('pregnant', 'no')} className="text-[10px] text-stone-400 hover:text-red-500 ml-1" title="Mark not pregnant">✕</button>
+              </div>
+            ) : (
+              <button onClick={() => updateField('pregnant', 'yes')}
+                className="text-sm text-stone-400 hover:text-pink-600 cursor-pointer">Not Pregnant</button>
+            )}
+            {/* Insurance indicator */}
+            {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
+              <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-emerald-600 hover:text-emerald-700 cursor-pointer" title="View insurance">
+                <InsuranceCardIcon size={16} color="currentColor" />
+              </button>
+            )}
           </div>
 
-          {/* Row 2: Escrow + OB/Hospital */}
-          <div className="flex flex-wrap items-center gap-4 text-xs">
+          {/* Row 2: Escrow + dates */}
+          <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <span className="text-stone-400">Escrow Min:</span>
                 <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" />
@@ -630,19 +649,17 @@ export default function JourneyDetailPage() {
                 <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
                   className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : ''} />
               </div>
-              {jd.pregnant === 'yes' && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-stone-400">Due:</span>
-                  <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" />
-                </div>
-              )}
               <div className="flex items-center gap-1.5" title="Escrow Closing Date">
                 <Calendar className="size-3.5 text-stone-400" />
                 <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Escrow close" />
               </div>
-              <div className="flex items-center gap-1.5" title="IVF Clinic">
+          </div>
+
+          {/* Row 3: Clinics / Hospital */}
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5" title="IVF / Fertility Clinic">
                 <EmbryoIcon size={14} color="#a8a29e" />
-                <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set IVF clinic" />
+                <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set fertility clinic" />
               </div>
               <div className="flex items-center gap-1.5" title="OB Clinic">
                 <Stethoscope className="size-3.5 text-stone-400" />
