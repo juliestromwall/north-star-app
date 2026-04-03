@@ -979,6 +979,16 @@ export default function JourneyDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Insurance Dialog */}
+      <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {gcCase?.name}</DialogTitle>
+          </DialogHeader>
+          <InsuranceTab caseId={journey?.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
