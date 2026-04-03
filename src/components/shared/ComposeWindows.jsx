@@ -11,6 +11,7 @@ import { useRole } from '@/context/RoleContext'
 import { sendEmail, createGmailDraft } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchMatchedJourneys } from '@/lib/matching'
 import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -200,18 +201,22 @@ function ComposeWindow({ draft, index }) {
     }
   }, [draft.body, editor])
 
+  // Auto-load cases if draft has a pre-set caseId
+  useEffect(() => { if (draft.caseId && !cases) loadCases() }, [draft.caseId])
+
   const loadCases = () => {
     if (cases) return
-    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-      .then(([gcs, ips]) => {
+    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
+      .then(([gcs, ips, journeys]) => {
         const allCases = [
           { id: '', name: '', label: 'None' },
           ...(gcs || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'gc', label: `GC: ${c.applicant_name}` })),
           ...(ips || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'ip', label: `IP: ${c.applicant_name}` })),
+          ...(journeys || []).map(j => ({ id: j.id, name: `Journey #${j.id}`, type: 'journey', label: `Journey #${j.id}` })),
         ].sort((a, b) => {
           if (!a.id) return -1
           if (!b.id) return 1
-          return a.name.localeCompare(b.name)
+          return String(a.name).localeCompare(String(b.name))
         })
         setCases(allCases)
       })

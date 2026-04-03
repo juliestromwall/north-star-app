@@ -164,25 +164,32 @@ export default function IPDetailPage() {
                   <a href={`sms:${ip.phone}`}><MessageSquare className="size-3.5" /> Text</a>
                 </Button>
               )}
-              {ip.email && (
-                <div className="relative">
-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
-                    <Mail className="size-3.5" /> Email
-                  </Button>
-                  {emailMenuOpen && (
-                    <div className="absolute z-20 top-full right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border py-1.5">
-                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
-                        onClick={() => { openDraft({ to: ip.email, userId: currentUser.id, caseId: ip.id }); setEmailMenuOpen(false) }}>
-                        <Mail className="size-3.5 text-[#283693]" /> Email {ip.names?.split(' ')[0] || 'IP'}
-                      </button>
-                      <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
-                        onClick={() => { navigator.clipboard.writeText(ip.email); setEmailMenuOpen(false) }}>
-                        <Copy className="size-3.5 text-stone-400" /> Copy Email Address
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              {ip.email && (() => {
+                const allEmails = [ip.email, ip.ip2Email].filter(Boolean).join(', ')
+                const a = ip.answers || {}
+                const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
+                const ip2Name = (a.hasPartner === true || a.hasPartner === 'yes') ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : ''
+                const emailLabel = ip2Name ? `Email ${ip1Name} & ${ip2Name}` : `Email ${ip1Name || 'IP'}`
+                return (
+                  <div className="relative">
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                      <Mail className="size-3.5" /> Email
+                    </Button>
+                    {emailMenuOpen && (
+                      <div className="absolute z-20 top-full right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border py-1.5">
+                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                          onClick={() => { openDraft({ to: allEmails, userId: currentUser.id, caseId: ip.id }); setEmailMenuOpen(false) }}>
+                          <Mail className="size-3.5 text-[#283693]" /> {emailLabel}
+                        </button>
+                        <button className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2"
+                          onClick={() => { navigator.clipboard.writeText(allEmails); setEmailMenuOpen(false) }}>
+                          <Copy className="size-3.5 text-stone-400" /> Copy Email Address{ip.ip2Email ? 'es' : ''}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
               {ip.phone && (
                 <Button variant="outline" size="sm" className="gap-1.5" asChild>
                   <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /> Call</a>

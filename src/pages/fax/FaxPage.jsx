@@ -577,15 +577,35 @@ function FileToCaseDialog({ open, onOpenChange, fax, onFiled }) {
 
 // ── Fax Preview Dialog ──────────────────────────────────
 
-function FaxPreviewDialog({ open, onOpenChange, fax }) {
+function FaxPreviewDialog({ open, onOpenChange, fax, onFiled }) {
+  const { currentUser } = useRole()
   const [pdfData, setPdfData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // File-to-case state (inline in preview)
+  const [showFile, setShowFile] = useState(false)
+  const [caseType, setCaseType] = useState('')
+  const [caseSearch, setCaseSearch] = useState('')
+  const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
+  const [selectedCase, setSelectedCase] = useState(null)
+  const [fileName, setFileName] = useState('')
+  const [filing, setFiling] = useState(false)
+  const [filed, setFiled] = useState(false)
+  const [surrogates, setSurrogates] = useState([])
+  const [ips, setIps] = useState([])
+  const [journeys, setJourneys] = useState([])
+  const [casesLoaded, setCasesLoaded] = useState(false)
 
   useEffect(() => {
     if (!open || !fax) { setPdfData(null); return }
     setLoading(true)
     setError(null)
+    // Set default filename
+    const fn = fax.FileName || 'received-fax.pdf'
+    const clean = fn.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
+    setFileName(clean + '.pdf')
+
     retrieveFax(fax.FileName, 'IN')
       .then(data => {
         if (data.fileData) {
@@ -603,17 +623,181 @@ function FaxPreviewDialog({ open, onOpenChange, fax }) {
     return () => { if (pdfData) URL.revokeObjectURL(pdfData) }
   }, [open, fax?.FileName])
 
+  // Load cases when filing panel opens
+  useEffect(() => {
+    if (!showFile || casesLoaded) return
+    Promise.all([
+      fetchSurrogatesFromIntake(),
+      fetchIPsFromIntake(),
+      fetchMatchedJourneys(),
+    ]).then(([s, i, j]) => {
+      setSurrogates(s || [])
+      setIps(i || [])
+      setJourneys(j || [])
+      setCasesLoaded(true)
+    })
+  }, [showFile, casesLoaded])
+
+  const filteredCases = (() => {
+    const q = caseSearch.toLowerCase()
+    if (caseType === 'gc') return surrogates.filter(s => !q || s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q))
+    if (caseType === 'ip') return ips.filter(i => !q || i.names?.toLowerCase().includes(q) || i.email?.toLowerCase().includes(q))
+    if (caseType === 'journey') return journeys.filter(j => {
+      const label = `${j.gc_name || ''} ${j.ip_names || ''}`.toLowerCase()
+      return !q || label.includes(q)
+    })
+    return []
+  })()
+
+  const handleCaseSelect = (c) => {
+    setSelectedCase(c)
+    setCaseSearch('')
+    setCaseDropdownOpen(false)
+  }
+
+  const caseName = selectedCase
+    ? (caseType === 'gc' ? selectedCase.name : caseType === 'ip' ? selectedCase.names : `${selectedCase.gc_name} & ${selectedCase.ip_names}`)
+    : ''
+
+  const handleFile = async () => {
+    if (!selectedCase || !fax) return
+    setFiling(true)
+    try {
+      const data = await retrieveFax(fax.FileName, 'IN')
+      if (!data.fileData) throw new Error('Could not retrieve fax content')
+      const caseId = caseType === 'journey' ? selectedCase.gc_case_id : selectedCase.id
+      if (!caseId) throw new Error('No case ID found')
+      await uploadBase64ToCaseDocuments({
+        surrogateId: caseId,
+        category: 'medical-records',
+        fileName: fileName || 'received-fax.pdf',
+        base64Data: data.fileData,
+        uploadedBy: currentUser?.name || 'Admin',
+      })
+      setFiled(true)
+      onFiled?.()
+      setTimeout(() => {
+        setFiled(false)
+        setShowFile(false)
+        setSelectedCase(null)
+        setCaseType('')
+      }, 2000)
+    } catch (err) {
+      alert('Failed to file document: ' + err.message)
+    }
+    setFiling(false)
+  }
+
+  const resetAndClose = (v) => {
+    if (!v) {
+      setPdfData(null)
+      setShowFile(false)
+      setSelectedCase(null)
+      setCaseType('')
+      setFiled(false)
+    }
+    onOpenChange(v)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={v => { onOpenChange(v); if (!v) { setPdfData(null) } }}>
+    <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col !p-0">
         <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="size-5" /> Fax Preview
             <span className="text-sm font-normal text-muted-foreground ml-2">
               From: {formatFaxNumber(fax?.CallerID || fax?.RemoteID)}
+              {fax?.Pages && ` · ${fax.Pages} pages`}
             </span>
+            <div className="ml-auto flex items-center gap-2">
+              <Button size="sm" variant={showFile ? 'default' : 'outline'} className="gap-1.5"
+                style={showFile ? { backgroundColor: '#8b5cf6' } : {}}
+                onClick={() => setShowFile(!showFile)}>
+                <FolderInput className="size-4" />
+                File to Case
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
+
+        {/* Filing panel — slides in below header */}
+        {showFile && (
+          <div className="px-6 pb-3 shrink-0 border-b bg-violet-50/50">
+            {filed ? (
+              <div className="flex items-center gap-2 py-3 text-sm text-emerald-700">
+                <CheckCircle2 className="size-5" />
+                <span className="font-medium">Filed to Medical Records — {caseName}</span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-end gap-3 py-2">
+                {/* Rename */}
+                <div className="space-y-1 min-w-[200px] flex-1 max-w-xs">
+                  <label className="text-xs font-medium text-muted-foreground">Document Name</label>
+                  <Input value={fileName} onChange={e => setFileName(e.target.value)} placeholder="Document name" className="h-8 text-sm" />
+                </div>
+
+                {/* Case type */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Case Type</label>
+                  <Select value={caseType} onValueChange={v => { setCaseType(v); setSelectedCase(null) }}>
+                    <SelectTrigger className="w-[130px] h-8 text-sm">
+                      <SelectValue placeholder="Select..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gc">Surrogate</SelectItem>
+                      <SelectItem value="ip">Intended Parent</SelectItem>
+                      <SelectItem value="journey">Journey</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Case search */}
+                <div className="space-y-1 relative min-w-[200px] flex-1 max-w-sm">
+                  <label className="text-xs font-medium text-muted-foreground">Case</label>
+                  {selectedCase ? (
+                    <div className="flex items-center gap-2 rounded-md border bg-emerald-50 px-3 h-8 text-sm text-emerald-800">
+                      <CheckCircle2 className="size-3.5 shrink-0" />
+                      <span className="font-medium truncate">{caseName}</span>
+                      <button onClick={() => setSelectedCase(null)} className="ml-auto hover:text-destructive">
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Input
+                        placeholder={!caseType ? 'Select case type first' : 'Search cases...'}
+                        value={caseSearch}
+                        onChange={e => { setCaseSearch(e.target.value); setCaseDropdownOpen(true) }}
+                        onFocus={() => caseType && setCaseDropdownOpen(true)}
+                        disabled={!caseType}
+                        className="h-8 text-sm"
+                      />
+                      {caseDropdownOpen && filteredCases.length > 0 && (
+                        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {filteredCases.slice(0, 20).map(c => (
+                            <button key={c.id} onClick={() => handleCaseSelect(c)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b last:border-0">
+                              <div className="font-medium">{caseType === 'gc' ? c.name : caseType === 'ip' ? c.names : `${c.gc_name} & ${c.ip_names}`}</div>
+                              <div className="text-xs text-muted-foreground">{c.email || c.ip1_email || ''}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* File button */}
+                <Button size="sm" onClick={handleFile} disabled={filing || !selectedCase}
+                  style={{ backgroundColor: '#8b5cf6' }} className="h-8 gap-1.5">
+                  {filing ? <Loader2 className="size-3.5 animate-spin" /> : <FolderInput className="size-3.5" />}
+                  File to Medical Records
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex-1 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full">
