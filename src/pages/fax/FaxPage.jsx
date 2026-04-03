@@ -479,7 +479,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
   return (
     <Dialog open={open} onOpenChange={resetAndClose}>
       <DialogContent className="sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col !p-0">
-        <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+        <DialogHeader className="px-6 pt-4 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Eye className="size-5" /> Fax Preview
             <span className="text-sm font-normal text-muted-foreground ml-2">
@@ -516,21 +516,21 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 
         {/* Filing panel */}
         {showFile && (
-          <div className="px-6 pb-3 shrink-0 border-b bg-violet-50/50">
+          <div className="px-6 pb-2 shrink-0 border-b bg-violet-50/50">
             {filed ? (
-              <div className="flex items-center gap-2 py-3 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 py-1.5 text-sm text-emerald-700">
                 <CheckCircle2 className="size-5" />
                 <span className="font-medium">Filed to Medical Records — {selectedCase?._name}</span>
               </div>
             ) : (
-              <div className="space-y-3 py-2">
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="space-y-1 min-w-[200px] flex-1 max-w-xs">
-                    <label className="text-xs font-medium text-muted-foreground">Document Name</label>
+              <div className="space-y-2 py-1">
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="space-y-0.5 min-w-[200px] flex-1 max-w-xs">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Document Name</label>
                     <Input value={fileName} onChange={e => setFileName(e.target.value)} placeholder="Document name" className="h-8 text-sm" />
                   </div>
-                  <div className="space-y-1 flex-1 min-w-[350px]">
-                    <label className="text-xs font-medium text-muted-foreground">Select Case</label>
+                  <div className="space-y-0.5 flex-1 min-w-[350px]">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Select Case</label>
                     <CaseSelector caseType={caseType} setCaseType={v => { setCaseType(v); setSelectedCase(null) }}
                       selectedCase={selectedCase}
                       onSelect={c => setSelectedCase({ ...c, _name: caseSelector.getCaseName(caseType, c) })}
