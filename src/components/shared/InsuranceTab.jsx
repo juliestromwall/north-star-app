@@ -51,6 +51,72 @@ function getMonthOptions() {
   return options
 }
 
+function EditForm({ form, setForm, saving, onSave, onCancel }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-stone-600">Has Insurance?</span>
+        <div className="flex gap-1.5">
+          <button onClick={() => setForm(f => ({ ...f, has_insurance: true }))}
+            className={`px-3 py-1 rounded-full text-xs font-medium ${form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+          <button onClick={() => setForm(f => ({ ...f, has_insurance: false }))}
+            className={`px-3 py-1 rounded-full text-xs font-medium ${!form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+        </div>
+      </div>
+      {form.has_insurance && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Company</label>
+            <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Insurance company" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Website</label>
+            <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Portal Login</label>
+            <Input value={form.portal_login} onChange={e => setForm(f => ({ ...f, portal_login: e.target.value }))} placeholder="Username or email" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Portal Password</label>
+            <Input type="password" value={form.portal_password} onChange={e => setForm(f => ({ ...f, portal_password: e.target.value }))} placeholder="Password" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Premium Amount</label>
+            <Input value={form.premium_amount} onChange={e => setForm(f => ({ ...f, premium_amount: e.target.value }))} placeholder="$0.00" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Premium Due Day (of month)</label>
+            <Input type="number" min="1" max="31" value={form.premium_due_day} onChange={e => setForm(f => ({ ...f, premium_due_day: e.target.value }))} placeholder="1-31" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Enrolled in Autopay?</label>
+            <div className="flex gap-1.5 mt-1">
+              <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: true }))}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+              <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: false, autopay_day: '' }))}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+            </div>
+          </div>
+          {form.enrolled_autopay && (
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Autopay Day (of month)</label>
+              <Input type="number" min="1" max="31" value={form.autopay_day} onChange={e => setForm(f => ({ ...f, autopay_day: e.target.value }))} placeholder="1-31" className="h-8 text-sm" />
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex gap-2 pt-2">
+        <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={onSave} disabled={saving}>
+          {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+          {saving ? 'Saving...' : 'Save'}
+        </Button>
+        <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
 export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogateNameForDisplay }) {
   const { currentUser } = useRole()
   const [insurance, setInsurance] = useState(null)
@@ -150,8 +216,8 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
 
   if (loading) return <div className="text-center py-12 text-stone-400">Loading insurance...</div>
 
-  // No insurance record yet — show setup
-  if (!insurance) {
+  // No insurance record yet and not editing — show setup
+  if (!insurance && !editing) {
     return (
       <Card className="rounded-2xl">
         <CardContent className="py-12 text-center space-y-4">
@@ -168,7 +234,23 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
     )
   }
 
-  const isCancelled = insurance.status === 'cancelled'
+  const isCancelled = insurance?.status === 'cancelled'
+
+  // Editing with no record yet — show just the edit form
+  if (editing && !insurance) {
+    return (
+      <Card className="rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <InsuranceCardIcon size={18} color="#283693" /> Add Insurance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EditForm form={form} setForm={setForm} saving={saving} onSave={saveInsurance} onCancel={() => setEditing(false)} />
+        </CardContent>
+      </Card>
+    )
+  }
 
   // Has record — show info
   return (
@@ -195,70 +277,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
         </CardHeader>
         <CardContent>
           {editing ? (
-            <div className="space-y-4">
-              {/* Has insurance toggle */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-stone-600">Has Insurance?</span>
-                <div className="flex gap-1.5">
-                  <button onClick={() => setForm(f => ({ ...f, has_insurance: true }))}
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
-                  <button onClick={() => setForm(f => ({ ...f, has_insurance: false }))}
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${!form.has_insurance ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
-                </div>
-              </div>
-
-              {form.has_insurance && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Company</label>
-                    <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Insurance company" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Website</label>
-                    <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Portal Login</label>
-                    <Input value={form.portal_login} onChange={e => setForm(f => ({ ...f, portal_login: e.target.value }))} placeholder="Username or email" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Portal Password</label>
-                    <Input type="password" value={form.portal_password} onChange={e => setForm(f => ({ ...f, portal_password: e.target.value }))} placeholder="Password" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Premium Amount</label>
-                    <Input value={form.premium_amount} onChange={e => setForm(f => ({ ...f, premium_amount: e.target.value }))} placeholder="$0.00" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Premium Due Day (of month)</label>
-                    <Input type="number" min="1" max="31" value={form.premium_due_day} onChange={e => setForm(f => ({ ...f, premium_due_day: e.target.value }))} placeholder="1-31" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[11px] text-stone-400 font-medium">Enrolled in Autopay?</label>
-                    <div className="flex gap-1.5 mt-1">
-                      <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: true }))}
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
-                      <button onClick={() => setForm(f => ({ ...f, enrolled_autopay: false, autopay_day: '' }))}
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${!form.enrolled_autopay ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
-                    </div>
-                  </div>
-                  {form.enrolled_autopay && (
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-stone-400 font-medium">Autopay Day (of month)</label>
-                      <Input type="number" min="1" max="31" value={form.autopay_day} onChange={e => setForm(f => ({ ...f, autopay_day: e.target.value }))} placeholder="1-31" className="h-8 text-sm" />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={saveInsurance} disabled={saving}>
-                  {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
-                  {saving ? 'Saving...' : 'Save'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
-              </div>
-            </div>
+            <EditForm form={form} setForm={setForm} saving={saving} onSave={saveInsurance} onCancel={() => setEditing(false)} />
           ) : !insurance.has_insurance ? (
             <div className="py-4 text-center">
               <p className="text-sm text-stone-500">No insurance</p>

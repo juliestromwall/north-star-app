@@ -731,7 +731,7 @@ export default function SurrogateDetailPage() {
               )}
             </span>
           </TabsTrigger>
-          <TabsTrigger value="insurance" className="gap-1"><InsuranceCardIcon size={14} /> Insurance</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>

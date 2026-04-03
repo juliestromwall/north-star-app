@@ -761,7 +761,7 @@ export default function JourneyDetailPage() {
           <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="match-sheets">Match Sheets</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="insurance" className="gap-1"><InsuranceCardIcon size={14} /> Insurance</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="texts">Texts</TabsTrigger>
