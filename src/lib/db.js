@@ -715,7 +715,9 @@ export async function uploadBase64ToCaseDocuments({ surrogateId, category, fileN
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   const blob = new Blob([bytes], { type: 'application/pdf' })
 
-  const path = `${surrogateId}/${category}/${Date.now()}-${fileName}`
+  // Sanitize filename for storage path (remove spaces, pipes, special chars)
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const path = `${surrogateId}/${category}/${Date.now()}-${safeName}`
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from(DOC_BUCKET)
     .upload(path, blob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
