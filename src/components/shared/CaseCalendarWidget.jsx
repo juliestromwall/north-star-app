@@ -19,7 +19,7 @@ function isToday(dateStr) {
   return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()
 }
 
-export default function CaseCalendarWidget({ caseId, caseType }) {
+export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const { currentUser } = useRole()
   const userId = currentUser?.userId || currentUser?.id
   const [events, setEvents] = useState([])
@@ -38,11 +38,22 @@ export default function CaseCalendarWidget({ caseId, caseType }) {
       .finally(() => setLoading(false))
   }, [caseId, userId])
 
+  function getCaseUrl() {
+    const base = typeof window !== 'undefined' ? window.location.origin : ''
+    if (caseType === 'journey') return `${base}/journeys/${caseId}`
+    if (caseType === 'ip') return `${base}/intended-parents/${caseId}`
+    return `${base}/surrogates/${caseId}`
+  }
+
   async function handleCreate(eventData) {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const caseLabel = caseName || `${caseType} #${caseId}`
+    const caseLink = getCaseUrl()
+    const descParts = [`Client: ${caseLabel}`, `Case: ${caseLink}`]
+    if (eventData.description) descParts.push('', eventData.description)
     const event = {
-      summary: eventData.title,
-      description: eventData.description || '',
+      summary: `${eventData.title} — ${caseLabel}`,
+      description: descParts.join('\n'),
       start: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.startTime}:00`, timeZone: tz },
       end: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.endTime || eventData.startTime}:00`, timeZone: tz },
       extendedProperties: {

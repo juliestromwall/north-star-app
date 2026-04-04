@@ -444,12 +444,13 @@ function JourneyExpensesTab({ journeyId }) {
         amount: parseFloat(newExpense.amount) || 0,
         paid_to: newExpense.paid_to || null,
         cc_last4: newExpense.cc_last4 || null,
+        submitted_to_escrow: newExpense.submitted_to_escrow || false,
         notes: newExpense.notes || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
       if (created) setExpenses(prev => [created, ...prev])
-      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '' })
+      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false })
       setTabExpenseFile(null)
       setAddOpen(false)
     } catch (err) {
@@ -518,6 +519,13 @@ function JourneyExpensesTab({ journeyId }) {
                 <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
                 <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+              <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
+              </button>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
@@ -1018,6 +1026,13 @@ export default function JourneyDetailPage() {
                 <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+              <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
+              </button>
+            </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
               <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
@@ -1043,11 +1058,12 @@ export default function JourneyDetailPage() {
                     amount: parseFloat(newExpense.amount) || 0,
                     paid_to: newExpense.paid_to || null,
                     cc_last4: newExpense.cc_last4 || null,
+                    submitted_to_escrow: newExpense.submitted_to_escrow || false,
                     notes: newExpense.notes || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
-                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '' })
+                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false })
                   setExpenseFile(null)
                   setExpenseOpen(false)
                 } catch (err) {
@@ -1381,7 +1397,7 @@ export default function JourneyDetailPage() {
         <TabsContent value="overview" className="mt-4 space-y-6">
           <JourneyMilestoneTimeline journey={journey} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" />
+            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
           </div>
         </TabsContent>

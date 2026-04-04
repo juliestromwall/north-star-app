@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2 } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { fetchAllExpenses, updateExpense } from '@/lib/db'
+import { fetchAllExpenses, updateExpense, createCaseTask } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
@@ -29,6 +29,7 @@ const COLUMNS = [
   { key: 'amount', label: 'Amount', format: 'currency' },
   { key: 'paid_to', label: 'Paid To' },
   { key: 'cc_last4', label: 'CC Last 4', format: 'cc4' },
+  { key: 'submitted_to_escrow', label: 'Escrow', format: 'yesno' },
   { key: 'notes', label: 'Notes' },
 ]
 
@@ -37,6 +38,7 @@ function CellValue({ col, value }) {
   if (col.format === 'currency') return <span>{formatCurrency(value)}</span>
   if (col.format === 'date') return <span>{formatDate(value)}</span>
   if (col.format === 'cc4') return <span className="font-mono text-stone-600">••••{value}</span>
+  if (col.format === 'yesno') return <span className={value ? 'text-green-600 font-medium' : 'text-stone-400'}>{value ? 'Yes' : 'No'}</span>
   return <span>{String(value)}</span>
 }
 
@@ -58,8 +60,22 @@ function EditableCell({ col, value, onSave }) {
     let saveVal = val
     if (col.format === 'currency') saveVal = parseFloat(val) || null
     if (col.format === 'cc4') saveVal = (val || '').replace(/\D/g, '').slice(-4) || null
+    if (col.format === 'yesno') saveVal = val === 'yes' || val === true
     onSave(saveVal)
     setEditing(false)
+  }
+
+  if (col.format === 'yesno') {
+    return (
+      <div className="flex items-center gap-1">
+        <select value={val ? 'yes' : 'no'} onChange={e => setVal(e.target.value === 'yes')} className="h-7 text-xs border rounded px-1.5 bg-white" autoFocus>
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+        <button onClick={save} className="text-green-600"><Check className="size-3.5" /></button>
+        <button onClick={() => setEditing(false)} className="text-stone-400"><X className="size-3.5" /></button>
+      </div>
+    )
   }
 
   return (
@@ -84,7 +100,11 @@ function EditableCell({ col, value, onSave }) {
 function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
+  const [showTaskForm, setShowTaskForm] = useState(false)
+  const [taskNote, setTaskNote] = useState('')
+  const [creatingTask, setCreatingTask] = useState(false)
   const reconcileExp = reconcileId ? expenses.find(e => e.id === reconcileId) : null
+  const reconcileJourney = reconcileExp ? journeyMap[reconcileExp.journey_id] : null
 
   if (expenses.length === 0) {
     return (
@@ -112,8 +132,8 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
       </Dialog>
 
       {/* Reconcile Confirmation Dialog */}
-      <Dialog open={!!reconcileId} onOpenChange={() => setReconcileId(null)}>
-        <DialogContent className="max-w-sm">
+      <Dialog open={!!reconcileId} onOpenChange={() => { setReconcileId(null); setShowTaskForm(false); setTaskNote('') }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Confirm Reconciliation</DialogTitle>
           </DialogHeader>
@@ -121,15 +141,70 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800">
               {reconcileExp && (
                 <>
-                  <p>Are you sure you want to reconcile this expense for <strong>{journeyMap[reconcileExp.journey_id]?.caseName || 'this journey'}</strong>?</p>
+                  <p>Are you sure you want to reconcile this expense for <strong>{reconcileJourney?.caseName || 'this journey'}</strong>?</p>
                   <p className="mt-2 font-semibold">{formatCurrency(reconcileExp.amount)} — {reconcileExp.paid_to || 'No payee'}</p>
                 </>
               )}
             </div>
+
+            {/* + Task section */}
+            {!showTaskForm ? (
+              <button onClick={() => setShowTaskForm(true)} className="text-xs text-abc-indigo hover:underline font-medium flex items-center gap-1">
+                + Create Task
+              </button>
+            ) : (
+              <div className="border border-stone-200 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-stone-600">Create Task</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-stone-400 font-medium">Assigned To</label>
+                    <p className="text-xs text-stone-700 font-medium bg-stone-50 rounded px-2 py-1.5">{reconcileJourney?.caseManager || '—'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-stone-400 font-medium">Due Date</label>
+                    <p className="text-xs text-stone-700 font-medium bg-stone-50 rounded px-2 py-1.5">{formatDate(new Date())}</p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] text-stone-400 font-medium">Note</label>
+                  <Input value={taskNote} onChange={e => setTaskNote(e.target.value)} placeholder="e.g. Please upload the receipt for this expense" className="h-8 text-xs" />
+                </div>
+                <p className="text-[10px] text-red-500 font-medium">Priority: High</p>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setReconcileId(null)}>Cancel</Button>
-              <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => { onReconcile(reconcileId); setReconcileId(null) }}>
-                <CheckCircle2 className="size-3" /> Reconcile
+              <Button variant="outline" size="sm" onClick={() => { setReconcileId(null); setShowTaskForm(false); setTaskNote('') }}>Cancel</Button>
+              <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" disabled={creatingTask} onClick={async () => {
+                setCreatingTask(true)
+                try {
+                  // Create task if form is open
+                  if (showTaskForm && reconcileExp) {
+                    const caseName = reconcileJourney?.caseName || 'Journey'
+                    await createCaseTask({
+                      case_id: reconcileExp.journey_id,
+                      case_type: 'journey',
+                      title: `Upload receipt — ${formatCurrency(reconcileExp.amount)} to ${reconcileExp.paid_to || 'vendor'}`,
+                      assigned_to: reconcileJourney?.assignedTo || '',
+                      due_date: new Date().toISOString().split('T')[0],
+                      priority: 'high',
+                      status: 'open',
+                      notes: taskNote || null,
+                      created_by: '',
+                    })
+                  }
+                  onReconcile(reconcileId)
+                  setReconcileId(null)
+                  setShowTaskForm(false)
+                  setTaskNote('')
+                } catch (err) {
+                  console.error('Failed:', err)
+                } finally {
+                  setCreatingTask(false)
+                }
+              }}>
+                {creatingTask ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+                {showTaskForm ? 'Reconcile & Create Task' : 'Reconcile'}
               </Button>
             </div>
           </div>
