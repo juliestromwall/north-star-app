@@ -441,7 +441,8 @@ export default function JourneyDetailPage() {
   const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
   const [providerForm, setProviderForm] = useState({})
   const [ipFlip, setIpFlip] = useState({})
-  const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
+  const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId, party: 'gc'|'ip' }
+  const [smsConfirm, setSmsConfirm] = useState(null) // { phone, name, party: 'gc'|'ip' }
   const [smsOpen, setSmsOpen] = useState(null) // { phone, name }
   const [smsMessage, setSmsMessage] = useState('')
   const [smsSending, setSmsSending] = useState(false)
@@ -463,27 +464,26 @@ export default function JourneyDetailPage() {
   }
 
   function openProviderEdit(type) {
-    const prefixes = { ivf: 'ivf', ob: 'ob', hospital: 'deliveryHospital' }
-    const p = prefixes[type]
+    const base = { street: '', city: '', state: '', zip: '', website: '' }
     if (type === 'hospital') {
-      setProviderForm({ name: jd.deliveryHospital || '', phone: jd.deliveryHospitalPhone || '', address: jd.deliveryHospitalAddress || '' })
+      setProviderForm({ ...base, name: jd.deliveryHospital || '', phone: jd.deliveryHospitalPhone || '', street: jd.deliveryHospitalStreet || '', city: jd.deliveryHospitalCity || '', state: jd.deliveryHospitalState || '', zip: jd.deliveryHospitalZip || '', website: jd.deliveryHospitalWebsite || '' })
     } else if (type === 'ob') {
-      setProviderForm({ name: jd.obClinic || '', doctor: jd.obDoctor || '', phone: jd.obPhone || '', address: jd.obAddress || '' })
+      setProviderForm({ ...base, name: jd.obClinic || '', doctor: jd.obDoctor || '', phone: jd.obPhone || '', street: jd.obStreet || '', city: jd.obCity || '', state: jd.obState || '', zip: jd.obZip || '', website: jd.obWebsite || '' })
     } else {
-      setProviderForm({ name: jd.ivfClinic || '', doctor: jd.ivfDoctor || '', address: jd.ivfAddress || '', coordinator: jd.ivfCoordinator || '', coordinatorEmail: jd.ivfCoordinatorEmail || '' })
+      setProviderForm({ ...base, name: jd.ivfClinic || '', doctor: jd.ivfDoctor || '', street: jd.ivfStreet || '', city: jd.ivfCity || '', state: jd.ivfState || '', zip: jd.ivfZip || '', website: jd.ivfWebsite || '', coordinator: jd.ivfCoordinator || '', coordinatorEmail: jd.ivfCoordinatorEmail || '' })
     }
     setProviderEdit(type)
   }
 
   async function saveProvider() {
+    const f = providerForm
     const fields = {}
     if (providerEdit === 'ivf') {
-      fields.ivfClinic = providerForm.name; fields.ivfDoctor = providerForm.doctor; fields.ivfAddress = providerForm.address
-      fields.ivfCoordinator = providerForm.coordinator; fields.ivfCoordinatorEmail = providerForm.coordinatorEmail
+      Object.assign(fields, { ivfClinic: f.name, ivfDoctor: f.doctor, ivfStreet: f.street, ivfCity: f.city, ivfState: f.state, ivfZip: f.zip, ivfWebsite: f.website, ivfCoordinator: f.coordinator, ivfCoordinatorEmail: f.coordinatorEmail })
     } else if (providerEdit === 'ob') {
-      fields.obClinic = providerForm.name; fields.obDoctor = providerForm.doctor; fields.obPhone = providerForm.phone; fields.obAddress = providerForm.address
+      Object.assign(fields, { obClinic: f.name, obDoctor: f.doctor, obPhone: f.phone, obStreet: f.street, obCity: f.city, obState: f.state, obZip: f.zip, obWebsite: f.website })
     } else {
-      fields.deliveryHospital = providerForm.name; fields.deliveryHospitalPhone = providerForm.phone; fields.deliveryHospitalAddress = providerForm.address
+      Object.assign(fields, { deliveryHospital: f.name, deliveryHospitalPhone: f.phone, deliveryHospitalStreet: f.street, deliveryHospitalCity: f.city, deliveryHospitalState: f.state, deliveryHospitalZip: f.zip, deliveryHospitalWebsite: f.website })
     }
     await updateFields(fields)
     setProviderEdit(null)
@@ -678,6 +678,7 @@ export default function JourneyDetailPage() {
                   <p className="text-sm font-semibold text-stone-800 truncate">{jd.ivfClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
                   {jd.ivfDoctor && <p className="text-xs text-stone-500">Dr. {jd.ivfDoctor}</p>}
                   {jd.ivfCoordinator && <p className="text-xs text-stone-500">{jd.ivfCoordinator}</p>}
+                  {jd.ivfCity && <p className="text-[11px] text-stone-400">{[jd.ivfCity, jd.ivfState].filter(Boolean).join(', ')}</p>}
                 </button>
                 {/* OB Clinic */}
                 <button onClick={() => openProviderEdit('ob')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
@@ -685,12 +686,14 @@ export default function JourneyDetailPage() {
                   <p className="text-sm font-semibold text-stone-800 truncate">{jd.obClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
                   {jd.obDoctor && <p className="text-xs text-stone-500">Dr. {jd.obDoctor}</p>}
                   {jd.obPhone && <p className="text-xs text-stone-500">{jd.obPhone}</p>}
+                  {jd.obCity && <p className="text-[11px] text-stone-400">{[jd.obCity, jd.obState].filter(Boolean).join(', ')}</p>}
                 </button>
                 {/* Hospital */}
                 <button onClick={() => openProviderEdit('hospital')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
                   <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Hospital className="size-3" /> Delivery Hospital</p>
                   <p className="text-sm font-semibold text-stone-800 truncate">{jd.deliveryHospital || <span className="text-stone-300 font-normal">+ Add hospital</span>}</p>
                   {jd.deliveryHospitalPhone && <p className="text-xs text-stone-500">{jd.deliveryHospitalPhone}</p>}
+                  {jd.deliveryHospitalCity && <p className="text-[11px] text-stone-400">{[jd.deliveryHospitalCity, jd.deliveryHospitalState].filter(Boolean).join(', ')}</p>}
                 </button>
               </div>
             </div>
@@ -746,13 +749,13 @@ export default function JourneyDetailPage() {
                     {gcCase.phone && (
                       <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
                         className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                        onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
+                        onClick={() => setSmsConfirm({ phone: gcCase.phone, name: gcCase.name, party: 'gc' })}>
                         <MessageSquare className="size-3" /> Text
                       </Button>
                     )}
                     <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
                       className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                      onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
+                      onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id, party: 'gc' })}>
                       <Mail className="size-3" /> Email
                     </Button>
                     {gcCase.phone && (
@@ -819,14 +822,14 @@ export default function JourneyDetailPage() {
                   <div className="flex gap-1.5">
                     {ipCase.phone && (
                       <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
-                        onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
+                        onClick={() => setSmsConfirm({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names, party: 'ip' })}>
                         <MessageSquare className="size-3" /> Text
                       </Button>
                     )}
                     <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
                       onClick={() => {
                         const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
-                        setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
+                        setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id, party: 'ip' })
                       }}>
                       <Mail className="size-3" /> Email
                     </Button>
@@ -962,28 +965,52 @@ export default function JourneyDetailPage() {
         <TabsContent value="texts" className="mt-4"><EmptyState title="Text Messages" description="GC and IP text threads." /></TabsContent>
       </Tabs>
 
-      {/* Email confirmation toast */}
+      {/* Email confirmation toast — positioned near the card that triggered it */}
       {emailConfirm && (
-        <div className="fixed top-20 right-8 z-50 animate-in slide-in-from-top-4 fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-6 py-4 flex items-center gap-4 max-w-xl">
-            <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
-              <Mail className="size-5 text-[#283693]" />
+        <div className={`fixed z-50 animate-in fade-in duration-200 ${emailConfirm.party === 'ip' ? 'top-[340px] right-8' : 'top-[140px] right-8'}`}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-5 py-3 flex items-center gap-3 max-w-md">
+            <div className="size-9 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
+              <Mail className="size-4 text-[#283693]" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-stone-800">Email {emailConfirm.name}?</p>
-              <p className="text-xs text-stone-500">{emailConfirm.email}</p>
+              <p className="text-xs text-stone-500 truncate">{emailConfirm.email}</p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" className="rounded-full text-xs h-8" onClick={() => setEmailConfirm(null)}>
-                Cancel
-              </Button>
-              <Button size="sm" className="rounded-full text-xs h-8 gap-1.5" style={{ backgroundColor: '#283693' }}
+              <Button variant="outline" size="sm" className="rounded-full text-xs h-7" onClick={() => setEmailConfirm(null)}>Cancel</Button>
+              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#283693' }}
                 onClick={() => {
                   const conf = emailConfirm
                   setEmailConfirm(null)
                   openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }).catch(() => {})
                 }}>
-                <Mail className="size-3.5" /> Confirm
+                <Mail className="size-3" /> Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Text confirmation toast */}
+      {smsConfirm && (
+        <div className={`fixed z-50 animate-in fade-in duration-200 ${smsConfirm.party === 'ip' ? 'top-[340px] right-8' : 'top-[140px] right-8'}`}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-5 py-3 flex items-center gap-3 max-w-md">
+            <div className="size-9 rounded-full bg-pink-500/10 flex items-center justify-center shrink-0">
+              <MessageSquare className="size-4 text-pink-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-stone-800">Text {smsConfirm.name}?</p>
+              <p className="text-xs text-stone-500">{smsConfirm.phone}</p>
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" className="rounded-full text-xs h-7" onClick={() => setSmsConfirm(null)}>Cancel</Button>
+              <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#ed148c' }}
+                onClick={() => {
+                  const conf = smsConfirm
+                  setSmsConfirm(null)
+                  setSmsOpen({ phone: conf.phone, name: conf.name }); setSmsMessage(''); setSmsResult(null)
+                }}>
+                <MessageSquare className="size-3" /> Confirm
               </Button>
             </div>
           </div>
@@ -1043,16 +1070,34 @@ export default function JourneyDetailPage() {
                 <Input value={providerForm.doctor || ''} onChange={e => setProviderForm(f => ({ ...f, doctor: e.target.value }))} placeholder="Dr. Last Name" className="h-9" />
               </div>
             )}
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Address</label>
-              <Input value={providerForm.address || ''} onChange={e => setProviderForm(f => ({ ...f, address: e.target.value }))} placeholder="Full address" className="h-9" />
-            </div>
             {(providerEdit === 'ob' || providerEdit === 'hospital') && (
               <div className="space-y-1">
                 <label className="text-[11px] text-stone-400 font-medium">Phone Number</label>
                 <Input value={providerForm.phone || ''} onChange={e => setProviderForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-5555" className="h-9" />
               </div>
             )}
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Street Address</label>
+              <Input value={providerForm.street || ''} onChange={e => setProviderForm(f => ({ ...f, street: e.target.value }))} placeholder="123 Main St" className="h-9" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1 col-span-1">
+                <label className="text-[11px] text-stone-400 font-medium">City</label>
+                <Input value={providerForm.city || ''} onChange={e => setProviderForm(f => ({ ...f, city: e.target.value }))} placeholder="City" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">State</label>
+                <Input value={providerForm.state || ''} onChange={e => setProviderForm(f => ({ ...f, state: e.target.value }))} placeholder="CA" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Zip Code</label>
+                <Input value={providerForm.zip || ''} onChange={e => setProviderForm(f => ({ ...f, zip: e.target.value }))} placeholder="90210" className="h-9" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Website</label>
+              <Input value={providerForm.website || ''} onChange={e => setProviderForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." className="h-9" />
+            </div>
             {providerEdit === 'ivf' && (
               <>
                 <div className="space-y-1">
