@@ -68,6 +68,7 @@ export default function App() {
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
       <Route path="/share/:token" element={<SharedProfilePage />} />
       <Route path="/e-signature/:id" element={<SignDocumentPage />} />
+      <Route path="/e-signature/sign/:token" element={<SignDocumentPage />} />
 
       {/* Authenticated app */}
       <Route element={<AppLayout />}>

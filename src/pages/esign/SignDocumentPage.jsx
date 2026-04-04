@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { fetchDocument, signDocument, logAuditEvent } from '@/lib/esign'
+import { fetchDocument, fetchDocumentByToken, signDocument, logAuditEvent } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 
 // ── Inline Signature Pad ────────────────────────────────
@@ -211,7 +211,7 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
 // ── Main Page ───────────────────────────────────────────
 
 export default function SignDocumentPage() {
-  const { id } = useParams()
+  const { id, token } = useParams()
   const [doc, setDoc] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -231,13 +231,18 @@ export default function SignDocumentPage() {
   const [docHtml, setDocHtml] = useState('')
   const [loadingHtml, setLoadingHtml] = useState(false)
 
-  // Load document
+  // Load document — by token (secure) or by ID (legacy)
   useEffect(() => {
-    if (!id) return
-    const docId = Number(id)
-    if (isNaN(docId)) { setLoading(false); return }
-    fetchDocument(docId).then(d => setDoc(d)).catch(() => {}).finally(() => setLoading(false))
-  }, [id])
+    if (token) {
+      fetchDocumentByToken(token).then(d => setDoc(d)).catch(() => {}).finally(() => setLoading(false))
+    } else if (id) {
+      const docId = Number(id)
+      if (isNaN(docId)) { setLoading(false); return }
+      fetchDocument(docId).then(d => setDoc(d)).catch(() => {}).finally(() => setLoading(false))
+    } else {
+      setLoading(false)
+    }
+  }, [id, token])
 
   // Load HTML when verified
   useEffect(() => {

@@ -2,6 +2,12 @@ import { supabase } from './supabase'
 
 const BUCKET = 'esign-documents'
 
+function generateSigningToken() {
+  const arr = new Uint8Array(32)
+  crypto.getRandomValues(arr)
+  return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('')
+}
+
 // ── Templates ─────────────────────────────────────────────
 
 export async function uploadTemplate(file, metadata) {
@@ -144,6 +150,7 @@ export async function createDocument(doc) {
       signers: doc.signers || [],
       file_path: doc.filePath || null,
       created_by: doc.createdBy || '',
+      signing_token: generateSigningToken(),
     })
     .select()
     .single()
@@ -190,6 +197,13 @@ export async function fetchDocuments(filters = {}) {
 export async function fetchDocument(id) {
   if (!supabase) return null
   const { data, error } = await supabase.from('esign_documents').select('*').eq('id', id).single()
+  if (error) return null
+  return data
+}
+
+export async function fetchDocumentByToken(token) {
+  if (!supabase || !token) return null
+  const { data, error } = await supabase.from('esign_documents').select('*').eq('signing_token', token).single()
   if (error) return null
   return data
 }

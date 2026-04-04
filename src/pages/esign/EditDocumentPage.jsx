@@ -261,8 +261,10 @@ export default function EditDocumentPage() {
       // 4. Send
       await sendDocument(doc.id)
 
-      // 5. Email each signer with a link to sign
-      const signUrl = `${window.location.origin}/e-signature/${doc.id}`
+      // 5. Email each signer with a secure token link
+      const signUrl = doc.signing_token
+        ? `${window.location.origin}/e-signature/sign/${doc.signing_token}`
+        : `${window.location.origin}/e-signature/${doc.id}`
       for (const signer of sendForm.signers) {
         if (!signer.email) continue
         try {
