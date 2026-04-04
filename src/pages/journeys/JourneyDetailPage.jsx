@@ -964,7 +964,7 @@ export default function JourneyDetailPage() {
 
       {/* Email confirmation toast */}
       {emailConfirm && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className="fixed top-20 right-8 z-50 animate-in slide-in-from-top-4 fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-stone-200 px-6 py-4 flex items-center gap-4 max-w-xl">
             <div className="size-10 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0">
               <Mail className="size-5 text-[#283693]" />
