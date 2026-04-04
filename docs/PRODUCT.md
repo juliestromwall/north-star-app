@@ -66,6 +66,15 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 2. Changing stage auto-sets status to the first default for that stage
 3. Click Status tile → dropdown with statuses for current stage
 4. Stage/status shown on list cards as StageBadge
+5. Stage change snapshots current checklist into history (viewable as "Previous Checklists")
+
+### Match-Centric Case Architecture
+1. When a GC and IP are matched into a journey, individual case pages redirect to the journey
+2. Matched GCs/IPs are removed from their respective list pages
+3. All case management (Application, Profile, Documents, Notes, Emails) happens on the journey page
+4. Application tab has GC/IP sub-tabs rendering full GCApplicationTab and IPApplicationTab
+5. Profile tab has GC/IP sub-tabs with full editable profile builders
+6. When a match is broken: journey data snapshot saved to both cases, documents copied as "Previous Match", both cases get a "Previous Match" tab showing history
 
 ### Admin: Manage Documents
 1. Documents tab shows 9 category folders (Photo IDs, Agency Agreement, etc.)

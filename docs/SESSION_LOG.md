@@ -1,5 +1,77 @@
 # Session Log
 
+## 2026-04-03 (Match-Centric Architecture, Journey Hero Redesign, Insurance, Attorneys)
+
+**Worked on:** Complete journey detail page redesign, match-centric case architecture, attorney info, insurance tab, draggable tabs, provider modals, email compose fixes, checklist history, break match improvements
+
+**Changes made:**
+
+Journey Hero — 3-Card Layout:
+- Journey Info (white, 60% left) + GC (pink, stacked right) + IP (blue, stacked right)
+- Journey card: Stage with Milestone icon + status pill, escrow section, providers section (3 clickable cards → modal editors), managers at bottom, match date + break match top-right
+- GC/IP cards: avatar (md), name (text-base black), age/marital/address flips, Text/Email/Call buttons top-right, insurance badge, attorney row
+- Provider modals: Fertility Clinic (name, doctor, address broken out, coordinator + email, website), OB Clinic (name, doctor, phone, address, website), Hospital (name, phone, address, website)
+- Pregnancy info only shows for Active Pregnancy status and beyond
+- Email/Text confirmation toasts positioned near the card that triggered them
+- SMS dialog for texting from journey page (Twilio)
+
+Attorney Info:
+- Editable attorney fields for GC and IP in journey hero (Name, Firm, Email, Phone)
+- Click attorney name to edit, "Email Attorney" button (subtle, colored on hover)
+- Batched save to prevent race conditions
+- Logged to journey case when composing email
+
+Insurance Tab:
+- Full insurance management: policy details, payment logging, cancel policy
+- Supabase tables: surrogate_insurance + insurance_payments
+- Insurance indicator on hero cards, click opens dialog on journey
+- Insurance page (/insurance): Pay Status column (PAID green / UNPAID red) frozen with name column
+
+Draggable Tabs:
+- SortableTabsList shared component using @dnd-kit
+- Overview locked first, all others draggable
+- Order persists per-case in Supabase app_config
+- Applied to Surrogate, IP, and Journey detail pages
+
+Match-Centric Architecture:
+- Matched cases redirect to journey (/surrogates/:id → /journeys/:journeyId)
+- Matched GCs/IPs removed from list pages
+- Journey gets Application tab (GC/IP sub-tabs with full GCApplicationTab/IPApplicationTab)
+- Journey gets full editable Profile tab (GCProfileTab exported from SurrogateDetailPage, IPProfileTab)
+- Checklist history: stage change snapshots current checklist, "Previous Checklists" collapsible section
+- Enhanced breakMatch(): saves journey data snapshot, partner names, checklist history, notes, copies documents to both cases as "previous-match"
+- PreviousMatchTab shared component on Surrogate/IP detail pages (only shows if _matchHistory exists)
+- Hyperlinks removed from GC/IP names in journey hero
+
+Email Compose Fixes:
+- openDraft made synchronous (was async, caused blank page crashes)
+- Signature fetched in background and appended when ready
+- Error boundary around ComposeWindows prevents app-wide crashes
+- Fixed SelectItem empty string value crash in case selector
+- Fixed Supabase insert .catch() crash (not a promise)
+- Both IP emails shown on separate lines in confirmation
+
+Other:
+- FertilizedEggIcon SVG for embryos, EmbryoIcon for IVF clinic
+- InsuranceCardIcon SVG
+- fmtDate/formatDate helpers for MM/DD/YYYY
+- Committed other session's changes (CaseImportPage, xlsx dependency, utils.js formatDate)
+
+**Next steps:**
+- Build merged Documents tab on journey (fetch from GC + IP + Journey, label by source)
+- Journey-specific tasks system
+- Upcoming appointments widget for journey overview
+- Expense tracking page
+- Matching page redesign
+- Checklist history on individual cases (surrogate/IP stage changes)
+
+**Open questions:**
+- Should journey documents be a separate Supabase storage bucket or reuse case-documents?
+- Expense tracking scope — which roles can view/edit?
+- How should journey tasks relate to the dashboard?
+
+---
+
 ## 2026-04-03 (Case Import, Insurance Page, Sidebar Redesign, Dark Mode, Date Formatting)
 
 **Worked on:** Case Import page for Super Admin (surrogate + IP with partner, file uploads, matched journey creation with match sheet import), Insurance spreadsheet page, sidebar redesign with liquid glass, centralized date formatting, dark mode (built then hidden)
