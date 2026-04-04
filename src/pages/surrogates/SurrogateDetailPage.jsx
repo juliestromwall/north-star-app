@@ -38,6 +38,7 @@ import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
+import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import SortableTabsList from '@/components/shared/SortableTabsList'
@@ -728,6 +729,7 @@ export default function SurrogateDetailPage() {
           { value: 'insurance', label: 'Insurance' },
           { value: 'emails', label: 'Emails' },
           { value: 'notes', label: 'Notes' },
+          ...(quizAnswers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
 
         {/* Overview Tab */}
@@ -988,6 +990,13 @@ export default function SurrogateDetailPage() {
             </DialogContent>
           </Dialog>
         </TabsContent>
+
+        {/* Previous Match Tab */}
+        {quizAnswers?._matchHistory?.length > 0 && (
+          <TabsContent value="previous-match" className="mt-4">
+            <PreviousMatchTab matchHistory={quizAnswers._matchHistory} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* SMS Dialog */}

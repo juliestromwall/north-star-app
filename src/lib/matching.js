@@ -168,38 +168,79 @@ export async function updateMatchedJourney(id, updates) {
   return data
 }
 
-export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCaseId }) {
+export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCaseId, gcName, ipName }) {
   if (!supabase) return null
 
-  // 1. Get all journey notes to copy to both cases
+  // 1. Get journey data
+  const { data: journey } = await supabase.from('matched_journeys').select('*').eq('id', journeyId).single()
+  const journeyData = journey?.journey_data || {}
+
+  // 2. Get all journey notes
   const { data: notes } = await supabase
     .from('journey_notes')
     .select('*')
     .eq('journey_id', journeyId)
 
-  // 2. Store break record in both GC and IP intake_submissions answers
+  // 3. Get journey documents
+  const { data: journeyDocs } = await supabase
+    .from('case_documents')
+    .select('*')
+    .eq('surrogate_id', journeyId)
+
+  // 4. Store break record in both GC and IP intake_submissions answers
   for (const caseId of [gcCaseId, ipCaseId]) {
     const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
     if (row?.answers) {
+      const isGc = caseId === gcCaseId
       const history = row.answers._matchHistory || []
       history.push({
         journeyId,
-        partnerId: caseId === gcCaseId ? ipCaseId : gcCaseId,
-        partnerType: caseId === gcCaseId ? 'ip' : 'gc',
+        partnerId: isGc ? ipCaseId : gcCaseId,
+        partnerName: isGc ? (ipName || 'Unknown IP') : (gcName || 'Unknown GC'),
+        partnerType: isGc ? 'ip' : 'gc',
         status: 'broken',
         reason,
         brokenBy,
         brokenAt: new Date().toISOString(),
+        matchCreated: journey?.created_at,
+        assignedTo: journey?.assigned_to,
+        stage: journey?.stage,
+        journeyData: {
+          escrowMin: journeyData.escrowMin, escrowBalance: journeyData.escrowBalance,
+          ivfClinic: journeyData.ivfClinic, ivfDoctor: journeyData.ivfDoctor,
+          obClinic: journeyData.obClinic, obDoctor: journeyData.obDoctor,
+          deliveryHospital: journeyData.deliveryHospital,
+          gcAttorneyName: journeyData.gcAttorneyName, gcAttorneyFirm: journeyData.gcAttorneyFirm,
+          ipAttorneyName: journeyData.ipAttorneyName, ipAttorneyFirm: journeyData.ipAttorneyFirm,
+          lostWages: journeyData.lostWages, pumping: journeyData.pumping,
+        },
+        checklistHistory: journeyData._checklistHistory || [],
         notes: (notes || []).map(n => ({ content: n.content, type: n.note_type, by: n.created_by, at: n.created_at })),
       })
       await supabase.from('intake_submissions').update({ answers: { ...row.answers, _matchHistory: history } }).eq('id', caseId)
     }
+
+    // Copy journey documents to this case as "Previous Match" category
+    if (journeyDocs?.length > 0) {
+      for (const doc of journeyDocs) {
+        await supabase.from('case_documents').insert({
+          surrogate_id: caseId,
+          category: 'previous-match',
+          file_name: doc.file_name,
+          file_type: doc.file_type,
+          file_size: doc.file_size,
+          storage_path: doc.storage_path,
+          public_url: doc.public_url,
+          uploaded_by: `Previous Match (${brokenBy})`,
+        }).catch(() => {})
+      }
+    }
   }
 
-  // 3. Delete journey notes
+  // 5. Delete journey notes
   await supabase.from('journey_notes').delete().eq('journey_id', journeyId)
 
-  // 4. Delete the matched journey record
+  // 6. Delete the matched journey record
   await supabase.from('matched_journeys').delete().eq('id', journeyId)
 
   return true

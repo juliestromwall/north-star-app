@@ -664,6 +664,8 @@ export default function JourneyDetailPage() {
         brokenBy: currentUser.name,
         gcCaseId: journey.gc_case_id,
         ipCaseId: journey.ip_case_id,
+        gcName: gcCase?.name,
+        ipName: ipCase?.names,
       })
       window.location.href = '/journeys'
     } catch (err) {

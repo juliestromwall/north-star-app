@@ -23,6 +23,7 @@ import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } fr
 import { mockUsers } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import SortableTabsList from '@/components/shared/SortableTabsList'
+import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
@@ -343,6 +344,7 @@ export default function IPDetailPage() {
           { value: 'texts', label: 'Texts' },
           { value: 'emails', label: 'Emails' },
           { value: 'notes', label: 'Notes' },
+          ...(ip?.answers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
 
         {/* Overview Tab */}
@@ -465,6 +467,13 @@ export default function IPDetailPage() {
         <TabsContent value="notes" className="space-y-6 mt-4">
           <EmptyState title="Notes" description="Case notes for intended parents coming soon." />
         </TabsContent>
+
+        {/* Previous Match Tab */}
+        {ip?.answers?._matchHistory?.length > 0 && (
+          <TabsContent value="previous-match" className="mt-4">
+            <PreviousMatchTab matchHistory={ip.answers._matchHistory} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
