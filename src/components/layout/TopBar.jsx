@@ -113,13 +113,6 @@ export default function TopBar({ onMenuClick }) {
       </nav>
 
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
-        <button
-          onClick={() => setDark(d => !d)}
-          className="p-1.5 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-white/10 dark:hover:text-stone-300 transition-colors"
-          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-        </button>
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
           <p className="text-xs text-muted-foreground">{ROLE_LABELS[currentUser.role]}</p>
