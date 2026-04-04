@@ -28,30 +28,24 @@ export function DraftProvider({ children }) {
     }
   }, [])
 
-  const openDraft = useCallback(async ({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId, caseType, userId, attachments: initialAttachments } = {}) => {
+  const openDraft = useCallback(({ to, cc, bcc, subject, body, replyTo, forwardMsg, caseId, caseType, userId, attachments: initialAttachments } = {}) => {
     const id = nextDraftId++
 
     let initialSubject = subject || ''
     let initialBody = body || ''
     let initialTo = to || ''
 
-    // Fetch signature (safely — never crash)
-    let sig = ''
-    try { sig = await fetchSignature(userId) } catch {}
-    const sigBlock = sig ? `<br/><div>--</div><div>${sig}</div>` : ''
-
     if (replyTo) {
       const fromEmail = replyTo.from?.match(/<([^>]+)>/)?.[1] || replyTo.from
       initialTo = fromEmail || ''
       initialSubject = replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject || ''}`
-      initialBody = `<p></p>${sigBlock}<br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">On ${replyTo.date}, ${replyTo.from} wrote:<br/>${replyTo.bodyHtml || ''}</div>`
+      initialBody = `<p></p><br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">On ${replyTo.date}, ${replyTo.from} wrote:<br/>${replyTo.bodyHtml || ''}</div>`
     } else if (forwardMsg) {
       initialTo = ''
       initialSubject = `Fwd: ${forwardMsg.subject || ''}`
-      initialBody = `<p></p>${sigBlock}<br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">---------- Forwarded message ----------<br/>From: ${forwardMsg.from}<br/>Date: ${forwardMsg.date}<br/>Subject: ${forwardMsg.subject}<br/><br/>${forwardMsg.bodyHtml || ''}</div>`
+      initialBody = `<p></p><br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">---------- Forwarded message ----------<br/>From: ${forwardMsg.from}<br/>Date: ${forwardMsg.date}<br/>Subject: ${forwardMsg.subject}<br/><br/>${forwardMsg.bodyHtml || ''}</div>`
     } else {
-      // New message — just signature
-      initialBody = `<p></p>${sigBlock}`
+      initialBody = `<p></p>`
     }
 
     const draft = {
@@ -68,7 +62,21 @@ export function DraftProvider({ children }) {
       showCcBcc: false,
     }
 
-    try { setDrafts(prev => [...prev, draft]) } catch (e) { console.error('Failed to add draft:', e) }
+    setDrafts(prev => [...prev, draft])
+
+    // Backfill signature async (never blocks draft opening)
+    fetchSignature(userId).then(sig => {
+      if (sig) {
+        const sigBlock = `<br/><div>--</div><div>${sig}</div>`
+        setDrafts(prev => prev.map(d => {
+          if (d.id !== id) return d
+          // Only append sig if not already present
+          if (d.body.includes('--</div>')) return d
+          return { ...d, body: d.body + sigBlock }
+        }))
+      }
+    }).catch(() => {})
+
     return id
   }, [fetchSignature])
 
