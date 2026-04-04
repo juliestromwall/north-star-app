@@ -733,7 +733,7 @@ export default function JourneyDetailPage() {
 
         {/* GC Card (pink tint) */}
         <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#fef9fb' }}>
-          <div className="p-4 space-y-3">
+          <div className="p-5 space-y-3">
             {gcCase ? (() => {
               const gcA = gcCase.answers || {}
               const gcPartner = gcA.partnerName || gcA.spouseFullName || ''
@@ -741,33 +741,33 @@ export default function JourneyDetailPage() {
               return (<>
                 {/* Header: label + contact buttons */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
-                  <div className="flex gap-1">
+                  <p className="text-xs font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
+                  <div className="flex gap-1.5">
                     {gcCase.phone && (
                       <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
-                        className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                        className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
                         onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
-                        <MessageSquare className="size-2.5" /> Text
+                        <MessageSquare className="size-3" /> Text
                       </Button>
                     )}
                     <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
-                      className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                      className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
                       onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
-                      <Mail className="size-2.5" /> Email
+                      <Mail className="size-3" /> Email
                     </Button>
                     {gcCase.phone && (
                       <Button variant={gcCase.preferredContact === 'Phone' ? 'default' : 'outline'} size="sm"
-                        className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                        className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
                         onClick={() => toggleGcFlip('phone')}>
-                        <Phone className="size-2.5" /> Call
+                        <Phone className="size-3" /> Call
                       </Button>
                     )}
                   </div>
                 </div>
                 {gcFlip.phone && gcCase.phone && (
-                  <div className="text-[10px] text-stone-500 flex items-center gap-1">
-                    <Phone className="size-2.5" /> {gcCase.phone}
-                    <button onClick={() => { navigator.clipboard.writeText(gcCase.phone) }} className="text-stone-400 hover:text-stone-600 ml-1"><Copy className="size-2.5" /></button>
+                  <div className="text-xs text-stone-500 flex items-center gap-1.5">
+                    <Phone className="size-3" /> {gcCase.phone}
+                    <button onClick={() => { navigator.clipboard.writeText(gcCase.phone) }} className="text-stone-400 hover:text-stone-600"><Copy className="size-3" /></button>
                   </div>
                 )}
                 {/* Name + info */}
@@ -775,22 +775,22 @@ export default function JourneyDetailPage() {
                   <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
                     <Link to={`/surrogates/${gcCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
-                    <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
+                    <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
                         {gcFlip.age ? fmtDate(gcCase.dob || gcA.dob) : `Age ${gcCase.age || '—'}`}
                       </span>
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
-                        <Heart className="size-3 inline" /> {gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
+                        <Heart className="size-3.5 inline" /> {gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
                       </span>
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')}>
-                        <Home className="size-3 inline" /> {gcFlip.address ? gcAddr : (gcCase.location || '—')}
+                        <Home className="size-3.5 inline" /> {gcFlip.address ? gcAddr : (gcCase.location || '—')}
                       </span>
                     </div>
                   </div>
                 </div>
                 {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
-                  <div className="text-[11px] text-emerald-600">
-                    <InsuranceCardIcon size={12} color="currentColor" className="inline mr-0.5" /> {gcInsurance.company || 'Insured'}
+                  <div className="text-xs text-emerald-600">
+                    <InsuranceCardIcon size={13} color="currentColor" className="inline mr-1" /> {gcInsurance.company || 'Insured'}
                   </div>
                 )}
                 <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
@@ -802,7 +802,7 @@ export default function JourneyDetailPage() {
 
         {/* IP Card (blue tint) */}
         <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#f8f9fb' }}>
-          <div className="p-4 space-y-3">
+          <div className="p-5 space-y-3">
             {ipCase ? (() => {
               const ipA = ipCase.answers || {}
               const ip1Age = ipCase.age
@@ -815,33 +815,33 @@ export default function JourneyDetailPage() {
               return (<>
                 {/* Header: label + contact buttons */}
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
-                  <div className="flex gap-1">
+                  <p className="text-xs font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
+                  <div className="flex gap-1.5">
                     {ipCase.phone && (
-                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
                         onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
-                        <MessageSquare className="size-2.5" /> Text
+                        <MessageSquare className="size-3" /> Text
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
                       onClick={() => {
                         const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
                         setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
                       }}>
-                      <Mail className="size-2.5" /> Email
+                      <Mail className="size-3" /> Email
                     </Button>
                     {allPhones && (
-                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
                         onClick={() => toggleIpFlip('phone')}>
-                        <Phone className="size-2.5" /> Call
+                        <Phone className="size-3" /> Call
                       </Button>
                     )}
                   </div>
                 </div>
                 {ipFlip.phone && allPhones && (
-                  <div className="text-[10px] text-stone-500 flex items-center gap-1">
-                    <Phone className="size-2.5" /> {allPhones}
-                    <button onClick={() => { navigator.clipboard.writeText(allPhones.split(' / ')[0]) }} className="text-stone-400 hover:text-stone-600 ml-1"><Copy className="size-2.5" /></button>
+                  <div className="text-xs text-stone-500 flex items-center gap-1.5">
+                    <Phone className="size-3" /> {allPhones}
+                    <button onClick={() => { navigator.clipboard.writeText(allPhones.split(' / ')[0]) }} className="text-stone-400 hover:text-stone-600"><Copy className="size-3" /></button>
                   </div>
                 )}
                 {/* Name + info */}
@@ -849,20 +849,20 @@ export default function JourneyDetailPage() {
                   <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
                     <Link to={`/intended-parents/${ipCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
-                    <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
+                    <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
                         {ipFlip.age ? dobDisplay : ageDisplay}
                       </span>
-                      <span><Heart className="size-3 inline" /> {ipA.maritalStatus || '—'}</span>
+                      <span><Heart className="size-3.5 inline" /> {ipA.maritalStatus || '—'}</span>
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')}>
-                        <Home className="size-3 inline" /> {ipFlip.address ? ipAddr : (ipCase.location || '—')}
+                        <Home className="size-3.5 inline" /> {ipFlip.address ? ipAddr : (ipCase.location || '—')}
                       </span>
                     </div>
                   </div>
                 </div>
                 {ipCase.hasFrozenEmbryos && (
-                  <div className="text-[11px] text-stone-500">
-                    <FertilizedEggIcon size={12} color="currentColor" className="inline mr-0.5" /> {ipCase.frozenEmbryoDetails || 'Embryos'}
+                  <div className="text-xs text-stone-500">
+                    <FertilizedEggIcon size={13} color="currentColor" className="inline mr-1" /> {ipCase.frozenEmbryoDetails || 'Embryos'}
                   </div>
                 )}
                 <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
