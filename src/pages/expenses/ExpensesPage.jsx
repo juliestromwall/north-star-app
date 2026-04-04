@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2 } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -175,12 +175,10 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" size="sm" onClick={() => { setReconcileId(null); setShowTaskForm(false); setTaskNote('') }}>Cancel</Button>
-              <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" disabled={creatingTask} onClick={async () => {
-                setCreatingTask(true)
-                try {
-                  // Create task if form is open
-                  if (showTaskForm && reconcileExp) {
-                    const caseName = reconcileJourney?.caseName || 'Journey'
+              {showTaskForm ? (
+                <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} disabled={creatingTask} onClick={async () => {
+                  setCreatingTask(true)
+                  try {
                     await createCaseTask({
                       case_id: reconcileExp.journey_id,
                       case_type: 'journey',
@@ -192,20 +190,23 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                       notes: taskNote || null,
                       created_by: '',
                     })
+                    setReconcileId(null)
+                    setShowTaskForm(false)
+                    setTaskNote('')
+                  } catch (err) {
+                    console.error('Failed:', err)
+                  } finally {
+                    setCreatingTask(false)
                   }
-                  onReconcile(reconcileId)
-                  setReconcileId(null)
-                  setShowTaskForm(false)
-                  setTaskNote('')
-                } catch (err) {
-                  console.error('Failed:', err)
-                } finally {
-                  setCreatingTask(false)
-                }
-              }}>
-                {creatingTask ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
-                {showTaskForm ? 'Reconcile & Create Task' : 'Reconcile'}
-              </Button>
+                }}>
+                  {creatingTask ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                  Create Task
+                </Button>
+              ) : (
+                <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => { onReconcile(reconcileId); setReconcileId(null) }}>
+                  <CheckCircle2 className="size-3" /> Reconcile
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
