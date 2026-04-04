@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { mockUsers } from '@/data/mock/users'
 import { useDrafts } from '@/context/DraftContext'
+import { formatDate } from '@/lib/utils'
 import { useRole } from '@/context/RoleContext'
 
 // Custom embryo/IVF icon based on the embryo creation concept
@@ -42,14 +43,7 @@ function parseDate(dateStr) {
   return new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'))
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '—'
-  try {
-    const d = parseDate(dateStr)
-    if (!d || isNaN(d.getTime())) return '—'
-    return `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`
-  } catch { return dateStr }
-}
+// formatDate is now imported from @/lib/utils
 
 function formatPhone(phone) {
   if (!phone) return '—'
@@ -727,7 +721,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       const emailSubject = `${sheetType?.label || 'Match Sheet'} - ${ipLabel} ${ipNames} with GC ${gcCase?.name || ''}`
 
       // Open compose window with attachment
-      await openDraft({
+      openDraft({
         subject: emailSubject,
         body: '',
         userId: currentUser?.userId,

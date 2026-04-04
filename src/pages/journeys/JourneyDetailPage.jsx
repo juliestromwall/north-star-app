@@ -23,6 +23,7 @@ import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
+import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
@@ -218,12 +219,7 @@ function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }
 }
 
 // ── Date formatter MM/DD/YYYY ──────────────────────────
-function fmtDate(dateStr) {
-  if (!dateStr) return '—'
-  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'))
-  if (isNaN(d)) return dateStr
-  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-}
+const fmtDate = formatDate
 
 // ── IVF Clinic Icon (matches match sheets) ─────────────
 function EmbryoIcon({ size = 14, color = '#000', className = '' }) {
@@ -983,7 +979,7 @@ export default function JourneyDetailPage() {
                   e.preventDefault(); e.stopPropagation()
                   const conf = emailConfirm
                   setEmailConfirm(null)
-                  openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }).catch(err => console.warn('openDraft failed:', err))
+                  openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id })
                 }}
                 type="button">
                 <Mail className="size-3" /> Confirm
