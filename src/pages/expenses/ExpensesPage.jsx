@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2 } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -77,6 +78,10 @@ function EditableCell({ col, value, onSave }) {
 }
 
 function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile }) {
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [reconcileId, setReconcileId] = useState(null)
+  const reconcileExp = reconcileId ? expenses.find(e => e.id === reconcileId) : null
+
   if (expenses.length === 0) {
     return (
       <div className="px-6 py-16 text-center text-stone-400">
@@ -87,66 +92,117 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="bg-stone-50 dark:bg-[#1e1e2a] border-b border-stone-200 dark:border-[#2a2a38]">
-            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[200px] border-r border-stone-200 dark:border-[#2a2a38]">
-              Case
-            </th>
-            {COLUMNS.map((col, i) => (
-              <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
-                {col.label}
-              </th>
-            ))}
-            {showReconcile && (
-              <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">
-                Reconcile
-              </th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {expenses.map(exp => {
-            const j = journeyMap[exp.journey_id] || {}
-            const caseName = j.caseName || 'Unknown Journey'
-            const caseManager = j.caseManager || '—'
-            const journeyId = exp.journey_id
+    <>
+      {/* Attachment Preview Dialog */}
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Attachment Preview</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            previewUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || previewUrl.match(/image\//)
+              ? <img src={previewUrl} alt="Expense attachment" className="w-full rounded-lg" />
+              : <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg border" title="Attachment" />
+          )}
+        </DialogContent>
+      </Dialog>
 
-            return (
-              <tr key={exp.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
-                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
-                  <Link to={`/journeys/${journeyId}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
-                    {caseName}
-                  </Link>
-                  <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
-                </td>
-                {COLUMNS.map((col, i) => (
-                  <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
-                    <EditableCell
-                      col={col}
-                      value={exp[col.key]}
-                      onSave={(v) => onSave(exp.id, col.key, v)}
-                    />
+      {/* Reconcile Confirmation Dialog */}
+      <Dialog open={!!reconcileId} onOpenChange={() => setReconcileId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm Reconciliation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+              <p>Are you sure you want to reconcile this expense?</p>
+              {reconcileExp && (
+                <p className="mt-2 font-semibold">{formatCurrency(reconcileExp.amount)} — {reconcileExp.paid_to || 'No payee'}</p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setReconcileId(null)}>Cancel</Button>
+              <Button size="sm" className="gap-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => { onReconcile(reconcileId); setReconcileId(null) }}>
+                <CheckCircle2 className="size-3" /> Reconcile
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-stone-50 dark:bg-[#1e1e2a] border-b border-stone-200 dark:border-[#2a2a38]">
+              <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[200px] border-r border-stone-200 dark:border-[#2a2a38]">
+                Case
+              </th>
+              {COLUMNS.map((col, i) => (
+                <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
+                  {col.label}
+                </th>
+              ))}
+              <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-l border-stone-100 dark:border-[#2a2a38]">
+                Doc
+              </th>
+              {showReconcile && (
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">
+                  Reconcile
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {expenses.map(exp => {
+              const j = journeyMap[exp.journey_id] || {}
+              const caseName = j.caseName || 'Unknown Journey'
+              const caseManager = j.caseManager || '—'
+              const journeyId = exp.journey_id
+
+              return (
+                <tr key={exp.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
+                  <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
+                    <Link to={`/journeys/${journeyId}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
+                      {caseName}
+                    </Link>
+                    <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
                   </td>
-                ))}
-                {showReconcile && (
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => onReconcile(exp.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                      title="Mark as reconciled"
-                    >
-                      <CheckCircle2 className="size-3" /> Reconcile
-                    </button>
+                  {COLUMNS.map((col, i) => (
+                    <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
+                      <EditableCell
+                        col={col}
+                        value={exp[col.key]}
+                        onSave={(v) => onSave(exp.id, col.key, v)}
+                      />
+                    </td>
+                  ))}
+                  <td className="px-3 py-3 text-center border-l border-stone-100 dark:border-[#2a2a38]">
+                    {exp.attachment_url ? (
+                      <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
+                        <Eye className="size-4" />
+                      </button>
+                    ) : (
+                      <span className="text-stone-200">—</span>
+                    )}
                   </td>
-                )}
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                  {showReconcile && (
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => setReconcileId(exp.id)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                        title="Mark as reconciled"
+                      >
+                        <CheckCircle2 className="size-3" /> Reconcile
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
 

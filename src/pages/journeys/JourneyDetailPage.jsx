@@ -16,6 +16,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
+import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
@@ -34,7 +35,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
 
@@ -768,6 +769,7 @@ export default function JourneyDetailPage() {
   const [breaking, setBreaking] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [expenseFile, setExpenseFile] = useState(null)
   const [savingExpense, setSavingExpense] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
@@ -990,20 +992,32 @@ export default function JourneyDetailPage() {
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
               <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
             </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Attachment</label>
+              <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={e => setExpenseFile(e.target.files?.[0] || null)} className="h-9 text-xs" />
+              {expenseFile && <p className="text-[10px] text-stone-400">{expenseFile.name} ({(expenseFile.size / 1024).toFixed(0)}KB)</p>}
+            </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={() => setExpenseOpen(false)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseFile(null) }}>Cancel</Button>
               <Button size="sm" disabled={savingExpense || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
                 setSavingExpense(true)
                 try {
+                  let attachmentUrl = null
+                  if (expenseFile) {
+                    const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: expenseFile, uploadedBy: currentUser?.name || 'Admin' })
+                    attachmentUrl = doc?.public_url || null
+                  }
                   await insertExpense({
                     journey_id: journey.id,
                     expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
                     amount: parseFloat(newExpense.amount) || 0,
                     paid_to: newExpense.paid_to || null,
                     notes: newExpense.notes || null,
+                    attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
                   setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+                  setExpenseFile(null)
                   setExpenseOpen(false)
                 } catch (err) {
                   console.error('Failed to add expense:', err)
@@ -1071,9 +1085,6 @@ export default function JourneyDetailPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
-                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setExpenseOpen(true)}>
-                  <Plus className="size-3" /> Add Expense
-                </Button>
                 <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
                   <X className="size-3" /> Break Match
                 </Button>
@@ -1093,12 +1104,20 @@ export default function JourneyDetailPage() {
 
             {/* ── Escrow ── */}
             <div className="border-t border-stone-100 pt-4">
-              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2">Escrow</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Escrow</p>
+                <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setExpenseOpen(true)}>
+                  <Plus className="size-3" /> Add Expense
+                </Button>
+              </div>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                 <span className="text-stone-500">Min: <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" className="text-stone-800" /></span>
-                <span className="text-stone-500">Balance: <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
-                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : 'text-stone-800'} /></span>
-                <span className="text-stone-500 flex items-center gap-1.5">Close: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
+                <span className="text-stone-500">
+                  Balance: <EditableTileInline value={jd.escrowBalance} onSave={v => updateFields({ escrowBalance: v, escrowBalanceUpdatedAt: new Date().toISOString() })} type="currency"
+                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : 'text-stone-800'} />
+                  {jd.escrowBalanceUpdatedAt && <span className="text-[10px] text-stone-400 ml-1">({formatDate(jd.escrowBalanceUpdatedAt)})</span>}
+                </span>
+                <span className="text-stone-500 flex items-center gap-1.5">Escrow Close Date: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
               </div>
             </div>
 
@@ -1329,8 +1348,11 @@ export default function JourneyDetailPage() {
         ]} />
 
         <TabsContent value="overview" className="mt-4 space-y-6">
-          <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
           <JourneyMilestoneTimeline journey={journey} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={journey.id} caseType="journey" />
+            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
+          </div>
         </TabsContent>
 
         <TabsContent value="checklist" className="mt-4">

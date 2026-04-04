@@ -333,6 +333,26 @@ export async function listEvents(userId, {
   return data
 }
 
+/** List events for a specific case/journey */
+export async function listCaseEvents(userId, caseId, caseType, { calendarId = 'primary', timeMin, timeMax, maxResults = 50 } = {}) {
+  const token = await getAccessToken(userId)
+  const params = new URLSearchParams({
+    maxResults: String(maxResults),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    privateExtendedProperty: `caseId=${caseType}_${caseId}`,
+  })
+  if (timeMin) params.set('timeMin', timeMin)
+  if (timeMax) params.set('timeMax', timeMax)
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) return { items: [] }
+  return data
+}
+
 /** Create a calendar event */
 export async function createEvent(userId, calendarId = 'primary', event) {
   const token = await getAccessToken(userId)
