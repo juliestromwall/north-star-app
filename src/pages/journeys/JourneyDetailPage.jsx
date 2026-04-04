@@ -129,10 +129,12 @@ function EditableTileInline({ value, onSave, type = 'text', placeholder = 'Set..
     )
   }
 
+  const display = type === 'date' && value ? formatDate(value) : value
+
   return (
     <button onClick={() => { setVal(value); setEditing(true) }}
       className={`font-semibold hover:underline cursor-pointer ${className || 'text-stone-800'}`}>
-      {value || <span className="text-stone-300 font-normal">{placeholder}</span>}
+      {display || <span className="text-stone-300 font-normal">{placeholder}</span>}
     </button>
   )
 }
@@ -416,6 +418,7 @@ function JourneyExpensesTab({ journeyId }) {
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [tabExpenseFile, setTabExpenseFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const { currentUser } = useRole()
 
@@ -430,16 +433,23 @@ function JourneyExpensesTab({ journeyId }) {
     if (!newExpense.amount) return
     setSaving(true)
     try {
+      let attachmentUrl = null
+      if (tabExpenseFile) {
+        const doc = await uploadCaseDocument({ surrogateId: journeyId, category: 'Expenses', file: tabExpenseFile, uploadedBy: currentUser?.name || 'Admin' })
+        attachmentUrl = doc?.public_url || null
+      }
       const created = await insertExpense({
         journey_id: journeyId,
         expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
         amount: parseFloat(newExpense.amount) || 0,
         paid_to: newExpense.paid_to || null,
         notes: newExpense.notes || null,
+        attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
       if (created) setExpenses(prev => [created, ...prev])
       setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+      setTabExpenseFile(null)
       setAddOpen(false)
     } catch (err) {
       console.error('Failed to add expense:', err)
@@ -506,8 +516,13 @@ function JourneyExpensesTab({ journeyId }) {
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
               <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
             </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Attachment</label>
+              <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={e => setTabExpenseFile(e.target.files?.[0] || null)} className="h-9 text-xs" />
+              {tabExpenseFile && <p className="text-[10px] text-stone-400">{tabExpenseFile.name} ({(tabExpenseFile.size / 1024).toFixed(0)}KB)</p>}
+            </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setTabExpenseFile(null) }}>Cancel</Button>
               <Button size="sm" onClick={handleAdd} disabled={saving || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {saving ? 'Adding...' : 'Add Expense'}
