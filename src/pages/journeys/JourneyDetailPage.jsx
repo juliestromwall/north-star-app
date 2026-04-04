@@ -681,7 +681,7 @@ export default function JourneyDetailPage() {
         <div className="lg:col-span-2 flex flex-col gap-4">
 
         {/* GC Card (pink tint) */}
-        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#ed148c08' }}>
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#ed148c0d' }}>
           <div className="p-4 space-y-3">
             <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
             {gcCase ? (() => {
@@ -734,7 +734,7 @@ export default function JourneyDetailPage() {
         </div>
 
         {/* IP Card (blue tint) */}
-        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#28369308' }}>
+        <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#2836930d' }}>
           <div className="p-4 space-y-3">
             <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</p>
             {ipCase ? (() => {
