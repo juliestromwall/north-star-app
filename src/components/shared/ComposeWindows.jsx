@@ -261,11 +261,8 @@ function ComposeWindow({ draft, index }) {
     if (!draft.to.trim() || !userId) return
     setSending(true)
     try {
-      let htmlBody = editor?.getHTML() || draft.body || '<p></p>'
-      // Append raw Gmail signature HTML (not parsed by Tiptap)
-      if (draft.signatureHtml) {
-        htmlBody += `<br/><div>--</div><div>${draft.signatureHtml}</div>`
-      }
+      const htmlBody = editor?.getHTML() || draft.body || '<p></p>'
+      // Don't append signature — Gmail auto-appends it on send
       const result = await sendEmail(userId, {
         to: draft.to.trim(),
         subject: draft.subject,
@@ -313,10 +310,8 @@ function ComposeWindow({ draft, index }) {
     if (userId) {
       setSavingDraft(true)
       try {
-        let htmlBody = editor?.getHTML() || draft.body || ''
-        if (draft.signatureHtml) {
-          htmlBody += `<br/><div>--</div><div>${draft.signatureHtml}</div>`
-        }
+        const htmlBody = editor?.getHTML() || draft.body || ''
+        // Don't append signature — Gmail adds it when draft is sent from Gmail
         await createGmailDraft(userId, {
           to: draft.to,
           subject: draft.subject,
