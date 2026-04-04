@@ -255,12 +255,12 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="bg-stone-50 border-b border-stone-200">
-            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1c1c2e] z-10 min-w-[180px] border-r border-stone-200">
+          <tr className="bg-stone-50 dark:bg-[#1e1e2a] border-b border-stone-200 dark:border-[#2a2a38]">
+            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-10 min-w-[180px] border-r border-stone-200 dark:border-[#2a2a38]">
               Surrogate
             </th>
             {COLUMNS.map((col, i) => (
-              <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100' : ''}`}>
+              <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
                 {col.label}
               </th>
             ))}
@@ -271,9 +271,9 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
             const ins = insuranceMap[s.id] || {}
             const state = s.location?.split(', ').pop() || ''
             return (
-              <tr key={s.id} className="border-b border-stone-100 hover:bg-stone-50/50">
-                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1c1c2e] z-10 border-r border-stone-200">
-                  <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#283693] hover:underline text-sm">
+              <tr key={s.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
+                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-10 border-r border-stone-200 dark:border-[#2a2a38]">
+                  <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
                     {s.name}
                   </Link>
                   <div className="text-[10px] text-stone-400 mt-0.5">
@@ -282,7 +282,7 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
                 </td>
                 {COLUMNS.map((col, i) => {
                   const value = col.key === 'state' ? state : ins[col.key] ?? null
-                  const borderCls = i < COLUMNS.length - 1 ? 'border-r border-stone-100' : ''
+                  const borderCls = i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''
                   if (col.readOnly) {
                     return <td key={col.key} className={`px-4 py-3.5 text-stone-600 ${borderCls}`}>{value || '—'}</td>
                   }

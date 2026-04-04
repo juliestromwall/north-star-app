@@ -93,37 +93,42 @@
 
 /* ===== Dark Mode ===== */
 .dark {
-    --background: #141420;
-    --foreground: #e8e6f0;
-    --card: #1c1c2e;
-    --card-foreground: #e8e6f0;
-    --popover: #1c1c2e;
-    --popover-foreground: #e8e6f0;
-    --primary: #7b8adb;
-    --primary-foreground: #0e0e1a;
-    --secondary: #252538;
-    --secondary-foreground: #c8c4e0;
-    --muted: #252538;
-    --muted-foreground: #9994b0;
+    --background: #111118;
+    --foreground: #e0dfe6;
+    --card: #1a1a24;
+    --card-foreground: #e0dfe6;
+    --popover: #1a1a24;
+    --popover-foreground: #e0dfe6;
+    --primary: #c0c8f0;
+    --primary-foreground: #111118;
+    --secondary: #22222e;
+    --secondary-foreground: #c8c6d4;
+    --muted: #22222e;
+    --muted-foreground: #8a8898;
     --accent: #ed148c;
     --accent-foreground: #FFFFFF;
     --destructive: #ef4444;
-    --border: #2e2e44;
-    --input: #2e2e44;
-    --ring: #7b8adb;
-    --chart-1: #7b8adb;
+    --border: #2a2a38;
+    --input: #2a2a38;
+    --ring: #c0c8f0;
+    --chart-1: #c0c8f0;
     --chart-2: #ed148c;
-    --chart-3: #7b8adb;
+    --chart-3: #c0c8f0;
     --chart-4: #8B8FBF;
     --chart-5: #f9a8d4;
-    --sidebar: #18182a;
-    --sidebar-foreground: #9994b0;
-    --sidebar-primary: #7b8adb;
-    --sidebar-primary-foreground: #FFFFFF;
-    --sidebar-accent: #252538;
-    --sidebar-accent-foreground: #e8e6f0;
-    --sidebar-border: #2e2e44;
-    --sidebar-ring: #7b8adb;
+    --sidebar: #141420;
+    --sidebar-foreground: #a8a6b4;
+    --sidebar-primary: #c0c8f0;
+    --sidebar-primary-foreground: #111118;
+    --sidebar-accent: #22222e;
+    --sidebar-accent-foreground: #e0dfe6;
+    --sidebar-border: #2a2a38;
+    --sidebar-ring: #c0c8f0;
+}
+
+/* Dark mode: section headers readable */
+.dark .text-abc-indigo\/50 {
+    color: rgba(192, 200, 240, 0.6) !important;
 }
 
 @layer base {
@@ -181,8 +186,8 @@
     color: #283693;
 }
 .dark .sidebar-nav-item:hover {
-    background: rgba(123, 138, 219, 0.08);
-    color: #a5b0f0;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e0dfe6;
 }
 .sidebar-nav-item:active {
     transform: scale(0.97);
@@ -231,6 +236,9 @@
     height: 1px;
     background: rgba(237, 20, 140, 0.15);
     margin: 0 12px;
+}
+.dark .sidebar-section-divider {
+    background: rgba(237, 20, 140, 0.2);
 }
 
 /* ===== Nav icon animations ===== */

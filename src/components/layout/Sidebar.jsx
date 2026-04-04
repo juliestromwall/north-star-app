@@ -84,8 +84,8 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                         'dock-nav-item group relative flex items-center rounded-xl text-[13px] font-medium',
                         collapsed ? 'justify-center px-2 py-2.5 mx-auto' : 'gap-3 px-3 py-2',
                         isActive
-                          ? 'sidebar-nav-active text-abc-indigo font-semibold'
-                          : 'sidebar-nav-item text-stone-500'
+                          ? 'sidebar-nav-active text-abc-indigo dark:text-white font-semibold'
+                          : 'sidebar-nav-item text-stone-500 dark:text-stone-400'
                       )
                     }
                   >
@@ -102,8 +102,8 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
                           'nav-icon shrink-0 transition-all duration-250',
                           collapsed ? 'size-5' : 'size-[22px]',
                           isActive
-                            ? 'text-abc-indigo'
-                            : 'text-stone-400 group-hover:text-abc-indigo'
+                            ? 'text-abc-indigo dark:text-white'
+                            : 'text-stone-400 group-hover:text-abc-indigo dark:group-hover:text-white'
                         )} />
                         {!collapsed && (
                           <>
@@ -148,7 +148,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
       </ScrollArea>
 
       {/* Bottom */}
-      <div className="shrink-0 border-t border-stone-100">
+      <div className="shrink-0 border-t border-stone-100 dark:border-[#2a2a38]">
         {showBabiesBorn && (
           <NavLink
             to="/babies-born"
@@ -245,7 +245,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col shrink-0 bg-white dark:bg-[#18182a] border-r border-stone-200/80 dark:border-[#2e2e44] transition-all duration-200',
+          'hidden md:flex flex-col shrink-0 bg-white dark:bg-[#141420] border-r border-stone-200/80 dark:border-[#2a2a38] transition-all duration-200',
           collapsed ? 'w-[60px]' : 'w-[220px]'
         )}
       >
@@ -254,7 +254,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
       {/* Mobile sidebar */}
       <Sheet open={mobileOpen} onOpenChange={onMobileClose}>
-        <SheetContent side="left" className="w-[260px] p-0 border-none flex flex-col bg-white dark:bg-[#18182a]">
+        <SheetContent side="left" className="w-[260px] p-0 border-none flex flex-col bg-white dark:bg-[#141420]">
           <SidebarContent {...sharedProps} collapsed={false} />
         </SheetContent>
       </Sheet>
