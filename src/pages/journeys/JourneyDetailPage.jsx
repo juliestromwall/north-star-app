@@ -571,7 +571,7 @@ export default function JourneyDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
         {/* Journey Info Card (purple tint, 3 of 5 cols) */}
-        <div className="lg:col-span-3 rounded-2xl border border-stone-200/80 overflow-hidden" style={{ backgroundColor: '#9333ea08' }}>
+        <div className="lg:col-span-3 rounded-2xl border border-stone-200/80 overflow-hidden bg-white">
           <div className="p-6 space-y-5">
 
             {/* Stage + Status pill */}
