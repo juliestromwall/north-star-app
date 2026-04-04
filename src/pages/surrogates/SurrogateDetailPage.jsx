@@ -736,7 +736,10 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <CaseTasksWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={surrogate.id} caseType="surrogate" />
+            <CaseTasksWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
+          </div>
           <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} stageId={stageStatus?.stage || 'pre-qualification'} />
         </TabsContent>
 

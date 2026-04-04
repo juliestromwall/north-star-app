@@ -25,6 +25,7 @@ import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
+import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
@@ -350,7 +351,10 @@ export default function IPDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={ip.id} caseType="ip" />
+            <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="rounded-2xl">
               <CardHeader><CardTitle>Intended Parent 1</CardTitle></CardHeader>
