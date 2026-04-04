@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Component } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
@@ -469,6 +469,32 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
       )}
     </div>
   )
+}
+
+// ── Profiles Tab (isolated to prevent crashes) ─────────
+class ProfileErrorBoundary extends Component {
+  state = { hasError: false, error: null }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  componentDidCatch(err) { console.error('Profile tab crashed:', err) }
+  render() {
+    if (this.state.hasError) return <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">Something went wrong loading the profile. <button className="underline ml-1" onClick={() => this.setState({ hasError: false, error: null })}>Try again</button></div>
+    return this.props.children
+  }
+}
+
+function ProfilesTabContent({ profileView, gcProfileData, ipCase, setIpCase }) {
+  if (profileView === 'gc') {
+    if (!gcProfileData) return <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
+    return <ProfileErrorBoundary key="gc"><ProfilePreview profile={gcProfileData} hideFooter /></ProfileErrorBoundary>
+  }
+  if (!ipCase) return <EmptyState title="No IP profile data" />
+  return <ProfileErrorBoundary key="ip"><IPProfileTab ip={ipCase} onUpdate={async (updates) => {
+    try {
+      const { updateIntakeSubmission } = await import('@/lib/db')
+      await updateIntakeSubmission(ipCase.id, updates)
+      setIpCase(prev => ({ ...prev, ...updates }))
+    } catch {}
+  }} /></ProfileErrorBoundary>
 }
 
 // ── Main Page ───────────────────────────────────────────
@@ -1011,18 +1037,12 @@ export default function JourneyDetailPage() {
               IP Profile
             </button>
           </div>
-          {profileView === 'gc' ? (
-            gcProfileData ? <ProfilePreview profile={gcProfileData} hideFooter /> : <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
-          ) : (
-            ipCase ? <IPProfileTab ip={ipCase} onUpdate={async (updates) => {
-              // IP profile updates go through intake submission
-              try {
-                const { updateIntakeSubmission } = await import('@/lib/db')
-                await updateIntakeSubmission(ipCase.id, updates)
-                setIpCase(prev => ({ ...prev, ...updates }))
-              } catch {}
-            }} /> : <EmptyState title="No IP profile data" />
-          )}
+          <ProfilesTabContent
+            profileView={profileView}
+            gcProfileData={gcProfileData}
+            ipCase={ipCase}
+            setIpCase={setIpCase}
+          />
         </TabsContent>
 
         <TabsContent value="checklist" className="mt-4">
