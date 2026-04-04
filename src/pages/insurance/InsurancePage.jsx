@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { fetchSurrogatesFromIntake, fetchAllInsurance, upsertInsurance } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchAllInsurance, upsertInsurance, fetchAllInsurancePayments } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import { mockUsers } from '@/data/mock/users'
 
@@ -210,7 +210,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filterYear, search, adminFilter }) {
+function InsuranceTable({ surrogates, insuranceMap, paymentsMap, currentMonth, onSave, filterStatus, filterYear, search, adminFilter }) {
   let rows = surrogates.filter(s => insuranceMap[s.id])
 
   // Search skips tab filtering — shows results across all statuses
@@ -256,8 +256,11 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr className="bg-stone-50 dark:bg-[#1e1e2a] border-b border-stone-200 dark:border-[#2a2a38]">
-            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-10 min-w-[180px] border-r border-stone-200 dark:border-[#2a2a38]">
+            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[180px] border-r border-stone-200 dark:border-[#2a2a38]">
               Surrogate
+            </th>
+            <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-[180px] bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[80px] border-r border-stone-200 dark:border-[#2a2a38]">
+              Pay Status
             </th>
             {COLUMNS.map((col, i) => (
               <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
@@ -272,13 +275,22 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
             const state = s.location?.split(', ').pop() || ''
             return (
               <tr key={s.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
-                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-10 border-r border-stone-200 dark:border-[#2a2a38]">
+                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
                   <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
                     {s.name}
                   </Link>
                   <div className="text-[10px] text-stone-400 mt-0.5">
                     {getAdminName(s.assignedTo)}
                   </div>
+                </td>
+                <td className="px-3 py-3.5 text-center sticky left-[180px] bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
+                  {(() => {
+                    const paidMonths = paymentsMap[ins.id]
+                    const isPaid = paidMonths?.has(currentMonth)
+                    return isPaid
+                      ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">PAID</span>
+                      : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-600">UNPAID</span>
+                  })()}
                 </td>
                 {COLUMNS.map((col, i) => {
                   const value = col.key === 'state' ? state : ins[col.key] ?? null
@@ -320,24 +332,35 @@ function TabBanner({ message }) {
 export default function InsurancePage() {
   const [surrogates, setSurrogates] = useState([])
   const [insuranceMap, setInsuranceMap] = useState({})
+  const [paymentsMap, setPaymentsMap] = useState({}) // insuranceId -> Set of month_for strings
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('active')
   const [search, setSearch] = useState('')
   const [adminFilter, setAdminFilter] = useState('')
+
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 
   const tabs = buildTabs()
 
   useEffect(() => {
     async function load() {
       try {
-        const [surrData, insData] = await Promise.all([
+        const [surrData, insData, payData] = await Promise.all([
           fetchSurrogatesFromIntake(),
           fetchAllInsurance(),
+          fetchAllInsurancePayments(),
         ])
         setSurrogates(surrData || [])
         const map = {}
         ;(insData || []).forEach(ins => { map[ins.case_id] = ins })
         setInsuranceMap(map)
+        // Build payments lookup: insuranceId -> Set of paid months
+        const pmap = {}
+        ;(payData || []).forEach(p => {
+          if (!pmap[p.insurance_id]) pmap[p.insurance_id] = new Set()
+          pmap[p.insurance_id].add(p.month_for)
+        })
+        setPaymentsMap(pmap)
       } catch (err) {
         console.error('Failed to load insurance data:', err)
       } finally {
@@ -426,6 +449,8 @@ export default function InsurancePage() {
                 <InsuranceTable
                   surrogates={surrogates}
                   insuranceMap={insuranceMap}
+                  paymentsMap={paymentsMap}
+                  currentMonth={currentMonth}
                   onSave={handleSave}
                   filterStatus={tab.statusFilter}
                   filterYear={tab.year}

@@ -896,3 +896,13 @@ export async function fetchAllInsurance() {
   if (error) throw error
   return data || []
 }
+
+export async function fetchAllInsurancePayments() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('insurance_payments')
+    .select('*')
+    .order('month_for', { ascending: false })
+  if (error) return []
+  return data || []
+}
