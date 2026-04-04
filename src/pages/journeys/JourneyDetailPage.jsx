@@ -531,15 +531,7 @@ export default function JourneyDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link to="/journeys" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to Journeys</Link>
-        <div className="flex items-center gap-3 text-xs text-stone-400">
-          <span>Match Created {new Date(journey.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-          <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
-            <X className="size-3" /> Break Match
-          </Button>
-        </div>
-      </div>
+      <Link to="/journeys" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back to Journeys</Link>
 
       {/* Break Match Dialog */}
       <Dialog open={breakOpen} onOpenChange={setBreakOpen}>
@@ -570,57 +562,64 @@ export default function JourneyDetailPage() {
       {/* ─── Hero: Journey left, GC/IP stacked right ─────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
-        {/* Journey Info Card (purple tint, 3 of 5 cols) */}
+        {/* Journey Info Card (white, 3 of 5 cols) */}
         <div className="lg:col-span-3 rounded-2xl border border-stone-200/80 overflow-hidden bg-white">
           <div className="p-6 space-y-5">
 
-            {/* Stage + Status pill */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative">
-                <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
-                  className="flex items-center gap-2 text-xl font-heading font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
-                  <Milestone className="size-6" /> {stageObj.label}
-                </button>
-                {stageOpen && (
-                  <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2">
-                    {JOURNEY_STAGES.map((stage, i) => (
-                      <button key={stage.id} className="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2.5" onClick={() => changeStage(stage.id)}>
-                        <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
-                        {stage.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Status as a pill badge */}
-              <div className="relative">
-                <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
-                  className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold border cursor-pointer hover:shadow-sm transition-all"
-                  style={{ color: stageObj.color, backgroundColor: `${stageObj.color}12`, borderColor: `${stageObj.color}30` }}>
-                  {journey.status}
-                </button>
-                {statusOpen && (
-                  <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
-                    {statuses.map(status => (
-                      <button key={status} className="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2.5" onClick={() => changeStatus(status)}>
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Pregnancy — only when Active Pregnancy or later */}
-              {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && jd.dueDate && (
-                <div className="flex items-center gap-2 ml-1">
-                  <span className="text-2xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
-                  <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
+            {/* Top row: Stage + Status pill | Match date + Break Match */}
+            <div className="flex items-start justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <button onClick={() => { setStageOpen(!stageOpen); setStatusOpen(false) }}
+                    className="flex items-center gap-2 text-xl font-heading font-bold hover:underline cursor-pointer" style={{ color: stageObj.color }}>
+                    <Milestone className="size-6" /> {stageObj.label}
+                  </button>
+                  {stageOpen && (
+                    <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2">
+                      {JOURNEY_STAGES.map((stage, i) => (
+                        <button key={stage.id} className="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2.5" onClick={() => changeStage(stage.id)}>
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 4}</span>
+                          {stage.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="relative">
+                  <button onClick={() => { setStatusOpen(!statusOpen); setStageOpen(false) }}
+                    className="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold border cursor-pointer hover:shadow-sm transition-all"
+                    style={{ color: stageObj.color, backgroundColor: `${stageObj.color}12`, borderColor: `${stageObj.color}30` }}>
+                    {journey.status}
+                  </button>
+                  {statusOpen && (
+                    <div className="absolute z-30 top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border py-2 max-h-64 overflow-y-auto">
+                      {statuses.map(status => (
+                        <button key={status} className="w-full text-left px-4 py-2.5 text-sm hover:bg-stone-50 flex items-center gap-2.5" onClick={() => changeStatus(status)}>
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: stageObj.color }} />{status}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Pregnancy */}
+                {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && jd.dueDate && (
+                  <div className="flex items-center gap-2 ml-1">
+                    <span className="text-2xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
+                    <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
+                <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
+                  <X className="size-3" /> Break Match
+                </Button>
+              </div>
             </div>
 
             {/* Key info row */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <span className="text-stone-500">LW: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-800 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
+              <span className="text-stone-500">Lost Wages: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-800 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
               <span className="text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-800 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
               {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
                 <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer font-medium" title="View insurance">
@@ -637,18 +636,44 @@ export default function JourneyDetailPage() {
               <span className="text-stone-500 flex items-center gap-1.5"><Calendar className="size-3.5" /> <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Escrow close" className="text-stone-800" /></span>
             </div>
 
-            {/* Clinics / Hospital */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <span className="flex items-center gap-1.5 text-stone-700"><EmbryoIcon size={15} color="#78716c" /> <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Set fertility clinic" /></span>
-              <span className="flex items-center gap-1.5 text-stone-700"><Stethoscope className="size-4 text-stone-400" /> <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Set OB clinic" /></span>
-              <span className="flex items-center gap-1.5 text-stone-700"><Hospital className="size-4 text-stone-400" /> <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Set hospital" /></span>
+            {/* Fertility Clinic */}
+            <div className="space-y-1">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><EmbryoIcon size={13} color="#a8a29e" /> Fertility Clinic</p>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Clinic name" className="text-stone-800" />
+                <span className="text-stone-400">Dr.</span> <EditableTileInline value={jd.ivfDoctor} onSave={v => updateField('ivfDoctor', v)} type="text" placeholder="Doctor name" className="text-stone-800" />
+                <span className="text-stone-400">Coordinator:</span> <EditableTileInline value={jd.ivfCoordinator} onSave={v => updateField('ivfCoordinator', v)} type="text" placeholder="Name" className="text-stone-800" />
+                <EditableTileInline value={jd.ivfCoordinatorEmail} onSave={v => updateField('ivfCoordinatorEmail', v)} type="text" placeholder="Coordinator email" className="text-stone-800" />
+              </div>
+              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.ivfAddress} onSave={v => updateField('ivfAddress', v)} type="text" placeholder="Clinic address" className="text-stone-600" /></div>
             </div>
 
-            {/* Managers */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            {/* OB Clinic */}
+            <div className="space-y-1">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Stethoscope className="size-3.5" /> OB Clinic</p>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Clinic name" className="text-stone-800" />
+                <span className="text-stone-400">Dr.</span> <EditableTileInline value={jd.obDoctor} onSave={v => updateField('obDoctor', v)} type="text" placeholder="Doctor name" className="text-stone-800" />
+                <span className="text-stone-400">Ph:</span> <EditableTileInline value={jd.obPhone} onSave={v => updateField('obPhone', v)} type="text" placeholder="Phone" className="text-stone-800" />
+              </div>
+              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.obAddress} onSave={v => updateField('obAddress', v)} type="text" placeholder="OB clinic address" className="text-stone-600" /></div>
+            </div>
+
+            {/* Delivery Hospital */}
+            <div className="space-y-1">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Hospital className="size-3.5" /> Delivery Hospital</p>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+                <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Hospital name" className="text-stone-800" />
+                <span className="text-stone-400">Ph:</span> <EditableTileInline value={jd.deliveryHospitalPhone} onSave={v => updateField('deliveryHospitalPhone', v)} type="text" placeholder="Phone" className="text-stone-800" />
+              </div>
+              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.deliveryHospitalAddress} onSave={v => updateField('deliveryHospitalAddress', v)} type="text" placeholder="Hospital address" className="text-stone-600" /></div>
+            </div>
+
+            {/* Managers — bottom */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm pt-2 border-t border-stone-100">
               <div className="flex items-center gap-1.5">
                 <UserCog className="size-4 text-stone-400" />
-                <span className="text-stone-500">Case Mgr:</span>
+                <span className="text-stone-500">Case Manager:</span>
                 <SelectUI value={journey.assigned_to || '_unassigned'} onValueChange={async val => {
                   const updated = await updateMatchedJourney(journey.id, { assigned_to: val === '_unassigned' ? null : val }).catch(() => null)
                   if (updated) setJourney(updated)
@@ -662,7 +687,7 @@ export default function JourneyDetailPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <Crown className="size-4 text-amber-500" />
-                <span className="text-stone-500">Journey Mgr:</span>
+                <span className="text-stone-500">Journey Manager:</span>
                 <SelectUI value={jd.journeyManager || '_unassigned'} onValueChange={async val => {
                   updateField('journeyManager', val === '_unassigned' ? '' : val)
                 }}>
@@ -683,49 +708,65 @@ export default function JourneyDetailPage() {
         {/* GC Card (pink tint) */}
         <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#fef9fb' }}>
           <div className="p-4 space-y-3">
-            <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
             {gcCase ? (() => {
               const gcA = gcCase.answers || {}
               const gcPartner = gcA.partnerName || gcA.spouseFullName || ''
               const gcAddr = [gcA.street, gcA.city, gcA.state, gcA.zipCode].filter(Boolean).join(', ') || gcCase.location || '—'
               return (<>
+                {/* Header: label + contact buttons */}
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
+                  <div className="flex gap-1">
+                    {gcCase.phone && (
+                      <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
+                        className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                        onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
+                        <MessageSquare className="size-2.5" /> Text
+                      </Button>
+                    )}
+                    <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
+                      className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                      onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
+                      <Mail className="size-2.5" /> Email
+                    </Button>
+                    {gcCase.phone && (
+                      <Button variant={gcCase.preferredContact === 'Phone' ? 'default' : 'outline'} size="sm"
+                        className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                        onClick={() => toggleGcFlip('phone')}>
+                        <Phone className="size-2.5" /> Call
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {gcFlip.phone && gcCase.phone && (
+                  <div className="text-[10px] text-stone-500 flex items-center gap-1">
+                    <Phone className="size-2.5" /> {gcCase.phone}
+                    <button onClick={() => { navigator.clipboard.writeText(gcCase.phone) }} className="text-stone-400 hover:text-stone-600 ml-1"><Copy className="size-2.5" /></button>
+                  </div>
+                )}
+                {/* Name + info */}
                 <div className="flex items-center gap-2.5">
                   <ProfileAvatar name={gcCase.name} size="sm" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
-                    <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                    <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
                         {gcFlip.age ? fmtDate(gcCase.dob || gcA.dob) : `Age ${gcCase.age || '—'}`}
                       </span>
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('relationship')}>
-                        <Heart className="size-2.5 inline" /> {gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
+                        <Heart className="size-3 inline" /> {gcFlip.relationship ? (gcPartner || '—') : (gcCase.maritalStatus || '—')}
+                      </span>
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')}>
+                        <Home className="size-3 inline" /> {gcFlip.address ? gcAddr : (gcCase.location || '—')}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="text-[10px] text-stone-500 cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('address')}>
-                  <Home className="size-2.5 inline mr-0.5" />{gcFlip.address ? gcAddr : (gcCase.location || '—')}
-                </div>
                 {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
-                  <div className="text-[10px] text-emerald-600">
-                    <InsuranceCardIcon size={11} color="currentColor" className="inline mr-0.5" /> {gcInsurance.company || 'Insured'}
+                  <div className="text-[11px] text-emerald-600">
+                    <InsuranceCardIcon size={12} color="currentColor" className="inline mr-0.5" /> {gcInsurance.company || 'Insured'}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-1.5">
-                  {gcCase.phone && (
-                    <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
-                      className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                      onClick={() => { setSmsOpen({ phone: gcCase.phone, name: gcCase.name }); setSmsMessage(''); setSmsResult(null) }}>
-                      <MessageSquare className="size-2.5" /> Text
-                    </Button>
-                  )}
-                  <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
-                    className={`gap-1 rounded-full text-[10px] h-6 px-2 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
-                    onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id })}>
-                    <Mail className="size-2.5" /> Email
-                  </Button>
-                  {gcCase.phone && <CopyFlipButton icon={Phone} label="Call" value={gcCase.phone} flipped={gcFlip.phone} onFlip={() => toggleGcFlip('phone')} preferred={gcCase.preferredContact === 'Phone'} />}
-                </div>
                 <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
               </>)
@@ -736,7 +777,6 @@ export default function JourneyDetailPage() {
         {/* IP Card (blue tint) */}
         <div className="rounded-2xl border border-stone-200/80 overflow-hidden flex-1" style={{ backgroundColor: '#f8f9fb' }}>
           <div className="p-4 space-y-3">
-            <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase?.type === 'Couple' ? 's' : ''}</p>
             {ipCase ? (() => {
               const ipA = ipCase.answers || {}
               const ip1Age = ipCase.age
@@ -747,43 +787,58 @@ export default function JourneyDetailPage() {
               const ipAddr = [ipA.street, ipA.city, ipA.stateProv, ipA.zipCode].filter(Boolean).join(', ') || ipCase.location || '—'
               const allPhones = [ipCase.phone, ipCase.ip2Phone].filter(Boolean).join(' / ')
               return (<>
+                {/* Header: label + contact buttons */}
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
+                  <div className="flex gap-1">
+                    {ipCase.phone && (
+                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                        onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
+                        <MessageSquare className="size-2.5" /> Text
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                      onClick={() => {
+                        const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
+                        setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
+                      }}>
+                      <Mail className="size-2.5" /> Email
+                    </Button>
+                    {allPhones && (
+                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
+                        onClick={() => toggleIpFlip('phone')}>
+                        <Phone className="size-2.5" /> Call
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {ipFlip.phone && allPhones && (
+                  <div className="text-[10px] text-stone-500 flex items-center gap-1">
+                    <Phone className="size-2.5" /> {allPhones}
+                    <button onClick={() => { navigator.clipboard.writeText(allPhones.split(' / ')[0]) }} className="text-stone-400 hover:text-stone-600 ml-1"><Copy className="size-2.5" /></button>
+                  </div>
+                )}
+                {/* Name + info */}
                 <div className="flex items-center gap-2.5">
                   <ProfileAvatar name={ipCase.names} size="sm" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
-                    <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
+                    <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
+                    <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
                         {ipFlip.age ? dobDisplay : ageDisplay}
                       </span>
-                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('relationship')}>
-                        <Heart className="size-2.5 inline" /> {ipFlip.relationship ? (ipCase.ip2Name || '—') : (ipA.maritalStatus || '—')}
+                      <span><Heart className="size-3 inline" /> {ipA.maritalStatus || '—'}</span>
+                      <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')}>
+                        <Home className="size-3 inline" /> {ipFlip.address ? ipAddr : (ipCase.location || '—')}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5 text-[10px] text-stone-500">
-                  {ipCase.reDoctorName && <span><Stethoscope className="size-2.5 inline" /> {ipCase.reDoctorName}</span>}
-                  {ipCase.hasFrozenEmbryos && <span><FertilizedEggIcon size={11} color="currentColor" className="inline" /> {ipCase.frozenEmbryoDetails || 'Embryos'}</span>}
-                  <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('address')}>
-                    <Home className="size-2.5 inline" /> {ipFlip.address ? ipAddr : (ipCase.location || '—')}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {ipCase.phone && (
-                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
-                      onClick={() => { setSmsOpen({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names }); setSmsMessage(''); setSmsResult(null) }}>
-                      <MessageSquare className="size-2.5" /> Text
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm" className="gap-1 rounded-full text-[10px] h-6 px-2"
-                    onClick={() => {
-                      const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
-                      setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id })
-                    }}>
-                    <Mail className="size-2.5" /> Email
-                  </Button>
-                  {allPhones && <CopyFlipButton icon={Phone} label="Call" value={allPhones} flipped={ipFlip.phone} onFlip={() => toggleIpFlip('phone')} preferred={false} />}
-                </div>
+                {ipCase.hasFrozenEmbryos && (
+                  <div className="text-[11px] text-stone-500">
+                    <FertilizedEggIcon size={12} color="currentColor" className="inline mr-0.5" /> {ipCase.frozenEmbryoDetails || 'Embryos'}
+                  </div>
+                )}
                 <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
               </>)
