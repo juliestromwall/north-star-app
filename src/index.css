@@ -91,6 +91,41 @@
     --sidebar-ring: #283693;
 }
 
+/* ===== Dark Mode ===== */
+.dark {
+    --background: #141420;
+    --foreground: #e8e6f0;
+    --card: #1c1c2e;
+    --card-foreground: #e8e6f0;
+    --popover: #1c1c2e;
+    --popover-foreground: #e8e6f0;
+    --primary: #7b8adb;
+    --primary-foreground: #0e0e1a;
+    --secondary: #252538;
+    --secondary-foreground: #c8c4e0;
+    --muted: #252538;
+    --muted-foreground: #9994b0;
+    --accent: #ed148c;
+    --accent-foreground: #FFFFFF;
+    --destructive: #ef4444;
+    --border: #2e2e44;
+    --input: #2e2e44;
+    --ring: #7b8adb;
+    --chart-1: #7b8adb;
+    --chart-2: #ed148c;
+    --chart-3: #7b8adb;
+    --chart-4: #8B8FBF;
+    --chart-5: #f9a8d4;
+    --sidebar: #18182a;
+    --sidebar-foreground: #9994b0;
+    --sidebar-primary: #7b8adb;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #252538;
+    --sidebar-accent-foreground: #e8e6f0;
+    --sidebar-border: #2e2e44;
+    --sidebar-ring: #7b8adb;
+}
+
 @layer base {
     * {
         @apply border-border outline-ring/50;
@@ -105,6 +140,34 @@
     h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-heading);
     }
+
+    /* Pink-styled dropdowns — replace browser blue */
+    select {
+        accent-color: #ed148c;
+    }
+    select:focus {
+        outline: 2px solid rgba(237, 20, 140, 0.4);
+        outline-offset: -1px;
+        border-color: #ed148c;
+    }
+    select option:checked {
+        background: #ed148c;
+        color: white;
+    }
+
+    /* Dark mode overrides for form elements */
+    .dark select,
+    .dark input,
+    .dark textarea {
+        background-color: var(--card);
+        color: var(--foreground);
+        border-color: var(--border);
+    }
+    .dark select:focus,
+    .dark input:focus,
+    .dark textarea:focus {
+        border-color: #ed148c;
+    }
 }
 
 /* ===== Sidebar nav effects ===== */
@@ -116,6 +179,10 @@
 .sidebar-nav-item:hover {
     background: rgba(40, 54, 147, 0.04);
     color: #283693;
+}
+.dark .sidebar-nav-item:hover {
+    background: rgba(123, 138, 219, 0.08);
+    color: #a5b0f0;
 }
 .sidebar-nav-item:active {
     transform: scale(0.97);
@@ -139,6 +206,19 @@
         0 2px 16px rgba(41, 171, 226, 0.1),
         0 1px 4px rgba(237, 20, 140, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.dark .sidebar-nav-active {
+    background: linear-gradient(135deg,
+        rgba(139, 197, 63, 0.15),
+        rgba(41, 171, 226, 0.18),
+        rgba(247, 148, 29, 0.12),
+        rgba(237, 20, 140, 0.15)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 2px 20px rgba(41, 171, 226, 0.15),
+        0 1px 6px rgba(237, 20, 140, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 @keyframes glass-shimmer {
     0% { background-position: 0% 50%; }

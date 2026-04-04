@@ -8,6 +8,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import { SURROGATE_STAGES } from '@/lib/constants'
+import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getChecklistMilestones } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
@@ -174,7 +175,7 @@ export default function MatchedJourneysPage() {
                   <div className="flex flex-wrap items-center gap-2 text-[10px]">
                     {j.journey_data?.pregnant === 'yes' && (
                       <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
-                        🤰 {j.journey_data.dueDate ? `Due ${new Date(j.journey_data.dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : 'Pregnant'}
+                        🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
                       </span>
                     )}
                     {j.journey_data?.escrowBalance && (

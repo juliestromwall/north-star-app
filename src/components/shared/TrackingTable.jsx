@@ -1,12 +1,7 @@
 import React, { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Check, X, ChevronDown, CheckCircle2, Clock } from 'lucide-react'
-
-function formatDateMMDDYYYY(dateStr) {
-  if (!dateStr) return '—'
-  const [y, m, d] = dateStr.split('-')
-  return `${m}-${d}-${y}`
-}
+import { formatDate } from '@/lib/utils'
 
 export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
@@ -148,7 +143,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     <td className="px-3 py-3.5">
                       <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
                     </td>
-                    <td className="px-3 py-3.5 text-stone-500">{formatDateMMDDYYYY(lastEntry?.date)}</td>
+                    <td className="px-3 py-3.5 text-stone-500">{formatDate(lastEntry?.date)}</td>
                     <td className="px-3 py-3.5 text-stone-500 text-xs break-words">{lastEntry?.note || ''}</td>
                     <td className="px-4 py-3.5 text-stone-400 text-right text-xs">{lastEntry?.by || ''}</td>
                     <td className="px-3 py-3.5" />
@@ -165,7 +160,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                               {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
                             </select>
                           </td>
-                          <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                          <td className="px-3 py-2 text-stone-400">{formatDate(entry.date)}</td>
                           <td className="px-3 py-2"><input className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} /></td>
                           <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
                           <td className="px-3 py-2 text-right">
@@ -179,7 +174,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       <tr key={`h-${i}`} className="bg-stone-50/60 border-b border-stone-100/50 group">
                         <td className="px-6 py-2" />
                         <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{getStatusLabel(entry.status)}</td>
-                        <td className="px-3 py-2 text-stone-400">{formatDateMMDDYYYY(entry.date)}</td>
+                        <td className="px-3 py-2 text-stone-400">{formatDate(entry.date)}</td>
                         <td className="px-3 py-2 text-stone-500">{entry.note || ''}</td>
                         <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
                         <td className="px-3 py-2 text-right">

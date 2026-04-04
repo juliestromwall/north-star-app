@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, NavLink } from 'react-router-dom'
-import { LogOut, Menu, Mail, MessagesSquare, Calendar } from 'lucide-react'
+import { LogOut, Menu, Mail, MessagesSquare, Calendar, Moon, Sun } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { ROLE_LABELS, ADMIN_ROLES } from '@/lib/constants'
 import RoleSwitcher from './RoleSwitcher'
@@ -15,6 +15,15 @@ export default function TopBar({ onMenuClick }) {
   const isAdmin = ADMIN_ROLES.includes(currentRole)
   const [inboxCount, setInboxCount] = useState(0)
   const [hasUnreadSMS, setHasUnreadSMS] = useState(false)
+  const [dark, setDark] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('abc_dark_mode') === 'true' || document.documentElement.classList.contains('dark')
+  })
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+    localStorage.setItem('abc_dark_mode', dark)
+  }, [dark])
 
   const initials = currentUser.name
     .split(' ')
@@ -60,7 +69,7 @@ export default function TopBar({ onMenuClick }) {
   ]
 
   return (
-    <header className="h-14 border-b bg-abc-cream flex items-center justify-between px-4 sm:px-6">
+    <header className="h-14 border-b bg-abc-cream dark:bg-[#18182a] dark:border-[#2e2e44] flex items-center justify-between px-4 sm:px-6">
       <div className="flex items-center gap-2">
         <button
           onClick={onMenuClick}
@@ -104,6 +113,13 @@ export default function TopBar({ onMenuClick }) {
       </nav>
 
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+        <button
+          onClick={() => setDark(d => !d)}
+          className="p-1.5 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 dark:hover:bg-white/10 dark:hover:text-stone-300 transition-colors"
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
           <p className="text-xs text-muted-foreground">{ROLE_LABELS[currentUser.role]}</p>
@@ -117,7 +133,7 @@ export default function TopBar({ onMenuClick }) {
         {isAuthenticated && (
           <button
             onClick={handleSignOut}
-            className="ml-1 p-1.5 rounded-md text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
+            className="ml-1 p-1.5 rounded-md text-stone-400 hover:text-stone-600 dark:hover:bg-white/10 dark:hover:text-stone-300 hover:bg-stone-100 transition-colors"
             title="Sign out"
           >
             <LogOut className="w-4 h-4" />

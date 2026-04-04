@@ -245,7 +245,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          'hidden md:flex flex-col shrink-0 bg-white border-r border-stone-200/80 transition-all duration-200',
+          'hidden md:flex flex-col shrink-0 bg-white dark:bg-[#18182a] border-r border-stone-200/80 dark:border-[#2e2e44] transition-all duration-200',
           collapsed ? 'w-[60px]' : 'w-[220px]'
         )}
       >
@@ -254,7 +254,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
 
       {/* Mobile sidebar */}
       <Sheet open={mobileOpen} onOpenChange={onMobileClose}>
-        <SheetContent side="left" className="w-[260px] p-0 border-none flex flex-col bg-white">
+        <SheetContent side="left" className="w-[260px] p-0 border-none flex flex-col bg-white dark:bg-[#18182a]">
           <SidebarContent {...sharedProps} collapsed={false} />
         </SheetContent>
       </Sheet>

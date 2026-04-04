@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRole } from '@/context/RoleContext'
+import { formatDate } from '@/lib/utils'
 import { fetchInsurance, upsertInsurance, cancelInsurance, fetchInsurancePayments, insertInsurancePayment } from '@/lib/db'
 
 // ── Insurance Card Icon ────────────────────────────────
@@ -66,8 +67,27 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
       {form.has_insurance && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[11px] text-stone-400 font-medium">Company</label>
-            <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Insurance company" className="h-8 text-sm" />
+            <label className="text-[11px] text-stone-400 font-medium">Insurance Status</label>
+            <select value={form.insurance_status || 'active_policy'} onChange={e => setForm(f => ({ ...f, insurance_status: e.target.value }))}
+              className="w-full h-8 text-sm border border-stone-200 rounded-md px-2 bg-white">
+              <option value="active_policy">Active Policy</option>
+              <option value="policy_check">Policy Check</option>
+              <option value="open_enrollment">Open Enrollment</option>
+              <option value="complete">Complete</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Status Year</label>
+            <select value={form.insurance_status_year || ''} onChange={e => setForm(f => ({ ...f, insurance_status_year: e.target.value }))}
+              className="w-full h-8 text-sm border border-stone-200 rounded-md px-2 bg-white">
+              {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() + i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Insurance Carrier</label>
+            <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Insurance carrier" className="h-8 text-sm" />
           </div>
           <div className="space-y-1">
             <label className="text-[11px] text-stone-400 font-medium">Website</label>
@@ -104,6 +124,35 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
               <Input type="number" min="1" max="31" value={form.autopay_day} onChange={e => setForm(f => ({ ...f, autopay_day: e.target.value }))} placeholder="1-31" className="h-8 text-sm" />
             </div>
           )}
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Plan Start Date</label>
+            <Input type="date" value={form.plan_start_date} onChange={e => setForm(f => ({ ...f, plan_start_date: e.target.value }))} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Plan End Date</label>
+            <Input type="date" value={form.plan_end_date} onChange={e => setForm(f => ({ ...f, plan_end_date: e.target.value }))} className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Binder Payment Paid?</label>
+            <div className="flex gap-1.5 mt-1">
+              <button onClick={() => setForm(f => ({ ...f, binder_payment_paid: true }))}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${form.binder_payment_paid ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+              <button onClick={() => setForm(f => ({ ...f, binder_payment_paid: false }))}
+                className={`px-3 py-1 rounded-full text-xs font-medium ${!form.binder_payment_paid ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>No</button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">OB Doctor / Clinic</label>
+            <Input value={form.ob_clinic} onChange={e => setForm(f => ({ ...f, ob_clinic: e.target.value }))} placeholder="OB name or clinic" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Delivery Hospital</label>
+            <Input value={form.hospital} onChange={e => setForm(f => ({ ...f, hospital: e.target.value }))} placeholder="Hospital name" className="h-8 text-sm" />
+          </div>
+          <div className="space-y-1 col-span-2">
+            <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Insurance notes..." rows={2} className="text-sm" />
+          </div>
         </div>
       )}
       <div className="flex gap-2 pt-2">
@@ -149,6 +198,8 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
   function startEdit() {
     setForm({
       has_insurance: insurance?.has_insurance ?? false,
+      insurance_status: insurance?.insurance_status || 'active_policy',
+      insurance_status_year: insurance?.insurance_status_year || new Date().getFullYear(),
       company: insurance?.company || '',
       website: insurance?.website || '',
       portal_login: insurance?.portal_login || '',
@@ -157,6 +208,12 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
       enrolled_autopay: insurance?.enrolled_autopay ?? false,
       premium_due_day: insurance?.premium_due_day || '',
       autopay_day: insurance?.autopay_day || '',
+      plan_start_date: insurance?.plan_start_date || '',
+      plan_end_date: insurance?.plan_end_date || '',
+      binder_payment_paid: insurance?.binder_payment_paid ?? false,
+      ob_clinic: insurance?.ob_clinic || '',
+      hospital: insurance?.hospital || '',
+      notes: insurance?.notes || '',
     })
     setEditing(true)
   }
@@ -166,6 +223,8 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
     try {
       const updated = await upsertInsurance(caseId, caseType, {
         has_insurance: form.has_insurance,
+        insurance_status: form.insurance_status || 'active_policy',
+        insurance_status_year: form.insurance_status_year ? parseInt(form.insurance_status_year) : null,
         company: form.company || null,
         website: form.website || null,
         portal_login: form.portal_login || null,
@@ -174,6 +233,12 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
         enrolled_autopay: form.enrolled_autopay,
         premium_due_day: form.premium_due_day ? parseInt(form.premium_due_day) : null,
         autopay_day: form.autopay_day ? parseInt(form.autopay_day) : null,
+        plan_start_date: form.plan_start_date || null,
+        plan_end_date: form.plan_end_date || null,
+        binder_payment_paid: form.binder_payment_paid,
+        ob_clinic: form.ob_clinic || null,
+        hospital: form.hospital || null,
+        notes: form.notes || null,
       })
       setInsurance(updated)
       setEditing(false)
@@ -286,7 +351,13 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
           ) : (
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
               <div>
-                <span className="text-stone-400 text-xs">Company</span>
+                <span className="text-stone-400 text-xs">Status</span>
+                <p className="font-medium">{
+                  ({ active_policy: 'Active Policy', policy_check: 'Policy Check', open_enrollment: 'Open Enrollment', complete: 'Complete' })[insurance.insurance_status] || 'Active Policy'
+                } {insurance.insurance_status_year ? `(${insurance.insurance_status_year})` : ''}</p>
+              </div>
+              <div>
+                <span className="text-stone-400 text-xs">Insurance Carrier</span>
                 <p className="font-medium">{insurance.company || '—'}</p>
               </div>
               <div>
@@ -326,6 +397,32 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
                 <div>
                   <span className="text-stone-400 text-xs">Autopay Day</span>
                   <p className="font-medium">{insurance.autopay_day ? `${insurance.autopay_day}${['st','nd','rd'][((insurance.autopay_day % 100 - 20) % 10 - 1)] || 'th'} of each month` : '—'}</p>
+                </div>
+              )}
+              <div>
+                <span className="text-stone-400 text-xs">Plan Start</span>
+                <p className="font-medium">{insurance.plan_start_date || '—'}</p>
+              </div>
+              <div>
+                <span className="text-stone-400 text-xs">Plan End</span>
+                <p className="font-medium">{insurance.plan_end_date || '—'}</p>
+              </div>
+              <div>
+                <span className="text-stone-400 text-xs">Binder Payment Paid</span>
+                <p className="font-medium">{insurance.binder_payment_paid ? 'Yes' : 'No'}</p>
+              </div>
+              <div>
+                <span className="text-stone-400 text-xs">OB Doctor / Clinic</span>
+                <p className="font-medium">{insurance.ob_clinic || '—'}</p>
+              </div>
+              <div>
+                <span className="text-stone-400 text-xs">Delivery Hospital</span>
+                <p className="font-medium">{insurance.hospital || '—'}</p>
+              </div>
+              {insurance.notes && (
+                <div className="col-span-2">
+                  <span className="text-stone-400 text-xs">Notes</span>
+                  <p className="font-medium">{insurance.notes}</p>
                 </div>
               )}
             </div>
@@ -369,7 +466,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
                       return (
                         <tr key={p.id} className="border-t hover:bg-stone-50/50">
                           <td className="px-4 py-3 font-medium">{monthLabel}</td>
-                          <td className="px-4 py-3">{new Date(p.paid_date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</td>
+                          <td className="px-4 py-3">{formatDate(p.paid_date)}</td>
                           <td className="px-4 py-3">{PAYMENT_METHODS.find(m => m.value === p.payment_method)?.label || p.payment_method}</td>
                           <td className="px-4 py-3 text-stone-500">{p.payment_info || '—'}</td>
                           <td className="px-4 py-3 text-stone-500">{p.logged_by || '—'}</td>

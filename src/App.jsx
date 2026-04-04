@@ -35,8 +35,10 @@ import EmailPage from './pages/email/EmailPage'
 import FaxPage from './pages/fax/FaxPage'
 import SharedProfilePage from './pages/matching/SharedProfilePage'
 import JourneyDetailPage from './pages/journeys/JourneyDetailPage'
+import InsurancePage from './pages/insurance/InsurancePage'
 
 const stubs = [
+  { path: '/expenses', title: 'Expense Tracking' },
   { path: '/crm', title: 'CRM / Cases' },
   { path: '/documents', title: 'Documents' },
   { path: '/messages', title: 'Messages' },
@@ -93,6 +95,7 @@ export default function App() {
         <Route path="/journeys/:id" element={<JourneyDetailPage />} />
         <Route path="/e-signature" element={<ESignaturePage />} />
         <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
+        <Route path="/insurance" element={<InsurancePage />} />
         {stubs.map(s => (
           <Route
             key={s.path}

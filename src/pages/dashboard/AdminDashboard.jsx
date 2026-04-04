@@ -13,15 +13,10 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps } from '@/lib/checklistStore'
 import { Heart, HeartHandshake, Puzzle, Route, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X, ScrollText, FileWarning, CheckCircle2, Circle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { formatDate } from '@/lib/utils'
 
 const recentActivity = []
 const upcomingMilestones = []
-
-function formatDateShort(dateStr) {
-  if (!dateStr) return ''
-  const [y, m, d] = dateStr.split('-')
-  return `${parseInt(m)}/${parseInt(d)}/${y.slice(2)}`
-}
 
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
 
@@ -283,13 +278,13 @@ function SurrogateScreeningSheet({ surrogates }) {
                         <div className="flex items-center gap-1.5">
                           {isComplete ? (
                             <span className="text-xs text-green-600 font-medium">
-                              Completed {formatDateShort(lastEntry?.date)}
+                              Completed {formatDate(lastEntry?.date)}
                             </span>
                           ) : status === 'not_started' ? (
                             <span className="text-xs text-stone-300">Not Started</span>
                           ) : (
                             <span className="text-xs text-stone-600">
-                              {formatDateShort(lastEntry?.date)} <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              {formatDate(lastEntry?.date)} <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                             </span>
                           )}
                           {/* Record count badge for record-type steps */}
@@ -322,7 +317,7 @@ function SurrogateScreeningSheet({ surrogates }) {
                               <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium text-stone-600">{entry.status === 'followed_up' ? 'Followed Up' : entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                  <span className="text-stone-400">{formatDateShort(entry.date)}</span>
+                                  <span className="text-stone-400">{formatDate(entry.date)}</span>
                                 </div>
                                 {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
                                 {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
@@ -350,7 +345,7 @@ function SurrogateScreeningSheet({ surrogates }) {
                                 </div>
                                 {rec.lastDate && !rec.isExcluded && (
                                   <p className="text-stone-400 mt-0.5 ml-7">
-                                    {formatDateShort(rec.lastDate)}
+                                    {formatDate(rec.lastDate)}
                                     {rec.lastNote ? ` — ${rec.lastNote}` : ''}
                                   </p>
                                 )}
