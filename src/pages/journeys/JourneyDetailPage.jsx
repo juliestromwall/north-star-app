@@ -438,6 +438,8 @@ export default function JourneyDetailPage() {
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
   const [insuranceOpen, setInsuranceOpen] = useState(false)
+  const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
+  const [providerForm, setProviderForm] = useState({})
   const [ipFlip, setIpFlip] = useState({})
   const [emailConfirm, setEmailConfirm] = useState(null) // { name, email, caseId }
   const [smsOpen, setSmsOpen] = useState(null) // { phone, name }
@@ -458,6 +460,33 @@ export default function JourneyDetailPage() {
       setTimeout(() => setSmsOpen(null), 1500)
     } catch { setSmsResult('error') }
     finally { setSmsSending(false) }
+  }
+
+  function openProviderEdit(type) {
+    const prefixes = { ivf: 'ivf', ob: 'ob', hospital: 'deliveryHospital' }
+    const p = prefixes[type]
+    if (type === 'hospital') {
+      setProviderForm({ name: jd.deliveryHospital || '', phone: jd.deliveryHospitalPhone || '', address: jd.deliveryHospitalAddress || '' })
+    } else if (type === 'ob') {
+      setProviderForm({ name: jd.obClinic || '', doctor: jd.obDoctor || '', phone: jd.obPhone || '', address: jd.obAddress || '' })
+    } else {
+      setProviderForm({ name: jd.ivfClinic || '', doctor: jd.ivfDoctor || '', address: jd.ivfAddress || '', coordinator: jd.ivfCoordinator || '', coordinatorEmail: jd.ivfCoordinatorEmail || '' })
+    }
+    setProviderEdit(type)
+  }
+
+  async function saveProvider() {
+    const fields = {}
+    if (providerEdit === 'ivf') {
+      fields.ivfClinic = providerForm.name; fields.ivfDoctor = providerForm.doctor; fields.ivfAddress = providerForm.address
+      fields.ivfCoordinator = providerForm.coordinator; fields.ivfCoordinatorEmail = providerForm.coordinatorEmail
+    } else if (providerEdit === 'ob') {
+      fields.obClinic = providerForm.name; fields.obDoctor = providerForm.doctor; fields.obPhone = providerForm.phone; fields.obAddress = providerForm.address
+    } else {
+      fields.deliveryHospital = providerForm.name; fields.deliveryHospitalPhone = providerForm.phone; fields.deliveryHospitalAddress = providerForm.address
+    }
+    await updateFields(fields)
+    setProviderEdit(null)
   }
 
   useEffect(() => {
@@ -628,45 +657,42 @@ export default function JourneyDetailPage() {
               )}
             </div>
 
-            {/* Escrow */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-              <span className="text-stone-500">Escrow Min: <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" className="text-stone-800" /></span>
-              <span className="text-stone-500">Balance: <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
-                className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : 'text-stone-800'} /></span>
-              <span className="text-stone-500 flex items-center gap-1.5"><Calendar className="size-3.5" /> <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Escrow close" className="text-stone-800" /></span>
+            {/* ── Escrow ── */}
+            <div className="border-t border-stone-100 pt-4">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2">Escrow</p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                <span className="text-stone-500">Min: <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" className="text-stone-800" /></span>
+                <span className="text-stone-500">Balance: <EditableTileInline value={jd.escrowBalance} onSave={v => updateField('escrowBalance', v)} type="currency"
+                  className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : 'text-stone-800'} /></span>
+                <span className="text-stone-500 flex items-center gap-1.5">Close: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
+              </div>
             </div>
 
-            {/* Fertility Clinic */}
-            <div className="space-y-1">
-              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><EmbryoIcon size={13} color="#a8a29e" /> Fertility Clinic</p>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-                <EditableTileInline value={jd.ivfClinic} onSave={v => updateField('ivfClinic', v)} type="text" placeholder="Clinic name" className="text-stone-800" />
-                <span className="text-stone-400">Dr.</span> <EditableTileInline value={jd.ivfDoctor} onSave={v => updateField('ivfDoctor', v)} type="text" placeholder="Doctor name" className="text-stone-800" />
-                <span className="text-stone-400">Coordinator:</span> <EditableTileInline value={jd.ivfCoordinator} onSave={v => updateField('ivfCoordinator', v)} type="text" placeholder="Name" className="text-stone-800" />
-                <EditableTileInline value={jd.ivfCoordinatorEmail} onSave={v => updateField('ivfCoordinatorEmail', v)} type="text" placeholder="Coordinator email" className="text-stone-800" />
+            {/* ── Providers (clickable to edit via modal) ── */}
+            <div className="border-t border-stone-100 pt-4">
+              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-3">Providers</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Fertility Clinic */}
+                <button onClick={() => openProviderEdit('ivf')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><EmbryoIcon size={12} color="#a8a29e" /> Fertility Clinic</p>
+                  <p className="text-sm font-semibold text-stone-800 truncate">{jd.ivfClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
+                  {jd.ivfDoctor && <p className="text-xs text-stone-500">Dr. {jd.ivfDoctor}</p>}
+                  {jd.ivfCoordinator && <p className="text-xs text-stone-500">{jd.ivfCoordinator}</p>}
+                </button>
+                {/* OB Clinic */}
+                <button onClick={() => openProviderEdit('ob')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Stethoscope className="size-3" /> OB Clinic</p>
+                  <p className="text-sm font-semibold text-stone-800 truncate">{jd.obClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
+                  {jd.obDoctor && <p className="text-xs text-stone-500">Dr. {jd.obDoctor}</p>}
+                  {jd.obPhone && <p className="text-xs text-stone-500">{jd.obPhone}</p>}
+                </button>
+                {/* Hospital */}
+                <button onClick={() => openProviderEdit('hospital')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Hospital className="size-3" /> Delivery Hospital</p>
+                  <p className="text-sm font-semibold text-stone-800 truncate">{jd.deliveryHospital || <span className="text-stone-300 font-normal">+ Add hospital</span>}</p>
+                  {jd.deliveryHospitalPhone && <p className="text-xs text-stone-500">{jd.deliveryHospitalPhone}</p>}
+                </button>
               </div>
-              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.ivfAddress} onSave={v => updateField('ivfAddress', v)} type="text" placeholder="Clinic address" className="text-stone-600" /></div>
-            </div>
-
-            {/* OB Clinic */}
-            <div className="space-y-1">
-              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Stethoscope className="size-3.5" /> OB Clinic</p>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-                <EditableTileInline value={jd.obClinic} onSave={v => updateField('obClinic', v)} type="text" placeholder="Clinic name" className="text-stone-800" />
-                <span className="text-stone-400">Dr.</span> <EditableTileInline value={jd.obDoctor} onSave={v => updateField('obDoctor', v)} type="text" placeholder="Doctor name" className="text-stone-800" />
-                <span className="text-stone-400">Ph:</span> <EditableTileInline value={jd.obPhone} onSave={v => updateField('obPhone', v)} type="text" placeholder="Phone" className="text-stone-800" />
-              </div>
-              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.obAddress} onSave={v => updateField('obAddress', v)} type="text" placeholder="OB clinic address" className="text-stone-600" /></div>
-            </div>
-
-            {/* Delivery Hospital */}
-            <div className="space-y-1">
-              <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Hospital className="size-3.5" /> Delivery Hospital</p>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-                <EditableTileInline value={jd.deliveryHospital} onSave={v => updateField('deliveryHospital', v)} type="text" placeholder="Hospital name" className="text-stone-800" />
-                <span className="text-stone-400">Ph:</span> <EditableTileInline value={jd.deliveryHospitalPhone} onSave={v => updateField('deliveryHospitalPhone', v)} type="text" placeholder="Phone" className="text-stone-800" />
-              </div>
-              <div className="text-[11px] text-stone-400"><EditableTileInline value={jd.deliveryHospitalAddress} onSave={v => updateField('deliveryHospitalAddress', v)} type="text" placeholder="Hospital address" className="text-stone-600" /></div>
             </div>
 
             {/* Managers — bottom */}
@@ -745,10 +771,10 @@ export default function JourneyDetailPage() {
                   </div>
                 )}
                 {/* Name + info */}
-                <div className="flex items-center gap-2.5">
-                  <ProfileAvatar name={gcCase.name} size="sm" className="ring-2 ring-white shadow" />
+                <div className="flex items-center gap-3">
+                  <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/surrogates/${gcCase.id}`} className="text-sm font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
+                    <Link to={`/surrogates/${gcCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
                     <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
                         {gcFlip.age ? fmtDate(gcCase.dob || gcA.dob) : `Age ${gcCase.age || '—'}`}
@@ -819,10 +845,10 @@ export default function JourneyDetailPage() {
                   </div>
                 )}
                 {/* Name + info */}
-                <div className="flex items-center gap-2.5">
-                  <ProfileAvatar name={ipCase.names} size="sm" className="ring-2 ring-white shadow" />
+                <div className="flex items-center gap-3">
+                  <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/intended-parents/${ipCase.id}`} className="text-sm font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
+                    <Link to={`/intended-parents/${ipCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
                     <div className="flex flex-wrap gap-2 text-[11px] text-stone-500">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
                         {ipFlip.age ? dobDisplay : ageDisplay}
@@ -993,6 +1019,59 @@ export default function JourneyDetailPage() {
             <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {gcCase?.name}</DialogTitle>
           </DialogHeader>
           <InsuranceTab caseId={journey?.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Provider Edit Modal */}
+      <Dialog open={!!providerEdit} onOpenChange={v => { if (!v) setProviderEdit(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {providerEdit === 'ivf' && <><EmbryoIcon size={18} color="#283693" /> Fertility Clinic</>}
+              {providerEdit === 'ob' && <><Stethoscope className="size-5 text-[#283693]" /> OB Clinic</>}
+              {providerEdit === 'hospital' && <><Hospital className="size-5 text-[#283693]" /> Delivery Hospital</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">{providerEdit === 'hospital' ? 'Hospital Name' : 'Clinic Name'}</label>
+              <Input value={providerForm.name || ''} onChange={e => setProviderForm(f => ({ ...f, name: e.target.value }))} placeholder="Name" className="h-9" />
+            </div>
+            {(providerEdit === 'ivf' || providerEdit === 'ob') && (
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Doctor Name</label>
+                <Input value={providerForm.doctor || ''} onChange={e => setProviderForm(f => ({ ...f, doctor: e.target.value }))} placeholder="Dr. Last Name" className="h-9" />
+              </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Address</label>
+              <Input value={providerForm.address || ''} onChange={e => setProviderForm(f => ({ ...f, address: e.target.value }))} placeholder="Full address" className="h-9" />
+            </div>
+            {(providerEdit === 'ob' || providerEdit === 'hospital') && (
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Phone Number</label>
+                <Input value={providerForm.phone || ''} onChange={e => setProviderForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-5555" className="h-9" />
+              </div>
+            )}
+            {providerEdit === 'ivf' && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">3rd Party Coordinator Name</label>
+                  <Input value={providerForm.coordinator || ''} onChange={e => setProviderForm(f => ({ ...f, coordinator: e.target.value }))} placeholder="Coordinator name" className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Coordinator Email</label>
+                  <Input value={providerForm.coordinatorEmail || ''} onChange={e => setProviderForm(f => ({ ...f, coordinatorEmail: e.target.value }))} placeholder="email@clinic.com" type="email" className="h-9" />
+                </div>
+              </>
+            )}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setProviderEdit(null)}>Cancel</Button>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={saveProvider}>
+                <Save className="size-3" /> Save
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
