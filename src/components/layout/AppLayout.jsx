@@ -1,10 +1,17 @@
-import { useState } from 'react'
+import { useState, Component } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { DraftProvider } from '@/context/DraftContext'
 import ComposeWindows from '@/components/shared/ComposeWindows'
+
+class ComposeErrorBoundary extends Component {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(err) { console.error('ComposeWindows crashed:', err) }
+  render() { return this.state.hasError ? null : this.props.children }
+}
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -28,7 +35,7 @@ export default function AppLayout() {
           </main>
         </div>
       </div>
-      <ComposeWindows />
+      <ComposeErrorBoundary><ComposeWindows /></ComposeErrorBoundary>
     </DraftProvider>
   )
 }
