@@ -269,21 +269,24 @@ function ComposeWindow({ draft, index }) {
         attachments: draft.attachments,
       })
 
-      if (draft.caseId && supabase) {
+      if (draft.caseId && draft.caseId !== '_none' && supabase) {
         const c = cases?.find(c => String(c.id) === String(draft.caseId))
         const caseType = draft.caseType || c?.type || 'gc'
-        await supabase.from('case_emails').insert({
-          gmail_message_id: result.id || 'sent-' + Date.now(),
-          case_id: Number(draft.caseId) || draft.caseId,
-          case_type: caseType,
-          subject: draft.subject,
-          from_address: currentUser?.email || '',
-          to_address: draft.to,
-          date: new Date().toISOString(),
-          snippet: (editor?.getText() || '').slice(0, 200),
-          logged_by: userId,
-          logged_by_name: currentUser?.name || '',
-        }).catch(err => console.error('Email log failed:', err))
+        try {
+          const { error } = await supabase.from('case_emails').insert({
+            gmail_message_id: result.id || 'sent-' + Date.now(),
+            case_id: Number(draft.caseId) || draft.caseId,
+            case_type: caseType,
+            subject: draft.subject,
+            from_address: currentUser?.email || '',
+            to_address: draft.to,
+            date: new Date().toISOString(),
+            snippet: (editor?.getText() || '').slice(0, 200),
+            logged_by: userId,
+            logged_by_name: currentUser?.name || '',
+          })
+          if (error) console.error('Email log failed:', error)
+        } catch (err) { console.error('Email log failed:', err) }
       }
 
       closeDraft(draft.id)
