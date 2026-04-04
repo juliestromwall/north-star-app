@@ -28,6 +28,7 @@ const COLUMNS = [
   { key: 'expense_date', label: 'Date', format: 'date' },
   { key: 'amount', label: 'Amount', format: 'currency' },
   { key: 'paid_to', label: 'Paid To' },
+  { key: 'cc_last4', label: 'CC Last 4', format: 'cc4' },
   { key: 'notes', label: 'Notes' },
 ]
 
@@ -35,6 +36,7 @@ function CellValue({ col, value }) {
   if (value === null || value === undefined || value === '') return <span className="text-stone-300">—</span>
   if (col.format === 'currency') return <span>{formatCurrency(value)}</span>
   if (col.format === 'date') return <span>{formatDate(value)}</span>
+  if (col.format === 'cc4') return <span className="font-mono text-stone-600">••••{value}</span>
   return <span>{String(value)}</span>
 }
 
@@ -55,6 +57,7 @@ function EditableCell({ col, value, onSave }) {
   const save = () => {
     let saveVal = val
     if (col.format === 'currency') saveVal = parseFloat(val) || null
+    if (col.format === 'cc4') saveVal = (val || '').replace(/\D/g, '').slice(-4) || null
     onSave(saveVal)
     setEditing(false)
   }
@@ -63,13 +66,14 @@ function EditableCell({ col, value, onSave }) {
     <div className="flex items-center gap-1">
       <Input
         value={val}
-        onChange={e => setVal(e.target.value)}
+        onChange={e => setVal(col.format === 'cc4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
         className="h-7 text-xs"
         type={col.format === 'currency' ? 'number' : col.format === 'date' ? 'date' : 'text'}
         step={col.format === 'currency' ? '0.01' : undefined}
+        maxLength={col.format === 'cc4' ? 4 : undefined}
         autoFocus
-        placeholder={col.label}
+        placeholder={col.format === 'cc4' ? '1234' : col.label}
       />
       <button onClick={save} className="text-green-600 shrink-0"><Check className="size-3.5" /></button>
       <button onClick={() => setEditing(false)} className="text-stone-400 shrink-0"><X className="size-3.5" /></button>
@@ -115,9 +119,11 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-              <p>Are you sure you want to reconcile this expense?</p>
               {reconcileExp && (
-                <p className="mt-2 font-semibold">{formatCurrency(reconcileExp.amount)} — {reconcileExp.paid_to || 'No payee'}</p>
+                <>
+                  <p>Are you sure you want to reconcile this expense for <strong>{journeyMap[reconcileExp.journey_id]?.caseName || 'this journey'}</strong>?</p>
+                  <p className="mt-2 font-semibold">{formatCurrency(reconcileExp.amount)} — {reconcileExp.paid_to || 'No payee'}</p>
+                </>
               )}
             </div>
             <div className="flex gap-2 justify-end">

@@ -443,12 +443,13 @@ function JourneyExpensesTab({ journeyId }) {
         expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
         amount: parseFloat(newExpense.amount) || 0,
         paid_to: newExpense.paid_to || null,
+        cc_last4: newExpense.cc_last4 || null,
         notes: newExpense.notes || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
       if (created) setExpenses(prev => [created, ...prev])
-      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '' })
       setTabExpenseFile(null)
       setAddOpen(false)
     } catch (err) {
@@ -508,9 +509,15 @@ function JourneyExpensesTab({ journeyId }) {
                 <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
-              <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
@@ -552,6 +559,7 @@ function JourneyExpensesTab({ journeyId }) {
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Date</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
                     <th className="w-8"></th>
@@ -563,6 +571,7 @@ function JourneyExpensesTab({ journeyId }) {
                       <td className="px-4 py-3 text-sm">{formatDate(exp.expense_date)}</td>
                       <td className="px-4 py-3 text-sm font-medium">{fmtCurrency(exp.amount)}</td>
                       <td className="px-4 py-3 text-sm">{exp.paid_to || '—'}</td>
+                      <td className="px-4 py-3 text-sm font-mono text-stone-500">{exp.cc_last4 ? `••••${exp.cc_last4}` : '—'}</td>
                       <td className="px-4 py-3 text-sm text-stone-500">{exp.notes || '—'}</td>
                       <td className="px-4 py-3 text-center">
                         {exp.reconciled ? (
@@ -999,9 +1008,15 @@ export default function JourneyDetailPage() {
                 <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
-              <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
@@ -1027,11 +1042,12 @@ export default function JourneyDetailPage() {
                     expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
                     amount: parseFloat(newExpense.amount) || 0,
                     paid_to: newExpense.paid_to || null,
+                    cc_last4: newExpense.cc_last4 || null,
                     notes: newExpense.notes || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
-                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '' })
                   setExpenseFile(null)
                   setExpenseOpen(false)
                 } catch (err) {
