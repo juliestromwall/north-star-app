@@ -7,10 +7,6 @@ import { TextStyle } from '@tiptap/extension-text-style'
 import TiptapUnderline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
-import { Table } from '@tiptap/extension-table'
-import { TableRow } from '@tiptap/extension-table-row'
-import { TableCell } from '@tiptap/extension-table-cell'
-import { TableHeader } from '@tiptap/extension-table-header'
 import { useDrafts } from '@/context/DraftContext'
 import { useRole } from '@/context/RoleContext'
 import { sendEmail, createGmailDraft } from '@/lib/google'
@@ -188,10 +184,6 @@ function ComposeWindow({ draft, index }) {
       TiptapUnderline,
       Link.configure({ openOnClick: false }),
       Image.configure({ inline: true, allowBase64: true }),
-      Table.configure({ resizable: false }),
-      TableRow,
-      TableCell,
-      TableHeader,
     ],
     content: draft.body || '',
     onUpdate: ({ editor }) => {
@@ -204,15 +196,11 @@ function ComposeWindow({ draft, index }) {
     },
   })
 
-  // Sync editor content if draft body changes externally (e.g. signature append, reply/forward init)
-  const lastSyncedBody = useRef(draft.body)
+  // Sync editor content if draft body changes externally (e.g. reply/forward init)
   useEffect(() => {
-    if (!editor || !draft.body) return
-    // Always sync if the body grew (signature appended) or changed externally
-    if (draft.body !== lastSyncedBody.current && editor.getHTML() !== draft.body) {
+    if (editor && draft.body && editor.getHTML() !== draft.body && !editor.isFocused) {
       editor.commands.setContent(draft.body)
     }
-    lastSyncedBody.current = draft.body
   }, [draft.body, editor])
 
   const loadCases = () => {
@@ -273,7 +261,11 @@ function ComposeWindow({ draft, index }) {
     if (!draft.to.trim() || !userId) return
     setSending(true)
     try {
-      const htmlBody = editor?.getHTML() || draft.body || '<p></p>'
+      let htmlBody = editor?.getHTML() || draft.body || '<p></p>'
+      // Append raw Gmail signature HTML (not parsed by Tiptap)
+      if (draft.signatureHtml) {
+        htmlBody += `<br/><div>--</div><div>${draft.signatureHtml}</div>`
+      }
       const result = await sendEmail(userId, {
         to: draft.to.trim(),
         subject: draft.subject,
@@ -321,7 +313,10 @@ function ComposeWindow({ draft, index }) {
     if (userId) {
       setSavingDraft(true)
       try {
-        const htmlBody = editor?.getHTML() || draft.body || ''
+        let htmlBody = editor?.getHTML() || draft.body || ''
+        if (draft.signatureHtml) {
+          htmlBody += `<br/><div>--</div><div>${draft.signatureHtml}</div>`
+        }
         await createGmailDraft(userId, {
           to: draft.to,
           subject: draft.subject,
@@ -465,9 +460,15 @@ function ComposeWindow({ draft, index }) {
           </div>
         </div>
 
-        {/* Rich text body */}
-        <div className="flex-1 overflow-hidden compose-editor">
-          <EditorContent editor={editor} className="h-full" />
+        {/* Rich text body + signature */}
+        <div className="flex-1 overflow-y-auto compose-editor">
+          <EditorContent editor={editor} className="min-h-[80px]" />
+          {draft.signatureHtml && (
+            <div className="px-3 pb-3 text-sm border-t border-transparent">
+              <div className="text-stone-400">--</div>
+              <div dangerouslySetInnerHTML={{ __html: draft.signatureHtml }} />
+            </div>
+          )}
         </div>
 
         {/* Attachments */}

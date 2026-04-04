@@ -64,15 +64,13 @@ export function DraftProvider({ children }) {
 
     setDrafts(prev => [...prev, draft])
 
-    // Backfill signature async (never blocks draft opening)
+    // Backfill signature async — stored separately, not in editor body
     fetchSignature(userId).then(sig => {
       if (sig) {
-        const sigBlock = `<br/><div>--</div><div>${sig}</div>`
         setDrafts(prev => prev.map(d => {
           if (d.id !== id) return d
-          // Only append sig if not already present
-          if (d.body.includes('--</div>')) return d
-          return { ...d, body: d.body + sigBlock }
+          if (d.signatureHtml) return d
+          return { ...d, signatureHtml: sig }
         }))
       }
     }).catch(() => {})
