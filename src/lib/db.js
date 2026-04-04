@@ -374,8 +374,11 @@ export async function adminAddSurrogate(surrogateData) {
       phone: surrogateData.phone,
       state: surrogateData.state,
       dob: surrogateData.dob,
+      applicationDate: surrogateData.applicationDate || null,
     },
-    submitted_at: new Date().toISOString(),
+    submitted_at: surrogateData.applicationDate
+      ? new Date(surrogateData.applicationDate + 'T00:00:00').toISOString()
+      : new Date().toISOString(),
     assigned_to: surrogateData.assignedTo || null,
     referral_partner: surrogateData.referralPartner || null,
     state_region: surrogateData.state,
@@ -417,8 +420,11 @@ export async function adminAddIP(ipData) {
         ip2Email: ipData.ip2Email || '',
         ip2Phone: ipData.ip2Phone || '',
       } : {}),
+      applicationDate: ipData.applicationDate || null,
     },
-    submitted_at: new Date().toISOString(),
+    submitted_at: ipData.applicationDate
+      ? new Date(ipData.applicationDate + 'T00:00:00').toISOString()
+      : new Date().toISOString(),
     assigned_to: ipData.assignedTo || null,
     state_region: ipData.state || '',
     dq_reasons: [],

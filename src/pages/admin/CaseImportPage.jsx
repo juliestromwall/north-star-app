@@ -597,9 +597,19 @@ export default function CaseImportPage() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
 
+  const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB Supabase limit
+
   async function handleImport() {
     if (!form.firstName || !form.lastName) {
       setError('First name and last name are required.')
+      return
+    }
+
+    // Check file sizes before uploading
+    const allFiles = [...profilePdf, ...applicationPdfs, ...documentsZip, ...photos]
+    const oversized = allFiles.find(f => f.size > MAX_FILE_SIZE)
+    if (oversized) {
+      setError(`File "${oversized.name}" is ${(oversized.size / 1024 / 1024).toFixed(1)}MB — max allowed is 50MB. Remove it or compress it first.`)
       return
     }
 
@@ -665,6 +675,10 @@ export default function CaseImportPage() {
           )
           for (const [name, entry] of entries) {
             const blob = await entry.async('blob')
+            if (blob.size > MAX_FILE_SIZE) {
+              console.warn(`Skipping "${name}" — ${(blob.size / 1024 / 1024).toFixed(1)}MB exceeds 50MB limit`)
+              continue
+            }
             const ext = name.split('.').pop().toLowerCase()
             const mimeMap = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
             const file = new File([blob], name.split('/').pop(), { type: mimeMap[ext] || 'application/octet-stream' })
