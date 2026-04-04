@@ -13,6 +13,11 @@ import { loadStageStatuses } from './lib/stageStatusStore'
 loadChecklistConfig().catch(() => {})
 loadStageStatuses().catch(() => {})
 
+// Initialize dark mode from localStorage before render to prevent flash
+if (localStorage.getItem('abc_dark_mode') === 'true') {
+  document.documentElement.classList.add('dark')
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>

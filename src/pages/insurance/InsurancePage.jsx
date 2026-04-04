@@ -272,7 +272,7 @@ function InsuranceTable({ surrogates, insuranceMap, onSave, filterStatus, filter
             const state = s.location?.split(', ').pop() || ''
             return (
               <tr key={s.id} className="border-b border-stone-100 hover:bg-stone-50/50">
-                <td className="px-5 py-3.5 sticky left-0 bg-white z-10 border-r border-stone-200">
+                <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1c1c2e] z-10 border-r border-stone-200">
                   <Link to={`/surrogates/${s.id}`} className="font-semibold text-[#283693] hover:underline text-sm">
                     {s.name}
                   </Link>
