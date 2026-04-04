@@ -906,3 +906,124 @@ export async function fetchAllInsurancePayments() {
   if (error) return []
   return data || []
 }
+
+// ── Expenses ────────────────────────────────────────────
+
+export async function fetchAllExpenses() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .select('*')
+    .order('expense_date', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+export async function fetchJourneyExpenses(journeyId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .select('*')
+    .eq('journey_id', journeyId)
+    .order('expense_date', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+export async function insertExpense(expense) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .insert(expense)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateExpense(id, updates) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteExpense(id) {
+  if (!supabase) return null
+  const { error } = await supabase
+    .from('journey_expenses')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+// ── Case Tasks ──────────────────────────────────────────
+
+export async function fetchCaseTasks(caseId, caseType) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .select('*')
+    .eq('case_id', caseId)
+    .eq('case_type', caseType)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+export async function fetchMyTasks(assignedTo) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .select('*')
+    .eq('assigned_to', assignedTo)
+    .in('status', ['open', 'in_progress'])
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) return []
+  return data || []
+}
+
+export async function fetchAllOpenTasks() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .select('*')
+    .in('status', ['open', 'in_progress'])
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) return []
+  return data || []
+}
+
+export async function createCaseTask(task) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .insert(task)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateCaseTask(id, updates) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deleteCaseTask(id) {
+  if (!supabase) return
+  const { error } = await supabase.from('case_tasks').delete().eq('id', id)
+  if (error) throw error
+}

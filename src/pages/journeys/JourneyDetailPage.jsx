@@ -4,7 +4,7 @@ import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, Printer, Scale,
+  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -15,6 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
+import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
@@ -33,7 +34,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
 
@@ -408,6 +409,173 @@ function JourneyChecklistTab({ journey, onUpdate }) {
   )
 }
 
+// ── Expenses Tab ────────────────────────────────────────
+function JourneyExpensesTab({ journeyId }) {
+  const [expenses, setExpenses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
+  const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [saving, setSaving] = useState(false)
+  const { currentUser } = useRole()
+
+  useEffect(() => {
+    fetchJourneyExpenses(journeyId).then(data => {
+      setExpenses(data || [])
+      setLoading(false)
+    })
+  }, [journeyId])
+
+  async function handleAdd() {
+    if (!newExpense.amount) return
+    setSaving(true)
+    try {
+      const created = await insertExpense({
+        journey_id: journeyId,
+        expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
+        amount: parseFloat(newExpense.amount) || 0,
+        paid_to: newExpense.paid_to || null,
+        notes: newExpense.notes || null,
+        created_by: currentUser?.email || '',
+      })
+      if (created) setExpenses(prev => [created, ...prev])
+      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+      setAddOpen(false)
+    } catch (err) {
+      console.error('Failed to add expense:', err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleUpdate(id, field, value) {
+    try {
+      const updated = await updateExpense(id, { [field]: value })
+      if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+    } catch (err) {
+      console.error('Failed to update expense:', err)
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Delete this expense?')) return
+    try {
+      await deleteExpense(id)
+      setExpenses(prev => prev.filter(e => e.id !== id))
+    } catch (err) {
+      console.error('Failed to delete expense:', err)
+    }
+  }
+
+  const fmtCurrency = (val) => {
+    if (!val && val !== 0) return '—'
+    return `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-stone-700">Expenses</h3>
+        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+          <Plus className="size-3" /> Add Expense
+        </Button>
+      </div>
+
+      {/* Add Expense Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+                <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
+                <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+              <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+              <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleAdd} disabled={saving || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1">
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                {saving ? 'Adding...' : 'Add Expense'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-stone-400 py-8 justify-center">
+          <Loader2 className="size-4 animate-spin" /> Loading expenses...
+        </div>
+      ) : expenses.length === 0 ? (
+        <div className="text-center py-12 text-stone-400">
+          <DollarSign className="size-8 mx-auto mb-2 text-stone-300" />
+          <p className="text-sm">No expenses recorded yet.</p>
+          <p className="text-xs mt-1">Click "+ Add Expense" to get started.</p>
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200">
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Date</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
+                    <th className="w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map(exp => (
+                    <tr key={exp.id} className="border-b border-stone-100 hover:bg-stone-50/50">
+                      <td className="px-4 py-3 text-sm">{formatDate(exp.expense_date)}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{fmtCurrency(exp.amount)}</td>
+                      <td className="px-4 py-3 text-sm">{exp.paid_to || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-stone-500">{exp.notes || '—'}</td>
+                      <td className="px-4 py-3 text-center">
+                        {exp.reconciled ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                            <Check className="size-2.5" /> Reconciled
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-3">
+                        {!exp.reconciled && (
+                          <button onClick={() => handleDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
 // ── Notes Tab ───────────────────────────────────────────
 function NotesTab({ journeyId, currentUser }) {
   const [notes, setNotes] = useState([])
@@ -598,6 +766,9 @@ export default function JourneyDetailPage() {
   const [breakOpen, setBreakOpen] = useState(false)
   const [breakReason, setBreakReason] = useState('')
   const [breaking, setBreaking] = useState(false)
+  const [expenseOpen, setExpenseOpen] = useState(false)
+  const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [savingExpense, setSavingExpense] = useState(false)
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
   const [insuranceOpen, setInsuranceOpen] = useState(false)
@@ -794,6 +965,60 @@ export default function JourneyDetailPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Expense Dialog (hero-level) */}
+      <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+                <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
+                <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+              <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+              <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setExpenseOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={savingExpense || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
+                setSavingExpense(true)
+                try {
+                  await insertExpense({
+                    journey_id: journey.id,
+                    expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
+                    amount: parseFloat(newExpense.amount) || 0,
+                    paid_to: newExpense.paid_to || null,
+                    notes: newExpense.notes || null,
+                    created_by: currentUser?.email || '',
+                  })
+                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '' })
+                  setExpenseOpen(false)
+                } catch (err) {
+                  console.error('Failed to add expense:', err)
+                } finally {
+                  setSavingExpense(false)
+                }
+              }}>
+                {savingExpense ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                {savingExpense ? 'Adding...' : 'Add Expense'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ─── Hero: Journey left, GC/IP stacked right ─────── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
@@ -846,6 +1071,9 @@ export default function JourneyDetailPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
+                <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => setExpenseOpen(true)}>
+                  <Plus className="size-3" /> Add Expense
+                </Button>
                 <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
                   <X className="size-3" /> Break Match
                 </Button>
@@ -1094,12 +1322,14 @@ export default function JourneyDetailPage() {
           { value: 'match-sheets', label: 'Match Sheets' },
           { value: 'documents', label: 'Documents' },
           { value: 'insurance', label: 'Insurance' },
+          { value: 'expenses', label: 'Expenses' },
           { value: 'notes', label: 'Notes' },
           { value: 'emails', label: 'Emails' },
           { value: 'texts', label: 'Texts' },
         ]} />
 
-        <TabsContent value="overview" className="mt-4">
+        <TabsContent value="overview" className="mt-4 space-y-6">
+          <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
           <JourneyMilestoneTimeline journey={journey} />
         </TabsContent>
 
@@ -1176,6 +1406,9 @@ export default function JourneyDetailPage() {
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+        </TabsContent>
+        <TabsContent value="expenses" className="mt-4">
+          <JourneyExpensesTab journeyId={journey.id} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">
