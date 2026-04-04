@@ -983,8 +983,9 @@ export default function JourneyDetailPage() {
                   e.preventDefault(); e.stopPropagation()
                   const conf = emailConfirm
                   setEmailConfirm(null)
-                  try { openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }) } catch {}
-                }}>
+                  openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }).catch(err => console.warn('openDraft failed:', err))
+                }}
+                type="button">
                 <Mail className="size-3" /> Confirm
               </Button>
             </div>
