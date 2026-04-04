@@ -39,6 +39,7 @@ import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Downloa
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
+import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import SortableTabsList from '@/components/shared/SortableTabsList'
@@ -734,6 +735,7 @@ export default function SurrogateDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
+          <CaseTasksWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
           <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} stageId={stageStatus?.stage || 'pre-qualification'} />
         </TabsContent>
 

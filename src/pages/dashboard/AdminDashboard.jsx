@@ -13,6 +13,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps } from '@/lib/checklistStore'
 import { Heart, HeartHandshake, Puzzle, Route, Users, GitMerge, FileText, Plus, ArrowRight, Calendar, Clock, Megaphone, X, ScrollText, FileWarning, CheckCircle2, Circle } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { DashboardTasksWidget } from '@/components/shared/CaseTasksWidget'
 import { formatDate } from '@/lib/utils'
 
 const recentActivity = []
@@ -414,6 +415,9 @@ export default function AdminDashboard() {
           </button>
         </div>
       ))}
+
+      {/* My Tasks */}
+      <DashboardTasksWidget userEmail={currentUser?.email} />
 
       {/* Stat Cards — clickable to switch views */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
