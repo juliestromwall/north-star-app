@@ -16,6 +16,8 @@ function InlineSignaturePad({ value, onChange, signerName }) {
   const [mode, setMode] = useState('typed')
   const canvasRef = useRef(null)
   const drawingRef = useRef(false)
+  const modeRef = useRef(mode)
+  modeRef.current = mode
 
   useEffect(() => {
     // Track mouse on window so drawing continues outside canvas
@@ -34,7 +36,10 @@ function InlineSignaturePad({ value, onChange, signerName }) {
     function handleUp() {
       if (!drawingRef.current) return
       drawingRef.current = false
-      if (canvasRef.current) onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
+      // Only save drawn signature if we're actually in draw mode
+      if (canvasRef.current && modeRef.current === 'drawn') {
+        onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
+      }
     }
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
@@ -65,12 +70,12 @@ function InlineSignaturePad({ value, onChange, signerName }) {
     <span className="inline-block align-middle my-2">
       <span className="border-2 border-dashed border-[#283693]/30 rounded-xl p-4 bg-[#283693]/5 inline-block" style={{ minWidth: 340 }}>
         <span className="flex gap-2 mb-3">
-          <button onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
-          <button onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
+          <button onClick={() => { setMode('typed'); onChange(value?.name ? { type: 'typed', name: value.name } : null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
+          <button onClick={() => { setMode('drawn'); onChange(null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
         </span>
         {mode === 'typed' ? (
           <span className="block">
-            <input type="text" value={value?.name || ''} onChange={e => onChange({ type: 'typed', name: e.target.value })}
+            <input type="text" value={value?.name || ''} onChange={e => onChange({ type: 'typed', name: e.target.value, image: null })}
               placeholder="Type your full legal name" className="w-full text-lg border-b-2 border-[#283693]/30 bg-transparent outline-none pb-2 font-serif italic placeholder:not-italic placeholder:text-stone-300 placeholder:font-sans placeholder:text-sm" />
             {value?.name && (
               <span className="block text-2xl font-serif italic text-[#1a1a2e] mt-3 text-center py-2">{value.name}</span>
