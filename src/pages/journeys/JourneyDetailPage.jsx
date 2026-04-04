@@ -17,6 +17,10 @@ import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
+import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
+import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
+import IPProfileTab from '@/components/intended-parents/IPProfileTab'
+import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
@@ -28,7 +32,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
 
@@ -248,6 +252,53 @@ function calcGestationalWeeks(dueDate) {
   return `${weeks}w ${days}d`
 }
 
+// ── Checklist History (read-only collapsed sections) ────
+function ChecklistHistory({ history }) {
+  const [openIdx, setOpenIdx] = useState(null)
+  if (!history || history.length === 0) return null
+
+  return (
+    <div className="space-y-2 mt-6">
+      <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Previous Checklists</p>
+      {history.map((snap, i) => {
+        const isOpen = openIdx === i
+        const steps = getChecklistSteps('gc', snap.stageId)
+        const completed = steps.filter(s => snap.tracking[s.id]?.status === 'complete').length
+        const total = steps.length
+        return (
+          <div key={i} className="rounded-xl border border-stone-100 overflow-hidden">
+            <button onClick={() => setOpenIdx(isOpen ? null : i)}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-stone-50 transition-colors">
+              <div className="flex items-center gap-2">
+                <ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <span className="font-medium text-stone-700">{snap.stageLabel}</span>
+                <span className="text-xs text-stone-400">{completed}/{total} completed</span>
+              </div>
+              <span className="text-xs text-stone-400">{fmtDate(snap.completedAt)}</span>
+            </button>
+            {isOpen && (
+              <div className="px-4 pb-3 space-y-1.5">
+                {steps.map(step => {
+                  const s = snap.tracking[step.id] || {}
+                  const isDone = s.status === 'complete'
+                  const isNA = s.status === 'na'
+                  return (
+                    <div key={step.id} className={`flex items-center gap-2 text-xs py-1 ${isNA ? 'opacity-40' : ''}`}>
+                      {isDone ? <Check className="size-3.5 text-emerald-500" /> : isNA ? <X className="size-3.5 text-stone-300" /> : <Circle className="size-3.5 text-stone-300" />}
+                      <span className={isDone ? 'text-stone-700' : 'text-stone-400'}>{step.label}</span>
+                      {s.updatedBy && <span className="text-stone-300 ml-auto">{s.updatedBy}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Checklist Tab (uses shared TrackingTable) ─
 function JourneyChecklistTab({ journey, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
@@ -264,14 +315,17 @@ function JourneyChecklistTab({ journey, onUpdate }) {
   }
 
   return (
-    <TrackingTable
-      title={`${stageObj.label} Checklist`}
-      steps={steps}
-      statuses={CHECKLIST_STEP_STATUSES}
-      tracking={tracking}
-      onUpdate={handleUpdate}
-      currentUserName={currentUser.name}
-    />
+    <div>
+      <TrackingTable
+        title={`${stageObj.label} Checklist`}
+        steps={steps}
+        statuses={CHECKLIST_STEP_STATUSES}
+        tracking={tracking}
+        onUpdate={handleUpdate}
+        currentUserName={currentUser.name}
+      />
+      <ChecklistHistory history={journey.journey_data?._checklistHistory} />
+    </div>
   )
 }
 
@@ -434,6 +488,9 @@ export default function JourneyDetailPage() {
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
   const [insuranceOpen, setInsuranceOpen] = useState(false)
+  const [gcQuizAnswers, setGcQuizAnswers] = useState(null)
+  const [gcProfileData, setGcProfileData] = useState(null)
+  const [appView, setAppView] = useState('gc') // gc | ip
   const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
   const [providerForm, setProviderForm] = useState({})
   const [ipFlip, setIpFlip] = useState({})
@@ -495,6 +552,12 @@ export default function JourneyDetailPage() {
         setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
         setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
         fetchInsurance(j.gc_case_id, 'surrogate').then(setGcInsurance).catch(() => {})
+        // Load GC quiz answers + profile for Application/Profile tabs
+        const gc = gcs.find(g => g.id === j.gc_case_id)
+        if (gc?.email) {
+          fetchIntakeByEmail(gc.email).then(d => { if (d) setGcQuizAnswers(d.answers || {}) }).catch(() => {})
+          fetchSurrogateProfileByEmail(gc.email).then(d => { if (d) setGcProfileData(d.profile_data || {}) }).catch(() => {})
+        }
       } catch {} finally { setLoading(false) }
     }
     load()
@@ -513,8 +576,27 @@ export default function JourneyDetailPage() {
   }
 
   async function changeStage(stageId) {
+    // Snapshot current checklist before changing stage
+    const currentTracking = journey.journey_data?._checklistTracking || {}
+    const currentStage = journey.stage || 'journey-oversight'
+    const currentStageObj = JOURNEY_STAGES.find(s => s.id === currentStage)
+    const hasTracking = Object.keys(currentTracking).length > 0
+
+    let journeyDataUpdates = {}
+    if (hasTracking) {
+      const snapshot = {
+        stageId: currentStage,
+        stageLabel: currentStageObj?.label || currentStage,
+        completedAt: new Date().toISOString(),
+        tracking: { ...currentTracking },
+      }
+      const history = [...(journey.journey_data?._checklistHistory || []), snapshot]
+      journeyDataUpdates = { _checklistHistory: history, _checklistTracking: {} }
+    }
+
+    const jd = { ...(journey.journey_data || {}), ...journeyDataUpdates }
     const status = getStatusesForStage(stageId, 'journey')[0] || 'Legal Review'
-    const updated = await updateMatchedJourney(journey.id, { stage: stageId, status }).catch(() => null)
+    const updated = await updateMatchedJourney(journey.id, { stage: stageId, status, journey_data: jd }).catch(() => null)
     if (updated) setJourney(updated)
     setStageOpen(false)
   }
@@ -878,6 +960,7 @@ export default function JourneyDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Overview' },
+          { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'checklist', label: 'Checklist' },
           { value: 'match-sheets', label: 'Match Sheets' },
@@ -895,7 +978,28 @@ export default function JourneyDetailPage() {
           }} />
         </TabsContent>
 
-        {/* Profiles Tab — toggle between GC and IP */}
+        {/* Application Tab — GC/IP sub-tabs */}
+        <TabsContent value="application" className="mt-4">
+          <div className="flex gap-2 mb-4">
+            <button onClick={() => setAppView('gc')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'gc' ? 'bg-pink-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              GC Application
+            </button>
+            <button onClick={() => setAppView('ip')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${appView === 'ip' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              IP Application
+            </button>
+          </div>
+          {appView === 'gc' ? (
+            gcCase ? <GCApplicationTab surrogate={gcCase} setSurrogate={setGcCase} quizAnswers={gcQuizAnswers || gcCase.answers || {}} setQuizAnswers={setGcQuizAnswers} profileData={gcProfileData} />
+              : <EmptyState title="GC data not found" />
+          ) : (
+            ipCase ? <IPApplicationTab ip={ipCase} setIp={setIpCase} />
+              : <EmptyState title="IP data not found" />
+          )}
+        </TabsContent>
+
+        {/* Profiles Tab — GC/IP sub-tabs */}
         <TabsContent value="profiles" className="space-y-4 mt-4">
           <div className="flex gap-2">
             <button onClick={() => setProfileView('gc')}
@@ -908,21 +1012,16 @@ export default function JourneyDetailPage() {
             </button>
           </div>
           {profileView === 'gc' ? (
-            <Card className="rounded-2xl border-l-4 border-l-pink-400">
-              <CardContent className="py-6 text-center">
-                <Link to={`/surrogates/${journey.gc_case_id}`} className="text-[#283693] font-semibold hover:underline">
-                  Open {gcCase?.name || 'Surrogate'}'s Full Case →
-                </Link>
-              </CardContent>
-            </Card>
+            gcProfileData ? <ProfilePreview profileData={gcProfileData} hideFooter /> : <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
           ) : (
-            <Card className="rounded-2xl border-l-4 border-l-[#283693]">
-              <CardContent className="py-6 text-center">
-                <Link to={`/intended-parents/${journey.ip_case_id}`} className="text-[#283693] font-semibold hover:underline">
-                  Open {ipCase?.names || 'Intended Parent'}'s Full Case →
-                </Link>
-              </CardContent>
-            </Card>
+            ipCase ? <IPProfileTab ip={ipCase} onUpdate={async (updates) => {
+              // IP profile updates go through intake submission
+              try {
+                const { updateIntakeSubmission } = await import('@/lib/db')
+                await updateIntakeSubmission(ipCase.id, updates)
+                setIpCase(prev => ({ ...prev, ...updates }))
+              } catch {}
+            }} /> : <EmptyState title="No IP profile data" />
           )}
         </TabsContent>
 

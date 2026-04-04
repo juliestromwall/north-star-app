@@ -125,6 +125,16 @@ export async function createMatchedJourney({ gcCaseId, ipCaseId, assignedTo, cre
   return data
 }
 
+export async function findJourneyByCaseId(caseId) {
+  if (!supabase) return null
+  // Check if this case is a GC or IP in any active journey
+  const { data: gcMatch } = await supabase.from('matched_journeys').select('id').eq('gc_case_id', caseId).maybeSingle()
+  if (gcMatch) return gcMatch.id
+  const { data: ipMatch } = await supabase.from('matched_journeys').select('id').eq('ip_case_id', caseId).maybeSingle()
+  if (ipMatch) return ipMatch.id
+  return null
+}
+
 export async function fetchMatchedJourneys() {
   if (!supabase) return []
   const { data, error } = await supabase

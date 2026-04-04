@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
   Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer,
@@ -23,6 +23,7 @@ import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } fr
 import { mockUsers } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import SortableTabsList from '@/components/shared/SortableTabsList'
+import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
@@ -39,6 +40,7 @@ function boolLabel(val, yesText = 'Yes', noText = 'No') {
 // ── Main Page ───────────────────────────────────────────
 export default function IPDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { currentUser } = useRole()
   const { openDraft } = useDrafts()
   const [ip, setIp] = useState(null)
@@ -56,6 +58,11 @@ export default function IPDetailPage() {
   })
 
   useEffect(() => {
+    // Check if this case is matched — redirect to journey
+    findJourneyByCaseId(Number(id)).then(journeyId => {
+      if (journeyId) { navigate(`/journeys/${journeyId}`, { replace: true }); return }
+    }).catch(() => {})
+
     fetchIPsFromIntake().then(all => {
       const found = all.find(item => String(item.id) === String(id))
       setIp(found || null)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, Heart, Ruler, Weight, Activity,
   MessageSquare, Pencil, CheckCircle2, Clock, Circle, XCircle,
@@ -38,6 +38,7 @@ import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
+import { findJourneyByCaseId } from '@/lib/matching'
 import TrackingTable from '@/components/shared/TrackingTable'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -225,6 +226,7 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, current
 
 export default function SurrogateDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { currentUser } = useRole()
   const { openDraft } = useDrafts()
   const [surrogate, setSurrogate] = useState(null)
@@ -306,6 +308,11 @@ export default function SurrogateDetailPage() {
   }
 
   useEffect(() => {
+    // Check if this case is matched — redirect to journey
+    findJourneyByCaseId(Number(id)).then(journeyId => {
+      if (journeyId) { navigate(`/journeys/${journeyId}`, { replace: true }); return }
+    }).catch(() => {})
+
     fetchSurrogatesFromIntake().then(all => {
       const found = all.find(s => String(s.id) === String(id))
       setSurrogate(found || null)
