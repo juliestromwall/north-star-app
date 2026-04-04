@@ -36,6 +36,7 @@ import FaxPage from './pages/fax/FaxPage'
 import SharedProfilePage from './pages/matching/SharedProfilePage'
 import JourneyDetailPage from './pages/journeys/JourneyDetailPage'
 import InsurancePage from './pages/insurance/InsurancePage'
+import CaseImportPage from './pages/admin/CaseImportPage'
 
 const stubs = [
   { path: '/expenses', title: 'Expense Tracking' },
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/e-signature" element={<ESignaturePage />} />
         <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
         <Route path="/insurance" element={<InsurancePage />} />
+        <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
           <Route
             key={s.path}

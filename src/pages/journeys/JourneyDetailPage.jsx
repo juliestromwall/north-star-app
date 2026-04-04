@@ -1012,7 +1012,7 @@ export default function JourneyDetailPage() {
             </button>
           </div>
           {profileView === 'gc' ? (
-            gcProfileData ? <ProfilePreview profileData={gcProfileData} hideFooter /> : <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
+            gcProfileData ? <ProfilePreview profile={gcProfileData} hideFooter /> : <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
           ) : (
             ipCase ? <IPProfileTab ip={ipCase} onUpdate={async (updates) => {
               // IP profile updates go through intake submission

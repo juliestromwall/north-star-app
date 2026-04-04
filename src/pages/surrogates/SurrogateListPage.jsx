@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { mockUsers } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
+import { fetchMatchedJourneys } from '@/lib/matching'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
@@ -325,9 +326,11 @@ export default function SurrogateListPage() {
   const [avatarUrls, setAvatarUrls] = useState({})
 
   useEffect(() => {
-    Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles()])
-      .then(([data, profileList]) => {
-        setSurrogates(data || [])
+    Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])
+      .then(([data, profileList, journeys]) => {
+        // Filter out matched surrogates
+        const matchedGcIds = new Set((journeys || []).map(j => j.gc_case_id))
+        setSurrogates((data || []).filter(s => !matchedGcIds.has(s.id)))
         const map = {}
         for (const p of (profileList || [])) {
           map[p.email] = p.profile_data

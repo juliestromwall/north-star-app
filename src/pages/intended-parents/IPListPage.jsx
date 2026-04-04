@@ -15,6 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
+import { fetchMatchedJourneys } from '@/lib/matching'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -89,8 +90,11 @@ export default function IPListPage() {
   }
 
   useEffect(() => {
-    fetchIPsFromIntake()
-      .then(data => setIps(data || []))
+    Promise.all([fetchIPsFromIntake(), fetchMatchedJourneys()])
+      .then(([data, journeys]) => {
+        const matchedIpIds = new Set((journeys || []).map(j => j.ip_case_id))
+        setIps((data || []).filter(ip => !matchedIpIds.has(ip.id)))
+      })
       .catch(() => setIps([]))
       .finally(() => setLoading(false))
   }, [])
