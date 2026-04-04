@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Upload, FileText, FileSpreadsheet, FolderArchive, Image, StickyNote,
-  Check, Loader2, ChevronDown, X, AlertCircle,
+  Check, Loader2, ChevronDown, X, AlertCircle, Search, Route,
 } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useRole } from '@/context/RoleContext'
-import { adminAddSurrogate, insertCaseNote, uploadCaseDocument } from '@/lib/db'
+import { adminAddSurrogate, adminAddIP, insertCaseNote, uploadCaseDocument, fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { createMatchedJourney, updateMatchedJourney } from '@/lib/matching'
+import { MATCH_STAGES } from '@/lib/constants'
 import * as XLSX from 'xlsx'
 
 const US_STATES = [
@@ -88,6 +90,488 @@ function FileDropZone({ label, icon: Icon, accept, multiple, files, onFiles, des
   )
 }
 
+// Column name → _matchSheetData field mapping (case-insensitive, flexible)
+const MATCH_SHEET_FIELD_MAP = {
+  // Attorney sheet fields
+  'sperm contribution': 'spermContribution',
+  'sperm source': 'spermContribution',
+  'egg source': 'eggSource',
+  'egg contribution': 'eggSource',
+  'ip attorney name': 'ipAttorneyName',
+  'ip attorney': 'ipAttorneyName',
+  'ip attorney email': 'ipAttorneyEmail',
+  'gc attorney name': 'gcAttorneyName',
+  'gc attorney': 'gcAttorneyName',
+  'surrogate attorney name': 'gcAttorneyName',
+  'surrogate attorney': 'gcAttorneyName',
+  'gc attorney email': 'gcAttorneyEmail',
+  'surrogate attorney email': 'gcAttorneyEmail',
+  'surrogacy friendly insurance': 'surrogacyFriendlyInsurance',
+  'surrogate friendly insurance': 'surrogacyFriendlyInsurance',
+  'insurance carrier': 'insuranceCarrier',
+  'carrier': 'insuranceCarrier',
+  'ip pay premium': 'ipPayPremium',
+  'ip pays premium': 'ipPayPremium',
+  'surrogacy type': 'surrogacyType',
+  'escrow company': 'escrowCompany',
+  'escrow account holder': 'escrowCompany',
+  'escrow funding': 'escrowFunding',
+  'escrow to be funded': 'escrowFunding',
+  'escrow minimum': 'escrowMinimum',
+  'minimum balance': 'escrowMinimum',
+  'escrow min': 'escrowMin',
+  'amnio testing': 'amnioTesting',
+  'amnio': 'amnioTesting',
+  'number of fetuses': 'numberOfFetuses',
+  'fetuses': 'numberOfFetuses',
+  'willing twins': 'willingTwins',
+  'willing to carry twins': 'willingTwins',
+  'twins': 'willingTwins',
+  'abort reduce': 'abortReduce',
+  'abort/reduce': 'abortReduce',
+  'selective reduction': 'abortReduce',
+  'psych counseling': 'psychCounseling',
+  'counseling': 'psychCounseling',
+  'psych over phone': 'psychOverPhone',
+  'max counseling sessions': 'maxCounselingSessions',
+  'counseling sessions': 'maxCounselingSessions',
+  'support group meetings': 'supportGroupMeetings',
+  'support group': 'supportGroupMeetings',
+  'clinic location': 'reClinicLocation',
+  're clinic location': 'reClinicLocation',
+  'ivf clinic': 'reClinicLocation',
+  'delivery hospital': 'deliveryHospital',
+  'hospital name': 'deliveryHospital',
+  'hospital': 'hospital',
+  'delivery hospital location': 'deliveryHospitalLocation',
+  'hospital location': 'deliveryHospitalLocation',
+  // Escrow sheet fields
+  'escrow opening amount': 'escrowOpeningAmount',
+  'opening amount': 'escrowOpeningAmount',
+  'escrow fund after legal': 'escrowFundAfterLegal',
+  'fund after legal': 'escrowFundAfterLegal',
+  // Journey-level fields
+  'lost wages': 'lostWages',
+  'pumping': 'pumping',
+  'escrow balance': 'escrowBalance',
+}
+
+function parseMatchSheetExcel(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const workbook = XLSX.read(e.target.result, { type: 'array' })
+      const result = {}
+
+      for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName]
+        const rows = XLSX.utils.sheet_to_json(sheet)
+
+        // Try key-value format: rows with Field/Value or Label/Value columns
+        if (rows.length > 0) {
+          const firstRow = rows[0]
+          const keys = Object.keys(firstRow)
+          const fieldCol = keys.find(k => /^(field|label|name|item|key)$/i.test(k))
+          const valueCol = keys.find(k => /^(value|answer|data|entry|response)$/i.test(k))
+
+          if (fieldCol && valueCol) {
+            // Key-value format
+            for (const row of rows) {
+              const label = String(row[fieldCol] || '').trim().toLowerCase()
+              const value = row[valueCol]
+              const mapped = MATCH_SHEET_FIELD_MAP[label]
+              if (mapped && value !== undefined && value !== null && value !== '') {
+                result[mapped] = String(value)
+              }
+            }
+          } else {
+            // Column-header format: first row has field names as column headers
+            for (const row of rows) {
+              for (const [col, val] of Object.entries(row)) {
+                const label = col.trim().toLowerCase()
+                const mapped = MATCH_SHEET_FIELD_MAP[label]
+                if (mapped && val !== undefined && val !== null && val !== '') {
+                  result[mapped] = String(val)
+                }
+              }
+            }
+          }
+        }
+      }
+      resolve(result)
+    }
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+const MATCH_SHEET_FIELDS = [
+  { key: 'spermContribution', label: 'Sperm Contribution' },
+  { key: 'eggSource', label: 'Egg Source' },
+  { key: 'ipAttorneyName', label: 'IP Attorney Name' },
+  { key: 'ipAttorneyEmail', label: 'IP Attorney Email' },
+  { key: 'gcAttorneyName', label: 'GC Attorney Name' },
+  { key: 'gcAttorneyEmail', label: 'GC Attorney Email' },
+  { key: 'surrogacyFriendlyInsurance', label: 'Surrogacy Friendly Insurance' },
+  { key: 'insuranceCarrier', label: 'Insurance Carrier' },
+  { key: 'ipPayPremium', label: 'IP Pays Premium' },
+  { key: 'surrogacyType', label: 'Surrogacy Type' },
+  { key: 'escrowCompany', label: 'Escrow Company' },
+  { key: 'escrowFunding', label: 'Escrow Funding' },
+  { key: 'escrowMinimum', label: 'Escrow Minimum' },
+  { key: 'amnioTesting', label: 'Amnio Testing' },
+  { key: 'numberOfFetuses', label: 'Number of Fetuses' },
+  { key: 'willingTwins', label: 'Willing to Carry Twins' },
+  { key: 'abortReduce', label: 'Abort/Reduce' },
+  { key: 'psychCounseling', label: 'Psych Counseling' },
+  { key: 'psychOverPhone', label: 'Psych Over Phone' },
+  { key: 'maxCounselingSessions', label: 'Max Counseling Sessions' },
+  { key: 'supportGroupMeetings', label: 'Support Group Meetings' },
+  { key: 'reClinicLocation', label: 'Clinic Location' },
+  { key: 'deliveryHospital', label: 'Delivery Hospital' },
+  { key: 'deliveryHospitalLocation', label: 'Hospital Location' },
+  { key: 'escrowOpeningAmount', label: 'Escrow Opening Amount' },
+  { key: 'escrowFundAfterLegal', label: 'Fund After Legal' },
+  { key: 'lostWages', label: 'Lost Wages' },
+  { key: 'hospital', label: 'Hospital (Journey)' },
+  { key: 'pumping', label: 'Pumping' },
+]
+
+function MatchSheetImport({ matchSheetFile, setMatchSheetFile, matchSheetData, setMatchSheetData, matchSheetParsed, setMatchSheetParsed }) {
+  const [expanded, setExpanded] = useState(false)
+  const fieldCount = Object.keys(matchSheetData).length
+
+  async function handleFile(files) {
+    setMatchSheetFile(files)
+    if (files.length > 0) {
+      const parsed = await parseMatchSheetExcel(files[0])
+      setMatchSheetData(prev => ({ ...prev, ...parsed }))
+      setMatchSheetParsed(true)
+    }
+  }
+
+  return (
+    <div className="border border-stone-200 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <FileSpreadsheet className="size-4 text-stone-400" />
+          Match Sheet Data
+          {fieldCount > 0 && (
+            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
+              {fieldCount} field{fieldCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </span>
+        <ChevronDown className={`size-4 text-stone-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-4 border-t border-stone-100">
+          <p className="text-xs text-stone-400 pt-3">
+            Upload an Excel file with match sheet data, or fill in fields manually. Excel can use column headers or Field/Value rows.
+          </p>
+
+          {/* File upload */}
+          <FileDropZone
+            label="Match Sheet Excel"
+            icon={FileSpreadsheet}
+            accept=".xlsx,.xls,.csv"
+            multiple={false}
+            files={matchSheetFile}
+            onFiles={handleFile}
+            description="Excel with match sheet fields"
+          />
+
+          {matchSheetParsed && fieldCount === 0 && (
+            <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+              <AlertCircle className="size-3.5 shrink-0" />
+              No matching fields found. Check column names or fill in manually below.
+            </div>
+          )}
+
+          {/* Manual entry / review grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {MATCH_SHEET_FIELDS.map(f => (
+              <div key={f.key} className="space-y-1">
+                <label className="text-[10px] text-stone-400 font-medium">{f.label}</label>
+                <Input
+                  value={matchSheetData[f.key] || ''}
+                  onChange={e => setMatchSheetData(prev => {
+                    const next = { ...prev }
+                    if (e.target.value) next[f.key] = e.target.value
+                    else delete next[f.key]
+                    return next
+                  })}
+                  placeholder="—"
+                  className="h-8 text-xs"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MatchJourneySection({ currentUser, navigate }) {
+  const [surrogates, setSurrogates] = useState([])
+  const [ips, setIPs] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const [selectedGC, setSelectedGC] = useState('')
+  const [selectedIP, setSelectedIP] = useState('')
+  const [matchDate, setMatchDate] = useState('')
+  const [stage, setStage] = useState('Match Confirmed')
+  const [gcSearch, setGcSearch] = useState('')
+  const [ipSearch, setIpSearch] = useState('')
+
+  // Match sheet import
+  const [matchSheetFile, setMatchSheetFile] = useState([])
+  const [matchSheetData, setMatchSheetData] = useState({})
+  const [matchSheetParsed, setMatchSheetParsed] = useState(false)
+
+  const [creating, setCreating] = useState(false)
+  const [matchResult, setMatchResult] = useState(null)
+  const [matchError, setMatchError] = useState(null)
+
+  useEffect(() => {
+    Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
+      .then(([gc, ip]) => {
+        setSurrogates(gc || [])
+        setIPs(ip || [])
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filteredGC = surrogates.filter(s =>
+    !gcSearch || s.name?.toLowerCase().includes(gcSearch.toLowerCase()) || s.email?.toLowerCase().includes(gcSearch.toLowerCase())
+  )
+  const filteredIP = ips.filter(ip =>
+    !ipSearch || ip.names?.toLowerCase().includes(ipSearch.toLowerCase()) || ip.email?.toLowerCase().includes(ipSearch.toLowerCase())
+  )
+
+  const selectedGCName = surrogates.find(s => String(s.id) === selectedGC)?.name
+  const selectedIPName = ips.find(ip => String(ip.id) === selectedIP)?.names
+
+  async function handleCreateJourney() {
+    if (!selectedGC || !selectedIP) {
+      setMatchError('Please select both a surrogate and an intended parent.')
+      return
+    }
+
+    setCreating(true)
+    setMatchError(null)
+    setMatchResult(null)
+
+    try {
+      const journey = await createMatchedJourney({
+        gcCaseId: Number(selectedGC),
+        ipCaseId: Number(selectedIP),
+        assignedTo: currentUser?.email || null,
+        createdBy: currentUser?.name || 'Import',
+      })
+
+      if (!journey?.id) throw new Error('Failed to create journey')
+
+      // Update stage, match_date, and match sheet data
+      const updates = {}
+      if (stage) updates.stage = stage
+      if (matchDate) updates.match_date = matchDate
+
+      // Include match sheet data in journey_data
+      if (Object.keys(matchSheetData).length > 0) {
+        const { lostWages, escrowMin, hospital, pumping, escrowBalance, ...sheetFields } = matchSheetData
+        const journeyData = {
+          ...(lostWages !== undefined && { lostWages }),
+          ...(escrowMin !== undefined && { escrowMin }),
+          ...(hospital !== undefined && { hospital }),
+          ...(pumping !== undefined && { pumping }),
+          ...(escrowBalance !== undefined && { escrowBalance }),
+          _matchSheetData: sheetFields,
+        }
+        updates.journey_data = journeyData
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await updateMatchedJourney(journey.id, updates)
+      }
+
+      setMatchResult({
+        journeyId: journey.id,
+        gcName: selectedGCName,
+        ipName: selectedIPName,
+        hasMatchSheet: Object.keys(matchSheetData).length > 0,
+      })
+    } catch (err) {
+      console.error('Journey creation failed:', err)
+      setMatchError(err.message || 'Failed to create journey.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  if (matchResult) {
+    return (
+      <Card className="max-w-xl">
+        <CardContent className="py-12 text-center space-y-4">
+          <div className="size-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+            <Check className="size-8 text-green-600" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-stone-800">Journey created!</p>
+            <p className="text-sm text-stone-500 mt-1">{matchResult.gcName} + {matchResult.ipName}</p>
+            {matchDate && <p className="text-xs text-stone-400 mt-1">Original match date: {matchDate}</p>}
+            {matchResult.hasMatchSheet && <p className="text-xs text-stone-400">Match sheet data imported</p>}
+          </div>
+          <div className="flex gap-2 justify-center pt-2">
+            <Button onClick={() => navigate(`/journeys/${matchResult.journeyId}`)} style={{ backgroundColor: '#283693' }}>
+              View Journey
+            </Button>
+            <Button variant="outline" onClick={() => { setMatchResult(null); setSelectedGC(''); setSelectedIP(''); setMatchDate(''); setStage('Match Confirmed'); setGcSearch(''); setIpSearch(''); setMatchSheetFile([]); setMatchSheetData({}); setMatchSheetParsed(false) }}>
+              Create Another
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Route className="size-4" />
+          Link Cases into a Matched Journey
+        </CardTitle>
+        <CardDescription>Select an existing surrogate and IP to create a journey. Import both cases above first.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {matchError && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <AlertCircle className="size-4 shrink-0" />
+            {matchError}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-stone-400 py-4">
+            <Loader2 className="size-4 animate-spin" /> Loading cases...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Surrogate picker */}
+            <div className="space-y-2">
+              <label className="text-[11px] text-stone-400 font-medium">Surrogate *</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-stone-300" />
+                <Input
+                  value={gcSearch}
+                  onChange={e => { setGcSearch(e.target.value); setSelectedGC('') }}
+                  placeholder="Search surrogates..."
+                  className="h-9 pl-8 text-sm"
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto border border-stone-200 rounded-lg divide-y divide-stone-100">
+                {filteredGC.length === 0 ? (
+                  <p className="text-xs text-stone-400 px-3 py-4 text-center">No surrogates found</p>
+                ) : filteredGC.slice(0, 50).map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setSelectedGC(String(s.id)); setGcSearch(s.name) }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors ${
+                      String(s.id) === selectedGC ? 'bg-blue-50 text-abc-indigo font-medium' : 'text-stone-700'
+                    }`}
+                  >
+                    <span>{s.name}</span>
+                    {s.location && <span className="text-xs text-stone-400 ml-2">{s.location}</span>}
+                  </button>
+                ))}
+              </div>
+              {selectedGCName && (
+                <p className="text-xs text-green-600 flex items-center gap-1"><Check className="size-3" /> {selectedGCName}</p>
+              )}
+            </div>
+
+            {/* IP picker */}
+            <div className="space-y-2">
+              <label className="text-[11px] text-stone-400 font-medium">Intended Parent(s) *</label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-stone-300" />
+                <Input
+                  value={ipSearch}
+                  onChange={e => { setIpSearch(e.target.value); setSelectedIP('') }}
+                  placeholder="Search IPs..."
+                  className="h-9 pl-8 text-sm"
+                />
+              </div>
+              <div className="max-h-40 overflow-y-auto border border-stone-200 rounded-lg divide-y divide-stone-100">
+                {filteredIP.length === 0 ? (
+                  <p className="text-xs text-stone-400 px-3 py-4 text-center">No IPs found</p>
+                ) : filteredIP.slice(0, 50).map(ip => (
+                  <button
+                    key={ip.id}
+                    onClick={() => { setSelectedIP(String(ip.id)); setIpSearch(ip.names) }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-stone-50 transition-colors ${
+                      String(ip.id) === selectedIP ? 'bg-blue-50 text-abc-indigo font-medium' : 'text-stone-700'
+                    }`}
+                  >
+                    <span>{ip.names}</span>
+                    {ip.location && <span className="text-xs text-stone-400 ml-2">{ip.location}</span>}
+                  </button>
+                ))}
+              </div>
+              {selectedIPName && (
+                <p className="text-xs text-green-600 flex items-center gap-1"><Check className="size-3" /> {selectedIPName}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Original Match Date</label>
+            <Input type="date" value={matchDate} onChange={e => setMatchDate(e.target.value)} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-stone-400 font-medium">Current Stage</label>
+            <select value={stage} onChange={e => setStage(e.target.value)} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+              {MATCH_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Match Sheet Import */}
+        <MatchSheetImport
+          matchSheetFile={matchSheetFile}
+          setMatchSheetFile={setMatchSheetFile}
+          matchSheetData={matchSheetData}
+          setMatchSheetData={setMatchSheetData}
+          matchSheetParsed={matchSheetParsed}
+          setMatchSheetParsed={setMatchSheetParsed}
+        />
+
+        <div className="flex items-center gap-3 pt-2">
+          <Button
+            onClick={handleCreateJourney}
+            disabled={creating || !selectedGC || !selectedIP}
+            className="gap-2"
+            style={{ backgroundColor: '#283693' }}
+          >
+            {creating ? <Loader2 className="size-4 animate-spin" /> : <Route className="size-4" />}
+            {creating ? 'Creating...' : 'Create Matched Journey'}
+          </Button>
+          <p className="text-xs text-stone-400">
+            Links the two cases into an active journey.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function CaseImportPage() {
   const { currentUser } = useRole()
   const navigate = useNavigate()
@@ -95,7 +579,10 @@ export default function CaseImportPage() {
   // Basic info
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '', state: '', dob: '',
-    caseType: 'surrogate', // surrogate or journey
+    caseType: 'surrogate', // surrogate or ip
+    applicationDate: '',
+    // IP2 fields (only used when caseType === 'ip')
+    ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '',
   })
 
   // File uploads
@@ -121,20 +608,39 @@ export default function CaseImportPage() {
     setResult(null)
 
     try {
-      // 1. Create the surrogate case
-      const surrogate = await adminAddSurrogate({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email || null,
-        phone: form.phone || null,
-        state: form.state || null,
-        dob: form.dob || null,
-        assignedTo: currentUser?.email || null,
-      })
+      // 1. Create the case based on type
+      let created
+      if (form.caseType === 'ip') {
+        created = await adminAddIP({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email || '',
+          phone: form.phone || '',
+          state: form.state || '',
+          dob: form.dob || null,
+          applicationDate: form.applicationDate || null,
+          ip2FirstName: form.ip2FirstName || '',
+          ip2LastName: form.ip2LastName || '',
+          ip2Email: form.ip2Email || '',
+          ip2Phone: form.ip2Phone || '',
+          assignedTo: currentUser?.email || null,
+        })
+      } else {
+        created = await adminAddSurrogate({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email || null,
+          phone: form.phone || null,
+          state: form.state || null,
+          dob: form.dob || null,
+          applicationDate: form.applicationDate || null,
+          assignedTo: currentUser?.email || null,
+        })
+      }
 
-      if (!surrogate?.id) throw new Error('Failed to create surrogate case')
+      if (!created?.id) throw new Error('Failed to create case')
 
-      const caseId = surrogate.id
+      const caseId = created.id
       const counts = { documents: 0, notes: 0, photos: 0 }
 
       // 2. Upload Profile PDF(s)
@@ -199,9 +705,16 @@ export default function CaseImportPage() {
         counts.photos++
       }
 
+      const isIP = form.caseType === 'ip'
+      const ip2Name = form.ip2FirstName && form.ip2LastName ? `${form.ip2FirstName} ${form.ip2LastName}` : null
+      const displayName = isIP && ip2Name
+        ? `${form.firstName} ${form.lastName} & ${ip2Name}`
+        : `${form.firstName} ${form.lastName}`
       setResult({
         caseId,
-        name: `${form.firstName} ${form.lastName}`,
+        caseType: form.caseType,
+        name: displayName,
+        typeLabel: isIP ? 'Intended Parent' : 'Surrogate',
         ...counts,
       })
     } catch (err) {
@@ -222,7 +735,7 @@ export default function CaseImportPage() {
               <Check className="size-8 text-green-600" />
             </div>
             <div>
-              <p className="text-lg font-semibold text-stone-800">{result.name} imported successfully</p>
+              <p className="text-lg font-semibold text-stone-800">{result.name} ({result.typeLabel}) imported successfully</p>
               <div className="text-sm text-stone-500 mt-2 space-y-1">
                 {result.documents > 0 && <p>{result.documents} document{result.documents !== 1 ? 's' : ''} uploaded</p>}
                 {result.notes > 0 && <p>{result.notes} note{result.notes !== 1 ? 's' : ''} imported</p>}
@@ -230,10 +743,10 @@ export default function CaseImportPage() {
               </div>
             </div>
             <div className="flex gap-2 justify-center pt-2">
-              <Button onClick={() => navigate(`/surrogates/${result.caseId}`)} style={{ backgroundColor: '#283693' }}>
+              <Button onClick={() => navigate(result.caseType === 'ip' ? `/intended-parents/${result.caseId}` : `/surrogates/${result.caseId}`)} style={{ backgroundColor: '#283693' }}>
                 View Case
               </Button>
-              <Button variant="outline" onClick={() => { setResult(null); setForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', caseType: 'surrogate' }); setProfilePdf([]); setApplicationPdfs([]); setDocumentsZip([]); setNotesFile([]); setPhotos([]) }}>
+              <Button variant="outline" onClick={() => { setResult(null); setForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', caseType: 'surrogate', applicationDate: '', ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' }); setProfilePdf([]); setApplicationPdfs([]); setDocumentsZip([]); setNotesFile([]); setPhotos([]) }}>
                 Import Another
               </Button>
             </div>
@@ -257,25 +770,32 @@ export default function CaseImportPage() {
       {/* Basic Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Surrogate Information</CardTitle>
+          <CardTitle className="text-base">Case Information</CardTitle>
           <CardDescription>Enter the basic details for this case</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">First Name *</label>
+              <label className="text-[11px] text-stone-400 font-medium">Case Type *</label>
+              <select value={form.caseType} onChange={e => setForm(f => ({ ...f, caseType: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                <option value="surrogate">Surrogate</option>
+                <option value="ip">Intended Parent</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">{form.caseType === 'ip' ? 'IP 1 First Name *' : 'First Name *'}</label>
               <Input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" className="h-9" />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Last Name *</label>
+              <label className="text-[11px] text-stone-400 font-medium">{form.caseType === 'ip' ? 'IP 1 Last Name *' : 'Last Name *'}</label>
               <Input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" className="h-9" />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Email</label>
+              <label className="text-[11px] text-stone-400 font-medium">{form.caseType === 'ip' ? 'IP 1 Email' : 'Email'}</label>
               <Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" className="h-9" />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Phone</label>
+              <label className="text-[11px] text-stone-400 font-medium">{form.caseType === 'ip' ? 'IP 1 Phone' : 'Phone'}</label>
               <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 555-5555" className="h-9" />
             </div>
             <div className="space-y-1">
@@ -289,7 +809,36 @@ export default function CaseImportPage() {
               <label className="text-[11px] text-stone-400 font-medium">Date of Birth</label>
               <Input type="date" value={form.dob} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} className="h-9" />
             </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Application Date</label>
+              <Input type="date" value={form.applicationDate} onChange={e => setForm(f => ({ ...f, applicationDate: e.target.value }))} className="h-9" />
+            </div>
           </div>
+
+          {/* IP 2 fields — shown only for IP cases */}
+          {form.caseType === 'ip' && (
+            <div className="mt-4 pt-4 border-t border-stone-100">
+              <p className="text-[11px] text-stone-400 font-medium mb-3">IP 2 (Partner) — optional</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">IP 2 First Name</label>
+                  <Input value={form.ip2FirstName} onChange={e => setForm(f => ({ ...f, ip2FirstName: e.target.value }))} placeholder="First name" className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">IP 2 Last Name</label>
+                  <Input value={form.ip2LastName} onChange={e => setForm(f => ({ ...f, ip2LastName: e.target.value }))} placeholder="Last name" className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">IP 2 Email</label>
+                  <Input value={form.ip2Email} onChange={e => setForm(f => ({ ...f, ip2Email: e.target.value }))} placeholder="email@example.com" className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">IP 2 Phone</label>
+                  <Input value={form.ip2Phone} onChange={e => setForm(f => ({ ...f, ip2Phone: e.target.value }))} placeholder="(555) 555-5555" className="h-9" />
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -362,9 +911,19 @@ export default function CaseImportPage() {
           {importing ? 'Importing...' : 'Import Case'}
         </Button>
         <p className="text-xs text-stone-400">
-          This will create a new surrogate case and upload all provided files.
+          This will create a new case and upload all provided files.
         </p>
       </div>
+
+      {/* Divider */}
+      <div className="relative py-2">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-200" /></div>
+        <div className="relative flex justify-center">
+          <span className="bg-abc-cream px-4 text-xs font-medium text-stone-400 uppercase tracking-wide">Create Matched Journey</span>
+        </div>
+      </div>
+
+      <MatchJourneySection currentUser={currentUser} navigate={navigate} />
     </div>
   )
 }

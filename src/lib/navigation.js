@@ -16,6 +16,7 @@ import {
   Printer,
   ShieldCheck,
   CreditCard,
+  Upload,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -142,6 +143,12 @@ const nav = [
         icon: Settings,
         path: '/settings',
         roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN],
+      },
+      {
+        label: 'Case Import',
+        icon: Upload,
+        path: '/case-import',
+        roles: [ROLES.SUPER_ADMIN],
       },
       {
         label: 'System',
