@@ -905,7 +905,7 @@ export default function JourneyDetailPage() {
                 <div className="flex items-center gap-3">
                   <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/surrogates/${gcCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{gcCase.name}</Link>
+                    <span className="text-base font-heading font-bold text-stone-900 block truncate">{gcCase.name}</span>
                     <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleGcFlip('age')}>
                         {gcFlip.age ? fmtDate(gcCase.dob || gcA.dob) : `Age ${gcCase.age || '—'}`}
@@ -979,7 +979,7 @@ export default function JourneyDetailPage() {
                 <div className="flex items-center gap-3">
                   <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
-                    <Link to={`/intended-parents/${ipCase.id}`} className="text-base font-heading font-bold text-stone-900 hover:text-[#283693] transition-colors block truncate">{ipCase.names}</Link>
+                    <span className="text-base font-heading font-bold text-stone-900 block truncate">{ipCase.names}</span>
                     <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">
                       <span className="cursor-pointer hover:text-stone-700" onClick={() => toggleIpFlip('age')}>
                         {ipFlip.age ? dobDisplay : ageDisplay}
