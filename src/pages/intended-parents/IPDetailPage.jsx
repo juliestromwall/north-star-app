@@ -352,10 +352,6 @@ export default function IPDetailPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={ip.id} caseType="ip" />
-            <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="rounded-2xl">
               <CardHeader><CardTitle>Intended Parent 1</CardTitle></CardHeader>
               <CardContent className="space-y-1">
@@ -402,6 +398,10 @@ export default function IPDetailPage() {
                 <InfoRow icon={ClipboardList} label="How They Heard" value={ip.hearAboutUs || '—'} />
               </CardContent>
             </Card>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
+            <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
           </div>
         </TabsContent>
 
