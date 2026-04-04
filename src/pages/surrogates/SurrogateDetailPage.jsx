@@ -2372,7 +2372,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   )
 }
 
-function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers }) {
+export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers }) {
   const [editingSection, setEditingSection] = useState(null)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)

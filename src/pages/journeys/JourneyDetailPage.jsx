@@ -21,6 +21,7 @@ import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
+import { ProfileTab as GCProfileTab } from '@/pages/surrogates/SurrogateDetailPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
@@ -32,7 +33,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
 
@@ -482,10 +483,18 @@ class ProfileErrorBoundary extends Component {
   }
 }
 
-function ProfilesTabContent({ profileView, gcProfileData, ipCase, setIpCase }) {
+function ProfilesTabContent({ profileView, gcCase, setGcCase, gcProfileData, setGcProfileData, gcProfileStatus, setGcProfileStatus, gcPhotos, setGcPhotos, gcPortraitUrl, gcQuizAnswers, setGcQuizAnswers, ipCase, setIpCase }) {
+  const heightStr = gcCase ? `${gcCase.heightFt || ''}\'${gcCase.heightIn || ''}"` : ''
   if (profileView === 'gc') {
-    if (!gcProfileData) return <EmptyState title="No surrogate profile data" description="Profile hasn't been started yet." />
-    return <ProfileErrorBoundary key="gc"><ProfilePreview profile={gcProfileData} hideFooter /></ProfileErrorBoundary>
+    if (!gcCase) return <EmptyState title="No surrogate data" />
+    return <ProfileErrorBoundary key="gc"><GCProfileTab
+      surrogate={gcCase} setSurrogate={setGcCase}
+      profileData={gcProfileData || {}} setProfileData={setGcProfileData}
+      profileStatus={gcProfileStatus} setProfileStatus={setGcProfileStatus}
+      photos={gcPhotos} setPhotos={setGcPhotos}
+      portraitUrl={gcPortraitUrl} heightStr={heightStr}
+      quizAnswers={gcQuizAnswers} setQuizAnswers={setGcQuizAnswers}
+    /></ProfileErrorBoundary>
   }
   if (!ipCase) return <EmptyState title="No IP profile data" />
   return <ProfileErrorBoundary key="ip"><IPProfileTab ip={ipCase} onUpdate={async (updates) => {
@@ -516,6 +525,9 @@ export default function JourneyDetailPage() {
   const [insuranceOpen, setInsuranceOpen] = useState(false)
   const [gcQuizAnswers, setGcQuizAnswers] = useState(null)
   const [gcProfileData, setGcProfileData] = useState(null)
+  const [gcProfileStatus, setGcProfileStatus] = useState('draft')
+  const [gcPhotos, setGcPhotos] = useState([])
+  const [gcPortraitUrl, setGcPortraitUrl] = useState(null)
   const [appView, setAppView] = useState('gc') // gc | ip
   const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
   const [providerForm, setProviderForm] = useState({})
@@ -578,11 +590,21 @@ export default function JourneyDetailPage() {
         setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
         setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
         fetchInsurance(j.gc_case_id, 'surrogate').then(setGcInsurance).catch(() => {})
-        // Load GC quiz answers + profile for Application/Profile tabs
+        // Load GC quiz answers + profile + photos for Application/Profile tabs
         const gc = gcs.find(g => g.id === j.gc_case_id)
         if (gc?.email) {
           fetchIntakeByEmail(gc.email).then(d => { if (d) setGcQuizAnswers(d.answers || {}) }).catch(() => {})
-          fetchSurrogateProfileByEmail(gc.email).then(d => { if (d) setGcProfileData(d.profile_data || {}) }).catch(() => {})
+          fetchSurrogateProfileByEmail(gc.email).then(d => {
+            if (d?.profile_data) setGcProfileData(d.profile_data)
+            if (d?.status) setGcProfileStatus(d.status)
+          }).catch(() => {})
+        }
+        if (gc?.userId) {
+          Promise.all([
+            listProfilePhotos(gc.userId).catch(() => []),
+            listProfilePhotos(`${gc.userId}/portrait`).catch(() => []),
+          ]).then(([gallery, portraits]) => setGcPhotos([...portraits, ...gallery]))
+          getPortraitPhotoUrl(gc.userId).then(url => { if (url) setGcPortraitUrl(url) }).catch(() => {})
         }
       } catch {} finally { setLoading(false) }
     }
@@ -1039,9 +1061,13 @@ export default function JourneyDetailPage() {
           </div>
           <ProfilesTabContent
             profileView={profileView}
-            gcProfileData={gcProfileData}
-            ipCase={ipCase}
-            setIpCase={setIpCase}
+            gcCase={gcCase} setGcCase={setGcCase}
+            gcProfileData={gcProfileData} setGcProfileData={setGcProfileData}
+            gcProfileStatus={gcProfileStatus} setGcProfileStatus={setGcProfileStatus}
+            gcPhotos={gcPhotos} setGcPhotos={setGcPhotos}
+            gcPortraitUrl={gcPortraitUrl}
+            gcQuizAnswers={gcQuizAnswers} setGcQuizAnswers={setGcQuizAnswers}
+            ipCase={ipCase} setIpCase={setIpCase}
           />
         </TabsContent>
 
