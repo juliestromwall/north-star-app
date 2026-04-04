@@ -974,15 +974,16 @@ export default function JourneyDetailPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-stone-800">Email {emailConfirm.name}?</p>
-              <p className="text-xs text-stone-500 truncate">{emailConfirm.email}</p>
+              {emailConfirm.email.split(', ').map((e, i) => <p key={i} className="text-xs text-stone-500">{e}</p>)}
             </div>
             <div className="flex gap-2 shrink-0">
               <Button variant="outline" size="sm" className="rounded-full text-xs h-7" onClick={() => setEmailConfirm(null)}>Cancel</Button>
               <Button size="sm" className="rounded-full text-xs h-7 gap-1" style={{ backgroundColor: '#283693' }}
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault(); e.stopPropagation()
                   const conf = emailConfirm
                   setEmailConfirm(null)
-                  openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }).catch(() => {})
+                  try { openDraft({ to: conf.email, caseId: conf.caseId, caseType: 'journey', userId: currentUser?.userId || currentUser?.id }) } catch {}
                 }}>
                 <Mail className="size-3" /> Confirm
               </Button>
