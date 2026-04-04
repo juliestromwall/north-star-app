@@ -724,7 +724,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       openDraft({
         subject: emailSubject,
         body: '',
-        userId: currentUser?.userId,
+        userId: currentUser?.id,
         caseId: journey.id,
         attachments: [{ filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }],
       })

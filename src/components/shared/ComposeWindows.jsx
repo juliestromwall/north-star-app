@@ -6,6 +6,11 @@ import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import TiptapUnderline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import { Table } from '@tiptap/extension-table'
+import { TableRow } from '@tiptap/extension-table-row'
+import { TableCell } from '@tiptap/extension-table-cell'
+import { TableHeader } from '@tiptap/extension-table-header'
 import { useDrafts } from '@/context/DraftContext'
 import { useRole } from '@/context/RoleContext'
 import { sendEmail, createGmailDraft } from '@/lib/google'
@@ -182,6 +187,11 @@ function ComposeWindow({ draft, index }) {
       TextStyle,
       TiptapUnderline,
       Link.configure({ openOnClick: false }),
+      Image.configure({ inline: true, allowBase64: true }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableCell,
+      TableHeader,
     ],
     content: draft.body || '',
     onUpdate: ({ editor }) => {
@@ -194,11 +204,15 @@ function ComposeWindow({ draft, index }) {
     },
   })
 
-  // Sync editor content if draft body changes externally (e.g. reply/forward init)
+  // Sync editor content if draft body changes externally (e.g. signature append, reply/forward init)
+  const lastSyncedBody = useRef(draft.body)
   useEffect(() => {
-    if (editor && draft.body && editor.getHTML() !== draft.body && !editor.isFocused) {
+    if (!editor || !draft.body) return
+    // Always sync if the body grew (signature appended) or changed externally
+    if (draft.body !== lastSyncedBody.current && editor.getHTML() !== draft.body) {
       editor.commands.setContent(draft.body)
     }
+    lastSyncedBody.current = draft.body
   }, [draft.body, editor])
 
   const loadCases = () => {
