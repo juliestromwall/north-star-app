@@ -206,7 +206,7 @@ function ComposeWindow({ draft, index }) {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys().catch(() => [])])
       .then(([gcs, ips, journeys]) => {
         const allCases = [
-          { id: '', name: '', label: 'None' },
+          { id: '_none', name: '', label: 'None' },
           ...(gcs || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'gc', label: `GC: ${c.applicant_name}` })),
           ...(ips || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'ip', label: `IP: ${c.applicant_name}` })),
           ...(journeys || []).map(j => ({ id: j.id, name: `Journey #${j.id}`, type: 'journey', label: `Journey #${j.id}` })),
@@ -485,8 +485,8 @@ function ComposeWindow({ draft, index }) {
 
           <div className="ml-auto flex items-center gap-1.5">
             <Select
-              value={draft.caseId || ''}
-              onValueChange={v => updateDraft(draft.id, { caseId: v })}
+              value={draft.caseId || '_none'}
+              onValueChange={v => updateDraft(draft.id, { caseId: v === '_none' ? '' : v })}
               onOpenChange={loadCases}
             >
               <SelectTrigger className="h-7 text-xs w-[140px] border-dashed">
