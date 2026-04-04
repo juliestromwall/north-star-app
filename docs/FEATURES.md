@@ -58,6 +58,9 @@
 | DraftContext | src/context/DraftContext.jsx | React context for managing email draft state, supports initial attachments and caseType |
 | MatchSheetsTab | src/components/journeys/MatchSheetsTab.jsx | Attorney/Clinic/Escrow match sheets with inline editing, custom dropdowns, PDF generation with page breaks, Save to Documents + Send Match Sheet actions, branded footer |
 | TrackingTable | src/components/shared/TrackingTable.jsx | Shared tracking table with expand/collapse, history log, edit/delete, rename labels, progress bar (used by surrogate, journey, IP checklists) |
+| InsurancePage | src/pages/insurance/InsurancePage.jsx | Spreadsheet-style insurance management: inline-editable cells, per-row password toggle, status/year tabs, cross-tab search, admin filter, TabBanner |
+| InsuranceTab | src/components/shared/InsuranceTab.jsx | Case-level insurance management on surrogate/journey detail pages: status, year, plan dates, binder, OB, hospital, notes |
+| CaseImportPage | src/pages/admin/CaseImportPage.jsx | Super Admin case import: surrogate or IP (with IP2 partner), file uploads (PDF, ZIP, Excel notes, photos), matched journey creation with searchable case pickers, match sheet Excel import with 60+ column mappings |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
 
@@ -101,6 +104,11 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 | E-sign templates | esign_templates | Live |
 | E-sign documents | esign_documents | Live |
 | E-sign audit log | esign_audit_log | Live |
+| Insurance | surrogate_insurance + insurance_payments | Live |
+| Matched journeys | matched_journeys (incl. match_date, journey_data._matchSheetData) | Live |
+| Profile shares | profile_shares | Live |
+| Match questions | match_questions | Live |
+| Journey notes | journey_notes | Live |
 
 ## External Integrations
 
@@ -122,6 +130,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-04-03 | Case Import: Super Admin import page (/case-import) for surrogates and IPs (with IP2 partner). File uploads (PDF, ZIP extract, Excel notes, photos). Create Matched Journey section with searchable pickers, original match date, stage selector, match sheet Excel import (60+ column mappings). Insurance: spreadsheet page with inline editing, per-row passwords, status/year tabs, cross-tab search. Sidebar: liquid glass active state, dock magnification, nav reorganization. Date formatting centralized (MM/DD/YYYY). Dark mode built then hidden. |
 | 2026-04-03 | Fax: SRFax API live (account 288185). Full UX overhaul — hero stats bar (Received/Unread/Filed/Sent as clickable filters), table layout with TrackingTable-style headers, near-fullscreen PDF preview with prev/next navigation + auto-advance to next unread after filing, inline file-to-case panel with rename + medical records log update (select record + status + note), warnings for missing log updates and cases without records tasks, filed case tracking (case link, date, admin, log Y/N), mark read/unread, "Send Fax" from case Documents tabs, sidebar unread badge. New faxState.js for localStorage-backed read/filing tracking. |
 | 2026-04-02 | E-Signature: Google Docs iframe editing (full toolbar, pagination, headers/footers in-app), templates synced from Google Drive ABC Templates folder, signature request emails via Gmail API, signing field placeholders ({{Signature:GC}} etc.), PDF export from Drive, template delete fix. Email: Gmail-style floating compose with minimize/multi-draft/rich text/signature/draft saving, unread badge, bulk actions. Calendar: Google Calendar API integration. Fax: SRFax page ready. |
 | 2026-03-31 | E-Signature feature (template upload/edit/tag/delete, .docx→HTML editor, send for signature, type/draw signature, audit trail, HIPAA compliant). Admin profile UX overhaul (toggle buttons, dropdowns, checkboxes, currency). Photos section on admin profile tab (lightbox, hide/delete). Application tabs for GC (6 collapsible form sections with search) and IP (4 sections). Add IP button. IP detail redesign (hero tiles, stage/status selectors). Stage statuses split by GC/IP/Journey. Calendar Google-style with calendar selector sidebar. Dashboard OB records fix. |

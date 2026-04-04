@@ -1,5 +1,81 @@
 # Session Log
 
+## 2026-04-03 (Case Import, Insurance Page, Sidebar Redesign, Dark Mode, Date Formatting)
+
+**Worked on:** Case Import page for Super Admin (surrogate + IP with partner, file uploads, matched journey creation with match sheet import), Insurance spreadsheet page, sidebar redesign with liquid glass, centralized date formatting, dark mode (built then hidden)
+
+**Changes made:**
+
+Case Import (src/pages/admin/CaseImportPage.jsx):
+- Full case import page at /case-import (Super Admin only)
+- Case type: Surrogate or Intended Parent (IP2 partner fields shown inline when IP selected)
+- Fields: first/last name, email, phone, state, DOB, application date
+- Application date saves as submitted_at on the record + in answers.applicationDate
+- File upload zones: Profile PDF, Application PDFs (multiple), Documents ZIP (auto-extracts), Notes Excel (parses Note/Author columns), Photos
+- ZIP extraction via jszip (filters __MACOSX, hidden files)
+- Excel notes import via xlsx (tries common column names)
+- 50MB client-side file size validation (matches Supabase storage limit)
+- Success screen with View Case / Import Another buttons
+
+Create Matched Journey section (bottom of Case Import page):
+- Searchable surrogate picker + searchable IP picker (type to filter)
+- Original match date field + current stage dropdown
+- Match Sheet Data import: collapsible accordion with Excel upload OR manual entry
+- Excel parser maps ~60 column name variations to _matchSheetData fields (case-insensitive, flexible)
+- Supports column-header format and key-value (Field/Value) format
+- 29 editable match sheet fields in review grid
+- Creates journey via createMatchedJourney, saves match_date + stage + match sheet data
+- match_date column added to matched_journeys table (SQL migration)
+
+Insurance Page (src/pages/insurance/InsurancePage.jsx):
+- Full spreadsheet-style insurance management
+- Surrogates as rows (only those with insurance records), fields as columns
+- Columns: State, Status, Year, Carrier, Premium, Due Date, Website, Login, Password, Autopay, Autopay Date, Plan Start, Plan End, Binder Paid, OB, Hospital, Notes
+- Per-row password visibility toggle (eyeball icon)
+- EditableCell with inline editing (click to edit, Enter to save, Escape to cancel)
+- Status dropdown: active_policy, policy_check, open_enrollment, complete
+- Year dropdown (current year + 5)
+- Dynamic tabs: Active Policies + status × year combinations
+- Search searches across ALL tabs (bypasses status filter), clearable
+- Admin filter dropdown populated from assigned case managers
+- TabBanner for contextual messages per tab
+- Insurance fields added to InsuranceTab.jsx (case-level): status, year, plan dates, binder, OB, hospital, notes
+- DB migration: 8 new columns on surrogate_insurance table
+
+Sidebar Redesign (continuing from previous session):
+- Added Case Import nav item under Admin section (Upload icon, SUPER_ADMIN only)
+- Navigation reorganization finalized
+
+Date Formatting:
+- Centralized formatDate(value) in src/lib/utils.js (MM/DD/YYYY)
+- Swept across multiple files replacing local formatters
+- Pink-styled dropdowns system-wide (select:focus, option:checked)
+
+Dark Mode (built but hidden):
+- Full dark mode CSS variables in .dark selector
+- Toggle in TopBar (Moon/Sun icon) — removed at user request
+- CSS preserved in index.css for future re-enablement
+- localStorage persistence (abc_dark_mode)
+
+DB functions updated (src/lib/db.js):
+- adminAddSurrogate: now stores applicationDate in answers + uses it for submitted_at
+- adminAddIP: same applicationDate handling, already supported IP2 partner fields
+
+**Next steps:**
+- Resolve file size limit for large PDF imports (Supabase storage limit is 50MB, old system profiles are larger)
+  - Options: bump Supabase plan limit, or compress PDFs before upload
+- Test full Case Import → Create Matched Journey flow end-to-end
+- Test match sheet data appearing correctly on journey Match Sheets tab
+- Build out Expense Tracking page
+- Matching page redesign (user mentioned coming back to this)
+
+**Open questions:**
+- Supabase storage file size limit — user's old profiles exceed 50MB. Need Pro plan or compression
+- Should application date show differently from submitted_at on the case list/detail pages?
+- Expense Tracking scope and visibility (which roles?)
+
+---
+
 ## 2026-04-03 (Journey Hero, Insurance, Attorneys, Draggable Tabs)
 
 **Worked on:** Journey Detail page hero overhaul, attorney info, insurance tab, draggable tabs, hero UX fixes

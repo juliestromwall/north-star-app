@@ -82,6 +82,27 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 3. Notes show author, timestamp, (edited) indicator
 4. Stored in Supabase case_notes table
 
+### Super Admin: Case Import
+1. Navigate to /case-import (Super Admin only, under Admin nav section)
+2. Select case type: Surrogate or Intended Parent
+3. Fill in basic info (name, email, phone, state, DOB, application date)
+4. For IPs: optionally add IP2 partner (first name, last name, email, phone)
+5. Upload files: Profile PDF, Application PDFs, Documents ZIP (auto-extracted), Notes Excel (parsed), Photos
+6. Click Import Case → creates case record in Supabase with application date as submitted_at
+7. Scroll down to "Create Matched Journey" section
+8. Search and select a Surrogate + IP from existing cases
+9. Set original match date + current journey stage
+10. Optionally import match sheet data via Excel or fill manually (29 fields)
+11. Click Create Matched Journey → links cases, saves match date + stage + match sheet data
+
+### Admin: Insurance Management
+1. /insurance page shows all surrogates with insurance records as spreadsheet rows
+2. Inline-editable cells for all fields (carrier, premium, dates, login/password, OB, hospital, etc.)
+3. Per-row password visibility toggle
+4. Status/year tabs: Active Policies + status × year combinations
+5. Search across all tabs, admin filter by case manager
+6. Case-level insurance on surrogate/journey detail pages via InsuranceTab
+
 ### Admin: Contact & Intake Details
 1. Contact tab merges quiz answers + contact info in one editable view
 2. All fields use proper form controls matching quiz (dropdowns, toggles)
