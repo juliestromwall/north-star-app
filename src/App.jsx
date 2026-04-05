@@ -38,6 +38,7 @@ import JourneyDetailPage from './pages/journeys/JourneyDetailPage'
 import InsurancePage from './pages/insurance/InsurancePage'
 import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
+import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/e-signature/edit/:templateId" element={<EditDocumentPage />} />
         <Route path="/insurance" element={<InsurancePage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/case-updates" element={<CaseUpdatesPage />} />
         <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
           <Route

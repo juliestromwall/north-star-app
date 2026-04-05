@@ -84,6 +84,12 @@ const nav = [
         path: '/journeys',
         roles: ADMIN_ROLES,
       },
+      {
+        label: 'Case Updates',
+        icon: ClipboardCheck,
+        path: '/case-updates',
+        roles: ADMIN_ROLES,
+      },
     ],
   },
   {
