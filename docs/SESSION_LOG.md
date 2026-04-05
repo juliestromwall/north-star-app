@@ -1,5 +1,71 @@
 # Session Log
 
+## 2026-04-04 (E-Sign Security, Signature Fix, Case Tasks, Case Calendar, Email Tags Planning)
+
+**Worked on:** Secure e-signature URLs, typed signature fix, case tasks system, case calendar with Google Calendar API integration, calendar page link improvements
+
+**Changes made:**
+
+E-Signature Security:
+- Added signing_token column (64-char hex, crypto.getRandomValues) to esign_documents
+- New route /e-signature/sign/:token for secure signing URLs
+- fetchDocumentByToken() in esign.js
+- EditDocumentPage sends token-based URLs in emails
+- Legacy /e-signature/:id route kept for backwards compatibility
+- SQL migration: scripts/esign-token-migration.sql
+
+Typed Signature Fix:
+- mouseup handler was firing in typed mode, overwriting typed value with blank canvas
+- Added modeRef to track current mode in event handler closure
+- Switching modes now resets signature value properly
+- Typed onChange explicitly sets image: null to clear stale drawn data
+
+Case Tasks System:
+- New Supabase table: case_tasks (id, case_id, case_type, title, description, status, priority, due_date, assigned_to, created_by, completed_at/by)
+- CaseTasksWidget: add tasks, cycle status (open→in_progress→complete), expand for notes, delete, overdue highlighting, completed section
+- DashboardTasksWidget: "My Tasks" on admin dashboard with cross-case view, searchable case picker for adding tasks
+- DB helpers: fetchCaseTasks, fetchMyTasks, fetchAllOpenTasks, createCaseTask, updateCaseTask, deleteCaseTask
+- Added to Overview tab on Surrogate, IP, and Journey detail pages (below milestones)
+
+Case Calendar Widget:
+- CaseCalendarWidget shows appointments for a specific case using Google Calendar API
+- Events tagged with extendedProperties.private.caseId for per-case filtering
+- listCaseEvents() in google.js uses privateExtendedProperty filter
+- Events created from a case appear on full Google Calendar automatically
+- Add Appointment dialog: title, date, time/all-day, notes
+- Event title format: "Appointment — Client Name"
+- Event description: client name + case URL (Google auto-links it)
+- Calendar page (/calendar): URLs in event popup are now clickable internal links
+- Case widget: shows title only (no redundant link since already on the case)
+- Two-column layout: Calendar (left) + Tasks (right), below milestones
+
+Other Fixes:
+- Insurance modal widened to max-w-4xl on journey page
+- Insurance page: Pay Status column (PAID/UNPAID) frozen with name column
+- Removed hyperlinks from GC/IP names in journey hero (since cases redirect to journey)
+- Email compose: openDraft made synchronous to prevent blank page crashes
+- Error boundary around ComposeWindows
+- Fixed SelectItem empty string value crash
+- Fixed Supabase insert .catch() crash
+
+**Next steps:**
+- Email tagging system: add tag selector to "Log to Case" dialog
+- Tags: Escrow, Expense, Medical Records, Monitoring, OB, Hospital, Legal, Matching, Task
+- AI-powered expense extraction from tagged "Expense" emails
+- AI-powered task creation from tagged "Task" emails
+- Tag-based filtering on case/journey email log
+- Supabase migration: add tag column to case_emails table
+- Merged Documents tab on journey (fetch from GC + IP + Journey)
+- Expense tracking page buildout
+
+**Open questions:**
+- Which AI model/API to use for email parsing (Claude API via Cloudflare function?)
+- Should expense logs go in a new table or extend an existing one?
+- Should AI-generated tasks/expenses require confirmation before saving? (User said yes)
+- Email tag storage: single tag per email or multiple tags?
+
+---
+
 ## 2026-04-03 (Match-Centric Architecture, Journey Hero Redesign, Insurance, Attorneys)
 
 **Worked on:** Complete journey detail page redesign, match-centric case architecture, attorney info, insurance tab, draggable tabs, provider modals, email compose fixes, checklist history, break match improvements

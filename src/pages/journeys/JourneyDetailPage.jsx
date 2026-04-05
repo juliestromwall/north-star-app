@@ -413,7 +413,7 @@ function JourneyChecklistTab({ journey, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
+function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const fileRef = useRef(null)
@@ -496,7 +496,7 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
           const file = e.target.files?.[0]
           if (!file) return
           try {
-            const doc = await uploadCaseDocument({ surrogateId: exp.journey_id, category: 'Expenses', file, uploadedBy: 'Admin' })
+            const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file, uploadedBy: 'Admin' })
             if (doc?.public_url) {
               await onUpdate(exp.id, 'attachment_url', doc.public_url)
             }
@@ -528,7 +528,7 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
 }
 
 // ── Expenses Tab ────────────────────────────────────────
-function JourneyExpensesTab({ journeyId }) {
+function JourneyExpensesTab({ journeyId, gcCaseId }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -551,7 +551,7 @@ function JourneyExpensesTab({ journeyId }) {
     try {
       let attachmentUrl = null
       if (tabExpenseFile) {
-        const doc = await uploadCaseDocument({ surrogateId: journeyId, category: 'Expenses', file: tabExpenseFile, uploadedBy: currentUser?.name || 'Admin' })
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: tabExpenseFile, uploadedBy: currentUser?.name || 'Admin' })
         attachmentUrl = doc?.public_url || null
       }
       const created = await insertExpense({
@@ -703,7 +703,7 @@ function JourneyExpensesTab({ journeyId }) {
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} />
                   ))}
                 </tbody>
               </table>
@@ -1583,7 +1583,7 @@ export default function JourneyDetailPage() {
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
-          <JourneyExpensesTab journeyId={journey.id} />
+          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">
