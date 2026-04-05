@@ -183,12 +183,6 @@ export default function LoginPage() {
           </form>
           )}
 
-          <p className="text-center text-xs text-stone-400 mt-6">
-            Want to become a surrogate?{' '}
-            <button onClick={() => navigate('/surrogatequiz')} className="text-[#283693] hover:underline font-medium">
-              Take the quiz
-            </button>
-          </p>
         </div>
       </div>
 
