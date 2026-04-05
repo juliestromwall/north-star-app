@@ -358,6 +358,19 @@ export default function ExpensesPage() {
     load()
   }, [])
 
+  async function handleViewEmail(gmailId) {
+    setEmailViewId(gmailId)
+    setEmailViewLoading(true)
+    setEmailViewData(null)
+    try {
+      const full = await getEmail(userId, gmailId, 'full')
+      const headers = parseEmailHeaders(full)
+      const bodyHtml = parseEmailBody(full)
+      setEmailViewData({ ...headers, bodyHtml })
+    } catch { setEmailViewData(null) }
+    setEmailViewLoading(false)
+  }
+
   async function handleSave(expenseId, field, value) {
     try {
       const updated = await updateExpense(expenseId, { [field]: value })
@@ -493,6 +506,7 @@ export default function ExpensesPage() {
                 showReconcile={true}
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
+                onViewEmail={handleViewEmail}
               />
             </CardContent>
           </Card>
@@ -509,11 +523,37 @@ export default function ExpensesPage() {
                 showReconcile={false}
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
+                onViewEmail={handleViewEmail}
               />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Email Viewer Dialog */}
+      <Dialog open={!!emailViewId} onOpenChange={open => { if (!open) { setEmailViewId(null); setEmailViewData(null) } }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Mail className="size-5 text-[#283693]" /> Linked Email</DialogTitle>
+          </DialogHeader>
+          {emailViewLoading ? (
+            <div className="flex items-center justify-center py-12"><Loader2 className="size-6 animate-spin text-stone-400" /></div>
+          ) : emailViewData ? (
+            <div className="space-y-3">
+              <div className="text-sm space-y-1 border-b border-stone-100 pb-3">
+                <p><span className="text-stone-400">From:</span> {emailViewData.from}</p>
+                <p><span className="text-stone-400">To:</span> {emailViewData.to}</p>
+                {emailViewData.cc && <p><span className="text-stone-400">Cc:</span> {emailViewData.cc}</p>}
+                <p><span className="text-stone-400">Date:</span> {emailViewData.date}</p>
+                <p className="font-semibold">{emailViewData.subject}</p>
+              </div>
+              <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: emailViewData.bodyHtml || '<p>No content</p>' }} />
+            </div>
+          ) : (
+            <p className="text-sm text-stone-400 text-center py-8">Could not load email. Make sure Google is connected.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
