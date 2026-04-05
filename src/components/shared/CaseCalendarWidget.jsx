@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus, CalendarDays, Clock, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -100,7 +101,12 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
             return (
               <div key={event.id} className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>{event.summary}</p>
+                  <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
+                    {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
+                    {event.summary?.includes(' — ') && (
+                      <> — <Link to={caseType === 'journey' ? `/journeys/${caseId}` : caseType === 'ip' ? `/intended-parents/${caseId}` : `/surrogates/${caseId}`} className="text-[#283693] hover:underline">{event.summary.split(' — ').slice(1).join(' — ')}</Link></>
+                    )}
+                  </p>
                   <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
                     <span>{formatDate(startDt)}</span>
                     {!isAllDay && event.start?.dateTime && (
