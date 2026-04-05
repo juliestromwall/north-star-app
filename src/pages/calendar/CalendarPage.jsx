@@ -642,7 +642,22 @@ export default function CalendarPage() {
                   </div>
                 )}
                 {selectedEvent.description && (
-                  <p className="text-sm whitespace-pre-wrap">{selectedEvent.description}</p>
+                  <div className="text-sm whitespace-pre-wrap">
+                    {selectedEvent.description.split('\n').map((line, i) => {
+                      // Auto-link URLs in description
+                      const urlMatch = line.match(/^(https?:\/\/\S+)$/)
+                      if (urlMatch) {
+                        // Convert app URLs to internal links
+                        const url = urlMatch[1]
+                        const appPath = url.match(/app\.abcsurrogacy\.com(\/[^\s]+)/) || url.match(/localhost:\d+(\/[^\s]+)/)
+                        if (appPath) {
+                          return <a key={i} href={appPath[1]} className="text-[#283693] hover:underline block">{line}</a>
+                        }
+                        return <a key={i} href={url} target="_blank" rel="noopener" className="text-[#283693] hover:underline block">{line}</a>
+                      }
+                      return <span key={i}>{line}{i < selectedEvent.description.split('\n').length - 1 ? '\n' : ''}</span>
+                    })}
+                  </div>
                 )}
                 {selectedEvent.attendees?.length > 0 && (
                   <div>

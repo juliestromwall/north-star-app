@@ -103,9 +103,6 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
                     {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
-                    {event.summary?.includes(' — ') && (
-                      <> — <Link to={caseType === 'journey' ? `/journeys/${caseId}` : caseType === 'ip' ? `/intended-parents/${caseId}` : `/surrogates/${caseId}`} className="text-[#283693] hover:underline">{event.summary.split(' — ').slice(1).join(' — ')}</Link></>
-                    )}
                   </p>
                   <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
                     <span>{formatDate(startDt)}</span>
