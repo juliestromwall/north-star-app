@@ -76,6 +76,29 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 5. Profile tab has GC/IP sub-tabs with full editable profile builders
 6. When a match is broken: journey data snapshot saved to both cases, documents copied as "Previous Match", both cases get a "Previous Match" tab showing history
 
+### Case Tasks
+1. Tasks can be created on any case (Surrogate, IP, Journey) from the Overview tab
+2. Tasks can also be created from the admin Dashboard with a searchable case picker
+3. Each task has: title, notes, priority (low/normal/high/urgent), due date, assigned to
+4. Status cycles: Open → In Progress → Complete
+5. Overdue tasks highlighted in red with warning icon
+6. Dashboard shows "My Tasks" — open tasks across all cases assigned to the logged-in admin
+
+### Case Calendar (Google Calendar Integration)
+1. Each case/journey has an Appointments widget on the Overview tab
+2. Adding an appointment creates a Google Calendar event tagged with the case ID
+3. Events tagged via extendedProperties.private.caseId — only case-specific events show
+4. Events also appear on the admin's full Google Calendar (/calendar page)
+5. Event title includes client name; description includes clickable case link
+6. Calendar page event popup auto-links case URLs for navigation
+
+### E-Signature Security
+1. Each document gets a unique 64-char hex signing_token on creation
+2. Signing URLs use /e-signature/sign/:token (unguessable, no sequential IDs)
+3. Email to signers uses token-based URL
+4. Legacy /e-signature/:id route kept for backwards compatibility
+5. Email verification still required on top of token
+
 ### Admin: Manage Documents
 1. Documents tab shows 9 category folders (Photo IDs, Agency Agreement, etc.)
 2. Upload files directly to a category
