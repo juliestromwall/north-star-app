@@ -1,8 +1,6 @@
 // Cloudflare Pages Function — POST /api/user-status
 // Checks if a Supabase auth user exists and returns their last sign-in
 
-import { createClient } from '@supabase/supabase-js'
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -19,23 +17,24 @@ export async function onRequestPost(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Not configured' }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    return new Response(JSON.stringify({ exists: false }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 
   const { email } = await context.request.json()
   if (!email) {
-    return new Response(JSON.stringify({ error: 'Email required' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    return new Response(JSON.stringify({ exists: false }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } })
-
   try {
-    const { data } = await supabase.auth.admin.listUsers()
-    const user = data?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
+      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+    })
+    const data = await res.json()
+    const user = (data.users || []).find(u => u.email?.toLowerCase() === email.toLowerCase())
 
     if (!user) {
       return new Response(JSON.stringify({ exists: false }), {
@@ -51,9 +50,9 @@ export async function onRequestPost(context) {
     }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  } catch {
+    return new Response(JSON.stringify({ exists: false }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 }
