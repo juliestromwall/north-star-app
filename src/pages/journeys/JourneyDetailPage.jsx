@@ -412,6 +412,92 @@ function JourneyChecklistTab({ journey, onUpdate }) {
   )
 }
 
+// ── Inline Editable Expense Row ─────────────────────────
+function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency }) {
+  const [editField, setEditField] = useState(null)
+  const [editVal, setEditVal] = useState('')
+
+  function startEdit(field, value) {
+    if (exp.reconciled) return
+    setEditField(field)
+    setEditVal(value ?? '')
+  }
+
+  function saveEdit() {
+    let val = editVal
+    if (editField === 'amount') val = parseFloat(editVal) || null
+    if (editField === 'cc_last4') val = (editVal || '').replace(/\D/g, '').slice(-4) || null
+    if (editField === 'submitted_to_escrow') val = editVal === 'yes' || editVal === true
+    onUpdate(exp.id, editField, val)
+    setEditField(null)
+  }
+
+  function renderCell(field, display, className = '') {
+    if (editField === field) {
+      if (field === 'submitted_to_escrow') {
+        return (
+          <div className="flex items-center gap-1">
+            <select value={editVal ? 'yes' : 'no'} onChange={e => setEditVal(e.target.value === 'yes')} className="h-7 text-xs border rounded px-1.5 bg-white" autoFocus>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+            <button onClick={saveEdit} className="text-green-600"><Check className="size-3" /></button>
+            <button onClick={() => setEditField(null)} className="text-stone-400"><X className="size-3" /></button>
+          </div>
+        )
+      }
+      return (
+        <div className="flex items-center gap-1">
+          <Input
+            value={editVal}
+            onChange={e => setEditVal(field === 'cc_last4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(null) }}
+            className="h-7 text-xs"
+            type={field === 'amount' ? 'number' : field === 'expense_date' ? 'date' : 'text'}
+            step={field === 'amount' ? '0.01' : undefined}
+            maxLength={field === 'cc_last4' ? 4 : undefined}
+            autoFocus
+          />
+          <button onClick={saveEdit} className="text-green-600 shrink-0"><Check className="size-3" /></button>
+          <button onClick={() => setEditField(null)} className="text-stone-400 shrink-0"><X className="size-3" /></button>
+        </div>
+      )
+    }
+    return (
+      <button onClick={() => startEdit(field, exp[field])} className={`text-left cursor-text min-h-[20px] w-full ${exp.reconciled ? 'cursor-default' : ''} ${className}`}>
+        {display}
+      </button>
+    )
+  }
+
+  return (
+    <tr className="border-b border-stone-100 hover:bg-stone-50/50">
+      <td className="px-4 py-3 text-sm">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
+      <td className="px-4 py-3 text-sm font-medium">{renderCell('amount', fmtCurrency(exp.amount))}</td>
+      <td className="px-4 py-3 text-sm">{renderCell('paid_to', exp.paid_to || '—')}</td>
+      <td className="px-4 py-3 text-sm">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
+      <td className="px-4 py-3 text-sm">{renderCell('submitted_to_escrow', exp.submitted_to_escrow ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-stone-400">No</span>)}</td>
+      <td className="px-4 py-3 text-sm text-stone-500">{renderCell('notes', exp.notes || '—')}</td>
+      <td className="px-4 py-3 text-center">
+        {exp.reconciled ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+            <Check className="size-2.5" /> Reconciled
+          </span>
+        ) : (
+          <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
+        )}
+      </td>
+      <td className="px-2 py-3">
+        {!exp.reconciled && (
+          <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
+            <Trash2 className="size-3.5" />
+          </button>
+        )}
+      </td>
+    </tr>
+  )
+}
+
 // ── Expenses Tab ────────────────────────────────────────
 function JourneyExpensesTab({ journeyId }) {
   const [expenses, setExpenses] = useState([])
@@ -568,6 +654,7 @@ function JourneyExpensesTab({ journeyId }) {
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
                     <th className="w-8"></th>
@@ -575,29 +662,7 @@ function JourneyExpensesTab({ journeyId }) {
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <tr key={exp.id} className="border-b border-stone-100 hover:bg-stone-50/50">
-                      <td className="px-4 py-3 text-sm">{formatDate(exp.expense_date)}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{fmtCurrency(exp.amount)}</td>
-                      <td className="px-4 py-3 text-sm">{exp.paid_to || '—'}</td>
-                      <td className="px-4 py-3 text-sm font-mono text-stone-500">{exp.cc_last4 ? `••••${exp.cc_last4}` : '—'}</td>
-                      <td className="px-4 py-3 text-sm text-stone-500">{exp.notes || '—'}</td>
-                      <td className="px-4 py-3 text-center">
-                        {exp.reconciled ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                            <Check className="size-2.5" /> Reconciled
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
-                        )}
-                      </td>
-                      <td className="px-2 py-3">
-                        {!exp.reconciled && (
-                          <button onClick={() => handleDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} />
                   ))}
                 </tbody>
               </table>
