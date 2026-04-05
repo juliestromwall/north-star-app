@@ -14,6 +14,15 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [expired, setExpired] = useState(false)
+
+  // Check for error in URL hash (expired/invalid link)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('error=') || hash.includes('error_code=otp_expired') || hash.includes('access_denied')) {
+      setExpired(true)
+    }
+  }, [])
 
   async function handleReset(e) {
     e.preventDefault()
@@ -44,7 +53,16 @@ export default function ResetPasswordPage() {
             <p className="text-stone-400 text-sm mt-2">Choose a strong password for your account</p>
           </div>
 
-          {success ? (
+          {expired ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 text-center space-y-3">
+              <AlertTriangle className="size-12 text-amber-500 mx-auto" />
+              <h2 className="text-lg font-semibold text-stone-800">Link Expired</h2>
+              <p className="text-sm text-stone-500">This password reset link has expired or is invalid.</p>
+              <Button variant="outline" className="mt-2" onClick={() => navigate('/login')}>
+                Go to Login
+              </Button>
+            </div>
+          ) : success ? (
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 text-center space-y-3">
               <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
               <h2 className="text-lg font-semibold text-stone-800">Password Updated</h2>
