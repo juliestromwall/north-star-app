@@ -226,6 +226,17 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
       if (selectedTag === 'expense' || selectedTag === 'task') {
         setAiStep('extracting')
         try {
+          // Fetch full email body for better AI extraction
+          let fullBody = email.snippet || ''
+          try {
+            const full = await getEmail(userId, email.id, 'full')
+            const bodyHtml = parseEmailBody(full)
+            // Strip HTML tags for cleaner text
+            const div = document.createElement('div')
+            div.innerHTML = bodyHtml || ''
+            fullBody = div.textContent || div.innerText || email.snippet || ''
+          } catch {}
+
           const res = await fetch('/api/ai/extract', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -234,6 +245,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
               subject: email.subject,
               from: email.from,
               snippet: email.snippet,
+              body: fullBody,
               caseName: c.name,
             }),
           })
