@@ -571,9 +571,12 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
             </div>
           )}
 
-          <div
-            className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: email.bodyHtml || '<p>' + (email.snippet || '') + '</p>' }}
+          <iframe
+            srcDoc={email.bodyHtml || '<p>' + (email.snippet || '') + '</p>'}
+            className="w-full border-0 rounded-lg bg-white"
+            style={{ minHeight: 400 }}
+            sandbox="allow-same-origin"
+            onLoad={e => { try { e.target.style.height = e.target.contentDocument.body.scrollHeight + 20 + 'px' } catch {} }}
           />
         </div>
       </div>
