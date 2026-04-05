@@ -210,6 +210,22 @@ export default function IPDetailPage() {
                   <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /> Call</a>
                 </Button>
               )}
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
+                onClick={async () => {
+                  if (!ip.email) return
+                  setInviting(true); setInviteResult(null)
+                  try {
+                    await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' })
+                    setInviteResult('sent')
+                  } catch (err) {
+                    setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
+                  }
+                  setInviting(false)
+                  setTimeout(() => setInviteResult(null), 4000)
+                }}>
+                {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
+              </Button>
             </div>
           </div>
 
