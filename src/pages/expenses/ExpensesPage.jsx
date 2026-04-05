@@ -11,6 +11,7 @@ import { fetchAllExpenses, updateExpense, createCaseTask } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
+import { useRole } from '@/context/RoleContext'
 import { mockUsers } from '@/data/mock/users'
 
 function formatCurrency(val) {
@@ -97,7 +98,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile }) {
+function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -187,8 +188,8 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                       due_date: new Date().toISOString().split('T')[0],
                       priority: 'high',
                       status: 'open',
-                      notes: taskNote || null,
-                      created_by: '',
+                      description: taskNote || null,
+                      created_by: currentUser?.email || '',
                     })
                     setReconcileId(null)
                     setShowTaskForm(false)
@@ -289,6 +290,7 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
 }
 
 export default function ExpensesPage() {
+  const { currentUser } = useRole()
   const [expenses, setExpenses] = useState([])
   const [journeyMap, setJourneyMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -468,6 +470,7 @@ export default function ExpensesPage() {
                 onSave={handleSave}
                 onReconcile={handleReconcile}
                 showReconcile={true}
+                currentUser={currentUser}
               />
             </CardContent>
           </Card>
@@ -482,6 +485,7 @@ export default function ExpensesPage() {
                 onSave={handleSave}
                 onReconcile={() => {}}
                 showReconcile={false}
+                currentUser={currentUser}
               />
             </CardContent>
           </Card>
