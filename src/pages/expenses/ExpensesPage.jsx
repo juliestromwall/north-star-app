@@ -98,7 +98,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser }) {
+function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -149,9 +149,15 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
             </div>
 
             {/* + Task section */}
+            {reconcileExp?.task_created && (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <AlertCircle className="size-3.5 shrink-0" />
+                A task has already been created for this expense.
+              </div>
+            )}
             {!showTaskForm ? (
               <button onClick={() => setShowTaskForm(true)} className="text-xs text-abc-indigo hover:underline font-medium flex items-center gap-1">
-                + Create Task
+                + {reconcileExp?.task_created ? 'Create Another Task' : 'Create Task'}
               </button>
             ) : (
               <div className="border border-stone-200 rounded-lg p-3 space-y-2">
@@ -191,6 +197,9 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                       description: taskNote || null,
                       created_by: currentUser?.email || '',
                     })
+                    // Mark expense as having a task created
+                    const updated = await updateExpense(reconcileExp.id, { task_created: true })
+                    if (updated && onExpenseUpdate) onExpenseUpdate(reconcileExp.id, updated)
                     setReconcileId(null)
                     setShowTaskForm(false)
                     setTaskNote('')
@@ -471,6 +480,7 @@ export default function ExpensesPage() {
                 onReconcile={handleReconcile}
                 showReconcile={true}
                 currentUser={currentUser}
+                onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
               />
             </CardContent>
           </Card>
@@ -486,6 +496,7 @@ export default function ExpensesPage() {
                 onReconcile={() => {}}
                 showReconcile={false}
                 currentUser={currentUser}
+                onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
               />
             </CardContent>
           </Card>
