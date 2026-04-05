@@ -7,7 +7,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle } from 'lucide-react'
+import { CheckCircle2, Circle, ScrollText, FileText, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/utils'
@@ -63,9 +63,25 @@ export default function CaseUpdatesPage() {
   )
 }
 
+// ── Record type helpers ──
+const RECORD_PREFIXES = { 'ob records': 'ob_records_', 'delivery records': 'delivery_records_', 'ivf records': 'ivf_records_' }
+function getRecordPrefix(stepLabel) {
+  const lower = (stepLabel || '').toLowerCase()
+  for (const [key, prefix] of Object.entries(RECORD_PREFIXES)) { if (lower.includes(key)) return prefix }
+  return null
+}
+function getRecordTypeBadge(key) {
+  if (key.startsWith('ob_records_')) return { label: 'OB', color: 'bg-blue-100 text-blue-700' }
+  if (key.startsWith('delivery_records_')) return { label: 'Delivery', color: 'bg-purple-100 text-purple-700' }
+  if (key.startsWith('ivf_records_')) return { label: 'IVF', color: 'bg-pink-100 text-pink-700' }
+  return null
+}
+
 // ── Surrogate Updates ──
 function SurrogateUpdatesSheet({ surrogates }) {
   const [stageFilter, setStageFilter] = useState('pre-qualification')
+  const [logPopover, setLogPopover] = useState(null)
+  const [docPopover, setDocPopover] = useState(null)
   const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
 
   const allStageStatuses = useMemo(() => {
@@ -94,6 +110,65 @@ function SurrogateUpdatesSheet({ surrogates }) {
     if (ids.length === 0) { setAllTracking({}); return }
     getRecordTrackingBatch(ids).then(setAllTracking).catch(() => setAllTracking({}))
   }, [filtered])
+
+  const [allProfiles, setAllProfiles] = useState({})
+  useEffect(() => {
+    const emails = filtered.map(s => s.email).filter(Boolean)
+    if (emails.length === 0) { setAllProfiles({}); return }
+    fetchSurrogateProfilesByEmails(emails).then(map => {
+      const byId = {}
+      for (const s of filtered) {
+        if (s.email && map[s.email.trim().toLowerCase()]) byId[s.id] = map[s.email.trim().toLowerCase()]
+      }
+      setAllProfiles(byId)
+    }).catch(() => {})
+  }, [filtered])
+
+  function buildExpectedRecords(surrogateId) {
+    const profile = allProfiles[surrogateId]
+    const pregnancies = profile?.pregnancyHistory?.pregnancies || []
+    const numPreg = parseInt(profile?.pregnancyHistory?.numberOfPregnancies) || 0
+    const steps = []
+    for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+      const p = pregnancies[i] || {}
+      const year = p.dob ? new Date(p.dob).getFullYear() : ''
+      const yearLabel = year || `#${i + 1}`
+      steps.push({ id: `ob_records_${i}`, label: `OB ${yearLabel}`, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
+      steps.push({ id: `delivery_records_${i}`, label: `Delivery ${yearLabel}`, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
+      if (p.wasSurrogacy === 'yes') steps.push({ id: `ivf_records_${i}`, label: `IVF ${yearLabel}`, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
+    }
+    const rt = allTracking[surrogateId] || {}
+    for (const key of Object.keys(rt)) {
+      if (key.startsWith('custom_record_') && !steps.some(s => s.id === key)) {
+        const d = rt[key]
+        steps.push({ id: key, label: d.customLabel || key, badge: getRecordTypeBadge(key) || { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
+      }
+    }
+    return steps
+  }
+
+  function getSubRecords(surrogateId, prefix) {
+    const expected = buildExpectedRecords(surrogateId)
+    const rt = allTracking[surrogateId] || {}
+    return expected.filter(s => s.id.startsWith(prefix)).map(step => {
+      const d = rt[step.id] || {}
+      const lastEntry = d.history?.[d.history.length - 1]
+      return { ...step, status: d.status || 'not_started', isComplete: d.status === 'complete' || d.status === 'na', isExcluded: d.status === 'na', lastDate: lastEntry?.date, lastNote: lastEntry?.note }
+    })
+  }
+
+  function getCellData(surrogateId, stepId, stepLabel) {
+    const rt = allTracking[surrogateId] || {}
+    const data = rt[stepId] || {}
+    const status = data.status || 'not_started'
+    const history = data.history || []
+    const lastEntry = history.length > 0 ? history[history.length - 1] : null
+    const prefix = getRecordPrefix(stepLabel)
+    let subRecords = []
+    if (prefix) subRecords = getSubRecords(surrogateId, prefix)
+    const activeRecords = subRecords.filter(r => !r.isExcluded)
+    return { status, lastEntry, history, subRecords, activeRecords, isRecordType: !!prefix, doneCount: activeRecords.filter(r => r.isComplete).length, totalCount: activeRecords.length }
+  }
 
   return (
     <Card>
@@ -124,11 +199,11 @@ function SurrogateUpdatesSheet({ surrogates }) {
             <table className="text-xs border-collapse">
               <thead>
                 <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[120px]">
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[150px]">
                     Screening Step
                   </th>
                   {filtered.map(s => (
-                    <th key={s.id} className="text-left px-3 py-2.5 min-w-[130px]">
+                    <th key={s.id} className="text-left px-3 py-2.5 min-w-[180px]">
                       <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
                       <p className="text-[9px] text-stone-400 font-normal">
                         {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
@@ -139,16 +214,78 @@ function SurrogateUpdatesSheet({ surrogates }) {
                 </tr>
               </thead>
               <tbody>
-                {sheetRows.map(step => (
-                  <tr key={step.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{step.label}</td>
+                {sheetRows.map(row => (
+                  <tr key={row.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                     {filtered.map(s => {
-                      const rt = allTracking[s.id] || {}
-                      const d = rt[step.id] || {}
-                      const status = d.status || 'not_started'
+                      const { status, lastEntry, history, activeRecords, isRecordType, doneCount, totalCount } = getCellData(s.id, row.id, row.label)
+                      const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
+                      const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
+                      const isComplete = status === 'complete' || status === 'na'
                       return (
-                        <td key={s.id} className="px-3 py-2.5">
-                          <StatusCell status={status} />
+                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                          <div className="flex items-center gap-1.5">
+                            {isComplete ? (
+                              <span className="text-xs text-green-600 font-medium">Done {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+                            ) : status === 'not_started' ? (
+                              <span className="text-xs text-stone-300">Not Started</span>
+                            ) : (
+                              <span className="text-xs text-stone-600">{lastEntry?.date ? formatDate(lastEntry.date) : ''} <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span></span>
+                            )}
+                            {isRecordType && totalCount > 0 && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
+                            )}
+                            {history.length > 0 && (
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
+                                <ScrollText className="size-3.5" />
+                              </button>
+                            )}
+                            {isRecordType && totalCount > 0 && (
+                              <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors">
+                                <FileText className="size-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          {/* Log popover */}
+                          {isLogOpen && (
+                            <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Log History</p>
+                                <button onClick={() => setLogPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
+                              </div>
+                              {history.map((entry, i) => (
+                                <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                    <span className="text-stone-400">{formatDate(entry.date)}</span>
+                                  </div>
+                                  {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
+                                  {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Sub-records popover */}
+                          {isDocOpen && (
+                            <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount})</p>
+                                <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
+                              </div>
+                              {activeRecords.map(rec => (
+                                <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isComplete ? 'opacity-60' : ''}`}>
+                                  <div className="flex items-center gap-1.5">
+                                    {rec.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
+                                    <span className="font-medium text-stone-600 flex-1">{rec.label}</span>
+                                    <span className={`font-medium shrink-0 ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
+                                      {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                    </span>
+                                  </div>
+                                  {rec.lastDate && <p className="text-stone-400 mt-0.5 ml-7">{formatDate(rec.lastDate)}{rec.lastNote ? ` — ${rec.lastNote}` : ''}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </td>
                       )
                     })}
@@ -166,6 +303,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
 // ── IP Updates ──
 function IPUpdatesSheet({ ips }) {
   const [stageFilter, setStageFilter] = useState('pre-qualification')
+  const [logPopover, setLogPopover] = useState(null)
   const sheetRows = useMemo(() => getAllChecklistSteps('ip').filter(s => s.stageId === stageFilter), [stageFilter])
 
   const allStageStatuses = useMemo(() => {
@@ -245,9 +383,21 @@ function IPUpdatesSheet({ ips }) {
                       const rt = allTracking[ip.id] || {}
                       const d = rt[step.id] || {}
                       const status = d.status || 'not_started'
+                      const history = d.history || []
+                      const lastEntry = history.length > 0 ? history[history.length - 1] : null
+                      const isComplete = status === 'complete' || status === 'na'
+                      const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       return (
-                        <td key={ip.id} className="px-3 py-2.5">
-                          <StatusCell status={status} />
+                        <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                          <div className="flex items-center gap-1.5">
+                            <CellStatus status={status} lastEntry={lastEntry} />
+                            {history.length > 0 && (
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
+                                <ScrollText className="size-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} />}
                         </td>
                       )
                     })}
@@ -265,6 +415,7 @@ function IPUpdatesSheet({ ips }) {
 // ── Journey Updates ──
 function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   const [stageFilter, setStageFilter] = useState('journey-oversight')
+  const [logPopover, setLogPopover] = useState(null)
   // Journey checklist steps are stored under 'gc' type with journey stage IDs
   const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
 
@@ -346,9 +497,21 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const rt = allTracking[j.id] || {}
                       const d = rt[step.id] || {}
                       const status = d.status || 'not_started'
+                      const history = d.history || []
+                      const lastEntry = history.length > 0 ? history[history.length - 1] : null
+                      const isComplete = status === 'complete' || status === 'na'
+                      const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       return (
-                        <td key={j.id} className="px-3 py-2.5">
-                          <StatusCell status={status} />
+                        <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                          <div className="flex items-center gap-1.5">
+                            <CellStatus status={status} lastEntry={lastEntry} />
+                            {history.length > 0 && (
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
+                                <ScrollText className="size-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} />}
                         </td>
                       )
                     })}
@@ -363,10 +526,37 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   )
 }
 
-// ── Shared Status Cell ──
-function StatusCell({ status }) {
-  if (status === 'complete') return <span className="text-green-600 font-medium flex items-center gap-1"><CheckCircle2 className="size-3" /> Done</span>
-  if (status === 'in_progress') return <span className="text-amber-500 font-medium flex items-center gap-1"><Circle className="size-3" /> In Progress</span>
-  if (status === 'na') return <span className="text-stone-300">N/A</span>
-  return <span className="text-stone-300">Not Started</span>
+// ── Shared Components ──
+function CellStatus({ status, lastEntry }) {
+  if (status === 'complete' || status === 'na') {
+    return <span className="text-xs text-green-600 font-medium">Done {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+  }
+  if (status === 'not_started') return <span className="text-xs text-stone-300">Not Started</span>
+  return (
+    <span className="text-xs text-stone-600">
+      {lastEntry?.date ? formatDate(lastEntry.date) : ''}{' '}
+      <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+    </span>
+  )
+}
+
+function LogPopover({ history, onClose }) {
+  return (
+    <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] font-semibold text-stone-400 uppercase">Log History</p>
+        <button onClick={onClose} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
+      </div>
+      {history.map((entry, i) => (
+        <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+            <span className="text-stone-400">{formatDate(entry.date)}</span>
+          </div>
+          {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
+          {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
+        </div>
+      ))}
+    </div>
+  )
 }
