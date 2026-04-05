@@ -90,6 +90,39 @@ export default function LoginPage() {
             <p className="text-stone-500 text-sm mt-1">Sign in to your portal</p>
           </div>
 
+          {forgotMode ? (
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+              {resetSent ? (
+                <div className="text-center py-4 space-y-3">
+                  <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
+                  <h2 className="text-lg font-semibold text-stone-800">Check your email</h2>
+                  <p className="text-sm text-stone-500">We sent a password reset link to <strong>{email}</strong></p>
+                  <Button variant="outline" className="mt-4" onClick={() => { setForgotMode(false); setResetSent(false) }}>
+                    <ArrowLeft className="size-4 mr-1" /> Back to sign in
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="text-center mb-2">
+                    <Mail className="size-8 text-[#283693] mx-auto mb-2" />
+                    <h2 className="text-lg font-semibold text-stone-800">Reset your password</h2>
+                    <p className="text-sm text-stone-500 mt-1">Enter your email and we'll send you a reset link</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
+                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" autoFocus />
+                  </div>
+                  {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                    {loading ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                  <button type="button" onClick={() => { setForgotMode(false); setError(null) }} className="w-full text-xs text-stone-500 hover:text-stone-700 flex items-center justify-center gap-1 mt-2">
+                    <ArrowLeft className="size-3" /> Back to sign in
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : (
           <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
@@ -109,7 +142,7 @@ export default function LoginPage() {
                 <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Password</Label>
                 <button
                   type="button"
-                  onClick={() => {/* TODO: forgot password flow */}}
+                  onClick={() => { setForgotMode(true); setError(null) }}
                   className="text-xs text-[#283693] hover:underline"
                 >
                   Forgot password?
@@ -148,6 +181,7 @@ export default function LoginPage() {
               {!loading && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
+          )}
 
           <p className="text-center text-xs text-stone-400 mt-6">
             Want to become a surrogate?{' '}

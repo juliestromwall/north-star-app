@@ -24,6 +24,7 @@ import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
 import IntakeSubmissionsPage from './pages/intake/IntakeSubmissionsPage'
 import MarketingDashboard from './pages/marketing/MarketingDashboard'
 import LoginPage from './pages/auth/LoginPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
 import TextMessagesPage from './pages/messages/TextMessagesPage'
@@ -61,6 +62,7 @@ export default function App() {
       <Route index element={<ComingSoonPage />} />
       <Route path="/welcome" element={<ComingSoonPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
       <Route path="/surrogatequiz" element={<IntakeLandingPage />} />
