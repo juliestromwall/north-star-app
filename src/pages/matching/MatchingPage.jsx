@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Heart, Users, Baby, Send, Search, ArrowRight, MapPin, Stethoscope, ChevronDown, Eye, Clock, MessageSquare, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,6 +43,7 @@ function timeAgo(date) {
 
 export default function MatchingPage() {
   const { currentUser } = useRole()
+  const navigate = useNavigate()
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
   const [journeys, setJourneys] = useState([])
@@ -118,9 +119,9 @@ export default function MatchingPage() {
         assignedTo: currentUser.email,
         createdBy: currentUser.name,
       })
-      setJourneys(prev => [journey, ...prev])
       setShowCreate(false)
       setCreateForm({ gcId: '', ipId: '' })
+      navigate(`/journeys/${journey.id}`)
     } catch (err) {
       alert('Failed: ' + (err.message || 'Unknown error'))
     } finally { setCreating(false) }
@@ -344,14 +345,14 @@ export default function MatchingPage() {
               <Label className="text-xs">Surrogate (GC)</Label>
               <SelectUI value={createForm.gcId ? String(createForm.gcId) : ''} onValueChange={v => setCreateForm(f => ({ ...f, gcId: v }))}>
                 <SelectTriggerUI><SelectValueUI placeholder="Select surrogate..." /></SelectTriggerUI>
-                <SelectContentUI>{surrogates.map(s => <SelectItemUI key={s.id} value={String(s.id)}>{s.name}</SelectItemUI>)}</SelectContentUI>
+                <SelectContentUI>{surrogates.filter(s => !matchedGcIds.has(s.id)).map(s => <SelectItemUI key={s.id} value={String(s.id)}>{s.name}</SelectItemUI>)}</SelectContentUI>
               </SelectUI>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Intended Parent (IP)</Label>
               <SelectUI value={createForm.ipId ? String(createForm.ipId) : ''} onValueChange={v => setCreateForm(f => ({ ...f, ipId: v }))}>
                 <SelectTriggerUI><SelectValueUI placeholder="Select intended parent..." /></SelectTriggerUI>
-                <SelectContentUI>{ips.map(i => <SelectItemUI key={i.id} value={String(i.id)}>{i.names}</SelectItemUI>)}</SelectContentUI>
+                <SelectContentUI>{ips.filter(i => !matchedIpIds.has(i.id)).map(i => <SelectItemUI key={i.id} value={String(i.id)}>{i.names}</SelectItemUI>)}</SelectContentUI>
               </SelectUI>
             </div>
             <Button onClick={handleCreateMatch} disabled={creating || !createForm.gcId || !createForm.ipId}
