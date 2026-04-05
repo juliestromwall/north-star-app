@@ -264,6 +264,22 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     if (!aiData) return
     setSaving(true)
     try {
+      // Fetch full email and save as HTML attachment
+      let attachmentUrl = null
+      try {
+        const full = await getEmail(userId, email.id, 'full')
+        const bodyHtml = parseEmailBody(full)
+        const headers = parseEmailHeaders(full)
+        const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${email.subject || 'Email'}</title><style>body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto}h2{color:#283693}.meta{color:#666;font-size:13px;margin-bottom:16px;border-bottom:1px solid #eee;padding-bottom:12px}</style></head><body><h2>${email.subject || '(no subject)'}</h2><div class="meta"><strong>From:</strong> ${headers.from || email.from}<br><strong>To:</strong> ${headers.to || email.to || ''}<br><strong>Date:</strong> ${headers.date || email.date || ''}</div><div>${bodyHtml || email.snippet || ''}</div></body></html>`
+        const blob = new Blob([htmlContent], { type: 'text/html' })
+        const path = `expenses/email_${email.id}_${Date.now()}.html`
+        const { data: uploadData } = await supabase.storage.from('case-documents').upload(path, blob, { cacheControl: '3600', upsert: false })
+        if (uploadData) {
+          const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(path)
+          attachmentUrl = urlData?.publicUrl || null
+        }
+      } catch (err) { console.warn('Email attachment save failed:', err) }
+
       const { insertExpense } = await import('@/lib/db')
       await insertExpense({
         journey_id: aiData.caseId,
@@ -273,6 +289,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         cc_last4: aiData.cc_last4 || '',
         submitted_to_escrow: false,
         notes: `${aiData.description || ''}${aiData.notes ? '\n' + aiData.notes : ''}\n\n📧 From email: ${email?.subject || ''}`,
+        attachment_url: attachmentUrl,
       })
       setSaved(true)
       setAiStep(null)
