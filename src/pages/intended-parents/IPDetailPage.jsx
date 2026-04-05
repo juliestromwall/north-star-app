@@ -235,8 +235,10 @@ export default function IPDetailPage() {
                         await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' })
                         setInviteResult('sent')
                         try {
-                          const { updateIntakeSubmission } = await import('@/lib/db')
-                          await updateIntakeSubmission(ip.id, { answers: { ...ip.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                          const { updateIntakeSubmission, fetchIntakeByEmail } = await import('@/lib/db')
+                          const freshAnswers = await fetchIntakeByEmail(ip.email)
+                          const baseAnswers = freshAnswers || ip.answers || {}
+                          await updateIntakeSubmission(ip.id, { answers: { ...baseAnswers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
                           setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
                         } catch {}
                       } catch (err) {

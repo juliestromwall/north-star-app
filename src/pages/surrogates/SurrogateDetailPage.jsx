@@ -528,8 +528,8 @@ export default function SurrogateDetailPage() {
                         setInviteResult('sent')
                         try {
                           const { updateIntakeSubmission, fetchIntakeByEmail } = await import('@/lib/db')
-                          const fresh = await fetchIntakeByEmail(surrogate.email)
-                          if (fresh) await updateIntakeSubmission(surrogate.id, { answers: { ...fresh.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                          const freshAnswers = await fetchIntakeByEmail(surrogate.email)
+                          if (freshAnswers) await updateIntakeSubmission(surrogate.id, { answers: { ...freshAnswers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
                           setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
                         } catch {}
                       } catch (err) {
