@@ -1567,17 +1567,14 @@ export default function JourneyDetailPage() {
           }} />
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
-          <div className="flex justify-end gap-2 mb-4">
-            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
-              onClick={() => window.open(`/e-signature?journeyId=${journey.id}`, '_blank')}>
-              <FileText className="size-4" /> Send for Signature
-            </Button>
-            <Button variant="outline" className="gap-1.5"
-              onClick={() => window.open(`/fax?caseType=journey&caseId=${journey.id}`, '_blank')}>
-              <Printer className="size-4" /> Send Fax
-            </Button>
-          </div>
-          <DocumentsTab surrogateId={journey.gc_case_id} />
+          <DocumentsTab
+            surrogateId={journey.gc_case_id}
+            additionalCaseIds={[journey.ip_case_id]}
+            caseLabels={{
+              [journey.gc_case_id]: `GC — ${gcCase?.name || 'Surrogate'}`,
+              [journey.ip_case_id]: `IP — ${ipCase?.names || 'Intended Parent'}`,
+            }}
+          />
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />

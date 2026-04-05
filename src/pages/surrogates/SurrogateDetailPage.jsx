@@ -1155,7 +1155,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
   )
 }
 
-export function DocumentsTab({ surrogateId }) {
+export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
   const { currentUser } = useRole()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1197,7 +1197,22 @@ export function DocumentsTab({ surrogateId }) {
   const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
 
   useEffect(() => {
-    fetchCaseDocuments(surrogateId).then(setDocs).catch(() => {}).finally(() => setLoading(false))
+    async function loadDocs() {
+      try {
+        const primary = await fetchCaseDocuments(surrogateId)
+        let allDocs = (primary || []).map(d => ({ ...d, _source: caseLabels?.[surrogateId] || null }))
+        if (additionalCaseIds?.length) {
+          for (const caseId of additionalCaseIds) {
+            const extra = await fetchCaseDocuments(caseId)
+            if (extra?.length) {
+              allDocs = [...allDocs, ...extra.map(d => ({ ...d, _source: caseLabels?.[caseId] || 'Other' }))]
+            }
+          }
+        }
+        setDocs(allDocs)
+      } catch {} finally { setLoading(false) }
+    }
+    loadDocs()
   }, [surrogateId])
 
   // Filter by search
@@ -1352,7 +1367,10 @@ export function DocumentsTab({ surrogateId }) {
       <div className={`flex items-center gap-3 group hover:bg-stone-50/50 transition-colors ${compact ? 'px-4 py-2' : 'px-4 py-2.5'}`}>
         <DocIcon className="size-4 text-stone-300 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+          <p className="text-xs font-medium text-stone-700 truncate">
+            {doc.file_name}
+            {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 align-middle">{doc._source}</span>}
+          </p>
           <p className="text-[10px] text-stone-400">
             {formatFileSize(doc.file_size)}
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
