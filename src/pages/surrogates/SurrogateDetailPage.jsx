@@ -288,6 +288,7 @@ export default function SurrogateDetailPage() {
   const [smsSending, setSmsSending] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [inviteResult, setInviteResult] = useState(null)
+  const [portalStatus, setPortalStatus] = useState(null) // { exists, lastSignIn }
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [portraitUrl, setPortraitUrl] = useState(null)
@@ -349,6 +350,14 @@ export default function SurrogateDetailPage() {
     }).catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
+
+  // Check portal status (has account / last login)
+  useEffect(() => {
+    if (surrogate?.email) {
+      fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: surrogate.email }) })
+        .then(r => r.json()).then(setPortalStatus).catch(() => {})
+    }
+  }, [surrogate?.email])
 
   // Load insurance status
   useEffect(() => {
@@ -502,31 +511,40 @@ export default function SurrogateDetailPage() {
                   preferred={surrogate.preferredContact === 'Phone'}
                 />
               )}
-              <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
-                onClick={async () => {
-                  if (!surrogate.email) return
-                  setInviting(true); setInviteResult(null)
-                  try {
-                    await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' })
-                    setInviteResult('sent')
-                    // Log invite date
-                    try {
-                      const { updateIntakeSubmission } = await import('@/lib/db')
-                      const fresh = await import('@/lib/db').then(m => m.fetchIntakeByEmail(surrogate.email))
-                      if (fresh) await updateIntakeSubmission(surrogate.id, { answers: { ...fresh.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
-                      setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
-                    } catch {}
-                  } catch (err) {
-                    setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
-                  }
-                  setInviting(false)
-                  setTimeout(() => setInviteResult(null), 4000)
-                }}>
-                {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
-                {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
-              </Button>
-              {quizAnswers?._lastInvitedAt && (
-                <span className="text-[10px] text-stone-400">Invited {new Date(quizAnswers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              {/* Invite / Portal status */}
+              {portalStatus?.exists && portalStatus?.lastSignIn ? (
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] text-emerald-600 font-medium">Portal Active</span>
+                  <span className="text-[10px] text-stone-400">Last login {new Date(portalStatus.lastSignIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-0.5">
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
+                    onClick={async () => {
+                      if (!surrogate.email) return
+                      setInviting(true); setInviteResult(null)
+                      try {
+                        await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' })
+                        setInviteResult('sent')
+                        try {
+                          const { updateIntakeSubmission, fetchIntakeByEmail } = await import('@/lib/db')
+                          const fresh = await fetchIntakeByEmail(surrogate.email)
+                          if (fresh) await updateIntakeSubmission(surrogate.id, { answers: { ...fresh.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                          setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
+                        } catch {}
+                      } catch (err) {
+                        setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
+                      }
+                      setInviting(false)
+                      setTimeout(() => setInviteResult(null), 4000)
+                    }}>
+                    {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                    {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
+                  </Button>
+                  {quizAnswers?._lastInvitedAt && (
+                    <span className="text-[10px] text-stone-400">Invited {new Date(quizAnswers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  )}
+                </div>
               )}
             </div>
           </div>
