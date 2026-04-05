@@ -83,9 +83,12 @@ function EditableCell({ col, value, onSave }) {
     <div className="flex items-center gap-1">
       <Input
         value={val}
-        onChange={e => setVal(col.format === 'cc4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : col.format === 'currency' ? e.target.value.replace(/[^\d.]/g, '') : e.target.value)}
+        onChange={e => {
+          if (col.format === 'cc4') setVal(e.target.value.replace(/\D/g, '').slice(0, 4))
+          else if (col.format === 'currency') { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setVal((cents / 100).toFixed(2)) }
+          else setVal(e.target.value)
+        }}
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
-        onBlur={col.format === 'currency' ? () => { const n = parseFloat(val); if (!isNaN(n)) setVal(n.toFixed(2)) } : undefined}
         className="h-7 text-xs"
         type={col.format === 'date' ? 'date' : 'text'}
         maxLength={col.format === 'cc4' ? 4 : undefined}

@@ -451,11 +451,14 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
         <div className="flex items-center gap-1">
           <Input
             value={editVal}
-            onChange={e => setEditVal(field === 'cc_last4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
+            onChange={e => {
+              if (field === 'cc_last4') setEditVal(e.target.value.replace(/\D/g, '').slice(0, 4))
+              else if (field === 'amount') { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setEditVal((cents / 100).toFixed(2)) }
+              else setEditVal(e.target.value)
+            }}
             onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(null) }}
             className="h-7 text-xs"
             type={field === 'expense_date' ? 'date' : 'text'}
-            onBlur={field === 'amount' ? () => { const n = parseFloat(editVal); if (!isNaN(n)) setEditVal(n.toFixed(2)) } : undefined}
             maxLength={field === 'cc_last4' ? 4 : undefined}
             autoFocus
           />
@@ -615,7 +618,7 @@ function JourneyExpensesTab({ journeyId }) {
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input value={newExpense.amount} onChange={e => { const raw = e.target.value.replace(/[^\d.]/g, ''); setNewExpense(p => ({ ...p, amount: raw })) }} onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) setNewExpense(p => ({ ...p, amount: n.toFixed(2) })) }} placeholder="0.00" className="h-9" />
+                <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1115,7 +1118,7 @@ export default function JourneyDetailPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input value={newExpense.amount} onChange={e => { const raw = e.target.value.replace(/[^\d.]/g, ''); setNewExpense(p => ({ ...p, amount: raw })) }} onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) setNewExpense(p => ({ ...p, amount: n.toFixed(2) })) }} placeholder="0.00" className="h-9" />
+                <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
