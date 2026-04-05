@@ -35,21 +35,21 @@ export async function onRequestPost(context) {
     `Subject: ${subject}`,
     `From: ${from || 'Unknown'}`,
     snippet ? `Preview: ${snippet}` : '',
-    body ? `Body: ${body.slice(0, 3000)}` : '',
+    body ? `Full email body:\n${body.slice(0, 6000)}` : '',
   ].filter(Boolean).join('\n')
 
   let systemPrompt, userPrompt
 
   if (type === 'expense') {
-    systemPrompt = `You are an AI assistant for a surrogacy agency. Extract expense information from emails. Return ONLY valid JSON with these fields:
+    systemPrompt = `You are an AI assistant for a surrogacy agency. Extract expense information from emails. Look carefully for dollar amounts (e.g. $415.90, $1,200.00) anywhere in the email — they may appear in the body, not just the subject. Return ONLY valid JSON with these fields:
 - description: string (what the expense is for)
-- amount: number or null (dollar amount if mentioned)
+- amount: number or null (the dollar amount as a number, e.g. 415.90 — MUST be a number, not a string)
 - paid_to: string or null (who was paid / vendor name)
-- expense_date: string or null (date in YYYY-MM-DD format if mentioned)
+- expense_date: string or null (date in YYYY-MM-DD format — look for due dates, billing dates, invoice dates)
 - category: string (one of: medical, legal, escrow, insurance, travel, compensation, misc)
-- notes: string (any additional relevant details)
+- notes: string (any additional relevant details like invoice numbers, billing periods)
 
-If a field cannot be determined, use null. Be concise.`
+IMPORTANT: Search the ENTIRE email body for dollar amounts. Look for patterns like "Amount: $X", "Total: $X", "Payment of $X", "$X.XX" etc. If a field cannot be determined, use null.`
 
     userPrompt = `Extract expense details from this email for case "${caseName || 'Unknown'}":\n\n${emailContent}`
   } else if (type === 'task') {
