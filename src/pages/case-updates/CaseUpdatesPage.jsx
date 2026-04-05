@@ -7,7 +7,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ScrollText, FileText, X } from 'lucide-react'
+import { CheckCircle2, Circle, ScrollText, FilePlus2, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/utils'
@@ -224,36 +224,46 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const isComplete = status === 'complete' || status === 'na'
                       return (
                         <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
-                          <div className="flex items-center gap-1.5">
-                            {isComplete ? (
-                              <span className="text-xs text-green-600 font-medium">Done {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
-                            ) : status === 'not_started' ? (
-                              <span className="text-xs text-stone-300">Not Started</span>
+                          <div className="space-y-1">
+                            {/* All log entries, newest first */}
+                            {history.length > 0 ? (
+                              [...history].reverse().map((entry, i) => (
+                                <div key={i} className="text-xs">
+                                  <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
+                                  <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>
+                                    {entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                  </span>
+                                  {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                </div>
+                              ))
                             ) : (
-                              <span className="text-xs text-stone-600">{lastEntry?.date ? formatDate(lastEntry.date) : ''} <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span></span>
+                              <span className="text-xs text-stone-300">Not Started</span>
                             )}
-                            {isRecordType && totalCount > 0 && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
-                            )}
-                            {history.length > 0 && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
-                                <ScrollText className="size-3.5" />
-                              </button>
-                            )}
-                            {isRecordType && totalCount > 0 && (
-                              <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors">
-                                <FileText className="size-3.5" />
-                              </button>
-                            )}
+                            {/* Icons row */}
+                            <div className="flex items-center gap-1.5">
+                              {isRecordType && totalCount > 0 && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
+                              )}
+                              {history.length > 0 && (
+                                <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
+                                  <ScrollText className="size-3.5" />
+                                </button>
+                              )}
+                              {isRecordType && totalCount > 0 && (
+                                <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors" title="Medical records">
+                                  <FilePlus2 className="size-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          {/* Log popover */}
+                          {/* Log popover (full detail) */}
                           {isLogOpen && (
                             <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
                               <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Log History</p>
+                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
                                 <button onClick={() => setLogPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                               </div>
-                              {history.map((entry, i) => (
+                              {[...history].reverse().map((entry, i) => (
                                 <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
@@ -382,17 +392,21 @@ function IPUpdatesSheet({ ips }) {
                     {filtered.map(ip => {
                       const rt = allTracking[ip.id] || {}
                       const d = rt[step.id] || {}
-                      const status = d.status || 'not_started'
                       const history = d.history || []
-                      const lastEntry = history.length > 0 ? history[history.length - 1] : null
-                      const isComplete = status === 'complete' || status === 'na'
+                      const isComplete = (d.status || 'not_started') === 'complete' || d.status === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
-                          <div className="flex items-center gap-1.5">
-                            <CellStatus status={status} lastEntry={lastEntry} />
+                          <div className="space-y-1">
+                            {history.length > 0 ? [...history].reverse().map((entry, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
+                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                              </div>
+                            )) : <span className="text-xs text-stone-300">Not Started</span>}
                             {history.length > 0 && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
                             )}
@@ -496,17 +510,21 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                     {filtered.map(j => {
                       const rt = allTracking[j.id] || {}
                       const d = rt[step.id] || {}
-                      const status = d.status || 'not_started'
                       const history = d.history || []
-                      const lastEntry = history.length > 0 ? history[history.length - 1] : null
-                      const isComplete = status === 'complete' || status === 'na'
+                      const isComplete = (d.status || 'not_started') === 'complete' || d.status === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
-                          <div className="flex items-center gap-1.5">
-                            <CellStatus status={status} lastEntry={lastEntry} />
+                          <div className="space-y-1">
+                            {history.length > 0 ? [...history].reverse().map((entry, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
+                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                              </div>
+                            )) : <span className="text-xs text-stone-300">Not Started</span>}
                             {history.length > 0 && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors">
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
                             )}
@@ -544,10 +562,10 @@ function LogPopover({ history, onClose }) {
   return (
     <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] font-semibold text-stone-400 uppercase">Log History</p>
+        <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
         <button onClick={onClose} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
       </div>
-      {history.map((entry, i) => (
+      {[...history].reverse().map((entry, i) => (
         <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
