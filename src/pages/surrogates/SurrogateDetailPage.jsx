@@ -1367,17 +1367,15 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
       <div className={`flex items-center gap-3 group hover:bg-stone-50/50 transition-colors ${compact ? 'px-4 py-2' : 'px-4 py-2.5'}`}>
         <DocIcon className="size-4 text-stone-300 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-stone-700 truncate">
-            {doc.file_name}
-            {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 align-middle">{doc._source}</span>}
-            {!doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 align-middle">Previous Match</span>}
-          </p>
+          <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
           <p className="text-[10px] text-stone-400">
             {formatFileSize(doc.file_size)}
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
             {' · '}
             {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             {compact && cat ? ` · ${cat.label}` : ''}
+            {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-stone-100 text-stone-500">{doc._source}</span>}
+            {!doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-amber-50 text-amber-600">Previous Match</span>}
           </p>
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
