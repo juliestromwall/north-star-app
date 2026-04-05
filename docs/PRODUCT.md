@@ -143,6 +143,28 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 5. Search across all tabs, admin filter by case manager
 6. Case-level insurance on surrogate/journey detail pages via InsuranceTab
 
+### Admin: Expense Tracking
+1. /expenses page with Expenses and Reconciled tabs
+2. Columns: Case (IP+GC + manager), Date, Amount, Paid To, CC Last 4, Escrow Y/N, Notes, Doc, Reconcile
+3. Currency input: payment terminal style (digits shift left, always .00)
+4. Reconcile confirmation modal shows case name, amount, payee
+5. "+ Create Task" from reconcile modal (assigned to case manager, due today, high priority)
+6. Task creation tracked on expense (amber warning on re-reconcile)
+7. Attachment upload + eyeball preview
+8. Journey Expenses tab: inline editable, add/delete, paperclip upload for missing docs
+9. "+ Add Expense" on journey Escrow section
+
+### Admin: Dashboard
+1. Motivational quote of the day
+2. Collapsible Upcoming Appointments (Google Calendar) + My Tasks columns
+3. My Cases: only assigned cases, identical cards from list pages
+4. Calculator widget, per-user sticky notes
+
+### Admin: Case Updates
+1. /case-updates page under Client Management
+2. Surrogate Screening Overview with stage filter pills
+3. Checklist spreadsheet showing status per surrogate
+
 ### Admin: Contact & Intake Details
 1. Contact tab merges quiz answers + contact info in one editable view
 2. All fields use proper form controls matching quiz (dropdowns, toggles)

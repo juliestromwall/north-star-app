@@ -1,5 +1,79 @@
 # Session Log
 
+## 2026-04-04 (Dashboard Redesign, Expense Tracking, Gmail Signature, Documents, Matching, Name Ordering)
+
+**Worked on:** Complete dashboard redesign, expense tracking system, Gmail signature fix, document management for IP/Journey, matching improvements, break match document handling, name ordering (IP first), Case Updates page
+
+**Changes made:**
+
+Gmail Signature Fix:
+- Signature rendered as raw HTML below Tiptap editor (not parsed through it)
+- Preserves tables, borders, images, animated GIFs exactly like Gmail
+- Signature shown in compose preview only, not included in sent body (Gmail auto-appends)
+- Fixed MatchSheetsTab userId (was undefined, preventing signature load)
+
+Expense Tracking System:
+- /expenses page: Insurance-style spreadsheet with Expenses/Reconciled tabs
+- Columns: Case (IP+GC name + manager), Date, Amount, Paid To, CC Last 4, Escrow (Y/N), Notes, Doc, Reconcile
+- Currency input: payment terminal style (type 2424 → 24.24)
+- Reconcile confirmation modal with case name, "+ Create Task" option
+- Task creation from reconcile: assigned to case manager, due today, priority high
+- task_created flag on expense persists across sessions (amber warning on re-reconcile)
+- Attachment upload + eyeball preview (images inline, PDFs in iframe)
+- Journey Expenses tab: inline editable rows (click any cell), add/delete, paperclip upload
+- "+ Add Expense" button on journey Escrow section
+- Submitted to Escrow Y/N toggle on add expense dialogs
+- DB: journey_expenses table CRUD with attachment_url, cc_last4, submitted_to_escrow, task_created
+
+Escrow Section Updates:
+- "Close" renamed to "Escrow Close Date", displays MM/DD/YYYY
+- Balance update date logged (small gray text)
+- All date fields in journey hero now format MM/DD/YYYY via formatDate()
+
+Document Management:
+- Real DocumentsTab on IP cases and Journey pages (was empty state)
+- Journey Documents merges GC + IP docs with source labels ("GC — Name", "IP — Name")
+- Added folders: Escrow, Expenses, Photos
+- Renamed "Agency Agreement" to "Agency Documents"
+- Removed duplicate Send for Signature / Send Fax buttons on journey
+- Break match: copies only journey-period docs (not pre-match), keeps original folder
+- "Previous Match" amber badge on copied docs (based on uploaded_by field)
+- Labels moved to detail line (below filename) to prevent truncation
+
+Matching Improvements:
+- Create Match dropdowns hide already-matched GCs and IPs
+- After creating match, navigates to new journey page
+- IP names displayed first everywhere (journeys, emails, expenses, case import)
+
+Dashboard Redesign:
+- Motivational quote of the day (zenquotes.io API)
+- Collapsible Upcoming Appointments (Google Calendar, next 7 days) + My Tasks columns
+- My Cases: only assigned cases, separated by type (Journeys, Surrogates, IPs)
+- Uses identical card components from actual list pages (JourneyTileCard, SurrogateCard, IPTileCard)
+- Grid/list view toggle
+- Calculator widget (fully functional)
+- Sticky Notes (per-user localStorage, color-coded)
+- Removed Surrogate Screening Overview (moved to Case Updates)
+
+New /case-updates Page:
+- Surrogate Screening Overview moved here from dashboard
+- Stage filter pills, checklist spreadsheet
+- Added to nav under Client Management after Matched Journeys
+
+**Next steps:**
+- Large file import (Supabase 50MB limit for old system profiles)
+- Matching page redesign
+- Journey merged Documents tab improvements
+- Password reset feature
+- User invite system
+
+**Open questions:**
+- Supabase storage file size limit — old profiles exceed 50MB
+- Should journey documents show source labels differently?
+- Expense tracking: should reconciled expenses be editable?
+
+---
+
 ## 2026-04-04 (Continued — Email Tags, AI Extraction, IP/Journey List Redesign, Email CSS Fix)
 
 **Worked on:** Email tagging with AI-powered expense/task extraction, IP list page redesign, Journeys list page redesign, email CSS isolation, admin user setup
