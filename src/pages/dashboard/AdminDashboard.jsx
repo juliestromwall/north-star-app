@@ -23,7 +23,7 @@ import {
 export default function AdminDashboard() {
   const { currentUser } = useRole()
   const { notes: adminNotes, dismissNote } = useAdminNotes()
-  const visibleNotes = adminNotes.filter(n => !n.dismissed?.includes(currentUser?.id))
+  const visibleNotes = (adminNotes || []).filter(n => !n.dismissed?.includes(currentUser?.id))
 
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
