@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Plus, MapPin, Calendar, ArrowRight, LayoutGrid, List, Stethoscope, Baby, Users, CheckCircle } from 'lucide-react'
+import { Search, Plus, MapPin, Calendar, ArrowRight, LayoutGrid, List, Stethoscope, Baby, Users, CheckCircle, Clock, Circle, UserCog } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,59 @@ import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
+import { getChecklistMilestones } from '@/lib/checklistStore'
+import { getRecordTrackingBatch } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
 import { mockUsers } from '@/data/mock/users'
+
+function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" strokeWidth="2" />
+      <circle cx="12" cy="12" r="7.5" />
+      <path d="M8 15 Q8 9, 14 8" />
+      <circle cx="15" cy="14" r="1.8" />
+      <circle cx="13.5" cy="16.5" r="1.2" />
+      <circle cx="16.5" cy="16" r="1" />
+    </svg>
+  )
+}
+
+function MilestoneProgress({ caseId, stageId, recordTracking }) {
+  const milestones = getChecklistMilestones('ip', stageId || 'pre-qualification')
+  const rt = recordTracking || {}
+  let completed = 0
+  const total = milestones.length
+  const statuses = {}
+  for (const ms of milestones) {
+    const stepIds = ms.stepIds || []
+    const relevant = stepIds.filter(id => rt[id]?.status || !id.startsWith('_'))
+    const allDone = relevant.length > 0 && relevant.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
+    const anyStarted = relevant.some(id => rt[id]?.status && rt[id].status !== 'not_started')
+    statuses[ms.id] = allDone ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allDone) completed++
+  }
+  const pct = total > 0 ? (completed / total) * 100 : 0
+  if (total === 0) return null
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
+        <span>Milestones</span><span>{completed}/{total}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: pct === 100 ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {milestones.map(ms => (
+          <div key={ms.id} className="flex items-center gap-1">
+            {statuses[ms.id] === 'complete' ? <CheckCircle className="size-3 text-emerald-500" /> : statuses[ms.id] === 'in_progress' ? <Clock className="size-3 text-amber-500" /> : <Circle className="size-3 text-stone-300" />}
+            <span className="text-[10px] text-stone-400">{ms.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 const IP_STAGES = SURROGATE_STAGES.map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
@@ -70,6 +121,7 @@ export default function IPListPage() {
   const canSeeAll = isSuperAdmin || isMasterAdmin
   const [ips, setIps] = useState([])
   const [allStageStatuses, setAllStageStatuses] = useState({})
+  const [recordTrackingMap, setRecordTrackingMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
@@ -109,6 +161,9 @@ export default function IPListPage() {
         const statuses = {}
         for (const ip of ipList) { statuses[ip.id] = getSurrogateStageStatus(ip.id) }
         setAllStageStatuses(statuses)
+        // Load record tracking for milestones
+        const ids = ipList.map(ip => ip.id)
+        if (ids.length > 0) getRecordTrackingBatch(ids).then(setRecordTrackingMap).catch(() => {})
       })
       .catch(() => setIps([]))
       .finally(() => setLoading(false))
@@ -261,9 +316,21 @@ export default function IPListPage() {
         />
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filtered.map(ip => (
-            <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="group">
-              <Card className="transition-shadow hover:shadow-md h-full">
+          {filtered.map(ip => {
+            const ss = allStageStatuses[ip.id] || { stage: 'pre-qualification', status: 'New' }
+            const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
+            const assignedAdmin = ip.assignedTo ? ADMIN_STAFF.find(a => a.email === ip.assignedTo)?.name : null
+            return (
+            <Link key={ip.id} to={`/intended-parents/${ip.id}`}>
+              <Card className="transition-shadow hover:shadow-md h-full relative">
+                {isNew && (
+                  <div className="absolute top-3 right-3 z-10">
+                    <span className="relative flex size-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full size-3 bg-pink-500" />
+                    </span>
+                  </div>
+                )}
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
                     <ProfileAvatar name={ip.names} size="lg" />
@@ -271,27 +338,17 @@ export default function IPListPage() {
                       <h3 className="font-heading font-semibold truncate">{ip.names}</h3>
                       {ip.location && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
-                          <MapPin className="size-3.5" />
-                          <span>{ip.location}</span>
+                          <MapPin className="size-3.5" /><span>{ip.location}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <StatusBadge status={ip.status} />
-                        <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>
-                          {ip.type}
-                        </Badge>
+                        <StageBadge stage={ss.stage} status={ss.status} />
+                        <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>{ip.type}</Badge>
                       </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-muted-foreground text-xs">Submitted</span>
-                      <p className="font-medium flex items-center gap-1">
-                        <Calendar className="size-3.5 text-muted-foreground" />
-                        {new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    </div>
                     <div>
                       <span className="text-muted-foreground text-xs">RE / Fertility Doctor</span>
                       <p className="font-medium flex items-center gap-1">
@@ -302,27 +359,24 @@ export default function IPListPage() {
                     <div>
                       <span className="text-muted-foreground text-xs">Frozen Embryos</span>
                       <p className="font-medium flex items-center gap-1">
-                        <Baby className="size-3.5 text-muted-foreground" />
+                        <FertilizedEggIcon size={14} color="#78716c" className="shrink-0" />
                         {ip.hasFrozenEmbryos === true ? (ip.frozenEmbryoDetails || 'Yes') : ip.hasFrozenEmbryos === false ? 'No' : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground text-xs">Consultation</span>
-                      <p className="font-medium">
-                        {ip.wantsConsultation === true ? 'Yes' : ip.wantsConsultation === false ? 'No' : '—'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-2 border-t">
-                    <span className="text-xs text-abc-indigo font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Case <ArrowRight className="size-3" />
-                    </span>
-                  </div>
+                  <MilestoneProgress caseId={ip.id} stageId={ss.stage} recordTracking={recordTrackingMap[ip.id]} />
+
+                  {assignedAdmin && (
+                    <div className="flex items-center gap-1.5 text-xs text-stone-400 pt-2 border-t">
+                      <UserCog className="size-3.5" /> {assignedAdmin}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </Link>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <Card>
