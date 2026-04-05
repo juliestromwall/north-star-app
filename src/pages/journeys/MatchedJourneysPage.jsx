@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown, Circle, Clock, CheckCircle } from 'lucide-react'
+import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown, Circle, Clock, CheckCircle, UserCog } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useRole } from '@/context/RoleContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,12 +21,15 @@ const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
 export default function MatchedJourneysPage() {
+  const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
+  const canSeeAll = isSuperAdmin || isMasterAdmin
   const [journeys, setJourneys] = useState([])
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
+  const [ownerFilter, setOwnerFilter] = useState(canSeeAll ? 'all' : 'mine')
   const [view, setView] = useState('tile')
 
   useEffect(() => {
@@ -42,9 +47,28 @@ export default function MatchedJourneysPage() {
     })
   }, [journeys, surrogates, ips])
 
+  const myCaseCount = enriched.filter(j => j.assigned_to === currentUser.email).length
+  const unassignedCount = enriched.filter(j => !j.assigned_to).length
+
+  // Owner-filtered (for stage counts)
+  const ownerFiltered = useMemo(() => {
+    return enriched.filter(j => {
+      if (ownerFilter === 'mine') return j.assigned_to === currentUser.email
+      if (ownerFilter === 'unassigned') return !j.assigned_to
+      if (ownerFilter !== 'all') return j.assigned_to === ownerFilter
+      return true
+    })
+  }, [enriched, ownerFilter, currentUser.email])
+
   const filtered = useMemo(() => {
     return enriched.filter(j => {
+      // Owner
+      if (ownerFilter === 'mine') { if (j.assigned_to !== currentUser.email) return false }
+      else if (ownerFilter === 'unassigned') { if (j.assigned_to) return false }
+      else if (ownerFilter !== 'all') { if (j.assigned_to !== ownerFilter) return false }
+      // Stage
       if (stageFilter !== 'all' && j.stage !== stageFilter) return false
+      // Search
       if (search) {
         const q = search.toLowerCase()
         const gcName = (j.gc?.name || '').toLowerCase()
@@ -53,15 +77,15 @@ export default function MatchedJourneysPage() {
       }
       return true
     })
-  }, [enriched, search, stageFilter])
+  }, [enriched, search, stageFilter, ownerFilter, currentUser.email])
 
-  // Stage counts
+  // Stage counts based on owner filter
   const stageCounts = useMemo(() => {
     const counts = {}
     for (const s of JOURNEY_STAGES) counts[s.id] = 0
-    for (const j of journeys) { if (counts[j.stage] !== undefined) counts[j.stage]++ }
+    for (const j of ownerFiltered) { if (counts[j.stage] !== undefined) counts[j.stage]++ }
     return counts
-  }, [journeys])
+  }, [ownerFiltered])
 
   if (loading) return <div className="text-center py-12 text-stone-400">Loading journeys...</div>
 
@@ -69,35 +93,55 @@ export default function MatchedJourneysPage() {
     <div className="space-y-6">
       <PageHeader
         title="Matched Journeys"
-        subtitle={`${journeys.length} active journey${journeys.length !== 1 ? 's' : ''}`}
+        subtitle={`${filtered.length} of ${enriched.length} journey${enriched.length !== 1 ? 's' : ''} shown`}
       />
 
-      {/* Stage filter pills */}
-      <div className="flex flex-wrap gap-2">
+      {/* Hero stat boxes */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <button
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${stageFilter === 'all' ? 'bg-[#283693] text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
           onClick={() => setStageFilter('all')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          All ({journeys.length})
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
         </button>
         {JOURNEY_STAGES.map(stage => (
           <button
             key={stage.id}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${stageFilter === stage.id ? 'text-white shadow-md' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
-            style={stageFilter === stage.id ? { backgroundColor: stage.color } : {}}
             onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
+            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+            style={{ backgroundColor: stage.color + '08', ...(stageFilter === stage.id ? { ringColor: stage.color, borderColor: stage.color + '50' } : {}) }}
           >
-            {stage.label} ({stageCounts[stage.id] || 0})
+            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
+            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
           </button>
         ))}
       </div>
 
-      {/* Search + view toggle */}
-      <div className="flex gap-3">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by surrogate or IP name..." className="pl-9" />
         </div>
+
+        <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mine">My Journeys ({myCaseCount})</SelectItem>
+            {canSeeAll && <SelectItem value="all">All Journeys ({enriched.length})</SelectItem>}
+            <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
+            {canSeeAll && ADMIN_STAFF.map(admin => (
+              <SelectItem key={admin.email} value={admin.email}>
+                {admin.name} ({enriched.filter(j => j.assigned_to === admin.email).length})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="flex items-center border rounded-md">
           <Button variant={view === 'tile' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setView('tile')}>
             <LayoutGrid className="size-4" />
