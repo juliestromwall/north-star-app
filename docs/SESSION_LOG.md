@@ -1,5 +1,27 @@
 # Session Log
 
+## 2026-04-04 (Password Reset, Login Brand, List Redesigns, AI Extraction, Email CSS)
+
+**Worked on:** Password reset flow, branded login page, IP/Journey list redesigns, AI expense/task extraction fixes, email CSS isolation, admin user setup
+
+**Changes made:**
+- Password reset: forgot password flow on login + /reset-password page (Supabase resetPasswordForEmail)
+- Login page: gradient background, "Welcome back" in brand colors, frosted glass card, pink-to-indigo gradient button
+- IP list: hero stats, owner filter, pink ping for New, milestones, FertilizedEggIcon, assigned admin
+- Journeys list: hero stats, owner filter matching surrogates/IPs pattern
+- AI extraction: full email body via Gmail API, improved dollar detection prompt, error surfacing
+- Email CSS: sandboxed iframe prevents style leaking (Amazon dark theme fix)
+- Expense email viewer: 90vw modal, mail icon links to full email
+- Admin setup: desiree@abcsurrogacy.com user created + role fixed via user_metadata
+- Removed surrogate quiz link from login
+
+**Next steps:**
+- User invite system
+- Email templates
+- Configure Supabase redirect URL for password reset
+
+---
+
 ## 2026-04-04 (Dashboard Redesign, Expense Tracking, Gmail Signature, Documents, Matching, Name Ordering)
 
 **Worked on:** Complete dashboard redesign, expense tracking system, Gmail signature fix, document management for IP/Journey, matching improvements, break match document handling, name ordering (IP first), Case Updates page
