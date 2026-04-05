@@ -51,22 +51,28 @@ export default function AdminDashboard() {
       setTasks(myTasks || [])
     }).finally(() => setLoading(false))
 
-    // Fetch upcoming calendar events
-    const userId = currentUser?.id
-    if (userId) {
-      const now = new Date()
-      const timeMin = now.toISOString()
-      const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-      listEvents(userId, { timeMin, timeMax, maxResults: 10 })
-        .then(data => setEvents(data.items || []))
-        .catch(() => {})
-    }
+    // Fetch upcoming calendar events (may fail if Google not connected)
+    try {
+      const userId = currentUser?.id
+      if (userId) {
+        const now = new Date()
+        const timeMin = now.toISOString()
+        const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        listEvents(userId, { timeMin, timeMax, maxResults: 10 })
+          .then(data => setEvents(data?.items || []))
+          .catch(() => {})
+      }
+    } catch {}
 
-    // Fetch quote of the day
-    fetch('https://zenquotes.io/api/today')
-      .then(r => r.json())
-      .then(data => { if (data?.[0]?.q) setQuote({ text: data[0].q, author: data[0].a }) })
-      .catch(() => setQuote({ text: 'Every day is a chance to begin again.', author: 'Unknown' }))
+    // Fetch quote of the day (may be blocked by CORS)
+    try {
+      fetch('https://zenquotes.io/api/today')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.[0]?.q) setQuote({ text: data[0].q, author: data[0].a }) })
+        .catch(() => setQuote({ text: 'Every day is a chance to begin again.', author: 'Unknown' }))
+    } catch {
+      setQuote({ text: 'Every day is a chance to begin again.', author: 'Unknown' })
+    }
   }, [])
 
   // Save sticky notes to localStorage
