@@ -167,6 +167,9 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [caseSearch, setCaseSearch] = useState('')
+  // AI extraction state
+  const [aiStep, setAiStep] = useState(null) // null | 'extracting' | 'confirm_expense' | 'confirm_task'
+  const [aiData, setAiData] = useState(null)
 
   useEffect(() => {
     if (!open) return
@@ -174,6 +177,8 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     setSelectedCase('')
     setSelectedTag('')
     setCaseSearch('')
+    setAiStep(null)
+    setAiData(null)
     Promise.all([
       fetchSurrogatesFromIntake(),
       fetchIPsFromIntake(),
@@ -215,12 +220,93 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         tag: selectedTag || null,
       })
       if (error) throw error
-      setSaved(true)
-      setTimeout(() => onOpenChange(false), 1200)
+
+      // If tagged as expense or task, trigger AI extraction
+      if (selectedTag === 'expense' || selectedTag === 'task') {
+        setAiStep('extracting')
+        try {
+          const res = await fetch('/api/ai/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: selectedTag,
+              subject: email.subject,
+              from: email.from,
+              snippet: email.snippet,
+              caseName: c.name,
+            }),
+          })
+          const result = await res.json()
+          if (result.success && result.data) {
+            setAiData({ ...result.data, caseId: c.id, caseType: c.type, caseName: c.name })
+            setAiStep(selectedTag === 'expense' ? 'confirm_expense' : 'confirm_task')
+          } else {
+            setSaved(true)
+            setTimeout(() => onOpenChange(false), 1200)
+          }
+        } catch {
+          setSaved(true)
+          setTimeout(() => onOpenChange(false), 1200)
+        }
+      } else {
+        setSaved(true)
+        setTimeout(() => onOpenChange(false), 1200)
+      }
     } catch (err) {
       alert('Failed to log email: ' + err.message)
     }
     setSaving(false)
+  }
+
+  const handleConfirmExpense = async () => {
+    if (!aiData) return
+    setSaving(true)
+    try {
+      const { insertExpense } = await import('@/lib/db')
+      await insertExpense({
+        case_id: aiData.caseId,
+        case_type: aiData.caseType,
+        description: aiData.description || '',
+        amount: aiData.amount || 0,
+        paid_to: aiData.paid_to || '',
+        expense_date: aiData.expense_date || new Date().toISOString().split('T')[0],
+        category: aiData.category || 'misc',
+        notes: aiData.notes || '',
+        created_by: userName,
+      })
+    } catch (err) { console.warn('Expense save failed:', err) }
+    setSaved(true)
+    setAiStep(null)
+    setTimeout(() => onOpenChange(false), 1200)
+    setSaving(false)
+  }
+
+  const handleConfirmTask = async () => {
+    if (!aiData) return
+    setSaving(true)
+    try {
+      const { createCaseTask } = await import('@/lib/db')
+      await createCaseTask({
+        case_id: aiData.caseId,
+        case_type: aiData.caseType,
+        title: aiData.title || 'Follow up',
+        description: aiData.description || '',
+        priority: aiData.priority || 'normal',
+        due_date: aiData.due_date || null,
+        assigned_to: null,
+        created_by: userName,
+      })
+    } catch (err) { console.warn('Task save failed:', err) }
+    setSaved(true)
+    setAiStep(null)
+    setTimeout(() => onOpenChange(false), 1200)
+    setSaving(false)
+  }
+
+  const handleSkipAi = () => {
+    setSaved(true)
+    setAiStep(null)
+    setTimeout(() => onOpenChange(false), 1200)
   }
 
   return (
@@ -233,6 +319,58 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
           <div className="flex flex-col items-center py-6 text-center">
             <CheckCircle2 className="size-10 text-green-500 mb-2" />
             <p className="text-sm font-medium">Email logged successfully</p>
+          </div>
+        ) : aiStep === 'extracting' ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <Loader2 className="size-8 text-[#283693] animate-spin mb-3" />
+            <p className="text-sm font-medium">AI is reading the email...</p>
+            <p className="text-xs text-muted-foreground mt-1">Extracting {selectedTag === 'expense' ? 'expense details' : 'task information'}</p>
+          </div>
+        ) : aiStep === 'confirm_expense' && aiData ? (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">AI-Generated Expense</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-stone-500">Description</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-60" value={aiData.description || ''} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>
+                <div className="flex justify-between"><span className="text-stone-500">Amount</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-32" value={aiData.amount || ''} onChange={e => setAiData(d => ({ ...d, amount: e.target.value }))} /></div>
+                <div className="flex justify-between"><span className="text-stone-500">Paid To</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-48" value={aiData.paid_to || ''} onChange={e => setAiData(d => ({ ...d, paid_to: e.target.value }))} /></div>
+                <div className="flex justify-between"><span className="text-stone-500">Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none" value={aiData.expense_date || ''} onChange={e => setAiData(d => ({ ...d, expense_date: e.target.value }))} /></div>
+                <div className="flex justify-between"><span className="text-stone-500">Category</span><span className="font-medium">{aiData.category || 'misc'}</span></div>
+                {aiData.notes && <div className="flex justify-between"><span className="text-stone-500">Notes</span><span className="font-medium text-right">{aiData.notes}</span></div>}
+              </div>
+            </div>
+            <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to save the expense.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleSkipAi}>Skip</Button>
+              <Button onClick={handleConfirmExpense} disabled={saving} style={{ backgroundColor: '#283693' }}>
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                Confirm Expense
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : aiStep === 'confirm_task' && aiData ? (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3">
+              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wider mb-2">AI-Generated Task</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-stone-500">Task</span><input className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none w-60" value={aiData.title || ''} onChange={e => setAiData(d => ({ ...d, title: e.target.value }))} /></div>
+                <div className="flex justify-between"><span className="text-stone-500">Priority</span>
+                  <select value={aiData.priority || 'normal'} onChange={e => setAiData(d => ({ ...d, priority: e.target.value }))} className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none">
+                    <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div className="flex justify-between"><span className="text-stone-500">Due Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none" value={aiData.due_date || ''} onChange={e => setAiData(d => ({ ...d, due_date: e.target.value }))} /></div>
+                {aiData.description && <div><span className="text-stone-500">Notes</span><textarea className="w-full mt-1 text-sm bg-transparent border border-dashed border-orange-300 rounded p-2 outline-none" rows={2} value={aiData.description} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>}
+              </div>
+            </div>
+            <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to create the task.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleSkipAi}>Skip</Button>
+              <Button onClick={handleConfirmTask} disabled={saving} style={{ backgroundColor: '#283693' }}>
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                Confirm Task
+              </Button>
+            </DialogFooter>
           </div>
         ) : (
           <>
