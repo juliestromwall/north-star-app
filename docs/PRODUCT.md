@@ -92,6 +92,14 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 5. Event title includes client name; description includes clickable case link
 6. Calendar page event popup auto-links case URLs for navigation
 
+### Email Tagging & AI Extraction
+1. When logging an email to a case, admin can optionally tag it (Escrow, Expense, Medical Records, etc.)
+2. Tags appear as colored badges on the case email log, filterable
+3. "Expense" tag: AI reads full email, extracts amount/vendor/date → editable confirmation → saves expense
+4. "Task" tag: AI reads email, extracts action item → editable confirmation → saves task assigned to current user
+5. Sent emails from compose can also be tagged when logging to a case
+6. AI uses Claude Haiku via Cloudflare Pages Function (/api/ai/extract)
+
 ### E-Signature Security
 1. Each document gets a unique 64-char hex signing_token on creation
 2. Signing URLs use /e-signature/sign/:token (unguessable, no sequential IDs)

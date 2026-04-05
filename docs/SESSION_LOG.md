@@ -1,5 +1,71 @@
 # Session Log
 
+## 2026-04-04 (Continued — Email Tags, AI Extraction, IP/Journey List Redesign, Email CSS Fix)
+
+**Worked on:** Email tagging with AI-powered expense/task extraction, IP list page redesign, Journeys list page redesign, email CSS isolation, admin user setup
+
+**Changes made:**
+
+Email Tagging System:
+- 13 email tags: Escrow, Expense, Medical Records, Monitoring, OB, Hospital, Legal, Matching, Task, Insurance, Transfer, Psych, General
+- Tag selector on Log to Case dialog (pill buttons after case selection)
+- Tag dropdown on Compose window (next to case selector for sent emails)
+- CaseEmailsTab: tag badges on emails, filter bar by tag, search by subject/from/snippet
+- SQL migration: tag column + index on case_emails
+
+AI-Powered Extraction (Cloudflare Function + Claude Haiku):
+- /api/ai/extract function calls Anthropic API
+- Expense tag: AI reads full email body (6000 chars), extracts description, amount, paid_to, date, category, notes
+- Task tag: AI extracts title, description, priority, due_date
+- Editable confirmation cards (amber for expense, orange for task) before saving
+- Expense: links to email via Gmail ID in notes, viewable from Expenses page mail icon
+- Task: defaults assigned_to to current user, admin dropdown to reassign
+- Full email body fetched via Gmail API for better extraction (not just snippet)
+- Improved AI prompt explicitly searches for dollar amounts ($X.XX patterns)
+
+Expense Page Email Viewer:
+- Mail icon on expenses created from emails
+- Click opens full email modal (90vw wide, from/to/cc/date/subject/body)
+- Fetches live from Gmail API
+
+Email CSS Isolation:
+- Email HTML rendered in sandboxed iframe (was dangerouslySetInnerHTML)
+- Prevents email CSS (e.g. Amazon dark theme) from leaking into app sidebar/nav
+
+IP List Page Redesign:
+- Hero stat boxes (Total + 6 stages) — clickable to filter
+- Owner filter: My Cases / All / Unassigned / per-admin
+- Blinking pink dot on "New" IP cases
+- Milestone progress bar on cards
+- FertilizedEggIcon for frozen embryos
+- Assigned admin shown on cards
+- Removed: "Submitted" date, "View Case" hover
+- StageBadge replaces StatusBadge
+
+Journeys List Page Redesign:
+- Hero stat boxes (Total + 3 journey stages) — clickable to filter
+- Owner filter: My Journeys / All / Unassigned / per-admin
+- Stage counts update based on owner filter
+- Cards unchanged
+
+Admin User Setup:
+- Created Supabase auth user for desiree@abcsurrogacy.com
+- Fixed role assignment via user_metadata (defaults to surrogate without it)
+
+**Next steps:**
+- Password reset feature
+- User invite system (for manually added users)
+- Email templates
+- Merged Documents tab on journey
+- Default owner filter for surrogates page (master/super → all, admin → mine)
+
+**Open questions:**
+- Password reset: use Supabase built-in magic link or custom reset flow?
+- User invite: send email with temp password or magic link?
+- Email templates: predefined templates or free-form with merge fields?
+
+---
+
 ## 2026-04-04 (E-Sign Security, Signature Fix, Case Tasks, Case Calendar, Email Tags Planning)
 
 **Worked on:** Secure e-signature URLs, typed signature fix, case tasks system, case calendar with Google Calendar API integration, calendar page link improvements
