@@ -1,10 +1,10 @@
-import { useState, useEffect, Component } from 'react'
+import { useState, useEffect, useRef, Component } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2,
+  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -413,9 +413,10 @@ function JourneyChecklistTab({ journey, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency }) {
+function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
+  const fileRef = useRef(null)
 
   function startEdit(field, value) {
     if (exp.reconciled) return
@@ -453,8 +454,8 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency }) {
             onChange={e => setEditVal(field === 'cc_last4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditField(null) }}
             className="h-7 text-xs"
-            type={field === 'amount' ? 'number' : field === 'expense_date' ? 'date' : 'text'}
-            step={field === 'amount' ? '0.01' : undefined}
+            type={field === 'expense_date' ? 'date' : 'text'}
+            onBlur={field === 'amount' ? () => { const n = parseFloat(editVal); if (!isNaN(n)) setEditVal(n.toFixed(2)) } : undefined}
             maxLength={field === 'cc_last4' ? 4 : undefined}
             autoFocus
           />
@@ -478,6 +479,26 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency }) {
       <td className="px-4 py-3 text-sm">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
       <td className="px-4 py-3 text-sm">{renderCell('submitted_to_escrow', exp.submitted_to_escrow ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-stone-400">No</span>)}</td>
       <td className="px-4 py-3 text-sm text-stone-500">{renderCell('notes', exp.notes || '—')}</td>
+      <td className="px-3 py-3 text-center">
+        {exp.attachment_url ? (
+          <button onClick={() => onPreview(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
+            <Eye className="size-4" />
+          </button>
+        ) : (
+          <button onClick={() => fileRef.current?.click()} className="text-stone-300 hover:text-abc-indigo transition-colors" title="Add attachment">
+            <Paperclip className="size-3.5" />
+          </button>
+        )}
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={async e => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          try {
+            const doc = await uploadCaseDocument({ surrogateId: exp.journey_id, category: 'Expenses', file, uploadedBy: 'Admin' })
+            if (doc?.public_url) onUpdate(exp.id, 'attachment_url', doc.public_url)
+          } catch (err) { console.error('Upload failed:', err) }
+          e.target.value = ''
+        }} />
+      </td>
       <td className="px-4 py-3 text-center">
         {exp.reconciled ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
@@ -503,6 +524,7 @@ function JourneyExpensesTab({ journeyId }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState(null)
   const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
   const [tabExpenseFile, setTabExpenseFile] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -593,7 +615,7 @@ function JourneyExpensesTab({ journeyId }) {
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
+                <Input value={newExpense.amount} onChange={e => { const raw = e.target.value.replace(/[^\d.]/g, ''); setNewExpense(p => ({ ...p, amount: raw })) }} onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) setNewExpense(p => ({ ...p, amount: n.toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -633,6 +655,20 @@ function JourneyExpensesTab({ journeyId }) {
         </DialogContent>
       </Dialog>
 
+      {/* Attachment Preview Dialog */}
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Attachment Preview</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            previewUrl.match(/\.(jpg|jpeg|png|gif|webp)/i)
+              ? <img src={previewUrl} alt="Expense attachment" className="w-full rounded-lg" />
+              : <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg border" title="Attachment" />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-stone-400 py-8 justify-center">
           <Loader2 className="size-4 animate-spin" /> Loading expenses...
@@ -656,13 +692,14 @@ function JourneyExpensesTab({ journeyId }) {
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
+                    <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} />
                   ))}
                 </tbody>
               </table>
@@ -1078,7 +1115,7 @@ export default function JourneyDetailPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input type="number" step="0.01" value={newExpense.amount} onChange={e => setNewExpense(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" className="h-9" />
+                <Input value={newExpense.amount} onChange={e => { const raw = e.target.value.replace(/[^\d.]/g, ''); setNewExpense(p => ({ ...p, amount: raw })) }} onBlur={e => { const n = parseFloat(e.target.value); if (!isNaN(n)) setNewExpense(p => ({ ...p, amount: n.toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">

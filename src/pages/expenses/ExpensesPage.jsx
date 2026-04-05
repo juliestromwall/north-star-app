@@ -83,14 +83,14 @@ function EditableCell({ col, value, onSave }) {
     <div className="flex items-center gap-1">
       <Input
         value={val}
-        onChange={e => setVal(col.format === 'cc4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : e.target.value)}
+        onChange={e => setVal(col.format === 'cc4' ? e.target.value.replace(/\D/g, '').slice(0, 4) : col.format === 'currency' ? e.target.value.replace(/[^\d.]/g, '') : e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+        onBlur={col.format === 'currency' ? () => { const n = parseFloat(val); if (!isNaN(n)) setVal(n.toFixed(2)) } : undefined}
         className="h-7 text-xs"
-        type={col.format === 'currency' ? 'number' : col.format === 'date' ? 'date' : 'text'}
-        step={col.format === 'currency' ? '0.01' : undefined}
+        type={col.format === 'date' ? 'date' : 'text'}
         maxLength={col.format === 'cc4' ? 4 : undefined}
         autoFocus
-        placeholder={col.format === 'cc4' ? '1234' : col.label}
+        placeholder={col.format === 'cc4' ? '1234' : col.format === 'currency' ? '0.00' : col.label}
       />
       <button onClick={save} className="text-green-600 shrink-0"><Check className="size-3.5" /></button>
       <button onClick={() => setEditing(false)} className="text-stone-400 shrink-0"><X className="size-3.5" /></button>
