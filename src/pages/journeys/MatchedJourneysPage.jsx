@@ -20,6 +20,88 @@ const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
+export function JourneyTileCard({ j }) {
+  return (
+    <Link to={`/journeys/${j.id}`}>
+      <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
+        {/* IP */}
+        <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
+          <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
+          <div className="flex items-center gap-2">
+            <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
+              <p className="text-[10px] text-stone-400">{j.ip?.location || ''}</p>
+            </div>
+          </div>
+        </div>
+        {/* GC */}
+        <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
+          <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
+          <div className="flex items-center gap-2">
+            <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
+              <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
+            </div>
+          </div>
+        </div>
+        {/* Milestones */}
+        {(() => {
+          const milestones = getChecklistMilestones('gc', j.stage)
+          const total = milestones.length
+          const completed = 0
+          const pct = total > 0 ? (completed / total) * 100 : 0
+          return total > 0 ? (
+            <div className="px-4 py-1.5 border-t border-stone-100 space-y-1">
+              <div className="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider font-semibold">
+                <span>Milestones</span>
+                <span>{completed}/{total}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+              </div>
+              <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+                {milestones.map(ms => (
+                  <div key={ms.id} className="flex items-center gap-0.5">
+                    <Circle className="size-2.5 text-stone-300 shrink-0" />
+                    <span className="text-[9px] text-stone-400 whitespace-nowrap">{ms.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null
+        })()}
+        <CardContent className="px-4 py-2 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <StageBadge stage={j.stage} status={j.status} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-[10px]">
+            {j.journey_data?.pregnant === 'yes' && (
+              <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
+                🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
+              </span>
+            )}
+            {j.journey_data?.escrowBalance && (
+              <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
+                Escrow: {j.journey_data.escrowBalance}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-stone-400">
+            {j.assigned_to && (
+              <span className="flex items-center gap-0.5"><UserCog className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || '—'}</span>
+            )}
+            {j.journey_data?.journeyManager && (
+              <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 export default function MatchedJourneysPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
   const canSeeAll = isSuperAdmin || isMasterAdmin
@@ -160,85 +242,7 @@ export default function MatchedJourneysPage() {
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(j => (
-            <Link key={j.id} to={`/journeys/${j.id}`}>
-              <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
-                {/* IP */}
-                <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
-                  <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
-                  <div className="flex items-center gap-2">
-                    <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
-                      <p className="text-[10px] text-stone-400">{j.ip?.location || ''}</p>
-                    </div>
-                  </div>
-                </div>
-                {/* GC */}
-                <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
-                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
-                  <div className="flex items-center gap-2">
-                    <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
-                      <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
-                    </div>
-                  </div>
-                </div>
-                {/* Milestones */}
-                {(() => {
-                  const milestones = getChecklistMilestones('gc', j.stage)
-                  const total = milestones.length
-                  // For now milestones are always 0 completed on cards (tracking is per-case)
-                  const completed = 0
-                  const pct = total > 0 ? (completed / total) * 100 : 0
-                  return total > 0 ? (
-                    <div className="px-4 py-1.5 border-t border-stone-100 space-y-1">
-                      <div className="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider font-semibold">
-                        <span>Milestones</span>
-                        <span>{completed}/{total}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
-                      </div>
-                      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
-                        {milestones.map(ms => (
-                          <div key={ms.id} className="flex items-center gap-0.5">
-                            <Circle className="size-2.5 text-stone-300 shrink-0" />
-                            <span className="text-[9px] text-stone-400 whitespace-nowrap">{ms.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null
-                })()}
-                <CardContent className="px-4 py-2 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <StageBadge stage={j.stage} status={j.status} />
-                  </div>
-                  {/* Pregnancy + Escrow */}
-                  <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                    {j.journey_data?.pregnant === 'yes' && (
-                      <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
-                        🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
-                      </span>
-                    )}
-                    {j.journey_data?.escrowBalance && (
-                      <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
-                        Escrow: {j.journey_data.escrowBalance}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-stone-400">
-                    {j.assigned_to && (
-                      <span className="flex items-center gap-0.5"><Users className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || '—'}</span>
-                    )}
-                    {j.journey_data?.journeyManager && (
-                      <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <JourneyTileCard key={j.id} j={j} />
           ))}
         </div>
       ) : (

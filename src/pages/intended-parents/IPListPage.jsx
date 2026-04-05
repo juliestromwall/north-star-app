@@ -23,7 +23,7 @@ import { getRecordTrackingBatch } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
 import { mockUsers } from '@/data/mock/users'
 
-function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {
+export function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" strokeWidth="2" />
@@ -36,7 +36,7 @@ function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }
   )
 }
 
-function MilestoneProgress({ caseId, stageId, recordTracking }) {
+export function MilestoneProgress({ caseId, stageId, recordTracking }) {
   const milestones = getChecklistMilestones('ip', stageId || 'pre-qualification')
   const rt = recordTracking || {}
   let completed = 0
@@ -95,9 +95,69 @@ const STATUS_STYLES = {
   reviewed:        'bg-violet-100 text-violet-700 border-violet-200',
 }
 
-const TYPE_STYLES = {
+export const TYPE_STYLES = {
   'Couple':        'bg-sky-100 text-sky-800 border-sky-200',
   'Single parent': 'bg-amber-100 text-amber-800 border-amber-200',
+}
+
+export function IPTileCard({ ip, stageStatus, recordTracking }) {
+  const ss = stageStatus || { stage: 'pre-qualification', status: 'New' }
+  const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
+  const ADMIN_STAFF_LOCAL = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+  const assignedAdmin = ip.assignedTo ? ADMIN_STAFF_LOCAL.find(a => a.email === ip.assignedTo)?.name : null
+  return (
+    <Link to={`/intended-parents/${ip.id}`}>
+      <Card className="transition-shadow hover:shadow-md h-full relative">
+        {isNew && (
+          <div className="absolute top-3 right-3 z-10">
+            <span className="relative flex size-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+              <span className="relative inline-flex rounded-full size-3 bg-pink-500" />
+            </span>
+          </div>
+        )}
+        <CardContent className="space-y-4">
+          <div className="flex items-start gap-3">
+            <ProfileAvatar name={ip.names} size="lg" />
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading font-semibold truncate">{ip.names}</h3>
+              {ip.location && (
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                  <MapPin className="size-3.5" /><span>{ip.location}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <StageBadge stage={ss.stage} status={ss.status} />
+                <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>{ip.type}</Badge>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground text-xs">RE / Fertility Doctor</span>
+              <p className="font-medium flex items-center gap-1">
+                <Stethoscope className="size-3.5 text-muted-foreground" />
+                {ip.hasRE === true ? (ip.reDoctorName || 'Yes') : ip.hasRE === false ? 'Not yet' : '—'}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Frozen Embryos</span>
+              <p className="font-medium flex items-center gap-1">
+                <FertilizedEggIcon size={14} color="#78716c" className="shrink-0" />
+                {ip.hasFrozenEmbryos === true ? (ip.frozenEmbryoDetails || 'Yes') : ip.hasFrozenEmbryos === false ? 'No' : '—'}
+              </p>
+            </div>
+          </div>
+          <MilestoneProgress caseId={ip.id} stageId={ss.stage} recordTracking={recordTracking} />
+          {assignedAdmin && (
+            <div className="flex items-center gap-1.5 text-xs text-stone-400 pt-2 border-t">
+              <UserCog className="size-3.5" /> {assignedAdmin}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  )
 }
 
 function StatusBadge({ status }) {

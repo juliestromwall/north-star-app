@@ -75,20 +75,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fdf8f3' }}>
-      <header className="flex items-center justify-center px-6 py-8">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
-      </header>
-
-      <div className="flex-1 flex items-center justify-center px-4 pb-16">
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #f0f1fa 0%, #fdf8f3 30%, #fef9fb 60%, #f0f1fa 100%)' }}>
+      <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-heading font-bold text-stone-800">Welcome back</h1>
-            <p className="text-stone-400 text-sm mt-1">Sign in to your portal</p>
+          <div className="text-center mb-8">
+            <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
+            <h1 className="text-3xl font-heading font-bold" style={{ color: '#283693' }}>Welcome <span style={{ color: '#ed148c' }}>back</span></h1>
+            <p className="text-stone-400 text-sm mt-2">Sign in to your portal</p>
           </div>
 
           {forgotMode ? (
-            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 space-y-4">
               {resetSent ? (
                 <div className="text-center py-4 space-y-3">
                   <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
@@ -110,7 +107,7 @@ export default function LoginPage() {
                     <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="rounded-xl h-11" autoFocus />
                   </div>
                   {error && <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
-                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                  <Button type="submit" disabled={!email || loading} className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
                     {loading ? 'Sending...' : 'Send Reset Link'}
                   </Button>
                   <button type="button" onClick={() => { setForgotMode(false); setError(null) }} className="w-full text-xs text-stone-500 hover:text-stone-700 flex items-center justify-center gap-1 mt-2">
@@ -120,7 +117,7 @@ export default function LoginPage() {
               )}
             </div>
           ) : (
-          <form onSubmit={handleLogin} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+          <form onSubmit={handleLogin} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</Label>
               <Input
@@ -140,7 +137,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setForgotMode(true); setError(null) }}
-                  className="text-xs text-[#283693] hover:underline"
+                  className="text-xs text-[#ed148c] hover:underline"
                 >
                   Forgot password?
                 </button>
@@ -171,8 +168,8 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={!email || !password || loading}
-              className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
-              style={{ backgroundColor: '#283693', color: '#fff' }}
+              className="w-full h-11 rounded-xl text-sm font-semibold gap-2 text-white border-0"
+              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
             >
               {loading ? 'Signing in...' : 'Sign in'}
               {!loading && <ArrowRight className="w-4 h-4" />}

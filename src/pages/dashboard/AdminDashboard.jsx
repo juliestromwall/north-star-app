@@ -7,12 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { listEvents } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
+import { JourneyTileCard } from '@/pages/journeys/MatchedJourneysPage'
+import { SurrogateCard } from '@/pages/surrogates/SurrogateListPage'
+import { IPTileCard } from '@/pages/intended-parents/IPListPage'
 import { formatDate } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import {
@@ -31,6 +34,8 @@ export default function AdminDashboard() {
   const [journeys, setJourneys] = useState([])
   const [tasks, setTasks] = useState([])
   const [events, setEvents] = useState([])
+  const [profileMap, setProfileMap] = useState({})
+  const [ipStageStatuses, setIpStageStatuses] = useState({})
   const [quote, setQuote] = useState(null)
   const [loading, setLoading] = useState(true)
   const [caseView, setCaseView] = useState('grid')
@@ -53,6 +58,17 @@ export default function AdminDashboard() {
       setIps(allIps || [])
       setJourneys(js || [])
       setTasks(myTasks || [])
+      // Load profile data for surrogate cards
+      const emails = (gcs || []).map(s => s.email).filter(Boolean)
+      if (emails.length) {
+        fetchSurrogateProfilesByEmails(emails).then(map => {
+          const byId = {}
+          for (const s of (gcs || [])) {
+            if (s.email && map[s.email.trim().toLowerCase()]) byId[s.id] = map[s.email.trim().toLowerCase()]
+          }
+          setProfileMap(byId)
+        }).catch(() => {})
+      }
     }).finally(() => setLoading(false))
 
     // Fetch upcoming calendar events (may fail if Google not connected)
@@ -237,49 +253,18 @@ export default function AdminDashboard() {
         {myJourneys.length + mySurrogates.length + myIPs.length === 0 ? (
           <p className="text-sm text-stone-400 text-center py-8">No cases assigned to you yet.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Matched Journeys */}
             {myJourneys.length > 0 && (
               <div>
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <Route className="size-3" /> Matched Journeys ({myJourneys.length})
                 </p>
-                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-1'}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {myJourneys.map(j => {
                     const gc = surrogates.find(s => s.id === j.gc_case_id)
                     const ip = ips.find(i => i.id === j.ip_case_id)
-                    return caseView === 'grid' ? (
-                      <Link key={j.id} to={`/journeys/${j.id}`}>
-                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full p-0 gap-0 overflow-hidden">
-                          <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
-                            <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1">Intended Parent{ip?.type === 'Couple' ? 's' : ''}</p>
-                            <div className="flex items-center gap-2">
-                              <ProfileAvatar name={ip?.names || '?'} size="sm" />
-                              <div className="min-w-0"><p className="text-sm font-semibold truncate">{ip?.names || '—'}</p><p className="text-[10px] text-stone-400">{ip?.location || ''}</p></div>
-                            </div>
-                          </div>
-                          <div className="px-4 pt-2 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
-                            <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1">Surrogate</p>
-                            <div className="flex items-center gap-2">
-                              <ProfileAvatar name={gc?.name || '?'} size="sm" />
-                              <div className="min-w-0"><p className="text-sm font-semibold truncate">{gc?.name || '—'}</p><p className="text-[10px] text-stone-400">{gc?.location || ''}</p></div>
-                            </div>
-                          </div>
-                          <CardContent className="px-4 py-2">
-                            <StageBadge stage={j.stage} status={j.status} />
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ) : (
-                      <Link key={j.id} to={`/journeys/${j.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
-                        <ProfileAvatar name={ip?.names || '?'} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#283693]">{ip?.names || '—'} + {gc?.name || '—'}</p>
-                          <p className="text-[10px] text-stone-400">{ip?.location || gc?.location || ''}</p>
-                        </div>
-                        <StageBadge stage={j.stage} status={j.status} />
-                      </Link>
-                    )
+                    return <JourneyTileCard key={j.id} j={{ ...j, gc, ip }} />
                   })}
                 </div>
               </div>
@@ -291,35 +276,10 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <Heart className="size-3" /> Surrogates ({mySurrogates.length})
                 </p>
-                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3' : 'space-y-1'}>
-                  {mySurrogates.map(s => {
-                    const ss = getSurrogateStageStatus(s.id)
-                    return caseView === 'grid' ? (
-                      <Link key={s.id} to={`/surrogates/${s.id}`}>
-                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-2.5 mb-2">
-                              <ProfileAvatar name={s.name} size="sm" />
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-stone-800 truncate">{s.name}</p>
-                                <p className="text-[10px] text-stone-400">{s.location || ''} {s.age ? `· ${s.age}y` : ''}</p>
-                              </div>
-                            </div>
-                            <StageBadge stage={ss?.stage} status={ss?.status} />
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ) : (
-                      <Link key={s.id} to={`/surrogates/${s.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
-                        <ProfileAvatar name={s.name} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#283693]">{s.name}</p>
-                          <p className="text-[10px] text-stone-400">{s.location || ''}</p>
-                        </div>
-                        <StageBadge stage={ss?.stage} status={ss?.status} />
-                      </Link>
-                    )
-                  })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {mySurrogates.map(s => (
+                    <SurrogateCard key={s.id} surrogate={s} profileData={profileMap[s.id]} stageStatus={getSurrogateStageStatus(s.id)} onAssign={() => {}} />
+                  ))}
                 </div>
               </div>
             )}
@@ -330,33 +290,9 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <HeartHandshake className="size-3" /> Intended Parents ({myIPs.length})
                 </p>
-                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3' : 'space-y-1'}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {myIPs.map(ip => (
-                    caseView === 'grid' ? (
-                      <Link key={ip.id} to={`/intended-parents/${ip.id}`}>
-                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                          <CardContent className="p-4">
-                            <div className="flex items-center gap-2.5 mb-2">
-                              <ProfileAvatar name={ip.names} size="sm" />
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-stone-800 truncate">{ip.names}</p>
-                                <p className="text-[10px] text-stone-400">{ip.location || ''}</p>
-                              </div>
-                            </div>
-                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{ip.type || 'IP'}</span>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ) : (
-                      <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
-                        <ProfileAvatar name={ip.names} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#283693]">{ip.names}</p>
-                          <p className="text-[10px] text-stone-400">{ip.location || ''}</p>
-                        </div>
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{ip.type || 'IP'}</span>
-                      </Link>
-                    )
+                    <IPTileCard key={ip.id} ip={ip} stageStatus={getSurrogateStageStatus(ip.id)} />
                   ))}
                 </div>
               </div>

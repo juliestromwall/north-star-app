@@ -187,7 +187,7 @@ function BeBadge({ className = '' }) {
 }
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
-function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl }) {
+export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl }) {
   const navigate = useNavigate()
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
