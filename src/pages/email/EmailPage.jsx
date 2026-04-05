@@ -273,13 +273,13 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         cc_last4: aiData.cc_last4 || '',
         submitted_to_escrow: false,
         notes: `${aiData.description || ''}${aiData.notes ? '\n' + aiData.notes : ''}\n\n📧 From email: ${email?.subject || ''}`,
-        gmail_message_id: email?.id || null,
-        created_by: userName,
       })
-    } catch (err) { console.warn('Expense save failed:', err) }
-    setSaved(true)
-    setAiStep(null)
-    setTimeout(() => onOpenChange(false), 1200)
+      setSaved(true)
+      setAiStep(null)
+      setTimeout(() => onOpenChange(false), 1200)
+    } catch (err) {
+      alert('Failed to save expense: ' + (err.message || err))
+    }
     setSaving(false)
   }
 
@@ -298,10 +298,12 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         assigned_to: aiData.assigned_to || null,
         created_by: userName,
       })
-    } catch (err) { console.warn('Task save failed:', err) }
-    setSaved(true)
-    setAiStep(null)
-    setTimeout(() => onOpenChange(false), 1200)
+      setSaved(true)
+      setAiStep(null)
+      setTimeout(() => onOpenChange(false), 1200)
+    } catch (err) {
+      alert('Failed to save task: ' + (err.message || err))
+    }
     setSaving(false)
   }
 

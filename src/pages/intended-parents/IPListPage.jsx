@@ -65,6 +65,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 

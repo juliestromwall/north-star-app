@@ -181,11 +181,10 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
     .select('*')
     .eq('journey_id', journeyId)
 
-  // 3. Get journey documents
-  const { data: journeyDocs } = await supabase
-    .from('case_documents')
-    .select('*')
-    .eq('surrogate_id', journeyId)
+  // 3. Get documents from both GC and IP cases
+  const { data: gcDocs } = await supabase.from('case_documents').select('*').eq('surrogate_id', gcCaseId)
+  const { data: ipDocs } = await supabase.from('case_documents').select('*').eq('surrogate_id', ipCaseId)
+  const allJourneyDocs = [...(gcDocs || []), ...(ipDocs || [])]
 
   // 4. Store break record in both GC and IP intake_submissions answers
   for (const caseId of [gcCaseId, ipCaseId]) {
@@ -220,9 +219,27 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
       await supabase.from('intake_submissions').update({ answers: { ...row.answers, _matchHistory: history } }).eq('id', caseId)
     }
 
-    // Copy journey documents to this case as "Previous Match" category
-    if (journeyDocs?.length > 0) {
-      for (const doc of journeyDocs) {
+    // Copy documents from the OTHER case into this case as "previous-match"
+    const otherCaseId = caseId === gcCaseId ? ipCaseId : gcCaseId
+    const docsFromOther = allJourneyDocs.filter(d => d.surrogate_id === otherCaseId)
+    for (const doc of docsFromOther) {
+      await supabase.from('case_documents').insert({
+        surrogate_id: caseId,
+        category: 'previous-match',
+        file_name: doc.file_name,
+        file_type: doc.file_type,
+        file_size: doc.file_size,
+        storage_path: doc.storage_path,
+        public_url: doc.public_url,
+        uploaded_by: `Previous Match (${brokenBy})`,
+      }).catch(() => {})
+    }
+
+    // Re-tag this case's own documents that were uploaded during the journey as "previous-match"
+    const ownDocs = allJourneyDocs.filter(d => d.surrogate_id === caseId)
+    for (const doc of ownDocs) {
+      // Don't re-tag docs that existed before the match (keep originals)
+      if (journey?.created_at && doc.created_at >= journey.created_at) {
         await supabase.from('case_documents').insert({
           surrogate_id: caseId,
           category: 'previous-match',

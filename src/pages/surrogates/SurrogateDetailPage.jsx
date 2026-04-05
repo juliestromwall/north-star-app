@@ -1081,6 +1081,7 @@ const DOC_CATEGORIES = [
   { id: 'expenses', label: 'Expenses', icon: FileText, color: '#f97316' },
   { id: 'photos', label: 'Photos', icon: FileImage, color: '#ec4899' },
   { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
+  { id: 'previous-match', label: 'Previous Match', icon: File, color: '#9ca3af' },
   { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
 ]
 
