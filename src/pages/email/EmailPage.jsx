@@ -8,6 +8,7 @@ import {
 } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { mockUsers } from '@/data/mock/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -238,7 +239,8 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
           })
           const result = await res.json()
           if (result.success && result.data) {
-            setAiData({ ...result.data, caseId: c.id, caseType: c.type, caseName: c.name })
+            const currentAdmin = mockUsers.find(u => u.name === userName)
+            setAiData({ ...result.data, caseId: c.id, caseType: c.type, caseName: c.name, assigned_to: currentAdmin?.email || '' })
             setAiStep(selectedTag === 'expense' ? 'confirm_expense' : 'confirm_task')
           } else {
             setSaved(true)
@@ -264,14 +266,14 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     try {
       const { insertExpense } = await import('@/lib/db')
       await insertExpense({
-        case_id: aiData.caseId,
-        case_type: aiData.caseType,
-        description: aiData.description || '',
-        amount: aiData.amount || 0,
-        paid_to: aiData.paid_to || '',
+        journey_id: aiData.caseId,
         expense_date: aiData.expense_date || new Date().toISOString().split('T')[0],
-        category: aiData.category || 'misc',
-        notes: aiData.notes || '',
+        amount: parseFloat(aiData.amount) || 0,
+        paid_to: aiData.paid_to || '',
+        cc_last4: aiData.cc_last4 || '',
+        submitted_to_escrow: false,
+        notes: `${aiData.description || ''}${aiData.notes ? '\n' + aiData.notes : ''}\n\n📧 From email: ${email?.subject || ''}`,
+        gmail_message_id: email?.id || null,
         created_by: userName,
       })
     } catch (err) { console.warn('Expense save failed:', err) }
@@ -290,10 +292,10 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         case_id: aiData.caseId,
         case_type: aiData.caseType,
         title: aiData.title || 'Follow up',
-        description: aiData.description || '',
+        description: `${aiData.description || ''}\n\n📧 From email: ${email?.subject || ''}`.trim(),
         priority: aiData.priority || 'normal',
         due_date: aiData.due_date || null,
-        assigned_to: null,
+        assigned_to: aiData.assigned_to || null,
         created_by: userName,
       })
     } catch (err) { console.warn('Task save failed:', err) }
@@ -329,14 +331,15 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         ) : aiStep === 'confirm_expense' && aiData ? (
           <div className="space-y-4">
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">AI-Generated Expense</p>
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">AI-Generated Expense — {aiData.caseName}</p>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-stone-500">Description</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-60" value={aiData.description || ''} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>
-                <div className="flex justify-between"><span className="text-stone-500">Amount</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-32" value={aiData.amount || ''} onChange={e => setAiData(d => ({ ...d, amount: e.target.value }))} /></div>
-                <div className="flex justify-between"><span className="text-stone-500">Paid To</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-48" value={aiData.paid_to || ''} onChange={e => setAiData(d => ({ ...d, paid_to: e.target.value }))} /></div>
-                <div className="flex justify-between"><span className="text-stone-500">Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none" value={aiData.expense_date || ''} onChange={e => setAiData(d => ({ ...d, expense_date: e.target.value }))} /></div>
-                <div className="flex justify-between"><span className="text-stone-500">Category</span><span className="font-medium">{aiData.category || 'misc'}</span></div>
-                {aiData.notes && <div className="flex justify-between"><span className="text-stone-500">Notes</span><span className="font-medium text-right">{aiData.notes}</span></div>}
+                <div className="flex justify-between items-center"><span className="text-stone-500">Description</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-60" value={aiData.description || ''} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Amount ($)</span><input type="number" step="0.01" className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-32" value={aiData.amount || ''} onChange={e => setAiData(d => ({ ...d, amount: e.target.value }))} /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Paid To</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-48" value={aiData.paid_to || ''} onChange={e => setAiData(d => ({ ...d, paid_to: e.target.value }))} /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none" value={aiData.expense_date || ''} onChange={e => setAiData(d => ({ ...d, expense_date: e.target.value }))} /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">CC Last 4</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-20" maxLength={4} value={aiData.cc_last4 || ''} onChange={e => setAiData(d => ({ ...d, cc_last4: e.target.value }))} placeholder="0000" /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Notes</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-60" value={aiData.notes || ''} onChange={e => setAiData(d => ({ ...d, notes: e.target.value }))} /></div>
+                <div className="flex items-center gap-1.5 text-xs text-stone-400 mt-1"><Mail className="size-3" /> Linked to: {email?.subject}</div>
               </div>
             </div>
             <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to save the expense.</p>
@@ -351,16 +354,23 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         ) : aiStep === 'confirm_task' && aiData ? (
           <div className="space-y-4">
             <div className="rounded-lg bg-orange-50 border border-orange-200 px-4 py-3">
-              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wider mb-2">AI-Generated Task</p>
+              <p className="text-xs font-semibold text-orange-700 uppercase tracking-wider mb-2">AI-Generated Task — {aiData.caseName}</p>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-stone-500">Task</span><input className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none w-60" value={aiData.title || ''} onChange={e => setAiData(d => ({ ...d, title: e.target.value }))} /></div>
-                <div className="flex justify-between"><span className="text-stone-500">Priority</span>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Task</span><input className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none w-60" value={aiData.title || ''} onChange={e => setAiData(d => ({ ...d, title: e.target.value }))} /></div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Assign To</span>
+                  <select value={aiData.assigned_to || ''} onChange={e => setAiData(d => ({ ...d, assigned_to: e.target.value }))} className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none">
+                    <option value="">Unassigned</option>
+                    {mockUsers.filter(u => ['super_admin','master_admin','admin'].includes(u.role)).map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex justify-between items-center"><span className="text-stone-500">Priority</span>
                   <select value={aiData.priority || 'normal'} onChange={e => setAiData(d => ({ ...d, priority: e.target.value }))} className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none">
                     <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>
                   </select>
                 </div>
-                <div className="flex justify-between"><span className="text-stone-500">Due Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none" value={aiData.due_date || ''} onChange={e => setAiData(d => ({ ...d, due_date: e.target.value }))} /></div>
-                {aiData.description && <div><span className="text-stone-500">Notes</span><textarea className="w-full mt-1 text-sm bg-transparent border border-dashed border-orange-300 rounded p-2 outline-none" rows={2} value={aiData.description} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>}
+                <div className="flex justify-between items-center"><span className="text-stone-500">Due Date</span><input type="date" className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none" value={aiData.due_date || ''} onChange={e => setAiData(d => ({ ...d, due_date: e.target.value }))} /></div>
+                <div><span className="text-stone-500">Notes</span><textarea className="w-full mt-1 text-sm bg-transparent border border-dashed border-orange-300 rounded p-2 outline-none" rows={2} value={aiData.description || ''} onChange={e => setAiData(d => ({ ...d, description: e.target.value }))} /></div>
+                <div className="flex items-center gap-1.5 text-xs text-stone-400 mt-1"><Mail className="size-3" /> From email: {email?.subject}</div>
               </div>
             </div>
             <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to create the task.</p>
