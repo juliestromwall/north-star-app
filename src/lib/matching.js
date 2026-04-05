@@ -220,13 +220,14 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
     }
 
     // Copy documents from the OTHER case into this case as "previous-match"
+    // Copy other party's docs into this case — keep original folder, tag as Previous Match
     const otherCaseId = caseId === gcCaseId ? ipCaseId : gcCaseId
     const docsFromOther = allJourneyDocs.filter(d => d.surrogate_id === otherCaseId)
     for (const doc of docsFromOther) {
       try {
         await supabase.from('case_documents').insert({
           surrogate_id: caseId,
-          category: 'previous-match',
+          category: doc.category,
           file_name: doc.file_name,
           file_type: doc.file_type,
           file_size: doc.file_size,
@@ -235,25 +236,6 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
           uploaded_by: `Previous Match (${brokenBy})`,
         })
       } catch {}
-    }
-
-    // Re-tag this case's own documents that were uploaded during the journey as "previous-match"
-    const ownDocs = allJourneyDocs.filter(d => d.surrogate_id === caseId)
-    for (const doc of ownDocs) {
-      if (journey?.created_at && doc.created_at >= journey.created_at) {
-        try {
-          await supabase.from('case_documents').insert({
-            surrogate_id: caseId,
-            category: 'previous-match',
-            file_name: doc.file_name,
-            file_type: doc.file_type,
-            file_size: doc.file_size,
-            storage_path: doc.storage_path,
-            public_url: doc.public_url,
-            uploaded_by: `Previous Match (${brokenBy})`,
-          })
-        } catch {}
-      }
     }
   }
 
