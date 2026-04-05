@@ -141,10 +141,29 @@ function NotConnectedState({ userId }) {
 
 // ── Log to Case Dialog ──────────────────────────────────
 
+const EMAIL_TAGS = [
+  { value: 'escrow', label: 'Escrow', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'expense', label: 'Expense', color: 'bg-amber-100 text-amber-700' },
+  { value: 'medical_records', label: 'Medical Records', color: 'bg-purple-100 text-purple-700' },
+  { value: 'monitoring', label: 'Monitoring', color: 'bg-blue-100 text-blue-700' },
+  { value: 'ob', label: 'OB', color: 'bg-pink-100 text-pink-700' },
+  { value: 'hospital', label: 'Hospital', color: 'bg-red-100 text-red-700' },
+  { value: 'legal', label: 'Legal', color: 'bg-indigo-100 text-indigo-700' },
+  { value: 'matching', label: 'Matching', color: 'bg-violet-100 text-violet-700' },
+  { value: 'task', label: 'Task', color: 'bg-orange-100 text-orange-700' },
+  { value: 'insurance', label: 'Insurance', color: 'bg-teal-100 text-teal-700' },
+  { value: 'transfer', label: 'Transfer', color: 'bg-rose-100 text-rose-700' },
+  { value: 'psych', label: 'Psych', color: 'bg-cyan-100 text-cyan-700' },
+  { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
+]
+
+export { EMAIL_TAGS }
+
 function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCase, setSelectedCase] = useState('')
+  const [selectedTag, setSelectedTag] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [caseSearch, setCaseSearch] = useState('')
@@ -153,6 +172,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     if (!open) return
     setSaved(false)
     setSelectedCase('')
+    setSelectedTag('')
     setCaseSearch('')
     Promise.all([
       fetchSurrogatesFromIntake(),
@@ -180,7 +200,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     if (!c) return
     setSaving(true)
     try {
-      await supabase.from('case_emails').insert({
+      const { error } = await supabase.from('case_emails').insert({
         gmail_message_id: email.id,
         gmail_thread_id: email.threadId,
         case_id: c.id,
@@ -192,7 +212,9 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         snippet: email.snippet,
         logged_by: userId,
         logged_by_name: userName,
+        tag: selectedTag || null,
       })
+      if (error) throw error
       setSaved(true)
       setTimeout(() => onOpenChange(false), 1200)
     } catch (err) {
@@ -245,6 +267,21 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
                         </div>
                       )
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tag selector */}
+              {selectedCase && (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-stone-400 font-medium uppercase tracking-wider">Tag (optional)</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {EMAIL_TAGS.map(t => (
+                      <button key={t.value} onClick={() => setSelectedTag(selectedTag === t.value ? '' : t.value)}
+                        className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-all ${selectedTag === t.value ? t.color + ' border-transparent' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
+                        {t.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

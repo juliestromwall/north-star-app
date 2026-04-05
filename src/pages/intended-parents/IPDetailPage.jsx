@@ -12,6 +12,7 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
+import { DocumentsTab } from '@/pages/surrogates/SurrogateDetailPage'
 import StageBadge from '@/components/shared/StageBadge'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
@@ -456,7 +457,7 @@ export default function IPDetailPage() {
               <Printer className="size-4" /> Send Fax
             </Button>
           </div>
-          <EmptyState title="Documents" description="Document management for intended parents coming soon." />
+          <DocumentsTab surrogateId={ip?.id} />
         </TabsContent>
 
         {/* Texts Tab */}

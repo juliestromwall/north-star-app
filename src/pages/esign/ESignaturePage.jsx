@@ -25,7 +25,7 @@ import { fetchMatchedJourneys } from '@/lib/matching'
 import { supabase } from '@/lib/supabase'
 import { getGoogleStatus, listTemplateDocs, getOrCreateTemplatesFolder } from '@/lib/google'
 
-const TEMPLATE_CATEGORIES = ['General', 'Agency Agreement', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
+const TEMPLATE_CATEGORIES = ['General', 'Agency Documents', 'Medical Records Release', 'HIPAA', 'Background Check Authorization', 'Credit Card Authorization', 'Legal', 'Medical', 'Insurance', 'Other']
 
 const STATUS_CONFIG = {
   draft: { label: 'Draft', color: 'bg-stone-100 text-stone-600', icon: FileText },

@@ -23,7 +23,7 @@ import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
-import { ProfileTab as GCProfileTab } from '@/pages/surrogates/SurrogateDetailPage'
+import { ProfileTab as GCProfileTab, DocumentsTab } from '@/pages/surrogates/SurrogateDetailPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { useRole } from '@/context/RoleContext'
@@ -1577,7 +1577,7 @@ export default function JourneyDetailPage() {
               <Printer className="size-4" /> Send Fax
             </Button>
           </div>
-          <EmptyState title="Journey Documents" description="Merged GC and IP documents with labels." />
+          <DocumentsTab surrogateId={journey.gc_case_id} />
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />

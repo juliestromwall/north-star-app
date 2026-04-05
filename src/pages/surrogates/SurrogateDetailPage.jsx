@@ -1070,13 +1070,16 @@ export default function SurrogateDetailPage() {
 // ── Documents Tab ──────────────────────────────────────────
 const DOC_CATEGORIES = [
   { id: 'photo-id', label: 'Photo IDs', icon: FileImage, color: '#ed148c' },
-  { id: 'agency-agreement', label: 'Agency Agreement', icon: FileText, color: '#283693' },
+  { id: 'agency-documents', label: 'Agency Documents', icon: FileText, color: '#283693' },
   { id: 'clinic', label: 'Clinic', icon: FileText, color: '#10b981' },
   { id: 'medical-records', label: 'Medical Records', icon: FileText, color: '#8b5cf6' },
   { id: 'insurance', label: 'Insurance', icon: FileText, color: '#f59e0b' },
   { id: 'legal', label: 'Legal Documents', icon: FileText, color: '#723bb4' },
   { id: 'background-check', label: 'Background Check', icon: FileText, color: '#c4219a' },
   { id: 'psych-evaluation', label: 'Psych Evaluation', icon: FileText, color: '#4d3da4' },
+  { id: 'escrow', label: 'Escrow', icon: FileText, color: '#0ea5e9' },
+  { id: 'expenses', label: 'Expenses', icon: FileText, color: '#f97316' },
+  { id: 'photos', label: 'Photos', icon: FileImage, color: '#ec4899' },
   { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
   { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
 ]
@@ -1152,7 +1155,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
   )
 }
 
-function DocumentsTab({ surrogateId }) {
+export function DocumentsTab({ surrogateId }) {
   const { currentUser } = useRole()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)

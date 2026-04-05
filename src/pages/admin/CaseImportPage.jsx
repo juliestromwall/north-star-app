@@ -22,8 +22,8 @@ const US_STATES = [
 ]
 
 const DOCUMENT_CATEGORIES = [
-  'Photo IDs', 'Agency Agreement', 'Legal', 'Medical Records', 'Psychological',
-  'Background Check', 'Home Study', 'Insurance', 'Clinic', 'Other',
+  'Photo IDs', 'Agency Documents', 'Legal', 'Medical Records', 'Psychological',
+  'Background Check', 'Home Study', 'Insurance', 'Clinic', 'Escrow', 'Expenses', 'Photos', 'Other',
 ]
 
 function FileDropZone({ label, icon: Icon, accept, multiple, files, onFiles, description }) {

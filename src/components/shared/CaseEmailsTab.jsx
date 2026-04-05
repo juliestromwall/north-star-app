@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -29,6 +30,22 @@ function fileSizeLabel(bytes) {
   return `${(bytes / 1048576).toFixed(1)} MB`
 }
 
+const EMAIL_TAGS = [
+  { value: 'escrow', label: 'Escrow', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'expense', label: 'Expense', color: 'bg-amber-100 text-amber-700' },
+  { value: 'medical_records', label: 'Medical Records', color: 'bg-purple-100 text-purple-700' },
+  { value: 'monitoring', label: 'Monitoring', color: 'bg-blue-100 text-blue-700' },
+  { value: 'ob', label: 'OB', color: 'bg-pink-100 text-pink-700' },
+  { value: 'hospital', label: 'Hospital', color: 'bg-red-100 text-red-700' },
+  { value: 'legal', label: 'Legal', color: 'bg-indigo-100 text-indigo-700' },
+  { value: 'matching', label: 'Matching', color: 'bg-violet-100 text-violet-700' },
+  { value: 'task', label: 'Task', color: 'bg-orange-100 text-orange-700' },
+  { value: 'insurance', label: 'Insurance', color: 'bg-teal-100 text-teal-700' },
+  { value: 'transfer', label: 'Transfer', color: 'bg-rose-100 text-rose-700' },
+  { value: 'psych', label: 'Psych', color: 'bg-cyan-100 text-cyan-700' },
+  { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
+]
+
 export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
   const { currentUser } = useRole()
   const userId = currentUser?.id
@@ -39,6 +56,8 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
   const [loadingFull, setLoadingFull] = useState(false)
   const [fullEmail, setFullEmail] = useState(null)
   const [downloading, setDownloading] = useState(null)
+  const [tagFilter, setTagFilter] = useState('')
+  const [emailSearch, setEmailSearch] = useState('')
 
   useEffect(() => {
     if (!caseId) return
@@ -124,18 +143,56 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
     )
   }
 
+  // Filter emails
+  const filteredEmails = emails.filter(e => {
+    if (tagFilter && e.tag !== tagFilter) return false
+    if (emailSearch) {
+      const q = emailSearch.toLowerCase()
+      if (!(e.subject || '').toLowerCase().includes(q) && !(e.from_address || '').toLowerCase().includes(q) && !(e.snippet || '').toLowerCase().includes(q)) return false
+    }
+    return true
+  })
+
+  // Tags that exist on logged emails
+  const usedTags = [...new Set(emails.map(e => e.tag).filter(Boolean))]
+
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">{emails.length} email{emails.length !== 1 ? 's' : ''} logged</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{filteredEmails.length} of {emails.length} email{emails.length !== 1 ? 's' : ''}</p>
+        <div className="relative w-48">
+          <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Search emails..." className="h-7 text-xs pl-8" />
+        </div>
+      </div>
+      {usedTags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          <button onClick={() => setTagFilter('')} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${!tagFilter ? 'bg-[#283693] text-white border-transparent' : 'bg-white text-stone-500 border-stone-200'}`}>All</button>
+          {usedTags.map(t => {
+            const tagObj = EMAIL_TAGS.find(et => et.value === t)
+            return (
+              <button key={t} onClick={() => setTagFilter(tagFilter === t ? '' : t)}
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${tagFilter === t ? (tagObj?.color || 'bg-stone-200 text-stone-700') + ' border-transparent' : 'bg-white text-stone-500 border-stone-200'}`}>
+                {tagObj?.label || t}
+              </button>
+            )
+          })}
+        </div>
+      )}
       <Card className="rounded-2xl">
         <CardContent className="p-0">
           <div className="divide-y">
-            {emails.map(email => (
+            {filteredEmails.map(email => {
+              const tagObj = email.tag ? EMAIL_TAGS.find(t => t.value === email.tag) : null
+              return (
               <div key={email.id} className="px-4 py-3 flex items-start gap-3 group">
                 <Mail className="size-4 text-muted-foreground mt-1 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium truncate">{email.subject || '(no subject)'}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-medium truncate">{email.subject || '(no subject)'}</span>
+                      {tagObj && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tagObj.color}`}>{tagObj.label}</span>}
+                    </div>
                     <span className="text-xs text-muted-foreground shrink-0">{formatDate(email.date)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
@@ -167,7 +224,7 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </CardContent>
       </Card>

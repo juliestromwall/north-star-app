@@ -287,6 +287,7 @@ function ComposeWindow({ draft, index }) {
             snippet: (editor?.getText() || '').slice(0, 200),
             logged_by: userId,
             logged_by_name: currentUser?.name || '',
+            tag: draft.emailTag || null,
           })
           if (error) console.error('Email log failed:', error)
         } catch (err) { console.error('Email log failed:', err) }
@@ -517,6 +518,30 @@ function ComposeWindow({ draft, index }) {
                 )}
               </SelectContent>
             </Select>
+
+            {draft.caseId && draft.caseId !== '_none' && (
+              <Select value={draft.emailTag || '_none'} onValueChange={v => updateDraft(draft.id, { emailTag: v === '_none' ? '' : v })}>
+                <SelectTrigger className="h-7 text-xs w-[100px] border-dashed">
+                  <SelectValue placeholder="Tag..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">No tag</SelectItem>
+                  <SelectItem value="escrow">Escrow</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="medical_records">Medical Records</SelectItem>
+                  <SelectItem value="monitoring">Monitoring</SelectItem>
+                  <SelectItem value="ob">OB</SelectItem>
+                  <SelectItem value="hospital">Hospital</SelectItem>
+                  <SelectItem value="legal">Legal</SelectItem>
+                  <SelectItem value="matching">Matching</SelectItem>
+                  <SelectItem value="task">Task</SelectItem>
+                  <SelectItem value="insurance">Insurance</SelectItem>
+                  <SelectItem value="transfer">Transfer</SelectItem>
+                  <SelectItem value="psych">Psych</SelectItem>
+                  <SelectItem value="general">General</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             <Button variant="ghost" size="icon-sm" onClick={handleDiscard} className="size-7 text-muted-foreground hover:text-destructive" title="Discard">
               <Trash2 className="size-3.5" />
