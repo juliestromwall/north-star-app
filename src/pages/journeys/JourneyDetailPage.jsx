@@ -497,8 +497,13 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview }) {
           if (!file) return
           try {
             const doc = await uploadCaseDocument({ surrogateId: exp.journey_id, category: 'Expenses', file, uploadedBy: 'Admin' })
-            if (doc?.public_url) onUpdate(exp.id, 'attachment_url', doc.public_url)
-          } catch (err) { console.error('Upload failed:', err) }
+            if (doc?.public_url) {
+              await onUpdate(exp.id, 'attachment_url', doc.public_url)
+            }
+          } catch (err) {
+            console.error('Upload failed:', err)
+            alert('Failed to save attachment: ' + (err.message || 'Unknown error'))
+          }
           e.target.value = ''
         }} />
       </td>
@@ -572,12 +577,8 @@ function JourneyExpensesTab({ journeyId }) {
   }
 
   async function handleUpdate(id, field, value) {
-    try {
-      const updated = await updateExpense(id, { [field]: value })
-      if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
-    } catch (err) {
-      console.error('Failed to update expense:', err)
-    }
+    const updated = await updateExpense(id, { [field]: value })
+    if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
   }
 
   async function handleDelete(id) {
