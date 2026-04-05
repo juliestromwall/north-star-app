@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Lock, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,29 +33,25 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#faf8f5' }}>
-      <header className="flex items-center justify-center px-6 py-6 bg-white border-b border-stone-100">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
-      </header>
-
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #f0f1fa 0%, #fdf8f3 30%, #fef9fb 60%, #f0f1fa 100%)' }}>
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#283693]/10 mx-auto mb-4">
-              <Lock className="w-6 h-6 text-[#283693]" />
-            </div>
-            <h1 className="text-2xl font-bold text-stone-800">Set New Password</h1>
-            <p className="text-stone-500 text-sm mt-1">Choose a strong password for your account</p>
+            <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
+            <h1 className="text-3xl font-heading font-bold" style={{ color: '#283693' }}>
+              Set your <span style={{ color: '#ed148c' }}>password</span>
+            </h1>
+            <p className="text-stone-400 text-sm mt-2">Choose a strong password for your account</p>
           </div>
 
           {success ? (
-            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 text-center space-y-3">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 text-center space-y-3">
               <CheckCircle2 className="size-12 text-emerald-500 mx-auto" />
               <h2 className="text-lg font-semibold text-stone-800">Password Updated</h2>
               <p className="text-sm text-stone-500">Redirecting to your dashboard...</p>
             </div>
           ) : (
-            <form onSubmit={handleReset} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
+            <form onSubmit={handleReset} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">New Password</Label>
                 <div className="relative">
@@ -91,8 +87,8 @@ export default function ResetPasswordPage() {
               <Button
                 type="submit"
                 disabled={!password || !confirmPw || loading}
-                className="w-full h-11 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#283693', color: '#fff' }}
+                className="w-full h-11 rounded-xl text-sm font-semibold text-white border-0"
+                style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
               >
                 {loading ? 'Updating...' : 'Update Password'}
               </Button>
@@ -101,8 +97,8 @@ export default function ResetPasswordPage() {
         </div>
       </div>
 
-      <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+      <footer className="py-8 text-center text-xs text-stone-300">
+        © {new Date().getFullYear()} Abundant Beginnings Co.
       </footer>
     </div>
   )

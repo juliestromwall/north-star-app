@@ -327,10 +327,11 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                     const gc = surrogates.find(s => s.id === j.gc_case_id)
                     return (
                       <th key={j.id} className="text-left px-3 py-2.5 min-w-[150px]">
-                        <Link to={`/journeys/${j.id}`} className="text-[#283693] hover:underline font-semibold text-xs">
-                          {ip?.names || 'IP'} + {gc?.name || 'GC'}
+                        <Link to={`/journeys/${j.id}`} className="hover:underline">
+                          <p className="text-xs font-semibold text-[#283693]">{ip?.names || 'IP'}</p>
+                          <p className="text-[9px] text-stone-400 font-normal">+ {gc?.name || 'GC'}</p>
                         </Link>
-                        <p className="text-[9px] text-stone-400 font-normal">{j.status || ''}</p>
+                        <p className="text-[9px] text-stone-400 font-normal mt-0.5">{j.status || ''}</p>
                       </th>
                     )
                   })}

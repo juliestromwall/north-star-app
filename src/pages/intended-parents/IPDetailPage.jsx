@@ -217,6 +217,11 @@ export default function IPDetailPage() {
                   try {
                     await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' })
                     setInviteResult('sent')
+                    try {
+                      const { updateIntakeSubmission } = await import('@/lib/db')
+                      await updateIntakeSubmission(ip.id, { answers: { ...ip.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                      setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
+                    } catch {}
                   } catch (err) {
                     setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
                   }
@@ -226,6 +231,9 @@ export default function IPDetailPage() {
                 {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
                 {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
               </Button>
+              {ip.answers?._lastInvitedAt && (
+                <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              )}
             </div>
           </div>
 

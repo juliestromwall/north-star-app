@@ -509,6 +509,13 @@ export default function SurrogateDetailPage() {
                   try {
                     await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' })
                     setInviteResult('sent')
+                    // Log invite date
+                    try {
+                      const { updateIntakeSubmission } = await import('@/lib/db')
+                      const fresh = await import('@/lib/db').then(m => m.fetchIntakeByEmail(surrogate.email))
+                      if (fresh) await updateIntakeSubmission(surrogate.id, { answers: { ...fresh.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                      setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
+                    } catch {}
                   } catch (err) {
                     setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
                   }
@@ -518,6 +525,9 @@ export default function SurrogateDetailPage() {
                 {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
                 {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
               </Button>
+              {quizAnswers?._lastInvitedAt && (
+                <span className="text-[10px] text-stone-400">Invited {new Date(quizAnswers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              )}
             </div>
           </div>
 
