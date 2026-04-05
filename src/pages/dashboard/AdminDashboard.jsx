@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
+  ChevronDown, ChevronRight, MapPin,
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -34,8 +35,11 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [caseView, setCaseView] = useState('grid')
   const [showCalc, setShowCalc] = useState(false)
+  const [appointmentsOpen, setAppointmentsOpen] = useState(true)
+  const [tasksOpen, setTasksOpen] = useState(true)
+  const stickyKey = `abc_sticky_notes_${currentUser?.email || 'default'}`
   const [stickyNotes, setStickyNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('abc_sticky_notes') || '[]') } catch { return [] }
+    try { return JSON.parse(localStorage.getItem(stickyKey) || '[]') } catch { return [] }
   })
 
   useEffect(() => {
@@ -77,40 +81,24 @@ export default function AdminDashboard() {
 
   // Save sticky notes to localStorage
   useEffect(() => {
-    localStorage.setItem('abc_sticky_notes', JSON.stringify(stickyNotes))
+    localStorage.setItem(stickyKey, JSON.stringify(stickyNotes))
   }, [stickyNotes])
 
-  // Build "My Cases" — all surrogates, IPs, and journeys assigned to me
-  const myCases = []
+  // Build "My Cases" — only cases assigned to the logged-in admin
+  const myEmail = currentUser?.email
   const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
   const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
 
-  for (const s of surrogates) {
-    if (s.assignedTo === currentUser?.email || !s.assignedTo) {
-      const matched = matchedGcIds.has(s.id)
-      const journey = matched ? journeys.find(j => j.gc_case_id === s.id) : null
-      myCases.push({
-        id: matched ? journey.id : s.id,
-        name: s.name,
-        type: matched ? 'journey' : 'surrogate',
-        link: matched ? `/journeys/${journey.id}` : `/surrogates/${s.id}`,
-        stage: matched ? journey.stage : getSurrogateStageStatus(s.id)?.stage,
-        status: matched ? journey.status : getSurrogateStageStatus(s.id)?.status,
-        location: s.location,
-        matchedWith: matched ? ips.find(i => i.id === journey.ip_case_id)?.names : null,
-      })
-    }
-  }
-  for (const ip of ips) {
-    if (matchedIpIds.has(ip.id)) continue // already shown as journey via GC
-    myCases.push({
-      id: ip.id,
-      name: ip.names,
-      type: 'ip',
-      link: `/intended-parents/${ip.id}`,
-      location: ip.location,
-    })
-  }
+  // My journeys (assigned to me)
+  const myJourneys = journeys.filter(j => j.assigned_to === myEmail)
+  const myJourneyGcIds = new Set(myJourneys.map(j => j.gc_case_id))
+  const myJourneyIpIds = new Set(myJourneys.map(j => j.ip_case_id))
+
+  // My unmatched surrogates (assigned to me, not in a journey)
+  const mySurrogates = surrogates.filter(s => s.assignedTo === myEmail && !matchedGcIds.has(s.id))
+
+  // My unmatched IPs (assigned to me, not in a journey)
+  const myIPs = ips.filter(ip => !matchedIpIds.has(ip.id))
 
   async function completeTask(taskId) {
     try {
@@ -159,12 +147,13 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Appointments */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 cursor-pointer" onClick={() => setAppointmentsOpen(o => !o)}>
             <CardTitle className="text-sm flex items-center gap-2">
+              {appointmentsOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
               <Calendar className="size-4 text-stone-400" /> Upcoming Appointments
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          {appointmentsOpen && <CardContent>
             {events.length === 0 ? (
               <p className="text-xs text-stone-400 text-center py-6">No upcoming appointments this week</p>
             ) : (
@@ -194,17 +183,18 @@ export default function AdminDashboard() {
                 <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-1">View full calendar →</Link>
               </div>
             )}
-          </CardContent>
+          </CardContent>}
         </Card>
 
         {/* Tasks */}
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
             <CardTitle className="text-sm flex items-center gap-2">
+              {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
               <CheckCircle2 className="size-4 text-stone-400" /> My Tasks
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          {tasksOpen && <CardContent>
             {tasks.length === 0 ? (
               <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
             ) : (
@@ -226,14 +216,14 @@ export default function AdminDashboard() {
                 ))}
               </div>
             )}
-          </CardContent>
+          </CardContent>}
         </Card>
       </div>
 
-      {/* My Cases */}
+      {/* My Cases — separated by type */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-stone-700">My Cases ({myCases.length})</h3>
+          <h3 className="text-sm font-semibold text-stone-700">My Cases ({myJourneys.length + mySurrogates.length + myIPs.length})</h3>
           <div className="flex items-center border rounded-md">
             <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-8" onClick={() => setCaseView('grid')}>
               <LayoutGrid className="size-3.5" />
@@ -244,74 +234,134 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {myCases.length === 0 ? (
+        {myJourneys.length + mySurrogates.length + myIPs.length === 0 ? (
           <p className="text-sm text-stone-400 text-center py-8">No cases assigned to you yet.</p>
-        ) : caseView === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {myCases.map(c => (
-              <Link key={`${c.type}-${c.id}`} to={c.link}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <ProfileAvatar name={c.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-stone-800 truncate">{c.name}</p>
-                        {c.matchedWith && <p className="text-[10px] text-stone-400 truncate">+ {c.matchedWith}</p>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                        c.type === 'journey' ? 'bg-purple-100 text-purple-700' :
-                        c.type === 'surrogate' ? 'bg-pink-100 text-pink-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {c.type === 'journey' ? 'Journey' : c.type === 'surrogate' ? 'GC' : 'IP'}
-                      </span>
-                      {c.location && <span className="text-[10px] text-stone-400">{c.location}</span>}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
         ) : (
-          <Card>
-            <CardContent className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-stone-200 bg-stone-50">
-                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Name</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Type</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Location</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Partner</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {myCases.map(c => (
-                    <tr key={`${c.type}-${c.id}`} className="border-b border-stone-100 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = c.link}>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ProfileAvatar name={c.name} size="sm" />
-                          <span className="font-medium text-[#283693]">{c.name}</span>
+          <div className="space-y-4">
+            {/* Matched Journeys */}
+            {myJourneys.length > 0 && (
+              <div>
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                  <Route className="size-3" /> Matched Journeys ({myJourneys.length})
+                </p>
+                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-1'}>
+                  {myJourneys.map(j => {
+                    const gc = surrogates.find(s => s.id === j.gc_case_id)
+                    const ip = ips.find(i => i.id === j.ip_case_id)
+                    return caseView === 'grid' ? (
+                      <Link key={j.id} to={`/journeys/${j.id}`}>
+                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full p-0 gap-0 overflow-hidden">
+                          <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
+                            <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1">Intended Parent{ip?.type === 'Couple' ? 's' : ''}</p>
+                            <div className="flex items-center gap-2">
+                              <ProfileAvatar name={ip?.names || '?'} size="sm" />
+                              <div className="min-w-0"><p className="text-sm font-semibold truncate">{ip?.names || '—'}</p><p className="text-[10px] text-stone-400">{ip?.location || ''}</p></div>
+                            </div>
+                          </div>
+                          <div className="px-4 pt-2 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
+                            <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1">Surrogate</p>
+                            <div className="flex items-center gap-2">
+                              <ProfileAvatar name={gc?.name || '?'} size="sm" />
+                              <div className="min-w-0"><p className="text-sm font-semibold truncate">{gc?.name || '—'}</p><p className="text-[10px] text-stone-400">{gc?.location || ''}</p></div>
+                            </div>
+                          </div>
+                          <CardContent className="px-4 py-2">
+                            <StageBadge stage={j.stage} status={j.status} />
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ) : (
+                      <Link key={j.id} to={`/journeys/${j.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
+                        <ProfileAvatar name={ip?.names || '?'} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#283693]">{ip?.names || '—'} + {gc?.name || '—'}</p>
+                          <p className="text-[10px] text-stone-400">{ip?.location || gc?.location || ''}</p>
                         </div>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                          c.type === 'journey' ? 'bg-purple-100 text-purple-700' :
-                          c.type === 'surrogate' ? 'bg-pink-100 text-pink-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {c.type === 'journey' ? 'Journey' : c.type === 'surrogate' ? 'GC' : 'IP'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-stone-500 text-xs">{c.location || '—'}</td>
-                      <td className="px-4 py-2.5 text-stone-500 text-xs">{c.matchedWith || '—'}</td>
-                    </tr>
+                        <StageBadge stage={j.stage} status={j.status} />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Surrogates */}
+            {mySurrogates.length > 0 && (
+              <div>
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                  <Heart className="size-3" /> Surrogates ({mySurrogates.length})
+                </p>
+                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3' : 'space-y-1'}>
+                  {mySurrogates.map(s => {
+                    const ss = getSurrogateStageStatus(s.id)
+                    return caseView === 'grid' ? (
+                      <Link key={s.id} to={`/surrogates/${s.id}`}>
+                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <ProfileAvatar name={s.name} size="sm" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-stone-800 truncate">{s.name}</p>
+                                <p className="text-[10px] text-stone-400">{s.location || ''} {s.age ? `· ${s.age}y` : ''}</p>
+                              </div>
+                            </div>
+                            <StageBadge stage={ss?.stage} status={ss?.status} />
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ) : (
+                      <Link key={s.id} to={`/surrogates/${s.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
+                        <ProfileAvatar name={s.name} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#283693]">{s.name}</p>
+                          <p className="text-[10px] text-stone-400">{s.location || ''}</p>
+                        </div>
+                        <StageBadge stage={ss?.stage} status={ss?.status} />
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* IPs */}
+            {myIPs.length > 0 && (
+              <div>
+                <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
+                  <HeartHandshake className="size-3" /> Intended Parents ({myIPs.length})
+                </p>
+                <div className={caseView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3' : 'space-y-1'}>
+                  {myIPs.map(ip => (
+                    caseView === 'grid' ? (
+                      <Link key={ip.id} to={`/intended-parents/${ip.id}`}>
+                        <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-2.5 mb-2">
+                              <ProfileAvatar name={ip.names} size="sm" />
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-stone-800 truncate">{ip.names}</p>
+                                <p className="text-[10px] text-stone-400">{ip.location || ''}</p>
+                              </div>
+                            </div>
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{ip.type || 'IP'}</span>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ) : (
+                      <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-stone-50 transition-colors">
+                        <ProfileAvatar name={ip.names} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#283693]">{ip.names}</p>
+                          <p className="text-[10px] text-stone-400">{ip.location || ''}</p>
+                        </div>
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">{ip.type || 'IP'}</span>
+                      </Link>
+                    )
                   ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
