@@ -118,25 +118,25 @@ export default function MatchedJourneysPage() {
           {filtered.map(j => (
             <Link key={j.id} to={`/journeys/${j.id}`}>
               <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
-                {/* GC */}
-                <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#ed148c08' }}>
-                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
-                  <div className="flex items-center gap-2">
-                    <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
-                      <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
-                    </div>
-                  </div>
-                </div>
                 {/* IP */}
-                <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#28369308' }}>
+                <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
                   <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
                   <div className="flex items-center gap-2">
                     <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
                       <p className="text-[10px] text-stone-400">{j.ip?.location || ''}</p>
+                    </div>
+                  </div>
+                </div>
+                {/* GC */}
+                <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
+                  <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
+                  <div className="flex items-center gap-2">
+                    <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
+                      <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
                     </div>
                   </div>
                 </div>
@@ -203,8 +203,8 @@ export default function MatchedJourneysPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-stone-50/50">
-                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Intended Parent</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Stage</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Manager</th>
@@ -216,14 +216,14 @@ export default function MatchedJourneysPage() {
                   <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
-                        <span className="font-medium">{j.gc?.name || '—'}</span>
+                        <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+                        <span className="font-medium">{j.ip?.names || '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
-                        <span className="font-medium">{j.ip?.names || '—'}</span>
+                        <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+                        <span className="font-medium">{j.gc?.name || '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3"><StageBadge stage={j.stage} status={j.status} /></td>

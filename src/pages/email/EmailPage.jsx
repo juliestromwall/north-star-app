@@ -189,7 +189,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
           ...(journeys || []).map(j => {
             const gcName = (gcs || []).find(g => g.id === j.gc_case_id)?.name || 'GC'
             const ipName = (ips || []).find(i => i.id === j.ip_case_id)?.names || 'IP'
-            return { id: j.id, name: `${gcName} & ${ipName}`, type: 'journey', group: 'Matched Journeys' }
+            return { id: j.id, name: `${ipName} + ${gcName}`, type: 'journey', group: 'Matched Journeys' }
           }),
           ...(gcs || []).map(c => ({ id: c.id, name: c.name || 'Unknown', type: 'gc', group: 'Surrogates' })),
           ...(ips || []).map(c => ({ id: c.id, name: c.names || 'Unknown', type: 'ip', group: 'Intended Parents' })),

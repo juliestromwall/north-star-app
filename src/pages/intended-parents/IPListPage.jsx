@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Plus, MapPin, Calendar, ArrowRight, LayoutGrid, List, Stethoscope, Baby, Users } from 'lucide-react'
+import { Search, Plus, MapPin, Calendar, ArrowRight, LayoutGrid, List, Stethoscope, Baby, Users, CheckCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,13 @@ import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
+import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
+import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
+import StageBadge from '@/components/shared/StageBadge'
+import { mockUsers } from '@/data/mock/users'
+
+const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+const IP_STAGES = SURROGATE_STAGES.map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -59,13 +66,15 @@ function formatPhone(val) {
 }
 
 export default function IPListPage() {
-  const { currentUser } = useRole()
+  const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
+  const canSeeAll = isSuperAdmin || isMasterAdmin
   const [ips, setIps] = useState([])
+  const [allStageStatuses, setAllStageStatuses] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [stageFilter, setStageFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState(canSeeAll ? 'all' : 'mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -94,29 +103,66 @@ export default function IPListPage() {
     Promise.all([fetchIPsFromIntake(), fetchMatchedJourneys()])
       .then(([data, journeys]) => {
         const matchedIpIds = new Set((journeys || []).map(j => j.ip_case_id))
-        setIps((data || []).filter(ip => !matchedIpIds.has(ip.id)))
+        const ipList = (data || []).filter(ip => !matchedIpIds.has(ip.id))
+        setIps(ipList)
+        // Load stage statuses
+        const statuses = {}
+        for (const ip of ipList) { statuses[ip.id] = getSurrogateStageStatus(ip.id) }
+        setAllStageStatuses(statuses)
       })
       .catch(() => setIps([]))
       .finally(() => setLoading(false))
   }, [])
 
+  const myCaseCount = ips.filter(ip => ip.assignedTo === currentUser.email).length
+  const unassignedCount = ips.filter(ip => !ip.assignedTo).length
+
+  // Owner-filtered (for stage counts)
+  const ownerFiltered = useMemo(() => {
+    return ips.filter(ip => {
+      if (ownerFilter === 'mine') return ip.assignedTo === currentUser.email
+      if (ownerFilter === 'unassigned') return !ip.assignedTo
+      if (ownerFilter !== 'all') return ip.assignedTo === ownerFilter
+      return true
+    })
+  }, [ips, ownerFilter, currentUser.email])
+
+  // Stage counts
+  const stageCounts = {}
+  for (const stage of IP_STAGES) stageCounts[stage.id] = 0
+  for (const ip of ownerFiltered) {
+    const ss = allStageStatuses[ip.id]
+    const stageId = ss?.stage || 'pre-qualification'
+    if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
+  }
+
   const filtered = useMemo(() => {
     return ips.filter(ip => {
-      const matchesSearch = !search ||
-        ip.names.toLowerCase().includes(search.toLowerCase()) ||
-        ip.email.toLowerCase().includes(search.toLowerCase()) ||
-        ip.location.toLowerCase().includes(search.toLowerCase())
-      const matchesStatus = statusFilter === 'all' || ip.status === statusFilter
-      const matchesType = typeFilter === 'all' || ip.type === typeFilter
-      return matchesSearch && matchesStatus && matchesType
+      // Owner filter
+      if (ownerFilter === 'mine') { if (ip.assignedTo !== currentUser.email) return false }
+      else if (ownerFilter === 'unassigned') { if (ip.assignedTo) return false }
+      else if (ownerFilter !== 'all') { if (ip.assignedTo !== ownerFilter) return false }
+      // Stage filter
+      if (stageFilter !== 'all') {
+        const ss = allStageStatuses[ip.id]
+        if ((ss?.stage || 'pre-qualification') !== stageFilter) return false
+      }
+      // Search
+      if (search) {
+        const q = search.toLowerCase()
+        if (!ip.names.toLowerCase().includes(q) && !ip.email.toLowerCase().includes(q) && !(ip.location || '').toLowerCase().includes(q)) return false
+      }
+      // Type
+      if (typeFilter !== 'all' && ip.type !== typeFilter) return false
+      return true
     })
-  }, [ips, search, statusFilter, typeFilter])
+  }, [ips, search, stageFilter, typeFilter, ownerFilter, currentUser.email, allStageStatuses])
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Intended Parents"
-        subtitle={`${ips.length} intended parent${ips.length !== 1 ? 's' : ''} in program`}
+        subtitle={`${filtered.length} of ${ips.length} intended parent${ips.length !== 1 ? 's' : ''} shown`}
         actions={
           <Button className="gap-2" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" /> Add IP
@@ -124,6 +170,30 @@ export default function IPListPage() {
         }
       />
 
+      {/* Hero stats — click to filter by stage */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <button
+          onClick={() => setStageFilter('all')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
+        >
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+        </button>
+        {IP_STAGES.map(stage => (
+          <button
+            key={stage.id}
+            onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
+            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+            style={{ backgroundColor: stage.color + '08', ...(stageFilter === stage.id ? { ringColor: stage.color, borderColor: stage.color + '50' } : {}) }}
+          >
+            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
+            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -134,19 +204,23 @@ export default function IPListPage() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Status" />
+
+        <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="pending_review">Pending Review</SelectItem>
-            <SelectItem value="reviewed">Reviewed</SelectItem>
-            <SelectItem value="qualified">Qualified</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="mine">My Cases ({myCaseCount})</SelectItem>
+            {canSeeAll && <SelectItem value="all">All Cases ({ips.length})</SelectItem>}
+            <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
+            {canSeeAll && ADMIN_STAFF.map(admin => (
+              <SelectItem key={admin.email} value={admin.email}>
+                {admin.name} ({ips.filter(ip => ip.assignedTo === admin.email).length})
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
+
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Type" />

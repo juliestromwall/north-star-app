@@ -422,7 +422,7 @@ function MatchJourneySection({ currentUser, navigate }) {
           </div>
           <div>
             <p className="text-lg font-semibold text-stone-800">Journey created!</p>
-            <p className="text-sm text-stone-500 mt-1">{matchResult.gcName} + {matchResult.ipName}</p>
+            <p className="text-sm text-stone-500 mt-1">{matchResult.ipName} + {matchResult.gcName}</p>
             {matchDate && <p className="text-xs text-stone-400 mt-1">Original match date: {matchDate}</p>}
             {matchResult.hasMatchSheet && <p className="text-xs text-stone-400">Match sheet data imported</p>}
           </div>

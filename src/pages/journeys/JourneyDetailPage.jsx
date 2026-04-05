@@ -1503,8 +1503,8 @@ export default function JourneyDetailPage() {
         <TabsContent value="overview" className="mt-4 space-y-6">
           <JourneyMilestoneTimeline journey={journey} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
-            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}`} />
+            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
         </TabsContent>
 
