@@ -1371,6 +1371,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
           <p className="text-xs font-medium text-stone-700 truncate">
             {doc.file_name}
             {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 align-middle">{doc._source}</span>}
+            {!doc._source && doc.category === 'previous-match' && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 align-middle">Previous Match</span>}
+            {!doc._source && doc.category !== 'previous-match' && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 align-middle">Previous Match</span>}
           </p>
           <p className="text-[10px] text-stone-400">
             {formatFileSize(doc.file_size)}

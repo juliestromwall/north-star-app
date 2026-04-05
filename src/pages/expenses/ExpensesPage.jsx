@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus, Mail } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { fetchAllExpenses, updateExpense, createCaseTask } from '@/lib/db'
+import { getGoogleStatus, getEmail, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
@@ -101,7 +102,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate }) {
+function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -276,9 +277,13 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                       <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
                         <Eye className="size-4" />
                       </button>
-                    ) : (
-                      <span className="text-stone-200">—</span>
-                    )}
+                    ) : (() => {
+                      const gmailMatch = (exp.notes || '').match(/Gmail ID: ([a-zA-Z0-9]+)/)
+                      if (gmailMatch && onViewEmail) {
+                        return <button onClick={() => onViewEmail(gmailMatch[1])} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View linked email"><Mail className="size-4" /></button>
+                      }
+                      return <span className="text-stone-200">—</span>
+                    })()}
                   </td>
                   {showReconcile && (
                     <td className="px-4 py-3 text-center">
@@ -310,6 +315,10 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState('')
   const [adminFilter, setAdminFilter] = useState('')
   const [sortDir, setSortDir] = useState('desc') // desc = newest first
+  const [emailViewId, setEmailViewId] = useState(null)
+  const [emailViewData, setEmailViewData] = useState(null)
+  const [emailViewLoading, setEmailViewLoading] = useState(false)
+  const userId = currentUser?.userId || currentUser?.id
 
   useEffect(() => {
     async function load() {
