@@ -49,7 +49,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     const caseLabel = caseName || `${caseType} #${caseId}`
     const caseLink = getCaseUrl()
-    const descParts = [`Client: ${caseLabel}`, `Case: ${caseLink}`]
+    const descParts = [`Client: <a href="${caseLink}">${caseLabel}</a>`]
     if (eventData.description) descParts.push('', eventData.description)
     const event = {
       summary: `${eventData.title} — ${caseLabel}`,
