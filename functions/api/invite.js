@@ -76,11 +76,16 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         type: 'recovery',
         email,
-        options: { redirect_to: 'https://app.abcsurrogacy.com/reset-password' },
+        redirect_to: 'https://app.abcsurrogacy.com/reset-password',
       }),
     })
     const linkData = await linkRes.json()
-    const resetLink = linkData?.properties?.action_link || linkData?.action_link || null
+    // The action_link from generate_link may not include the redirect_to
+    // So we need to append it if missing
+    let resetLink = linkData?.properties?.action_link || linkData?.action_link || null
+    if (resetLink && !resetLink.includes('redirect_to')) {
+      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
+    }
 
     return new Response(JSON.stringify({
       success: true,
