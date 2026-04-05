@@ -129,7 +129,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                   </th>
                   {filtered.map(s => (
                     <th key={s.id} className="text-left px-3 py-2.5 min-w-[130px]">
-                      <Link to={`/surrogates/${s.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{s.name}</Link>
+                      <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
                       <p className="text-[9px] text-stone-400 font-normal">
                         {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
                         {s.age ? ` · ${s.age}y` : ''}
