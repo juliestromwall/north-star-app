@@ -42,12 +42,13 @@ import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
+import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ShieldCheck, ShieldX, Save, Loader2, UserCog } from 'lucide-react'
+import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { mockUsers } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
@@ -285,6 +286,8 @@ export default function SurrogateDetailPage() {
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsMessage, setSmsMessage] = useState('')
   const [smsSending, setSmsSending] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteResult, setInviteResult] = useState(null)
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [portraitUrl, setPortraitUrl] = useState(null)
@@ -499,6 +502,22 @@ export default function SurrogateDetailPage() {
                   preferred={surrogate.preferredContact === 'Phone'}
                 />
               )}
+              <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
+                onClick={async () => {
+                  if (!surrogate.email) return
+                  setInviting(true); setInviteResult(null)
+                  try {
+                    await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' })
+                    setInviteResult('sent')
+                  } catch (err) {
+                    setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
+                  }
+                  setInviting(false)
+                  setTimeout(() => setInviteResult(null), 4000)
+                }}>
+                {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
+              </Button>
             </div>
           </div>
 

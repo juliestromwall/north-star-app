@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer,
+  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -28,6 +28,7 @@ import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
+import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
@@ -50,6 +51,8 @@ export default function IPDetailPage() {
   const [ip, setIp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [emailMenuOpen, setEmailMenuOpen] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteResult, setInviteResult] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)

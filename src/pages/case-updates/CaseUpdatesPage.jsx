@@ -220,40 +220,14 @@ function IPUpdatesSheet({ ips }) {
         {filtered.length === 0 ? (
           <p className="text-sm text-stone-400 py-8">No intended parents in this stage</p>
         ) : sheetRows.length === 0 ? (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[120px]">Name</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Location</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Type</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Stage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(ip => {
-                  const ss = allStageStatuses[ip.id] || {}
-                  return (
-                    <tr key={ip.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                      <td className="px-3 py-2.5">
-                        <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
-                      </td>
-                      <td className="px-3 py-2.5 text-stone-500">{ip.location || '—'}</td>
-                      <td className="px-3 py-2.5"><span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700">{ip.type}</span></td>
-                      <td className="px-3 py-2.5"><StageBadge stage={ss.stage} status={ss.status} /></td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <p className="text-sm text-stone-400 py-8">No checklist steps configured for this stage. Set them up in Settings → Checklists → Intended Parent (IP).</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>
                 <tr className="border-b border-stone-200">
                   <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[120px]">
-                    Step
+                    Checklist Step
                   </th>
                   {filtered.map(ip => (
                     <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
@@ -291,6 +265,8 @@ function IPUpdatesSheet({ ips }) {
 // ── Journey Updates ──
 function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   const [stageFilter, setStageFilter] = useState('journey-oversight')
+  // Journey checklist steps are stored under 'gc' type with journey stage IDs
+  const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
 
   const stageCounts = useMemo(() => {
     const counts = {}
@@ -302,6 +278,15 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   const filtered = useMemo(() => {
     return journeys.filter(j => j.stage === stageFilter)
   }, [journeys, stageFilter])
+
+  // Load checklist tracking from journey_data for each journey
+  const allTracking = useMemo(() => {
+    const map = {}
+    for (const j of filtered) {
+      map[j.id] = j.journey_data?._checklistTracking || {}
+    }
+    return map
+  }, [filtered])
 
   return (
     <Card>
@@ -327,55 +312,46 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
 
         {filtered.length === 0 ? (
           <p className="text-sm text-stone-400 py-8">No journeys in this stage</p>
+        ) : sheetRows.length === 0 ? (
+          <p className="text-sm text-stone-400 py-8">No checklist steps configured for this stage. Set them up in Settings → Checklists → Matched Journeys.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="text-xs border-collapse">
               <thead>
                 <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Intended Parent</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[150px]">Surrogate</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Pregnancy</th>
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Matched</th>
+                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[150px]">
+                    Checklist Step
+                  </th>
+                  {filtered.map(j => {
+                    const ip = ips.find(i => i.id === j.ip_case_id)
+                    const gc = surrogates.find(s => s.id === j.gc_case_id)
+                    return (
+                      <th key={j.id} className="text-left px-3 py-2.5 min-w-[150px]">
+                        <Link to={`/journeys/${j.id}`} className="text-[#283693] hover:underline font-semibold text-xs">
+                          {ip?.names || 'IP'} + {gc?.name || 'GC'}
+                        </Link>
+                        <p className="text-[9px] text-stone-400 font-normal">{j.status || ''}</p>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(j => {
-                  const gc = surrogates.find(s => s.id === j.gc_case_id)
-                  const ip = ips.find(i => i.id === j.ip_case_id)
-                  const jd = j.journey_data || {}
-                  return (
-                    <tr key={j.id} className="border-b border-stone-50 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ProfileAvatar name={ip?.names || '?'} size="sm" />
-                          <span className="font-semibold text-[#283693] text-xs">{ip?.names || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ProfileAvatar name={gc?.name || '?'} size="sm" />
-                          <span className="font-semibold text-xs">{gc?.name || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5"><StageBadge stage={j.stage} status={j.status} /></td>
-                      <td className="px-3 py-2.5">
-                        {jd.escrowBalance ? (
-                          <span className={`text-xs font-semibold ${jd.escrowMin && parseFloat(String(jd.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(jd.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {jd.escrowBalance}
-                          </span>
-                        ) : <span className="text-stone-300">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        {jd.pregnant === 'yes' ? (
-                          <span className="text-xs text-pink-700 font-medium">🤰 {jd.dueDate ? `Due ${formatDate(jd.dueDate)}` : 'Yes'}</span>
-                        ) : <span className="text-stone-300">—</span>}
-                      </td>
-                      <td className="px-3 py-2.5 text-stone-400 text-xs">{formatDate(j.created_at)}</td>
-                    </tr>
-                  )
-                })}
+                {sheetRows.map(step => (
+                  <tr key={step.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{step.label}</td>
+                    {filtered.map(j => {
+                      const rt = allTracking[j.id] || {}
+                      const d = rt[step.id] || {}
+                      const status = d.status || 'not_started'
+                      return (
+                        <td key={j.id} className="px-3 py-2.5">
+                          <StatusCell status={status} />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
