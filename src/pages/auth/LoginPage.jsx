@@ -75,19 +75,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#faf8f5' }}>
-      <header className="flex items-center justify-center px-6 py-6 bg-white border-b border-stone-100">
-        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-14 w-auto" />
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#fdf8f3' }}>
+      <header className="flex items-center justify-center px-6 py-8">
+        <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto" />
       </header>
 
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 pb-16">
         <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#283693]/10 mx-auto mb-4">
-              <LogIn className="w-6 h-6 text-[#283693]" />
-            </div>
-            <h1 className="text-2xl font-bold text-stone-800">Welcome back</h1>
-            <p className="text-stone-500 text-sm mt-1">Sign in to your portal</p>
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-heading font-bold text-stone-800">Welcome back</h1>
+            <p className="text-stone-400 text-sm mt-1">Sign in to your portal</p>
           </div>
 
           {forgotMode ? (
@@ -186,8 +183,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <footer className="py-6 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} Abundant Beginnings Co. · All rights reserved
+      <footer className="py-8 text-center text-xs text-stone-300">
+        © {new Date().getFullYear()} Abundant Beginnings Co.
       </footer>
     </div>
   )
