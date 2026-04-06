@@ -16,7 +16,7 @@ import { fetchMatchedJourney } from '@/lib/matching'
 import { getAdminStaff } from '@/data/mock/users'
 import {
   exportDocAsPdf, getDocPlainText, getDocAsHtml, parseFieldPlaceholders,
-  shareDocPublicly, getAccessToken, sendEmail,
+  shareDocPublicly, getAccessToken, sendEmail, copyGoogleDoc,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -33,6 +33,7 @@ export default function EditDocumentPage() {
   const adminUsers = getAdminStaff()
 
   const [docTitle, setDocTitle] = useState('')
+  const [workingDocId, setWorkingDocId] = useState(null) // copy of template for editing
   const [loading, setLoading] = useState(true)
   const [iframeReady, setIframeReady] = useState(false)
   const [shareError, setShareError] = useState(null)
@@ -77,9 +78,19 @@ export default function EditDocumentPage() {
         }
         setDocTitle(meta.name || 'Untitled')
 
-        // Share the doc so the iframe can load it
+        // Copy the template so edits don't affect the original
+        let editDocId = googleDocId
         try {
-          await shareDocPublicly(userId, googleDocId)
+          const copy = await copyGoogleDoc(userId, googleDocId, `[Draft] ${meta.name || 'Document'}`)
+          if (copy?.id) editDocId = copy.id
+        } catch (e) {
+          console.warn('Copy failed, editing original:', e.message)
+        }
+        setWorkingDocId(editDocId)
+
+        // Share the working copy so the iframe can load it
+        try {
+          await shareDocPublicly(userId, editDocId)
         } catch (e) {
           console.warn('Share failed (may already be shared):', e.message)
         }

@@ -564,7 +564,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [transferForm, setTransferForm] = useState({ date: '', embryoCount: '1', notes: '' })
   const [betaOpen, setBetaOpen] = useState(null)
   const [betaValue, setBetaValue] = useState('')
-  const [needsSecondBeta, setNeedsSecondBeta] = useState(false)
+  const [needsSecondBeta, setNeedsSecondBeta] = useState(null) // null = not selected yet
   const [beta2Open, setBeta2Open] = useState(null)
   const [beta2Value, setBeta2Value] = useState('')
   const [heartbeatOpen, setHeartbeatOpen] = useState(false)
@@ -573,7 +573,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [heartbeatBabies, setHeartbeatBabies] = useState('1')
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
-  const [activeTab, setActiveTab] = useState(null) // which transfer tab is active
+  const [activeTab, setActiveTab] = useState(null)
+  const [deleteConfirmIdx, setDeleteConfirmIdx] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const latestTransfer = transfers.length > 0 ? transfers[transfers.length - 1] : null
@@ -605,8 +606,26 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     if (editIdx === null) return
     setSaving(true)
     const updated = [...transfers]
-    updated[editIdx] = { ...updated[editIdx], date: transferForm.date, embryoCount: parseInt(transferForm.embryoCount) || 1, notes: transferForm.notes || '' }
-    if (transferForm.droppedCycle) updated[editIdx].droppedCycle = true
+    updated[editIdx] = {
+      ...updated[editIdx],
+      date: transferForm.date,
+      embryoCount: parseInt(transferForm.embryoCount) || 1,
+      notes: transferForm.notes || '',
+      droppedCycle: transferForm.droppedCycle || false,
+      betaResult: transferForm.betaResult || updated[editIdx].betaResult,
+      betaValue: transferForm.betaValue || updated[editIdx].betaValue,
+      betaDate: transferForm.betaDate || updated[editIdx].betaDate,
+      needsSecondBeta: transferForm.needsSecondBeta ?? updated[editIdx].needsSecondBeta,
+      beta2Result: transferForm.beta2Result || updated[editIdx].beta2Result,
+      beta2Value: transferForm.beta2Value || updated[editIdx].beta2Value,
+      beta2Date: transferForm.beta2Date || updated[editIdx].beta2Date,
+      heartbeatConfirmed: transferForm.heartbeatConfirmed ?? updated[editIdx].heartbeatConfirmed,
+      heartbeatDate: transferForm.heartbeatDate || updated[editIdx].heartbeatDate,
+      babies: parseInt(transferForm.babies) || updated[editIdx].babies || 1,
+    }
+    if (transferForm.droppedCycle) {
+      updated[editIdx].betaResult = null; updated[editIdx].heartbeatConfirmed = false
+    }
     await onUpdate({ _transfers: updated })
     setEditIdx(null)
     setAddOpen(false)
@@ -614,7 +633,6 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   }
 
   async function handleDeleteTransfer(idx) {
-    if (!confirm('Delete this transfer? This cannot be undone.')) return
     setSaving(true)
     const updated = transfers.filter((_, i) => i !== idx)
     const wasPregnant = transfers[idx]?.heartbeatConfirmed
@@ -630,7 +648,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     const updated = [...transfers]
     updated[idx] = { ...updated[idx], betaResult: result, betaDate: new Date().toISOString().split('T')[0], betaValue: betaValue || null, needsSecondBeta: result === 'positive' ? needsSecondBeta : false }
     await onUpdate({ _transfers: updated })
-    setBetaOpen(null); setBetaValue(''); setNeedsSecondBeta(false)
+    setBetaOpen(null); setBetaValue(''); setNeedsSecondBeta(null)
     setSaving(false)
   }
 
@@ -656,7 +674,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       dueDateStr = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
     await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: parseInt(heartbeatBabies) || 1 })
-    if (onStatusChange) await onStatusChange('Active Pregnancy')
+    if (onStatusChange) await onStatusChange('Pregnant')
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1')
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
@@ -701,7 +719,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <img src="/pregnant-icon.png" alt="Pregnant" className="h-14 w-auto" />
+            <span className="text-5xl">🤰</span>
             <div>
               <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
               <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}{jd.babies > 1 ? ` · ${jd.babies} babies` : ''}</p>
@@ -774,8 +792,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                     {t.droppedCycle && <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Dropped Cycle</span>}
                     {t.lossType && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t.lossType === 'miscarriage' ? 'Miscarriage' : t.lossType === 'ectopic' ? 'Ectopic' : t.lossType === 'chemical' ? 'Chemical' : 'Loss'}</span>}
                     {/* Edit / Delete */}
-                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle }); setAddOpen(true) }} className="text-stone-300 hover:text-stone-500 transition-colors" title="Edit"><Pencil className="size-3" /></button>
-                    <button onClick={() => handleDeleteTransfer(i)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete"><Trash2 className="size-3" /></button>
+                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle || false, betaResult: t.betaResult, betaValue: t.betaValue || '', betaDate: t.betaDate || '', needsSecondBeta: t.needsSecondBeta || false, beta2Result: t.beta2Result || '', beta2Value: t.beta2Value || '', beta2Date: t.beta2Date || '', heartbeatConfirmed: t.heartbeatConfirmed || false, heartbeatDate: t.heartbeatDate || '', babies: String(t.babies || 1) }); setAddOpen(true) }} className="text-stone-300 hover:text-stone-500 transition-colors" title="Edit"><Pencil className="size-3" /></button>
+                    <button onClick={() => setDeleteConfirmIdx(i)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete"><Trash2 className="size-3" /></button>
                   </div>
                 </div>
                 {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
@@ -788,7 +806,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                   <div className="flex flex-wrap gap-2 mt-2">
                     {!t.betaResult && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setNeedsSecondBeta(false) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
                         <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-500 hover:bg-red-50" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
                       </>
                     )}
@@ -830,12 +848,62 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <Input value={transferForm.notes} onChange={e => setTransferForm(f => ({ ...f, notes: e.target.value }))} placeholder="Clinic, doctor, embryo details..." className="h-9" />
             </div>
             {editIdx !== null && (
-              <div className="flex items-center gap-3">
-                <label className="text-[11px] text-stone-400 font-medium">Dropped Cycle</label>
-                <button onClick={() => setTransferForm(f => ({ ...f, droppedCycle: !f.droppedCycle }))}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${transferForm.droppedCycle ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>
-                  {transferForm.droppedCycle ? 'Yes' : 'No'}
-                </button>
+              <div className="space-y-3 border-t border-stone-100 pt-3">
+                <div className="flex items-center gap-3">
+                  <label className="text-[11px] text-stone-400 font-medium">Dropped Cycle</label>
+                  <button onClick={() => setTransferForm(f => ({ ...f, droppedCycle: !f.droppedCycle }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${transferForm.droppedCycle ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>
+                    {transferForm.droppedCycle ? 'Yes' : 'No'}
+                  </button>
+                </div>
+                {!transferForm.droppedCycle && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-stone-400 font-medium">Beta Result</label>
+                        <select value={transferForm.betaResult || ''} onChange={e => setTransferForm(f => ({ ...f, betaResult: e.target.value || null }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                          <option value="">Not yet</option>
+                          <option value="positive">Positive</option>
+                          <option value="negative">Negative</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-stone-400 font-medium">Beta Value</label>
+                        <Input value={transferForm.betaValue} onChange={e => setTransferForm(f => ({ ...f, betaValue: e.target.value }))} placeholder="e.g. 250" className="h-9" />
+                      </div>
+                    </div>
+                    {transferForm.betaResult === 'positive' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-stone-400 font-medium">Beta #2 Result</label>
+                            <select value={transferForm.beta2Result || ''} onChange={e => setTransferForm(f => ({ ...f, beta2Result: e.target.value || null }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                              <option value="">N/A</option>
+                              <option value="positive">Positive</option>
+                              <option value="negative">Negative</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-stone-400 font-medium">Beta #2 Value</label>
+                            <Input value={transferForm.beta2Value} onChange={e => setTransferForm(f => ({ ...f, beta2Value: e.target.value }))} placeholder="e.g. 580" className="h-9" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-stone-400 font-medium">Heartbeat Date</label>
+                            <Input type="date" value={transferForm.heartbeatDate} onChange={e => setTransferForm(f => ({ ...f, heartbeatDate: e.target.value, heartbeatConfirmed: !!e.target.value }))} className="h-9" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-stone-400 font-medium">Babies</label>
+                            <select value={transferForm.babies} onChange={e => setTransferForm(f => ({ ...f, babies: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                              {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )}
             <div className="flex gap-2 justify-end pt-2">
@@ -858,15 +926,21 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <label className="text-[11px] text-stone-400 font-medium">Beta Value</label>
               <Input value={betaValue} onChange={e => setBetaValue(e.target.value)} placeholder="e.g. 250" className="h-9" type="number" />
             </div>
-            <div className="flex items-center gap-3">
-              <label className="text-[11px] text-stone-400 font-medium">Will there be a second beta test?</label>
-              <button onClick={() => setNeedsSecondBeta(v => !v)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${needsSecondBeta ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                {needsSecondBeta ? 'Yes' : 'No'}
-              </button>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Will there be a second beta test? *</label>
+              <div className="flex gap-2">
+                <button onClick={() => setNeedsSecondBeta(true)}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${needsSecondBeta === true ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300' : 'bg-stone-100 text-stone-500'}`}>
+                  Yes
+                </button>
+                <button onClick={() => setNeedsSecondBeta(false)}
+                  className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${needsSecondBeta === false ? 'bg-stone-200 text-stone-700 ring-2 ring-stone-300' : 'bg-stone-100 text-stone-500'}`}>
+                  No
+                </button>
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <Button className="flex-1 gap-1 bg-green-600 hover:bg-green-700 text-white" size="sm" disabled={saving} onClick={() => handleBetaResult(betaOpen, 'positive')}>
+              <Button className="flex-1 gap-1 bg-green-600 hover:bg-green-700 text-white" size="sm" disabled={saving || needsSecondBeta === null} onClick={() => handleBetaResult(betaOpen, 'positive')}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Positive
               </Button>
               <Button className="flex-1 gap-1" variant="outline" size="sm" disabled={saving} onClick={() => handleBetaResult(betaOpen, 'negative')}>
@@ -963,6 +1037,25 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <Button size="sm" disabled={saving || !lossReason} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 Record Loss
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Transfer Confirmation */}
+      <Dialog open={deleteConfirmIdx !== null} onOpenChange={() => setDeleteConfirmIdx(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600">Delete Transfer</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+              <p>Are you sure you want to delete <strong>Transfer #{deleteConfirmIdx !== null ? deleteConfirmIdx + 1 : ''}</strong>? This cannot be undone.</p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmIdx(null)}>Cancel</Button>
+              <Button size="sm" variant="destructive" className="gap-1" disabled={saving} onClick={async () => { await handleDeleteTransfer(deleteConfirmIdx); setDeleteConfirmIdx(null) }}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                Delete Transfer
               </Button>
             </div>
           </div>
