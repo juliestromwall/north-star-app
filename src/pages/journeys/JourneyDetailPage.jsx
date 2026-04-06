@@ -617,7 +617,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">🤰</span>
+            <img src="/pregnant-woman.png" alt="Pregnant" className="size-10" />
             <div>
               <p className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
               <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)} <EditableTileInline value={jd.dueDate} onSave={v => onUpdate({ dueDate: v })} type="date" className="text-pink-600 text-xs" placeholder="Edit" /></p>
@@ -1483,7 +1483,8 @@ export default function JourneyDetailPage() {
                 {/* Pregnancy indicator in status bar */}
                 {jd.pregnant === 'yes' && jd.dueDate && (
                   <div className="flex items-center gap-2 ml-1">
-                    <span className="text-2xl font-bold text-pink-600">🤰 {calcGestationalWeeks(jd.dueDate) || ''}</span>
+                    <img src="/pregnant-woman.png" alt="Pregnant" className="size-6 inline-block mr-1" />
+                    <span className="text-2xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
                   </div>
                 )}
               </div>
