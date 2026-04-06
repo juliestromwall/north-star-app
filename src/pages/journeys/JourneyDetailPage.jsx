@@ -1568,10 +1568,6 @@ export default function JourneyDetailPage() {
                     </div>
                   )}
                 </div>
-                {/* Pregnancy indicator — just the icon, details in tracker below */}
-                {jd.pregnant === 'yes' && (
-                  <img src="/pregnant-woman.png" alt="Pregnant" className="h-10 w-auto rounded ml-1" title={`${calcGestationalWeeks(jd.dueDate) || ''} — Due ${formatDate(jd.dueDate)}`} />
-                )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
