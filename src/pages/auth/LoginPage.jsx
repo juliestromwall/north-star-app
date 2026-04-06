@@ -34,7 +34,7 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const from = location.state?.from || '/'
+  const from = location.state?.from || '/dashboard'
 
   async function handleLogin(e) {
     e.preventDefault()
