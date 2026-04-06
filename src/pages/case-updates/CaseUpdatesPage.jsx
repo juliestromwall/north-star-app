@@ -161,27 +161,12 @@ function SurrogateUpdatesSheet({ surrogates }) {
     const rt = allTracking[surrogateId] || {}
     const data = rt[stepId] || {}
     const status = data.status || 'not_started'
-    const parentHistory = data.history || []
+    const history = data.history || []
+    const lastEntry = history.length > 0 ? history[history.length - 1] : null
     const prefix = getRecordPrefix(stepLabel)
     let subRecords = []
     if (prefix) subRecords = getSubRecords(surrogateId, prefix)
     const activeRecords = subRecords.filter(r => !r.isExcluded)
-
-    // For record-type steps, merge all sub-record histories into one combined log
-    let history = [...parentHistory]
-    if (prefix) {
-      for (const rec of subRecords) {
-        const recData = rt[rec.id] || {}
-        const recHistory = recData.history || []
-        for (const entry of recHistory) {
-          history.push({ ...entry, _recordLabel: rec.label })
-        }
-      }
-      // Sort by date descending (newest first) then reverse for display
-      history.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-    }
-
-    const lastEntry = history.length > 0 ? history[history.length - 1] : null
     return { status, lastEntry, history, subRecords, activeRecords, isRecordType: !!prefix, doneCount: activeRecords.filter(r => r.isComplete).length, totalCount: activeRecords.length }
   }
 
@@ -239,49 +224,40 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const isComplete = status === 'complete' || status === 'na'
                       return (
                         <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
-                          <div className="space-y-1">
-                            {/* All log entries, newest first */}
-                            {history.length > 0 ? (
-                              [...history].reverse().map((entry, i) => (
-                                <div key={i} className="text-xs">
-                                  {entry._recordLabel && <span className="text-[10px] text-stone-400">{entry._recordLabel}: </span>}
-                                  <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                  <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>
-                                    {entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                  </span>
-                                  {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[180px]">{entry.note}</p>}
-                                </div>
-                              ))
-                            ) : (
+                          <div className="flex items-center gap-1.5">
+                            {isComplete ? (
+                              <span className="text-xs text-green-600 font-medium">Completed {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+                            ) : status === 'not_started' ? (
                               <span className="text-xs text-stone-300">Not Started</span>
+                            ) : (
+                              <span className="text-xs text-stone-600">
+                                {lastEntry?.date ? formatDate(lastEntry.date) : ''}{' '}
+                                <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              </span>
                             )}
-                            {/* Icons row */}
-                            <div className="flex items-center gap-1.5">
-                              {isRecordType && totalCount > 0 && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
-                              )}
-                              {history.length > 0 && (
-                                <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
-                                  <ScrollText className="size-3.5" />
-                                </button>
-                              )}
-                              {isRecordType && totalCount > 0 && (
-                                <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors" title="Medical records">
-                                  <ClipboardPlus className="size-3.5" />
-                                </button>
-                              )}
-                            </div>
+                            {isRecordType && totalCount > 0 && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
+                            )}
+                            {history.length > 0 && (
+                              <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="View checklist log">
+                                <ScrollText className="size-3.5" />
+                              </button>
+                            )}
+                            {isRecordType && totalCount > 0 && (
+                              <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors" title="View medical records">
+                                <ClipboardPlus className="size-3.5" />
+                              </button>
+                            )}
                           </div>
-                          {/* Log popover (full detail) */}
+                          {/* Checklist log popover — shows parent step history, newest first */}
                           {isLogOpen && (
-                            <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
+                            <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
                               <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
+                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Checklist Log</p>
                                 <button onClick={() => setLogPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                               </div>
                               {[...history].reverse().map((entry, i) => (
                                 <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
-                                  {entry._recordLabel && <p className="text-[9px] text-stone-400 font-semibold">{entry._recordLabel}</p>}
                                   <div className="flex items-center gap-2">
                                     <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                                     <span className="text-stone-400">{formatDate(entry.date)}</span>
@@ -292,27 +268,49 @@ function SurrogateUpdatesSheet({ surrogates }) {
                               ))}
                             </div>
                           )}
-                          {/* Sub-records popover */}
-                          {isDocOpen && (
-                            <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
-                              <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount})</p>
-                                <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
-                              </div>
-                              {activeRecords.map(rec => (
-                                <div key={rec.id} className={`text-xs border-b border-stone-50 pb-1.5 last:border-0 ${rec.isComplete ? 'opacity-60' : ''}`}>
-                                  <div className="flex items-center gap-1.5">
-                                    {rec.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
-                                    <span className="font-medium text-stone-600 flex-1">{rec.label}</span>
-                                    <span className={`font-medium shrink-0 ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
-                                      {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                    </span>
-                                  </div>
-                                  {rec.lastDate && <p className="text-stone-400 mt-0.5 ml-7">{formatDate(rec.lastDate)}{rec.lastNote ? ` — ${rec.lastNote}` : ''}</p>}
+                          {/* Medical records popover — shows each sub-record with full log */}
+                          {isDocOpen && (() => {
+                            const rt = allTracking[s.id] || {}
+                            return (
+                              <div className="absolute z-20 top-full left-0 mt-1 w-96 max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount})</p>
+                                  <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                                {activeRecords.map(rec => {
+                                  const recData = rt[rec.id] || {}
+                                  const recHistory = recData.history || []
+                                  return (
+                                    <div key={rec.id} className="border-b border-stone-100 pb-2 last:border-0">
+                                      <div className="flex items-center gap-1.5 mb-1">
+                                        {rec.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
+                                        <span className="font-semibold text-stone-700 text-xs flex-1">{rec.label}</span>
+                                        <span className={`text-[10px] font-medium ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
+                                          {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                        </span>
+                                      </div>
+                                      {recHistory.length > 0 ? (
+                                        <div className="ml-7 space-y-1">
+                                          {[...recHistory].reverse().map((entry, i) => (
+                                            <div key={i} className="text-xs">
+                                              <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>
+                                                {entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                              </span>
+                                              <span className="text-stone-400 ml-1.5">{formatDate(entry.date)}</span>
+                                              {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
+                                              {entry.by && <span className="text-stone-300 text-[10px] ml-1">({entry.by})</span>}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p className="text-[10px] text-stone-300 ml-7">No logs yet</p>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
                         </td>
                       )
                     })}
