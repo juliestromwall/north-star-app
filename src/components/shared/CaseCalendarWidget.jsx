@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRole } from '@/context/RoleContext'
-import { listCaseEvents, createEvent, deleteEvent, updateEvent } from '@/lib/google'
+import { listCaseEvents, createEvent, deleteEvent, updateEvent, listCalendars } from '@/lib/google'
 import { formatDate } from '@/lib/utils'
 
 function formatTime(dateTimeStr) {
@@ -26,18 +26,33 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
-  const [editEvent, setEditEvent] = useState(null) // event object to edit
+  const [editEvent, setEditEvent] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [calendars, setCalendars] = useState([])
+  const [defaultCalId, setDefaultCalId] = useState('primary')
 
   useEffect(() => {
     if (!caseId || !userId) { setLoading(false); return }
     const now = new Date()
     const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
     const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString()
-    listCaseEvents(userId, caseId, caseType, { timeMin, timeMax, maxResults: 20 })
-      .then(data => setEvents(data.items || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    // Load calendars first to find default, then load events from that calendar
+    listCalendars(userId).catch(() => []).then(cals => {
+      const writable = (cals || []).filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')
+      setCalendars(writable)
+      const apptCal = writable.find(c => c.summary?.toLowerCase() === 'appointments')
+      const calId = apptCal?.id || 'primary'
+      if (apptCal) setDefaultCalId(calId)
+      // Load events from both primary and appointments calendar, dedupe
+      const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 20 })]
+      if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 20 }))
+      return Promise.all(fetches)
+    }).then(results => {
+      const all = results.flatMap(r => r.items || [])
+      const seen = new Set()
+      const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+      setEvents(deduped.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [caseId, userId])
 
   function getCaseUrl() {
@@ -63,7 +78,8 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       },
     }
     try {
-      const created = await createEvent(userId, 'primary', event)
+      const calId = eventData.calendarId || defaultCalId
+      const created = await createEvent(userId, calId, event)
       setEvents(prev => [...prev, created].sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
       setAddOpen(false)
     } catch (err) { alert('Failed to create: ' + err.message) }
@@ -145,7 +161,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
         </div>
       )}
 
-      <AddAppointmentDialog open={addOpen} onOpenChange={setAddOpen} onSave={handleCreate} />
+      <AddAppointmentDialog open={addOpen} onOpenChange={setAddOpen} onSave={handleCreate} calendars={calendars} defaultCalId={defaultCalId} />
       <AddAppointmentDialog
         open={!!editEvent}
         onOpenChange={v => { if (!v) setEditEvent(null) }}
@@ -164,16 +180,16 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   )
 }
 
-function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMode }) {
-  const [form, setForm] = useState({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: false })
+function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMode, calendars = [], defaultCalId = 'primary' }) {
+  const [form, setForm] = useState({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: false, calendarId: defaultCalId })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setForm({ title: initialData.title || '', date: initialData.date || new Date().toISOString().split('T')[0], startTime: initialData.startTime || '09:00', endTime: initialData.endTime || '10:00', description: initialData.description || '', allDay: initialData.allDay || false })
+        setForm({ title: initialData.title || '', date: initialData.date || new Date().toISOString().split('T')[0], startTime: initialData.startTime || '09:00', endTime: initialData.endTime || '10:00', description: initialData.description || '', allDay: initialData.allDay || false, calendarId: defaultCalId })
       } else {
-        setForm({ title: '', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00', description: '', allDay: false })
+        setForm({ title: '', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00', description: '', allDay: false, calendarId: defaultCalId })
       }
     }
   }, [open])
@@ -211,6 +227,16 @@ function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMod
                 <label className="text-[11px] text-stone-400 font-medium">End Time</label>
                 <Input type="time" value={form.endTime} onChange={e => setForm(f => ({ ...f, endTime: e.target.value }))} className="h-9" />
               </div>
+            </div>
+          )}
+          {calendars.length > 1 && !editMode && (
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Calendar</label>
+              <select value={form.calendarId} onChange={e => setForm(f => ({ ...f, calendarId: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                {calendars.map(c => (
+                  <option key={c.id} value={c.id}>{c.summary || c.id}{c.summary?.toLowerCase() === 'appointments' ? ' (default)' : ''}</option>
+                ))}
+              </select>
             </div>
           )}
           <div className="space-y-1">
