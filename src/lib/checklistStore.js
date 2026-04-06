@@ -111,22 +111,29 @@ function ensureDefaults(config) {
         config[userType][stageId] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType][stageId]))
         changed = true
       } else {
-        // Ensure locked steps: if user already has a step with matching label, mark it locked
-        // If not, add the default locked step
+        // Ensure locked steps exist and are marked locked
         const defaultSteps = DEFAULT_CHECKLISTS[userType][stageId]?.steps || []
         const existingSteps = config[userType][stageId].steps || []
         for (const ds of defaultSteps) {
           if (!ds.locked) continue
-          const existing = existingSteps.find(s => s.label?.toLowerCase() === ds.label?.toLowerCase())
+          // Check if step already exists by ID or label
+          const existingById = existingSteps.find(s => s.id === ds.id)
+          const existingByLabel = existingSteps.find(s => s.label?.toLowerCase() === ds.label?.toLowerCase())
+          const existing = existingById || existingByLabel
           if (existing) {
             if (!existing.locked) { existing.locked = true; changed = true }
-          } else if (!existingSteps.some(s => s.id === ds.id)) {
+          } else {
+            // Step is missing — add it at the beginning
             existingSteps.unshift(JSON.parse(JSON.stringify(ds)))
             changed = true
           }
         }
       }
     }
+  }
+  if (changed) {
+    // Force save to Supabase + localStorage so locked steps persist
+    save(config)
   }
   return changed
 }

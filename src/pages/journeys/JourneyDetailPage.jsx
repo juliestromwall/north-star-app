@@ -611,7 +611,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [heartbeatDate, setHeartbeatDate] = useState('')
   const [heartbeatDueDate, setHeartbeatDueDate] = useState('')
   const [heartbeatBabies, setHeartbeatBabies] = useState('1')
-  const [babySexes, setBabySexes] = useState([]) // ['boy', 'girl', 'unknown']
+  const [babySexes, setBabySexes] = useState([])
+  const [babyNames, setBabyNames] = useState([])
   const [babySexOpen, setBabySexOpen] = useState(false)
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
@@ -768,10 +769,14 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <p className="text-sm text-stone-600">
                 Due {formatDate(jd.dueDate)}
                 {jd.babies > 1 ? ` · ${jd.babies} babies` : ''}
-                {jd.babySexes?.length > 0 && (
+                {(jd.babySexes?.length > 0 || jd.babyNames?.length > 0) && (
                   <span className="ml-2">
-                    {jd.babySexes.map((s, i) => s === 'boy' ? '👦' : s === 'girl' ? '👧' : '').filter(Boolean).join(' ')}
-                    {jd.babySexes.every(s => s === 'unknown') && <span className="text-stone-400 text-xs ml-1">(sex unknown)</span>}
+                    {(jd.babyNames || []).map((name, i) => {
+                      const sex = jd.babySexes?.[i]
+                      const emoji = sex === 'boy' ? '👦' : sex === 'girl' ? '👧' : ''
+                      return name ? `${emoji} ${name}` : emoji
+                    }).filter(Boolean).join(', ')}
+                    {(!jd.babyNames?.some(n => n) && jd.babySexes?.every(s => s === 'unknown')) && <span className="text-stone-400 text-xs ml-1">(details unknown)</span>}
                   </span>
                 )}
               </p>
@@ -779,6 +784,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
             <div className="ml-auto flex flex-col items-end gap-1">
               <button onClick={() => {
                 setBabySexes(jd.babySexes || Array(jd.babies || 1).fill('unknown'))
+                setBabyNames(jd.babyNames || Array(jd.babies || 1).fill(''))
                 setBabySexOpen(true)
               }} className="text-[10px] text-[#283693] hover:underline">
                 {jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
@@ -795,16 +801,24 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       <Dialog open={babySexOpen} onOpenChange={setBabySexOpen}>
         <DialogContent className="max-w-xs">
           <DialogHeader><DialogTitle>Baby Details</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {Array.from({ length: jd.babies || 1 }, (_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-sm text-stone-600 w-16">{(jd.babies || 1) > 1 ? `Baby ${i + 1}` : 'Sex'}</span>
-                <select value={babySexes[i] || 'unknown'} onChange={e => { const s = [...babySexes]; s[i] = e.target.value; setBabySexes(s) }}
-                  className="flex-1 h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
-                  <option value="unknown">Unknown</option>
-                  <option value="boy">👦 Boy</option>
-                  <option value="girl">👧 Girl</option>
-                </select>
+              <div key={i} className="space-y-2 pb-3 border-b border-stone-100 last:border-0 last:pb-0">
+                {(jd.babies || 1) > 1 && <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Baby {i + 1}</p>}
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Name</label>
+                  <Input value={babyNames[i] || ''} onChange={e => { const n = [...babyNames]; n[i] = e.target.value; setBabyNames(n) }}
+                    placeholder="Baby's name" className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Sex</label>
+                  <select value={babySexes[i] || 'unknown'} onChange={e => { const s = [...babySexes]; s[i] = e.target.value; setBabySexes(s) }}
+                    className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                    <option value="unknown">Unknown</option>
+                    <option value="boy">👦 Boy</option>
+                    <option value="girl">👧 Girl</option>
+                  </select>
+                </div>
               </div>
             ))}
             <div className="flex gap-2 justify-end pt-2">
@@ -813,8 +827,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                 setSaving(true)
                 const updated = [...transfers]
                 const idx = updated.length - 1
-                if (idx >= 0) updated[idx] = { ...updated[idx], babySexes: [...babySexes] }
-                await onUpdate({ _transfers: updated, babySexes: [...babySexes] })
+                if (idx >= 0) updated[idx] = { ...updated[idx], babySexes: [...babySexes], babyNames: [...babyNames] }
+                await onUpdate({ _transfers: updated, babySexes: [...babySexes], babyNames: [...babyNames] })
                 setBabySexOpen(false)
                 setSaving(false)
               }} disabled={saving}>
