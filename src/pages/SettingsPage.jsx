@@ -559,12 +559,14 @@ const ROLE_BADGE_STYLES = {
 }
 
 function UserManagementSection() {
+  const { currentUser } = useRole()
   const [open, setOpen] = useState(false)
   // Filter out super_admin (developer) from visible list
   const [users, setUsers] = useState(() => mockUsers.filter(u => u.role !== 'super_admin'))
   const [addOpen, setAddOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', role: 'admin' })
+  const [inviteStatus, setInviteStatus] = useState(null) // 'sending' | 'sent' | 'error'
 
   const startAdd = () => {
     setForm({ name: '', email: '', role: 'admin' })
@@ -578,16 +580,29 @@ function UserManagementSection() {
     setAddOpen(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name.trim() || !form.email.trim()) return
     if (editingId) {
       setUsers(prev => prev.map(u => u.id === editingId ? { ...u, name: form.name.trim(), email: form.email.trim(), role: form.role } : u))
+      setAddOpen(false)
+      setEditingId(null)
     } else {
       const newId = 'u' + Date.now()
       setUsers(prev => [...prev, { id: newId, name: form.name.trim(), email: form.email.trim(), role: form.role, active: true }])
+      setAddOpen(false)
+      setEditingId(null)
+      // Send invite email to new admin
+      setInviteStatus('sending')
+      try {
+        const { inviteUser } = await import('@/lib/invite')
+        await inviteUser(currentUser?.id, { email: form.email.trim(), name: form.name.trim(), role: form.role, portalType: 'admin' })
+        setInviteStatus('sent')
+      } catch (err) {
+        console.warn('Invite failed:', err)
+        setInviteStatus('error')
+      }
+      setTimeout(() => setInviteStatus(null), 4000)
     }
-    setAddOpen(false)
-    setEditingId(null)
   }
 
   const toggleActive = (userId) => {

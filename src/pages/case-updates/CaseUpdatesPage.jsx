@@ -161,12 +161,27 @@ function SurrogateUpdatesSheet({ surrogates }) {
     const rt = allTracking[surrogateId] || {}
     const data = rt[stepId] || {}
     const status = data.status || 'not_started'
-    const history = data.history || []
-    const lastEntry = history.length > 0 ? history[history.length - 1] : null
+    const parentHistory = data.history || []
     const prefix = getRecordPrefix(stepLabel)
     let subRecords = []
     if (prefix) subRecords = getSubRecords(surrogateId, prefix)
     const activeRecords = subRecords.filter(r => !r.isExcluded)
+
+    // For record-type steps, merge all sub-record histories into one combined log
+    let history = [...parentHistory]
+    if (prefix) {
+      for (const rec of subRecords) {
+        const recData = rt[rec.id] || {}
+        const recHistory = recData.history || []
+        for (const entry of recHistory) {
+          history.push({ ...entry, _recordLabel: rec.label })
+        }
+      }
+      // Sort by date descending (newest first) then reverse for display
+      history.sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+    }
+
+    const lastEntry = history.length > 0 ? history[history.length - 1] : null
     return { status, lastEntry, history, subRecords, activeRecords, isRecordType: !!prefix, doneCount: activeRecords.filter(r => r.isComplete).length, totalCount: activeRecords.length }
   }
 
@@ -229,11 +244,12 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             {history.length > 0 ? (
                               [...history].reverse().map((entry, i) => (
                                 <div key={i} className="text-xs">
+                                  {entry._recordLabel && <span className="text-[10px] text-stone-400">{entry._recordLabel}: </span>}
                                   <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                  <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>
+                                  <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>
                                     {entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                                   </span>
-                                  {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                  {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[180px]">{entry.note}</p>}
                                 </div>
                               ))
                             ) : (
@@ -265,8 +281,9 @@ function SurrogateUpdatesSheet({ surrogates }) {
                               </div>
                               {[...history].reverse().map((entry, i) => (
                                 <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
+                                  {entry._recordLabel && <p className="text-[9px] text-stone-400 font-semibold">{entry._recordLabel}</p>}
                                   <div className="flex items-center gap-2">
-                                    <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                    <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                                     <span className="text-stone-400">{formatDate(entry.date)}</span>
                                   </div>
                                   {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
