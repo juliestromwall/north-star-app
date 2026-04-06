@@ -337,7 +337,7 @@ export default function SurrogateDetailPage() {
       const recordStatuses = recordKeys.map(k => ({ key: k, status: recordTracking[k]?.status }))
       const allDone = recordKeys.every(k => {
         const st = recordTracking[k]?.status
-        return st === 'complete' || st === 'partial_complete' || st === 'na'
+        return st === 'complete' || st === 'partial_complete' || st === 'na' || st === 'deactivated' || st === 'records_complete'
       })
       const anyStarted = recordKeys.some(k => {
         const st = recordTracking[k]?.status

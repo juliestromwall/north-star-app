@@ -99,7 +99,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
               const data = tracking[step.id] || {}
               const history = data.history || []
               const currentStatus = data.status || 'not_started'
-              const isDeactivated = currentStatus === 'na'
+              const isDeactivated = currentStatus === 'na' || currentStatus === 'deactivated'
               const isComplete = currentStatus === 'complete' || currentStatus === 'partial_complete'
               const lastEntry = history.length > 0 ? history[history.length - 1] : null
               const isExpanded = expandedStep === step.id
