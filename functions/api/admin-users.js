@@ -35,7 +35,7 @@ export async function onRequestGet(context) {
     }
 
     const allUsers = data.users || []
-    const adminRoles = ['super_admin', 'master_admin', 'admin', 'marketing']
+    const adminRoles = ['super_admin', 'master_admin', 'admin']
     const admins = allUsers
       .filter(u => adminRoles.includes(u.user_metadata?.role))
       .map(u => ({

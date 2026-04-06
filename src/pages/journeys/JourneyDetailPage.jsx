@@ -529,7 +529,8 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId 
 }
 
 // ── Pregnancy Tracker ───────────────────────────────────
-const TRANSFER_CALC_DAYS = 266 // embryo transfer + 266 days ≈ due date (38 weeks)
+// Ferring wheel: 5-day embryo transfer + 261 days = 40 weeks gestation
+const TRANSFER_CALC_DAYS = 261
 
 function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
   const jd = journey.journey_data || {}
@@ -539,6 +540,9 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
   const [betaOpen, setBetaOpen] = useState(null) // transfer index
   const [heartbeatOpen, setHeartbeatOpen] = useState(false)
   const [heartbeatDate, setHeartbeatDate] = useState('')
+  const [heartbeatDueDate, setHeartbeatDueDate] = useState('') // manual override
+  const [lossOpen, setLossOpen] = useState(false)
+  const [lossReason, setLossReason] = useState('')
   const [saving, setSaving] = useState(false)
 
   const latestTransfer = transfers.length > 0 ? transfers[transfers.length - 1] : null
@@ -580,16 +584,32 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
     const updated = [...transfers]
     const idx = updated.length - 1
     updated[idx] = { ...updated[idx], heartbeatConfirmed: true, heartbeatDate }
-    // Calculate due date from transfer date + 266 days
-    const transferDate = new Date(updated[idx].date)
-    const dueDate = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000)
-    const dueDateStr = dueDate.toISOString().split('T')[0]
+    // Use manual due date if provided, otherwise calculate from transfer + 261 days (5-day embryo)
+    let dueDateStr = heartbeatDueDate
+    if (!dueDateStr) {
+      const transferDate = new Date(updated[idx].date)
+      const dueDate = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000)
+      dueDateStr = dueDate.toISOString().split('T')[0]
+    }
     await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr })
     setHeartbeatOpen(false)
     setHeartbeatDate('')
+    setHeartbeatDueDate('')
     setSaving(false)
     // Fire confetti!
-    onPregnancyConfirmed()
+    setTimeout(() => onPregnancyConfirmed(), 300)
+  }
+
+  async function handlePregnancyLoss() {
+    if (!lossReason) return
+    setSaving(true)
+    const updated = [...transfers]
+    const idx = updated.length - 1
+    updated[idx] = { ...updated[idx], lossType: lossReason, lossDate: new Date().toISOString().split('T')[0] }
+    await onUpdate({ _transfers: updated, pregnant: 'no', dueDate: null })
+    setLossOpen(false)
+    setLossReason('')
+    setSaving(false)
   }
 
   // Timeline steps
@@ -617,12 +637,17 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <img src="/pregnant-woman.png" alt="Pregnant" className="size-10" />
+            <img src="/pregnant-woman.png" alt="Pregnant" className="size-12" />
             <div>
-              <p className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
-              <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)} <EditableTileInline value={jd.dueDate} onSave={v => onUpdate({ dueDate: v })} type="date" className="text-pink-600 text-xs" placeholder="Edit" /></p>
+              <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
+              <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}</p>
             </div>
-            <Sparkles className="size-5 text-pink-400 ml-auto" />
+            <div className="ml-auto flex items-center gap-2">
+              <Sparkles className="size-5 text-pink-400" />
+              <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors" title="Record pregnancy loss">
+                Loss
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -752,22 +777,57 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><HeartPulse className="size-5 text-pink-500" /> Confirm Heartbeat</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg bg-pink-50 border border-pink-200 p-3">
-              <p className="text-sm text-pink-800">Confirming a heartbeat will mark this journey as <strong>pregnant</strong> and calculate the due date from the transfer date.</p>
+              <p className="text-sm text-pink-800">Confirming a heartbeat will mark this journey as <strong>pregnant</strong>.</p>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Heartbeat Confirmed Date *</label>
               <Input type="date" value={heartbeatDate} onChange={e => setHeartbeatDate(e.target.value)} className="h-9" />
             </div>
-            {heartbeatDate && latestTransfer && (
-              <p className="text-xs text-stone-500">
-                Estimated due date: <strong className="text-pink-600">{formatDate(new Date(new Date(latestTransfer.date).getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0])}</strong>
-              </p>
+            {latestTransfer && (
+              <div className="rounded-lg bg-stone-50 border border-stone-200 p-3 space-y-2">
+                <p className="text-xs text-stone-500">
+                  Calculated due date (5-day embryo): <strong className="text-pink-600">{formatDate(new Date(new Date(latestTransfer.date).getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0])}</strong>
+                </p>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Override due date (optional)</label>
+                  <Input type="date" value={heartbeatDueDate} onChange={e => setHeartbeatDueDate(e.target.value)} className="h-9" placeholder="Leave blank to use calculated date" />
+                </div>
+              </div>
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setHeartbeatOpen(false)}>Cancel</Button>
               <Button size="sm" disabled={saving || !heartbeatDate} className="gap-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={handleHeartbeat}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <HeartPulse className="size-3" />}
                 Confirm Heartbeat
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pregnancy Loss Dialog */}
+      <Dialog open={lossOpen} onOpenChange={setLossOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600">Record Pregnancy Loss</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+              <p className="text-sm text-red-800">This will clear the pregnancy status for this journey.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Type *</label>
+              <select value={lossReason} onChange={e => setLossReason(e.target.value)} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                <option value="">Select...</option>
+                <option value="miscarriage">Miscarriage</option>
+                <option value="ectopic">Ectopic Pregnancy</option>
+                <option value="chemical">Chemical Pregnancy</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setLossOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={saving || !lossReason} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                Record Loss
               </Button>
             </div>
           </div>
@@ -1480,12 +1540,9 @@ export default function JourneyDetailPage() {
                     </div>
                   )}
                 </div>
-                {/* Pregnancy indicator in status bar */}
-                {jd.pregnant === 'yes' && jd.dueDate && (
-                  <div className="flex items-center gap-2 ml-1">
-                    <img src="/pregnant-woman.png" alt="Pregnant" className="size-6 inline-block mr-1" />
-                    <span className="text-2xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
-                  </div>
+                {/* Pregnancy indicator — just the icon, details in tracker below */}
+                {jd.pregnant === 'yes' && (
+                  <img src="/pregnant-woman.png" alt="Pregnant" className="size-8 ml-1" title={`${calcGestationalWeeks(jd.dueDate) || ''} — Due ${formatDate(jd.dueDate)}`} />
                 )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
