@@ -556,7 +556,7 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId 
 // Ferring wheel: 5-day embryo transfer + 261 days = 40 weeks gestation
 const TRANSFER_CALC_DAYS = 261
 
-function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
+function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusChange }) {
   const jd = journey.journey_data || {}
   const transfers = jd._transfers || []
   const [addOpen, setAddOpen] = useState(false)
@@ -656,6 +656,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       dueDateStr = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
     await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: parseInt(heartbeatBabies) || 1 })
+    if (onStatusChange) await onStatusChange('Active Pregnancy')
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1')
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
@@ -1717,6 +1718,10 @@ export default function JourneyDetailPage() {
             <PregnancyTracker
               journey={journey}
               onUpdate={async (fields) => { await updateFields(fields) }}
+              onStatusChange={async (status) => {
+                const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)
+                if (updated) setJourney(updated)
+              }}
               onPregnancyConfirmed={() => {
                 setShowConfetti(true)
                 setTimeout(() => fireConfetti({
