@@ -313,14 +313,12 @@ export default function SurrogateDetailPage() {
   }
 
   // Map medical record prefixes to checklist step label patterns
-  const RECORD_PREFIXES = ['ob_records_', 'delivery_records_', 'ivf_records_']
-  const PREFIX_LABELS = { 'ob_records_': 'ob records', 'delivery_records_': 'delivery records', 'ivf_records_': 'ivf records' }
+  const RECORD_PREFIXES = ['ob_records_', 'delivery_records_', 'ivf_records_', 'pap_']
+  const PREFIX_LABELS = { 'ob_records_': 'ob records', 'delivery_records_': 'delivery records', 'ivf_records_': 'ivf records', 'pap_': 'pap' }
 
   // Auto-update ALL record-type checklist steps whenever tracking changes
-  const autoUpdateRan = useRef(false)
   useEffect(() => {
-    // Skip the very first render (initial load from Supabase)
-    if (!autoUpdateRan.current) { autoUpdateRan.current = true; return }
+    if (Object.keys(recordTracking).length === 0) return
 
     const screeningSteps = getChecklistSteps('gc', 'screening')
     let needsUpdate = false
