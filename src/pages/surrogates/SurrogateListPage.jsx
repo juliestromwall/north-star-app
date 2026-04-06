@@ -24,11 +24,9 @@ import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, f
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { mockUsers } from '@/data/mock/users'
+import { getAdminStaff } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys } from '@/lib/matching'
-
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
@@ -44,7 +42,7 @@ function formatPhone(value) {
 }
 
 function getAdminName(email) {
-  const user = ADMIN_STAFF.find(u => u.email === email)
+  const user = getAdminStaff().find(u => u.email === email)
   return user ? user.name : email
 }
 
@@ -289,7 +287,7 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
                   <SelectItem value="_unassigned">
                     <span className="text-muted-foreground">Unassigned</span>
                   </SelectItem>
-                  {ADMIN_STAFF.map(admin => (
+                  {getAdminStaff().map(admin => (
                     <SelectItem key={admin.email} value={admin.email}>
                       {admin.name}
                     </SelectItem>
@@ -485,7 +483,7 @@ export default function SurrogateListPage() {
             <SelectItem value="mine">My Cases ({myCaseCount})</SelectItem>
             {canSeeAll && <SelectItem value="all">All Cases ({surrogates.length})</SelectItem>}
             <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
-            {canSeeAll && ADMIN_STAFF.map(admin => (
+            {canSeeAll && getAdminStaff().map(admin => (
               <SelectItem key={admin.email} value={admin.email}>
                 {admin.name} ({surrogates.filter(s => s.assignedTo === admin.email).length})
               </SelectItem>

@@ -8,9 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useRole } from '@/context/RoleContext'
 import { fetchCaseTasks, createCaseTask, updateCaseTask, deleteCaseTask } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
-import { mockUsers } from '@/data/mock/users'
-
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+import { getAdminStaff } from '@/data/mock/users'
 
 const STATUSES = [
   { value: 'open', label: 'Open', icon: Circle, color: 'text-stone-400' },
@@ -149,7 +147,7 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
       </div>
       {expanded && (
         <div className="mt-2 pl-6 space-y-2 text-xs">
-          {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{ADMIN_STAFF.find(a => a.email === task.assigned_to)?.name || task.assigned_to}</span></p>}
+          {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{getAdminStaff().find(a => a.email === task.assigned_to)?.name || task.assigned_to}</span></p>}
           {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by}</span></p>}
           {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by} on {formatDate(task.completed_at)}</span></p>}
           {editing ? (
@@ -227,7 +225,7 @@ function AddTaskDialog({ open, onOpenChange, onSave, currentUser }) {
             <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
             <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
               <option value="">Unassigned</option>
-              {ADMIN_STAFF.map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+              {getAdminStaff().map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
             </select>
           </div>
           <div className="flex gap-2 justify-end pt-2">
@@ -418,7 +416,7 @@ function DashboardAddTaskDialog({ open, onOpenChange, onSave, currentUser, cases
             <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
             <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
               <option value="">Unassigned</option>
-              {ADMIN_STAFF.map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+              {getAdminStaff().map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
             </select>
           </div>
           <div className="flex gap-2 justify-end pt-2">

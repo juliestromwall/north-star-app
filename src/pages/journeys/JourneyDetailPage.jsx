@@ -37,11 +37,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
-import { mockUsers } from '@/data/mock/users'
+import { getAdminStaff } from '@/data/mock/users'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
-const JOURNEY_MANAGERS = ADMIN_STAFF.filter(u => ['Julie Allgood', 'Nicole Lawson'].includes(u.name))
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
 // ── Currency with cents ─────────────────────────────────
@@ -547,8 +545,10 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
 
   const latestTransfer = transfers.length > 0 ? transfers[transfers.length - 1] : null
   const isPregnant = jd.pregnant === 'yes'
-  const hasPositiveBeta = latestTransfer?.betaResult === 'positive'
-  const hasHeartbeat = latestTransfer?.heartbeatConfirmed
+  const isLatestClosed = latestTransfer?.lossType || latestTransfer?.unsuccessful || latestTransfer?.betaResult === 'negative'
+  const hasActiveTransfer = latestTransfer && !isLatestClosed
+  const hasPositiveBeta = hasActiveTransfer && latestTransfer?.betaResult === 'positive'
+  const hasHeartbeat = hasActiveTransfer && latestTransfer?.heartbeatConfirmed
 
   async function handleAddTransfer() {
     if (!transferForm.date) return
@@ -612,9 +612,9 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
     setSaving(false)
   }
 
-  // Timeline steps
+  // Timeline steps — only reflect the latest active (non-closed) transfer
   const steps = [
-    { key: 'transfer', label: 'Embryo Transfer', done: transfers.length > 0 && latestTransfer },
+    { key: 'transfer', label: 'Embryo Transfer', done: hasActiveTransfer },
     { key: 'beta', label: 'Beta HCG', done: hasPositiveBeta },
     { key: 'heartbeat', label: 'Heartbeat', done: hasHeartbeat },
     { key: 'pregnant', label: 'Pregnant!', done: isPregnant },
@@ -626,7 +626,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
         <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
           <HeartPulse className="size-3" /> Pregnancy Tracker
         </p>
-        {!latestTransfer && (
+        {(!latestTransfer || isLatestClosed) && !isPregnant && (
           <Button size="sm" variant="outline" className="text-xs gap-1 h-7" onClick={() => setAddOpen(true)}>
             <Plus className="size-3" /> Log Embryo Transfer
           </Button>
@@ -682,8 +682,10 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {/* Transfer history */}
       {transfers.length > 0 && (
         <div className="space-y-2">
-          {transfers.map((t, i) => (
-            <div key={i} className={`rounded-lg border p-3 text-sm ${t.betaResult === 'negative' ? 'border-stone-200 bg-stone-50 opacity-60' : t.heartbeatConfirmed ? 'border-pink-200 bg-pink-50/30' : 'border-stone-200'}`}>
+          {transfers.map((t, i) => {
+            const isClosed = t.lossType || t.unsuccessful || t.betaResult === 'negative'
+            return (
+            <div key={i} className={`rounded-lg border p-3 text-sm ${isClosed ? 'border-stone-200 bg-stone-50 opacity-60' : t.heartbeatConfirmed ? 'border-pink-200 bg-pink-50/30' : 'border-stone-200'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-stone-700">Transfer #{i + 1}</span>
@@ -694,32 +696,43 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
                   {t.betaResult === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Beta +</span>}
                   {t.betaResult === 'negative' && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Beta −</span>}
                   {t.heartbeatConfirmed && <span className="text-[10px] font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full flex items-center gap-0.5"><HeartPulse className="size-2.5" /> Heartbeat</span>}
+                  {t.unsuccessful && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Unsuccessful</span>}
+                  {t.lossType && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t.lossType === 'miscarriage' ? 'Miscarriage' : t.lossType === 'ectopic' ? 'Ectopic' : t.lossType === 'chemical' ? 'Chemical' : 'Loss'}</span>}
                 </div>
               </div>
               {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
+              {t.lossType && <p className="text-xs text-red-400 mt-1">Transfer resulted in {t.lossType === 'miscarriage' ? 'a miscarriage' : t.lossType === 'ectopic' ? 'an ectopic pregnancy' : t.lossType === 'chemical' ? 'a chemical pregnancy' : 'a loss'} ({formatDate(t.lossDate)})</p>}
+              {t.unsuccessful && <p className="text-xs text-red-400 mt-1">Transfer was unsuccessful</p>}
 
-              {/* Action buttons for latest transfer */}
-              {i === transfers.length - 1 && (
+              {/* Action buttons for latest active transfer only */}
+              {i === transfers.length - 1 && !isClosed && (
                 <div className="flex gap-2 mt-2">
                   {!t.betaResult && (
-                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setBetaOpen(i)}>
-                      Log Beta Results
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setBetaOpen(i)}>
+                        Log Beta Results
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-500 hover:bg-red-50" onClick={async () => {
+                        setSaving(true)
+                        const updated = [...transfers]
+                        updated[i] = { ...updated[i], unsuccessful: true }
+                        await onUpdate({ _transfers: updated })
+                        setSaving(false)
+                      }}>
+                        Mark Unsuccessful
+                      </Button>
+                    </>
                   )}
                   {t.betaResult === 'positive' && !t.heartbeatConfirmed && (
                     <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => setHeartbeatOpen(true)}>
                       <HeartPulse className="size-3" /> Confirm Heartbeat
                     </Button>
                   )}
-                  {t.betaResult === 'negative' && (
-                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setAddOpen(true)}>
-                      <Plus className="size-3" /> Log New Transfer
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
@@ -1632,7 +1645,7 @@ export default function JourneyDetailPage() {
                   <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {ADMIN_STAFF.map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
+                    {getAdminStaff().map(a => <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>)}
                   </SelectContentUI>
                 </SelectUI>
               </div>
@@ -1645,7 +1658,7 @@ export default function JourneyDetailPage() {
                   <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {JOURNEY_MANAGERS.map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
+                    {getAdminStaff().map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
                   </SelectContentUI>
                 </SelectUI>
               </div>

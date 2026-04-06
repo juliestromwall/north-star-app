@@ -72,7 +72,6 @@ export function MilestoneProgress({ caseId, stageId, recordTracking }) {
   )
 }
 
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 const IP_STAGES = SURROGATE_STAGES.map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
 
 const US_STATES = [
@@ -103,8 +102,7 @@ export const TYPE_STYLES = {
 export function IPTileCard({ ip, stageStatus, recordTracking }) {
   const ss = stageStatus || { stage: 'pre-qualification', status: 'New' }
   const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
-  const ADMIN_STAFF_LOCAL = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
-  const assignedAdmin = ip.assignedTo ? ADMIN_STAFF_LOCAL.find(a => a.email === ip.assignedTo)?.name : null
+  const assignedAdmin = ip.assignedTo ? getAdminStaff().find(a => a.email === ip.assignedTo)?.name : null
   return (
     <Link to={`/intended-parents/${ip.id}`}>
       <Card className="transition-shadow hover:shadow-md h-full relative">
@@ -328,7 +326,7 @@ export default function IPListPage() {
             <SelectItem value="mine">My Cases ({myCaseCount})</SelectItem>
             {canSeeAll && <SelectItem value="all">All Cases ({ips.length})</SelectItem>}
             <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
-            {canSeeAll && ADMIN_STAFF.map(admin => (
+            {canSeeAll && getAdminStaff().map(admin => (
               <SelectItem key={admin.email} value={admin.email}>
                 {admin.name} ({ips.filter(ip => ip.assignedTo === admin.email).length})
               </SelectItem>
@@ -379,7 +377,7 @@ export default function IPListPage() {
           {filtered.map(ip => {
             const ss = allStageStatuses[ip.id] || { stage: 'pre-qualification', status: 'New' }
             const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
-            const assignedAdmin = ip.assignedTo ? ADMIN_STAFF.find(a => a.email === ip.assignedTo)?.name : null
+            const assignedAdmin = ip.assignedTo ? getAdminStaff().find(a => a.email === ip.assignedTo)?.name : null
             return (
             <Link key={ip.id} to={`/intended-parents/${ip.id}`}>
               <Card className="transition-shadow hover:shadow-md h-full relative">

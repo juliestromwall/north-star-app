@@ -21,7 +21,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
-import { mockUsers } from '@/data/mock/users'
+import { getAdminStaff } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
@@ -33,8 +33,6 @@ import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
-
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 function boolLabel(val, yesText = 'Yes', noText = 'No') {
   if (val === true || val === 'yes' || val === 'Yes') return yesText
@@ -173,7 +171,7 @@ export default function IPDetailPage() {
                   </SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {ADMIN_STAFF.map(s => (
+                    {getAdminStaff().map(s => (
                       <SelectItemUI key={s.email} value={s.email}>{s.name}</SelectItemUI>
                     ))}
                   </SelectContentUI>

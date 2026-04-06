@@ -13,7 +13,7 @@ import { createDocument, sendDocument, updateDocument } from '@/lib/esign'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { fetchMatchedJourney } from '@/lib/matching'
-import { mockUsers } from '@/data/mock/users'
+import { getAdminStaff } from '@/data/mock/users'
 import {
   exportDocAsPdf, getDocPlainText, getDocAsHtml, parseFieldPlaceholders,
   shareDocPublicly, getAccessToken, sendEmail,
@@ -30,7 +30,7 @@ export default function EditDocumentPage() {
   const prefillCaseId = searchParams.get('caseId') || ''
   const prefillJourneyId = searchParams.get('journeyId') || ''
 
-  const adminUsers = mockUsers.filter(u => u.role === 'master_admin' || u.role === 'admin')
+  const adminUsers = getAdminStaff()
 
   const [docTitle, setDocTitle] = useState('')
   const [loading, setLoading] = useState(true)

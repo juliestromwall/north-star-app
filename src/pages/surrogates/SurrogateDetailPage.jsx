@@ -50,10 +50,8 @@ import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@d
 import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
-import { mockUsers } from '@/data/mock/users'
+import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
-
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 
 // ── GTPAL ──────────────────────────────────────────────────
 function getGTPAL(profileData) {
@@ -456,7 +454,7 @@ export default function SurrogateDetailPage() {
                   </SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {ADMIN_STAFF.map(a => (
+                    {getAdminStaff().map(a => (
                       <SelectItemUI key={a.email} value={a.email}>{a.name}</SelectItemUI>
                     ))}
                   </SelectContentUI>

@@ -14,9 +14,7 @@ import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getChecklistMilestones } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
-import { mockUsers } from '@/data/mock/users'
-
-const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+import { getAdminStaff } from '@/data/mock/users'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
 
@@ -90,7 +88,7 @@ export function JourneyTileCard({ j }) {
           </div>
           <div className="flex items-center gap-3 text-[10px] text-stone-400">
             {j.assigned_to && (
-              <span className="flex items-center gap-0.5"><UserCog className="size-2.5" />{ADMIN_STAFF.find(a => a.email === j.assigned_to)?.name || '—'}</span>
+              <span className="flex items-center gap-0.5"><UserCog className="size-2.5" />{getAdminStaff().find(a => a.email === j.assigned_to)?.name || '—'}</span>
             )}
             {j.journey_data?.journeyManager && (
               <span className="flex items-center gap-0.5"><Crown className="size-2.5 text-amber-500" />{j.journey_data.journeyManager}</span>
@@ -216,7 +214,7 @@ export default function MatchedJourneysPage() {
             <SelectItem value="mine">My Journeys ({myCaseCount})</SelectItem>
             {canSeeAll && <SelectItem value="all">All Journeys ({enriched.length})</SelectItem>}
             <SelectItem value="unassigned">Unassigned ({unassignedCount})</SelectItem>
-            {canSeeAll && ADMIN_STAFF.map(admin => (
+            {canSeeAll && getAdminStaff().map(admin => (
               <SelectItem key={admin.email} value={admin.email}>
                 {admin.name} ({enriched.filter(j => j.assigned_to === admin.email).length})
               </SelectItem>

@@ -8,7 +8,7 @@ import {
 } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
-import { mockUsers } from '@/data/mock/users'
+import { mockUsers, getAdminStaff } from '@/data/mock/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -374,7 +374,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
                 <div className="flex justify-between items-center"><span className="text-stone-500">Assign To</span>
                   <select value={aiData.assigned_to || ''} onChange={e => setAiData(d => ({ ...d, assigned_to: e.target.value }))} className="text-right font-medium bg-transparent border-b border-dashed border-orange-300 outline-none">
                     <option value="">Unassigned</option>
-                    {mockUsers.filter(u => ['super_admin','master_admin','admin'].includes(u.role)).map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+                    {getAdminStaff().map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
                   </select>
                 </div>
                 <div className="flex justify-between items-center"><span className="text-stone-500">Priority</span>
