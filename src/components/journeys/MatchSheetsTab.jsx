@@ -738,15 +738,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       } else if (activeSheet === 'escrow') {
         // Escrow: To = SeedTrust, CC = IPs
         const ipEmails = [ipCase?.email, ipCase?.ip2Email].filter(Boolean).join(', ')
-        const body = `<p>Hi ${ip1First}${ip2First ? ' & ' + ip2First : ''},</p>
-<br/>
-<p>Now that you have started with legal contracts, we can begin escrow and get your account funded.</p>
-<br/>
-<p>SeedTrust is very easy to use for all involved, and they keep great records and give you access to your escrow portal so that you are able to view your account and keep close track of the account.</p>
-<br/>
-<p>Your escrow management team will be reaching out to get you all set up.</p>
-<br/>
-<p>Please let me know if you have any questions.</p>`
+        const body = `<p>Hi ${ip1First}${ip2First ? ' & ' + ip2First : ''},</p><p>Now that you have started with legal contracts, we can begin escrow and get your account funded.</p><p>SeedTrust is very easy to use for all involved, and they keep great records and give you access to your escrow portal so that you are able to view your account and keep close track of the account.</p><p>Your escrow management team will be reaching out to get you all set up.</p><p>Please let me know if you have any questions.</p>`
         openDraft({
           to: 'info@seedtrustescrow.com',
           cc: ipEmails,
@@ -761,15 +753,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         // Clinic: To = 3rd party coordinator
         const coordinatorEmail = jd.ivfCoordinatorEmail || ''
         const subjectLabel = ip2Name ? `Intended Parents: ${ip1Name} & ${ip2Name}` : `Intended Parent: ${ip1Name}`
-        const body = `<p>Hello,</p>
-<br/>
-<p>My name is ${adminName}, and I am the Case Manager working with IP's: ${ipNames} and GS: ${gcName}. I am looking forward to working with you all on this case.</p>
-<br/>
-<p>Attached, please find the Match Sheet. If you need anything else to proceed please let me know.</p>
-<br/>
-<p>Please let me know when you anticipate being able to bring her in for a medical evaluation.</p>
-<br/>
-<p>If you could let me know what your medical evaluation process includes that would be great. For the group psych eval, are you fine using one of our therapists? I have attached ${gcName?.split(' ')[0] || 'the surrogate'}'s Psych Report.</p>`
+        const body = `<p>Hello,</p><p>My name is ${adminName}, and I am the Case Manager working with IP's: ${ipNames} and GS: ${gcName}. I am looking forward to working with you all on this case.</p><p>Attached, please find the Match Sheet. If you need anything else to proceed please let me know.</p><p>Please let me know when you anticipate being able to bring her in for a medical evaluation.</p><p>If you could let me know what your medical evaluation process includes that would be great. For the group psych eval, are you fine using one of our therapists? I have attached ${gcName?.split(' ')[0] || 'the surrogate'}'s Psych Report.</p>`
         openDraft({
           to: coordinatorEmail,
           subject: `Match Sheet for ${subjectLabel} with Surrogate: ${gcName}`,
