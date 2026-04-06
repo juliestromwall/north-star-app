@@ -280,9 +280,6 @@
 }
 
 /* Tiptap editor paragraph spacing */
-.ProseMirror p {
-  margin-bottom: 0.75em;
-}
-.ProseMirror p:last-child {
-  margin-bottom: 0;
+.ProseMirror p + p {
+  margin-top: 1em !important;
 }
