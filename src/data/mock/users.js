@@ -8,12 +8,15 @@ export async function loadAdminUsers() {
   try {
     const res = await fetch('/api/admin-users')
     const data = await res.json()
-    if (Array.isArray(data) && data.length > 0) {
+    const users = Array.isArray(data) ? data : (data.users || data)
+    if (Array.isArray(users) && users.length > 0) {
       mockUsers.length = 0
-      for (const u of data) mockUsers.push(u)
+      for (const u of users) mockUsers.push(u)
+    } else {
+      console.warn('No admin users returned from API:', data)
     }
-  } catch {
-    // Keep fallback
+  } catch (err) {
+    console.warn('Failed to load admin users:', err)
   }
   return mockUsers
 }

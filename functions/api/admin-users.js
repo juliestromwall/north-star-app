@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify([]), {
+    return new Response(JSON.stringify({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY', users: [] }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
@@ -28,8 +28,15 @@ export async function onRequestGet(context) {
     })
     const data = await res.json()
 
+    if (!res.ok) {
+      return new Response(JSON.stringify({ error: data.msg || data.message || 'Auth API error', status: res.status, users: [] }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    const allUsers = data.users || []
     const adminRoles = ['super_admin', 'master_admin', 'admin', 'marketing']
-    const admins = (data.users || [])
+    const admins = allUsers
       .filter(u => adminRoles.includes(u.user_metadata?.role))
       .map(u => ({
         id: u.id,
@@ -43,8 +50,8 @@ export async function onRequestGet(context) {
     return new Response(JSON.stringify(admins), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
-  } catch {
-    return new Response(JSON.stringify([]), {
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message, users: [] }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
