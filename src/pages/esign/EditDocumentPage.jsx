@@ -142,8 +142,8 @@ export default function EditDocumentPage() {
 
   // PDF download
   async function handleDownloadPdf() {
-    if (!googleDocId || !userId) return
-    const docId = googleDocId
+    if (!userId) return
+    const docId = workingDocId || googleDocId
     setDownloading(true)
     try {
       const blob = await exportDocAsPdf(userId, docId)
@@ -194,13 +194,14 @@ export default function EditDocumentPage() {
   }
 
   async function handleSend() {
-    if (!googleDocId || !userId || sendForm.signers.length === 0) return
+    const editDocId = workingDocId || googleDocId
+    if (!editDocId || !userId || sendForm.signers.length === 0) return
     setSending(true)
     try {
       // 1. Export the edited copy as PDF and store in Supabase
       let pdfPath = null
       try {
-        const pdfBlob = await exportDocAsPdf(userId, googleDocId)
+        const pdfBlob = await exportDocAsPdf(userId, editDocId)
         pdfPath = `documents/sent_${Date.now()}.pdf`
         if (supabase) {
           try {
@@ -226,8 +227,8 @@ export default function EditDocumentPage() {
       let docHtml = ''
       let fields = []
       try {
-        docHtml = await getDocAsHtml(userId, googleDocId)
-        const plainText = await getDocPlainText(userId, googleDocId)
+        docHtml = await getDocAsHtml(userId, editDocId)
+        const plainText = await getDocPlainText(userId, editDocId)
         fields = parseFieldPlaceholders(plainText)
       } catch (e) { console.error('HTML/field export failed:', e) }
 
@@ -260,7 +261,8 @@ export default function EditDocumentPage() {
       if (doc) {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
-            templateDocId: googleDocId,
+            templateDocId: googleDocId, // original template
+            workingDocId: editDocId, // edited copy
             adminUserId: userId,
             fields,
             pdfPath,
@@ -350,10 +352,10 @@ export default function EditDocumentPage() {
           </Button>
           <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={async () => {
             setShowSend(true)
-            if (requiredRoles.length === 0 && googleDocId && userId) {
+            if (requiredRoles.length === 0 && (workingDocId || googleDocId) && userId) {
               setLoadingRoles(true)
               try {
-                const plainText = await getDocPlainText(userId, googleDocId)
+                const plainText = await getDocPlainText(userId, workingDocId || googleDocId)
                 const fields = parseFieldPlaceholders(plainText)
                 const roleMap = { gc: 'Surrogate', ip1: 'Intended Parent 1', ip2: 'Intended Parent 2', admin: 'Admin', partner: 'Partner', parnter: 'Partner' }
                 const roles = [...new Set(fields.map(f => roleMap[f.role] || f.role))]
@@ -381,7 +383,7 @@ export default function EditDocumentPage() {
           </div>
         ) : (
           <iframe
-            src={`https://docs.google.com/document/d/${googleDocId}/edit`}
+            src={`https://docs.google.com/document/d/${workingDocId || googleDocId}/edit`}
             className="w-full flex-1 border-0"
             title={docTitle}
           />
