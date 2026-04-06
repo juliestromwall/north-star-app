@@ -765,9 +765,24 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
             <span className="text-5xl">🤰</span>
             <div>
               <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
-              <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}{jd.babies > 1 ? ` · ${jd.babies} babies` : ''}</p>
+              <p className="text-sm text-stone-600">
+                Due {formatDate(jd.dueDate)}
+                {jd.babies > 1 ? ` · ${jd.babies} babies` : ''}
+                {jd.babySexes?.length > 0 && (
+                  <span className="ml-2">
+                    {jd.babySexes.map((s, i) => s === 'boy' ? '👦' : s === 'girl' ? '👧' : '').filter(Boolean).join(' ')}
+                    {jd.babySexes.every(s => s === 'unknown') && <span className="text-stone-400 text-xs ml-1">(sex unknown)</span>}
+                  </span>
+                )}
+              </p>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex flex-col items-end gap-1">
+              <button onClick={() => {
+                setBabySexes(jd.babySexes || Array(jd.babies || 1).fill('unknown'))
+                setBabySexOpen(true)
+              }} className="text-[10px] text-[#283693] hover:underline">
+                {jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
+              </button>
               <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
                 Record Loss
               </button>
@@ -775,6 +790,41 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
           </div>
         </div>
       )}
+
+      {/* Baby Sex Edit Dialog */}
+      <Dialog open={babySexOpen} onOpenChange={setBabySexOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader><DialogTitle>Baby Details</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {Array.from({ length: jd.babies || 1 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-sm text-stone-600 w-16">{(jd.babies || 1) > 1 ? `Baby ${i + 1}` : 'Sex'}</span>
+                <select value={babySexes[i] || 'unknown'} onChange={e => { const s = [...babySexes]; s[i] = e.target.value; setBabySexes(s) }}
+                  className="flex-1 h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                  <option value="unknown">Unknown</option>
+                  <option value="boy">👦 Boy</option>
+                  <option value="girl">👧 Girl</option>
+                </select>
+              </div>
+            ))}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setBabySexOpen(false)}>Cancel</Button>
+              <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={async () => {
+                setSaving(true)
+                const updated = [...transfers]
+                const idx = updated.length - 1
+                if (idx >= 0) updated[idx] = { ...updated[idx], babySexes: [...babySexes] }
+                await onUpdate({ _transfers: updated, babySexes: [...babySexes] })
+                setBabySexOpen(false)
+                setSaving(false)
+              }} disabled={saving}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Timeline */}
       <div className="flex items-center gap-0 mb-4">
