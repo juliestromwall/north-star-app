@@ -308,13 +308,14 @@ export default function SurrogateDetailPage() {
     }
   }, [recordTracking, id])
 
+  const lastUpdatedRecord = useRef(null)
+
   function updateRecord(recordId, updates) {
     setRecordTracking(prev => {
       const next = { ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }
-      // Auto-update checklist steps based on medical record completion
-      autoUpdateChecklistFromRecords(recordId, next)
       return next
     })
+    lastUpdatedRecord.current = recordId
   }
 
   // Map record prefixes to checklist step IDs
@@ -325,8 +326,12 @@ export default function SurrogateDetailPage() {
     'pap_': 'pap',
   }
 
-  function autoUpdateChecklistFromRecords(recordId, allTracking) {
-    // Find which record type was updated
+  // Auto-update checklist steps when medical records change
+  useEffect(() => {
+    const recordId = lastUpdatedRecord.current
+    if (!recordId) return
+    lastUpdatedRecord.current = null
+
     let prefix = null
     let checklistStepId = null
     for (const [p, stepId] of Object.entries(RECORD_TO_CHECKLIST)) {
@@ -334,35 +339,30 @@ export default function SurrogateDetailPage() {
     }
     if (!prefix || !checklistStepId) return
 
-    // Find all records with this prefix
-    const recordKeys = Object.keys(allTracking).filter(k => k.startsWith(prefix))
+    const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
     if (recordKeys.length === 0) return
 
-    // Check if ALL are complete or deactivated
     const allDone = recordKeys.every(k => {
-      const st = allTracking[k]?.status
+      const st = recordTracking[k]?.status
       return st === 'complete' || st === 'partial_complete' || st === 'na'
     })
-    // Check if ANY have been started
     const anyStarted = recordKeys.some(k => {
-      const st = allTracking[k]?.status
+      const st = recordTracking[k]?.status
       return st && st !== 'not_started'
     })
 
-    // Get current checklist step status
-    const currentChecklistStatus = allTracking[checklistStepId]?.status || 'not_started'
+    const currentChecklistStatus = recordTracking[checklistStepId]?.status || 'not_started'
 
-    // Auto-update: if all done → complete, if any started → in_progress
     if (allDone && currentChecklistStatus !== 'complete') {
       const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
-      const history = [...(allTracking[checklistStepId]?.history || []), entry]
+      const history = [...(recordTracking[checklistStepId]?.history || []), entry]
       setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'complete', history } }))
-    } else if (anyStarted && !allDone && currentChecklistStatus === 'not_started') {
+    } else if (anyStarted && !allDone && (currentChecklistStatus === 'not_started' || currentChecklistStatus === undefined)) {
       const entry = { status: 'in_progress', date: new Date().toISOString().split('T')[0], note: 'Auto-updated: records in progress', by: 'System' }
-      const history = [...(allTracking[checklistStepId]?.history || []), entry]
+      const history = [...(recordTracking[checklistStepId]?.history || []), entry]
       setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'in_progress', history } }))
     }
-  }
+  }, [recordTracking])
 
   useEffect(() => {
     // Check if this case is matched — redirect to journey
