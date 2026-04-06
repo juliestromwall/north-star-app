@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
-import { listEvents } from '@/lib/google'
+import { getAccessToken } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -77,9 +77,16 @@ export default function AdminDashboard() {
         const now = new Date()
         const timeMin = now.toISOString()
         const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        listEvents(userId, { timeMin, timeMax, maxResults: 10 })
-          .then(data => setEvents(data?.items || []))
-          .catch(() => {})
+        // Only show app-created appointments (tagged with abcCase=true)
+        getAccessToken(userId).then(token => {
+          const params = new URLSearchParams({
+            maxResults: '20', singleEvents: 'true', orderBy: 'startTime',
+            timeMin, timeMax, privateExtendedProperty: 'abcCase=true',
+          })
+          fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then(r => r.json()).then(data => setEvents(data?.items || [])).catch(() => {})
+        }).catch(() => {})
       }
     } catch {}
 
