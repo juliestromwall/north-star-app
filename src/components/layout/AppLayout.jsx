@@ -35,7 +35,7 @@ export default function AppLayout() {
           <TopBar onMenuClick={() => setSidebarOpen(true)} />
           <main className="flex-1 overflow-auto">
             <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-              <Outlet />
+              {adminLoaded ? <Outlet /> : <div className="text-center py-12 text-stone-400 text-sm">Loading...</div>}
             </div>
           </main>
         </div>
