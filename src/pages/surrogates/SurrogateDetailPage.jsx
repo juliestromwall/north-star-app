@@ -318,12 +318,22 @@ export default function SurrogateDetailPage() {
     lastUpdatedRecord.current = recordId
   }
 
-  // Map record prefixes to checklist step IDs
-  const RECORD_TO_CHECKLIST = {
-    'ob_records_': 'ob_records',
-    'delivery_records_': 'delivery_records',
-    'ivf_records_': 'ivf_records',
-    'pap_': 'pap',
+  // Map medical record prefixes to checklist step label patterns
+  const RECORD_PREFIX_TO_LABEL = {
+    'ob_records_': 'ob records',
+    'delivery_records_': 'delivery records',
+    'ivf_records_': 'ivf records',
+  }
+
+  // Find the checklist step ID by matching label (handles user-created steps with timestamp IDs)
+  function findChecklistStepId(prefix) {
+    const labelMatch = RECORD_PREFIX_TO_LABEL[prefix]
+    if (!labelMatch) return null
+    // Check all tracking keys and also check the checklist config
+    // Medical record steps are always in screening stage
+    const steps = getChecklistSteps('gc', 'screening')
+    const match = steps.find(s => s.label?.toLowerCase().includes(labelMatch) || s.id === labelMatch.replace(/\s/g, '_'))
+    return match?.id || labelMatch.replace(/\s/g, '_')
   }
 
   // Auto-update checklist steps when medical records change
@@ -333,11 +343,12 @@ export default function SurrogateDetailPage() {
     lastUpdatedRecord.current = null
 
     let prefix = null
-    let checklistStepId = null
-    for (const [p, stepId] of Object.entries(RECORD_TO_CHECKLIST)) {
-      if (recordId.startsWith(p)) { prefix = p; checklistStepId = stepId; break }
+    for (const p of Object.keys(RECORD_PREFIX_TO_LABEL)) {
+      if (recordId.startsWith(p)) { prefix = p; break }
     }
-    if (!prefix || !checklistStepId) return
+    if (!prefix) return
+    const checklistStepId = findChecklistStepId(prefix)
+    if (!checklistStepId) return
 
     const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
     if (recordKeys.length === 0) return
