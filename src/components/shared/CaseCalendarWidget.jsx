@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, CalendarDays, Clock, Trash2, Loader2 } from 'lucide-react'
+import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRole } from '@/context/RoleContext'
-import { listCaseEvents, createEvent, deleteEvent } from '@/lib/google'
+import { listCaseEvents, createEvent, deleteEvent, updateEvent } from '@/lib/google'
 import { formatDate } from '@/lib/utils'
 
 function formatTime(dateTimeStr) {
@@ -26,6 +26,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
+  const [editEvent, setEditEvent] = useState(null) // event object to edit
   const [deleting, setDeleting] = useState(null)
 
   useEffect(() => {
@@ -77,6 +78,22 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     finally { setDeleting(null) }
   }
 
+  async function handleEdit(eventData) {
+    if (!editEvent) return
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const updates = {
+      summary: `${eventData.title} — ${caseName || ''}`,
+      description: editEvent.description || '',
+      start: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.startTime}:00`, timeZone: tz },
+      end: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.endTime || eventData.startTime}:00`, timeZone: tz },
+    }
+    try {
+      const updated = await updateEvent(userId, 'primary', editEvent.id, updates)
+      setEvents(prev => prev.map(e => e.id === editEvent.id ? updated : e).sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
+      setEditEvent(null)
+    } catch (err) { alert('Failed to update: ' + err.message) }
+  }
+
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading appointments...</div>
 
   return (
@@ -116,9 +133,12 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
                     {today && <span className="text-[#283693] font-semibold">Today</span>}
                   </div>
                 </div>
-                <button onClick={() => handleDelete(event.id)} className="text-stone-300 hover:text-red-500 shrink-0" disabled={deleting === event.id}>
-                  {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-                </button>
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => setEditEvent(event)} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
+                  <button onClick={() => handleDelete(event.id)} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
+                    {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                  </button>
+                </div>
               </div>
             )
           })}
@@ -126,16 +146,36 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       )}
 
       <AddAppointmentDialog open={addOpen} onOpenChange={setAddOpen} onSave={handleCreate} />
+      <AddAppointmentDialog
+        open={!!editEvent}
+        onOpenChange={v => { if (!v) setEditEvent(null) }}
+        onSave={handleEdit}
+        initialData={editEvent ? {
+          title: (editEvent.summary?.includes(' — ') ? editEvent.summary.split(' — ')[0] : editEvent.summary) || '',
+          date: (editEvent.start?.dateTime || editEvent.start?.date || '').slice(0, 10),
+          startTime: editEvent.start?.dateTime ? new Date(editEvent.start.dateTime).toTimeString().slice(0, 5) : '09:00',
+          endTime: editEvent.end?.dateTime ? new Date(editEvent.end.dateTime).toTimeString().slice(0, 5) : '10:00',
+          description: editEvent.description || '',
+          allDay: !!editEvent.start?.date && !editEvent.start?.dateTime,
+        } : null}
+        editMode
+      />
     </div>
   )
 }
 
-function AddAppointmentDialog({ open, onOpenChange, onSave }) {
+function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMode }) {
   const [form, setForm] = useState({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: false })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (open) setForm({ title: '', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00', description: '', allDay: false })
+    if (open) {
+      if (initialData) {
+        setForm({ title: initialData.title || '', date: initialData.date || new Date().toISOString().split('T')[0], startTime: initialData.startTime || '09:00', endTime: initialData.endTime || '10:00', description: initialData.description || '', allDay: initialData.allDay || false })
+      } else {
+        setForm({ title: '', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00', description: '', allDay: false })
+      }
+    }
   }, [open])
 
   async function handleSave() {
@@ -147,7 +187,7 @@ function AddAppointmentDialog({ open, onOpenChange, onSave }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Appointment</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{editMode ? 'Edit Appointment' : 'Add Appointment'}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1">
             <label className="text-[11px] text-stone-400 font-medium">Title *</label>
@@ -181,7 +221,7 @@ function AddAppointmentDialog({ open, onOpenChange, onSave }) {
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.date}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <CalendarDays className="size-3" />}
-              {saving ? 'Adding...' : 'Add Appointment'}
+              {saving ? 'Saving...' : editMode ? 'Save Changes' : 'Add Appointment'}
             </Button>
           </div>
         </div>
