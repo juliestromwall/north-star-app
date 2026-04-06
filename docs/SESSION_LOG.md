@@ -1,5 +1,49 @@
 # Session Log
 
+## 2026-04-06 (Continued — E-Sign Templates, Email Templates, Calendar Picker, Dashboard Fix)
+
+**Worked on:** E-sign template preservation, email templates with auto-welcome, calendar picker for multiple calendars, dashboard appointment fixes
+
+**Changes made:**
+
+E-Signature Template Preservation:
+- Copies template into "ABC Drafts" folder before editing (original untouched)
+- Draft auto-deleted from Google Drive after successful send
+- Added getOrCreateDraftsFolder() + deleteGoogleDriveFile() helpers
+- ABC Drafts folder hidden from template list (separate from ABC Templates)
+
+Email Templates:
+- /api/welcome-email Cloudflare Function: auto-sends branded welcome to qualified surrogates
+- Creates portal account + includes "Set Up Your Portal Password" button
+- Triggered automatically on quiz qualification (non-blocking)
+- Uses Resend API (needs RESEND_API_KEY + domain verification)
+- 5 templates: GC Welcome, GC Screening Scheduled, GC Profile Reminder, IP Welcome, Match Introduction
+- emailTemplates.js: template definitions + mergeTemplate() for field replacement
+- "Send Template" button on case Emails tab → pick template → preview → Open in Compose
+
+Calendar Picker:
+- Loads user's writable Google Calendars
+- Auto-defaults to "Appointments" calendar if exists
+- Calendar dropdown when creating appointments
+- Events fetched from both primary + Appointments calendar, deduped
+
+Dashboard Appointments Fix:
+- Searches both primary + Appointments calendar (was only primary)
+- Shows from start of today (not yesterday)
+- Shows case name as clickable link on each appointment
+
+**Next steps:**
+- Set up Resend: add RESEND_API_KEY to Cloudflare, verify abcsurrogacy.com domain
+- Add email preview page for testing templates
+- More email templates as needed
+- Consider adding "Preview" button to Send Template dialog
+
+**Open questions:**
+- Resend vs Gmail API for welcome emails (Resend chosen for branded from address)
+- Should auto-welcome also trigger for IPs?
+
+---
+
 ## 2026-04-06 (Email UI, Compose Fix, Auto-Logout, Personal Tasks, Pregnancy Tracker Polish)
 
 **Worked on:** Email compose case selector fix, CaseEmailsTab improvements, auto-logout on inactivity, personal dashboard tasks, pregnancy tracker refinements, login routing

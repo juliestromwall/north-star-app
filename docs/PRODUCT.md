@@ -108,6 +108,21 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 5. Admin users loaded dynamically from Supabase Auth (no hardcoded list)
 6. Only admin/master_admin roles shown in assignment dropdowns
 
+### Email Templates
+1. Auto-welcome email sent to qualified surrogates on quiz completion (via Resend API)
+2. Welcome email includes: ABC branding, next steps, portal setup button
+3. Portal account auto-created with password reset link
+4. "Send Template" button on case Emails tab for manual template sending
+5. Templates: GC Welcome, GC Screening, GC Profile Reminder, IP Welcome, Match Intro
+6. Merge fields: {{first_name}}, {{full_name}}, {{case_manager}}
+7. Preview with merged fields before sending via compose
+
+### E-Signature Template Preservation
+1. Editing a template creates a copy in "ABC Drafts" folder (original untouched)
+2. All edits happen on the draft copy
+3. Draft auto-deleted after successful send
+4. ABC Drafts folder separate from ABC Templates (not shown in template list)
+
 ### E-Signature Security
 1. Each document gets a unique 64-char hex signing_token on creation
 2. Signing URLs use /e-signature/sign/:token (unguessable, no sequential IDs)
