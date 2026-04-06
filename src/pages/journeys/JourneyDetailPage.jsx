@@ -230,6 +230,32 @@ function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }
 const fmtDate = formatDate
 
 // ── IVF Clinic Icon (matches match sheets) ─────────────
+function PregnancyIcon({ size = 48, className = '' }) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 100 100" fill="none">
+      <defs>
+        <linearGradient id="bellyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8BC53F" />
+          <stop offset="20%" stopColor="#29ABE2" />
+          <stop offset="45%" stopColor="#ed148c" />
+          <stop offset="70%" stopColor="#F7941D" />
+          <stop offset="100%" stopColor="#FFC107" />
+        </linearGradient>
+      </defs>
+      {/* Pregnant belly side profile — flowing line art */}
+      <path
+        d="M58 8 C56 6, 52 8, 50 14 C48 20, 46 22, 42 24 C38 26, 34 26, 30 30 C26 34, 22 42, 20 50 C18 58, 20 68, 26 76 C32 84, 40 90, 48 92 C56 94, 60 90, 62 86"
+        stroke="url(#bellyGrad)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* Back line */}
+      <path
+        d="M62 8 C64 6, 68 8, 70 14 C72 20, 74 30, 74 40 C74 50, 72 62, 68 72 C64 82, 62 86, 62 86"
+        stroke="url(#bellyGrad)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function EmbryoIcon({ size = 14, color = '#000', className = '' }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -637,7 +663,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <img src="/pregnant-woman.png" alt="Pregnant" className="h-16 w-auto rounded-lg" />
+            <PregnancyIcon size={56} />
             <div>
               <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
               <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}</p>

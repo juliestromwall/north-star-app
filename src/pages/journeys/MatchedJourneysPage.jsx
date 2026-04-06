@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown, Circle, Clock, CheckCircle, UserCog } from 'lucide-react'
+import { Heart, Search, LayoutGrid, List as ListIcon, ArrowRight, MapPin, Users, Crown, Circle, Clock, CheckCircle, UserCog, HeartPulse } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
 import { Button } from '@/components/ui/button'
@@ -77,7 +77,7 @@ export function JourneyTileCard({ j }) {
           <div className="flex flex-wrap items-center gap-2 text-[10px]">
             {j.journey_data?.pregnant === 'yes' && (
               <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
-                <img src="/pregnant-woman.png" alt="" className="h-5 w-auto inline-block rounded-sm" /> {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
+                <HeartPulse className="size-3.5 inline-block" /> {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
               </span>
             )}
             {j.journey_data?.escrowBalance && (
