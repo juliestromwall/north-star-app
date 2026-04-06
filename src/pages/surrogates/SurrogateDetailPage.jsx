@@ -327,11 +327,12 @@ export default function SurrogateDetailPage() {
     for (const prefix of RECORD_PREFIXES) {
       const labelMatch = PREFIX_LABELS[prefix]
       const step = screeningSteps.find(s => s.label?.toLowerCase().includes(labelMatch))
-      if (!step) continue
+      if (!step) { console.log('[AutoUpdate] No checklist step found for', labelMatch, '— available:', screeningSteps.map(s => s.label)); continue }
 
       const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
       if (recordKeys.length === 0) continue
 
+      const recordStatuses = recordKeys.map(k => ({ key: k, status: recordTracking[k]?.status }))
       const allDone = recordKeys.every(k => {
         const st = recordTracking[k]?.status
         return st === 'complete' || st === 'partial_complete' || st === 'na'
@@ -341,6 +342,7 @@ export default function SurrogateDetailPage() {
         return st && st !== 'not_started'
       })
       const current = recordTracking[step.id]?.status || 'not_started'
+      console.log(`[AutoUpdate] ${prefix}: step=${step.id} (${step.label}), current=${current}, allDone=${allDone}, anyStarted=${anyStarted}, records=`, recordStatuses)
 
       if (allDone && current !== 'complete') {
         const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
