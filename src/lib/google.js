@@ -438,6 +438,34 @@ export async function getOrCreateTemplatesFolder(userId) {
   return folder.id
 }
 
+/** Find or create the "ABC Drafts" folder in Drive (for temporary editing copies) */
+export async function getOrCreateDraftsFolder(userId) {
+  const token = await getAccessToken(userId)
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("name='ABC Drafts' and mimeType='application/vnd.google-apps.folder' and trashed=false")}&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const searchData = await searchRes.json()
+  if (searchData.files?.length > 0) return searchData.files[0].id
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: 'ABC Drafts', mimeType: 'application/vnd.google-apps.folder' }),
+  })
+  const folder = await createRes.json()
+  if (!createRes.ok) throw new Error(folder.error?.message || 'Failed to create drafts folder')
+  return folder.id
+}
+
+/** Delete a Google Drive file */
+export async function deleteGoogleDriveFile(userId, fileId) {
+  const token = await getAccessToken(userId)
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 /** Create a new Google Doc in the templates folder */
 export async function createGoogleDoc(userId, title, folderId) {
   const token = await getAccessToken(userId)

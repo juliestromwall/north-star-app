@@ -17,6 +17,7 @@ import { getAdminStaff } from '@/data/mock/users'
 import {
   exportDocAsPdf, getDocPlainText, getDocAsHtml, parseFieldPlaceholders,
   shareDocPublicly, getAccessToken, sendEmail, copyGoogleDoc,
+  getOrCreateDraftsFolder, deleteGoogleDriveFile,
 } from '@/lib/google'
 
 export default function EditDocumentPage() {
@@ -78,10 +79,11 @@ export default function EditDocumentPage() {
         }
         setDocTitle(meta.name || 'Untitled')
 
-        // Copy the template so edits don't affect the original
+        // Copy the template into ABC Drafts folder so edits don't affect the original
         let editDocId = googleDocId
         try {
-          const copy = await copyGoogleDoc(userId, googleDocId, `[Draft] ${meta.name || 'Document'}`)
+          const draftsFolderId = await getOrCreateDraftsFolder(userId)
+          const copy = await copyGoogleDoc(userId, googleDocId, `[Draft] ${meta.name || 'Document'}`, draftsFolderId)
           if (copy?.id) editDocId = copy.id
         } catch (e) {
           console.warn('Copy failed, editing original:', e.message)
@@ -313,6 +315,10 @@ export default function EditDocumentPage() {
         }
       }
 
+      // Clean up draft copy from Google Drive
+      if (workingDocId && workingDocId !== googleDocId) {
+        deleteGoogleDriveFile(userId, workingDocId).catch(() => {})
+      }
       navigate('/e-signature')
     } catch (err) {
       alert('Failed to send: ' + (err.message || 'Unknown error'))
