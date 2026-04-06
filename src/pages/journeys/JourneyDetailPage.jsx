@@ -637,7 +637,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <img src="/pregnant-woman.png" alt="Pregnant" className="size-12" />
+            <img src="/pregnant-woman.png" alt="Pregnant" className="h-16 w-auto rounded-lg" />
             <div>
               <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
               <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}</p>
@@ -684,8 +684,21 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
         <div className="space-y-2">
           {transfers.map((t, i) => {
             const isClosed = t.lossType || t.unsuccessful || t.betaResult === 'negative'
+            const isOld = isClosed && i < transfers.length - 1
             return (
-            <div key={i} className={`rounded-lg border p-3 text-sm ${isClosed ? 'border-stone-200 bg-stone-50 opacity-60' : t.heartbeatConfirmed ? 'border-pink-200 bg-pink-50/30' : 'border-stone-200'}`}>
+            <div key={i} className={`rounded-lg border text-sm ${isClosed ? 'border-stone-200 bg-stone-50 opacity-60' : t.heartbeatConfirmed ? 'border-pink-200 bg-pink-50/30 p-3' : 'border-stone-200 p-3'} ${isOld ? 'px-3 py-2' : isClosed ? 'p-3' : ''}`}>
+              {/* Collapsed view for old closed transfers */}
+              {isOld ? (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-stone-500">Transfer #{i + 1} — {formatDate(t.date)}</span>
+                  <div className="flex items-center gap-1.5">
+                    {t.betaResult === 'negative' && <span className="text-[10px] font-semibold text-red-500">Beta −</span>}
+                    {t.unsuccessful && <span className="text-[10px] font-semibold text-red-500">Unsuccessful</span>}
+                    {t.lossType && <span className="text-[10px] font-semibold text-red-500">{t.lossType === 'miscarriage' ? 'Miscarriage' : t.lossType === 'ectopic' ? 'Ectopic' : t.lossType === 'chemical' ? 'Chemical' : 'Loss'}</span>}
+                  </div>
+                </div>
+              ) : (
+              <>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-stone-700">Transfer #{i + 1}</span>
@@ -729,6 +742,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
                     </Button>
                   )}
                 </div>
+              )}
+              </>
               )}
             </div>
             )
@@ -1555,7 +1570,7 @@ export default function JourneyDetailPage() {
                 </div>
                 {/* Pregnancy indicator — just the icon, details in tracker below */}
                 {jd.pregnant === 'yes' && (
-                  <img src="/pregnant-woman.png" alt="Pregnant" className="size-8 ml-1" title={`${calcGestationalWeeks(jd.dueDate) || ''} — Due ${formatDate(jd.dueDate)}`} />
+                  <img src="/pregnant-woman.png" alt="Pregnant" className="h-10 w-auto rounded ml-1" title={`${calcGestationalWeeks(jd.dueDate) || ''} — Due ${formatDate(jd.dueDate)}`} />
                 )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -1600,7 +1615,7 @@ export default function JourneyDetailPage() {
             <PregnancyTracker
               journey={journey}
               onUpdate={async (fields) => { await updateFields(fields) }}
-              onPregnancyConfirmed={() => { setShowConfetti(true); fireConfetti() }}
+              onPregnancyConfirmed={() => { setShowConfetti(true); setTimeout(() => fireConfetti(), 500) }}
             />
 
             {/* ── Providers (clickable to edit via modal) ── */}

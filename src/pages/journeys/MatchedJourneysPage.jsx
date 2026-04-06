@@ -77,7 +77,7 @@ export function JourneyTileCard({ j }) {
           <div className="flex flex-wrap items-center gap-2 text-[10px]">
             {j.journey_data?.pregnant === 'yes' && (
               <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
-                <img src="/pregnant-woman.png" alt="" className="size-4 inline-block" /> {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
+                <img src="/pregnant-woman.png" alt="" className="h-5 w-auto inline-block rounded-sm" /> {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
               </span>
             )}
             {j.journey_data?.escrowBalance && (
