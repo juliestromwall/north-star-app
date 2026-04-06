@@ -141,7 +141,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       </div>
                     </td>
                     <td className="px-3 py-3.5">
-                      {(step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
+                      {(step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
                         <span className="text-sm font-medium text-stone-800">{currentStatus}</span>
                       ) : (
                         <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
@@ -201,6 +201,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                           <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
                             <option value="">Select...</option>
                             {step.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            <option value="complete">✓ Complete</option>
                             <option value="na">N/A (Deactivate)</option>
                           </select>
                         ) : (
@@ -218,8 +219,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Save</button>
-                          {step.logType === 'text' && currentStatus !== 'na' && (
-                            <button onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
+                          {(step.logType === 'text') && currentStatus !== 'na' && currentStatus !== 'complete' && (
+                            <>
+                              <button onClick={() => { setLogStatus('complete'); setLogNote(logNote || logStatus); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
+                              <button onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
+                            </>
                           )}
                           <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
                         </div>
