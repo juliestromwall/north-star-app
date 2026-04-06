@@ -4,7 +4,7 @@ import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles,
+  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -35,7 +35,7 @@ import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJou
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
@@ -549,6 +549,46 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId 
         )}
       </td>
     </tr>
+  )
+}
+
+// ── Journey Case Sticky Note (shared across all users) ──
+function JourneyCaseNote({ journeyId, caseKey }) {
+  const [note, setNote] = useState('')
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const configKey = `journey_note_${journeyId}_${caseKey}`
+
+  useEffect(() => {
+    getAppConfig(configKey).then(val => {
+      if (val) setNote(val)
+      setLoaded(true)
+    }).catch(() => setLoaded(true))
+  }, [configKey])
+
+  useEffect(() => {
+    if (!loaded) return
+    const timer = setTimeout(() => {
+      setAppConfig(configKey, note).catch(() => {})
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [note, loaded])
+
+  return (
+    <div className="mt-2 pt-2 border-t border-stone-100">
+      <div className="flex items-center gap-1 mb-1">
+        <StickyNote className="size-3 text-stone-300" />
+        <span className="text-[10px] text-stone-400 font-medium">Quick Note</span>
+        {saving && <Loader2 className="size-2.5 animate-spin text-stone-300" />}
+      </div>
+      <textarea
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder="Add a quick note..."
+        className="w-full text-xs text-stone-600 bg-yellow-50/50 rounded-lg border border-stone-100 px-2.5 py-1.5 resize-none focus:outline-none focus:border-stone-300 min-h-[40px]"
+        rows={2}
+      />
+    </div>
   )
 }
 
@@ -1380,10 +1420,10 @@ function AttorneyRow({ prefix, data, onSaveBatch, onEmail, color = 'pink' }) {
   }
 
   return (
-    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-stone-500">
-      <Scale className="size-3 text-stone-400" />
-      <button onClick={startEdit} className="font-medium text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
-      {firm && <><span className="text-stone-300">·</span> <span>{firm}</span></>}
+    <div className="mt-1.5 flex items-center gap-2 text-xs text-stone-500">
+      <Scale className="size-3.5 text-stone-400" />
+      <button onClick={startEdit} className="font-semibold text-stone-700 hover:text-[#283693] hover:underline cursor-pointer">{name}</button>
+      {firm && <><span className="text-stone-300">·</span> <span className="font-medium">{firm}</span></>}
       {email && (
         <button
           className={`inline-flex items-center gap-1 rounded-full text-[10px] h-5 px-2 ml-1 border border-stone-200 text-stone-500 transition-all cursor-pointer ${color === 'indigo' ? 'hover:bg-[#283693] hover:border-[#283693] hover:text-white' : 'hover:bg-[#ed148c] hover:border-[#ed148c] hover:text-white'}`}
@@ -1956,15 +1996,12 @@ export default function JourneyDetailPage() {
                     </div>
                   </div>
                 </div>
-                {gcInsurance?.has_insurance && gcInsurance.status === 'active' && (
-                  <div className="text-xs text-emerald-600">
-                    <InsuranceCardIcon size={13} color="currentColor" className="inline mr-1" /> {gcInsurance.company || 'Insured'}
-                  </div>
-                )}
                 <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
               </>)
             })() : <p className="text-xs text-stone-400">GC not found</p>}
+            {/* GC Sticky Note */}
+            <JourneyCaseNote journeyId={journey.id} caseKey="gc" />
           </div>
         </div>
 
@@ -2037,6 +2074,8 @@ export default function JourneyDetailPage() {
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
               </>)
             })() : <p className="text-xs text-stone-400">IP not found</p>}
+            {/* IP Sticky Note */}
+            <JourneyCaseNote journeyId={journey.id} caseKey="ip" />
           </div>
         </div>
 
