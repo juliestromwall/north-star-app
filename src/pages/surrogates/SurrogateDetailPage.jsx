@@ -2661,7 +2661,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   async function saveSectionEdit() {
-    if (!surrogate.email || !editingSection) return
+    if (!editingSection) return
+    if (!surrogate.email) {
+      alert('Cannot save: this surrogate has no email address. Please add an email in the Contact/Quiz section first.')
+      return
+    }
     setSaving(true)
     try {
       const updated = { ...data, [editingSection.key]: editData }
@@ -2685,7 +2689,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         }
       }
       setEditingSection(null)
-    } catch {} finally { setSaving(false) }
+    } catch (err) {
+      console.error('Failed to save profile section:', err)
+      alert('Failed to save: ' + (err.message || 'Unknown error'))
+    } finally { setSaving(false) }
   }
 
   async function toggleApproval() {
