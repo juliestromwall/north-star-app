@@ -207,16 +207,22 @@ function ComposeWindow({ draft, index }) {
     if (cases) return
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys().catch(() => [])])
       .then(([gcs, ips, journeys]) => {
+        // Build GC/IP name lookups for journey labels
+        const gcMap = {}
+        for (const g of (gcs || [])) gcMap[g.id] = g.name
+        const ipMap = {}
+        for (const ip of (ips || [])) ipMap[ip.id] = ip.names
+
         const allCases = [
-          { id: '_none', name: '', label: 'None' },
-          ...(gcs || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'gc', label: `GC: ${c.applicant_name}` })),
-          ...(ips || []).map(c => ({ id: c.id, name: c.applicant_name, type: 'ip', label: `IP: ${c.applicant_name}` })),
-          ...(journeys || []).map(j => ({ id: j.id, name: `Journey #${j.id}`, type: 'journey', label: `Journey #${j.id}` })),
-        ].sort((a, b) => {
-          if (!a.id) return -1
-          if (!b.id) return 1
-          return String(a.name).localeCompare(String(b.name))
-        })
+          { id: '_none', name: '', label: 'None', group: '' },
+          ...(journeys || []).map(j => {
+            const gcName = gcMap[j.gc_case_id] || 'GC'
+            const ipName = ipMap[j.ip_case_id] || 'IP'
+            return { id: j.id, name: `${ipName} + ${gcName}`, type: 'journey', label: `${ipName} + ${gcName}`, group: 'Journeys' }
+          }),
+          ...(gcs || []).map(c => ({ id: c.id, name: c.name || '?', type: 'gc', label: c.name || '?', group: 'Surrogates' })),
+          ...(ips || []).map(c => ({ id: c.id, name: c.names || '?', type: 'ip', label: c.names || '?', group: 'Intended Parents' })),
+        ]
         setCases(allCases)
       })
       .catch(() => setCases([]))
@@ -503,7 +509,7 @@ function ComposeWindow({ draft, index }) {
               onValueChange={v => updateDraft(draft.id, { caseId: v === '_none' ? '' : v })}
               onOpenChange={loadCases}
             >
-              <SelectTrigger className="h-7 text-xs w-[140px] border-dashed">
+              <SelectTrigger className="h-7 text-xs w-[180px] border-dashed">
                 <SelectValue placeholder="Log to case..." />
               </SelectTrigger>
               <SelectContent>
@@ -512,9 +518,33 @@ function ComposeWindow({ draft, index }) {
                     <Loader2 className="size-3 animate-spin" /> Loading...
                   </div>
                 ) : (
-                  cases.map(c => (
-                    <SelectItem key={c.id || 'none'} value={String(c.id)}>{c.label}</SelectItem>
-                  ))
+                  <>
+                    <SelectItem value="_none">None</SelectItem>
+                    {cases.filter(c => c.group === 'Journeys').length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Journeys</div>
+                        {cases.filter(c => c.group === 'Journeys').map(c => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                    {cases.filter(c => c.group === 'Surrogates').length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Surrogates</div>
+                        {cases.filter(c => c.group === 'Surrogates').map(c => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                    {cases.filter(c => c.group === 'Intended Parents').length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Intended Parents</div>
+                        {cases.filter(c => c.group === 'Intended Parents').map(c => (
+                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
+                        ))}
+                      </>
+                    )}
+                  </>
                 )}
               </SelectContent>
             </Select>
