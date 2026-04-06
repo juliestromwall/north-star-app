@@ -670,6 +670,11 @@ function UserManagementSection() {
               </tbody>
             </table>
           </div>
+          {inviteStatus && (
+            <p className={`text-xs font-medium mt-2 ${inviteStatus === 'sent' ? 'text-emerald-600' : inviteStatus === 'error' ? 'text-red-500' : 'text-stone-400'}`}>
+              {inviteStatus === 'sending' ? 'Sending invite email...' : inviteStatus === 'sent' ? 'Invite email sent!' : 'Failed to send invite email'}
+            </p>
+          )}
         </div>
       </CollapsibleContent>
 
