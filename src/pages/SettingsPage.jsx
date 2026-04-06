@@ -258,8 +258,14 @@ function SortableStepRow({ step, onEdit, onDelete }) {
               )}
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions((step.options || []).join(', ')); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
-              <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
+              {step.locked ? (
+                <span className="text-[9px] text-stone-400 font-medium px-1.5 py-0.5 rounded bg-stone-100">🔒 Locked</span>
+              ) : (
+                <>
+                  <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions((step.options || []).join(', ')); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
+                  <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
+                </>
+              )}
             </div>
           </>
         )}

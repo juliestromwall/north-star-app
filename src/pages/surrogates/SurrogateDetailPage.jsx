@@ -82,13 +82,16 @@ const SCREENING_COLORS = { cleared: 'text-emerald-500', pending: 'text-amber-500
 // ── Medical Records statuses ──
 const MEDICAL_RECORD_STATUSES = [
   { id: 'not_started', label: 'Not Started' },
-  { id: 'requested', label: 'Requested' },
-  { id: 'request_received', label: 'Request Received' },
-  { id: 'followed_up', label: 'Follow Up' },
-  { id: 'received', label: 'Received' },
-  { id: 'reviewed', label: 'Reviewed' },
-  { id: 'complete', label: 'Complete' },
-  { id: 'na', label: 'Deactivated' },
+  { id: 'faxed_request', label: 'Faxed Request' },
+  { id: 'refaxed_request', label: 'Refaxed Request' },
+  { id: 'confirmed_fax_received', label: 'Confirmed Fax Received' },
+  { id: 'followed_up', label: 'Followed Up' },
+  { id: 'records_sent_mail', label: 'Records Sent by Mail' },
+  { id: 'partial_received', label: 'Partial Records Received' },
+  { id: 'partial_complete', label: 'Partial Records Complete' },
+  { id: 'records_received', label: 'Records Received' },
+  { id: 'complete', label: 'Records Complete' },
+  { id: 'na', label: 'N/A (Deactivate)' },
 ]
 
 // ── Screening step statuses ──
@@ -306,10 +309,59 @@ export default function SurrogateDetailPage() {
   }, [recordTracking, id])
 
   function updateRecord(recordId, updates) {
-    setRecordTracking(prev => ({
-      ...prev,
-      [recordId]: { ...(prev[recordId] || {}), ...updates }
-    }))
+    setRecordTracking(prev => {
+      const next = { ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }
+      // Auto-update checklist steps based on medical record completion
+      autoUpdateChecklistFromRecords(recordId, next)
+      return next
+    })
+  }
+
+  // Map record prefixes to checklist step IDs
+  const RECORD_TO_CHECKLIST = {
+    'ob_records_': 'ob_records',
+    'delivery_records_': 'delivery_records',
+    'ivf_records_': 'ivf_records',
+    'pap_': 'pap',
+  }
+
+  function autoUpdateChecklistFromRecords(recordId, allTracking) {
+    // Find which record type was updated
+    let prefix = null
+    let checklistStepId = null
+    for (const [p, stepId] of Object.entries(RECORD_TO_CHECKLIST)) {
+      if (recordId.startsWith(p)) { prefix = p; checklistStepId = stepId; break }
+    }
+    if (!prefix || !checklistStepId) return
+
+    // Find all records with this prefix
+    const recordKeys = Object.keys(allTracking).filter(k => k.startsWith(prefix))
+    if (recordKeys.length === 0) return
+
+    // Check if ALL are complete or deactivated
+    const allDone = recordKeys.every(k => {
+      const st = allTracking[k]?.status
+      return st === 'complete' || st === 'partial_complete' || st === 'na'
+    })
+    // Check if ANY have been started
+    const anyStarted = recordKeys.some(k => {
+      const st = allTracking[k]?.status
+      return st && st !== 'not_started'
+    })
+
+    // Get current checklist step status
+    const currentChecklistStatus = allTracking[checklistStepId]?.status || 'not_started'
+
+    // Auto-update: if all done → complete, if any started → in_progress
+    if (allDone && currentChecklistStatus !== 'complete') {
+      const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
+      const history = [...(allTracking[checklistStepId]?.history || []), entry]
+      setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'complete', history } }))
+    } else if (anyStarted && !allDone && currentChecklistStatus === 'not_started') {
+      const entry = { status: 'in_progress', date: new Date().toISOString().split('T')[0], note: 'Auto-updated: records in progress', by: 'System' }
+      const history = [...(allTracking[checklistStepId]?.history || []), entry]
+      setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'in_progress', history } }))
+    }
   }
 
   useEffect(() => {

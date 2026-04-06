@@ -14,16 +14,10 @@ let _cache = null
 // Default step statuses available for all checklists
 export const CHECKLIST_STEP_STATUSES = [
   { id: 'not_started', label: 'Not Started' },
-  { id: 'scheduled', label: 'Scheduled' },
-  { id: 'waiting_surrogate', label: 'Waiting on Surrogate' },
-  { id: 'waiting_provider', label: 'Waiting on Provider' },
+  { id: 'requested', label: 'Requested' },
   { id: 'in_progress', label: 'In Progress' },
-  { id: 'followed_up', label: 'Follow Up' },
-  { id: 'needs_review', label: 'Needs Review' },
-  { id: 'under_review', label: 'Under Review' },
-  { id: 'incomplete_resubmit', label: 'Incomplete — Needs Resubmission' },
   { id: 'complete', label: 'Complete' },
-  { id: 'na', label: 'N/A' },
+  { id: 'na', label: 'N/A (Deactivate)' },
 ]
 
 // Default checklists seeded on first load
@@ -42,6 +36,10 @@ const DEFAULT_CHECKLISTS = {
     },
     'screening': {
       steps: [
+        { id: 'ob_records', label: 'OB Records', locked: true },
+        { id: 'delivery_records', label: 'Delivery Records', locked: true },
+        { id: 'ivf_records', label: 'IVF Records', locked: true },
+        { id: 'pap', label: 'PAP', locked: true },
         { id: 'background_check', label: 'Background Check' },
         { id: 'psych_screening', label: 'Psych Screening' },
         { id: 'mitera', label: 'Mitera' },
@@ -267,11 +265,13 @@ export function editChecklistStep(userType, stageId, stepId, updates) {
   save(config)
 }
 
-/** Delete a step (also removes from any milestones) */
+/** Delete a step (also removes from any milestones). Locked steps cannot be deleted. */
 export function deleteChecklistStep(userType, stageId, stepId) {
   const config = getChecklistConfig()
   const stageData = config[userType]?.[stageId]
   if (!stageData) return
+  const step = stageData.steps.find(s => s.id === stepId)
+  if (step?.locked) return // Cannot delete locked steps
   stageData.steps = stageData.steps.filter(s => s.id !== stepId)
   for (const ms of stageData.milestones || []) {
     ms.stepIds = ms.stepIds.filter(id => id !== stepId)

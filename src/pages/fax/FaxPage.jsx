@@ -60,12 +60,15 @@ const STATUS_STYLES = {
 }
 
 const MEDICAL_RECORD_STATUSES = [
-  { id: 'requested', label: 'Requested' },
-  { id: 'request_received', label: 'Request Received' },
-  { id: 'followed_up', label: 'Follow Up' },
-  { id: 'received', label: 'Received' },
-  { id: 'reviewed', label: 'Reviewed' },
-  { id: 'complete', label: 'Complete' },
+  { id: 'faxed_request', label: 'Faxed Request' },
+  { id: 'refaxed_request', label: 'Refaxed Request' },
+  { id: 'confirmed_fax_received', label: 'Confirmed Fax Received' },
+  { id: 'followed_up', label: 'Followed Up' },
+  { id: 'records_sent_mail', label: 'Records Sent by Mail' },
+  { id: 'partial_received', label: 'Partial Records Received' },
+  { id: 'partial_complete', label: 'Partial Records Complete' },
+  { id: 'records_received', label: 'Records Received' },
+  { id: 'complete', label: 'Records Complete' },
 ]
 
 // ── Shared Case Selector Hook ───────────────────────────

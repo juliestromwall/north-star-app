@@ -60,13 +60,14 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   }
 
   function statusColor(statusId) {
-    if (statusId === 'complete') return 'text-green-600 bg-green-50 border-green-200'
+    if (statusId === 'complete' || statusId === 'partial_complete') return 'text-green-600 bg-green-50 border-green-200'
     if (statusId === 'na') return 'text-stone-400 bg-stone-100 border-stone-300 italic'
     if (statusId === 'not_started') return 'text-stone-400 bg-stone-50 border-stone-200'
-    if (statusId === 'received' || statusId === 'reviewed') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
+    if (statusId === 'records_received' || statusId === 'partial_received') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
     if (statusId === 'followed_up') return 'text-sky-600 bg-sky-50 border-sky-200'
-    if (statusId === 'requested' || statusId === 'scheduled') return 'text-amber-600 bg-amber-50 border-amber-200'
-    if (statusId === 'incomplete_resubmit') return 'text-red-600 bg-red-50 border-red-200'
+    if (statusId === 'faxed_request' || statusId === 'refaxed_request' || statusId === 'requested') return 'text-amber-600 bg-amber-50 border-amber-200'
+    if (statusId === 'confirmed_fax_received' || statusId === 'records_sent_mail') return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+    if (statusId === 'in_progress') return 'text-blue-600 bg-blue-50 border-blue-200'
     return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
   }
 
@@ -99,7 +100,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
               const history = data.history || []
               const currentStatus = data.status || 'not_started'
               const isDeactivated = currentStatus === 'na'
-              const isComplete = currentStatus === 'complete'
+              const isComplete = currentStatus === 'complete' || currentStatus === 'partial_complete'
               const lastEntry = history.length > 0 ? history[history.length - 1] : null
               const isExpanded = expandedStep === step.id
               const isAddingLog = addingLogFor === step.id
