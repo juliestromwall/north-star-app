@@ -936,7 +936,7 @@ export default function SurrogateDetailPage() {
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="mt-4">
-          <CaseEmailsTab caseId={surrogate.id} />
+          <CaseEmailsTab caseId={surrogate.id} caseType="gc" caseName={surrogate.name} caseEmail={surrogate.email} caseManagerName={getAdminStaff().find(a => a.email === surrogate.assignedTo)?.name} />
         </TabsContent>
 
         {/* Notes Tab */}

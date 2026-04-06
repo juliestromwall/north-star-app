@@ -537,7 +537,7 @@ export default function IPDetailPage() {
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="space-y-6 mt-4">
-          <CaseEmailsTab caseId={ip?.id} />
+          <CaseEmailsTab caseId={ip?.id} caseType="ip" caseName={ip?.names} caseEmail={ip?.email} caseManagerName={getAdminStaff().find(a => a.email === ip?.assignedTo)?.name} />
         </TabsContent>
 
         {/* Notes Tab */}

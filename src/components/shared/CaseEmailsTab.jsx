@@ -287,6 +287,55 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Template Selection Dialog */}
+      <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><FileText className="size-5 text-[#283693]" /> Send Email Template</DialogTitle>
+          </DialogHeader>
+          {!selectedTemplate ? (
+            <div className="space-y-2">
+              <p className="text-xs text-stone-400">Choose a template to send to {caseName || 'this case'}</p>
+              {EMAIL_TEMPLATES.filter(t => !caseType || t.forType === caseType || t.forType === 'any').map(t => (
+                <button key={t.id} onClick={() => setSelectedTemplate(t)}
+                  className="w-full text-left rounded-lg border border-stone-100 px-4 py-3 hover:border-stone-300 hover:shadow-sm transition-all">
+                  <p className="text-sm font-medium text-stone-800">{t.name}</p>
+                  <p className="text-xs text-stone-400 mt-0.5">{t.subject}</p>
+                </button>
+              ))}
+              {EMAIL_TEMPLATES.filter(t => !caseType || t.forType === caseType || t.forType === 'any').length === 0 && (
+                <p className="text-sm text-stone-400 text-center py-4">No templates available for this case type</p>
+              )}
+            </div>
+          ) : (() => {
+            const firstName = caseName?.split(' ')[0] || ''
+            const merged = mergeTemplate(selectedTemplate, { firstName, fullName: caseName, caseManager: caseManagerName || 'your case manager' })
+            return (
+              <div className="space-y-4">
+                <button onClick={() => setSelectedTemplate(null)} className="text-xs text-stone-400 hover:text-stone-600">← Back to templates</button>
+                <div className="rounded-lg border border-stone-200 p-4 space-y-2">
+                  <p className="text-xs text-stone-400">To: <span className="text-stone-700">{caseEmail}</span></p>
+                  <p className="text-xs text-stone-400">Subject: <span className="text-stone-700 font-medium">{merged.subject}</span></p>
+                  <hr className="border-stone-100" />
+                  <div className="prose prose-sm max-w-none text-sm" dangerouslySetInnerHTML={{ __html: merged.body }} />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedTemplate(null); setTemplateOpen(false) }}>Cancel</Button>
+                  <Button size="sm" className="gap-1 text-white" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                    onClick={() => {
+                      openDraft({ to: caseEmail, subject: merged.subject, body: merged.body, caseId, caseType, userId: currentUser?.id })
+                      setSelectedTemplate(null)
+                      setTemplateOpen(false)
+                    }}>
+                    <Send className="size-3" /> Open in Compose
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
