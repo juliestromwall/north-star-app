@@ -663,7 +663,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
       {isPregnant && (
         <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
           <div className="flex items-center gap-3">
-            <PregnancyIcon size={56} />
+            <img src="/pregnant-icon.png" alt="Pregnant" className="h-14 w-auto" />
             <div>
               <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
               <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)}</p>

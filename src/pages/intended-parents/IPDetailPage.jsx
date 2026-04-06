@@ -233,10 +233,13 @@ export default function IPDetailPage() {
                         await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' })
                         setInviteResult('sent')
                         try {
-                          const { updateIntakeSubmission, fetchIntakeByEmail } = await import('@/lib/db')
-                          const freshAnswers = await fetchIntakeByEmail(ip.email)
-                          const baseAnswers = freshAnswers || ip.answers || {}
-                          await updateIntakeSubmission(ip.id, { answers: { ...baseAnswers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                          const { supabase } = await import('@/lib/supabase')
+                          if (supabase) {
+                            const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
+                            if (row) {
+                              await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }).eq('id', ip.id)
+                            }
+                          }
                           setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
                         } catch {}
                       } catch (err) {

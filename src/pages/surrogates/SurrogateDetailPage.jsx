@@ -525,9 +525,13 @@ export default function SurrogateDetailPage() {
                         await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' })
                         setInviteResult('sent')
                         try {
-                          const { updateIntakeSubmission, fetchIntakeByEmail } = await import('@/lib/db')
-                          const freshAnswers = await fetchIntakeByEmail(surrogate.email)
-                          if (freshAnswers) await updateIntakeSubmission(surrogate.id, { answers: { ...freshAnswers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } })
+                          const { supabase } = await import('@/lib/supabase')
+                          if (supabase) {
+                            const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                            if (row) {
+                              await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }).eq('id', surrogate.id)
+                            }
+                          }
                           setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
                         } catch {}
                       } catch (err) {
