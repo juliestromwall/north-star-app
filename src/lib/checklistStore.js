@@ -236,23 +236,34 @@ export function setChecklistSteps(userType, stageId, steps) {
 }
 
 /** Add a step to a user type + stage */
-export function addChecklistStep(userType, stageId, label) {
+export function addChecklistStep(userType, stageId, label, logType = 'status', options = []) {
   const config = getChecklistConfig()
   if (!config[userType]) config[userType] = {}
   if (!config[userType][stageId]) config[userType][stageId] = { steps: [], milestones: [] }
   const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + Date.now()
-  config[userType][stageId].steps.push({ id, label })
+  const step = { id, label }
+  if (logType !== 'status') step.logType = logType
+  if (options.length > 0) step.options = options
+  config[userType][stageId].steps.push(step)
   save(config)
   return config[userType][stageId].steps
 }
 
-/** Edit a step label */
-export function editChecklistStep(userType, stageId, stepId, newLabel) {
+/** Edit a step (label, logType, options) */
+export function editChecklistStep(userType, stageId, stepId, updates) {
   const config = getChecklistConfig()
   const steps = config[userType]?.[stageId]?.steps
   if (!steps) return
   const step = steps.find(s => s.id === stepId)
-  if (step) step.label = newLabel
+  if (!step) return
+  if (typeof updates === 'string') {
+    // Backwards compat: editChecklistStep(ut, sid, stepId, 'new label')
+    step.label = updates
+  } else {
+    if (updates.label) step.label = updates.label
+    if (updates.logType !== undefined) step.logType = updates.logType === 'status' ? undefined : updates.logType
+    if (updates.options !== undefined) step.options = updates.options?.length > 0 ? updates.options : undefined
+  }
   save(config)
 }
 

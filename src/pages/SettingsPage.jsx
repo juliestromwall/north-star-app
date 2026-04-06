@@ -173,9 +173,14 @@ function AdminNotesSection() {
 
 // ── Sortable Step Row ──────────────────────────────────────
 
+const LOG_TYPE_LABELS = { status: 'Status Dropdown', text: 'Text Field', dropdown: 'Custom Dropdown' }
+const LOG_TYPE_COLORS = { status: 'bg-blue-50 text-blue-600', text: 'bg-amber-50 text-amber-600', dropdown: 'bg-purple-50 text-purple-600' }
+
 function SortableStepRow({ step, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(step.label)
+  const [editLogType, setEditLogType] = useState(step.logType || 'status')
+  const [editOptions, setEditOptions] = useState((step.options || []).join(', '))
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id })
   const style = {
@@ -185,43 +190,80 @@ function SortableStepRow({ step, onEdit, onDelete }) {
   }
 
   const handleSave = () => {
-    if (editLabel.trim() && editLabel.trim() !== step.label) {
-      onEdit(step.id, editLabel.trim())
-    }
+    const opts = editLogType === 'dropdown' ? editOptions.split(',').map(o => o.trim()).filter(Boolean) : []
+    onEdit(step.id, { label: editLabel.trim() || step.label, logType: editLogType, options: opts })
     setEditing(false)
   }
 
   const handleCancel = () => {
     setEditLabel(step.label)
+    setEditLogType(step.logType || 'status')
+    setEditOptions((step.options || []).join(', '))
     setEditing(false)
   }
 
+  const logType = step.logType || 'status'
+
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2.5 group">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
-        <GripVertical className="size-4" />
-      </button>
-      {editing ? (
-        <div className="flex-1 flex items-center gap-2">
-          <Input
-            value={editLabel}
-            onChange={e => setEditLabel(e.target.value)}
-            className="h-8 text-sm"
-            autoFocus
-            onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
-          />
-          <button onClick={handleSave} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-4" /></button>
-          <button onClick={handleCancel} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-4" /></button>
-        </div>
-      ) : (
-        <>
-          <span className="flex-1 text-sm font-medium text-stone-700">{step.label}</span>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => { setEditLabel(step.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
-            <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
+    <div ref={setNodeRef} style={style} className="rounded-lg border bg-white px-3 py-2.5 group">
+      <div className="flex items-center gap-2">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
+          <GripVertical className="size-4" />
+        </button>
+        {editing ? (
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                value={editLabel}
+                onChange={e => setEditLabel(e.target.value)}
+                className="h-8 text-sm flex-1"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter' && editLogType !== 'dropdown') handleSave(); if (e.key === 'Escape') handleCancel() }}
+                placeholder="Step name"
+              />
+              <select value={editLogType} onChange={e => setEditLogType(e.target.value)} className="h-8 text-xs border rounded px-2 bg-white">
+                <option value="status">Status Dropdown</option>
+                <option value="text">Text Field</option>
+                <option value="dropdown">Custom Dropdown</option>
+              </select>
+            </div>
+            {editLogType === 'dropdown' && (
+              <div className="space-y-1">
+                <label className="text-[10px] text-stone-400 font-medium">Options (comma-separated)</label>
+                <Input
+                  value={editOptions}
+                  onChange={e => setEditOptions(e.target.value)}
+                  className="h-8 text-sm"
+                  placeholder="e.g. Active, Pending, Denied, N/A"
+                  onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
+                />
+              </div>
+            )}
+            <div className="flex gap-1">
+              <button onClick={handleSave} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-4" /></button>
+              <button onClick={handleCancel} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-4" /></button>
+            </div>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-stone-700">{step.label}</span>
+              {logType !== 'status' && (
+                <span className={`ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${LOG_TYPE_COLORS[logType] || ''}`}>
+                  {LOG_TYPE_LABELS[logType] || logType}
+                </span>
+              )}
+              {logType === 'dropdown' && step.options?.length > 0 && (
+                <span className="text-[10px] text-stone-400 ml-1">({step.options.join(', ')})</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions((step.options || []).join(', ')); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
+              <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -309,6 +351,8 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
   const steps = stageData?.steps || []
   const milestones = stageData?.milestones || []
   const [newStepLabel, setNewStepLabel] = useState('')
+  const [newStepLogType, setNewStepLogType] = useState('status')
+  const [newStepOptions, setNewStepOptions] = useState('')
   const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
   const [confirmReset, setConfirmReset] = useState(false)
 
@@ -329,13 +373,16 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
 
   const handleAddStep = () => {
     if (!newStepLabel.trim()) return
-    addChecklistStep(userType, stage.id, newStepLabel.trim())
+    const opts = newStepLogType === 'dropdown' ? newStepOptions.split(',').map(o => o.trim()).filter(Boolean) : []
+    addChecklistStep(userType, stage.id, newStepLabel.trim(), newStepLogType, opts)
     setNewStepLabel('')
+    setNewStepLogType('status')
+    setNewStepOptions('')
     onUpdate()
   }
 
-  const handleEditStep = (stepId, newLabel) => {
-    editChecklistStep(userType, stage.id, stepId, newLabel)
+  const handleEditStep = (stepId, updates) => {
+    editChecklistStep(userType, stage.id, stepId, updates)
     onUpdate()
   }
 
@@ -396,17 +443,33 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
           ) : (
             <p className="text-xs text-stone-400 py-2 text-center">No steps configured.</p>
           )}
-          <div className="flex items-center gap-2">
-            <Input
-              value={newStepLabel}
-              onChange={e => setNewStepLabel(e.target.value)}
-              placeholder="Add a step..."
-              className="h-8 text-sm flex-1"
-              onKeyDown={e => { if (e.key === 'Enter') handleAddStep() }}
-            />
-            <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
-              <Plus className="size-3.5" /> Add
-            </Button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                value={newStepLabel}
+                onChange={e => setNewStepLabel(e.target.value)}
+                placeholder="Add a step..."
+                className="h-8 text-sm flex-1"
+                onKeyDown={e => { if (e.key === 'Enter' && newStepLogType !== 'dropdown') handleAddStep() }}
+              />
+              <select value={newStepLogType} onChange={e => setNewStepLogType(e.target.value)} className="h-8 text-[11px] border rounded px-1.5 bg-white text-stone-600">
+                <option value="status">Status</option>
+                <option value="text">Text</option>
+                <option value="dropdown">Dropdown</option>
+              </select>
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
+                <Plus className="size-3.5" /> Add
+              </Button>
+            </div>
+            {newStepLogType === 'dropdown' && (
+              <Input
+                value={newStepOptions}
+                onChange={e => setNewStepOptions(e.target.value)}
+                placeholder="Options (comma-separated): Active, Pending, Denied"
+                className="h-8 text-sm"
+                onKeyDown={e => { if (e.key === 'Enter') handleAddStep() }}
+              />
+            )}
           </div>
         </div>
 
