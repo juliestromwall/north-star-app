@@ -195,6 +195,12 @@ export default function AdminDashboard() {
                   const isAllDay = !!event.start?.date && !event.start?.dateTime
                   const today = new Date().toDateString() === new Date(startDt).toDateString()
                   return (
+                    {(() => {
+                      const caseIdProp = event.extendedProperties?.private?.caseId || ''
+                      const [caseType, caseIdNum] = caseIdProp.includes('_') ? caseIdProp.split('_') : ['', '']
+                      const caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
+                      const caseLink = caseType === 'journey' ? `/journeys/${caseIdNum}` : caseType === 'ip' ? `/intended-parents/${caseIdNum}` : caseType === 'surrogate' ? `/surrogates/${caseIdNum}` : ''
+                      return (
                     <div key={event.id} className={`rounded-lg border px-3 py-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
                       <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
                         {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
@@ -208,8 +214,13 @@ export default function AdminDashboard() {
                           </span>
                         )}
                         {today && <span className="text-[#283693] font-semibold">Today</span>}
+                        {caseName && caseLink && (
+                          <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
+                        )}
                       </div>
                     </div>
+                      )
+                    })()}
                   )
                 })}
                 <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-1">View full calendar →</Link>

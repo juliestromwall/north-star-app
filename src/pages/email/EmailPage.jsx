@@ -440,7 +440,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
                   <div className="flex flex-wrap gap-1.5">
                     {EMAIL_TAGS.map(t => (
                       <button key={t.value} onClick={() => setSelectedTag(selectedTag === t.value ? '' : t.value)}
-                        className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-all ${selectedTag === t.value ? t.color + ' border-transparent' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
+                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border-2 transition-all ${selectedTag === t.value ? 'bg-[#283693] text-white border-[#283693] ring-2 ring-[#283693]/30 scale-105' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
                         {t.label}
                       </button>
                     ))}

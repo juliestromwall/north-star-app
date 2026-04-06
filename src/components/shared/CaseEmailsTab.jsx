@@ -190,8 +190,13 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium truncate">{email.subject || '(no subject)'}</span>
+                      <button onClick={() => connected && handleViewFull(email)} className={`text-sm font-medium truncate text-left ${connected ? 'text-[#283693] hover:underline cursor-pointer' : ''}`}>{email.subject || '(no subject)'}</button>
                       {tagObj && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tagObj.color}`}>{tagObj.label}</span>}
+                      {email.from_address?.includes(currentUser?.email) || email.to_address?.includes(currentUser?.email) ? (
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${email.from_address?.includes(currentUser?.email) ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
+                          {email.from_address?.includes(currentUser?.email) ? 'Sent' : 'Received'}
+                        </span>
+                      ) : null}
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">{formatDate(email.date)}</span>
                   </div>
@@ -206,15 +211,6 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {connected && (
-                    <button
-                      onClick={() => handleViewFull(email)}
-                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                      title="View full email"
-                    >
-                      <ExternalLink className="size-3.5" />
-                    </button>
-                  )}
                   <button
                     onClick={() => handleDelete(email.id)}
                     className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
