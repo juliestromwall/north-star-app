@@ -110,6 +110,18 @@ function ensureDefaults(config) {
       if (!config[userType][stageId]) {
         config[userType][stageId] = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS[userType][stageId]))
         changed = true
+      } else {
+        // Ensure locked steps exist (but don't duplicate if user already has one with same label)
+        const defaultSteps = DEFAULT_CHECKLISTS[userType][stageId]?.steps || []
+        const existingSteps = config[userType][stageId].steps || []
+        for (const ds of defaultSteps) {
+          if (!ds.locked) continue
+          const alreadyExists = existingSteps.some(s => s.id === ds.id || s.label?.toLowerCase() === ds.label?.toLowerCase())
+          if (!alreadyExists) {
+            existingSteps.unshift(JSON.parse(JSON.stringify(ds)))
+            changed = true
+          }
+        }
       }
     }
   }

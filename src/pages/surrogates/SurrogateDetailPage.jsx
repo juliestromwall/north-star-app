@@ -329,7 +329,9 @@ export default function SurrogateDetailPage() {
       const step = screeningSteps.find(s => s.label?.toLowerCase().includes(labelMatch))
       if (!step) { console.log('[AutoUpdate] No checklist step found for', labelMatch, '— available:', screeningSteps.map(s => s.label)); continue }
 
-      const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
+      // Filter record keys — exclude the checklist step itself (which also starts with the prefix)
+      const allStepIds = new Set(screeningSteps.map(s => s.id))
+      const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix) && !allStepIds.has(k))
       if (recordKeys.length === 0) continue
 
       const recordStatuses = recordKeys.map(k => ({ key: k, status: recordTracking[k]?.status }))

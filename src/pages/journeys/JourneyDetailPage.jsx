@@ -611,6 +611,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [heartbeatDate, setHeartbeatDate] = useState('')
   const [heartbeatDueDate, setHeartbeatDueDate] = useState('')
   const [heartbeatBabies, setHeartbeatBabies] = useState('1')
+  const [babySexes, setBabySexes] = useState([]) // ['boy', 'girl', 'unknown']
+  const [babySexOpen, setBabySexOpen] = useState(false)
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
   const [activeTab, setActiveTab] = useState(null)
@@ -707,15 +709,16 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     setSaving(true)
     const updated = [...transfers]
     const idx = updated.length - 1
-    updated[idx] = { ...updated[idx], heartbeatConfirmed: true, heartbeatDate, babies: parseInt(heartbeatBabies) || 1 }
+    const numBabies = parseInt(heartbeatBabies) || 1
+    updated[idx] = { ...updated[idx], heartbeatConfirmed: true, heartbeatDate, babies: numBabies, babySexes: babySexes.slice(0, numBabies) }
     let dueDateStr = heartbeatDueDate
     if (!dueDateStr) {
       const transferDate = new Date(updated[idx].date)
       dueDateStr = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
-    await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: parseInt(heartbeatBabies) || 1 })
+    await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: numBabies, babySexes: babySexes.slice(0, numBabies) })
     if (onStatusChange) await onStatusChange('Pregnant')
-    setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1')
+    setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1'); setBabySexes([])
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
   }
@@ -1030,6 +1033,23 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                 <select value={heartbeatBabies} onChange={e => setHeartbeatBabies(e.target.value)} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
                   {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
+              </div>
+            </div>
+            {/* Baby sex — optional */}
+            <div className="space-y-2">
+              <label className="text-[11px] text-stone-400 font-medium">Baby Sex (optional — can update later)</label>
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: parseInt(heartbeatBabies) || 1 }, (_, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    {parseInt(heartbeatBabies) > 1 && <span className="text-[10px] text-stone-400">Baby {i + 1}:</span>}
+                    <select value={babySexes[i] || 'unknown'} onChange={e => { const s = [...babySexes]; s[i] = e.target.value; setBabySexes(s) }}
+                      className="h-8 text-xs border border-stone-200 rounded-md px-2 bg-white">
+                      <option value="unknown">Unknown</option>
+                      <option value="boy">👦 Boy</option>
+                      <option value="girl">👧 Girl</option>
+                    </select>
+                  </div>
+                ))}
               </div>
             </div>
             {latestTransfer && (
