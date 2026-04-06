@@ -16,10 +16,11 @@ class ComposeErrorBoundary extends Component {
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [adminLoaded, setAdminLoaded] = useState(false)
   const location = useLocation()
 
   // Load admin users from Supabase on mount
-  useEffect(() => { loadAdminUsers().catch(() => {}) }, [])
+  useEffect(() => { loadAdminUsers().then(() => setAdminLoaded(true)).catch(() => setAdminLoaded(true)) }, [])
 
   // Close mobile sidebar on navigation
   useEffect(() => {

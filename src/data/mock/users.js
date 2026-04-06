@@ -2,13 +2,7 @@
 // Falls back to hardcoded list if API is unavailable
 // Call loadAdminUsers() on app init to populate from live data
 
-const FALLBACK_USERS = [
-  { id: 'u1', name: 'Dev Admin', email: 'dev@abcsurrogacy.com', phone: '', role: 'super_admin' },
-  { id: 'u2', name: 'Julie Allgood', email: 'julie@abcsurrogacy.com', phone: '(818) 321-9329', role: 'master_admin' },
-  { id: 'u3', name: 'Nicole Lawson', email: 'nicole@abcsurrogacy.com', phone: '(818) 555-0103', role: 'master_admin' },
-]
-
-export let mockUsers = [...FALLBACK_USERS]
+export let mockUsers = []
 
 export async function loadAdminUsers() {
   try {
