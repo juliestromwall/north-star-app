@@ -166,7 +166,31 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 1. Motivational quote of the day
 2. Collapsible Upcoming Appointments (Google Calendar) + My Tasks columns
 3. My Cases: only assigned cases, identical cards from list pages
-4. Calculator widget, per-user sticky notes
+4. Calculator widget, per-user sticky notes (saved in Supabase)
+5. Personal tasks: + Add Task (title, due date, priority, notes), saved with case_type='personal'
+6. Tasks show "Personal" or "Case" badge
+
+### Session & Security
+1. Root URL (/) routes to login page
+2. Auto-logout on inactivity: admins 6 hours, users 1 hour
+3. Activity tracked: mouse, keyboard, scroll, touch
+4. Idle redirect to /login with "signed out due to inactivity" message
+
+### Pregnancy Tracker (Journey Hero)
+1. Timeline: Embryo Transfer → Beta HCG → (Beta #2 optional) → Heartbeat → Pregnant!
+2. Log Embryo Transfer: date, embryo count, notes
+3. Beta Results: value (number) + forced Yes/No for second beta
+4. Beta #2: additional timeline step when second beta needed
+5. Heartbeat Confirmation: date, number of babies, optional due date override
+6. Due date auto-calculated: 5-day embryo, transfer + 261 days (Ferring wheel)
+7. Confetti celebration on heartbeat confirmation (ABC brand colors)
+8. Journey card gets pink border + 🤰 emoji when pregnant
+9. Gestational age calculated and displayed
+10. Record Pregnancy Loss: miscarriage, ectopic, chemical, other — clears status, logs on transfer
+11. Mark Unsuccessful / Dropped Cycle options
+12. Transfer tabs: newest first, old transfers collapsed
+13. Edit/delete transfers with full field access
+14. Status auto-updates to "Pregnant" on heartbeat confirmation
 
 ### Admin: Case Updates
 1. /case-updates page under Client Management

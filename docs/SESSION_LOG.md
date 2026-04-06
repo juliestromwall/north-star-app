@@ -1,5 +1,70 @@
 # Session Log
 
+## 2026-04-06 (Email UI, Compose Fix, Auto-Logout, Personal Tasks, Pregnancy Tracker Polish)
+
+**Worked on:** Email compose case selector fix, CaseEmailsTab improvements, auto-logout on inactivity, personal dashboard tasks, pregnancy tracker refinements, login routing
+
+**Changes made:**
+
+Email Compose — Case Selector Fix:
+- Fixed "GC: undefined" / "IP: undefined" — was using .applicant_name instead of .name/.names
+- Cases grouped by type: Journeys (IP + GC names), Surrogates, Intended Parents
+- Wider dropdown (180px), section headers
+
+CaseEmailsTab Improvements:
+- Click email subject to open full email (removed external link icon button)
+- Sent/Received badges (blue/green) based on from_address matching current user
+- Tag selection on Log to Case dialog: selected tag turns indigo with ring glow + scale
+
+Auto-Logout on Inactivity:
+- Admins: 6 hours, Users: 1 hour
+- Tracks mouse, keyboard, scroll, touch — resets timer on any activity
+- Redirects to /login?reason=idle with amber message
+- Built into RoleContext (runs whenever authUser is set)
+
+Login Routing:
+- Root URL (/) now shows login page instead of Coming Soon
+- /welcome also routes to login
+- After login redirects to /dashboard (was / which looped)
+
+Personal Dashboard Tasks:
+- "+ Add Task" button on My Tasks section
+- Dialog: title, due date, priority, notes
+- Saved with case_type='personal', no case_id
+- "Personal" vs "Case" badges on task list
+
+Pregnancy Tracker Polish (from 2026-04-05 continued):
+- Status auto-updates to "Pregnant" on heartbeat confirmation
+- Transfer tabs: Transfer #3 | #2 | #1 (newest first, compact)
+- Edit transfer: full form with beta, beta #2, heartbeat, babies, dropped cycle
+- Delete transfer: system dialog (not browser confirm)
+- Beta: forced Yes/No for second beta (no default), beta value field
+- Beta HCG #2: extra timeline step when needed
+- Heartbeat: number of babies field
+- Pregnancy loss: miscarriage/ectopic/chemical/other — logs on transfer, clears status
+- Mark Unsuccessful button, Dropped Cycle option
+- 🤰 emoji on pregnancy banner (tried several custom images, settled on emoji)
+- Pink belly line art icon on /journeys cards
+- Removed GC insurance label from GC card, bigger attorney font
+- Sticky notes on GC and IP cards (shared across all users via app_config)
+- Confetti uses same dramatic settings as surrogate quiz (260 particles, ABC colors)
+
+Dashboard Build Fix:
+- Fixed IIFE syntax error in JSX from other session's calendar changes
+
+**Next steps:**
+- Customizable checklist log types: Status Dropdown (default), Text Field, Custom Dropdown, Database Lookup
+- System/locked checklist steps with database lookups (IVF Clinic, OB Doctor, etc.)
+- Step deactivation per case (already works via "Deactivate" status)
+- Determine which steps need database lookup sources
+
+**Open questions:**
+- Which checklist steps need database lookup? (waiting for user to specify)
+- Should locked/system steps be visually different in Settings?
+- Checklist log type for each existing step needs to be defined
+
+---
+
 ## 2026-04-05 (User Invites, Dynamic Admin Users, Password Reset, Login Branding)
 
 **Worked on:** User invite system, dynamic admin users from Supabase Auth, password reset flow, login page branding, invite bug fixes
