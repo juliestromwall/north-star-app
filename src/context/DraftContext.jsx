@@ -44,7 +44,7 @@ export function DraftProvider({ children }) {
       initialTo = ''
       initialSubject = `Fwd: ${forwardMsg.subject || ''}`
       initialBody = `<p></p><br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">---------- Forwarded message ----------<br/>From: ${forwardMsg.from}<br/>Date: ${forwardMsg.date}<br/>Subject: ${forwardMsg.subject}<br/><br/>${forwardMsg.bodyHtml || ''}</div>`
-    } else {
+    } else if (!body) {
       initialBody = `<p></p>`
     }
 
