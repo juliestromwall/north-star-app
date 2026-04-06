@@ -1615,7 +1615,22 @@ export default function JourneyDetailPage() {
             <PregnancyTracker
               journey={journey}
               onUpdate={async (fields) => { await updateFields(fields) }}
-              onPregnancyConfirmed={() => { setShowConfetti(true); setTimeout(() => fireConfetti(), 500) }}
+              onPregnancyConfirmed={() => {
+                setShowConfetti(true)
+                setTimeout(() => fireConfetti({
+                  particleCount: 260,
+                  spread: 360,
+                  startVelocity: 55,
+                  gravity: 0.25,
+                  decay: 0.94,
+                  lifetime: 160,
+                  scalar: 14,
+                  iconScalar: 38,
+                  iconRate: 0.2,
+                  colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
+                  origin: { x: 0.5, y: 0.45 },
+                }), 500)
+              }}
             />
 
             {/* ── Providers (clickable to edit via modal) ── */}
