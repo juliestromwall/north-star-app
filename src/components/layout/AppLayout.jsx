@@ -19,8 +19,12 @@ export default function AppLayout() {
   const [adminLoaded, setAdminLoaded] = useState(false)
   const location = useLocation()
 
-  // Load admin users from Supabase on mount
-  useEffect(() => { loadAdminUsers().then(() => setAdminLoaded(true)).catch(() => setAdminLoaded(true)) }, [])
+  // Load admin users from Supabase on mount (with 3s timeout fallback)
+  useEffect(() => {
+    const timeout = setTimeout(() => setAdminLoaded(true), 3000)
+    loadAdminUsers().then(() => { setAdminLoaded(true); clearTimeout(timeout) }).catch(() => { setAdminLoaded(true); clearTimeout(timeout) })
+    return () => clearTimeout(timeout)
+  }, [])
 
   // Close mobile sidebar on navigation
   useEffect(() => {
