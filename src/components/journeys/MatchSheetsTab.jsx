@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   FileText, Download, Eye, Printer, Scale, Stethoscope, DollarSign,
   User, Users, Heart, Shield, Briefcase, Clock, Pencil, Mail, Phone, Hospital,
@@ -703,37 +704,100 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     }
   }
 
+  // Attorney sheet: ask which attorney to send to
+  const [attorneyPickerOpen, setAttorneyPickerOpen] = useState(false)
+  const [pendingPdf, setPendingPdf] = useState(null)
+
   async function sendMatchSheet() {
     setGenerating(true)
     try {
       const pdf = await generatePDF()
       if (!pdf) return
       const fileName = getFileName()
-      // Convert PDF to base64 for email attachment
       const pdfBase64 = pdf.output('datauristring').split(',')[1]
-      // Build subject: "Attorney Match Sheet - IPs Name1 & Name2 with GC Name"
-      const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
-      const ipAnswers = ipCase?.answers || {}
-      const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
-      const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
-      const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
-      const ipLabel = ip2Name ? 'IPs' : 'IP'
-      const emailSubject = `${sheetType?.label || 'Match Sheet'} - ${ipLabel} ${ipNames} with GC ${gcCase?.name || ''}`
 
-      // Open compose window with attachment
-      openDraft({
-        subject: emailSubject,
-        body: '',
-        userId: currentUser?.id,
-        caseId: journey.id,
-        attachments: [{ filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }],
-      })
-      // Compose window floats over current page — no navigation needed
+      const ipAnswers = ipCase?.answers || {}
+      const jd = journey?.journey_data || {}
+      const ip1First = ipAnswers.primaryFirstName || ''
+      const ip1Last = ipAnswers.primaryLastName || ''
+      const ip1Name = `${ip1First} ${ip1Last}`.trim()
+      const ip2First = ipAnswers.ip2FirstName || ''
+      const ip2Last = ipAnswers.ip2LastName || ''
+      const hasPartner = ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes'
+      const ip2Name = hasPartner ? `${ip2First} ${ip2Last}`.trim() : ''
+      const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+      const gcName = gcCase?.name || ''
+      const adminName = currentUser?.name || ''
+
+      const attachment = { filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }
+
+      if (activeSheet === 'attorney') {
+        // Show picker for IP Attorney vs GC Attorney
+        setPendingPdf(attachment)
+        setAttorneyPickerOpen(true)
+      } else if (activeSheet === 'escrow') {
+        // Escrow: To = SeedTrust, CC = IPs
+        const ipEmails = [ipCase?.email, ipCase?.ip2Email].filter(Boolean).join(', ')
+        const body = `<p>Hi ${ip1First}${ip2First ? ' & ' + ip2First : ''},</p>
+<p>Now that you have started with legal contracts, we can begin escrow and get your account funded.</p>
+<p>SeedTrust is very easy to use for all involved, and they keep great records and give you access to your escrow portal so that you are able to view your account and keep close track of the account.</p>
+<p>Your escrow management team will be reaching out to get you all set up.</p>
+<p>Please let me know if you have any questions.</p>`
+        openDraft({
+          to: 'info@seedtrustescrow.com',
+          cc: ipEmails,
+          subject: `Escrow Match Sheet - ${ipNames} with GC ${gcName}`,
+          body,
+          userId: currentUser?.id,
+          caseId: journey.id,
+          caseType: 'journey',
+          attachments: [attachment],
+        })
+      } else if (activeSheet === 'clinic') {
+        // Clinic: To = 3rd party coordinator
+        const coordinatorEmail = jd.ivfCoordinatorEmail || ''
+        const subjectLabel = ip2Name ? `Intended Parents: ${ip1Name} & ${ip2Name}` : `Intended Parent: ${ip1Name}`
+        const body = `<p>Hello,</p>
+<p>My name is ${adminName}, and I am the Case Manager working with IP's: ${ipNames} and GS: ${gcName}. I am looking forward to working with you all on this case.</p>
+<p>Attached, please find the Match Sheet. If you need anything else to proceed please let me know.</p>
+<p>Please let me know when you anticipate being able to bring her in for a medical evaluation.</p>
+<p>If you could let me know what your medical evaluation process includes that would be great. For the group psych eval, are you fine using one of our therapists? I have attached ${gcName?.split(' ')[0] || 'the surrogate'}'s Psych Report.</p>`
+        openDraft({
+          to: coordinatorEmail,
+          subject: `Match Sheet for ${subjectLabel} with Surrogate: ${gcName}`,
+          body,
+          userId: currentUser?.id,
+          caseId: journey.id,
+          caseType: 'journey',
+          attachments: [attachment],
+        })
+      }
     } catch (err) {
       console.error('Send match sheet failed:', err)
     } finally {
       setGenerating(false)
     }
+  }
+
+  function sendAttorneySheet(recipient) {
+    const jd = journey?.journey_data || {}
+    const ipAnswers = ipCase?.answers || {}
+    const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
+    const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
+    const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+    const toEmail = recipient === 'ip' ? jd.ipAttorneyEmail : jd.gcAttorneyEmail
+    const attorneyName = recipient === 'ip' ? jd.ipAttorneyName : jd.gcAttorneyName
+    openDraft({
+      to: toEmail || '',
+      subject: `Attorney Match Sheet - ${ipNames} with GC ${gcCase?.name || ''}`,
+      body: '',
+      userId: currentUser?.id,
+      caseId: journey.id,
+      caseType: 'journey',
+      attachments: pendingPdf ? [pendingPdf] : [],
+    })
+    setAttorneyPickerOpen(false)
+    setPendingPdf(null)
   }
 
   function printSheet() {
@@ -817,6 +881,27 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
           </div>
         </div>
       )}
+
+      {/* Attorney Picker Dialog */}
+      <Dialog open={attorneyPickerOpen} onOpenChange={v => { if (!v) { setAttorneyPickerOpen(false); setPendingPdf(null) } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Scale className="size-5 text-[#283693]" /> Send to which attorney?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <button onClick={() => sendAttorneySheet('ip')}
+              className="w-full text-left rounded-xl border border-stone-200 px-4 py-3 hover:border-[#283693] hover:shadow-sm transition-all">
+              <p className="text-sm font-semibold text-stone-800">IP Attorney</p>
+              <p className="text-xs text-stone-500 mt-0.5">{journey?.journey_data?.ipAttorneyName || 'Not set'} {journey?.journey_data?.ipAttorneyEmail ? `· ${journey.journey_data.ipAttorneyEmail}` : ''}</p>
+            </button>
+            <button onClick={() => sendAttorneySheet('gc')}
+              className="w-full text-left rounded-xl border border-stone-200 px-4 py-3 hover:border-pink-400 hover:shadow-sm transition-all">
+              <p className="text-sm font-semibold text-stone-800">GC Attorney</p>
+              <p className="text-xs text-stone-500 mt-0.5">{journey?.journey_data?.gcAttorneyName || 'Not set'} {journey?.journey_data?.gcAttorneyEmail ? `· ${journey.journey_data.gcAttorneyEmail}` : ''}</p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
