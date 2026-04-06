@@ -191,7 +191,7 @@ function ComposeWindow({ draft, index }) {
     },
     editorProps: {
       attributes: {
-        class: 'focus:outline-none px-3 py-2 text-sm h-full',
+        class: 'focus:outline-none px-3 py-2 text-sm h-full [&_p]:mb-3 [&_p:last-child]:mb-0',
       },
     },
   })
