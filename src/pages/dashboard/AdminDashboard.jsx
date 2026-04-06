@@ -77,21 +77,27 @@ export default function AdminDashboard() {
       const userId = currentUser?.id
       if (userId) {
         const now = new Date()
-        // Show full current week (Sunday to Saturday)
-        const dayOfWeek = now.getDay() // 0=Sun
-        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek)
-        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
-        const timeMin = weekStart.toISOString()
-        const timeMax = weekEnd.toISOString()
-        // Only show app-created appointments (tagged with abcCase=true)
-        getAccessToken(userId).then(token => {
-          const params = new URLSearchParams({
-            maxResults: '20', singleEvents: 'true', orderBy: 'startTime',
-            timeMin, timeMax, privateExtendedProperty: 'abcCase=true',
-          })
-          fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then(r => r.json()).then(data => setEvents(data?.items || [])).catch(() => {})
+        const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+        const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        // Search primary + Appointments calendar for app-created events
+        getAccessToken(userId).then(async token => {
+          const baseParams = { maxResults: '20', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax, privateExtendedProperty: 'abcCase=true' }
+          let calIds = ['primary']
+          try {
+            const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
+            const calData = await calRes.json()
+            const apptCal = (calData.items || []).find(c => c.summary?.toLowerCase() === 'appointments')
+            if (apptCal) calIds.push(apptCal.id)
+          } catch {}
+          const results = await Promise.all(calIds.map(calId =>
+            fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?${new URLSearchParams(baseParams)}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }).then(r => r.json()).then(d => d?.items || []).catch(() => [])
+          ))
+          const all = results.flat()
+          const seen = new Set()
+          setEvents(all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+            .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
         }).catch(() => {})
       }
     } catch {}
