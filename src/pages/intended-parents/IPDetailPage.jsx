@@ -223,6 +223,27 @@ export default function IPDetailPage() {
                   <span className="text-[10px] text-emerald-600 font-medium">Portal Active</span>
                   <span className="text-[10px] text-stone-400">Last login {new Date(portalStatus.lastSignIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
+              ) : portalStatus?.exists && !portalStatus?.lastSignIn ? (
+                <div className="flex flex-col items-center gap-0.5">
+                  <Button variant="outline" size="sm" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50" disabled={inviting}
+                    onClick={async () => {
+                      if (!ip.email) return
+                      setInviting(true); setInviteResult(null)
+                      try {
+                        await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' }).catch(() => {})
+                        setInviteResult('sent')
+                      } catch { setInviteResult('error') }
+                      setInviting(false)
+                      setTimeout(() => setInviteResult(null), 4000)
+                    }}>
+                    {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                    {inviting ? 'Sending...' : inviteResult === 'sent' ? 'Sent!' : 'Resend Invite'}
+                  </Button>
+                  <span className="text-[10px] text-amber-500">Hasn't logged in yet</span>
+                  {ip.answers?._lastInvitedAt && (
+                    <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  )}
+                </div>
               ) : (
                 <div className="flex flex-col items-center gap-0.5">
                   <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
