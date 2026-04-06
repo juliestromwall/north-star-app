@@ -1,5 +1,62 @@
 # Session Log
 
+## 2026-04-05 (User Invites, Dynamic Admin Users, Password Reset, Login Branding)
+
+**Worked on:** User invite system, dynamic admin users from Supabase Auth, password reset flow, login page branding, invite bug fixes
+
+**Changes made:**
+
+User Invite System:
+- /api/invite Cloudflare Function: creates Supabase auth user + generates password reset link
+- /api/user-status Function: checks if user has account + last login date
+- /api/admin-users Function: lists all admin users from Supabase Auth
+- Branded invite email via Gmail API (logo, gradient button, personalized greeting)
+- "Invite to Portal" button on Surrogate and IP detail pages
+- Auto-invite when adding admin from Settings → Team Management
+- Invite date logged per case (_lastInvitedAt stored in answers via direct Supabase query by ID)
+- Portal status: shows "Portal Active" + last login when user has set password
+- Invite button hidden once user has logged in
+
+Dynamic Admin Users (replaces hardcoded mockUsers):
+- /api/admin-users returns admin/master_admin/super_admin users from Supabase Auth
+- mockUsers array populated on app load via loadAdminUsers()
+- getAdminStaff() function replaces all module-level ADMIN_STAFF constants
+- Updated 11+ files to use getAdminStaff() instead of static constants
+- 3-second timeout fallback if API is slow
+- Marketing role excluded from admin dropdowns
+- Removed all hardcoded fallback users
+
+Password Reset:
+- Forgot password flow on login page (Supabase resetPasswordForEmail)
+- /reset-password page with branded UI matching login
+- Expired link detection with friendly message
+- Redirect URL config needed in Supabase
+
+Login Page Branding:
+- Gradient background (indigo → cream → pink)
+- "Welcome back" with pink accent
+- Frosted glass card, pink-to-indigo gradient button
+- Removed surrogate quiz link
+
+Bug Fixes:
+- Fixed invite wiping case data (was using fetchIntakeByEmail which returned wrong format; now uses direct Supabase query by ID)
+- Fixed IPTileCard crash (missing getAdminStaff import)
+- Fixed Cloudflare Functions using @supabase/supabase-js SDK (rewrote to raw fetch)
+- Fixed invite reset link missing /reset-password redirect
+
+**Next steps:**
+- Email templates (predefined with merge fields)
+- Admin invite from Settings needs to persist to Supabase (currently only local state + auth)
+- Consider storing admin users in a Supabase table instead of just auth.users
+- Test invite flow end-to-end on production
+
+**Open questions:**
+- Should admin team members be stored in a dedicated table or just auth.users?
+- Email templates: what templates are needed first?
+- Should we add a "Resend Invite" button for surrogates/IPs who haven't set their password?
+
+---
+
 ## 2026-04-04 (Password Reset, Login Brand, List Redesigns, AI Extraction, Email CSS)
 
 **Worked on:** Password reset flow, branded login page, IP/Journey list redesigns, AI expense/task extraction fixes, email CSS isolation, admin user setup

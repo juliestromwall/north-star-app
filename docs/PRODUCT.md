@@ -100,6 +100,14 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 5. Sent emails from compose can also be tagged when logging to a case
 6. AI uses Claude Haiku via Cloudflare Pages Function (/api/ai/extract)
 
+### User Invites & Portal Access
+1. Admins can invite surrogates and IPs to the portal from their case detail page
+2. "Invite to Portal" creates Supabase auth account + sends branded email with password set link
+3. After user sets password, invite button replaced with "Portal Active" + last login date
+4. Adding admin staff from Settings → Team Management auto-sends invite
+5. Admin users loaded dynamically from Supabase Auth (no hardcoded list)
+6. Only admin/master_admin roles shown in assignment dropdowns
+
 ### E-Signature Security
 1. Each document gets a unique 64-char hex signing_token on creation
 2. Signing URLs use /e-signature/sign/:token (unguessable, no sequential IDs)
