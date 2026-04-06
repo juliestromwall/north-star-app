@@ -59,8 +59,8 @@ export default function App() {
   return (
     <Routes>
       {/* Public pages — no auth required */}
-      <Route index element={<ComingSoonPage />} />
-      <Route path="/welcome" element={<ComingSoonPage />} />
+      <Route index element={<LoginPage />} />
+      <Route path="/welcome" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/surrogates/:id/share" element={<SurrogateSharePage />} />

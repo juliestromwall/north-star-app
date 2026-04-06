@@ -82,6 +82,9 @@ export default function LoginPage() {
             <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
             <h1 className="text-3xl font-heading font-bold" style={{ color: '#283693' }}>Welcome <span style={{ color: '#ed148c' }}>back</span></h1>
             <p className="text-stone-400 text-sm mt-2">Sign in to your portal</p>
+            {new URLSearchParams(location.search).get('reason') === 'idle' && (
+              <p className="text-amber-600 text-xs mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">You were signed out due to inactivity. Please sign in again.</p>
+            )}
           </div>
 
           {forgotMode ? (

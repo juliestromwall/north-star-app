@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogateProfileByEmail } from '@/lib/db'
@@ -133,6 +133,34 @@ export function RoleProvider({ children }) {
     setAuthUser(null)
     setCurrentRole(ROLES.MASTER_ADMIN)
   }
+
+  // ── Auto-logout on inactivity ──
+  const idleTimer = useRef(null)
+  const ADMIN_ROLES_SET = new Set([ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN])
+  const ADMIN_TIMEOUT = 6 * 60 * 60 * 1000  // 6 hours
+  const USER_TIMEOUT = 1 * 60 * 60 * 1000   // 1 hour
+
+  const resetIdleTimer = useCallback(() => {
+    if (!authUser) return
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    const timeout = ADMIN_ROLES_SET.has(currentRole) ? ADMIN_TIMEOUT : USER_TIMEOUT
+    idleTimer.current = setTimeout(() => {
+      signOut()
+      window.location.href = '/login?reason=idle'
+    }, timeout)
+  }, [authUser, currentRole])
+
+  useEffect(() => {
+    if (!authUser) return
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove']
+    const handler = () => resetIdleTimer()
+    events.forEach(e => window.addEventListener(e, handler, { passive: true }))
+    resetIdleTimer() // start the timer
+    return () => {
+      events.forEach(e => window.removeEventListener(e, handler))
+      if (idleTimer.current) clearTimeout(idleTimer.current)
+    }
+  }, [authUser, resetIdleTimer])
 
   // Use auth user if logged in, otherwise fall back to mock user for dev
   const currentUser = authUser || MOCK_USERS[currentRole]

@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
+import { useDrafts } from '@/context/DraftContext'
 
 function formatDate(dateStr) {
   if (!dateStr) return '—'
@@ -46,7 +48,7 @@ const EMAIL_TAGS = [
   { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
 ]
 
-export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
+export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, additionalCaseIds = [], caseManagerName }) {
   const { currentUser } = useRole()
   const userId = currentUser?.id
   const [emails, setEmails] = useState([])
@@ -58,6 +60,9 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
   const [downloading, setDownloading] = useState(null)
   const [tagFilter, setTagFilter] = useState('')
   const [emailSearch, setEmailSearch] = useState('')
+  const [templateOpen, setTemplateOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState(null)
+  const { openDraft } = useDrafts()
 
   useEffect(() => {
     if (!caseId) return
@@ -160,9 +165,16 @@ export default function CaseEmailsTab({ caseId, additionalCaseIds = [] }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{filteredEmails.length} of {emails.length} email{emails.length !== 1 ? 's' : ''}</p>
-        <div className="relative w-48">
-          <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
-          <Input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Search emails..." className="h-7 text-xs pl-8" />
+        <div className="flex items-center gap-2">
+          {caseEmail && (
+            <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setTemplateOpen(true)}>
+              <FileText className="size-3" /> Send Template
+            </Button>
+          )}
+          <div className="relative w-48">
+            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Search emails..." className="h-7 text-xs pl-8" />
+          </div>
         </div>
       </div>
       {usedTags.length > 0 && (

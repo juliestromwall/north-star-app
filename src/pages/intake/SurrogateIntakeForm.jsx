@@ -163,6 +163,16 @@ export default function SurrogateIntakeForm() {
     } catch {
       // Keep applicant flow moving even if persistence fails
     }
+
+    // Auto-send welcome email + create portal for qualified surrogates
+    if (qualified) {
+      fetch('/api/welcome-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email.trim(), firstName: form.firstName.trim(), lastName: form.lastName.trim() }),
+      }).catch(() => {}) // non-blocking
+    }
+
     navigate('/apply/confirmation', {
       state: {
         qualified,
