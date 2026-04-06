@@ -7,7 +7,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ScrollText, FilePlus2, X } from 'lucide-react'
+import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { formatDate } from '@/lib/utils'
@@ -251,7 +251,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                               )}
                               {isRecordType && totalCount > 0 && (
                                 <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors" title="Medical records">
-                                  <FilePlus2 className="size-3.5" />
+                                  <ClipboardPlus className="size-3.5" />
                                 </button>
                               )}
                             </div>
