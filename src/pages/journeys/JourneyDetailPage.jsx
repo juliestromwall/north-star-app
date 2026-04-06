@@ -4,7 +4,7 @@ import {
   ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip,
+  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -38,6 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { mockUsers } from '@/data/mock/users'
+import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const ADMIN_STAFF = mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
 const JOURNEY_MANAGERS = ADMIN_STAFF.filter(u => ['Julie Allgood', 'Nicole Lawson'].includes(u.name))
@@ -527,6 +528,255 @@ function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId 
   )
 }
 
+// ── Pregnancy Tracker ───────────────────────────────────
+const TRANSFER_CALC_DAYS = 266 // embryo transfer + 266 days ≈ due date (38 weeks)
+
+function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed }) {
+  const jd = journey.journey_data || {}
+  const transfers = jd._transfers || []
+  const [addOpen, setAddOpen] = useState(false)
+  const [transferForm, setTransferForm] = useState({ date: '', embryoCount: '1', notes: '' })
+  const [betaOpen, setBetaOpen] = useState(null) // transfer index
+  const [heartbeatOpen, setHeartbeatOpen] = useState(false)
+  const [heartbeatDate, setHeartbeatDate] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const latestTransfer = transfers.length > 0 ? transfers[transfers.length - 1] : null
+  const isPregnant = jd.pregnant === 'yes'
+  const hasPositiveBeta = latestTransfer?.betaResult === 'positive'
+  const hasHeartbeat = latestTransfer?.heartbeatConfirmed
+
+  async function handleAddTransfer() {
+    if (!transferForm.date) return
+    setSaving(true)
+    const newTransfer = {
+      date: transferForm.date,
+      embryoCount: parseInt(transferForm.embryoCount) || 1,
+      notes: transferForm.notes || '',
+      betaResult: null,
+      betaDate: null,
+      heartbeatConfirmed: false,
+      heartbeatDate: null,
+    }
+    const updated = [...transfers, newTransfer]
+    await onUpdate({ _transfers: updated })
+    setTransferForm({ date: '', embryoCount: '1', notes: '' })
+    setAddOpen(false)
+    setSaving(false)
+  }
+
+  async function handleBetaResult(idx, result) {
+    setSaving(true)
+    const updated = [...transfers]
+    updated[idx] = { ...updated[idx], betaResult: result, betaDate: new Date().toISOString().split('T')[0] }
+    await onUpdate({ _transfers: updated })
+    setBetaOpen(null)
+    setSaving(false)
+  }
+
+  async function handleHeartbeat() {
+    if (!heartbeatDate) return
+    setSaving(true)
+    const updated = [...transfers]
+    const idx = updated.length - 1
+    updated[idx] = { ...updated[idx], heartbeatConfirmed: true, heartbeatDate }
+    // Calculate due date from transfer date + 266 days
+    const transferDate = new Date(updated[idx].date)
+    const dueDate = new Date(transferDate.getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000)
+    const dueDateStr = dueDate.toISOString().split('T')[0]
+    await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr })
+    setHeartbeatOpen(false)
+    setHeartbeatDate('')
+    setSaving(false)
+    // Fire confetti!
+    onPregnancyConfirmed()
+  }
+
+  // Timeline steps
+  const steps = [
+    { key: 'transfer', label: 'Embryo Transfer', done: transfers.length > 0 && latestTransfer },
+    { key: 'beta', label: 'Beta HCG', done: hasPositiveBeta },
+    { key: 'heartbeat', label: 'Heartbeat', done: hasHeartbeat },
+    { key: 'pregnant', label: 'Pregnant!', done: isPregnant },
+  ]
+
+  return (
+    <div className={`border-t pt-4 ${isPregnant ? 'border-pink-200' : 'border-stone-100'}`}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1.5">
+          <HeartPulse className="size-3" /> Pregnancy Tracker
+        </p>
+        {!latestTransfer && (
+          <Button size="sm" variant="outline" className="text-xs gap-1 h-7" onClick={() => setAddOpen(true)}>
+            <Plus className="size-3" /> Log Embryo Transfer
+          </Button>
+        )}
+      </div>
+
+      {/* Celebration banner when pregnant */}
+      {isPregnant && (
+        <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🤰</span>
+            <div>
+              <p className="text-lg font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
+              <p className="text-sm text-stone-600">Due {formatDate(jd.dueDate)} <EditableTileInline value={jd.dueDate} onSave={v => onUpdate({ dueDate: v })} type="date" className="text-pink-600 text-xs" placeholder="Edit" /></p>
+            </div>
+            <Sparkles className="size-5 text-pink-400 ml-auto" />
+          </div>
+        </div>
+      )}
+
+      {/* Timeline */}
+      <div className="flex items-center gap-0 mb-4">
+        {steps.map((step, i) => {
+          const done = step.done
+          const isLast = i === steps.length - 1
+          return (
+            <div key={step.key} className="flex items-center flex-1">
+              <div className="flex flex-col items-center">
+                <div className={`size-7 rounded-full border-[3px] flex items-center justify-center transition-all ${
+                  done
+                    ? step.key === 'pregnant' ? 'bg-pink-500 border-pink-500 scale-110' : 'bg-green-500 border-green-500'
+                    : 'bg-white border-stone-200'
+                }`}>
+                  {done && <Check className="size-3.5 text-white" />}
+                </div>
+                <p className={`text-[10px] mt-1 text-center font-medium ${done ? step.key === 'pregnant' ? 'text-pink-600' : 'text-green-600' : 'text-stone-400'}`}>
+                  {step.label}
+                </p>
+              </div>
+              {!isLast && (
+                <div className={`flex-1 h-[3px] mx-1 mt-[-16px] rounded-full ${done && steps[i + 1]?.done ? 'bg-green-400' : done ? 'bg-green-200' : 'bg-stone-100'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Transfer history */}
+      {transfers.length > 0 && (
+        <div className="space-y-2">
+          {transfers.map((t, i) => (
+            <div key={i} className={`rounded-lg border p-3 text-sm ${t.betaResult === 'negative' ? 'border-stone-200 bg-stone-50 opacity-60' : t.heartbeatConfirmed ? 'border-pink-200 bg-pink-50/30' : 'border-stone-200'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-stone-700">Transfer #{i + 1}</span>
+                  <span className="text-xs text-stone-400">{formatDate(t.date)}</span>
+                  <span className="text-[10px] text-stone-400">{t.embryoCount} embryo{t.embryoCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {t.betaResult === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Beta +</span>}
+                  {t.betaResult === 'negative' && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Beta −</span>}
+                  {t.heartbeatConfirmed && <span className="text-[10px] font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full flex items-center gap-0.5"><HeartPulse className="size-2.5" /> Heartbeat</span>}
+                </div>
+              </div>
+              {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
+
+              {/* Action buttons for latest transfer */}
+              {i === transfers.length - 1 && (
+                <div className="flex gap-2 mt-2">
+                  {!t.betaResult && (
+                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setBetaOpen(i)}>
+                      Log Beta Results
+                    </Button>
+                  )}
+                  {t.betaResult === 'positive' && !t.heartbeatConfirmed && (
+                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => setHeartbeatOpen(true)}>
+                      <HeartPulse className="size-3" /> Confirm Heartbeat
+                    </Button>
+                  )}
+                  {t.betaResult === 'negative' && (
+                    <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setAddOpen(true)}>
+                      <Plus className="size-3" /> Log New Transfer
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Transfer Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Log Embryo Transfer</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Transfer Date *</label>
+                <Input type="date" value={transferForm.date} onChange={e => setTransferForm(f => ({ ...f, date: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Embryos Transferred</label>
+                <select value={transferForm.embryoCount} onChange={e => setTransferForm(f => ({ ...f, embryoCount: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                  {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+              <Input value={transferForm.notes} onChange={e => setTransferForm(f => ({ ...f, notes: e.target.value }))} placeholder="Clinic, doctor, embryo details..." className="h-9" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setAddOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={saving || !transferForm.date} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={handleAddTransfer}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                Log Transfer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Beta Results Dialog */}
+      <Dialog open={betaOpen !== null} onOpenChange={() => setBetaOpen(null)}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader><DialogTitle>Beta HCG Results</DialogTitle></DialogHeader>
+          <p className="text-sm text-stone-600">What were the beta results?</p>
+          <div className="flex gap-3 pt-2">
+            <Button className="flex-1 gap-1 bg-green-600 hover:bg-green-700 text-white" size="sm" disabled={saving} onClick={() => handleBetaResult(betaOpen, 'positive')}>
+              {saving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Positive
+            </Button>
+            <Button className="flex-1 gap-1" variant="outline" size="sm" disabled={saving} onClick={() => handleBetaResult(betaOpen, 'negative')}>
+              <X className="size-3" /> Negative
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Heartbeat Confirmation Dialog */}
+      <Dialog open={heartbeatOpen} onOpenChange={setHeartbeatOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><HeartPulse className="size-5 text-pink-500" /> Confirm Heartbeat</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3">
+              <p className="text-sm text-pink-800">Confirming a heartbeat will mark this journey as <strong>pregnant</strong> and calculate the due date from the transfer date.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Heartbeat Confirmed Date *</label>
+              <Input type="date" value={heartbeatDate} onChange={e => setHeartbeatDate(e.target.value)} className="h-9" />
+            </div>
+            {heartbeatDate && latestTransfer && (
+              <p className="text-xs text-stone-500">
+                Estimated due date: <strong className="text-pink-600">{formatDate(new Date(new Date(latestTransfer.date).getTime() + TRANSFER_CALC_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0])}</strong>
+              </p>
+            )}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setHeartbeatOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={saving || !heartbeatDate} className="gap-1 bg-pink-600 hover:bg-pink-700 text-white" onClick={handleHeartbeat}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <HeartPulse className="size-3" />}
+                Confirm Heartbeat
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
 // ── Expenses Tab ────────────────────────────────────────
 function JourneyExpensesTab({ journeyId, gcCaseId }) {
   const [expenses, setExpenses] = useState([])
@@ -906,6 +1156,8 @@ export default function JourneyDetailPage() {
   const [breakReason, setBreakReason] = useState('')
   const [breaking, setBreaking] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
   const [expenseFile, setExpenseFile] = useState(null)
   const [savingExpense, setSavingExpense] = useState(false)
@@ -1190,7 +1442,7 @@ export default function JourneyDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
 
         {/* Journey Info Card (white, 3 of 5 cols) */}
-        <div className="lg:col-span-3 rounded-2xl border border-stone-200/80 overflow-hidden bg-white">
+        <div className={`lg:col-span-3 rounded-2xl border-2 overflow-hidden bg-white ${(journey.journey_data?.pregnant === 'yes') ? 'border-pink-400 shadow-pink-100 shadow-lg' : 'border-stone-200/80'}`}>
           <div className="p-6 space-y-5">
 
             {/* Top row: Stage + Status pill | Match date + Break Match */}
@@ -1228,11 +1480,10 @@ export default function JourneyDetailPage() {
                     </div>
                   )}
                 </div>
-                {/* Pregnancy */}
-                {['Active Pregnancy', 'Monitoring', 'Delivery Scheduled', 'Delivered', 'Post-Partum'].includes(journey.status) && jd.dueDate && (
+                {/* Pregnancy indicator in status bar */}
+                {jd.pregnant === 'yes' && jd.dueDate && (
                   <div className="flex items-center gap-2 ml-1">
-                    <span className="text-2xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</span>
-                    <span className="text-sm text-stone-500">Due <EditableTileInline value={jd.dueDate} onSave={v => updateField('dueDate', v)} type="date" className="text-stone-700" /></span>
+                    <span className="text-2xl font-bold text-pink-600">🤰 {calcGestationalWeeks(jd.dueDate) || ''}</span>
                   </div>
                 )}
               </div>
@@ -1273,6 +1524,13 @@ export default function JourneyDetailPage() {
                 <span className="text-stone-500 flex items-center gap-1.5">Escrow Close Date: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
               </div>
             </div>
+
+            {/* ── Pregnancy Tracker ── */}
+            <PregnancyTracker
+              journey={journey}
+              onUpdate={async (fields) => { await updateFields(fields) }}
+              onPregnancyConfirmed={() => { setShowConfetti(true); fireConfetti() }}
+            />
 
             {/* ── Providers (clickable to edit via modal) ── */}
             <div className="border-t border-stone-100 pt-4">
@@ -1664,6 +1922,9 @@ export default function JourneyDetailPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confetti */}
+      {showConfetti && <ConfettiBurst ref={confettiRef} iconSrc="/abc-favicon.png" zIndex={40} />}
 
       {/* Insurance Dialog */}
       <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
