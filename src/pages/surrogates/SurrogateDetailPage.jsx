@@ -308,70 +308,55 @@ export default function SurrogateDetailPage() {
     }
   }, [recordTracking, id])
 
-  const lastUpdatedRecord = useRef(null)
-
   function updateRecord(recordId, updates) {
-    setRecordTracking(prev => {
-      const next = { ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }
-      return next
-    })
-    lastUpdatedRecord.current = recordId
+    setRecordTracking(prev => ({ ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }))
   }
 
   // Map medical record prefixes to checklist step label patterns
-  const RECORD_PREFIX_TO_LABEL = {
-    'ob_records_': 'ob records',
-    'delivery_records_': 'delivery records',
-    'ivf_records_': 'ivf records',
-  }
+  const RECORD_PREFIXES = ['ob_records_', 'delivery_records_', 'ivf_records_']
+  const PREFIX_LABELS = { 'ob_records_': 'ob records', 'delivery_records_': 'delivery records', 'ivf_records_': 'ivf records' }
 
-  // Find the checklist step ID by matching label (handles user-created steps with timestamp IDs)
-  function findChecklistStepId(prefix) {
-    const labelMatch = RECORD_PREFIX_TO_LABEL[prefix]
-    if (!labelMatch) return null
-    // Check all tracking keys and also check the checklist config
-    // Medical record steps are always in screening stage
-    const steps = getChecklistSteps('gc', 'screening')
-    const match = steps.find(s => s.label?.toLowerCase().includes(labelMatch) || s.id === labelMatch.replace(/\s/g, '_'))
-    return match?.id || labelMatch.replace(/\s/g, '_')
-  }
-
-  // Auto-update checklist steps when medical records change
+  // Auto-update ALL record-type checklist steps whenever tracking changes
+  const autoUpdateRan = useRef(false)
   useEffect(() => {
-    const recordId = lastUpdatedRecord.current
-    if (!recordId) return
-    lastUpdatedRecord.current = null
+    // Skip the very first render (initial load from Supabase)
+    if (!autoUpdateRan.current) { autoUpdateRan.current = true; return }
 
-    let prefix = null
-    for (const p of Object.keys(RECORD_PREFIX_TO_LABEL)) {
-      if (recordId.startsWith(p)) { prefix = p; break }
+    const screeningSteps = getChecklistSteps('gc', 'screening')
+    let needsUpdate = false
+    const updates = {}
+
+    for (const prefix of RECORD_PREFIXES) {
+      const labelMatch = PREFIX_LABELS[prefix]
+      const step = screeningSteps.find(s => s.label?.toLowerCase().includes(labelMatch))
+      if (!step) continue
+
+      const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
+      if (recordKeys.length === 0) continue
+
+      const allDone = recordKeys.every(k => {
+        const st = recordTracking[k]?.status
+        return st === 'complete' || st === 'partial_complete' || st === 'na'
+      })
+      const anyStarted = recordKeys.some(k => {
+        const st = recordTracking[k]?.status
+        return st && st !== 'not_started'
+      })
+      const current = recordTracking[step.id]?.status || 'not_started'
+
+      if (allDone && current !== 'complete') {
+        const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
+        updates[step.id] = { ...(recordTracking[step.id] || {}), status: 'complete', history: [...(recordTracking[step.id]?.history || []), entry] }
+        needsUpdate = true
+      } else if (anyStarted && !allDone && current !== 'in_progress' && current !== 'complete') {
+        const entry = { status: 'in_progress', date: new Date().toISOString().split('T')[0], note: 'Auto-updated: records in progress', by: 'System' }
+        updates[step.id] = { ...(recordTracking[step.id] || {}), status: 'in_progress', history: [...(recordTracking[step.id]?.history || []), entry] }
+        needsUpdate = true
+      }
     }
-    if (!prefix) return
-    const checklistStepId = findChecklistStepId(prefix)
-    if (!checklistStepId) return
 
-    const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix))
-    if (recordKeys.length === 0) return
-
-    const allDone = recordKeys.every(k => {
-      const st = recordTracking[k]?.status
-      return st === 'complete' || st === 'partial_complete' || st === 'na'
-    })
-    const anyStarted = recordKeys.some(k => {
-      const st = recordTracking[k]?.status
-      return st && st !== 'not_started'
-    })
-
-    const currentChecklistStatus = recordTracking[checklistStepId]?.status || 'not_started'
-
-    if (allDone && currentChecklistStatus !== 'complete') {
-      const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
-      const history = [...(recordTracking[checklistStepId]?.history || []), entry]
-      setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'complete', history } }))
-    } else if (anyStarted && !allDone && (currentChecklistStatus === 'not_started' || currentChecklistStatus === undefined)) {
-      const entry = { status: 'in_progress', date: new Date().toISOString().split('T')[0], note: 'Auto-updated: records in progress', by: 'System' }
-      const history = [...(recordTracking[checklistStepId]?.history || []), entry]
-      setRecordTracking(prev => ({ ...prev, [checklistStepId]: { ...(prev[checklistStepId] || {}), status: 'in_progress', history } }))
+    if (needsUpdate) {
+      setRecordTracking(prev => ({ ...prev, ...updates }))
     }
   }, [recordTracking])
 

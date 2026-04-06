@@ -278,3 +278,11 @@
         page-break-inside: avoid;
     }
 }
+
+/* Tiptap editor paragraph spacing */
+.ProseMirror p {
+  margin-bottom: 0.75em;
+}
+.ProseMirror p:last-child {
+  margin-bottom: 0;
+}
