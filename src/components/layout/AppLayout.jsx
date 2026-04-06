@@ -5,6 +5,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { DraftProvider } from '@/context/DraftContext'
 import ComposeWindows from '@/components/shared/ComposeWindows'
+import { loadAdminUsers } from '@/data/mock/users'
 
 class ComposeErrorBoundary extends Component {
   state = { hasError: false }
@@ -16,6 +17,9 @@ class ComposeErrorBoundary extends Component {
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+
+  // Load admin users from Supabase on mount
+  useEffect(() => { loadAdminUsers().catch(() => {}) }, [])
 
   // Close mobile sidebar on navigation
   useEffect(() => {

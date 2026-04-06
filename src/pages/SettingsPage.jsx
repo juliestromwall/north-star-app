@@ -23,7 +23,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle } from 'lucide-react'
-import { mockUsers } from '@/data/mock/users'
+import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
@@ -561,8 +561,16 @@ const ROLE_BADGE_STYLES = {
 function UserManagementSection() {
   const { currentUser } = useRole()
   const [open, setOpen] = useState(false)
-  // Filter out super_admin (developer) from visible list
   const [users, setUsers] = useState(() => mockUsers.filter(u => u.role !== 'super_admin'))
+
+  // Refresh users when mockUsers updates (after loadAdminUsers)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const current = mockUsers.filter(u => u.role !== 'super_admin')
+      if (current.length !== users.length) setUsers(current)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [users.length])
   const [addOpen, setAddOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', role: 'admin' })
@@ -597,6 +605,8 @@ function UserManagementSection() {
         const { inviteUser } = await import('@/lib/invite')
         await inviteUser(currentUser?.id, { email: form.email.trim(), name: form.name.trim(), role: form.role, portalType: 'admin' })
         setInviteStatus('sent')
+        // Refresh admin users cache
+        await loadAdminUsers()
       } catch (err) {
         console.warn('Invite failed:', err)
         setInviteStatus('error')

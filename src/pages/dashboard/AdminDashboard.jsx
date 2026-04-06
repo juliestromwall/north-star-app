@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { useAdminNotes } from '@/context/AdminNotesContext'
 import PageHeader from '@/components/shared/PageHeader'
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { listEvents } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -42,10 +42,9 @@ export default function AdminDashboard() {
   const [showCalc, setShowCalc] = useState(false)
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [tasksOpen, setTasksOpen] = useState(true)
-  const stickyKey = `abc_sticky_notes_${currentUser?.email || 'default'}`
-  const [stickyNotes, setStickyNotes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(stickyKey) || '[]') } catch { return [] }
-  })
+  const stickyKey = `sticky_notes_${currentUser?.email || 'default'}`
+  const [stickyNotes, setStickyNotes] = useState([])
+  const stickyLoaded = useRef(false)
 
   useEffect(() => {
     Promise.all([
@@ -95,9 +94,19 @@ export default function AdminDashboard() {
     }
   }, [])
 
-  // Save sticky notes to localStorage
+  // Load sticky notes from Supabase on mount
   useEffect(() => {
-    localStorage.setItem(stickyKey, JSON.stringify(stickyNotes))
+    if (!currentUser?.email) return
+    getAppConfig(stickyKey).then(val => {
+      if (val && Array.isArray(val)) setStickyNotes(val)
+      stickyLoaded.current = true
+    }).catch(() => { stickyLoaded.current = true })
+  }, [currentUser?.email])
+
+  // Save sticky notes to Supabase when changed
+  useEffect(() => {
+    if (!stickyLoaded.current) return
+    setAppConfig(stickyKey, stickyNotes).catch(() => {})
   }, [stickyNotes])
 
   // Build "My Cases" — only cases assigned to the logged-in admin
