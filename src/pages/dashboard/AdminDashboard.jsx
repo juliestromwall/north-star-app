@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -38,6 +38,8 @@ export default function AdminDashboard() {
   const [ipStageStatuses, setIpStageStatuses] = useState({})
   const [quote, setQuote] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [addTaskOpen, setAddTaskOpen] = useState(false)
+  const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'normal', description: '' })
   const [caseView, setCaseView] = useState('grid')
   const [showCalc, setShowCalc] = useState(false)
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
@@ -75,8 +77,12 @@ export default function AdminDashboard() {
       const userId = currentUser?.id
       if (userId) {
         const now = new Date()
-        const timeMin = now.toISOString()
-        const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        // Show full current week (Sunday to Saturday)
+        const dayOfWeek = now.getDay() // 0=Sun
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek)
+        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const timeMin = weekStart.toISOString()
+        const timeMax = weekEnd.toISOString()
         // Only show app-created appointments (tagged with abcCase=true)
         getAccessToken(userId).then(token => {
           const params = new URLSearchParams({
@@ -227,11 +233,16 @@ export default function AdminDashboard() {
 
         {/* Tasks */}
         <Card>
-          <CardHeader className="pb-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
-            <CardTitle className="text-sm flex items-center gap-2">
-              {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-              <CheckCircle2 className="size-4 text-stone-400" /> My Tasks
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
+                {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
+                <CheckCircle2 className="size-4 text-stone-400" /> My Tasks
+              </CardTitle>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setAddTaskOpen(true)}>
+                <Plus className="size-3" /> Add Task
+              </Button>
+            </div>
           </CardHeader>
           {tasksOpen && <CardContent>
             {tasks.length === 0 ? (
@@ -249,6 +260,11 @@ export default function AdminDashboard() {
                         {task.due_date && <span>{formatDate(task.due_date)}</span>}
                         {task.priority === 'high' && <span className="text-red-500 font-semibold">High</span>}
                         {task.priority === 'urgent' && <span className="text-red-600 font-semibold">Urgent</span>}
+                        {task.case_type === 'personal' || !task.case_id ? (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
+                        ) : (
+                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">Case</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -258,6 +274,62 @@ export default function AdminDashboard() {
           </CardContent>}
         </Card>
       </div>
+
+      {/* Add Task Dialog */}
+      <Dialog open={addTaskOpen} onOpenChange={setAddTaskOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Title *</label>
+              <Input value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))} placeholder="What needs to be done?" className="h-9" autoFocus />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Due Date</label>
+                <Input type="date" value={newTask.due_date} onChange={e => setNewTask(t => ({ ...t, due_date: e.target.value }))} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Priority</label>
+                <select value={newTask.priority} onChange={e => setNewTask(t => ({ ...t, priority: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                  <option value="low">Low</option>
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+              <Input value={newTask.description} onChange={e => setNewTask(t => ({ ...t, description: e.target.value }))} placeholder="Optional details..." className="h-9" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={!newTask.title.trim()} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
+                try {
+                  const created = await createCaseTask({
+                    title: newTask.title.trim(),
+                    due_date: newTask.due_date || null,
+                    priority: newTask.priority,
+                    description: newTask.description || null,
+                    assigned_to: currentUser?.email,
+                    created_by: currentUser?.email,
+                    status: 'open',
+                    case_type: 'personal',
+                  })
+                  if (created) setTasks(prev => [created, ...prev])
+                  setNewTask({ title: '', due_date: '', priority: 'normal', description: '' })
+                  setAddTaskOpen(false)
+                } catch (err) {
+                  console.error('Failed to create task:', err)
+                }
+              }}>
+                <Plus className="size-3" /> Add Task
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* My Cases — separated by type */}
       <div>
