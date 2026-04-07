@@ -870,6 +870,9 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
       const { createDocument, sendDocument, updateDocument } = await import('@/lib/esign')
       const { supabase } = await import('@/lib/supabase')
 
+      // Generate a batch token to group all release forms
+      const batchToken = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
+
       const providers = extractProviders(clinicData)
       if (providers.length === 0) {
         setResult({ error: 'No providers found. Please ensure the clinic/hospital form is filled out.' })
@@ -912,6 +915,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         await updateDocument(doc.id, {
           document_hash: JSON.stringify({
             htmlPath,
+            batchToken,
             fields: [
               { fieldType: 'signature', role: 'gc', fieldId: 'field_0', placeholder: '{{Signature:GC}}' },
               { fieldType: 'date', role: 'gc', fieldId: 'field_1', placeholder: '{{Date:GC}}' },
@@ -925,33 +929,25 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         // Send for signature
         await sendDocument(doc.id)
 
-        const signUrl = `${window.location.origin}/e-signature/sign/${doc.signing_token}`
-        created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token, signUrl })
+        created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token })
       }
 
-      // Send ONE email with all signing links
+      // Send ONE email with a single batch signing link
       if (created.length > 0 && patient.email) {
+        const batchUrl = `${window.location.origin}/e-signature/release/${batchToken}`
         try {
           const { sendEmail } = await import('@/lib/google')
-          const docListHtml = created.map((d, i) => `
-            <div style="background: #f8f9fc; border-radius: 8px; padding: 14px 16px; margin: 8px 0; border-left: 3px solid #283693;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                  <p style="font-weight: 600; margin: 0; font-size: 14px; color: #1a1a2e;">${i + 1}. ${d.clinicName}</p>
-                  <p style="color: #666; font-size: 12px; margin: 2px 0 0;">
-                    ${{ ob: 'Prenatal/OB Records', hospital: 'Labor & Delivery Records', mfm: 'MFM Records', ivf: 'IVF/Fertility Records' }[d.type] || 'Medical Records'}
-                  </p>
-                </div>
-                <a href="${d.signUrl}" style="display: inline-block; background: #283693; color: white; padding: 8px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px; white-space: nowrap;">
-                  Sign
-                </a>
-              </div>
+          const providerListHtml = created.map((d, i) => `
+            <div style="padding: 6px 0; border-bottom: 1px solid #f0f0f0;">
+              <span style="color: #283693; font-weight: 600;">${i + 1}.</span>
+              ${d.clinicName}
+              <span style="color: #888; font-size: 12px;"> - ${{ ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }[d.type] || 'Medical'}</span>
             </div>
           `).join('')
 
           await sendEmail(currentUser?.id, {
             to: patient.email,
-            subject: `Medical Records Release Forms Ready to Sign (${created.length})`,
+            subject: `Medical Records Release Forms - ${created.length} forms ready to sign`,
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -959,9 +955,16 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
                 </div>
                 <h2 style="color: #283693; margin-bottom: 8px;">Medical Records Release Forms</h2>
                 <p>Hi ${patient.name || ''},</p>
-                <p>${currentUser?.name || 'Your case manager'} at <strong>Abundant Beginnings Co.</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for you to review and sign. Please click each button below to sign:</p>
-                ${docListHtml}
-                <p style="color: #666; font-size: 13px; margin-top: 20px;">Each form authorizes a specific provider to release your medical records to ABC Surrogacy for your surrogacy journey.</p>
+                <p>${currentUser?.name || 'Your case manager'} at <strong>Abundant Beginnings Co.</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for your signature. You can review and sign all forms on a single page:</p>
+                <div style="background: #f8f9fc; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  ${providerListHtml}
+                </div>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${batchUrl}" style="display: inline-block; background: #283693; color: white; padding: 14px 40px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                    Review & Sign All Forms
+                  </a>
+                </div>
+                <p style="color: #666; font-size: 13px;">Each form authorizes a specific provider to release your medical records to ABC Surrogacy for your surrogacy journey.</p>
                 <p style="color: #888; font-size: 12px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
                   These are legally binding electronic signature requests from Abundant Beginnings Company, LLC.
                   If you have questions, please contact us at info@abcsurrogacy.com.
