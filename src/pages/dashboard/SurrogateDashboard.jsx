@@ -325,7 +325,7 @@ function OnboardingDashboard({ name, currentUser }) {
       {/* Top banner — application CTA or "all caught up" */}
       {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
         appAvailable ? (
-          <Link to="/my-application" className="-mb-3">
+          <Link to="/my-application">
             <Card className="border-[#283693]/20 hover:shadow-md transition-shadow" style={{ backgroundColor: '#f0f1fa' }}>
               <CardContent className="py-6">
                 <div className="flex items-start gap-4">
