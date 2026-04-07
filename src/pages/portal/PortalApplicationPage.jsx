@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
+import { createCaseTask } from '@/lib/db'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -778,6 +779,7 @@ export default function PortalApplicationPage() {
   const [saving, setSaving] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
   const [activeSection, setActiveSection] = useState(null)
+  const [assignedTo, setAssignedTo] = useState(null)
   const isSubmitted = answers?._applicationSubmitted
 
   useEffect(() => {
@@ -789,7 +791,7 @@ export default function PortalApplicationPage() {
     try {
       const { data } = await supabase
         .from('intake_submissions')
-        .select('id, answers')
+        .select('id, answers, assigned_to')
         .eq('applicant_email', currentUser.email.trim().toLowerCase())
         .order('submitted_at', { ascending: false })
         .limit(1)
@@ -797,6 +799,7 @@ export default function PortalApplicationPage() {
       if (data) {
         setCaseId(data.id)
         setAnswers(data.answers || {})
+        if (data.assigned_to) setAssignedTo(data.assigned_to)
       }
     } catch (err) {
       console.error('Failed to load application data:', err)
@@ -850,6 +853,24 @@ export default function PortalApplicationPage() {
       await supabase.from('intake_submissions').update({ answers: updated }).eq('id', caseId)
       setAnswers(updated)
       setSubmitOpen(false)
+
+      // Create task for assigned admin to review the application
+      const surName = [answers?.firstName, answers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate'
+      try {
+        await createCaseTask({
+          case_id: Number(caseId),
+          case_type: 'surrogate',
+          title: `Review Application - ${surName}`,
+          description: 'Application submitted by applicant. Please review all sections.',
+          assigned_to: assignedTo || '',
+          due_date: new Date().toISOString().split('T')[0],
+          priority: 'high',
+          status: 'open',
+          created_by: 'System',
+        })
+      } catch (err) {
+        console.error('Auto-task for app review failed:', err)
+      }
     } catch (err) {
       console.error('Submit failed:', err)
     } finally {

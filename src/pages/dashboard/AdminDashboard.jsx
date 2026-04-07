@@ -278,15 +278,16 @@ export default function AdminDashboard() {
                 {tasks.slice(0, 8).map(task => {
                   // Resolve case name and link
                   let caseName = null, caseLink = null
-                  if (task.case_id && task.case_type !== 'personal') {
-                    if (task.case_type === 'surrogate') {
-                      const gc = surrogates.find(s => s.id === task.case_id)
+                  if (task.case_id && task.case_type && task.case_type !== 'personal') {
+                    const cid = Number(task.case_id)
+                    if (task.case_type === 'surrogate' || task.case_type === 'gc') {
+                      const gc = surrogates.find(s => Number(s.id) === cid)
                       if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
                     } else if (task.case_type === 'ip') {
-                      const ip = ips.find(i => i.id === task.case_id)
+                      const ip = ips.find(i => Number(i.id) === cid)
                       if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
                     } else if (task.case_type === 'journey') {
-                      const j = journeys.find(j => j.id === task.case_id)
+                      const j = journeys.find(j => Number(j.id) === cid)
                       if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
                     }
                   }

@@ -494,7 +494,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
           try {
             await createCaseTask({
               case_id: Number(caseId),
-              case_type: caseType || 'surrogate',
+              case_type: caseType === 'gc' ? 'surrogate' : (caseType || 'surrogate'),
               title: `Fax Received - Verify if ${recordLabel} are complete`,
               assigned_to: currentUser?.email || '',
               due_date: new Date().toISOString().split('T')[0],
