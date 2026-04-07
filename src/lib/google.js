@@ -693,25 +693,126 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
         nonSigReplacements[`{{Name:${rv}}}`] = pv[`{{Name:${rv}}}`] || signer.signatureName || signer.name || ''
         nonSigReplacements[`{{Email:${rv}}}`] = pv[`{{Email:${rv}}}`] || signer.email || ''
         nonSigReplacements[`{{Date:${rv}}}`] = signDate
+        // Initials — use replaceAllText (preserves pagination) then style after
+        const initialsVal = pv[`{{Initials:${rv}}}`] || computedInitials
+        nonSigReplacements[`{{Initials:${rv}}}`] = initialsVal
+        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = pv[`{{OptionalInitials:${rv}}}`] || ''
         nonSigReplacements[`{{Text:${rv}}}`] = pv[`{{Text:${rv}}}`] || ''
         nonSigReplacements[`{{OptionalText:${rv}}}`] = pv[`{{OptionalText:${rv}}}`] || ''
         nonSigReplacements[`{{Checkbox:${rv}}}`] = pv[`{{Checkbox:${rv}}}`] || '☐'
-        // Handle numbered text variants (Text1, Text2, etc.)
+        // Handle numbered variants (Text1, Text2, Initials1, Signature2, etc.)
         for (const [pvKey, pvVal] of Object.entries(pv)) {
-          if (pvKey.includes(rv) && !nonSigReplacements[pvKey]) {
+          if (pvKey.includes(rv) && !nonSigReplacements[pvKey] && !pvKey.includes('Signature')) {
             nonSigReplacements[pvKey] = pvVal
           }
         }
-        // Initials handled as styled text (like signatures), not plain replaceAllText
+        // Signatures (including numbered: Signature2, Signature3)
         sigPlaceholders.push(`{{Signature:${rv}}}`)
-        sigPlaceholders.push(`{{Initials:${rv}}}`)
-        sigPlaceholders.push(`{{OptionalInitials:${rv}}}`)
+        for (let n = 2; n <= 5; n++) sigPlaceholders.push(`{{Signature${n}:${rv}}}`)
       }
       signatureInfo.push({ placeholders: sigPlaceholders, signer })
     }
 
     // 3. Replace non-signature fields first
     await replaceTextInDoc(userId, copyId, nonSigReplacements)
+
+    // 3b. Style initials with Dancing Script font (after replaceAllText to preserve pagination)
+    try {
+      // Collect all non-empty initials values that were replaced
+      const initialsValues = []
+      for (const signer of signers) {
+        const roleCode = getSignerRoleCode(signer.role)
+        const variants = [roleCode, roleCode.toLowerCase()]
+        if (roleCode === 'Partner') variants.push('Parnter', 'parnter')
+        const pv = signer.placeholderValues || {}
+        const computedInitials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
+        for (const rv of variants) {
+          const val = pv[`{{Initials:${rv}}}`] || computedInitials
+          if (val) initialsValues.push(val)
+          // Also check numbered initials
+          for (const [pvKey, pvVal] of Object.entries(pv)) {
+            if (pvKey.match(/\{\{Initials\d*:/i) && pvKey.includes(rv) && pvVal) {
+              initialsValues.push(pvVal)
+            }
+          }
+        }
+      }
+      // De-duplicate
+      const uniqueInitials = [...new Set(initialsValues)]
+      if (uniqueInitials.length > 0) {
+        const initialsDocRes = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const initialsDoc = await initialsDocRes.json()
+        // Find ALL occurrences of each initials value and style them
+        const styleRequests = []
+        function findAllInDoc(doc, searchText) {
+          const results = []
+          function searchElements(elements) {
+            for (const el of elements || []) {
+              if (el.paragraph) {
+                const runs = el.paragraph.elements || []
+                let fullText = ''
+                const runOffsets = []
+                for (const run of runs) {
+                  const text = run.textRun?.content || ''
+                  runOffsets.push({ start: run.startIndex, textStart: fullText.length, textLen: text.length })
+                  fullText += text
+                }
+                let searchFrom = 0
+                while (true) {
+                  const idx = fullText.indexOf(searchText, searchFrom)
+                  if (idx === -1) break
+                  let absStart = 0
+                  for (const ro of runOffsets) {
+                    if (idx >= ro.textStart && idx < ro.textStart + ro.textLen) {
+                      absStart = ro.start + (idx - ro.textStart)
+                      break
+                    }
+                  }
+                  results.push({ startIndex: absStart, endIndex: absStart + searchText.length })
+                  searchFrom = idx + searchText.length
+                }
+              }
+              if (el.table) {
+                for (const row of el.table.tableRows || []) {
+                  for (const cell of row.tableCells || []) {
+                    results.push(...findAllInDoc({ body: { content: cell.content } }, searchText))
+                  }
+                }
+              }
+            }
+          }
+          searchElements(doc.body?.content)
+          return results
+        }
+        for (const initVal of uniqueInitials) {
+          const positions = findAllInDoc(initialsDoc, initVal)
+          for (const pos of positions) {
+            styleRequests.push({
+              updateTextStyle: {
+                range: { startIndex: pos.startIndex, endIndex: pos.endIndex },
+                textStyle: {
+                  weightedFontFamily: { fontFamily: 'Dancing Script' },
+                  fontSize: { magnitude: 11, unit: 'PT' },
+                  foregroundColor: { color: { rgbColor: { red: 0.05, green: 0.1, blue: 0.35 } } },
+                },
+                fields: 'weightedFontFamily,fontSize,foregroundColor',
+              },
+            })
+          }
+        }
+        if (styleRequests.length > 0) {
+          await fetch(`https://docs.googleapis.com/v1/documents/${copyId}:batchUpdate`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requests: styleRequests }),
+          })
+        }
+      }
+    } catch (initStyleErr) {
+      console.error('Initials styling failed (non-fatal):', initStyleErr)
+    }
 
     // 4. Handle signature fields — drawn images or styled handwriting text
     try {
@@ -738,12 +839,12 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
       })
       const docData = await docRes.json()
 
-      // Find positions of each signature placeholder
+      // Find positions of each signature placeholder (all variants, not just first)
       const sigPositions = []
       for (const { placeholders, signer } of signatureInfo) {
         for (const placeholder of placeholders) {
           const pos = findTextInDoc(docData, placeholder)
-          if (pos) { sigPositions.push({ ...pos, signer, placeholder }); break }
+          if (pos) { sigPositions.push({ ...pos, signer, placeholder }) }
         }
       }
 
@@ -752,18 +853,9 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
 
       const requests = []
       for (const pos of sigPositions) {
-        const { signer, startIndex, endIndex, placeholder } = pos
-        const isInitials = placeholder?.toLowerCase().includes('initials')
-        const isDrawn = signer.signatureType === 'drawn' && sigImageUrls[signer.email] && !isInitials
-        const pv = signer.placeholderValues || {}
-
-        // For initials, use the typed value; for signatures, use the signature name
-        let insertText
-        if (isInitials) {
-          insertText = pv[placeholder] || (signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : '')
-        } else {
-          insertText = signer.signatureName || signer.name || ''
-        }
+        const { signer, startIndex, endIndex } = pos
+        const isDrawn = signer.signatureType === 'drawn' && sigImageUrls[signer.email]
+        const insertText = signer.signatureName || signer.name || ''
 
         // Delete the placeholder text
         requests.push({ deleteContentRange: { range: { startIndex, endIndex } } })
@@ -783,7 +875,6 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
         } else {
           // Insert typed text with a handwriting-style font
           const text = insertText
-          const fontSize = isInitials ? 11 : 14
           requests.push({ insertText: { location: { index: startIndex }, text } })
           if (text.length > 0) {
             requests.push({
@@ -791,7 +882,7 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
                 range: { startIndex, endIndex: startIndex + text.length },
                 textStyle: {
                   weightedFontFamily: { fontFamily: 'Dancing Script' },
-                  fontSize: { magnitude: fontSize, unit: 'PT' },
+                  fontSize: { magnitude: 14, unit: 'PT' },
                   foregroundColor: { color: { rgbColor: { red: 0.05, green: 0.1, blue: 0.35 } } },
                 },
                 fields: 'weightedFontFamily,fontSize,foregroundColor',

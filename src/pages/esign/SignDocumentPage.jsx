@@ -267,8 +267,11 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder="Enter text..." className="inline-block w-[200px] text-sm border-b-2 border-amber-300 bg-amber-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
             default: {
-              // Handle numbered variants: text1, text2, initials1, initials2, optionaltext1, etc.
+              // Handle numbered variants: signature2, signature3, text1, text2, initials1, initials2, optionaltext1, etc.
               const ft = part.fieldType
+              if (ft.startsWith('signature')) {
+                return <InlineSignaturePad key={i} value={signatureValue} onChange={onSignatureChange} signerName={signerName} />
+              }
               if (ft.startsWith('initials') || ft.startsWith('optionalinitials')) {
                 return <InitialsPad key={i} value={val} onChange={v => onFieldChange(key, v)} optional={ft.startsWith('optional')} />
               }
