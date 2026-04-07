@@ -410,7 +410,18 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
     getRecordTracking(caseId).then(tracking => {
       if (tracking) {
         setRecordTracking(tracking)
-        setRecordKeys(Object.keys(tracking).filter(k => tracking[k]?.status !== 'na'))
+        // Only show actual medical records (ob_records_0, delivery_records_1, etc.)
+        // Exclude checklist steps (ob_records, delivery_records) and timestamp IDs
+        const medRecordPrefixes = ['ob_records_', 'delivery_records_', 'ivf_records_', 'pap_', 'custom_record_']
+        setRecordKeys(Object.keys(tracking).filter(k => {
+          if (tracking[k]?.status === 'na') return false
+          if (!medRecordPrefixes.some(p => k.startsWith(p))) return false
+          // Exclude timestamp-suffixed checklist steps (10+ digit suffix)
+          const parts = k.split('_')
+          const lastPart = parts[parts.length - 1]
+          if (/^\d{10,}$/.test(lastPart)) return false
+          return true
+        }))
       } else {
         setRecordTracking({})
         setRecordKeys([])
