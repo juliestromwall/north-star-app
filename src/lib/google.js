@@ -669,18 +669,25 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
       const variants = [roleCode, roleCode.toLowerCase()]
       if (roleCode === 'Partner') variants.push('Parnter', 'parnter')
 
+      // Get typed field values from the signer (stored during signing)
+      const signerFields = signer.fieldValues || {}
+      // Find initials value from field values (look for any field that has short text like initials)
+      let typedInitials = computedInitials
+      for (const [key, val] of Object.entries(signerFields)) {
+        if (typeof val === 'string' && val.length >= 1 && val.length <= 5 && val !== signer.name && val !== signer.email) {
+          typedInitials = val // Use the first short non-name, non-email value as initials
+          break
+        }
+      }
+
       const sigPlaceholders = []
       for (const rv of variants) {
-        // Use actual field values typed by signer if available
-        const initialsKey = `field_${fieldIdx}`
-        const typedInitials = fieldValuesByPlaceholder[initialsKey]
-
-        nonSigReplacements[`{{Name:${rv}}}`] = signer.name || ''
+        nonSigReplacements[`{{Name:${rv}}}`] = signer.signatureName || signer.name || ''
         nonSigReplacements[`{{Email:${rv}}}`] = signer.email || ''
         nonSigReplacements[`{{Date:${rv}}}`] = signDate
-        nonSigReplacements[`{{Initials:${rv}}}`] = computedInitials
-        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = computedInitials
-        nonSigReplacements[`{{Text:${rv}}}`] = signer.name || ''
+        nonSigReplacements[`{{Initials:${rv}}}`] = typedInitials
+        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = typedInitials
+        nonSigReplacements[`{{Text:${rv}}}`] = signer.signatureName || signer.name || ''
         nonSigReplacements[`{{OptionalText:${rv}}}`] = ''
         nonSigReplacements[`{{Checkbox:${rv}}}`] = '☑'
         sigPlaceholders.push(`{{Signature:${rv}}}`)

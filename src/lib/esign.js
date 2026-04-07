@@ -246,6 +246,7 @@ export async function signDocument(docId, signerEmail, signatureData) {
         signatureType: signatureData.type, // 'typed' or 'drawn'
         signatureName: signatureData.name || '',
         signatureImage: signatureData.type === 'drawn' ? signatureData.image : null,
+        fieldValues: signatureData.fieldValues || {},
       }
     }
     return s
