@@ -272,6 +272,11 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
               if (ft.startsWith('signature')) {
                 return <InlineSignaturePad key={i} value={signatureValue} onChange={onSignatureChange} signerName={signerName} />
               }
+              if (ft.startsWith('checkbox')) {
+                return <label key={i} className="inline-flex items-center gap-1.5 align-middle mx-0.5 cursor-pointer">
+                  <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#283693]" />
+                </label>
+              }
               if (ft.startsWith('initials') || ft.startsWith('optionalinitials')) {
                 return <InitialsPad key={i} value={val} onChange={v => onFieldChange(key, v)} optional={ft.startsWith('optional')} />
               }
@@ -409,9 +414,9 @@ export default function SignDocumentPage() {
       if (!isMyField) continue
 
       // Check if field has a value
-      if (fieldType === 'signature') {
+      if (fieldType === 'signature' || fieldType.startsWith('signature')) {
         if (!signatureValue?.name && !signatureValue?.image) missing.push('Signature')
-      } else if (fieldType === 'checkbox' || fieldType.startsWith('optionalinitials') || fieldType.startsWith('optionaltext')) {
+      } else if (fieldType.startsWith('checkbox') || fieldType.startsWith('optionalinitials') || fieldType.startsWith('optionaltext')) {
         // These are optional — skip validation
       } else if (fieldType === 'date') {
         // Date is auto-filled
