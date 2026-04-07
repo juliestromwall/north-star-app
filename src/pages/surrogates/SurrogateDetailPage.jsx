@@ -89,7 +89,7 @@ const MEDICAL_RECORD_STATUSES = [
   { id: 'records_sent_mail', label: 'Records Sent by Mail' },
   { id: 'partial_complete', label: 'Partial Records Complete' },
   { id: 'complete', label: 'Records Complete' },
-  { id: 'na', label: 'N/A (Deactivate)' },
+  { id: 'na', label: 'Not Needed' },
 ]
 
 // ── Screening step statuses ──
@@ -341,23 +341,32 @@ export default function SurrogateDetailPage() {
       })
       if (recordKeys.length === 0) continue
 
-      const recordStatuses = recordKeys.map(k => ({ key: k, status: recordTracking[k]?.status }))
-      const allDone = recordKeys.every(k => {
+      // Separate active records from deactivated ones
+      const isDeactivated = (st) => st === 'na' || st === 'deactivated'
+      const activeRecordKeys = recordKeys.filter(k => !isDeactivated(recordTracking[k]?.status))
+      const allActiveComplete = activeRecordKeys.length > 0 && activeRecordKeys.every(k => {
         const st = recordTracking[k]?.status
-        return st === 'complete' || st === 'partial_complete' || st === 'na' || st === 'deactivated' || st === 'records_complete'
+        return st === 'complete' || st === 'partial_complete' || st === 'records_complete'
       })
+      // If ALL records are deactivated, mark checklist as "not needed" (na)
+      const allDeactivated = recordKeys.every(k => isDeactivated(recordTracking[k]?.status))
       const anyStarted = recordKeys.some(k => {
         const st = recordTracking[k]?.status
         return st && st !== 'not_started'
       })
       const current = recordTracking[step.id]?.status || 'not_started'
-      console.log(`[AutoUpdate] ${prefix}: step=${step.id} (${step.label}), current=${current}, allDone=${allDone}, anyStarted=${anyStarted}, records=`, recordStatuses)
 
-      if (allDone && current !== 'complete') {
-        const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: 'Auto-completed: all records done', by: 'System' }
+      if (allDeactivated && current !== 'na') {
+        // All records deactivated → mark checklist as "not needed"
+        const entry = { status: 'na', date: new Date().toISOString().split('T')[0], note: 'Auto-deactivated: all records not needed', by: 'System' }
+        updates[step.id] = { ...(recordTracking[step.id] || {}), status: 'na', history: [...(recordTracking[step.id]?.history || []), entry] }
+        needsUpdate = true
+      } else if (allActiveComplete && current !== 'complete') {
+        // All active (non-deactivated) records are complete
+        const entry = { status: 'complete', date: new Date().toISOString().split('T')[0], note: `Auto-completed: ${activeRecordKeys.length} of ${recordKeys.length} records done`, by: 'System' }
         updates[step.id] = { ...(recordTracking[step.id] || {}), status: 'complete', history: [...(recordTracking[step.id]?.history || []), entry] }
         needsUpdate = true
-      } else if (anyStarted && !allDone && current !== 'in_progress' && current !== 'complete') {
+      } else if (anyStarted && !allActiveComplete && current !== 'in_progress' && current !== 'complete') {
         const entry = { status: 'in_progress', date: new Date().toISOString().split('T')[0], note: 'Auto-updated: records in progress', by: 'System' }
         updates[step.id] = { ...(recordTracking[step.id] || {}), status: 'in_progress', history: [...(recordTracking[step.id]?.history || []), entry] }
         needsUpdate = true

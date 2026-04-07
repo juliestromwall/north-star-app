@@ -561,8 +561,11 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
 
 // ── Shared Components ──
 function CellStatus({ status, lastEntry }) {
-  if (status === 'complete' || status === 'na') {
+  if (status === 'complete') {
     return <span className="text-xs text-green-600 font-medium">Done {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+  }
+  if (status === 'na' || status === 'deactivated') {
+    return <span className="text-xs text-stone-400 italic">Not Needed</span>
   }
   if (status === 'not_started') return <span className="text-xs text-stone-300">Not Started</span>
   return (

@@ -17,7 +17,7 @@ export const CHECKLIST_STEP_STATUSES = [
   { id: 'requested', label: 'Requested' },
   { id: 'in_progress', label: 'In Progress' },
   { id: 'complete', label: 'Complete' },
-  { id: 'na', label: 'N/A (Deactivate)' },
+  { id: 'na', label: 'Not Needed' },
 ]
 
 // Default checklists seeded on first load
