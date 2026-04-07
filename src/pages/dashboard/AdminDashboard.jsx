@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
     // Fetch quote of the day (may be blocked by CORS)
     try {
-      fetch('https://zenquotes.io/api/today')
+      fetch('/api/quote')
         .then(r => r.ok ? r.json() : null)
         .then(data => { if (data?.[0]?.q) setQuote({ text: data[0].q, author: data[0].a }) })
         .catch(() => setQuote({ text: 'Every day is a chance to begin again.', author: 'Unknown' }))
