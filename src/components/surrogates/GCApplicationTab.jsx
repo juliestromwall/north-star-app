@@ -266,7 +266,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
     { label: 'Zip Code', value: stored.zipCode || '' },
     { label: 'Real ID', value: boolDisplay(stored.realId ?? profile.realId) },
     { label: 'Valid Passport', value: boolDisplay(stored.validPassport ?? profile.validPassport) },
-    { label: 'Spouse/Partner Email', value: stored.partnerEmail || '' },
     { label: 'Nearest hospital with Level II or III NICU', value: stored.nearestNICU || fertility.nearestNICU || '' },
     { label: 'Willing to travel to Level II+ NICU?', value: boolDisplay(stored.willingToTravelNICU ?? fertility.willingToTravelNICU) },
   ]
@@ -284,7 +283,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
       zipCode: saved.zipCode || '',
       realId: saved.realId ?? profile.realId ?? '',
       validPassport: saved.validPassport ?? profile.validPassport ?? '',
-      partnerEmail: saved.partnerEmail || '',
       nearestNICU: saved.nearestNICU || fertility.nearestNICU || '',
       willingToTravelNICU: saved.willingToTravelNICU ?? fertility.willingToTravelNICU ?? '',
     })
@@ -304,7 +302,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
             <div className="space-y-1"><FieldLabel>Zip Code</FieldLabel><Input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} /></div>
             <div className="space-y-1"><FieldLabel>Real ID?</FieldLabel><YesNoButtons value={form.realId} onChange={v => set('realId', v)} /></div>
             <div className="space-y-1"><FieldLabel>Valid Passport?</FieldLabel><YesNoButtons value={form.validPassport} onChange={v => set('validPassport', v)} /></div>
-            {hasPartner && <div className="space-y-1 col-span-full sm:col-span-1"><FieldLabel>Spouse/Partner Email</FieldLabel><Input type="email" value={form.partnerEmail} onChange={e => set('partnerEmail', e.target.value)} placeholder="Must be different than theirs" /></div>}
             <div className="space-y-1 col-span-full sm:col-span-1"><FieldLabel>Nearest Hospital with Level II or III NICU</FieldLabel><Input value={form.nearestNICU} onChange={e => set('nearestNICU', e.target.value)} /></div>
             <div className="space-y-1"><FieldLabel>Willing to travel to Level II+ NICU?</FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => set('willingToTravelNICU', v)} /></div>
           </div>

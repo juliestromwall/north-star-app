@@ -329,9 +329,18 @@ export default function SurrogateDetailPage() {
       const step = screeningSteps.find(s => s.label?.toLowerCase().includes(labelMatch))
       if (!step) { console.log('[AutoUpdate] No checklist step found for', labelMatch, '— available:', screeningSteps.map(s => s.label)); continue }
 
-      // Filter record keys — exclude the checklist step itself (which also starts with the prefix)
+      // Filter record keys — exclude checklist steps (by ID match or timestamp suffix)
+      // Real records: ob_records_0, ob_records_1 (short numeric suffix)
+      // Checklist steps: ob_records, ob_records_1775016744351 (no suffix or long timestamp)
       const allStepIds = new Set(screeningSteps.map(s => s.id))
-      const recordKeys = Object.keys(recordTracking).filter(k => k.startsWith(prefix) && !allStepIds.has(k))
+      const recordKeys = Object.keys(recordTracking).filter(k => {
+        if (!k.startsWith(prefix)) return false
+        if (allStepIds.has(k)) return false
+        // Exclude keys with timestamp suffixes (10+ digits) — those are checklist steps
+        const suffix = k.slice(prefix.length)
+        if (/^\d{10,}$/.test(suffix)) return false
+        return true
+      })
       if (recordKeys.length === 0) continue
 
       const recordStatuses = recordKeys.map(k => ({ key: k, status: recordTracking[k]?.status }))

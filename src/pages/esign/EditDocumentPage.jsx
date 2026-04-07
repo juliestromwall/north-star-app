@@ -175,8 +175,9 @@ export default function EditDocumentPage() {
         const caseList = prev.caseType === 'ip' ? cases.ip : cases.gc
         const selectedCase = caseList?.find(x => x.id === Number(prev.caseId))
         if (val === 'Partner' && selectedCase) {
-          signers[idx].name = selectedCase.partnerName || selectedCase.answers?.spouseFullName || ''
-          signers[idx].email = selectedCase.partnerEmail || selectedCase.answers?.spouseEmail || ''
+          const confid = selectedCase.answers?._confidential || {}
+          signers[idx].name = confid.spouseFullName || selectedCase.partnerName || selectedCase.answers?.spouseFullName || ''
+          signers[idx].email = confid.spouseEmail || selectedCase.partnerEmail || selectedCase.answers?.spouseEmail || ''
         } else if (val === 'Surrogate' && selectedCase && prev.caseType === 'gc') {
           signers[idx].name = selectedCase.name || ''
           signers[idx].email = selectedCase.email || ''
@@ -205,7 +206,10 @@ export default function EditDocumentPage() {
     const signers = []
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
-      if (c.partnerName) signers.push({ role: 'Partner', name: c.partnerName, email: c.partnerEmail || '', status: 'pending' })
+      const confid = c.answers?._confidential || {}
+      const partnerName = confid.spouseFullName || c.partnerName || ''
+      const partnerEmail = confid.spouseEmail || c.partnerEmail || ''
+      if (partnerName) signers.push({ role: 'Partner', name: partnerName, email: partnerEmail, status: 'pending' })
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
