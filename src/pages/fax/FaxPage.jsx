@@ -421,7 +421,11 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
 
   const [logWarning, setLogWarning] = useState(false)
 
-  const handleFile = async () => {
+  const [excludedPages, setExcludedPages] = useState(new Set())
+  const fileCategoryRef = useRef('medical-records')
+
+  const handleFile = async (category) => {
+    const fileCategory = category || fileCategoryRef.current
     if (!selectedCase || !fax) return
     setLogWarning(false)
     setFiling(true)
@@ -430,9 +434,32 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
       if (!data.fileData) throw new Error('Could not retrieve fax content')
       const caseId = caseType === 'journey' ? selectedCase.gc_case_id : selectedCase.id
       if (!caseId) throw new Error('No case ID found')
+
+      let finalBase64 = data.fileData
+      // Remove excluded pages if any
+      if (excludedPages.size > 0) {
+        try {
+          const { PDFDocument } = await import('pdf-lib')
+          const pdfBytes = Uint8Array.from(atob(data.fileData), c => c.charCodeAt(0))
+          const srcDoc = await PDFDocument.load(pdfBytes)
+          const newDoc = await PDFDocument.create()
+          const totalPages = srcDoc.getPageCount()
+          for (let i = 0; i < totalPages; i++) {
+            if (!excludedPages.has(i)) {
+              const [page] = await newDoc.copyPages(srcDoc, [i])
+              newDoc.addPage(page)
+            }
+          }
+          const newBytes = await newDoc.save()
+          finalBase64 = btoa(String.fromCharCode(...newBytes))
+        } catch (err) {
+          console.error('Page exclusion failed, using full PDF:', err)
+        }
+      }
+
       await uploadBase64ToCaseDocuments({
-        surrogateId: caseId, category: 'medical-records',
-        fileName: fileName || 'received-fax.pdf', base64Data: data.fileData,
+        surrogateId: caseId, category: fileCategory,
+        fileName: fileName || 'received-fax.pdf', base64Data: finalBase64,
         uploadedBy: currentUser?.name || 'Admin',
       })
       // Update medical records log if selected
@@ -538,19 +565,52 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
                       onClear={() => { setSelectedCase(null); setRecordTracking(null); setRecordKeys([]) }}
                       cases={filteredCases} compact />
                   </div>
-                  <Button size="sm" disabled={filing || !selectedCase}
-                    style={{ backgroundColor: '#8b5cf6' }} className="h-8 gap-1.5"
-                    onClick={() => {
-                      if (recordKeys.length > 0 && (!selectedRecord || !selectedStatus)) {
-                        setLogWarning(true)
-                      } else {
+                  {/* Page exclusion */}
+                  {fax?.Pages > 1 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-stone-400 font-medium">Exclude pages (e.g. cover sheets)</p>
+                      <div className="flex flex-wrap gap-1">
+                        {Array.from({ length: parseInt(fax.Pages) || 0 }, (_, i) => (
+                          <button key={i} onClick={() => setExcludedPages(prev => {
+                            const next = new Set(prev)
+                            if (next.has(i)) next.delete(i); else next.add(i)
+                            return next
+                          })} className={`size-7 rounded text-[10px] font-medium border transition-colors ${excludedPages.has(i) ? 'bg-red-100 border-red-300 text-red-600 line-through' : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+                            {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                      {excludedPages.size > 0 && (
+                        <p className="text-[10px] text-red-500">Excluding {excludedPages.size} page{excludedPages.size !== 1 ? 's' : ''} — {parseInt(fax.Pages) - excludedPages.size} will be filed</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-1.5">
+                    <Button size="sm" disabled={filing || !selectedCase}
+                      style={{ backgroundColor: '#8b5cf6' }} className="h-8 gap-1.5"
+                      onClick={() => {
+                        fileCategoryRef.current = 'medical-records'
+                        if (recordKeys.length > 0 && (!selectedRecord || !selectedStatus)) {
+                          setLogWarning(true)
+                        } else {
+                          setLogWarning(false)
+                          handleFile('medical-records')
+                        }
+                      }}>
+                      {filing ? <Loader2 className="size-3.5 animate-spin" /> : <FolderInput className="size-3.5" />}
+                      Medical Records
+                    </Button>
+                    <Button size="sm" disabled={filing || !selectedCase}
+                      variant="outline" className="h-8 gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50"
+                      onClick={() => {
                         setLogWarning(false)
-                        handleFile()
-                      }
-                    }}>
-                    {filing ? <Loader2 className="size-3.5 animate-spin" /> : <FolderInput className="size-3.5" />}
-                    File to Medical Records
-                  </Button>
+                        handleFile('expenses')
+                      }}>
+                      {filing ? <Loader2 className="size-3.5 animate-spin" /> : <FolderInput className="size-3.5" />}
+                      Expenses
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Inline warning: records tasks exist but no log update */}
@@ -559,7 +619,7 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
                     <AlertCircle className="size-4 shrink-0 text-amber-600" />
                     <p className="text-xs text-amber-800 flex-1">You haven't updated the Medical Records log. File anyway?</p>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLogWarning(false)}>Go Back</Button>
-                    <Button size="sm" className="h-7 text-xs" style={{ backgroundColor: '#8b5cf6' }} onClick={() => { setLogWarning(false); handleFile() }}>File Anyway</Button>
+                    <Button size="sm" className="h-7 text-xs" style={{ backgroundColor: '#8b5cf6' }} onClick={() => { setLogWarning(false); handleFile('medical-records') }}>File Anyway</Button>
                   </div>
                 )}
 
