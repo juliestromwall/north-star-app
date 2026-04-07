@@ -82,18 +82,35 @@ export default function SharedProfilePage() {
   async function handleAskQuestion() {
     if (!askForm.question.trim() || !share) return
     setAsking(true)
+    const { name: askerName, email: askerEmail, question } = askForm
     try {
       const q = await createMatchQuestion({
         shareId: share.id,
         caseId: share.case_id,
         caseType: share.case_type,
-        askerName: askForm.name,
-        askerEmail: askForm.email,
-        question: askForm.question,
+        askerName,
+        askerEmail,
+        question,
       })
       setQuestions(prev => [q, ...prev])
       setAskForm({ name: '', email: '', question: '' })
       setAsked(true)
+
+      // Notify admin via email
+      if (share.shared_by_email) {
+        fetch('/api/notify-question', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminEmail: share.shared_by_email,
+            adminName: share.shared_by,
+            askerName,
+            askerEmail,
+            question,
+            surrogateName: caseData?.name || 'a surrogate',
+          }),
+        }).catch(() => {}) // fire-and-forget
+      }
     } catch {} finally { setAsking(false) }
   }
 
