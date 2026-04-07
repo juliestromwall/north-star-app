@@ -511,7 +511,18 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
       papClinicCity: saved.papClinicCity || '',
       papClinicState: saved.papClinicState || '',
       papClinicPhone: saved.papClinicPhone || '',
-      experiencedSurrogate: saved.experiencedSurrogate || '',
+      experiencedSurrogate: saved.experiencedSurrogate || (() => {
+        try {
+          const raw = localStorage.getItem(`abc-surrogate-profile-${userId || 'anonymous'}`)
+          if (raw) {
+            const profile = JSON.parse(raw)
+            const prev = profile?.preferences?.previousSurrogate
+            if (prev === 'yes' || prev === true) return 'yes'
+            if (prev === 'no' || prev === false) return 'no'
+          }
+        } catch {}
+        return ''
+      })(),
       numberOfPregnancies: saved.numberOfPregnancies || profileCount || '',
       pregnancies,
     })
@@ -628,7 +639,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1"><FieldLabel>Was this a surrogacy pregnancy?</FieldLabel><YesNoButtons value={p.wasSurrogacy} onChange={v => updatePreg(i, 'wasSurrogacy', v)} /></div>
+                  <div className="space-y-1"><FieldLabel>Did you use IVF or other third-party reproductive assistance for this pregnancy?</FieldLabel><YesNoButtons value={p.wasSurrogacy} onChange={v => { updatePreg(i, 'wasSurrogacy', v); if (v === 'yes') updatePreg(i, 'wasIVF', 'yes') }} /></div>
                 </div>
                 {isNonDel && (
                   <div className="space-y-1 max-w-xs">
@@ -675,21 +686,18 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
                         </div>
                       )}
                     </div>
-                    {/* IVF */}
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <p className="text-[11px] font-semibold text-stone-500 uppercase">Was this an IVF pregnancy?</p>
-                        <YesNoButtons value={p.wasIVF} onChange={v => updatePreg(i, 'wasIVF', v)} />
-                      </div>
-                      {(p.wasIVF === 'yes' || p.wasIVF === true) && (
+                    {/* IVF / Fertility Clinic — show when third-party assistance used */}
+                    {(p.wasSurrogacy === 'yes' || p.wasSurrogacy === true) && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">IVF / Fertility Clinic</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           <div className="space-y-1"><FieldLabel>IVF Clinic Name</FieldLabel><Input value={p.ivfClinicName} onChange={e => updatePreg(i, 'ivfClinicName', e.target.value)} /></div>
                           <div className="space-y-1"><FieldLabel>IVF Doctor Name</FieldLabel><Input value={p.ivfDoctorName} onChange={e => updatePreg(i, 'ivfDoctorName', e.target.value)} /></div>
                           <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.ivfPhone} onChange={e => updatePreg(i, 'ivfPhone', formatPhone(e.target.value))} /></div>
                           <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.ivfAddress} onChange={e => updatePreg(i, 'ivfAddress', e.target.value)} placeholder="Optional" /></div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
