@@ -194,17 +194,26 @@ export default function SignReleaseBatchPage() {
             try {
               const html2pdf = (await import('html2pdf.js')).default
               const container = document.createElement('div')
-              container.innerHTML = filledHtml
-              container.style.position = 'absolute'
-              container.style.left = '-9999px'
+              container.innerHTML = `<div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #1a1a2e; font-size: 14px; line-height: 1.6;">${filledHtml}</div>`
+              // Must be visible for html2canvas to render — use opacity trick
+              container.style.position = 'fixed'
+              container.style.top = '0'
+              container.style.left = '0'
               container.style.width = '800px'
+              container.style.zIndex = '-1'
+              container.style.opacity = '0.01'
+              container.style.pointerEvents = 'none'
+              container.style.background = 'white'
               document.body.appendChild(container)
 
+              // Wait for images and layout to render
+              await new Promise(r => setTimeout(r, 500))
+
               const pdfBlob = await html2pdf().set({
-                margin: [0.5, 0.5, 0.5, 0.5],
+                margin: [0.4, 0.4, 0.4, 0.4],
                 filename: `${doc.title}.pdf`,
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true },
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
               }).from(container).outputPdf('blob')
 
