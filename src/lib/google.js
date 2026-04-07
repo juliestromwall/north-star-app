@@ -990,6 +990,39 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
       await replaceTextInDoc(userId, copyId, fallback)
     }
 
+    // 4b. Clean up any remaining unfilled optional placeholders
+    try {
+      const cleanupDoc = await fetch(`https://docs.googleapis.com/v1/documents/${copyId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json())
+      // Scan for any remaining {{Optional*}} or other unfilled {{*}} placeholders
+      const remainingPlaceholders = {}
+      function scanForPlaceholders(elements) {
+        for (const el of elements || []) {
+          if (el.paragraph) {
+            const runs = el.paragraph.elements || []
+            let fullText = ''
+            for (const run of runs) fullText += run.textRun?.content || ''
+            const matches = fullText.match(/\{\{[^}]+\}\}/g)
+            if (matches) {
+              for (const m of matches) remainingPlaceholders[m] = ''
+            }
+          }
+          if (el.table) {
+            for (const row of el.table.tableRows || []) {
+              for (const cell of row.tableCells || []) scanForPlaceholders(cell.content)
+            }
+          }
+        }
+      }
+      scanForPlaceholders(cleanupDoc.body?.content)
+      if (Object.keys(remainingPlaceholders).length > 0) {
+        await replaceTextInDoc(userId, copyId, remainingPlaceholders)
+      }
+    } catch (cleanupErr) {
+      console.error('Placeholder cleanup failed (non-fatal):', cleanupErr)
+    }
+
     // 5. Append compact, styled audit trail on a new page
     try {
       // Insert page break first
