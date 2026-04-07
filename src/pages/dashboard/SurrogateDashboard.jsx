@@ -383,8 +383,8 @@ function OnboardingDashboard({ name, currentUser }) {
       {/* Profile card — full width, prominent */}
       <ProfileProgressCard userId={userId || currentUser?.email} />
 
-      {/* Quiz Results card */}
-      <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
+      {/* Quiz Results card — hide once application is released */}
+      {!appAvailable && <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
         <CardContent className="py-4 flex items-center gap-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 shrink-0">
             <ClipboardList className="w-5 h-5 text-amber-600" />
@@ -398,7 +398,7 @@ function OnboardingDashboard({ name, currentUser }) {
           </div>
           <ArrowRight className="w-4 h-4 text-stone-400 shrink-0" />
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* To Do section */}
       {activeTasks.length > 0 && (

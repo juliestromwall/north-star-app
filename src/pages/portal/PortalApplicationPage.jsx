@@ -350,11 +350,15 @@ export default function PortalApplicationPage() {
   }
 
   async function handleSave(sectionKey, formData) {
-    if (!caseId || !supabase) return
+    if (!caseId || !supabase) { console.error('Cannot save: no caseId or supabase', { caseId, supabase: !!supabase }); return }
     setSaving(true)
     try {
-      const updatedAnswers = { ...answers, [sectionKey]: { ...(answers[sectionKey] || {}), ...formData } }
-      await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', caseId)
+      // Fresh read to avoid overwriting concurrent admin edits
+      const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+      const currentAnswers = fresh?.answers || answers
+      const updatedAnswers = { ...currentAnswers, [sectionKey]: { ...(currentAnswers[sectionKey] || {}), ...formData } }
+      const { error } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', caseId)
+      if (error) throw error
       setAnswers(updatedAnswers)
     } catch (err) {
       console.error('Save failed:', err)
