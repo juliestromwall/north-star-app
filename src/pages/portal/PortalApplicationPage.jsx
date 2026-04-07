@@ -208,10 +208,11 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
     { key: 'ssn4', label: 'Last 4 of SSN' },
     { key: 'driversLicense', label: "Driver's License #" },
     { key: 'religion', label: 'Religion' },
-    { key: 'insuranceProvider', label: 'Health Insurance Provider' },
-    { key: 'insurancePolicyNumber', label: 'Policy Number' },
-    { key: 'insuranceGroupNumber', label: 'Group Number' },
-    { key: 'insurancePhone', label: 'Insurance Phone' },
+    { key: 'hasInsurance', label: 'Do you have health insurance?', type: 'yesno' },
+    { key: 'insuranceProvider', label: 'Health Insurance Provider', group: 'insurance' },
+    { key: 'insurancePolicyNumber', label: 'Policy Number', group: 'insurance' },
+    { key: 'insuranceGroupNumber', label: 'Group Number', group: 'insurance' },
+    { key: 'insurancePhone', label: 'Insurance Phone', group: 'insurance' },
     { key: 'hasSpouse', label: 'Do you have a spouse/partner?', type: 'yesno' },
     { key: 'spouseFullName', label: 'Spouse/Partner Full Name' },
     { key: 'spouseEmail', label: 'Spouse/Partner Email' },
@@ -226,10 +227,14 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
     // Pre-fill from quiz data if available
     const q = quizData || {}
     const fullName = [q.firstName, q.lastName].filter(Boolean).join(' ')
+    // Check profile for health insurance
+    const profileEmployment = quizData?._profileData?.employment || {}
+    const hasInsFromProfile = profileEmployment.healthInsurance === 'yes' || profileEmployment.healthInsurance === true
     const prefills = {
       fullLegalName: fullName,
       dob: q.dob || '',
       hasSpouse: q.maritalStatus === 'Married' || q.maritalStatus === 'Domestic Partnership' ? 'yes' : '',
+      hasInsurance: hasInsFromProfile ? 'yes' : '',
     }
     for (const f of FIELDS) {
       init[f.key] = data?.[f.key] || prefills[f.key] || ''
@@ -238,11 +243,17 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
   }, [data, quizData])
 
   const SPOUSE_KEYS = ['spouseFullName', 'spouseEmail', 'spousePhone']
+  const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
   const hasSpouse = form.hasSpouse === 'yes' || form.hasSpouse === true
-  const requiredFields = FIELDS.filter(f => {
+  const hasInsurance = form.hasInsurance === 'yes' || form.hasInsurance === true
+
+  function isFieldRequired(f) {
     if (SPOUSE_KEYS.includes(f.key)) return hasSpouse
+    if (f.group === 'insurance') return hasInsurance
     return true
-  })
+  }
+
+  const requiredFields = FIELDS.filter(isFieldRequired)
   const allFilled = requiredFields.every(f => {
     const val = form[f.key]
     if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
@@ -252,7 +263,12 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
   function checkComplete(d) {
     if (!d) return false
     const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
-    return FIELDS.filter(f => SPOUSE_KEYS.includes(f.key) ? hs : true).every(f => {
+    const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
+    return FIELDS.filter(f => {
+      if (SPOUSE_KEYS.includes(f.key)) return hs
+      if (f.group === 'insurance') return hi
+      return true
+    }).every(f => {
       const val = d[f.key]
       if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
       return val?.toString().trim()
@@ -276,6 +292,7 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {FIELDS.map(f => {
               if (SPOUSE_KEYS.includes(f.key) && !hasSpouse) return null
+              if (f.group === 'insurance' && !hasInsurance) return null
               if (f.type === 'yesno') {
                 return (
                   <div key={f.key} className="space-y-1">
@@ -308,21 +325,28 @@ function SignaturePad({ value, onChange, signerName }) {
   const canvasRef = useRef(null)
   const drawingRef = useRef(false)
 
+  function getCanvasXY(canvas, e) {
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e.clientX || e.touches?.[0]?.clientX || 0
+    const clientY = e.clientY || e.touches?.[0]?.clientY || 0
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    }
+  }
   function handleDown(e) {
     e.preventDefault(); drawingRef.current = true
     const canvas = canvasRef.current; if (!canvas) return
-    const ctx = canvas.getContext('2d'); const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
-    const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+    const ctx = canvas.getContext('2d')
+    const { x, y } = getCanvasXY(canvas, e)
     ctx.beginPath(); ctx.moveTo(x, y)
   }
   useEffect(() => {
     function handleMove(e) {
       if (!drawingRef.current) return
       const canvas = canvasRef.current; if (!canvas) return
-      const ctx = canvas.getContext('2d'); const rect = canvas.getBoundingClientRect()
-      const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
-      const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+      const ctx = canvas.getContext('2d')
+      const { x, y } = getCanvasXY(canvas, e)
       ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
       ctx.lineTo(x, y); ctx.stroke()
     }
@@ -504,9 +528,12 @@ export default function PortalApplicationPage() {
     }
     if (key === '_confidential') {
       const SPOUSE_KEYS = ['spouseFullName', 'spouseEmail', 'spousePhone']
+      const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
       const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
-      const required = ['fullLegalName', 'dob', 'ssn4', 'driversLicense', 'religion', 'insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone', 'hasSpouse', 'emergencyName', 'emergencyPhone', 'emergencyRelationship', ...(hs ? SPOUSE_KEYS : [])]
-      return required.every(k => { const v = d[k]; return k === 'hasSpouse' ? (v === 'yes' || v === 'no' || v === true || v === false) : v?.toString().trim() })
+      const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
+      const yesNoKeys = ['hasSpouse', 'hasInsurance']
+      const required = ['fullLegalName', 'dob', 'ssn4', 'driversLicense', 'religion', 'hasInsurance', ...(hi ? INSURANCE_KEYS : []), 'hasSpouse', ...(hs ? SPOUSE_KEYS : []), 'emergencyName', 'emergencyPhone', 'emergencyRelationship']
+      return required.every(k => { const v = d[k]; return yesNoKeys.includes(k) ? (v === 'yes' || v === 'no' || v === true || v === false) : v?.toString().trim() })
     }
     if (key === '_references') {
       const refs = ['ref1', 'ref2', 'ref3']
