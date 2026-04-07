@@ -108,7 +108,7 @@ export default function MatchedJourneysPage() {
   const [ips, setIps] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [ownerFilter, setOwnerFilter] = useState(canSeeAll ? 'all' : 'mine')
   const [view, setView] = useState('tile')
 
@@ -146,8 +146,8 @@ export default function MatchedJourneysPage() {
       if (ownerFilter === 'mine') { if (j.assigned_to !== currentUser.email) return false }
       else if (ownerFilter === 'unassigned') { if (j.assigned_to) return false }
       else if (ownerFilter !== 'all') { if (j.assigned_to !== ownerFilter) return false }
-      // Stage
-      if (stageFilter !== 'all' && j.stage !== stageFilter) return false
+      // Status
+      if (statusFilter !== 'all' && j.status !== statusFilter) return false
       // Search
       if (search) {
         const q = search.toLowerCase()
@@ -157,15 +157,19 @@ export default function MatchedJourneysPage() {
       }
       return true
     })
-  }, [enriched, search, stageFilter, ownerFilter, currentUser.email])
+  }, [enriched, search, statusFilter, ownerFilter, currentUser.email])
 
-  // Stage counts based on owner filter
-  const stageCounts = useMemo(() => {
+  // Status counts based on owner filter
+  const statusCounts = useMemo(() => {
     const counts = {}
-    for (const s of JOURNEY_STAGES) counts[s.id] = 0
-    for (const j of ownerFiltered) { if (counts[j.stage] !== undefined) counts[j.stage]++ }
+    for (const j of ownerFiltered) {
+      const st = j.status || 'Unknown'
+      counts[st] = (counts[st] || 0) + 1
+    }
     return counts
   }, [ownerFiltered])
+
+  const uniqueStatuses = useMemo(() => Object.keys(statusCounts).sort(), [statusCounts])
 
   if (loading) return <div className="text-center py-12 text-stone-400">Loading journeys...</div>
 
@@ -176,25 +180,24 @@ export default function MatchedJourneysPage() {
         subtitle={`${filtered.length} of ${enriched.length} journey${enriched.length !== 1 ? 's' : ''} shown`}
       />
 
-      {/* Hero stat boxes */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Status filter boxes */}
+      <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => setStageFilter('all')}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => setStatusFilter('all')}
+          className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
           <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
-          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
         </button>
-        {JOURNEY_STAGES.map(stage => (
+        {uniqueStatuses.map(status => (
           <button
-            key={stage.id}
-            onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
-            className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === stage.id ? 'ring-2 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
-            style={{ backgroundColor: stage.color + '08', ...(stageFilter === stage.id ? { ringColor: stage.color, borderColor: stage.color + '50' } : {}) }}
+            key={status}
+            onClick={() => setStatusFilter(statusFilter === status ? 'all' : status)}
+            className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === status ? 'ring-2 ring-[#723bb4] border-[#723bb4]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           >
-            <p className="text-2xl font-bold" style={{ color: stage.color }}>{stageCounts[stage.id]}</p>
-            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
+            <p className="text-2xl font-bold" style={{ color: '#723bb4' }}>{statusCounts[status]}</p>
+            <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{status}</p>
           </button>
         ))}
       </div>
