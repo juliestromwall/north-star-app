@@ -887,11 +887,11 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
       {/* ── Cover Photo (static) ── */}
       {heroPhoto ? (
-        <div className="w-full h-72 sm:h-96 overflow-hidden relative">
-          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
+          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
           {photos.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full print:hidden">
               {photos.length} photos
             </div>
           )}
@@ -902,9 +902,9 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         </div>
       )}
 
-      {/* ── Thumbnail Strip (opens lightbox) ── */}
+      {/* ── Thumbnail Strip (opens lightbox, hidden in print) ── */}
       {photos?.length > 1 && (
-        <div className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1">
+        <div className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1 print:hidden">
           {photos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
@@ -1184,6 +1184,25 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
             </div>
           )}
         </PVSection>
+
+        {/* Print-only photo gallery at bottom */}
+        {photos?.length > 1 && (
+          <div className="hidden print:block print:break-inside-avoid">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
+              <div className="flex items-center gap-2.5">
+                <Camera className="w-4.5 h-4.5 text-[#283693]" />
+                <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wide">Photos</h3>
+              </div>
+            </div>
+            <div className="px-6 py-4 grid grid-cols-5 gap-2">
+              {photos.slice(0, 10).map(ph => (
+                <div key={ph.path} className="aspect-square rounded-lg overflow-hidden">
+                  <img src={ph.url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         {!hideFooter && (
