@@ -35,21 +35,27 @@ export async function onRequestPost(context) {
     `Subject: ${subject}`,
     `From: ${from || 'Unknown'}`,
     snippet ? `Preview: ${snippet}` : '',
-    body ? `Full email body:\n${body.slice(0, 6000)}` : '',
+    body ? `Full email body:\n${body.slice(0, 12000)}` : '',
   ].filter(Boolean).join('\n')
 
   let systemPrompt, userPrompt
 
   if (type === 'expense') {
-    systemPrompt = `You are an AI assistant for a surrogacy agency. Extract expense information from emails. Look carefully for dollar amounts (e.g. $415.90, $1,200.00) anywhere in the email — they may appear in the body, not just the subject. Return ONLY valid JSON with these fields:
-- description: string (what the expense is for)
-- amount: number or null (the dollar amount as a number, e.g. 415.90 — MUST be a number, not a string)
-- paid_to: string or null (who was paid / vendor name)
-- expense_date: string or null (date in YYYY-MM-DD format — look for due dates, billing dates, invoice dates)
+    systemPrompt = `You are an AI assistant for a surrogacy agency. Extract expense information from emails. Search the ENTIRE email carefully for financial details. Return ONLY valid JSON with these fields:
+- description: string (what the expense is for — be specific, e.g. "Delta flight LAX to JFK for medical eval")
+- amount: number or null (the TOTAL dollar amount as a number, e.g. 415.90. Look for "Total", "Amount Due", "Amount Charged", "Grand Total", "Total Charge", "Trip Total", "$X.XX" patterns. For airline emails check near the bottom for the total fare.)
+- paid_to: string or null (vendor/company name — e.g. "Delta Air Lines", "United Airlines", "Hilton Hotels")
+- expense_date: string or null (date in YYYY-MM-DD format — look for purchase date, booking date, transaction date, trip date)
 - category: string (one of: medical, legal, escrow, insurance, travel, compensation, misc)
-- notes: string (any additional relevant details like invoice numbers, billing periods)
+- cc_last4: string or null (last 4 digits of credit card used — look for patterns like "ending in 1234", "****1234", "Card ending 1234", "xxxx1234", "Visa ...1234")
+- notes: string (any additional relevant details like confirmation number, flight number, invoice number, booking reference)
 
-IMPORTANT: Search the ENTIRE email body for dollar amounts. Look for patterns like "Amount: $X", "Total: $X", "Payment of $X", "$X.XX" etc. If a field cannot be determined, use null.`
+IMPORTANT TIPS:
+- For airline emails: the total is often near the bottom, look for "Total", "Trip Total", "Amount Charged"
+- For hotel emails: look for "Total Stay Cost", "Amount", "Total Charges"
+- Credit card last 4 digits often appear as "ending in XXXX" or "****XXXX" or "Card ...XXXX"
+- If you find multiple dollar amounts, use the TOTAL (largest amount that represents the full charge)
+- If a field cannot be determined, use null.`
 
     userPrompt = `Extract expense details from this email for case "${caseName || 'Unknown'}":\n\n${emailContent}`
   } else if (type === 'task') {
