@@ -232,6 +232,8 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
         : (form.insurance_status_year ? parseInt(form.insurance_status_year) : null)
       const updated = await upsertInsurance(caseId, caseType, {
         has_insurance: form.has_insurance,
+        status: 'active',
+        cancelled_at: null,
         insurance_status: effectiveStatus,
         insurance_status_year: effectiveYear,
         company: form.company || null,
