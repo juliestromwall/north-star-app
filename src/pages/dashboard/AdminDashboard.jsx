@@ -275,7 +275,22 @@ export default function AdminDashboard() {
               <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
             ) : (
               <div className="space-y-2">
-                {tasks.slice(0, 8).map(task => (
+                {tasks.slice(0, 8).map(task => {
+                  // Resolve case name and link
+                  let caseName = null, caseLink = null
+                  if (task.case_id && task.case_type !== 'personal') {
+                    if (task.case_type === 'surrogate') {
+                      const gc = surrogates.find(s => s.id === task.case_id)
+                      if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
+                    } else if (task.case_type === 'ip') {
+                      const ip = ips.find(i => i.id === task.case_id)
+                      if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
+                    } else if (task.case_type === 'journey') {
+                      const j = journeys.find(j => j.id === task.case_id)
+                      if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
+                    }
+                  }
+                  return (
                   <div key={task.id} className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
                     <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Complete">
                       <Circle className="size-4" />
@@ -286,7 +301,11 @@ export default function AdminDashboard() {
                         {task.due_date && <span>{formatDate(task.due_date)}</span>}
                         {task.priority === 'high' && <span className="text-red-500 font-semibold">High</span>}
                         {task.priority === 'urgent' && <span className="text-red-600 font-semibold">Urgent</span>}
-                        {task.case_type === 'personal' || !task.case_id ? (
+                        {caseName ? (
+                          <Link to={caseLink} className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors truncate max-w-[140px]">
+                            {caseName}
+                          </Link>
+                        ) : (task.case_type === 'personal' || !task.case_id) ? (
                           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
                         ) : (
                           <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">Case</span>
@@ -294,7 +313,8 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>}
