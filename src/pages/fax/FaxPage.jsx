@@ -440,7 +440,9 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
       if (excludedPages.size > 0) {
         try {
           const { PDFDocument } = await import('pdf-lib')
-          const pdfBytes = Uint8Array.from(atob(data.fileData), c => c.charCodeAt(0))
+          const binaryStr = atob(data.fileData)
+          const pdfBytes = new Uint8Array(binaryStr.length)
+          for (let i = 0; i < binaryStr.length; i++) pdfBytes[i] = binaryStr.charCodeAt(i)
           const srcDoc = await PDFDocument.load(pdfBytes)
           const newDoc = await PDFDocument.create()
           const totalPages = srcDoc.getPageCount()
@@ -451,7 +453,13 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
             }
           }
           const newBytes = await newDoc.save()
-          finalBase64 = btoa(String.fromCharCode(...newBytes))
+          // Convert large Uint8Array to base64 in chunks (String.fromCharCode fails on huge arrays)
+          let binary = ''
+          const chunkSize = 8192
+          for (let i = 0; i < newBytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, newBytes.subarray(i, i + chunkSize))
+          }
+          finalBase64 = btoa(binary)
         } catch (err) {
           console.error('Page exclusion failed, using full PDF:', err)
         }
