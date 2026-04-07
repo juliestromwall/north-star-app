@@ -103,6 +103,61 @@ function InlineSignaturePad({ value, onChange, signerName }) {
   )
 }
 
+// ── Compact Initials Pad (type or draw) ────────────────
+function InitialsPad({ value, onChange, optional }) {
+  const [mode, setMode] = useState('typed')
+  const canvasRef = useRef(null)
+  const drawingRef = useRef(false)
+  const modeRef = useRef(mode)
+  modeRef.current = mode
+
+  useEffect(() => {
+    function handleMove(e) {
+      if (!drawingRef.current || modeRef.current !== 'drawn') return
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      const rect = canvas.getBoundingClientRect()
+      const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
+      const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+      ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
+      ctx.lineTo(x, y); ctx.stroke()
+    }
+    function handleUp() {
+      if (!drawingRef.current) return
+      drawingRef.current = false
+      if (canvasRef.current && modeRef.current === 'drawn') onChange(canvasRef.current.toDataURL('image/png'))
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
+    return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); window.removeEventListener('touchmove', handleMove); window.removeEventListener('touchend', handleUp) }
+  }, [onChange])
+
+  return (
+    <span className="inline-block align-middle my-1">
+      <span className={`border-2 border-dashed rounded-lg p-2 inline-block ${optional ? 'border-stone-200 bg-stone-50/50' : 'border-purple-300 bg-purple-50/50'}`} style={{ minWidth: 120 }}>
+        <span className="flex gap-1 mb-1">
+          <button onClick={() => setMode('typed')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Type</button>
+          <button onClick={() => setMode('drawn')} className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 border border-stone-200'}`}>Draw</button>
+        </span>
+        {mode === 'typed' ? (
+          <input type="text" value={typeof value === 'string' && !value.startsWith('data:') ? value : ''} onChange={e => onChange(e.target.value)}
+            placeholder={optional ? 'Optional' : 'Initials'} maxLength={5} className="w-full text-center text-lg font-serif italic bg-transparent outline-none border-b border-stone-300" />
+        ) : (
+          <span className="block">
+            <canvas ref={canvasRef} width={100} height={40} className="w-full border border-stone-200 rounded bg-white touch-none block cursor-crosshair"
+              onMouseDown={e => { e.preventDefault(); drawingRef.current = true; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top) }}
+              onTouchStart={e => { e.preventDefault(); drawingRef.current = true; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top) }} />
+            <button onClick={() => { const c = canvasRef.current; if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange('') } }} className="text-[8px] text-stone-400 hover:text-red-500 mt-0.5">Clear</button>
+          </span>
+        )}
+      </span>
+    </span>
+  )
+}
+
 // ── Document with Inline Fields ─────────────────────────
 
 function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail, fieldValues, onFieldChange, signatureValue, onSignatureChange }) {
@@ -198,11 +253,9 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
               return <input key={i} type="text" value={val || new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 readOnly className="inline-block w-[180px] text-sm border-b-2 border-green-300 bg-green-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
             case 'initials':
-              return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
-                placeholder="Initials" maxLength={5} className="inline-block w-[80px] text-sm font-semibold text-center border-b-2 border-purple-300 bg-purple-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
+              return <InitialsPad key={i} value={val} onChange={v => onFieldChange(key, v)} />
             case 'optionalinitials':
-              return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
-                placeholder="Initials (optional)" maxLength={5} className="inline-block w-[100px] text-sm font-semibold text-center border-b-2 border-stone-200 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
+              return <InitialsPad key={i} value={val} onChange={v => onFieldChange(key, v)} optional />
             case 'optionaltext':
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder="Optional" className="inline-block w-[180px] text-sm border-b-2 border-stone-200 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
@@ -373,11 +426,21 @@ export default function SignDocumentPage() {
     }
     setSigning(true)
     try {
+      // Build placeholder-to-value mapping for the signed PDF
+      const fields = getFields()
+      const placeholderValues = {}
+      for (const f of fields) {
+        const val = fieldValues[f.fieldId]
+        if (val !== undefined && val !== null) {
+          placeholderValues[f.placeholder] = typeof val === 'boolean' ? (val ? '☑' : '☐') : String(val)
+        }
+      }
       const signatureData = {
         type: signatureValue?.type || 'typed',
         name: signatureValue?.name || mySigner.name || '',
         image: signatureValue?.image || null,
         fieldValues,
+        placeholderValues,
       }
       const updated = await signDocument(doc.id, mySigner.email, signatureData)
 

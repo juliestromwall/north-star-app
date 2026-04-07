@@ -685,27 +685,19 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
       const variants = [roleCode, roleCode.toLowerCase()]
       if (roleCode === 'Partner') variants.push('Parnter', 'parnter')
 
-      // Get typed field values from the signer (stored during signing)
-      const signerFields = signer.fieldValues || {}
-      // Find initials value from field values (look for any field that has short text like initials)
-      let typedInitials = computedInitials
-      for (const [key, val] of Object.entries(signerFields)) {
-        if (typeof val === 'string' && val.length >= 1 && val.length <= 5 && val !== signer.name && val !== signer.email) {
-          typedInitials = val // Use the first short non-name, non-email value as initials
-          break
-        }
-      }
+      // Use placeholder-keyed values from the signer (exact typed values)
+      const pv = signer.placeholderValues || {}
 
       const sigPlaceholders = []
       for (const rv of variants) {
-        nonSigReplacements[`{{Name:${rv}}}`] = signer.signatureName || signer.name || ''
-        nonSigReplacements[`{{Email:${rv}}}`] = signer.email || ''
+        nonSigReplacements[`{{Name:${rv}}}`] = pv[`{{Name:${rv}}}`] || signer.signatureName || signer.name || ''
+        nonSigReplacements[`{{Email:${rv}}}`] = pv[`{{Email:${rv}}}`] || signer.email || ''
         nonSigReplacements[`{{Date:${rv}}}`] = signDate
-        nonSigReplacements[`{{Initials:${rv}}}`] = typedInitials
-        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = typedInitials
-        nonSigReplacements[`{{Text:${rv}}}`] = signer.signatureName || signer.name || ''
-        nonSigReplacements[`{{OptionalText:${rv}}}`] = ''
-        nonSigReplacements[`{{Checkbox:${rv}}}`] = '☑'
+        nonSigReplacements[`{{Initials:${rv}}}`] = pv[`{{Initials:${rv}}}`] || computedInitials
+        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = pv[`{{OptionalInitials:${rv}}}`] || ''
+        nonSigReplacements[`{{Text:${rv}}}`] = pv[`{{Text:${rv}}}`] || ''
+        nonSigReplacements[`{{OptionalText:${rv}}}`] = pv[`{{OptionalText:${rv}}}`] || ''
+        nonSigReplacements[`{{Checkbox:${rv}}}`] = pv[`{{Checkbox:${rv}}}`] || '☐'
         sigPlaceholders.push(`{{Signature:${rv}}}`)
       }
       signatureInfo.push({ placeholders: sigPlaceholders, signer })
