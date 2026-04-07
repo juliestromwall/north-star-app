@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
-import { useAdminNotes } from '@/context/AdminNotesContext'
+import { supabase } from '@/lib/supabase'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -26,8 +26,12 @@ import {
 
 export default function AdminDashboard() {
   const { currentUser } = useRole()
-  const { notes: adminNotes, dismissNote } = useAdminNotes()
-  const visibleNotes = (adminNotes || []).filter(n => !n.dismissed?.includes(currentUser?.id))
+  const [adminNotes, setAdminNotes] = useState([])
+  const visibleNotes = (adminNotes || []).filter(n => {
+    if (!n.is_active) return false
+    const dismissals = n.admin_note_dismissals || []
+    return !dismissals.some(d => d.user_id === currentUser?.id)
+  })
 
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
@@ -102,7 +106,7 @@ export default function AdminDashboard() {
       }
     } catch {}
 
-    // Fetch quote of the day (may be blocked by CORS)
+    // Fetch quote of the day
     try {
       fetch('/api/quote')
         .then(r => r.ok ? r.json() : null)
@@ -111,6 +115,9 @@ export default function AdminDashboard() {
     } catch {
       setQuote({ text: 'Every day is a chance to begin again.', author: 'Unknown' })
     }
+
+    // Fetch published admin notes from Supabase
+    fetchActiveAdminNotes().then(notes => setAdminNotes(notes || [])).catch(() => {})
   }, [])
 
   // Load sticky notes from Supabase on mount
@@ -175,7 +182,12 @@ export default function AdminDashboard() {
                 {note.created_by || 'Admin'} · {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
-            <button onClick={() => dismissNote(note.id, currentUser?.id)} className="p-1.5 rounded-full hover:bg-stone-200/60 text-stone-400 hover:text-stone-600 transition-colors shrink-0">
+            <button onClick={async () => {
+              setAdminNotes(prev => prev.filter(n => n.id !== note.id))
+              if (supabase && currentUser?.id) {
+                try { await supabase.from('admin_note_dismissals').insert({ note_id: note.id, user_id: currentUser.id }) } catch {}
+              }
+            }} className="p-1.5 rounded-full hover:bg-stone-200/60 text-stone-400 hover:text-stone-600 transition-colors shrink-0">
               <X className="size-4" />
             </button>
           </div>
