@@ -53,13 +53,17 @@ function AdminNotesSection() {
   const handlePublish = async () => {
     if (!noteMessage.trim()) return
     try {
-      const note = await insertAdminNote({
+      const insertData = {
         title: noteTitle.trim() || null,
         message: noteMessage.trim(),
-        target_user_ids: noteTarget === 'specific' ? selectedUserIds : null,
         is_active: true,
-        created_by: currentUser?.name || currentUser?.id || '',
-      })
+        created_by: currentUser?.name || '',
+      }
+      // Only include target_user_ids if targeting specific users (and column is text-compatible)
+      if (noteTarget === 'specific' && selectedUserIds.length > 0) {
+        insertData.target_user_ids = selectedUserIds
+      }
+      const note = await insertAdminNote(insertData)
       if (note) setNotes(prev => [note, ...prev])
     } catch (err) { console.error('Failed to publish note:', err) }
     setDialogOpen(false)
