@@ -406,19 +406,29 @@ export default function SurrogateDetailPage() {
         fetchSurrogateProfileByEmail(found.email).then(result => {
           if (result?.profile_data) setProfileData(result.profile_data)
           if (result?.status) setProfileStatus(result.status)
-        }).catch(() => {})
+          // Use user_id from profile record (most reliable) or from intake
+          const uid = result?.user_id || found.userId || found.user_id
+          if (uid) loadPhotos(uid)
+        }).catch(() => {
+          // Fallback: try userId from intake
+          const uid = found.userId || found.user_id
+          if (uid) loadPhotos(uid)
+        })
+      } else {
+        const uid = found?.userId || found?.user_id
+        if (uid) loadPhotos(uid)
       }
-      if (found?.userId) {
-        // Load all photo sources and combine
+
+      function loadPhotos(uid) {
         Promise.all([
-          listProfilePhotos(found.userId).catch(() => []),
-          listProfilePhotos(`${found.userId}/headshot`).catch(() => []),
-          listProfilePhotos(`${found.userId}/portrait`).catch(() => []),
+          listProfilePhotos(uid).catch(() => []),
+          listProfilePhotos(`${uid}/headshot`).catch(() => []),
+          listProfilePhotos(`${uid}/portrait`).catch(() => []),
         ]).then(([gallery, headshots, portraits]) => {
           const all = [...portraits, ...headshots, ...gallery]
           setPhotos(all)
         })
-        getPortraitPhotoUrl(found.userId).then(url => {
+        getPortraitPhotoUrl(uid).then(url => {
           if (url) setPortraitUrl(url)
         }).catch(() => {})
       }
