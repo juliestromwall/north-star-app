@@ -208,14 +208,14 @@ export default function SignReleaseBatchPage() {
               // Wait for render
               await new Promise(r => setTimeout(r, 800))
 
-              const pdfBlob = await html2pdf().set({
+              const worker = html2pdf().set({
                 margin: [0.4, 0.5, 0.4, 0.5],
-                filename: `${doc.title}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
+                html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-                pagebreak: { mode: ['avoid-all'] },
-              }).from(container).outputPdf('blob')
+              }).from(container)
+
+              const pdfBlob = await worker.toPdf().output('blob')
 
               document.body.removeChild(container)
               document.body.removeChild(overlay)
