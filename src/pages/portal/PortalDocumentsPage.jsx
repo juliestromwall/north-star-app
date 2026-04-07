@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, Download, Eye, Loader2 } from 'lucide-react'
+import { FileText, Download, Eye, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 
@@ -10,6 +10,9 @@ export default function PortalDocumentsPage() {
   const { currentUser } = useRole()
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [caseId, setCaseId] = useState(null)
+  const fileRef = useRef(null)
 
   useEffect(() => {
     if (!currentUser?.email || !supabase) { setLoading(false); return }
@@ -28,9 +31,10 @@ export default function PortalDocumentsPage() {
         .limit(1)
         .single()
 
+      if (intake?.id) setCaseId(intake.id)
       const docs = []
 
-      // 2. Fetch case_documents for this case (signed PDFs filed by e-sign)
+      // 2. Fetch case_documents: only e-signature docs OR ones uploaded by this user
       if (intake?.id) {
         const { data: caseDocs } = await supabase
           .from('case_documents')
@@ -40,6 +44,9 @@ export default function PortalDocumentsPage() {
 
         if (caseDocs) {
           for (const d of caseDocs) {
+            const isEsign = d.category === 'e-signature'
+            const isUserUpload = d.uploaded_by === currentUser.email || d.uploaded_by === currentUser.name
+            if (!isEsign && !isUserUpload) continue
             docs.push({
               id: `cd_${d.id}`,
               title: d.file_name,
@@ -64,10 +71,8 @@ export default function PortalDocumentsPage() {
           const signers = ed.signers || []
           const isSigner = signers.some(s => s.email?.toLowerCase() === currentUser.email.toLowerCase())
           if (!isSigner) continue
-          // Check if we already have this as a case_document (avoid duplicates)
           const alreadyHave = docs.some(d => d.title?.includes(ed.title))
           if (alreadyHave) continue
-          // Get the signed file URL
           const meta = JSON.parse(ed.document_hash || '{}')
           const filePath = meta.pdfPath || ed.file_path
           if (!filePath) continue
@@ -93,6 +98,37 @@ export default function PortalDocumentsPage() {
     }
   }
 
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file || !caseId || !supabase) return
+    setUploading(true)
+    try {
+      const path = `${caseId}/uploads/${Date.now()}-${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('case-documents')
+        .upload(path, file, { cacheControl: '3600', upsert: false })
+      if (uploadError) throw uploadError
+      const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+      await supabase.from('case_documents').insert({
+        surrogate_id: caseId,
+        category: 'uploads',
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+        storage_path: uploadData.path,
+        public_url: urlData.publicUrl,
+        uploaded_by: currentUser.email,
+      })
+      await loadDocuments()
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -103,10 +139,19 @@ export default function PortalDocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="My Documents"
-        subtitle="Documents shared with you by your agency."
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="My Documents"
+          subtitle="Signed documents and files you've uploaded."
+        />
+        <div>
+          <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading || !caseId}>
+            {uploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
+            Upload
+          </Button>
+        </div>
+      </div>
 
       {documents.length === 0 ? (
         <Card>
