@@ -170,6 +170,24 @@ export default function EditDocumentPage() {
     setSendForm(prev => {
       const signers = [...prev.signers]
       signers[idx] = { ...signers[idx], [key]: val }
+      // Auto-fill name + email when role is selected
+      if (key === 'role') {
+        const caseList = prev.caseType === 'ip' ? cases.ip : cases.gc
+        const selectedCase = caseList?.find(x => x.id === Number(prev.caseId))
+        if (val === 'Partner' && selectedCase) {
+          signers[idx].name = selectedCase.partnerName || selectedCase.answers?.spouseFullName || ''
+          signers[idx].email = selectedCase.partnerEmail || selectedCase.answers?.spouseEmail || ''
+        } else if (val === 'Surrogate' && selectedCase && prev.caseType === 'gc') {
+          signers[idx].name = selectedCase.name || ''
+          signers[idx].email = selectedCase.email || ''
+        } else if (val === 'Intended Parent 1' && selectedCase && prev.caseType === 'ip') {
+          signers[idx].name = selectedCase.ip1Name || selectedCase.names || ''
+          signers[idx].email = selectedCase.email || ''
+        } else if (val === 'Intended Parent 2' && selectedCase && prev.caseType === 'ip') {
+          signers[idx].name = selectedCase.ip2Name || ''
+          signers[idx].email = selectedCase.ip2Email || ''
+        }
+      }
       return { ...prev, signers }
     })
   }
