@@ -87,9 +87,7 @@ const MEDICAL_RECORD_STATUSES = [
   { id: 'confirmed_fax_received', label: 'Confirmed Fax Received' },
   { id: 'followed_up', label: 'Followed Up' },
   { id: 'records_sent_mail', label: 'Records Sent by Mail' },
-  { id: 'partial_received', label: 'Partial Records Received' },
   { id: 'partial_complete', label: 'Partial Records Complete' },
-  { id: 'records_received', label: 'Records Received' },
   { id: 'complete', label: 'Records Complete' },
   { id: 'na', label: 'N/A (Deactivate)' },
 ]
