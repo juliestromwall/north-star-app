@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { caseName, caseType, stage, status, emails, tasks, notes, checklist, appointments, transfers, texts, insurance, expenses } = await context.request.json()
+  const { caseName, caseType, stage, status, emails, tasks, notes, checklist, appointments, transfers, texts, insurance, expenses, pregnancy, escrow } = await context.request.json()
 
   if (!caseName) {
     return new Response(JSON.stringify({ error: 'Missing caseName' }), {
@@ -37,6 +37,25 @@ export async function onRequestPost(context) {
   sections.push(`Case: ${caseName} (${caseType || 'unknown type'})`)
   if (stage) sections.push(`Current Stage: ${stage}`)
   if (status) sections.push(`Current Status: ${status}`)
+
+  if (pregnancy) {
+    const pregParts = []
+    if (pregnancy.gestationalAge) pregParts.push(`Gestational Age: ${pregnancy.gestationalAge}`)
+    if (pregnancy.dueDate) pregParts.push(`Due Date: ${pregnancy.dueDate}`)
+    if (pregnancy.isPregnant) pregParts.push('Status: Currently Pregnant')
+    if (pregnancy.babies) pregParts.push(`Babies: ${pregnancy.babies}`)
+    if (pregnancy.babySexes?.length > 0) pregParts.push(`Sex: ${pregnancy.babySexes.join(', ')}`)
+    if (pregnancy.babyNames?.length > 0 && pregnancy.babyNames.some(n => n)) pregParts.push(`Names: ${pregnancy.babyNames.filter(n => n).join(', ')}`)
+    if (pregParts.length > 0) sections.push(`\nPregnancy Status:\n${pregParts.join('\n')}`)
+  }
+
+  if (escrow) {
+    const escParts = []
+    if (escrow.balance) escParts.push(`Balance: ${escrow.balance}`)
+    if (escrow.minimum) escParts.push(`Minimum: ${escrow.minimum}`)
+    if (escrow.lastUpdated) escParts.push(`Last Updated: ${escrow.lastUpdated}`)
+    if (escParts.length > 0) sections.push(`\nEscrow:\n${escParts.join('\n')}`)
+  }
 
   if (emails?.length > 0) {
     const emailSummary = emails.slice(0, 15).map(e =>
@@ -120,18 +139,36 @@ export async function onRequestPost(context) {
 
   const caseData = sections.join('\n')
 
-  const systemPrompt = `You are an AI assistant for ABC Surrogacy, a surrogacy agency. Generate a concise case summary based on the provided data. Your summary should:
+  const systemPrompt = `You are an AI assistant for ABC Surrogacy, a surrogacy agency. Generate a concise case summary using EXACTLY this section order. Skip any section that has no relevant data. Use the exact headers shown:
 
-1. Start with a one-line status overview
-2. Highlight what's NEW or RECENT (last 1-2 weeks of activity)
-3. List any upcoming or past appointments
-4. Note any overdue tasks or items needing attention
-5. Mention embryo transfer status if applicable — highlight any pregnancy losses (miscarriage, ectopic, chemical)
-6. Summarize insurance payment status — note any upcoming or overdue premiums
-7. Summarize recent expenses, especially those submitted to escrow
-8. Flag any concerns or items that seem stalled
+**🔬 Embryo Transfer**
+Upcoming transfer date, or most recent transfer result. Highlight any pregnancy losses (miscarriage, ectopic, chemical).
 
-Keep it brief and actionable — this is for a case manager scanning updates quickly. Use bullet points. Do not make up information not present in the data. If a section has no data, skip it.`
+**🤰 Pregnancy**
+Gestational age, due date, baby name(s) and sex if known.
+
+**📅 Appointments**
+Upcoming appointments, or any from the past week. Include scheduled transfers.
+
+**💰 Escrow**
+Current balance vs minimum. Flag if balance is below minimum.
+
+**✈️ Travel**
+Any travel-related expenses or email threads (flights, hotels, car rentals).
+
+**📝 Case Activity**
+Brief summary of recent notes, texts, and emails logged. What's new in the last 1-2 weeks?
+
+**💳 Recent Expenses**
+Recent expenses, especially those submitted to escrow. Note unreconciled items.
+
+**🏥 Insurance**
+Payment status — is it up to date? Note upcoming or overdue premiums.
+
+**⚠️ Outstanding Tasks**
+Open or overdue tasks needing attention.
+
+Keep each section to 1-3 bullet points max. Be brief and actionable — this is for a case manager scanning quickly. Do not make up information not in the data.`
 
   const userPrompt = `Generate a case summary for this surrogacy case:\n\n${caseData}`
 

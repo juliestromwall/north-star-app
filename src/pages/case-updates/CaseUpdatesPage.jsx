@@ -15,6 +15,18 @@ import { formatDate } from '@/lib/utils'
 import StageBadge from '@/components/shared/StageBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 
+function calcGestationalAge(dueDate) {
+  if (!dueDate) return null
+  const due = new Date(dueDate)
+  const conception = new Date(due.getTime() - 280 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const diffMs = now - conception
+  const weeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+  const days = Math.floor((diffMs % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
+  if (weeks < 0 || weeks > 42) return null
+  return `${weeks}w ${days}d`
+}
+
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
 const JOURNEY_STAGE_IDS = ['journey-oversight']
 
@@ -114,6 +126,31 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
         } catch {}
       }
 
+      // Pregnancy data from journey_data
+      const jd = journeyData || {}
+      let pregnancy = null
+      if (jd.pregnant === 'yes' || jd.dueDate) {
+        const gestAge = calcGestationalAge(jd.dueDate)
+        pregnancy = {
+          isPregnant: jd.pregnant === 'yes',
+          gestationalAge: gestAge,
+          dueDate: jd.dueDate,
+          babies: jd.babies,
+          babySexes: jd.babySexes,
+          babyNames: jd.babyNames,
+        }
+      }
+
+      // Escrow from journey_data
+      let escrow = null
+      if (jd.escrowBalance || jd.escrowMin) {
+        escrow = {
+          balance: jd.escrowBalance,
+          minimum: jd.escrowMin,
+          lastUpdated: jd.escrowBalanceUpdatedAt ? new Date(jd.escrowBalanceUpdatedAt).toLocaleDateString() : null,
+        }
+      }
+
       const res = await fetch('/api/ai/case-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,6 +164,8 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
           transfers: transfers.length > 0 ? transfers : undefined,
           insurance: insurance || undefined,
           expenses: expenses.length > 0 ? expenses : undefined,
+          pregnancy: pregnancy || undefined,
+          escrow: escrow || undefined,
         }),
       })
 
@@ -154,16 +193,20 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
               <Sparkles className="size-4 text-violet-500" />
-              Case Summary — {caseName}
+              {caseName}
             </DialogTitle>
+            <p className="text-xs text-stone-400 mt-0.5">{stage}{status ? ` · ${status}` : ''}</p>
           </DialogHeader>
 
           {loading && (
-            <div className="flex items-center justify-center py-12 gap-2 text-stone-400">
-              <Loader2 className="size-5 animate-spin" />
-              <span className="text-sm">Generating summary...</span>
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <div className="relative">
+                <Sparkles className="size-8 text-violet-300 animate-pulse" />
+                <Loader2 className="size-4 animate-spin text-violet-500 absolute -bottom-1 -right-1" />
+              </div>
+              <span className="text-sm text-stone-400">Gathering case data...</span>
             </div>
           )}
 
@@ -175,13 +218,46 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
           )}
 
           {summary && (
-            <div className="prose prose-sm prose-stone max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-              {summary}
+            <div className="space-y-3 text-sm">
+              {summary.split(/\n(?=\*\*)/).map((section, i) => {
+                const headerMatch = section.match(/^\*\*(.+?)\*\*\s*\n?([\s\S]*)$/)
+                if (headerMatch) {
+                  const title = headerMatch[1].trim()
+                  const body = headerMatch[2].trim()
+                  return (
+                    <div key={i} className="rounded-lg border border-stone-100 bg-stone-50/50 px-3 py-2.5">
+                      <p className="text-xs font-semibold text-stone-700 mb-1.5">{title}</p>
+                      <div className="text-stone-600 text-xs leading-relaxed space-y-0.5">
+                        {body.split('\n').map((line, j) => {
+                          const trimmed = line.replace(/^[-•]\s*/, '').trim()
+                          if (!trimmed) return null
+                          const isWarning = /overdue|below|missing|stalled|concern|urgent|⚠/i.test(trimmed)
+                          return (
+                            <p key={j} className={`flex items-start gap-1.5 ${isWarning ? 'text-amber-700 font-medium' : ''}`}>
+                              <span className="text-stone-300 mt-0.5 shrink-0">•</span>
+                              <span>{trimmed}</span>
+                            </p>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
+                // Non-section text (status overview)
+                const trimmed = section.trim()
+                if (!trimmed) return null
+                return <p key={i} className="text-stone-600 text-xs">{trimmed}</p>
+              })}
             </div>
           )}
 
           {summary && (
-            <p className="text-[10px] text-stone-300 mt-2 border-t pt-2">Generated by AI — verify details before acting on them</p>
+            <div className="flex items-center justify-between border-t pt-2 mt-1">
+              <p className="text-[10px] text-stone-300">AI-generated — verify before acting</p>
+              <button onClick={generateSummary} className="text-[10px] text-violet-400 hover:text-violet-600 flex items-center gap-1">
+                <Sparkles className="size-2.5" /> Regenerate
+              </button>
+            </div>
           )}
         </DialogContent>
       </Dialog>
@@ -699,14 +775,34 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                     const ip = ips.find(i => i.id === j.ip_case_id)
                     const gc = surrogates.find(s => s.id === j.gc_case_id)
                     const journeyName = `${ip?.names || 'IP'} + ${gc?.name || 'GC'}`
+                    const jd = j.journey_data || {}
+                    const gestAge = calcGestationalAge(jd.dueDate)
+                    const isPregnant = jd.pregnant === 'yes'
                     return (
-                      <th key={j.id} className="text-left px-3 py-2.5 min-w-[160px]">
+                      <th key={j.id} className="text-left px-3 py-2.5 min-w-[180px]">
                         <Link to={`/journeys/${j.id}`} className="hover:opacity-80 block text-center">
                           <p className="text-xs font-semibold text-[#283693]">{ip?.names || 'IP'}</p>
                           <p className="text-[10px] text-stone-800 font-normal leading-tight">+</p>
                           <p className="text-xs font-semibold text-[#ed148c]">{gc?.name || 'GC'}</p>
                         </Link>
                         <p className="text-[9px] text-stone-400 font-normal mt-1 text-center">{j.status || ''}</p>
+                        {isPregnant && gestAge && (
+                          <div className="text-center mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-pink-600 bg-pink-50 border border-pink-200 rounded-full px-2 py-0.5">
+                              🤰 {gestAge}
+                            </span>
+                            {jd.dueDate && <p className="text-[9px] text-stone-400 mt-0.5">Due {formatDate(jd.dueDate)}</p>}
+                            {jd.babyNames?.some(n => n) && (
+                              <p className="text-[9px] text-pink-500 mt-0.5">
+                                {jd.babyNames.map((name, i) => {
+                                  const sex = jd.babySexes?.[i]
+                                  const emoji = sex === 'girl' ? '👧' : sex === 'boy' ? '👦' : '👶'
+                                  return name ? `${emoji} ${name}` : null
+                                }).filter(Boolean).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="text-center mt-0.5">
                           <AISummaryButton
                             caseId={j.id} caseName={journeyName} caseType="journey"
