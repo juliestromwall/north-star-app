@@ -11,17 +11,19 @@ import { mockUsers, getAdminStaff } from '@/data/mock/users'
 
 // Status options match tab names
 const INSURANCE_STATUSES = [
-  { value: 'active_policy', label: 'Active Policy' },
-  { value: 'policy_check', label: 'Policy Check' },
+  { value: 'active_policy', label: 'Verified Policy' },
+  { value: 'verified_open_enrollment', label: 'Verified Policy (Open Enrollment)' },
+  { value: 'policy_check', label: 'ART Risk Policy Check' },
   { value: 'open_enrollment', label: 'Open Enrollment' },
-  { value: 'complete', label: 'Complete' },
+  { value: 'complete', label: 'Complete - Surrogacy Friendly' },
+  { value: 'complete_not_friendly', label: 'Complete - Not Surrogacy Friendly' },
 ]
 
 function buildTabs() {
   const currentYear = new Date().getFullYear()
-  const tabs = [{ id: 'active', label: 'Active Policies', banner: null, statusFilter: 'active_policy', year: null }]
+  const tabs = [{ id: 'active', label: 'Verified Policies', banner: null, statusFilter: 'active_policy', year: null }]
   for (let y = currentYear; y <= currentYear + 5; y++) {
-    tabs.push({ id: `checks-${y}`, label: `Policy Checks - ${y}`, banner: `These surrogates need to have their ${y} Policy Verified with Art Risk.`, statusFilter: 'policy_check', year: y })
+    tabs.push({ id: `checks-${y}`, label: `ART Risk Policy Check - ${y}`, banner: `These surrogates need to have their ${y} Policy Verified with Art Risk.`, statusFilter: 'policy_check', year: y })
     tabs.push({ id: `enrollment-${y}`, label: `Open Enrollment - ${y}`, banner: `These Surrogates will need a Policy for ${y + 1}.`, statusFilter: 'open_enrollment', year: y })
     tabs.push({ id: `complete-${y}`, label: `${y} - Complete`, banner: null, statusFilter: 'complete', year: y })
   }
@@ -225,7 +227,22 @@ function InsuranceTable({ surrogates, insuranceMap, paymentsMap, currentMonth, o
     if (filterStatus === 'active_policy') {
       rows = rows.filter(s => {
         const st = insuranceMap[s.id]?.insurance_status
-        return !st || st === 'active_policy'
+        return !st || st === 'active_policy' || st === 'verified_open_enrollment'
+      })
+    } else if (filterStatus === 'open_enrollment') {
+      rows = rows.filter(s => {
+        const ins = insuranceMap[s.id]
+        const st = ins?.insurance_status
+        if (st !== 'open_enrollment' && st !== 'complete_not_friendly') return false
+        if (filterYear && ins?.insurance_status_year && ins.insurance_status_year !== filterYear) return false
+        return true
+      })
+    } else if (filterStatus === 'complete') {
+      rows = rows.filter(s => {
+        const ins = insuranceMap[s.id]
+        if (ins?.insurance_status !== 'complete') return false
+        if (filterYear && ins?.insurance_status_year && ins.insurance_status_year !== filterYear) return false
+        return true
       })
     } else if (filterStatus) {
       rows = rows.filter(s => {

@@ -70,10 +70,12 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
             <label className="text-[11px] text-stone-400 font-medium">Insurance Status</label>
             <select value={form.insurance_status || 'active_policy'} onChange={e => setForm(f => ({ ...f, insurance_status: e.target.value }))}
               className="w-full h-8 text-sm border border-stone-200 rounded-md px-2 bg-white">
-              <option value="active_policy">Active Policy</option>
-              <option value="policy_check">Policy Check</option>
+              <option value="active_policy">Verified Policy</option>
+              <option value="verified_open_enrollment">Verified Policy (Open Enrollment)</option>
+              <option value="policy_check">ART Risk Policy Check</option>
               <option value="open_enrollment">Open Enrollment</option>
-              <option value="complete">Complete</option>
+              <option value="complete">Complete - Surrogacy Friendly</option>
+              <option value="complete_not_friendly">Complete - Not Surrogacy Friendly</option>
             </select>
           </div>
           <div className="space-y-1">
@@ -353,7 +355,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
               <div>
                 <span className="text-stone-400 text-xs">Status</span>
                 <p className="font-medium">{
-                  ({ active_policy: 'Active Policy', policy_check: 'Policy Check', open_enrollment: 'Open Enrollment', complete: 'Complete' })[insurance.insurance_status] || 'Active Policy'
+                  ({ active_policy: 'Verified Policy', verified_open_enrollment: 'Verified (Open Enrollment)', policy_check: 'ART Risk Policy Check', open_enrollment: 'Open Enrollment', complete: 'Complete - Surrogacy Friendly', complete_not_friendly: 'Complete - Not Surrogacy Friendly' })[insurance.insurance_status] || 'Verified Policy'
                 } {insurance.insurance_status_year ? `(${insurance.insurance_status_year})` : ''}</p>
               </div>
               <div>

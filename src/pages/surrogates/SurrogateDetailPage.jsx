@@ -498,9 +498,9 @@ export default function SurrogateDetailPage() {
                   Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </span>
                 {insuranceStatus && insuranceStatus.has_insurance && insuranceStatus.status === 'active' && (
-                  <span className="flex items-center gap-1 text-emerald-600">
+                  <button onClick={() => { const el = document.querySelector('[data-tab="insurance"]'); if (el) el.click() }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
                     <InsuranceCardIcon size={14} color="currentColor" /> {insuranceStatus.company || 'Insured'}
-                  </span>
+                  </button>
                 )}
               </div>
               {/* Assignment */}

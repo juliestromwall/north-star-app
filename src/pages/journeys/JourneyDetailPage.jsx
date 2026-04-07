@@ -2352,7 +2352,7 @@ export default function JourneyDetailPage() {
 
       {/* Insurance Dialog */}
       <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {gcCase?.name}</DialogTitle>
           </DialogHeader>
