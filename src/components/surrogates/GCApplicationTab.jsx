@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
-import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText } from 'lucide-react'
 import { updateIntakeSubmission } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
@@ -838,10 +838,160 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
               )
             })}
             {readPregnancies.length === 0 && <p className="text-sm text-stone-400">No pregnancy provider information entered yet.</p>}
+
+            {/* Generate Release Forms button — admin only, read mode, with data */}
+            {readPregnancies.length > 0 && (
+              <GenerateReleaseFormsButton clinicData={stored} surrogate={surrogate} answers={answers} />
+            )}
           </>
         )}
       </CardContent>
     </Card>
+  )
+}
+
+// ── Generate Release Forms Button ──────────────────────
+function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
+  const [generating, setGenerating] = useState(false)
+  const [result, setResult] = useState(null)
+  const [showPreview, setShowPreview] = useState(false)
+  const { currentUser } = useRole()
+
+  const { extractProviders, generateReleaseFormHtml } = useMemo(() => {
+    // Lazy import to avoid circular deps
+    return { extractProviders: null, generateReleaseFormHtml: null }
+  }, [])
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setResult(null)
+    try {
+      const { extractProviders, generateReleaseFormHtml } = await import('@/lib/releaseFormGenerator')
+      const { createDocument, sendDocument, updateDocument } = await import('@/lib/esign')
+      const { supabase } = await import('@/lib/supabase')
+
+      const providers = extractProviders(clinicData)
+      if (providers.length === 0) {
+        setResult({ error: 'No providers found. Please ensure the clinic/hospital form is filled out.' })
+        setGenerating(false)
+        return
+      }
+
+      // Get patient info from confidential data
+      const confidentialData = answers?._confidential || {}
+      const patient = {
+        name: confidentialData.fullLegalName || surrogate.name || '',
+        email: surrogate.email || '',
+      }
+
+      const created = []
+      for (const provider of providers) {
+        // Generate HTML
+        const html = generateReleaseFormHtml(provider, patient, confidentialData)
+        const htmlBlob = new Blob([html], { type: 'text/html' })
+        const htmlPath = `documents/release_${surrogate.id}_${provider.type}_${Date.now()}.html`
+
+        // Upload HTML to storage
+        await supabase.storage.from('esign-documents').upload(htmlPath, htmlBlob, { contentType: 'text/html', cacheControl: '3600' })
+
+        const typeLabels = { ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }
+        const title = `Medical Records Release — ${typeLabels[provider.type] || provider.type} — ${provider.clinicName}`
+
+        // Create e-sign document
+        const doc = await createDocument({
+          templateId: null,
+          caseId: surrogate.id,
+          caseType: 'surrogate',
+          title,
+          signers: [{ role: 'Surrogate', name: patient.name, email: patient.email, status: 'pending' }],
+          filePath: null,
+          createdBy: currentUser?.name || 'Admin',
+        })
+
+        // Store HTML path in document_hash
+        await updateDocument(doc.id, {
+          document_hash: JSON.stringify({
+            htmlPath,
+            fields: [
+              { fieldType: 'signature', role: 'gc', fieldId: 'field_0', placeholder: '{{Signature:GC}}' },
+              { fieldType: 'date', role: 'gc', fieldId: 'field_1', placeholder: '{{Date:GC}}' },
+              { fieldType: 'name', role: 'gc', fieldId: 'field_2', placeholder: '{{Name:GC}}' },
+            ],
+            providerType: provider.type,
+            providerName: provider.clinicName,
+          }),
+        })
+
+        // Send for signature
+        await sendDocument(doc.id)
+
+        created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token })
+      }
+
+      setResult({ success: true, count: created.length, documents: created })
+    } catch (err) {
+      console.error('Failed to generate release forms:', err)
+      setResult({ error: err.message || 'Failed to generate release forms.' })
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  // Preview providers
+  async function handlePreview() {
+    try {
+      const { extractProviders } = await import('@/lib/releaseFormGenerator')
+      const providers = extractProviders(clinicData)
+      setShowPreview(true)
+      setResult({ preview: true, providers })
+    } catch {}
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-stone-200">
+      {!result?.success ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={handlePreview} disabled={generating}>
+              <FileText className="size-3.5" /> Preview Release Forms
+            </Button>
+            {result?.preview && (
+              <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#ed148c', color: '#fff' }} onClick={handleGenerate} disabled={generating}>
+                {generating ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
+                {generating ? 'Generating...' : `Generate ${result.providers?.length || 0} Release Form${result.providers?.length === 1 ? '' : 's'}`}
+              </Button>
+            )}
+          </div>
+          {result?.preview && result.providers?.length > 0 && (
+            <div className="space-y-1">
+              {result.providers.map((p, i) => {
+                const typeLabels = { ob: 'Prenatal/OB', hospital: 'L&D Hospital', mfm: 'MFM', ivf: 'IVF/Fertility' }
+                return (
+                  <div key={i} className="flex items-center gap-2 text-xs text-stone-600">
+                    <span className="size-1.5 rounded-full bg-[#283693]" />
+                    <span className="font-medium">{typeLabels[p.type]}</span> — {p.clinicName} {p.doctorName && `(${p.doctorName})`}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {result?.preview && result.providers?.length === 0 && (
+            <p className="text-xs text-amber-600">No providers found. Please ensure clinic/hospital data is entered.</p>
+          )}
+          {result?.error && <p className="text-xs text-red-500">{result.error}</p>}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-emerald-600">
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <p className="text-sm font-medium">{result.count} release form{result.count === 1 ? '' : 's'} created and sent for signature</p>
+          </div>
+          {result.documents?.map((d, i) => (
+            <div key={i} className="text-xs text-stone-500 pl-6">• {d.title}</div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
