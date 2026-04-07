@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText } from 'lucide-react'
+import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 
 const US_STATES = [
@@ -80,7 +81,7 @@ function ReadField({ label, value }) {
 }
 
 // ── Personal Information ───────────────────────────────
-function PersonalInfoForm({ data, onSave, saving }) {
+function PersonalInfoForm({ data, onSave, saving, readOnly }) {
   const [form, setForm] = useState({
     street: '', city: '', state: '', zipCode: '',
     realId: '', validPassport: '',
@@ -128,10 +129,10 @@ function PersonalInfoForm({ data, onSave, saving }) {
             <div className="space-y-1 sm:col-span-2"><FieldLabel>What is the nearest hospital with a Level 2 or Level 3 NICU? <Req /></FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Would you be willing to travel to deliver at a Level 2 or Level 3 NICU hospital? <Req /></FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
           </div>
-          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
+          {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>
+          </Button>}
         </CardContent>
       )}
     </Card>
@@ -139,7 +140,7 @@ function PersonalInfoForm({ data, onSave, saving }) {
 }
 
 // ── References ─────────────────────────────────────────
-function ReferencesForm({ data, onSave, saving }) {
+function ReferencesForm({ data, onSave, saving, readOnly }) {
   const REFS = [
     { key: 'ref1', title: 'Reference #1 — Family Member' },
     { key: 'ref2', title: 'Reference #2 — Friend' },
@@ -221,8 +222,8 @@ function ReferencesForm({ data, onSave, saving }) {
               </div>
             </div>
           ))}
-          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => {
+          {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => {
             const cleaned = { ...form }
             if (data) {
               for (const [k, v] of Object.entries(data)) {
@@ -232,7 +233,7 @@ function ReferencesForm({ data, onSave, saving }) {
             onSave('_references', cleaned)
           }} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>
+          </Button>}
         </CardContent>
       )}
     </Card>
@@ -240,7 +241,7 @@ function ReferencesForm({ data, onSave, saving }) {
 }
 
 // ── Confidential Information ───────────────────────────
-function ConfidentialForm({ data, onSave, saving, quizData }) {
+function ConfidentialForm({ data, onSave, saving, quizData, readOnly }) {
   const [form, setForm] = useState({})
   const [editing, setEditing] = useState(false)
 
@@ -375,10 +376,10 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
               )
             })}
           </div>
-          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
+          {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>
+          </Button>}
         </CardContent>
       )}
     </Card>
@@ -465,7 +466,7 @@ const EMPTY_PREG = {
   wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
 }
 
-function ClinicHospitalForm({ data, onSave, saving, quizData, userId }) {
+function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly }) {
   const [form, setForm] = useState({
     currentOBGYN: '', currentOBPhone: '', currentOBAddress: '',
     papDate: '', papDoctorName: '', papClinicName: '', papClinicCity: '', papClinicState: '', papClinicPhone: '',
@@ -694,10 +695,10 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId }) {
               </div>
             )
           })}
-          {!canSave && hasPregs && <p className="text-xs text-red-400">Please complete all required fields for each pregnancy.</p>}
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_clinicHospital', form)} disabled={saving || !canSave}>
+          {!readOnly && !canSave && hasPregs && <p className="text-xs text-red-400">Please complete all required fields for each pregnancy.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_clinicHospital', form)} disabled={saving || !canSave}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>
+          </Button>}
         </CardContent>
       )}
     </Card>
@@ -705,7 +706,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId }) {
 }
 
 // ── Social Media Release ───────────────────────────────
-function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
+function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly }) {
   const [form, setForm] = useState({ fullName: '', email: '', signatureDate: '', agreed: false, signature: null })
   const [editing, setEditing] = useState(false)
 
@@ -750,10 +751,10 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
             <input type="checkbox" checked={form.agreed} onChange={e => setForm(f => ({ ...f, agreed: e.target.checked }))} className="size-4 accent-[#283693]" />
             <span className="text-sm text-stone-700">I agree to the terms above <Req /></span>
           </label>
-          {(!form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate) && <p className="text-xs text-red-400">Please complete all required fields, sign, and agree to the terms.</p>}
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate}>
+          {!readOnly && (!form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate) && <p className="text-xs text-red-400">Please complete all required fields, sign, and agree to the terms.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>
+          </Button>}
         </CardContent>
       )}
     </Card>
@@ -767,6 +768,8 @@ export default function PortalApplicationPage() {
   const [caseId, setCaseId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [submitOpen, setSubmitOpen] = useState(false)
+  const isSubmitted = answers?._applicationSubmitted
 
   useEffect(() => {
     if (!currentUser?.email || !supabase) { setLoading(false); return }
@@ -807,6 +810,22 @@ export default function PortalApplicationPage() {
     } catch (err) {
       console.error('Save failed:', err)
       alert('Failed to save. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleSubmit() {
+    if (!caseId || !supabase) return
+    setSaving(true)
+    try {
+      const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+      const updated = { ...(fresh?.answers || answers), _applicationSubmitted: true, _applicationSubmittedAt: new Date().toISOString() }
+      await supabase.from('intake_submissions').update({ answers: updated }).eq('id', caseId)
+      setAnswers(updated)
+      setSubmitOpen(false)
+    } catch (err) {
+      console.error('Submit failed:', err)
     } finally {
       setSaving(false)
     }
@@ -879,29 +898,66 @@ export default function PortalApplicationPage() {
   }
 
   const completedCount = FORM_SECTIONS.filter(s => isSectionComplete(s.key)).length
+  const allComplete = completedCount === FORM_SECTIONS.length
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Application"
-        subtitle={`Complete each section below. ${completedCount} of ${FORM_SECTIONS.length} complete.`}
+        subtitle={isSubmitted ? 'Your application has been submitted.' : `Complete each section below. ${completedCount} of ${FORM_SECTIONS.length} complete.`}
       />
 
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex-1 h-2 rounded-full bg-stone-100">
-          <div
-            className="h-2 rounded-full transition-all duration-500"
-            style={{ width: `${(completedCount / FORM_SECTIONS.length) * 100}%`, backgroundColor: '#ed148c' }}
-          />
+      {isSubmitted && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+          <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
+          <p className="text-sm text-emerald-700 font-medium">Application submitted on {new Date(answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. You can view your responses below.</p>
         </div>
-        <span className="text-xs text-stone-500 font-medium">{completedCount}/{FORM_SECTIONS.length}</span>
-      </div>
+      )}
 
-      <PersonalInfoForm data={answers._application} onSave={handleSave} saving={saving} />
-      <ConfidentialForm data={answers._confidential} onSave={handleSave} saving={saving} quizData={answers} />
-      <ReferencesForm data={answers._references} onSave={handleSave} saving={saving} />
-      <ClinicHospitalForm data={answers._clinicHospital} onSave={handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} />
-      <SocialMediaForm data={answers._socialMediaRelease} onSave={handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} />
+      {!isSubmitted && (
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex-1 h-2 rounded-full bg-stone-100">
+            <div
+              className="h-2 rounded-full transition-all duration-500"
+              style={{ width: `${(completedCount / FORM_SECTIONS.length) * 100}%`, backgroundColor: '#ed148c' }}
+            />
+          </div>
+          <span className="text-xs text-stone-500 font-medium">{completedCount}/{FORM_SECTIONS.length}</span>
+        </div>
+      )}
+
+      <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} />
+      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted} />
+      <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} />
+      <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted} />
+      <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted} />
+
+      {/* Submit button — only when all complete and not yet submitted */}
+      {!isSubmitted && allComplete && (
+        <div className="flex justify-center pt-4">
+          <Button size="lg" className="gap-2 text-base px-8" style={{ backgroundColor: '#ed148c' }} onClick={() => setSubmitOpen(true)}>
+            <Send className="size-4" /> Submit Application
+          </Button>
+        </div>
+      )}
+
+      {/* Submit confirmation modal */}
+      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit Your Application?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600 leading-relaxed">
+            All application forms are complete. Once submitted, you will not be able to make changes. Our team will review your application and be in touch soon.
+          </p>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+            <Button onClick={handleSubmit} disabled={saving} style={{ backgroundColor: '#ed148c' }} className="gap-1.5">
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Submit Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

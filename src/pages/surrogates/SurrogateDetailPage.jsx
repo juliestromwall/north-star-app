@@ -690,11 +690,18 @@ export default function SurrogateDetailPage() {
               )}
               {/* Release Application button */}
               <div className="flex flex-col items-center gap-0.5">
-                {quizAnswers?._applicationAvailable ? (
+                {quizAnswers?._applicationSubmitted ? (
                   <div className="flex flex-col items-center">
-                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="size-3" /> Application Released</span>
+                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="size-3" /> Application Submitted</span>
+                    {quizAnswers._applicationSubmittedAt && (
+                      <span className="text-[10px] text-stone-400">{new Date(quizAnswers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                ) : quizAnswers?._applicationAvailable ? (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1"><Clock className="size-3" /> Application In Progress</span>
                     {quizAnswers._applicationReleasedAt && (
-                      <span className="text-[10px] text-stone-400">{new Date(quizAnswers._applicationReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <span className="text-[10px] text-stone-400">Released {new Date(quizAnswers._applicationReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     )}
                   </div>
                 ) : (

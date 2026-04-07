@@ -325,7 +325,7 @@ function OnboardingDashboard({ name, currentUser }) {
       {/* Top banner — application CTA or "all caught up" */}
       {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
         appAvailable ? (
-          <Link to="/my-application">
+          <Link to="/my-application" className="-mb-3">
             <Card className="border-[#283693]/20 hover:shadow-md transition-shadow" style={{ backgroundColor: '#f0f1fa' }}>
               <CardContent className="py-6">
                 <div className="flex items-start gap-4">
@@ -333,16 +333,19 @@ function OnboardingDashboard({ name, currentUser }) {
                     <ClipboardList className="w-6 h-6 text-[#283693]" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-[#283693] text-lg">Complete Your Application</p>
-                    <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                      {(() => {
-                        const sections = ['_application', '_confidential', '_references', '_socialMediaRelease']
-                        const done = sections.filter(k => appAnswers?.[k] && Object.values(appAnswers[k]).some(v => v)).length
-                        return done === sections.length
-                          ? 'All sections are complete! Click here to review your responses.'
-                          : `You have ${sections.length - done} section${sections.length - done === 1 ? '' : 's'} left to complete. Click here to get started.`
-                      })()}
-                    </p>
+                    {appAnswers?._applicationSubmitted ? (
+                      <>
+                        <p className="font-semibold text-emerald-600 text-lg">Application Submitted</p>
+                        <p className="text-sm text-stone-600 mt-1 leading-relaxed">Your application has been submitted and is under review. Click here to view your responses.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold text-[#283693] text-lg">Complete Your Application</p>
+                        <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                          Your application forms are ready! Please complete all sections so we can move forward with your journey.
+                        </p>
+                      </>
+                    )}
                   </div>
                   <ArrowRight className="w-5 h-5 text-[#283693] shrink-0 mt-1" />
                 </div>
