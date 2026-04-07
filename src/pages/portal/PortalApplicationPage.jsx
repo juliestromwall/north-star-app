@@ -49,6 +49,10 @@ function FieldLabel({ children }) {
   return <label className="text-xs font-medium text-stone-600">{children}</label>
 }
 
+function Req() {
+  return <span className="text-red-400">*</span>
+}
+
 function ReadField({ label, value }) {
   return (
     <div>
@@ -75,13 +79,14 @@ function PersonalInfoForm({ data, onSave, saving }) {
     })
   }, [data])
 
-  const hasData = data && Object.values(data).some(v => v)
+  const allFilled = form.street && form.city && form.state && form.zipCode && form.realId && form.validPassport && form.nearestNICU && form.willingToTravelNICU
+  const isComplete = data && data.street && data.city && data.state && data.zipCode && data.realId && data.validPassport && data.nearestNICU && data.willingToTravelNICU
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
         <div className="flex items-center gap-2">
-          {hasData ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
             <CardTitle className="text-base">Personal Information</CardTitle>
             <CardDescription>Address, identification, and NICU information</CardDescription>
@@ -92,21 +97,22 @@ function PersonalInfoForm({ data, onSave, saving }) {
       {editing && (
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address</FieldLabel><Input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>State</FieldLabel>
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>State <Req /></FieldLabel>
               <Select value={form.state} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1"><FieldLabel>Zip Code</FieldLabel><Input value={form.zipCode} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Do you have a Real ID?</FieldLabel><YesNoButtons value={form.realId} onChange={v => setForm(f => ({ ...f, realId: v }))} /></div>
-            <div className="space-y-1"><FieldLabel>Do you have a valid passport?</FieldLabel><YesNoButtons value={form.validPassport} onChange={v => setForm(f => ({ ...f, validPassport: v }))} /></div>
-            <div className="space-y-1 sm:col-span-2"><FieldLabel>Nearest hospital with Level II or III NICU</FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Willing to travel to Level II+ NICU?</FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
+            <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Do you have a Real ID? <Req /></FieldLabel><YesNoButtons value={form.realId} onChange={v => setForm(f => ({ ...f, realId: v }))} /></div>
+            <div className="space-y-1"><FieldLabel>Do you have a valid passport? <Req /></FieldLabel><YesNoButtons value={form.validPassport} onChange={v => setForm(f => ({ ...f, validPassport: v }))} /></div>
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Nearest hospital with Level II or III NICU <Req /></FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Willing to travel to Level II+ NICU? <Req /></FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
           </div>
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving}>
+          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </CardContent>
@@ -138,13 +144,15 @@ function ReferencesForm({ data, onSave, saving }) {
     }
   }, [data])
 
-  const hasData = data && Object.entries(data).some(([k, v]) => v && !k.startsWith('admin'))
+  const requiredKeys = REFS.flatMap(r => fields.map(f => `${r.key}_${f}`))
+  const allFilled = requiredKeys.every(k => form[k]?.trim())
+  const isComplete = data && requiredKeys.every(k => data[k]?.trim())
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
         <div className="flex items-center gap-2">
-          {hasData ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
             <CardTitle className="text-base">References</CardTitle>
             <CardDescription>Three references required</CardDescription>
@@ -162,7 +170,7 @@ function ReferencesForm({ data, onSave, saving }) {
                   const key = `${ref.key}_${f}`
                   return (
                     <div key={key} className="space-y-1">
-                      <FieldLabel>{labels[f]}</FieldLabel>
+                      <FieldLabel>{labels[f]} <Req /></FieldLabel>
                       <Input value={form[key] || ''} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} />
                     </div>
                   )
@@ -170,8 +178,8 @@ function ReferencesForm({ data, onSave, saving }) {
               </div>
             </div>
           ))}
+          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
           <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => {
-            // Strip adminNotes from the save — preserve existing admin notes
             const cleaned = { ...form }
             if (data) {
               for (const [k, v] of Object.entries(data)) {
@@ -179,7 +187,7 @@ function ReferencesForm({ data, onSave, saving }) {
               }
             }
             onSave('_references', cleaned)
-          }} disabled={saving}>
+          }} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </CardContent>
@@ -229,13 +237,33 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
     setForm(init)
   }, [data, quizData])
 
-  const hasData = data && Object.values(data).some(v => v)
+  const SPOUSE_KEYS = ['spouseFullName', 'spouseEmail', 'spousePhone']
+  const hasSpouse = form.hasSpouse === 'yes' || form.hasSpouse === true
+  const requiredFields = FIELDS.filter(f => {
+    if (SPOUSE_KEYS.includes(f.key)) return hasSpouse
+    return true
+  })
+  const allFilled = requiredFields.every(f => {
+    const val = form[f.key]
+    if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
+    return val?.toString().trim()
+  })
+
+  function checkComplete(d) {
+    if (!d) return false
+    const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
+    return FIELDS.filter(f => SPOUSE_KEYS.includes(f.key) ? hs : true).every(f => {
+      const val = d[f.key]
+      if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
+      return val?.toString().trim()
+    })
+  }
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
         <div className="flex items-center gap-2">
-          {hasData ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
             <CardTitle className="text-base">Confidential Information</CardTitle>
             <CardDescription>Personal details, insurance, and emergency contact</CardDescription>
@@ -247,26 +275,25 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {FIELDS.map(f => {
-              if (f.key === 'spouseFullName' || f.key === 'spouseEmail' || f.key === 'spousePhone') {
-                if (form.hasSpouse !== 'yes' && form.hasSpouse !== true) return null
-              }
+              if (SPOUSE_KEYS.includes(f.key) && !hasSpouse) return null
               if (f.type === 'yesno') {
                 return (
                   <div key={f.key} className="space-y-1">
-                    <FieldLabel>{f.label}</FieldLabel>
+                    <FieldLabel>{f.label} <Req /></FieldLabel>
                     <YesNoButtons value={form[f.key]} onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))} />
                   </div>
                 )
               }
               return (
                 <div key={f.key} className="space-y-1">
-                  <FieldLabel>{f.label}</FieldLabel>
+                  <FieldLabel>{f.label} <Req /></FieldLabel>
                   <Input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
                 </div>
               )
             })}
           </div>
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving}>
+          {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </CardContent>
@@ -355,13 +382,13 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
     })
   }, [data, quizData, userEmail])
 
-  const hasData = data?.agreed && data?.signature
+  const isComplete = !!(data?.agreed && data?.signature && data?.fullName && data?.email && data?.signatureDate)
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
         <div className="flex items-center gap-2">
-          {hasData ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
             <CardTitle className="text-base">Social Media Release</CardTitle>
             <CardDescription>Photo and video consent</CardDescription>
@@ -375,16 +402,17 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
             I hereby grant permission to the rights of my image, likeness and sound of my voice as recorded on audio without payment or any other consideration. I understand that my image may be edited, copied, exhibited, published or distributed and waive the right to inspect or approve the finished product wherein my likeness appears. Additionally, I waive any right to the royalties or other compensation arising or related to the use of my image.{'\n\n'}By signing this release I understand this permission signifies that photographic or video recordings of me may be electronically displayed via the internet.{'\n\n'}There is no time limit of the validity of this release nor is there any geographic limitation on where these materials may be distributed.
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="space-y-1"><FieldLabel>Full Name</FieldLabel><Input value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={form.signatureDate} onChange={e => setForm(f => ({ ...f, signatureDate: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Full Name <Req /></FieldLabel><Input value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Email <Req /></FieldLabel><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Date <Req /></FieldLabel><Input type="date" value={form.signatureDate} onChange={e => setForm(f => ({ ...f, signatureDate: e.target.value }))} /></div>
           </div>
           <SignaturePad value={form.signature} onChange={v => setForm(f => ({ ...f, signature: v }))} signerName={form.fullName} />
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.agreed} onChange={e => setForm(f => ({ ...f, agreed: e.target.checked }))} className="size-4 accent-[#283693]" />
-            <span className="text-sm text-stone-700">I agree to the terms above</span>
+            <span className="text-sm text-stone-700">I agree to the terms above <Req /></span>
           </label>
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature}>
+          {(!form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate) && <p className="text-xs text-red-400">Please complete all required fields, sign, and agree to the terms.</p>}
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature || !form.fullName || !form.email || !form.signatureDate}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </CardContent>
@@ -468,16 +496,36 @@ export default function PortalApplicationPage() {
     )
   }
 
-  const completedCount = FORM_SECTIONS.filter(s => {
-    const d = answers[s.key]
-    return d && Object.values(d).some(v => v)
-  }).length
+  function isSectionComplete(key) {
+    const d = answers[key]
+    if (!d) return false
+    if (key === '_application') {
+      return !!(d.street && d.city && d.state && d.zipCode && d.realId && d.validPassport && d.nearestNICU && d.willingToTravelNICU)
+    }
+    if (key === '_confidential') {
+      const SPOUSE_KEYS = ['spouseFullName', 'spouseEmail', 'spousePhone']
+      const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
+      const required = ['fullLegalName', 'dob', 'ssn4', 'driversLicense', 'religion', 'insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone', 'hasSpouse', 'emergencyName', 'emergencyPhone', 'emergencyRelationship', ...(hs ? SPOUSE_KEYS : [])]
+      return required.every(k => { const v = d[k]; return k === 'hasSpouse' ? (v === 'yes' || v === 'no' || v === true || v === false) : v?.toString().trim() })
+    }
+    if (key === '_references') {
+      const refs = ['ref1', 'ref2', 'ref3']
+      const fields = ['name', 'phone', 'email', 'cityState', 'relationship']
+      return refs.every(r => fields.every(f => d[`${r}_${f}`]?.trim()))
+    }
+    if (key === '_socialMediaRelease') {
+      return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
+    }
+    return false
+  }
+
+  const completedCount = FORM_SECTIONS.filter(s => isSectionComplete(s.key)).length
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Application"
-        subtitle={`Complete each section below. ${completedCount} of ${FORM_SECTIONS.length} started.`}
+        subtitle={`Complete each section below. ${completedCount} of ${FORM_SECTIONS.length} complete.`}
       />
 
       <div className="flex items-center gap-2 mb-2">
