@@ -196,6 +196,12 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
             case 'initials':
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder="Initials" maxLength={5} className="inline-block w-[80px] text-sm font-semibold text-center border-b-2 border-purple-300 bg-purple-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
+            case 'optionalinitials':
+              return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
+                placeholder="Initials (optional)" maxLength={5} className="inline-block w-[100px] text-sm font-semibold text-center border-b-2 border-stone-200 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
+            case 'optionaltext':
+              return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
+                placeholder="Optional" className="inline-block w-[180px] text-sm border-b-2 border-stone-200 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
             case 'checkbox':
               return <label key={i} className="inline-flex items-center gap-1.5 align-middle mx-0.5 cursor-pointer">
                 <input type="checkbox" checked={!!fieldValues[key]} onChange={e => onFieldChange(key, e.target.checked)} className="size-4 accent-[#283693]" />
@@ -335,8 +341,8 @@ export default function SignDocumentPage() {
       // Check if field has a value
       if (fieldType === 'signature') {
         if (!signatureValue?.name && !signatureValue?.image) missing.push('Signature')
-      } else if (fieldType === 'checkbox') {
-        // Checkboxes are optional
+      } else if (fieldType === 'checkbox' || fieldType === 'optionalinitials' || fieldType === 'optionaltext') {
+        // These are optional — skip validation
       } else if (fieldType === 'date') {
         // Date is auto-filled
       } else {
