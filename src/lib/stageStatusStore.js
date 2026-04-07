@@ -8,7 +8,7 @@ const SUPABASE_STAGES_KEY = 'surrogate_stages'
 
 // Stage groupings for settings UI
 export const CASE_STAGES = SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
-export const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+export const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
 // Default statuses per user type
 const DEFAULT_IP_STATUSES = {
@@ -19,8 +19,6 @@ const DEFAULT_IP_STATUSES = {
 
 const DEFAULT_JOURNEY_STATUSES = {
   'journey-oversight': DEFAULT_STATUSES_BY_STAGE['journey-oversight'],
-  'journey-ending': DEFAULT_STATUSES_BY_STAGE['journey-ending'],
-  'journey-closed': DEFAULT_STATUSES_BY_STAGE['journey-closed'],
 }
 
 const DEFAULT_GC_STATUSES = {
@@ -171,7 +169,7 @@ function getTypeConfig(userType) {
 
 // Helper to resolve userType from stageId (for backward compat)
 function resolveUserType(stageId) {
-  if (['journey-oversight', 'journey-ending', 'journey-closed'].includes(stageId)) return 'journey'
+  if (stageId === 'journey-oversight') return 'journey'
   return 'gc' // default to gc for case stages
 }
 

@@ -515,7 +515,7 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
 // ── Checklists Section (collapsible) ──────────────────────
 
 const CASE_STAGES = ['pre-qualification', 'screening', 'matching']
-const JOURNEY_STAGES = ['journey-oversight', 'journey-ending', 'journey-closed']
+const JOURNEY_STAGES = ['journey-oversight']
 
 function ChecklistsSection() {
   const [open, setOpen] = useState(false)
@@ -807,7 +807,7 @@ function StageStatusesSection() {
   const [open, setOpen] = useState(false)
   const [userType, setUserType] = useState('gc')
   const visibleStages = userType === 'journey'
-    ? SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+    ? SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
     : SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
   const [activeStage, setActiveStage] = useState(visibleStages[0]?.id)
   const [config, setConfig] = useState(() => getStatusConfig())
@@ -823,7 +823,7 @@ function StageStatusesSection() {
   function switchUserType(type) {
     setUserType(type)
     const stages = type === 'journey'
-      ? SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+      ? SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
       : SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
     setActiveStage(stages[0]?.id)
     setEditingIdx(null)

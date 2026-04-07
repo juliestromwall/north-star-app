@@ -16,7 +16,7 @@ import { getChecklistMilestones } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
-const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
 export function JourneyTileCard({ j }) {
   return (

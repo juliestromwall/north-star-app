@@ -19,7 +19,7 @@ export default function StatusSettingsDialog() {
   const [editValue, setEditValue] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState(null) // { label, inUseCount }
 
-  const userType = ['journey-oversight', 'journey-ending', 'journey-closed'].includes(activeStage) ? 'journey' : 'gc'
+  const userType = activeStage === 'journey-oversight' ? 'journey' : 'gc'
   const statuses = config[userType]?.[activeStage] || config[activeStage] || []
   const stageObj = SURROGATE_STAGES.find(s => s.id === activeStage)
 

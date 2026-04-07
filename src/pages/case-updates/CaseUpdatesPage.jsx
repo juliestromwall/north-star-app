@@ -15,7 +15,7 @@ import StageBadge from '@/components/shared/StageBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
-const JOURNEY_STAGE_IDS = ['journey-oversight', 'journey-ending', 'journey-closed']
+const JOURNEY_STAGE_IDS = ['journey-oversight']
 
 export default function CaseUpdatesPage() {
   const [surrogates, setSurrogates] = useState([])

@@ -67,9 +67,7 @@ export const SURROGATE_STAGES = [
   { id: 'pre-qualification', label: 'Pre-Qualification', color: '#ed148c', order: 1 },
   { id: 'screening',         label: 'Screening',         color: '#c4219a', order: 2 },
   { id: 'matching',          label: 'Matching',           color: '#9b2ea7', order: 3 },
-  { id: 'journey-oversight',  label: 'Journey Oversight',  color: '#723bb4', order: 4 },
-  { id: 'journey-ending',     label: 'Journey Ending',     color: '#4d3da4', order: 5 },
-  { id: 'journey-closed',     label: 'Journey Closed',     color: '#283693', order: 6 },
+  { id: 'journey-oversight',  label: 'Matched Journey',    color: '#723bb4', order: 4 },
 ]
 
 // IP-specific stage label overrides
@@ -96,13 +94,9 @@ export const DEFAULT_STATUSES_BY_STAGE = {
   ],
   'journey-oversight': [
     'Legal Review', 'Medical Clearance', 'Transfer Prep',
-    'Active Pregnancy', 'Monitoring',
-  ],
-  'journey-ending': [
+    'Pregnant', 'Monitoring',
     'Delivery Scheduled', 'Delivered', 'Post-Partum',
     'Final Payments', 'Wrap-Up',
-  ],
-  'journey-closed': [
     'Closed — Complete', 'Closed — Withdrawn', 'Closed — Disqualified',
   ],
 }

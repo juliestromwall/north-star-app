@@ -40,7 +40,7 @@ import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
-const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => ['journey-oversight', 'journey-ending', 'journey-closed'].includes(s.id))
+const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
 // ── Currency with cents ─────────────────────────────────
 function CurrencyInput({ value, onChange, className = '' }) {

@@ -54,16 +54,12 @@ const DEFAULT_CHECKLISTS = {
     },
     'matching': { steps: [], milestones: [] },
     'journey-oversight': { steps: [], milestones: [] },
-    'journey-ending': { steps: [], milestones: [] },
-    'journey-closed': { steps: [], milestones: [] },
   },
   ip: {
     'pre-qualification': { steps: [], milestones: [] },
     'screening': { steps: [], milestones: [] },
     'matching': { steps: [], milestones: [] },
     'journey-oversight': { steps: [], milestones: [] },
-    'journey-ending': { steps: [], milestones: [] },
-    'journey-closed': { steps: [], milestones: [] },
   },
 }
 
