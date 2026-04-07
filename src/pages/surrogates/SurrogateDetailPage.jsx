@@ -500,31 +500,32 @@ export default function SurrogateDetailPage() {
                 </span>
                 {insuranceStatus && (() => {
                   const ins = insuranceStatus
-                  const isFriendly = ins.has_insurance && ins.status === 'active' && ins.insurance_status !== 'open_enrollment' && ins.insurance_status !== 'complete_not_friendly'
-                  const isApplying = ins.insurance_status === 'open_enrollment'
-                  const isNotFriendly = ins.insurance_status === 'complete_not_friendly' || (!ins.has_insurance && ins.id && ins.insurance_status !== 'open_enrollment')
-                  if (isFriendly) {
-                    return (
-                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
-                        <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Insured'}
-                      </button>
-                    )
-                  }
-                  if (isApplying) {
-                    return (
-                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-amber-500 hover:underline cursor-pointer">
-                        <InsuranceCardIcon size={14} color="currentColor" /> Applying
-                      </button>
-                    )
-                  }
-                  if (isNotFriendly) {
-                    return (
-                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-red-500 hover:underline cursor-pointer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5"/></svg>
-                        Not Surrogacy Friendly
-                      </button>
-                    )
-                  }
+                  const st = ins.insurance_status
+                  const isVerified = ins.has_insurance && ins.status === 'active' && (st === 'active_policy' || st === 'verified_open_enrollment' || st === 'complete')
+                  const isChecking = ins.has_insurance && st === 'policy_check'
+                  const isApplying = st === 'open_enrollment'
+                  const isNotFriendly = st === 'complete_not_friendly'
+                  if (isVerified) return (
+                    <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
+                      <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Verified'}
+                    </button>
+                  )
+                  if (isChecking) return (
+                    <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-yellow-500 hover:underline cursor-pointer">
+                      <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Checking'}
+                    </button>
+                  )
+                  if (isApplying) return (
+                    <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-amber-500 hover:underline cursor-pointer">
+                      <InsuranceCardIcon size={14} color="currentColor" /> Applying
+                    </button>
+                  )
+                  if (isNotFriendly) return (
+                    <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-red-500 hover:underline cursor-pointer">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5"/></svg>
+                      Not Surrogacy Friendly
+                    </button>
+                  )
                   return null
                 })()}
               </div>

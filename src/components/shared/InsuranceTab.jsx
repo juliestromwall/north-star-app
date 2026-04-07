@@ -68,7 +68,7 @@ function EditForm({ form, setForm, saving, onSave, onCancel }) {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[11px] text-stone-400 font-medium">Insurance Status</label>
-            <select value={form.insurance_status || 'active_policy'} onChange={e => setForm(f => ({ ...f, insurance_status: e.target.value }))}
+            <select value={form.insurance_status || 'policy_check'} onChange={e => setForm(f => ({ ...f, insurance_status: e.target.value }))}
               className="w-full h-8 text-sm border border-stone-200 rounded-md px-2 bg-white">
               <option value="active_policy">Verified Policy</option>
               <option value="verified_open_enrollment">Verified Policy (Open Enrollment)</option>
@@ -200,7 +200,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
   function startEdit() {
     setForm({
       has_insurance: insurance?.has_insurance ?? false,
-      insurance_status: insurance?.insurance_status || 'active_policy',
+      insurance_status: insurance?.insurance_status || 'policy_check',
       insurance_status_year: insurance?.insurance_status_year || new Date().getFullYear(),
       company: insurance?.company || '',
       website: insurance?.website || '',
@@ -223,13 +223,16 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
   async function saveInsurance() {
     setSaving(true)
     try {
-      // If no insurance, auto-set to open enrollment for current year
-      const effectiveStatus = form.has_insurance === false || form.has_insurance === 'no'
-        ? 'open_enrollment'
-        : (form.insurance_status || 'active_policy')
-      const effectiveYear = form.has_insurance === false || form.has_insurance === 'no'
-        ? new Date().getFullYear()
-        : (form.insurance_status_year ? parseInt(form.insurance_status_year) : null)
+      // Auto-set status based on has_insurance
+      let effectiveStatus = form.insurance_status || 'policy_check'
+      let effectiveYear = form.insurance_status_year ? parseInt(form.insurance_status_year) : new Date().getFullYear()
+      if (form.has_insurance === false || form.has_insurance === 'no') {
+        effectiveStatus = 'open_enrollment'
+        effectiveYear = new Date().getFullYear()
+      } else if (!form.insurance_status || form.insurance_status === 'active_policy') {
+        // Default new policies to ART Risk Policy Check
+        if (!insurance?.id) effectiveStatus = 'policy_check'
+      }
       const updated = await upsertInsurance(caseId, caseType, {
         has_insurance: form.has_insurance,
         status: 'active',

@@ -693,12 +693,19 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
         nonSigReplacements[`{{Name:${rv}}}`] = pv[`{{Name:${rv}}}`] || signer.signatureName || signer.name || ''
         nonSigReplacements[`{{Email:${rv}}}`] = pv[`{{Email:${rv}}}`] || signer.email || ''
         nonSigReplacements[`{{Date:${rv}}}`] = signDate
-        nonSigReplacements[`{{Initials:${rv}}}`] = pv[`{{Initials:${rv}}}`] || computedInitials
-        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = pv[`{{OptionalInitials:${rv}}}`] || ''
         nonSigReplacements[`{{Text:${rv}}}`] = pv[`{{Text:${rv}}}`] || ''
         nonSigReplacements[`{{OptionalText:${rv}}}`] = pv[`{{OptionalText:${rv}}}`] || ''
         nonSigReplacements[`{{Checkbox:${rv}}}`] = pv[`{{Checkbox:${rv}}}`] || '☐'
+        // Handle numbered text variants (Text1, Text2, etc.)
+        for (const [pvKey, pvVal] of Object.entries(pv)) {
+          if (pvKey.includes(rv) && !nonSigReplacements[pvKey]) {
+            nonSigReplacements[pvKey] = pvVal
+          }
+        }
+        // Initials handled as styled text (like signatures), not plain replaceAllText
         sigPlaceholders.push(`{{Signature:${rv}}}`)
+        sigPlaceholders.push(`{{Initials:${rv}}}`)
+        sigPlaceholders.push(`{{OptionalInitials:${rv}}}`)
       }
       signatureInfo.push({ placeholders: sigPlaceholders, signer })
     }

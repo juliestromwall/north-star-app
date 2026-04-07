@@ -266,9 +266,19 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
             case 'text':
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder="Enter text..." className="inline-block w-[200px] text-sm border-b-2 border-amber-300 bg-amber-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
-            default:
+            default: {
+              // Handle numbered variants: text1, text2, initials1, initials2, optionaltext1, etc.
+              const ft = part.fieldType
+              if (ft.startsWith('initials') || ft.startsWith('optionalinitials')) {
+                return <InitialsPad key={i} value={val} onChange={v => onFieldChange(key, v)} optional={ft.startsWith('optional')} />
+              }
+              if (ft.startsWith('text') || ft.startsWith('optionaltext')) {
+                return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
+                  placeholder={ft.startsWith('optional') ? 'Optional' : 'Enter text...'} className={`inline-block w-[200px] text-sm border-b-2 outline-none px-2 py-1 rounded-t align-middle mx-0.5 ${ft.startsWith('optional') ? 'border-stone-200 bg-stone-50/50' : 'border-amber-300 bg-amber-50/50'}`} />
+              }
               return <input key={i} type="text" value={val} onChange={e => onFieldChange(key, e.target.value)}
                 placeholder={part.placeholder} className="inline-block w-[200px] text-sm border-b-2 border-stone-300 bg-stone-50/50 outline-none px-2 py-1 rounded-t align-middle mx-0.5" />
+            }
           }
         })}
       </div>
@@ -398,7 +408,7 @@ export default function SignDocumentPage() {
       // Check if field has a value
       if (fieldType === 'signature') {
         if (!signatureValue?.name && !signatureValue?.image) missing.push('Signature')
-      } else if (fieldType === 'checkbox' || fieldType === 'optionalinitials' || fieldType === 'optionaltext') {
+      } else if (fieldType === 'checkbox' || fieldType.startsWith('optionalinitials') || fieldType.startsWith('optionaltext')) {
         // These are optional — skip validation
       } else if (fieldType === 'date') {
         // Date is auto-filled
