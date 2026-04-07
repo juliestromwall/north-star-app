@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
-import { useAdminNotes } from '@/context/AdminNotesContext'
+import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
 import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones } from '@/lib/checklistStore'
@@ -39,23 +39,29 @@ const TARGETABLE_USERS = [
 
 function AdminNotesSection() {
   const { currentUser } = useRole()
-  const { getAllNotes, addNote, toggleNote, removeNote } = useAdminNotes()
-  const notes = getAllNotes()
-
+  const [notes, setNotes] = useState([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [noteTitle, setNoteTitle] = useState('')
   const [noteMessage, setNoteMessage] = useState('')
   const [noteTarget, setNoteTarget] = useState('all')
   const [selectedUserIds, setSelectedUserIds] = useState([])
 
-  const handlePublish = () => {
+  useEffect(() => {
+    fetchAllAdminNotes().then(data => setNotes(data || [])).catch(() => {})
+  }, [])
+
+  const handlePublish = async () => {
     if (!noteMessage.trim()) return
-    addNote({
-      title: noteTitle.trim() || null,
-      message: noteMessage.trim(),
-      target_user_ids: noteTarget === 'specific' ? selectedUserIds : null,
-      created_by: currentUser?.id,
-    })
+    try {
+      const note = await insertAdminNote({
+        title: noteTitle.trim() || null,
+        message: noteMessage.trim(),
+        target_user_ids: noteTarget === 'specific' ? selectedUserIds : null,
+        is_active: true,
+        created_by: currentUser?.name || currentUser?.id || '',
+      })
+      if (note) setNotes(prev => [note, ...prev])
+    } catch (err) { console.error('Failed to publish note:', err) }
     setDialogOpen(false)
     setNoteTitle('')
     setNoteMessage('')
@@ -70,7 +76,7 @@ function AdminNotesSection() {
   const getUserName = (id) => TARGETABLE_USERS.find((u) => u.id === id)?.name || id
   const getTargetLabel = (note) => !note.target_user_ids ? 'All admins' : note.target_user_ids.map(getUserName).join(', ')
   const getDismissalCount = (note) => {
-    const dismissals = note.dismissals?.length || 0
+    const dismissals = note.admin_note_dismissals?.length || note.dismissals?.length || 0
     const total = note.target_user_ids ? note.target_user_ids.length : TARGETABLE_USERS.length
     return `${dismissals}/${total} read`
   }
@@ -114,10 +120,20 @@ function AdminNotesSection() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => toggleNote(note.id)} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={note.is_active ? 'Deactivate' : 'Activate'}>
+                  <button onClick={async () => {
+                    try {
+                      await updateAdminNote(note.id, { is_active: !note.is_active })
+                      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, is_active: !n.is_active } : n))
+                    } catch {}
+                  }} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={note.is_active ? 'Deactivate' : 'Activate'}>
                     {note.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
-                  <button onClick={() => removeNote(note.id)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
+                  <button onClick={async () => {
+                    try {
+                      await deleteAdminNote(note.id)
+                      setNotes(prev => prev.filter(n => n.id !== note.id))
+                    } catch {}
+                  }} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
                     <Trash2 className="size-4" />
                   </button>
                 </div>
