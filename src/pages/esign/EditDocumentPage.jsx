@@ -131,12 +131,24 @@ export default function EditDocumentPage() {
             }
           } catch (e) { console.error('Journey prefill failed:', e) }
         } else if (prefillCaseType && prefillCaseId) {
-          setTimeout(() => handleCaseSelect(prefillCaseType, prefillCaseId), 100)
-          setCaseSearch((() => {
-            const list = prefillCaseType === 'ip' ? ips : gcs
-            const c = list.find(x => x.id === Number(prefillCaseId))
-            return c ? (c.names || c.name || '') : ''
-          })())
+          // Prefill directly from fetched data (not state, which hasn't updated yet)
+          const list = prefillCaseType === 'ip' ? ips : gcs
+          const c = list.find(x => x.id === Number(prefillCaseId))
+          if (c) {
+            const signers = []
+            if (prefillCaseType === 'gc') {
+              signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
+              const confid = c.answers?._confidential || {}
+              const partnerName = confid.spouseFullName || c.partnerName || ''
+              const partnerEmail = confid.spouseEmail || c.partnerEmail || ''
+              if (partnerName) signers.push({ role: 'Partner', name: partnerName, email: partnerEmail, status: 'pending' })
+            } else {
+              signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
+              if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })
+            }
+            setSendForm(prev => ({ ...prev, caseType: prefillCaseType, caseId: prefillCaseId, signers }))
+            setCaseSearch(c.names || c.name || '')
+          }
         }
       })
       .catch(() => {})
