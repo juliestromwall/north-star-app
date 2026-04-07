@@ -318,8 +318,12 @@ export default function SurrogateDetailPage() {
   const PREFIX_LABELS = { 'ob_records_': 'ob records', 'delivery_records_': 'delivery records', 'ivf_records_': 'ivf records', 'pap_': 'pap' }
 
   // Auto-update ALL record-type checklist steps whenever tracking changes
+  const autoUpdateInProgress = useRef(false)
   useEffect(() => {
-    if (Object.keys(recordTracking).length === 0) return
+    // Prevent infinite loop: skip if this effect itself caused the tracking change
+    if (autoUpdateInProgress.current) return
+    try {
+    if (!recordTracking || Object.keys(recordTracking).length === 0) return
 
     const screeningSteps = getChecklistSteps('gc', 'screening')
     let needsUpdate = false
@@ -377,8 +381,12 @@ export default function SurrogateDetailPage() {
     }
 
     if (needsUpdate) {
+      autoUpdateInProgress.current = true
       setRecordTracking(prev => ({ ...prev, ...updates }))
+      // Reset the guard after React processes the state update
+      setTimeout(() => { autoUpdateInProgress.current = false }, 100)
     }
+    } catch (err) { console.error('Auto-update error:', err) }
   }, [recordTracking])
 
   useEffect(() => {

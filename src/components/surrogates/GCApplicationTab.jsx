@@ -520,104 +520,324 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
 }
 
 // ── Clinic & Hospital Section ───────────────────────────
+const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy']
+const EMPTY_PREGNANCY = {
+  date: '', outcome: '', receivedPrenatalCare: '', wasSurrogacy: '',
+  obClinicName: '', obDoctorName: '', obPhone: '', obAddress: '',
+  hospitalName: '', hospitalPhone: '', hospitalAddress: '',
+  sawMFM: '', mfmClinicName: '', mfmDoctorName: '', mfmPhone: '', mfmAddress: '',
+  wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
+}
+
 function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, search }) {
   const stored = answers?._clinicHospital || {}
-  const pregnancies = profileData?.pregnancyHistory?.pregnancies || []
-  const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+  const profilePregnancies = profileData?.pregnancyHistory?.pregnancies || []
+  const profileCount = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
 
-  const hasMatch = search ? ['clinic', 'hospital', 'ob', 'gyn', 'delivery', 'pregnancy', 'experienced surrogate'].some(k => search.includes(k)) : true
+  const hasMatch = search ? ['clinic', 'hospital', 'ob', 'gyn', 'delivery', 'pregnancy', 'surrogate', 'ivf', 'mfm', 'pap', 'prenatal', 'maternal fetal', 'records', 'release'].some(k => search.includes(k)) : true
 
   const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
     surrogate.id, answers, '_clinicHospital',
     (saved) => {
-      const count = Math.max(numPreg, pregnancies.length, (saved.deliveries || []).length)
-      const deliveries = []
+      const count = Math.max(profileCount, profilePregnancies.length, (saved.pregnancies || []).length)
+      const pregnancies = []
       for (let i = 0; i < Math.max(count, 1); i++) {
-        const existing = (saved.deliveries || [])[i] || {}
-        const preg = pregnancies[i] || {}
-        deliveries.push({
-          birthDate: existing.birthDate || preg.dob || '',
+        const existing = (saved.pregnancies || [])[i] || {}
+        const prof = profilePregnancies[i] || {}
+        pregnancies.push({
+          ...EMPTY_PREGNANCY,
+          date: existing.date || prof.dob || '',
+          outcome: existing.outcome || prof.outcome || '',
+          wasSurrogacy: existing.wasSurrogacy ?? prof.wasSurrogacy ?? '',
+          receivedPrenatalCare: existing.receivedPrenatalCare ?? '',
           obClinicName: existing.obClinicName || '',
-          obClinicAddress: existing.obClinicAddress || '',
+          obDoctorName: existing.obDoctorName || '',
+          obPhone: existing.obPhone || '',
+          obAddress: existing.obAddress || '',
           hospitalName: existing.hospitalName || '',
+          hospitalPhone: existing.hospitalPhone || '',
           hospitalAddress: existing.hospitalAddress || '',
-          notes: existing.notes || '',
+          sawMFM: existing.sawMFM ?? '',
+          mfmClinicName: existing.mfmClinicName || '',
+          mfmDoctorName: existing.mfmDoctorName || '',
+          mfmPhone: existing.mfmPhone || '',
+          mfmAddress: existing.mfmAddress || '',
+          wasIVF: existing.wasIVF ?? '',
+          ivfClinicName: existing.ivfClinicName || '',
+          ivfDoctorName: existing.ivfDoctorName || '',
+          ivfPhone: existing.ivfPhone || '',
+          ivfAddress: existing.ivfAddress || '',
         })
       }
       return {
         currentOBGYN: saved.currentOBGYN || '',
+        currentOBPhone: saved.currentOBPhone || '',
+        currentOBAddress: saved.currentOBAddress || '',
         experiencedSurrogate: saved.experiencedSurrogate ?? profileData?.experiencedSurrogate?.previousSurrogate ?? '',
-        deliveries,
+        papDate: saved.papDate || '',
+        papDoctorName: saved.papDoctorName || '',
+        papClinicName: saved.papClinicName || '',
+        papClinicCity: saved.papClinicCity || '',
+        papClinicState: saved.papClinicState || '',
+        papClinicPhone: saved.papClinicPhone || '',
+        numberOfPregnancies: saved.numberOfPregnancies || profileCount || '',
+        pregnancies,
       }
     }
   )
 
   if (!hasMatch) return null
 
-  function updateDelivery(i, key, val) {
+  function updatePreg(i, key, val) {
     setForm(f => {
-      const deliveries = [...(f.deliveries || [])]
-      deliveries[i] = { ...deliveries[i], [key]: val }
-      return { ...f, deliveries }
+      const pregnancies = [...(f.pregnancies || [])]
+      pregnancies[i] = { ...pregnancies[i], [key]: val }
+      return { ...f, pregnancies }
     })
   }
 
-  function addDelivery() {
-    setForm(f => ({ ...f, deliveries: [...(f.deliveries || []), { birthDate: '', obClinicName: '', obClinicAddress: '', hospitalName: '', hospitalAddress: '', notes: '' }] }))
+  function handleCountChange(val) {
+    const num = parseInt(val) || 0
+    setForm(f => {
+      const existing = f.pregnancies || []
+      const pregnancies = []
+      for (let i = 0; i < num; i++) {
+        const ex = existing[i] || {}
+        const prof = profilePregnancies[i] || {}
+        pregnancies.push({
+          ...EMPTY_PREGNANCY,
+          ...ex,
+          date: ex.date || prof.dob || '',
+          outcome: ex.outcome || prof.outcome || '',
+          wasSurrogacy: ex.wasSurrogacy ?? prof.wasSurrogacy ?? '',
+        })
+      }
+      return { ...f, numberOfPregnancies: val, pregnancies }
+    })
   }
 
-  function removeDelivery(i) {
-    setForm(f => ({ ...f, deliveries: (f.deliveries || []).filter((_, idx) => idx !== i) }))
-  }
+  const isNonDelivery = (outcome) => NON_DELIVERY_OUTCOMES.includes((outcome || '').toLowerCase())
+  const needsDeliveryHospital = (p) => !isNonDelivery(p.outcome) || p.receivedPrenatalCare === 'yes'
+
+  // Read mode
+  const readPregnancies = stored.pregnancies || []
 
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Clinic & Hospital Form" description="OB/GYN and hospital details for each pregnancy" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <EditHeader title="Clinic & Hospital Form" description="Provider information for medical records release" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
       <CardContent className="space-y-6">
         {editing ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1"><FieldLabel>Current OB/GYN or Primary Care (name & location)</FieldLabel><Input value={form.currentOBGYN} onChange={e => setForm(f => ({ ...f, currentOBGYN: e.target.value }))} /></div>
-              <div className="space-y-1"><FieldLabel>Are you an experienced surrogate?</FieldLabel><YesNoButtons value={form.experiencedSurrogate} onChange={v => setForm(f => ({ ...f, experiencedSurrogate: v }))} /></div>
-            </div>
-            {(form.deliveries || []).map((d, i) => (
-              <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-[#283693]">Delivery #{i + 1}</p>
-                  {(form.deliveries || []).length > 1 && <button onClick={() => removeDelivery(i)} className="text-red-400 hover:text-red-600 text-xs flex items-center gap-1"><Trash2 className="size-3" /> Remove</button>}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="space-y-1"><FieldLabel>Birth Date</FieldLabel><Input type="date" value={d.birthDate} onChange={e => updateDelivery(i, 'birthDate', e.target.value)} /></div>
-                  <div className="space-y-1"><FieldLabel>OB Clinic Name</FieldLabel><Input value={d.obClinicName} onChange={e => updateDelivery(i, 'obClinicName', e.target.value)} /></div>
-                  <div className="space-y-1"><FieldLabel>OB Clinic Address</FieldLabel><Input value={d.obClinicAddress} onChange={e => updateDelivery(i, 'obClinicAddress', e.target.value)} /></div>
-                  <div className="space-y-1"><FieldLabel>Hospital Name</FieldLabel><Input value={d.hospitalName} onChange={e => updateDelivery(i, 'hospitalName', e.target.value)} /></div>
-                  <div className="space-y-1"><FieldLabel>Hospital Address</FieldLabel><Input value={d.hospitalAddress} onChange={e => updateDelivery(i, 'hospitalAddress', e.target.value)} /></div>
-                  <div className="space-y-1"><FieldLabel>Notes</FieldLabel><Input value={d.notes} onChange={e => updateDelivery(i, 'notes', e.target.value)} /></div>
-                </div>
+            {/* Current OB/GYN */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Current OB/GYN</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="space-y-1"><FieldLabel>Doctor / Midwife Name</FieldLabel><Input value={form.currentOBGYN} onChange={e => setForm(f => ({ ...f, currentOBGYN: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Phone Number</FieldLabel><Input value={form.currentOBPhone} onChange={e => setForm(f => ({ ...f, currentOBPhone: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={form.currentOBAddress} onChange={e => setForm(f => ({ ...f, currentOBAddress: e.target.value }))} placeholder="Optional" /></div>
               </div>
-            ))}
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={addDelivery}><Plus className="size-3.5" /> Add Delivery</Button>
+            </div>
+            {/* PAP Smear */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Most Recent PAP Smear</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={form.papDate} onChange={e => setForm(f => ({ ...f, papDate: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Doctor Name</FieldLabel><Input value={form.papDoctorName} onChange={e => setForm(f => ({ ...f, papDoctorName: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={form.papClinicName} onChange={e => setForm(f => ({ ...f, papClinicName: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.papClinicCity} onChange={e => setForm(f => ({ ...f, papClinicCity: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>State</FieldLabel><SelectField value={form.papClinicState} onValueChange={v => setForm(f => ({ ...f, papClinicState: v }))} options={US_STATES} /></div>
+                <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={form.papClinicPhone} onChange={e => setForm(f => ({ ...f, papClinicPhone: e.target.value }))} placeholder="Optional" /></div>
+              </div>
+            </div>
+            {/* Experienced Surrogate + Pregnancy Count */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1"><FieldLabel>Are you an experienced surrogate?</FieldLabel><YesNoButtons value={form.experiencedSurrogate} onChange={v => setForm(f => ({ ...f, experiencedSurrogate: v }))} /></div>
+              <div className="space-y-1">
+                <FieldLabel>Total number of pregnancies {profileCount > 0 && <span className="text-muted-foreground font-normal">(from profile: {profileCount})</span>}</FieldLabel>
+                <Input type="number" min="0" max="20" value={form.numberOfPregnancies} onChange={e => handleCountChange(e.target.value)} />
+              </div>
+            </div>
+            {/* Per-Pregnancy Provider Info */}
+            {(form.pregnancies || []).map((p, i) => {
+              const profPreg = profilePregnancies[i]
+              const outcomeLabel = p.outcome || profPreg?.outcome || ''
+              const isNonDel = isNonDelivery(outcomeLabel)
+              const skipRelease = isNonDel && p.receivedPrenatalCare === 'no'
+              return (
+                <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+                    {outcomeLabel && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isNonDel ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{outcomeLabel}</span>}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={p.date} onChange={e => updatePreg(i, 'date', e.target.value)} /></div>
+                    <div className="space-y-1"><FieldLabel>Outcome</FieldLabel>
+                      <SelectField value={p.outcome} onValueChange={v => updatePreg(i, 'outcome', v)} options={['Live Birth', 'Miscarriage', 'Ectopic Pregnancy', 'Termination', 'Chemical Pregnancy', 'Stillborn']} />
+                    </div>
+                    <div className="space-y-1"><FieldLabel>Surrogacy pregnancy?</FieldLabel><YesNoButtons value={p.wasSurrogacy} onChange={v => updatePreg(i, 'wasSurrogacy', v)} /></div>
+                  </div>
+                  {/* For non-delivery outcomes, ask about prenatal care */}
+                  {isNonDel && (
+                    <div className="space-y-1 max-w-xs">
+                      <FieldLabel>Did you receive any prenatal care for this pregnancy?</FieldLabel>
+                      <YesNoButtons value={p.receivedPrenatalCare} onChange={v => updatePreg(i, 'receivedPrenatalCare', v)} />
+                    </div>
+                  )}
+                  {skipRelease && (
+                    <p className="text-xs text-stone-400 italic">No medical records release needed for this pregnancy.</p>
+                  )}
+                  {!skipRelease && (
+                    <>
+                      {/* Prenatal Care */}
+                      <div>
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={p.obClinicName} onChange={e => updatePreg(i, 'obClinicName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>OB Doctor / Midwife</FieldLabel><Input value={p.obDoctorName} onChange={e => updatePreg(i, 'obDoctorName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.obPhone} onChange={e => updatePreg(i, 'obPhone', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress} onChange={e => updatePreg(i, 'obAddress', e.target.value)} placeholder="Optional" /></div>
+                        </div>
+                      </div>
+                      {/* Delivery Hospital — only for live births / stillborns or if prenatal care was received */}
+                      {(!isNonDel || p.receivedPrenatalCare === 'yes') && !isNonDel && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Delivery Hospital</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="space-y-1"><FieldLabel>Hospital Name</FieldLabel><Input value={p.hospitalName} onChange={e => updatePreg(i, 'hospitalName', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.hospitalPhone} onChange={e => updatePreg(i, 'hospitalPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.hospitalAddress} onChange={e => updatePreg(i, 'hospitalAddress', e.target.value)} placeholder="Optional" /></div>
+                          </div>
+                        </div>
+                      )}
+                      {/* MFM */}
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-[11px] font-semibold text-stone-500 uppercase">Maternal Fetal Medicine (MFM)</p>
+                          <YesNoButtons value={p.sawMFM} onChange={v => updatePreg(i, 'sawMFM', v)} />
+                        </div>
+                        {(p.sawMFM === 'yes' || p.sawMFM === true) && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="space-y-1"><FieldLabel>MFM Clinic Name</FieldLabel><Input value={p.mfmClinicName} onChange={e => updatePreg(i, 'mfmClinicName', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>MFM Doctor Name</FieldLabel><Input value={p.mfmDoctorName} onChange={e => updatePreg(i, 'mfmDoctorName', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.mfmPhone} onChange={e => updatePreg(i, 'mfmPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.mfmAddress} onChange={e => updatePreg(i, 'mfmAddress', e.target.value)} placeholder="Optional" /></div>
+                          </div>
+                        )}
+                      </div>
+                      {/* IVF */}
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-[11px] font-semibold text-stone-500 uppercase">IVF Care</p>
+                          <YesNoButtons value={p.wasIVF} onChange={v => updatePreg(i, 'wasIVF', v)} />
+                        </div>
+                        {(p.wasIVF === 'yes' || p.wasIVF === true) && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="space-y-1"><FieldLabel>IVF Clinic Name</FieldLabel><Input value={p.ivfClinicName} onChange={e => updatePreg(i, 'ivfClinicName', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>IVF Doctor Name</FieldLabel><Input value={p.ivfDoctorName} onChange={e => updatePreg(i, 'ivfDoctorName', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={p.ivfPhone} onChange={e => updatePreg(i, 'ivfPhone', e.target.value)} /></div>
+                            <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.ivfAddress} onChange={e => updatePreg(i, 'ivfAddress', e.target.value)} placeholder="Optional" /></div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <ReadField label="Current OB/GYN" value={stored.currentOBGYN} />
-              <ReadField label="Experienced Surrogate" value={boolDisplay(stored.experiencedSurrogate)} />
-            </div>
-            {(stored.deliveries || []).map((d, i) => (
-              <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/30 p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Delivery #{i + 1}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <ReadField label="Birth Date" value={d.birthDate} />
-                  <ReadField label="OB Clinic" value={d.obClinicName} />
-                  <ReadField label="OB Address" value={d.obClinicAddress} />
-                  <ReadField label="Hospital" value={d.hospitalName} />
-                  <ReadField label="Hospital Address" value={d.hospitalAddress} />
-                  <ReadField label="Notes" value={d.notes} />
-                </div>
+            {/* Read Mode */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Current OB/GYN</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <ReadField label="Doctor / Midwife" value={stored.currentOBGYN} />
+                <ReadField label="Phone" value={stored.currentOBPhone} />
+                <ReadField label="Address" value={stored.currentOBAddress} />
               </div>
-            ))}
-            {(!stored.deliveries || stored.deliveries.length === 0) && <p className="text-sm text-stone-400">No delivery information entered yet.</p>}
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Most Recent PAP Smear</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <ReadField label="Date" value={stored.papDate} />
+                <ReadField label="Doctor" value={stored.papDoctorName} />
+                <ReadField label="Clinic" value={stored.papClinicName} />
+                <ReadField label="City" value={stored.papClinicCity} />
+                <ReadField label="State" value={stored.papClinicState} />
+                <ReadField label="Phone" value={stored.papClinicPhone} />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <ReadField label="Experienced Surrogate" value={boolDisplay(stored.experiencedSurrogate)} />
+              <ReadField label="Total Pregnancies" value={stored.numberOfPregnancies || profileCount || '—'} />
+            </div>
+            {readPregnancies.map((p, i) => {
+              const isNonDel = isNonDelivery(p.outcome)
+              const skipRelease = isNonDel && p.receivedPrenatalCare === 'no'
+              return (
+                <div key={i} className="rounded-xl border border-gray-100 bg-gray-50/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Pregnancy #{i + 1}</p>
+                    {p.outcome && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isNonDel ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{p.outcome}</span>}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <ReadField label="Date" value={p.date} />
+                    <ReadField label="Outcome" value={p.outcome} />
+                    <ReadField label="Surrogacy" value={boolDisplay(p.wasSurrogacy)} />
+                  </div>
+                  {skipRelease ? (
+                    <p className="text-xs text-stone-400 italic">No prenatal care received — no release needed.</p>
+                  ) : (
+                    <>
+                      {(p.obClinicName || p.obDoctorName) && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">Prenatal Care</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <ReadField label="Clinic" value={p.obClinicName} />
+                            <ReadField label="Doctor" value={p.obDoctorName} />
+                            <ReadField label="Phone" value={p.obPhone} />
+                            <ReadField label="Address" value={p.obAddress} />
+                          </div>
+                        </div>
+                      )}
+                      {(p.hospitalName) && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">Delivery Hospital</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <ReadField label="Hospital" value={p.hospitalName} />
+                            <ReadField label="Phone" value={p.hospitalPhone} />
+                            <ReadField label="Address" value={p.hospitalAddress} />
+                          </div>
+                        </div>
+                      )}
+                      {(p.sawMFM === 'yes' || p.sawMFM === true) && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">Maternal Fetal Medicine</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <ReadField label="Clinic" value={p.mfmClinicName} />
+                            <ReadField label="Doctor" value={p.mfmDoctorName} />
+                            <ReadField label="Phone" value={p.mfmPhone} />
+                            <ReadField label="Address" value={p.mfmAddress} />
+                          </div>
+                        </div>
+                      )}
+                      {(p.wasIVF === 'yes' || p.wasIVF === true) && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1">IVF Care</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                            <ReadField label="Clinic" value={p.ivfClinicName} />
+                            <ReadField label="Doctor" value={p.ivfDoctorName} />
+                            <ReadField label="Phone" value={p.ivfPhone} />
+                            <ReadField label="Address" value={p.ivfAddress} />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })}
+            {readPregnancies.length === 0 && <p className="text-sm text-stone-400">No pregnancy provider information entered yet.</p>}
           </>
         )}
       </CardContent>
