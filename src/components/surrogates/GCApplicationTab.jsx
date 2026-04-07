@@ -925,6 +925,41 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         // Send for signature
         await sendDocument(doc.id)
 
+        // Email the signer with a secure signing link
+        const signUrl = `${window.location.origin}/e-signature/sign/${doc.signing_token}`
+        try {
+          const { sendEmail } = await import('@/lib/google')
+          await sendEmail(currentUser?.id, {
+            to: patient.email,
+            subject: `Please sign: ${title}`,
+            body: `
+              <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 180px;" />
+                </div>
+                <h2 style="color: #283693; margin-bottom: 8px;">Medical Records Release — Ready for Signature</h2>
+                <p>Hi ${patient.name || ''},</p>
+                <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a medical records release form to sign:</p>
+                <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="font-weight: 600; margin: 0;">${title}</p>
+                  <p style="color: #666; font-size: 13px; margin: 4px 0 0;">Provider: ${provider.clinicName}</p>
+                </div>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${signUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+                    Review & Sign
+                  </a>
+                </div>
+                <p style="color: #888; font-size: 12px; margin-top: 24px;">
+                  This is a legally binding electronic signature request from Abundant Beginnings Company, LLC.
+                  If you have questions, please contact us at info@abcsurrogacy.com.
+                </p>
+              </div>
+            `,
+          })
+        } catch (emailErr) {
+          console.error('Failed to email signer:', emailErr)
+        }
+
         created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token })
       }
 
