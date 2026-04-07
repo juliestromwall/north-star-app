@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Check, X, ChevronDown, CheckCircle2, Clock } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
-export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName }) {
+export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
   const [logStatus, setLogStatus] = useState('')
   const [logNote, setLogNote] = useState('')
@@ -24,6 +24,8 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     const history = current.history || []
     const entry = { status: logStatus, date: new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
     onUpdate(stepId, { status: logStatus, history: [...history, entry] })
+    const step = steps.find(s => s.id === stepId)
+    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: logStatus, by: currentUserName })
     setLogStatus('')
     setLogNote('')
     setAddingLogFor(null)

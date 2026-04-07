@@ -32,7 +32,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
@@ -135,7 +135,7 @@ const RECORD_TYPES = [
   { value: 'PAP', label: 'PAP', color: 'bg-amber-100 text-amber-700' },
 ]
 
-function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName }) {
+function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName, onStatusLog }) {
   const [addOpen, setAddOpen] = useState(false)
   const [addLabel, setAddLabel] = useState('')
   const [addType, setAddType] = useState('OB')
@@ -180,6 +180,7 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, current
         tracking={tracking}
         onUpdate={onUpdate}
         currentUserName={currentUserName}
+        onStatusLog={onStatusLog}
       />
       {/* Add Record */}
       {addOpen ? (
@@ -1007,6 +1008,22 @@ export default function SurrogateDetailPage() {
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
+                onStatusLog={async ({ stepLabel, status, by }) => {
+                  if (status === 'fax_received') {
+                    try {
+                      await createCaseTask({
+                        case_id: surrogate.id,
+                        case_type: 'surrogate',
+                        title: `Fax Received - Verify if ${stepLabel} are complete`,
+                        assigned_to: currentUser?.email,
+                        due_date: new Date().toISOString().split('T')[0],
+                        priority: 'normal',
+                        status: 'open',
+                        created_by: currentUser?.email,
+                      })
+                    } catch (err) { console.error('Auto-task failed:', err) }
+                  }
+                }}
               />
             )
           })()}
