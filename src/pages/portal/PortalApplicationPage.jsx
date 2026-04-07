@@ -53,6 +53,23 @@ function Req() {
   return <span className="text-red-400">*</span>
 }
 
+function formatPhone(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
+function isValidPhone(value) {
+  if (!value) return false
+  return /^\d{3}-\d{3}-\d{4}$/.test(value)
+}
+
+function isValidEmail(value) {
+  if (!value) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 function ReadField({ label, value }) {
   return (
     <div>
@@ -108,8 +125,8 @@ function PersonalInfoForm({ data, onSave, saving }) {
             <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Do you have a Real ID? <Req /></FieldLabel><YesNoButtons value={form.realId} onChange={v => setForm(f => ({ ...f, realId: v }))} /></div>
             <div className="space-y-1"><FieldLabel>Do you have a valid passport? <Req /></FieldLabel><YesNoButtons value={form.validPassport} onChange={v => setForm(f => ({ ...f, validPassport: v }))} /></div>
-            <div className="space-y-1 sm:col-span-2"><FieldLabel>Nearest hospital with Level II or III NICU <Req /></FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Willing to travel to Level II+ NICU? <Req /></FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>What is the nearest hospital with a Level 2 or Level 3 NICU? <Req /></FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Would you be willing to travel to deliver at a Level 2 or Level 3 NICU hospital? <Req /></FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
           </div>
           {!allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
           <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
@@ -145,8 +162,13 @@ function ReferencesForm({ data, onSave, saving }) {
   }, [data])
 
   const requiredKeys = REFS.flatMap(r => fields.map(f => `${r.key}_${f}`))
-  const allFilled = requiredKeys.every(k => form[k]?.trim())
-  const isComplete = data && requiredKeys.every(k => data[k]?.trim())
+  function isRefFieldValid(k, val) {
+    if (k.endsWith('_phone')) return isValidPhone(val)
+    if (k.endsWith('_email')) return isValidEmail(val)
+    return val?.trim()
+  }
+  const allFilled = requiredKeys.every(k => isRefFieldValid(k, form[k]))
+  const isComplete = data && requiredKeys.every(k => isRefFieldValid(k, data[k]))
 
   return (
     <Card className="rounded-2xl">
@@ -168,10 +190,31 @@ function ReferencesForm({ data, onSave, saving }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fields.map(f => {
                   const key = `${ref.key}_${f}`
+                  const val = form[key] || ''
+                  if (f === 'phone') {
+                    const showErr = val && !isValidPhone(val)
+                    return (
+                      <div key={key} className="space-y-1">
+                        <FieldLabel>{labels[f]} <Req /></FieldLabel>
+                        <Input type="tel" placeholder="xxx-xxx-xxxx" value={val} onChange={e => setForm(prev => ({ ...prev, [key]: formatPhone(e.target.value) }))} />
+                        {showErr && <p className="text-[10px] text-red-400">Format: xxx-xxx-xxxx</p>}
+                      </div>
+                    )
+                  }
+                  if (f === 'email') {
+                    const showErr = val && !isValidEmail(val)
+                    return (
+                      <div key={key} className="space-y-1">
+                        <FieldLabel>{labels[f]} <Req /></FieldLabel>
+                        <Input type="email" placeholder="name@example.com" value={val} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} />
+                        {showErr && <p className="text-[10px] text-red-400">Enter a valid email address</p>}
+                      </div>
+                    )
+                  }
                   return (
                     <div key={key} className="space-y-1">
                       <FieldLabel>{labels[f]} <Req /></FieldLabel>
-                      <Input value={form[key] || ''} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} />
+                      <Input value={val} onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))} />
                     </div>
                   )
                 })}
@@ -203,22 +246,22 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
 
   const FIELDS = [
     { key: 'fullLegalName', label: 'Full Legal Name' },
-    { key: 'maidenName', label: 'Maiden Name (if applicable)' },
+    { key: 'maidenName', label: 'Maiden Name (if applicable)', optional: true },
     { key: 'dob', label: 'Date of Birth', type: 'date' },
     { key: 'ssn4', label: 'Last 4 of SSN' },
     { key: 'driversLicense', label: "Driver's License #" },
-    { key: 'religion', label: 'Religion' },
+    { key: 'religion', label: 'Religion (if applicable)', optional: true },
     { key: 'hasInsurance', label: 'Do you have health insurance?', type: 'yesno' },
     { key: 'insuranceProvider', label: 'Health Insurance Provider', group: 'insurance' },
     { key: 'insurancePolicyNumber', label: 'Policy Number', group: 'insurance' },
     { key: 'insuranceGroupNumber', label: 'Group Number', group: 'insurance' },
-    { key: 'insurancePhone', label: 'Insurance Phone', group: 'insurance' },
+    { key: 'insurancePhone', label: 'Insurance Phone', group: 'insurance', type: 'phone' },
     { key: 'hasSpouse', label: 'Do you have a spouse/partner?', type: 'yesno' },
     { key: 'spouseFullName', label: 'Spouse/Partner Full Name' },
-    { key: 'spouseEmail', label: 'Spouse/Partner Email' },
-    { key: 'spousePhone', label: 'Spouse/Partner Phone' },
+    { key: 'spouseEmail', label: 'Spouse/Partner Email', type: 'email' },
+    { key: 'spousePhone', label: 'Spouse/Partner Phone', type: 'phone' },
     { key: 'emergencyName', label: 'Emergency Contact Name' },
-    { key: 'emergencyPhone', label: 'Emergency Contact Phone' },
+    { key: 'emergencyPhone', label: 'Emergency Contact Phone', type: 'phone' },
     { key: 'emergencyRelationship', label: 'Emergency Contact Relationship' },
   ]
 
@@ -248,31 +291,32 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
   const hasInsurance = form.hasInsurance === 'yes' || form.hasInsurance === true
 
   function isFieldRequired(f) {
+    if (f.optional) return false
     if (SPOUSE_KEYS.includes(f.key)) return hasSpouse
     if (f.group === 'insurance') return hasInsurance
     return true
   }
 
-  const requiredFields = FIELDS.filter(isFieldRequired)
-  const allFilled = requiredFields.every(f => {
-    const val = form[f.key]
+  function isFieldValid(f, val) {
     if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
+    if (f.type === 'phone') return isValidPhone(val)
+    if (f.type === 'email') return isValidEmail(val)
     return val?.toString().trim()
-  })
+  }
+
+  const requiredFields = FIELDS.filter(isFieldRequired)
+  const allFilled = requiredFields.every(f => isFieldValid(f, form[f.key]))
 
   function checkComplete(d) {
     if (!d) return false
     const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
     const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
     return FIELDS.filter(f => {
+      if (f.optional) return false
       if (SPOUSE_KEYS.includes(f.key)) return hs
       if (f.group === 'insurance') return hi
       return true
-    }).every(f => {
-      const val = d[f.key]
-      if (f.type === 'yesno') return val === 'yes' || val === 'no' || val === true || val === false
-      return val?.toString().trim()
-    })
+    }).every(f => isFieldValid(f, d[f.key]))
   }
 
   return (
@@ -293,18 +337,40 @@ function ConfidentialForm({ data, onSave, saving, quizData }) {
             {FIELDS.map(f => {
               if (SPOUSE_KEYS.includes(f.key) && !hasSpouse) return null
               if (f.group === 'insurance' && !hasInsurance) return null
+              const req = isFieldRequired(f)
+              const val = form[f.key] || ''
               if (f.type === 'yesno') {
                 return (
                   <div key={f.key} className="space-y-1">
-                    <FieldLabel>{f.label} <Req /></FieldLabel>
+                    <FieldLabel>{f.label} {req && <Req />}</FieldLabel>
                     <YesNoButtons value={form[f.key]} onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))} />
+                  </div>
+                )
+              }
+              if (f.type === 'phone') {
+                const showErr = val && !isValidPhone(val)
+                return (
+                  <div key={f.key} className="space-y-1">
+                    <FieldLabel>{f.label} {req && <Req />}</FieldLabel>
+                    <Input type="tel" placeholder="xxx-xxx-xxxx" value={val} onChange={e => setForm(prev => ({ ...prev, [f.key]: formatPhone(e.target.value) }))} />
+                    {showErr && <p className="text-[10px] text-red-400">Format: xxx-xxx-xxxx</p>}
+                  </div>
+                )
+              }
+              if (f.type === 'email') {
+                const showErr = val && !isValidEmail(val)
+                return (
+                  <div key={f.key} className="space-y-1">
+                    <FieldLabel>{f.label} {req && <Req />}</FieldLabel>
+                    <Input type="email" placeholder="name@example.com" value={val} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
+                    {showErr && <p className="text-[10px] text-red-400">Enter a valid email address</p>}
                   </div>
                 )
               }
               return (
                 <div key={f.key} className="space-y-1">
-                  <FieldLabel>{f.label} <Req /></FieldLabel>
-                  <Input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
+                  <FieldLabel>{f.label} {req && <Req />}</FieldLabel>
+                  <Input type={f.type || 'text'} value={val} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
                 </div>
               )
             })}
@@ -527,13 +593,19 @@ export default function PortalApplicationPage() {
       return !!(d.street && d.city && d.state && d.zipCode && d.realId && d.validPassport && d.nearestNICU && d.willingToTravelNICU)
     }
     if (key === '_confidential') {
-      const SPOUSE_KEYS = ['spouseFullName', 'spouseEmail', 'spousePhone']
-      const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
+      const PHONE_KEYS = ['insurancePhone', 'spousePhone', 'emergencyPhone']
+      const EMAIL_KEYS = ['spouseEmail']
       const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
       const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
       const yesNoKeys = ['hasSpouse', 'hasInsurance']
-      const required = ['fullLegalName', 'dob', 'ssn4', 'driversLicense', 'religion', 'hasInsurance', ...(hi ? INSURANCE_KEYS : []), 'hasSpouse', ...(hs ? SPOUSE_KEYS : []), 'emergencyName', 'emergencyPhone', 'emergencyRelationship']
-      return required.every(k => { const v = d[k]; return yesNoKeys.includes(k) ? (v === 'yes' || v === 'no' || v === true || v === false) : v?.toString().trim() })
+      const required = ['fullLegalName', 'dob', 'ssn4', 'driversLicense', 'hasInsurance', ...(hi ? ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone'] : []), 'hasSpouse', ...(hs ? ['spouseFullName', 'spouseEmail', 'spousePhone'] : []), 'emergencyName', 'emergencyPhone', 'emergencyRelationship']
+      return required.every(k => {
+        const v = d[k]
+        if (yesNoKeys.includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
+        if (PHONE_KEYS.includes(k)) return isValidPhone(v)
+        if (EMAIL_KEYS.includes(k)) return isValidEmail(v)
+        return v?.toString().trim()
+      })
     }
     if (key === '_references') {
       const refs = ['ref1', 'ref2', 'ref3']
