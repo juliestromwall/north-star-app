@@ -415,6 +415,11 @@ export default function SignDocumentPage() {
                 })
               }
             }
+            // Clean up the draft copy from Google Drive (no longer needed)
+            if (meta.workingDocId && meta.workingDocId !== meta.templateDocId) {
+              const { deleteGoogleDriveFile } = await import('@/lib/google')
+              deleteGoogleDriveFile(adminUserId, meta.workingDocId).catch(() => {})
+            }
           } else {
             // Fallback: file the sent PDF
             const pdfPath = meta.pdfPath || updated.file_path

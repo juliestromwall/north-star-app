@@ -349,10 +349,8 @@ export default function EditDocumentPage() {
         }
       }
 
-      // Clean up draft copy from Google Drive
-      if (workingDocId && workingDocId !== googleDocId) {
-        deleteGoogleDriveFile(userId, workingDocId).catch(() => {})
-      }
+      // Don't delete draft copy yet — it's needed for signed PDF generation
+      // It will stay in ABC Drafts folder until signing is complete
       navigate('/e-signature')
     } catch (err) {
       alert('Failed to send: ' + (err.message || 'Unknown error'))
