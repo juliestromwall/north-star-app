@@ -81,13 +81,13 @@ function ReadField({ label, value }) {
 }
 
 // ── Personal Information ───────────────────────────────
-function PersonalInfoForm({ data, onSave, saving, readOnly }) {
+function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({
     street: '', city: '', state: '', zipCode: '',
     realId: '', validPassport: '',
     nearestNICU: '', willingToTravelNICU: '',
   })
-  const [editing, setEditing] = useState(false)
+  const editing = isOpen
 
   useEffect(() => {
     if (data) setForm({
@@ -102,7 +102,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly }) {
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
@@ -140,7 +140,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly }) {
 }
 
 // ── References ─────────────────────────────────────────
-function ReferencesForm({ data, onSave, saving, readOnly }) {
+function ReferencesForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
   const REFS = [
     { key: 'ref1', title: 'Reference #1 — Family Member' },
     { key: 'ref2', title: 'Reference #2 — Friend' },
@@ -150,7 +150,7 @@ function ReferencesForm({ data, onSave, saving, readOnly }) {
   const labels = { name: 'Name', phone: 'Phone Number', email: 'Email Address', cityState: 'City, State', relationship: 'Relationship to you' }
 
   const [form, setForm] = useState({})
-  const [editing, setEditing] = useState(false)
+  const editing = isOpen
 
   useEffect(() => {
     if (data) {
@@ -173,7 +173,7 @@ function ReferencesForm({ data, onSave, saving, readOnly }) {
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
@@ -241,9 +241,9 @@ function ReferencesForm({ data, onSave, saving, readOnly }) {
 }
 
 // ── Confidential Information ───────────────────────────
-function ConfidentialForm({ data, onSave, saving, quizData, readOnly }) {
+function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({})
-  const [editing, setEditing] = useState(false)
+  const editing = isOpen
 
   const FIELDS = [
     { key: 'fullLegalName', label: 'Full Legal Name' },
@@ -322,7 +322,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly }) {
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
@@ -466,14 +466,14 @@ const EMPTY_PREG = {
   wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
 }
 
-function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly }) {
+function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({
     currentOBGYN: '', currentOBPhone: '', currentOBAddress: '',
     papDate: '', papDoctorName: '', papClinicName: '', papClinicCity: '', papClinicState: '', papClinicPhone: '',
     experiencedSurrogate: '', numberOfPregnancies: '',
     pregnancies: [],
   })
-  const [editing, setEditing] = useState(false)
+  const editing = isOpen
 
   useEffect(() => {
     // Try to get pregnancy count from profile (localStorage)
@@ -561,7 +561,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly }
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
@@ -706,9 +706,9 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly }
 }
 
 // ── Social Media Release ───────────────────────────────
-function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly }) {
+function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({ fullName: '', email: '', signatureDate: '', agreed: false, signature: null })
-  const [editing, setEditing] = useState(false)
+  const editing = isOpen
 
   useEffect(() => {
     const q = quizData || {}
@@ -726,7 +726,7 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly }
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
           {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
@@ -769,7 +769,7 @@ export default function PortalApplicationPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
-  const [hasShownSubmitPrompt, setHasShownSubmitPrompt] = useState(false)
+  const [activeSection, setActiveSection] = useState(null)
   const isSubmitted = answers?._applicationSubmitted
 
   useEffect(() => {
@@ -808,6 +808,23 @@ export default function PortalApplicationPage() {
       const { error } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', caseId)
       if (error) throw error
       setAnswers(updatedAnswers)
+      // Advance to next section
+      const sectionOrder = ['_application', '_confidential', '_references', '_clinicHospital', '_socialMediaRelease']
+      const currentIdx = sectionOrder.indexOf(sectionKey)
+      const nextKey = sectionOrder[currentIdx + 1]
+      if (nextKey) {
+        setActiveSection(nextKey)
+      } else {
+        setActiveSection(null)
+        // All saved — check if all complete and show submit
+        setTimeout(() => {
+          // Re-check with updated answers
+          const allDone = FORM_SECTIONS.every(s => isSectionComplete(s.key, updatedAnswers))
+          if (allDone && !updatedAnswers._applicationSubmitted) {
+            setSubmitOpen(true)
+          }
+        }, 300)
+      }
     } catch (err) {
       console.error('Save failed:', err)
       alert('Failed to save. Please try again.')
@@ -855,8 +872,8 @@ export default function PortalApplicationPage() {
     )
   }
 
-  function isSectionComplete(key) {
-    const d = answers[key]
+  function isSectionComplete(key, overrideAnswers) {
+    const d = (overrideAnswers || answers)[key]
     if (!d) return false
     if (key === '_application') {
       return !!(d.street && d.city && d.state && d.zipCode && d.realId && d.validPassport && d.nearestNICU && d.willingToTravelNICU)
@@ -901,15 +918,6 @@ export default function PortalApplicationPage() {
   const completedCount = FORM_SECTIONS.filter(s => isSectionComplete(s.key)).length
   const allComplete = completedCount === FORM_SECTIONS.length
 
-  // Auto-show submit modal when all sections become complete
-  useEffect(() => {
-    if (allComplete && !isSubmitted && !hasShownSubmitPrompt) {
-      setHasShownSubmitPrompt(true)
-      // Small delay so the user sees the last save complete
-      setTimeout(() => setSubmitOpen(true), 500)
-    }
-  }, [allComplete, isSubmitted, hasShownSubmitPrompt])
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -936,11 +944,16 @@ export default function PortalApplicationPage() {
         </div>
       )}
 
-      <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} />
-      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted} />
-      <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} />
-      <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted} />
-      <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted} />
+      <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+        isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
+      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted}
+        isOpen={activeSection === '_confidential'} onToggle={() => setActiveSection(activeSection === '_confidential' ? null : '_confidential')} />
+      <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+        isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
+      <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
+        isOpen={activeSection === '_clinicHospital'} onToggle={() => setActiveSection(activeSection === '_clinicHospital' ? null : '_clinicHospital')} />
+      <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted}
+        isOpen={activeSection === '_socialMediaRelease'} onToggle={() => setActiveSection(activeSection === '_socialMediaRelease' ? null : '_socialMediaRelease')} />
 
       {/* Submit button — only when all complete and not yet submitted */}
       {!isSubmitted && allComplete && (
