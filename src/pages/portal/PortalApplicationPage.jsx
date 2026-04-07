@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask } from '@/lib/db'
+import { createCaseTask, getRecordTracking, setRecordTracking } from '@/lib/db'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -870,6 +870,29 @@ export default function PortalApplicationPage() {
         })
       } catch (err) {
         console.error('Auto-task for app review failed:', err)
+      }
+
+      // Update checklist: mark "Application Complete" with system log
+      try {
+        const tracking = await getRecordTracking(caseId) || {}
+        const current = tracking.app_complete || { history: [] }
+        const entry = {
+          status: 'complete',
+          date: new Date().toISOString().split('T')[0],
+          note: 'Submitted by Applicant',
+          by: 'System',
+        }
+        const updatedTracking = {
+          ...tracking,
+          app_complete: {
+            ...current,
+            status: 'complete',
+            history: [...(current.history || []), entry],
+          },
+        }
+        await setRecordTracking(caseId, updatedTracking)
+      } catch (err) {
+        console.error('Checklist update failed:', err)
       }
     } catch (err) {
       console.error('Submit failed:', err)

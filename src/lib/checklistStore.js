@@ -25,6 +25,7 @@ const DEFAULT_CHECKLISTS = {
   gc: {
     'pre-qualification': {
       steps: [
+        { id: 'app_complete', label: 'Application Complete', locked: true },
         { id: 'pap', label: 'PAP' },
         { id: 'ob_clearance', label: 'OB Clearance Letter' },
         { id: 'records_reviewed', label: 'Records Reviewed' },
