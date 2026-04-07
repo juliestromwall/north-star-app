@@ -1011,17 +1011,21 @@ export default function SurrogateDetailPage() {
                 onStatusLog={async ({ stepLabel, status, by }) => {
                   if (status === 'fax_received') {
                     try {
-                      await createCaseTask({
-                        case_id: surrogate.id,
+                      const task = await createCaseTask({
+                        case_id: Number(surrogate.id),
                         case_type: 'surrogate',
                         title: `Fax Received - Verify if ${stepLabel} are complete`,
-                        assigned_to: currentUser?.email,
+                        assigned_to: currentUser?.email || '',
                         due_date: new Date().toISOString().split('T')[0],
                         priority: 'normal',
                         status: 'open',
-                        created_by: currentUser?.email,
+                        created_by: currentUser?.email || '',
                       })
-                    } catch (err) { console.error('Auto-task failed:', err) }
+                      console.log('Auto-task created:', task)
+                    } catch (err) {
+                      console.error('Auto-task failed:', err)
+                      alert('Task creation failed: ' + (err.message || 'Unknown error'))
+                    }
                   }
                 }}
               />
