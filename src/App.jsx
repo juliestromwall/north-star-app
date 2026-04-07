@@ -41,6 +41,7 @@ import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
 import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
 import PortalDocumentsPage from './pages/portal/PortalDocumentsPage'
+import PortalApplicationPage from './pages/portal/PortalApplicationPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="/marketing" element={<MarketingDashboard />} />
         <Route path="/my-profile" element={<SurrogateProfilePage />} />
         <Route path="/my-documents" element={<PortalDocumentsPage />} />
+        <Route path="/my-application" element={<PortalApplicationPage />} />
         <Route path="/text-messages" element={<TextMessagesPage />} />
         <Route path="/babies-born" element={<BabiesBornPage />} />
         <Route path="/email" element={<EmailPage />} />

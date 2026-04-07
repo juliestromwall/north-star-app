@@ -176,6 +176,12 @@ const nav = [
         roles: [ROLES.SURROGATE, ROLES.INTENDED_PARENT],
       },
       {
+        label: 'My Application',
+        icon: ClipboardCheck,
+        path: '/my-application',
+        roles: [ROLES.SURROGATE],
+      },
+      {
         label: 'Documents',
         icon: FileText,
         path: '/my-documents',

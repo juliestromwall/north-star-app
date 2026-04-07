@@ -677,6 +677,38 @@ export default function SurrogateDetailPage() {
                   )}
                 </div>
               )}
+              {/* Release Application button */}
+              <div className="flex flex-col items-center gap-0.5">
+                {quizAnswers?._applicationAvailable ? (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="size-3" /> Application Released</span>
+                    {quizAnswers._applicationReleasedAt && (
+                      <span className="text-[10px] text-stone-400">{new Date(quizAnswers._applicationReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    )}
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7 px-2"
+                    onClick={async () => {
+                      try {
+                        const { supabase: sb } = await import('@/lib/supabase')
+                        if (!sb) return
+                        const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                        if (row) {
+                          const updated = {
+                            ...(row.answers || {}),
+                            _applicationAvailable: true,
+                            _applicationReleasedAt: new Date().toISOString(),
+                            _applicationReleasedBy: currentUser.name,
+                          }
+                          await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+                          setQuizAnswers(prev => ({ ...prev, _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString() }))
+                        }
+                      } catch (err) { console.error('Failed to release application:', err) }
+                    }}>
+                    <ClipboardList className="size-3" /> Release Application
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
