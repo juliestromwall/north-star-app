@@ -600,10 +600,26 @@ function findTextInDoc(doc, searchText) {
   function searchElements(elements) {
     for (const el of elements || []) {
       if (el.paragraph) {
-        for (const pe of el.paragraph.elements || []) {
+        // Concatenate all runs in the paragraph to find text that spans runs
+        const runs = el.paragraph.elements || []
+        let fullText = ''
+        const runOffsets = []
+        for (const pe of runs) {
           const text = pe.textRun?.content || ''
-          const idx = text.indexOf(searchText)
-          if (idx !== -1) return { startIndex: pe.startIndex + idx, endIndex: pe.startIndex + idx + searchText.length }
+          runOffsets.push({ start: pe.startIndex, textStart: fullText.length, textLen: text.length })
+          fullText += text
+        }
+        const idx = fullText.indexOf(searchText)
+        if (idx !== -1) {
+          // Find the absolute document position
+          let absStart = 0
+          for (const ro of runOffsets) {
+            if (idx >= ro.textStart && idx < ro.textStart + ro.textLen) {
+              absStart = ro.start + (idx - ro.textStart)
+              break
+            }
+          }
+          return { startIndex: absStart, endIndex: absStart + searchText.length }
         }
       }
       if (el.table) {
