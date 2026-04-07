@@ -25,6 +25,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     const entry = { status: logStatus, date: new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
     onUpdate(stepId, { status: logStatus, history: [...history, entry] })
     const step = steps.find(s => s.id === stepId)
+    console.log('[TrackingTable] submitLog:', { stepId, status: logStatus, hasOnStatusLog: !!onStatusLog })
     if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: logStatus, by: currentUserName })
     setLogStatus('')
     setLogNote('')
