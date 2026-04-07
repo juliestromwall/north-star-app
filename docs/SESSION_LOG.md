@@ -1,5 +1,57 @@
 # Session Log
 
+## 2026-04-06 (Continued #2 — E-Sign Fixes, Match Sheet Emails, Baby Details, Partner Prefill)
+
+**Worked on:** E-signature signed PDF fixes, match sheet email templates, baby sex/name tracking, partner auto-fill, document overflow, compose paragraph spacing
+
+**Changes made:**
+
+E-Signature Signed PDF Fixes:
+- Signed PDF now uses working draft copy (not original template) — preserves admin edits
+- matchCase: true on replaceAllText to prevent accidental content corruption
+- Initials use actual typed values (not computed from name which gave "13" for "10 36")
+- fieldValues saved on signer record for PDF generation
+- findTextInDoc now searches across multiple text runs (fixes split formatting)
+- Draft copy kept until signing complete, then auto-deleted
+- Added OptionalInitials/OptionalText placeholder types (not required)
+- Document overflow CSS: reset Google Docs margins, max-width constraints
+
+Match Sheet Email Templates:
+- Attorney: picker dialog (IP Attorney vs GC Attorney), prefills To email
+- Escrow: To=info@seedtrustescrow.com, CC=IPs, SeedTrust intro template
+- Clinic: To=3rd party coordinator, case manager intro template
+- Fixed openDraft ignoring body param for new messages
+- Compose editor paragraph spacing via ProseMirror CSS
+
+Baby Details:
+- Baby sex tracking (boy/girl/unknown) in heartbeat confirmation + edit dialog
+- Baby name field per baby
+- Pregnancy banner shows "👧 Emma, 👦 James" format
+
+Partner Auto-Fill:
+- E-sign pulls partner name/email from _confidential section
+- Partner only added as signer when document has {{*:Partner}} placeholders
+- Role dropdown auto-fills name/email for all roles (Surrogate, IP1, IP2, Partner)
+- Prefill from case page now scans document for required roles first
+
+Other:
+- Removed spouse/partner email from Application section (lives in Confidential only)
+- fetchSurrogatesFromIntake includes answers object + confidential partner data
+
+**Next steps:**
+- Fix {{Text:GC}} being replaced with signer name (should use actual typed value)
+- Initials as drawn/typed signature pad (not text input)
+- More email templates (waiting for ABC's attorney template)
+- Auto-attach GC psych report to clinic match sheet
+- Test signed PDF end-to-end with real data
+
+**Open questions:**
+- Should {{Text:GC}} contain custom text or default to signer name?
+- Initials pad: same size as signature or smaller?
+- Should Optional fields show differently on signed PDF vs just being blank?
+
+---
+
 ## 2026-04-06 (Continued — E-Sign Templates, Email Templates, Calendar Picker, Dashboard Fix)
 
 **Worked on:** E-sign template preservation, email templates with auto-welcome, calendar picker for multiple calendars, dashboard appointment fixes
