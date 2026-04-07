@@ -16,6 +16,7 @@ export const CHECKLIST_STEP_STATUSES = [
   { id: 'not_started', label: 'Not Started' },
   { id: 'requested', label: 'Requested' },
   { id: 'in_progress', label: 'In Progress' },
+  { id: 'reviewing', label: 'Reviewing' },
   { id: 'complete', label: 'Complete' },
   { id: 'na', label: 'Not Needed' },
 ]

@@ -877,7 +877,7 @@ export default function PortalApplicationPage() {
         const tracking = await getRecordTracking(caseId) || {}
         const current = tracking.app_complete || { history: [] }
         const entry = {
-          status: 'complete',
+          status: 'reviewing',
           date: new Date().toISOString().split('T')[0],
           note: 'Submitted by Applicant',
           by: 'System',
@@ -886,7 +886,7 @@ export default function PortalApplicationPage() {
           ...tracking,
           app_complete: {
             ...current,
-            status: 'complete',
+            status: 'reviewing',
             history: [...(current.history || []), entry],
           },
         }
