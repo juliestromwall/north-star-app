@@ -40,10 +40,11 @@ import InsurancePage from './pages/insurance/InsurancePage'
 import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
 import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
+import PortalDocumentsPage from './pages/portal/PortalDocumentsPage'
 
 const stubs = [
   { path: '/crm', title: 'CRM / Cases' },
-  { path: '/documents', title: 'Documents' },
+  { path: '/documents', title: 'Documents' }, // admin documents (stub)
   { path: '/messages', title: 'Messages' },
   { path: '/hr', title: 'HR Management' },
   { path: '/payroll', title: 'Payroll' },
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/intake" element={<IntakeSubmissionsPage />} />
         <Route path="/marketing" element={<MarketingDashboard />} />
         <Route path="/my-profile" element={<SurrogateProfilePage />} />
+        <Route path="/my-documents" element={<PortalDocumentsPage />} />
         <Route path="/text-messages" element={<TextMessagesPage />} />
         <Route path="/babies-born" element={<BabiesBornPage />} />
         <Route path="/email" element={<EmailPage />} />

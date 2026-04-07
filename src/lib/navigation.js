@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   CreditCard,
   Upload,
+  FileText,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -172,6 +173,12 @@ const nav = [
         label: 'My Profile',
         icon: Users,
         path: '/my-profile',
+        roles: [ROLES.SURROGATE, ROLES.INTENDED_PARENT],
+      },
+      {
+        label: 'Documents',
+        icon: FileText,
+        path: '/my-documents',
         roles: [ROLES.SURROGATE, ROLES.INTENDED_PARENT],
       },
       {
