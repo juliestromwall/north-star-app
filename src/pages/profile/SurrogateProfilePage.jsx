@@ -887,7 +887,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
       {/* ── Cover Photo (static) ── */}
       {heroPhoto ? (
-        <div className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
+        <div data-pdf="cover" className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
           <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
           {photos.length > 1 && (
@@ -904,7 +904,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
 
       {/* ── Thumbnail Strip (opens lightbox, hidden in print) ── */}
       {photos?.length > 1 && (
-        <div className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1 print:hidden">
+        <div data-pdf="thumbs" className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1 print:hidden">
           {photos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">

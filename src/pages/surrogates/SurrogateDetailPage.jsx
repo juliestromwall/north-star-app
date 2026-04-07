@@ -2813,6 +2813,17 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       if (!printWin) { alert('Please allow popups to save as PDF'); return }
       const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
         .map(el => el.outerHTML).join('\n')
+      // Build photo grid HTML for bottom of PDF
+      const photoGridHtml = photos.length > 1 ? `
+        <div class="pdf-photo-grid">
+          <div style="padding:12px 24px;border-bottom:1px solid #e5e7eb;background:linear-gradient(to right,rgba(40,54,147,0.05),transparent)">
+            <h3 style="font-size:13px;font-weight:700;color:#283693;text-transform:uppercase;letter-spacing:0.05em;margin:0">Photos</h3>
+          </div>
+          <div style="padding:16px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            ${photos.slice(0, 10).map(ph => `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden"><img src="${ph.url}" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
+          </div>
+        </div>` : ''
+
       const html = `<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
         <style>
           @page { size: letter; margin: 0; }
@@ -2827,6 +2838,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
           .print-bar button:hover { opacity: 0.9; }
           .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
+          /* PDF-specific: fix cover image and hide interactive elements */
+          [data-pdf="cover"] { height: auto !important; max-height: 320px !important; }
+          [data-pdf="cover"] img { object-fit: contain !important; height: auto !important; max-height: 320px !important; }
+          [data-pdf="cover"] > div { display: none !important; } /* hide gradient + badge */
+          [data-pdf="thumbs"] { display: none !important; }
         </style></head><body>
         <div class="print-bar">
           <div>
@@ -2836,9 +2852,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           <button onclick="window.print()">Save as PDF</button>
         </div>
         <div class="print-container">${previewRef.current.innerHTML}</div>
-        <script>
-          setTimeout(function() {}, 1000);
-        </script>
+        ${photoGridHtml}
+        <script>setTimeout(function() {}, 500);</script>
         </body></html>`
       printWin.document.write(html)
       printWin.document.close()
