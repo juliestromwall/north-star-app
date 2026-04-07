@@ -234,12 +234,15 @@ export default function EditDocumentPage() {
     const c = list.find(x => x.id === Number(caseId))
     if (!c) return
     const signers = []
+    const hasPartnerRole = requiredRoles.includes('Partner')
     if (caseType === 'gc') {
       signers.push({ role: 'Surrogate', name: c.name || '', email: c.email || '', status: 'pending' })
-      const confid = c.answers?._confidential || {}
-      const partnerName = confid.spouseFullName || c.partnerName || ''
-      const partnerEmail = confid.spouseEmail || c.partnerEmail || ''
-      if (partnerName) signers.push({ role: 'Partner', name: partnerName, email: partnerEmail, status: 'pending' })
+      if (hasPartnerRole) {
+        const confid = c.answers?._confidential || {}
+        const partnerName = confid.spouseFullName || c.partnerName || ''
+        const partnerEmail = confid.spouseEmail || c.partnerEmail || ''
+        if (partnerName) signers.push({ role: 'Partner', name: partnerName, email: partnerEmail, status: 'pending' })
+      }
     } else {
       signers.push({ role: 'Intended Parent 1', name: c.ip1Name || c.names || '', email: c.email || '', status: 'pending' })
       if (c.ip2Name) signers.push({ role: 'Intended Parent 2', name: c.ip2Name, email: c.ip2Email || '', status: 'pending' })

@@ -223,10 +223,17 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
   async function saveInsurance() {
     setSaving(true)
     try {
+      // If no insurance, auto-set to open enrollment for current year
+      const effectiveStatus = form.has_insurance === false || form.has_insurance === 'no'
+        ? 'open_enrollment'
+        : (form.insurance_status || 'active_policy')
+      const effectiveYear = form.has_insurance === false || form.has_insurance === 'no'
+        ? new Date().getFullYear()
+        : (form.insurance_status_year ? parseInt(form.insurance_status_year) : null)
       const updated = await upsertInsurance(caseId, caseType, {
         has_insurance: form.has_insurance,
-        insurance_status: form.insurance_status || 'active_policy',
-        insurance_status_year: form.insurance_status_year ? parseInt(form.insurance_status_year) : null,
+        insurance_status: effectiveStatus,
+        insurance_status_year: effectiveYear,
         company: form.company || null,
         website: form.website || null,
         portal_login: form.portal_login || null,
