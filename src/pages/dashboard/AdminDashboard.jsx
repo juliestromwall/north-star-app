@@ -160,17 +160,25 @@ export default function AdminDashboard() {
         subtitle="Here's what's happening at ABC Surrogacy today"
       />
 
-      {/* Admin Notes */}
+      {/* Admin Notes — announcement style */}
       {visibleNotes.map((note) => (
-        <div key={note.id} className="flex items-start gap-3 bg-abc-indigo/10 border border-abc-indigo/30 rounded-lg px-4 py-3">
-          <Megaphone className="size-5 text-abc-indigo shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            {note.title && <p className="font-semibold text-sm">{note.title}</p>}
-            <p className="text-sm text-muted-foreground">{note.message}</p>
+        <div key={note.id} className="relative rounded-2xl overflow-hidden border-2 border-[#ed148c]/20" style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' }}>
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />
+          <div className="flex items-start gap-3 px-5 py-4 pl-6">
+            <div className="flex items-center justify-center size-9 rounded-full bg-[#ed148c]/10 shrink-0 mt-0.5">
+              <Megaphone className="size-4 text-[#ed148c]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              {note.title && <p className="font-bold text-[#283693] text-base">{note.title}</p>}
+              <p className="text-sm text-stone-600 mt-0.5 leading-relaxed">{note.message}</p>
+              <p className="text-[10px] text-stone-400 mt-1.5">
+                {note.created_by || 'Admin'} · {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
+            <button onClick={() => dismissNote(note.id, currentUser?.id)} className="p-1.5 rounded-full hover:bg-stone-200/60 text-stone-400 hover:text-stone-600 transition-colors shrink-0">
+              <X className="size-4" />
+            </button>
           </div>
-          <button onClick={() => dismissNote(note.id, currentUser?.id)} className="p-1 rounded hover:bg-abc-indigo/10 text-muted-foreground hover:text-foreground transition-colors shrink-0">
-            <X className="size-4" />
-          </button>
         </div>
       ))}
 
