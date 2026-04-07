@@ -8,6 +8,8 @@ import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { updateIntakeSubmission } from '@/lib/db'
+import { useRole } from '@/context/RoleContext'
+import { ADMIN_ROLES } from '@/lib/constants'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -292,7 +294,7 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
 
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Application" description="Address, identification, and NICU information" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <EditHeader title="Personal Information" description="Address, identification, and NICU information" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
       <CardContent>
         {editing ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -318,6 +320,8 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
 // ── References Section ──────────────────────────────────
 function ReferencesSection({ surrogate, answers, onSaved, search }) {
   const stored = answers?._references || {}
+  const { currentRole } = useRole()
+  const isAdmin = ADMIN_ROLES.includes(currentRole)
   const REFS = [
     { key: 'ref1', title: 'Reference #1 — Family Member' },
     { key: 'ref2', title: 'Reference #2 — Friend' },
@@ -335,6 +339,7 @@ function ReferencesSection({ surrogate, answers, onSaved, search }) {
       const init = {}
       for (const r of REFS) {
         for (const f of refFields) init[`${r.key}_${f}`] = saved[`${r.key}_${f}`] || ''
+        init[`${r.key}_adminNotes`] = saved[`${r.key}_adminNotes`] || ''
       }
       return init
     }
@@ -360,6 +365,28 @@ function ReferencesSection({ surrogate, answers, onSaved, search }) {
                 )
               })}
             </div>
+            {/* Admin Notes — only visible to admin users */}
+            {isAdmin && (
+              <div className="mt-3">
+                {editing ? (
+                  <div className="space-y-1">
+                    <FieldLabel><span className="text-amber-600">Admin Notes</span> <span className="text-muted-foreground font-normal">(not visible to surrogate)</span></FieldLabel>
+                    <Textarea
+                      value={form[`${ref.key}_adminNotes`] || ''}
+                      onChange={e => set(`${ref.key}_adminNotes`, e.target.value)}
+                      placeholder="Notes from reference check..."
+                      rows={3}
+                      className="text-sm"
+                    />
+                  </div>
+                ) : stored[`${ref.key}_adminNotes`] ? (
+                  <div className="mt-2 p-3 rounded-lg bg-amber-50 border border-amber-100">
+                    <p className="text-[10px] font-semibold text-amber-600 uppercase mb-1">Admin Notes</p>
+                    <p className="text-sm text-stone-700 whitespace-pre-wrap">{stored[`${ref.key}_adminNotes`]}</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         ))}
       </CardContent>
@@ -679,8 +706,8 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
 
       <QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} />
       <ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
-      <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
       <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
+      <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
       <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
     </div>
