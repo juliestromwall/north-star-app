@@ -151,8 +151,11 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
   return (
     <div>
       <style>{`
-        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
+        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; max-width: 100%; overflow-wrap: break-word; word-break: break-word; overflow-x: hidden; }
         .signing-doc * { max-width: 100% !important; box-sizing: border-box; }
+        .signing-doc > div, .signing-doc > body, .signing-doc [style*="margin-left"], .signing-doc [style*="padding-left"] { margin-left: 0 !important; padding-left: 0 !important; margin-right: 0 !important; padding-right: 0 !important; }
+        .signing-doc table { table-layout: fixed; width: 100% !important; }
+        .signing-doc td { overflow-wrap: break-word; }
         .signing-doc p { margin: 0.4em 0; }
         .signing-doc ul { list-style: disc; padding-left: 1.5em; }
         .signing-doc ol { list-style: decimal; padding-left: 1.5em; }
