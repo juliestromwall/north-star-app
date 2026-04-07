@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { sendFax, listFaxes, retrieveFax, fileToBase64 } from '@/lib/fax'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments, uploadBase64ToCaseDocuments, getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments, uploadBase64ToCaseDocuments, getRecordTracking, setRecordTracking as setRecordTrackingDB, createCaseTask } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { useRole } from '@/context/RoleContext'
 import { isFaxRead, markFaxRead, markFaxUnread, markAllFaxesRead, getUnreadFaxCount, getFaxFiling, setFaxFiling, getAllFilings } from '@/lib/faxState'
@@ -488,6 +488,22 @@ function FaxPreviewDialog({ open, onOpenChange, fax, onFiled, inbox, onNavigate 
         const entry = { status: selectedStatus, date: new Date().toISOString().split('T')[0], note: recordNote || `Filed from fax: ${formatFaxNumber(fax?.CallerID || fax?.RemoteID)}`, by: currentUser?.name || 'Admin' }
         const updated = { ...recordTracking, [selectedRecord]: { ...current, status: selectedStatus, history: [...(current.history || []), entry] } }
         await setRecordTrackingDB(caseId, updated)
+        // Auto-create task when status is "Fax Received"
+        if (selectedStatus === 'fax_received') {
+          const recordLabel = recordTracking[selectedRecord]?.customLabel || selectedRecord.replace(/_\d+$/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+          try {
+            await createCaseTask({
+              case_id: Number(caseId),
+              case_type: caseType || 'surrogate',
+              title: `Fax Received - Verify if ${recordLabel} are complete`,
+              assigned_to: currentUser?.email || '',
+              due_date: new Date().toISOString().split('T')[0],
+              priority: 'normal',
+              status: 'open',
+              created_by: currentUser?.email || '',
+            })
+          } catch (err) { console.error('Auto-task from fax failed:', err) }
+        }
       }
       // Save filing info locally
       setFaxFiling(fax.FileName, { caseType, caseName: selectedCase._name, caseId: caseType === 'journey' ? selectedCase.id : selectedCase.id, documentName: fileName, filedAt: new Date().toISOString(), filedBy: currentUser?.name || 'Admin', logUpdated: !!(selectedRecord && selectedStatus) })
