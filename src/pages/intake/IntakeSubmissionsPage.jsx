@@ -28,12 +28,12 @@ function StatusBadge({ status }) {
 }
 
 function getApplicantName(sub) {
-  if (sub.type === 'gc') return `${sub.answers.firstName} ${sub.answers.lastName}`
-  return `${sub.answers.primaryFirstName} ${sub.answers.primaryLastName}`
+  if (sub.type === 'gc') return `${sub.answers?.firstName || ''} ${sub.answers?.lastName || ''}`.trim() || 'Unknown'
+  return `${sub.answers?.primaryFirstName || ''} ${sub.answers?.primaryLastName || ''}`.trim() || 'Unknown'
 }
 
 function getApplicantEmail(sub) {
-  return sub.answers.email
+  return sub.answers?.email || sub.answers?.primaryEmail || ''
 }
 
 function formatDate(iso) {
@@ -185,7 +185,7 @@ export default function IntakeSubmissionsPage() {
     if (q && !name.includes(q) && !email.includes(q)) return false
     if (typeFilter !== 'all' && s.type !== typeFilter) return false
     if (statusFilter !== 'all' && s.status !== statusFilter) return false
-    if (sourceFilter !== 'all' && s.tracking.resolvedSource !== sourceFilter) return false
+    if (sourceFilter !== 'all' && s.tracking?.resolvedSource !== sourceFilter) return false
     return true
   })
 
@@ -195,7 +195,7 @@ export default function IntakeSubmissionsPage() {
     updateIntakeSubmissionStatus(id, newStatus).catch(() => {})
   }
 
-  const sources = [...new Set(submissions.map(s => s.tracking.resolvedSource).filter(Boolean))]
+  const sources = [...new Set(submissions.map(s => s.tracking?.resolvedSource).filter(Boolean))]
 
   return (
     <div className="space-y-6">
@@ -281,14 +281,14 @@ export default function IntakeSubmissionsPage() {
                 </td>
                 <td className="py-4 px-4 text-stone-500">{formatDate(sub.submittedAt)}</td>
                 <td className="py-4 px-4">
-                  <span className="text-stone-600">{getSourceLabel(sub.tracking.resolvedSource)}</span>
-                  {sub.tracking.utm_campaign && (
-                    <p className="text-xs text-stone-400">{sub.tracking.utm_campaign}</p>
+                  <span className="text-stone-600">{getSourceLabel(sub.tracking?.resolvedSource)}</span>
+                  {sub.tracking?.utm_campaign && (
+                    <p className="text-xs text-stone-400">{sub.tracking?.utm_campaign}</p>
                   )}
                 </td>
                 <td className="py-4 px-4"><StatusBadge status={sub.status} /></td>
                 <td className="py-4 px-4">
-                  {sub.dqReasons.length > 0 ? (
+                  {sub.dqReasons?.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {sub.dqReasons.map(r => (
                         <span key={r} className="text-xs bg-red-50 text-red-600 border border-red-100 rounded px-1.5 py-0.5">
@@ -335,13 +335,13 @@ export default function IntakeSubmissionsPage() {
                   </span>
                 </DialogTitle>
                 <p className="text-sm text-stone-400">
-                  Submitted {formatDate(selected.submittedAt)} · via {getSourceLabel(selected.tracking.resolvedSource)}
-                  {selected.tracking.utm_campaign && ` · ${selected.tracking.utm_campaign}`}
+                  Submitted {formatDate(selected.submittedAt)} · via {getSourceLabel(selected.tracking?.resolvedSource)}
+                  {selected.tracking?.utm_campaign && ` · ${selected.tracking?.utm_campaign}`}
                 </p>
               </DialogHeader>
 
               {/* DQ reasons */}
-              {selected.dqReasons.length > 0 && (
+              {selected.dqReasons?.length > 0 && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-4">
                   <p className="text-sm font-semibold text-red-700 mb-2">Disqualification Reasons</p>
                   <ul className="space-y-1">

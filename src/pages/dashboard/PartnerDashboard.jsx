@@ -103,6 +103,7 @@ export default function PartnerDashboard() {
           </CardContent>
         </Card>
 
+        {/* Appointments section temporarily disabled
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -114,6 +115,7 @@ export default function PartnerDashboard() {
             <p className="text-sm text-muted-foreground mt-1">36-week OB checkup</p>
           </CardContent>
         </Card>
+        */}
 
         <Card>
           <CardHeader>
