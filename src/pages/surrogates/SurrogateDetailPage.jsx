@@ -292,6 +292,7 @@ export default function SurrogateDetailPage() {
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [portraitUrl, setPortraitUrl] = useState(null)
   const [insuranceStatus, setInsuranceStatus] = useState(null) // null=loading, {has_insurance, company, status}
+  const [insuranceOpen, setInsuranceOpen] = useState(false)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
@@ -504,21 +505,21 @@ export default function SurrogateDetailPage() {
                   const isNotFriendly = ins.insurance_status === 'complete_not_friendly' || (!ins.has_insurance && ins.id && ins.insurance_status !== 'open_enrollment')
                   if (isFriendly) {
                     return (
-                      <button onClick={() => { const el = document.querySelector('button[value="insurance"]'); if (el) { el.click(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }) } }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
+                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
                         <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Insured'}
                       </button>
                     )
                   }
                   if (isApplying) {
                     return (
-                      <button onClick={() => { const el = document.querySelector('button[value="insurance"]'); if (el) { el.click(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }) } }} className="flex items-center gap-1 text-amber-500 hover:underline cursor-pointer">
+                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-amber-500 hover:underline cursor-pointer">
                         <InsuranceCardIcon size={14} color="currentColor" /> Applying
                       </button>
                     )
                   }
                   if (isNotFriendly) {
                     return (
-                      <button onClick={() => { const el = document.querySelector('button[value="insurance"]'); if (el) { el.click(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }) } }} className="flex items-center gap-1 text-red-500 hover:underline cursor-pointer">
+                      <button onClick={() => { setInsuranceOpen(true) }} className="flex items-center gap-1 text-red-500 hover:underline cursor-pointer">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5"/></svg>
                         Not Surrogacy Friendly
                       </button>
@@ -1170,6 +1171,16 @@ export default function SurrogateDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Insurance Dialog */}
+      <Dialog open={insuranceOpen} onOpenChange={setInsuranceOpen}>
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {surrogate.name}</DialogTitle>
+          </DialogHeader>
+          <InsuranceTab caseId={surrogate.id} caseType="surrogate" surrogateNameForDisplay={surrogate.name} />
+        </DialogContent>
+      </Dialog>
 
       {/* SMS Dialog */}
       <Dialog open={smsOpen} onOpenChange={setSmsOpen}>
