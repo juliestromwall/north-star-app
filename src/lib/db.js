@@ -243,8 +243,9 @@ export async function fetchSurrogatesFromIntake() {
       previousJourneys: 0,
       assignedTo: row.assigned_to || null,
       referralPartner: row.referral_partner || null,
-      partnerName: a.spouseFullName || a.partnerName || '',
-      partnerEmail: a.spouseEmail || '',
+      partnerName: a._confidential?.spouseFullName || a.spouseFullName || a.partnerName || '',
+      partnerEmail: a._confidential?.spouseEmail || a.spouseEmail || '',
+      answers: a,
       screening: { medical: 'not_started', psychological: 'not_started', background: 'not_started', homeStudy: 'not_started' },
     }
   })
