@@ -338,7 +338,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
               Insurance {isCancelled && <span className="text-xs font-normal text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Cancelled</span>}
             </CardTitle>
             <div className="flex gap-1.5">
-              {!isCancelled && !editing && (
+              {!editing && (
                 <>
                   <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={startEdit}>Edit</Button>
                   <Button variant="outline" size="sm" className="text-xs h-7 gap-1 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setCancelOpen(true)}>
@@ -355,7 +355,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
           ) : !insurance.has_insurance ? (
             <div className="py-4 text-center">
               <p className="text-sm text-stone-500">No insurance</p>
-              {!isCancelled && <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={startEdit}>Update</Button>}
+              <Button variant="outline" size="sm" className="mt-2 text-xs" onClick={startEdit}>Update</Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
@@ -445,7 +445,7 @@ export default function InsuranceTab({ caseId, caseType = 'surrogate', surrogate
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Payment History</CardTitle>
-              {!isCancelled && (
+              {(
                 <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setPayOpen(true)}>
                   <Plus className="size-3" /> Log Payment
                 </Button>

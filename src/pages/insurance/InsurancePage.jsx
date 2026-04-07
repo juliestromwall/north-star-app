@@ -276,9 +276,11 @@ function InsuranceTable({ surrogates, insuranceMap, paymentsMap, currentMonth, o
             <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[180px] border-r border-stone-200 dark:border-[#2a2a38]">
               Surrogate
             </th>
-            <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-[180px] bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[80px] border-r border-stone-200 dark:border-[#2a2a38]">
-              Pay Status
-            </th>
+            {filterStatus === 'active_policy' && (
+              <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-[180px] bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[80px] border-r border-stone-200 dark:border-[#2a2a38]">
+                Pay Status
+              </th>
+            )}
             {COLUMNS.map((col, i) => (
               <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
                 {col.label}
@@ -300,15 +302,17 @@ function InsuranceTable({ surrogates, insuranceMap, paymentsMap, currentMonth, o
                     {getAdminName(s.assignedTo)}
                   </div>
                 </td>
-                <td className="px-3 py-3.5 text-center sticky left-[180px] bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
-                  {(() => {
-                    const paidMonths = paymentsMap[ins.id]
-                    const isPaid = paidMonths?.has(currentMonth)
-                    return isPaid
-                      ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">PAID</span>
-                      : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-600">UNPAID</span>
-                  })()}
-                </td>
+                {filterStatus === 'active_policy' && (
+                  <td className="px-3 py-3.5 text-center sticky left-[180px] bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
+                    {(() => {
+                      const paidMonths = paymentsMap[ins.id]
+                      const isPaid = paidMonths?.has(currentMonth)
+                      return isPaid
+                        ? <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700">PAID</span>
+                        : <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-600">UNPAID</span>
+                    })()}
+                  </td>
+                )}
                 {COLUMNS.map((col, i) => {
                   const value = col.key === 'state' ? state : ins[col.key] ?? null
                   const borderCls = i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''

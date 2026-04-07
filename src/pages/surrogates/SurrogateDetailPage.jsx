@@ -497,11 +497,27 @@ export default function SurrogateDetailPage() {
                   <Calendar className="size-3.5" />
                   Submitted {new Date(surrogate.submittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </span>
-                {insuranceStatus && insuranceStatus.has_insurance && insuranceStatus.status === 'active' && (
-                  <button onClick={() => { const el = document.querySelector('[data-tab="insurance"]'); if (el) el.click() }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
-                    <InsuranceCardIcon size={14} color="currentColor" /> {insuranceStatus.company || 'Insured'}
-                  </button>
-                )}
+                {insuranceStatus && (() => {
+                  const ins = insuranceStatus
+                  const isFriendly = ins.has_insurance && ins.status === 'active'
+                  const isNotFriendly = ins.insurance_status === 'complete_not_friendly' || ins.insurance_status === 'open_enrollment' || (!ins.has_insurance && ins.id)
+                  if (isFriendly) {
+                    return (
+                      <button onClick={() => { const el = document.querySelector('[data-tab="insurance"]'); if (el) el.click() }} className="flex items-center gap-1 text-emerald-600 hover:underline cursor-pointer">
+                        <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Insured'}
+                      </button>
+                    )
+                  }
+                  if (isNotFriendly) {
+                    return (
+                      <button onClick={() => { const el = document.querySelector('[data-tab="insurance"]'); if (el) el.click() }} className="flex items-center gap-1 text-red-500 hover:underline cursor-pointer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5"/></svg>
+                        {ins.insurance_status === 'complete_not_friendly' ? 'Not Surrogacy Friendly' : 'Needs Insurance'}
+                      </button>
+                    )
+                  }
+                  return null
+                })()}
               </div>
               {/* Assignment */}
               <div className="flex items-center gap-1.5 mt-2">
