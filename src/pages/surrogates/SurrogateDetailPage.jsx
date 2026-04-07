@@ -425,7 +425,8 @@ export default function SurrogateDetailPage() {
           listProfilePhotos(`${uid}/headshot`).catch(() => []),
           listProfilePhotos(`${uid}/portrait`).catch(() => []),
         ]).then(([gallery, headshots, portraits]) => {
-          const all = [...portraits, ...headshots, ...gallery]
+          // Order: headshot (cover) first, then portrait, then gallery
+          const all = [...headshots, ...portraits, ...gallery]
           setPhotos(all)
         })
         getPortraitPhotoUrl(uid).then(url => {

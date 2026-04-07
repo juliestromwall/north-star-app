@@ -57,7 +57,8 @@ export default function SharedProfilePage() {
                 listProfilePhotos(`${uid}/headshot`).catch(() => []),
                 listProfilePhotos(`${uid}/portrait`).catch(() => []),
               ])
-              const allPhotos = [...ps[2], ...ps[1], ...ps[0]]
+              // Order: headshot (cover) first, then portrait, then gallery
+              const allPhotos = [...ps[1], ...ps[2], ...ps[0]]
               setPhotos(allPhotos)
             }
           }
