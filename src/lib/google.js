@@ -752,9 +752,18 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
 
       const requests = []
       for (const pos of sigPositions) {
-        const { signer, startIndex, endIndex } = pos
-        const isDrawn = signer.signatureType === 'drawn' && sigImageUrls[signer.email]
-        const name = signer.signatureName || signer.name || ''
+        const { signer, startIndex, endIndex, placeholder } = pos
+        const isInitials = placeholder?.toLowerCase().includes('initials')
+        const isDrawn = signer.signatureType === 'drawn' && sigImageUrls[signer.email] && !isInitials
+        const pv = signer.placeholderValues || {}
+
+        // For initials, use the typed value; for signatures, use the signature name
+        let insertText
+        if (isInitials) {
+          insertText = pv[placeholder] || (signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : '')
+        } else {
+          insertText = signer.signatureName || signer.name || ''
+        }
 
         // Delete the placeholder text
         requests.push({ deleteContentRange: { range: { startIndex, endIndex } } })
@@ -772,15 +781,17 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
             },
           })
         } else {
-          // Insert typed name with a handwriting-style font
-          requests.push({ insertText: { location: { index: startIndex }, text: name } })
-          if (name.length > 0) {
+          // Insert typed text with a handwriting-style font
+          const text = insertText
+          const fontSize = isInitials ? 11 : 14
+          requests.push({ insertText: { location: { index: startIndex }, text } })
+          if (text.length > 0) {
             requests.push({
               updateTextStyle: {
-                range: { startIndex, endIndex: startIndex + name.length },
+                range: { startIndex, endIndex: startIndex + text.length },
                 textStyle: {
                   weightedFontFamily: { fontFamily: 'Dancing Script' },
-                  fontSize: { magnitude: 14, unit: 'PT' },
+                  fontSize: { magnitude: fontSize, unit: 'PT' },
                   foregroundColor: { color: { rgbColor: { red: 0.05, green: 0.1, blue: 0.35 } } },
                 },
                 fields: 'weightedFontFamily,fontSize,foregroundColor',
