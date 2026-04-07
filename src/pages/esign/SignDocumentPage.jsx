@@ -386,7 +386,8 @@ export default function SignDocumentPage() {
       if (updated.status === 'completed' && updated.case_id && supabase) {
         try {
           const meta = JSON.parse(updated.document_hash || '{}')
-          const templateDocId = meta.templateDocId
+          // Use the working copy (edited draft) if available, otherwise fall back to original template
+          const templateDocId = meta.workingDocId || meta.templateDocId
           const adminUserId = meta.adminUserId
 
           if (templateDocId && adminUserId) {

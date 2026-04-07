@@ -576,7 +576,7 @@ export async function replaceTextInDoc(userId, docId, replacements) {
   const token = await getAccessToken(userId)
   const requests = Object.entries(replacements).map(([find, replace]) => ({
     replaceAllText: {
-      containsText: { text: find, matchCase: false },
+      containsText: { text: find, matchCase: true },
       replaceText: replace || '',
     },
   }))
@@ -649,12 +649,21 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
     const nonSigReplacements = {}
     const signatureInfo = [] // { placeholders, signer }
 
+    // Build a lookup of field values by placeholder
+    const fieldValuesByPlaceholder = {}
+    if (fieldValues) {
+      for (const [key, val] of Object.entries(fieldValues)) {
+        if (val !== undefined && val !== null) fieldValuesByPlaceholder[key] = val
+      }
+    }
+
+    let fieldIdx = 0
     for (const signer of signers) {
       const roleCode = getSignerRoleCode(signer.role)
       const signDate = signer.signedAt
         ? new Date(signer.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
         : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      const initials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
+      const computedInitials = signer.name ? signer.name.split(' ').map(w => w[0]).join('').toUpperCase() : ''
 
       // Role code variants including common typos
       const variants = [roleCode, roleCode.toLowerCase()]
@@ -662,11 +671,17 @@ export async function generateSignedPdf(userId, templateDocId, fieldValues, sign
 
       const sigPlaceholders = []
       for (const rv of variants) {
+        // Use actual field values typed by signer if available
+        const initialsKey = `field_${fieldIdx}`
+        const typedInitials = fieldValuesByPlaceholder[initialsKey]
+
         nonSigReplacements[`{{Name:${rv}}}`] = signer.name || ''
         nonSigReplacements[`{{Email:${rv}}}`] = signer.email || ''
         nonSigReplacements[`{{Date:${rv}}}`] = signDate
-        nonSigReplacements[`{{Initials:${rv}}}`] = initials
+        nonSigReplacements[`{{Initials:${rv}}}`] = computedInitials
+        nonSigReplacements[`{{OptionalInitials:${rv}}}`] = computedInitials
         nonSigReplacements[`{{Text:${rv}}}`] = signer.name || ''
+        nonSigReplacements[`{{OptionalText:${rv}}}`] = ''
         nonSigReplacements[`{{Checkbox:${rv}}}`] = '☑'
         sigPlaceholders.push(`{{Signature:${rv}}}`)
       }
