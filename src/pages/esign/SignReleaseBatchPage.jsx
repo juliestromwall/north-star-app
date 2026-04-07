@@ -190,34 +190,35 @@ export default function SignReleaseBatchPage() {
             const signedPath = `documents/signed_release_${doc.id}_${Date.now()}.html`
             await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
 
-            // Try PDF generation via html2pdf
+            // Generate PDF via html2pdf — element must be fully visible
             try {
               const html2pdf = (await import('html2pdf.js')).default
+
+              // Create a full-page overlay so user doesn't see the render
+              const overlay = document.createElement('div')
+              overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
+              overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Generating PDFs...</p>'
+              document.body.appendChild(overlay)
+
               const container = document.createElement('div')
-              container.innerHTML = `<div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #1a1a2e; font-size: 14px; line-height: 1.6;">${filledHtml}</div>`
-              // Must be visible for html2canvas to render — use opacity trick
-              container.style.position = 'fixed'
-              container.style.top = '0'
-              container.style.left = '0'
-              container.style.width = '800px'
-              container.style.zIndex = '-1'
-              container.style.opacity = '0.01'
-              container.style.pointerEvents = 'none'
-              container.style.background = 'white'
+              container.style.cssText = 'position:fixed;top:0;left:0;width:800px;background:white;z-index:99998;padding:20px;'
+              container.innerHTML = `<div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; font-size: 14px; line-height: 1.6;">${filledHtml}</div>`
               document.body.appendChild(container)
 
-              // Wait for images and layout to render
-              await new Promise(r => setTimeout(r, 500))
+              // Wait for render
+              await new Promise(r => setTimeout(r, 800))
 
               const pdfBlob = await html2pdf().set({
-                margin: [0.4, 0.4, 0.4, 0.4],
+                margin: [0.4, 0.5, 0.4, 0.5],
                 filename: `${doc.title}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false, windowWidth: 800 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all'] },
               }).from(container).outputPdf('blob')
 
               document.body.removeChild(container)
+              document.body.removeChild(overlay)
 
               const pdfPath = `documents/signed_release_${doc.id}_${Date.now()}.pdf`
               await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
