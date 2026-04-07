@@ -221,12 +221,15 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const { status, lastEntry, history, activeRecords, isRecordType, doneCount, totalCount } = getCellData(s.id, row.id, row.label)
                       const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
                       const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
-                      const isComplete = status === 'complete' || status === 'na'
+                      const isComplete = status === 'complete'
+                      const isNotNeeded = status === 'na' || status === 'deactivated'
                       return (
-                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : isNotNeeded ? 'bg-stone-50/60' : ''}`}>
                           <div className="flex items-center gap-1.5">
                             {isComplete ? (
                               <span className="text-xs text-green-600 font-medium">Completed {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+                            ) : isNotNeeded ? (
+                              <span className="text-xs text-stone-400 italic">Not Needed</span>
                             ) : status === 'not_started' ? (
                               <span className="text-xs text-stone-300">Not Started</span>
                             ) : (
