@@ -1906,17 +1906,23 @@ export default function JourneyDetailPage() {
               <span className="text-stone-500">Lost Wages: <button onClick={() => updateField('lostWages', jd.lostWages === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-800 hover:underline cursor-pointer">{jd.lostWages === 'yes' ? 'Yes' : jd.lostWages === 'no' ? 'No' : '—'}</button></span>
               <span className="text-stone-500">Pumping: <button onClick={() => updateField('pumping', jd.pumping === 'yes' ? 'no' : 'yes')} className="font-bold text-stone-800 hover:underline cursor-pointer">{jd.pumping === 'yes' ? 'Yes' : jd.pumping === 'no' ? 'No' : '—'}</button></span>
               {gcInsurance && (() => {
-                const isFriendly = gcInsurance.has_insurance && gcInsurance.status === 'active'
-                const isNotFriendly = gcInsurance.insurance_status === 'complete_not_friendly' || gcInsurance.insurance_status === 'open_enrollment' || (!gcInsurance.has_insurance && gcInsurance.id)
+                const isFriendly = gcInsurance.has_insurance && gcInsurance.status === 'active' && gcInsurance.insurance_status !== 'open_enrollment' && gcInsurance.insurance_status !== 'complete_not_friendly'
+                const isApplying = gcInsurance.insurance_status === 'open_enrollment'
+                const isNotFriendly = gcInsurance.insurance_status === 'complete_not_friendly' || (!gcInsurance.has_insurance && gcInsurance.id && gcInsurance.insurance_status !== 'open_enrollment')
                 if (isFriendly) return (
                   <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer font-medium" title="View insurance">
                     <InsuranceCardIcon size={15} color="currentColor" /> {gcInsurance.company || 'Insured'}
                   </button>
                 )
+                if (isApplying) return (
+                  <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1.5 text-amber-500 hover:text-amber-600 cursor-pointer font-medium" title="Applying for insurance">
+                    <InsuranceCardIcon size={15} color="currentColor" /> Applying
+                  </button>
+                )
                 if (isNotFriendly) return (
                   <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1.5 text-red-500 hover:text-red-600 cursor-pointer font-medium" title="Insurance issue">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="2.5"/></svg>
-                    {gcInsurance.insurance_status === 'complete_not_friendly' ? 'Not Surrogacy Friendly' : 'Needs Insurance'}
+                    Not Surrogacy Friendly
                   </button>
                 )
                 return null
