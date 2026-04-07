@@ -895,7 +895,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         await supabase.storage.from('esign-documents').upload(htmlPath, htmlBlob, { contentType: 'text/html', cacheControl: '3600' })
 
         const typeLabels = { ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }
-        const title = `Medical Records Release — ${typeLabels[provider.type] || provider.type} — ${provider.clinicName}`
+        const title = `Medical Records Release - ${typeLabels[provider.type] || provider.type} - ${provider.clinicName}`
 
         // Create e-sign document
         const doc = await createDocument({
@@ -925,32 +925,45 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         // Send for signature
         await sendDocument(doc.id)
 
-        // Email the signer with a secure signing link
         const signUrl = `${window.location.origin}/e-signature/sign/${doc.signing_token}`
+        created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token, signUrl })
+      }
+
+      // Send ONE email with all signing links
+      if (created.length > 0 && patient.email) {
         try {
           const { sendEmail } = await import('@/lib/google')
+          const docListHtml = created.map((d, i) => `
+            <div style="background: #f8f9fc; border-radius: 8px; padding: 14px 16px; margin: 8px 0; border-left: 3px solid #283693;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <p style="font-weight: 600; margin: 0; font-size: 14px; color: #1a1a2e;">${i + 1}. ${d.clinicName}</p>
+                  <p style="color: #666; font-size: 12px; margin: 2px 0 0;">
+                    ${{ ob: 'Prenatal/OB Records', hospital: 'Labor & Delivery Records', mfm: 'MFM Records', ivf: 'IVF/Fertility Records' }[d.type] || 'Medical Records'}
+                  </p>
+                </div>
+                <a href="${d.signUrl}" style="display: inline-block; background: #283693; color: white; padding: 8px 20px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px; white-space: nowrap;">
+                  Sign
+                </a>
+              </div>
+            </div>
+          `).join('')
+
           await sendEmail(currentUser?.id, {
             to: patient.email,
-            subject: `Please sign: ${title}`,
+            subject: `Medical Records Release Forms Ready to Sign (${created.length})`,
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
                   <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 180px;" />
                 </div>
-                <h2 style="color: #283693; margin-bottom: 8px;">Medical Records Release — Ready for Signature</h2>
+                <h2 style="color: #283693; margin-bottom: 8px;">Medical Records Release Forms</h2>
                 <p>Hi ${patient.name || ''},</p>
-                <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a medical records release form to sign:</p>
-                <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                  <p style="font-weight: 600; margin: 0;">${title}</p>
-                  <p style="color: #666; font-size: 13px; margin: 4px 0 0;">Provider: ${provider.clinicName}</p>
-                </div>
-                <div style="text-align: center; margin: 24px 0;">
-                  <a href="${signUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-                    Review & Sign
-                  </a>
-                </div>
-                <p style="color: #888; font-size: 12px; margin-top: 24px;">
-                  This is a legally binding electronic signature request from Abundant Beginnings Company, LLC.
+                <p>${currentUser?.name || 'Your case manager'} at <strong>Abundant Beginnings Co.</strong> has prepared ${created.length} medical records release form${created.length === 1 ? '' : 's'} for you to review and sign. Please click each button below to sign:</p>
+                ${docListHtml}
+                <p style="color: #666; font-size: 13px; margin-top: 20px;">Each form authorizes a specific provider to release your medical records to ABC Surrogacy for your surrogacy journey.</p>
+                <p style="color: #888; font-size: 12px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 16px;">
+                  These are legally binding electronic signature requests from Abundant Beginnings Company, LLC.
                   If you have questions, please contact us at info@abcsurrogacy.com.
                 </p>
               </div>
@@ -959,8 +972,6 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         } catch (emailErr) {
           console.error('Failed to email signer:', emailErr)
         }
-
-        created.push({ title, clinicName: provider.clinicName, type: provider.type, signingToken: doc.signing_token })
       }
 
       setResult({ success: true, count: created.length, documents: created })

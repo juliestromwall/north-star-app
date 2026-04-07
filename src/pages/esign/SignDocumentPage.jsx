@@ -502,17 +502,19 @@ export default function SignDocumentPage() {
               deleteGoogleDriveFile(adminUserId, meta.workingDocId).catch(() => {})
             }
           } else {
-            // Fallback: file the sent PDF
+            // Fallback: file the sent PDF or HTML
             const pdfPath = meta.pdfPath || updated.file_path
-            if (pdfPath) {
-              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+            const htmlPath = meta.htmlPath
+            const filePath = pdfPath || htmlPath
+            if (filePath) {
+              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(filePath)
               if (urlData?.publicUrl) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: updated.case_id,
                   category: 'e-signature',
-                  file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
-                  file_type: 'application/pdf',
-                  storage_path: pdfPath,
+                  file_name: `[Signed] ${updated.title || 'Document'}${pdfPath ? '.pdf' : '.html'}`,
+                  file_type: pdfPath ? 'application/pdf' : 'text/html',
+                  storage_path: filePath,
                   public_url: urlData.publicUrl,
                   uploaded_by: 'System (E-Sign)',
                 })
@@ -524,16 +526,16 @@ export default function SignDocumentPage() {
           // Last resort fallback
           try {
             const meta = JSON.parse(updated.document_hash || '{}')
-            const pdfPath = meta.pdfPath || updated.file_path
-            if (pdfPath) {
-              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+            const filePath = meta.pdfPath || updated.file_path || meta.htmlPath
+            if (filePath) {
+              const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(filePath)
               if (urlData?.publicUrl) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: updated.case_id,
                   category: 'e-signature',
-                  file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
-                  file_type: 'application/pdf',
-                  storage_path: pdfPath,
+                  file_name: `[Signed] ${updated.title || 'Document'}`,
+                  file_type: filePath.endsWith('.pdf') ? 'application/pdf' : 'text/html',
+                  storage_path: filePath,
                   public_url: urlData.publicUrl,
                   uploaded_by: 'System (E-Sign)',
                 })
