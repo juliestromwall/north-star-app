@@ -113,7 +113,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly }) {
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
-        <CardContent className="space-y-4">
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
@@ -184,7 +184,7 @@ function ReferencesForm({ data, onSave, saving, readOnly }) {
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
-        <CardContent className="space-y-6">
+        <CardContent className={`space-y-6 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
           {REFS.map(ref => (
             <div key={ref.key}>
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">{ref.title}</p>
@@ -333,7 +333,7 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly }) {
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
-        <CardContent className="space-y-4">
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {FIELDS.map(f => {
               if (SPOUSE_KEYS.includes(f.key) && !hasSpouse) return null
@@ -572,7 +572,7 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly }
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
-        <CardContent className="space-y-6">
+        <CardContent className={`space-y-6 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
           {/* Current OB */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Current OB/GYN</p>
@@ -737,7 +737,7 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly }
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
-        <CardContent className="space-y-4">
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
           <div className="bg-stone-50 rounded-lg p-4 text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">
             I hereby grant permission to the rights of my image, likeness and sound of my voice as recorded on audio without payment or any other consideration. I understand that my image may be edited, copied, exhibited, published or distributed and waive the right to inspect or approve the finished product wherein my likeness appears. Additionally, I waive any right to the royalties or other compensation arising or related to the use of my image.{'\n\n'}By signing this release I understand this permission signifies that photographic or video recordings of me may be electronically displayed via the internet.{'\n\n'}There is no time limit of the validity of this release nor is there any geographic limitation on where these materials may be distributed.
           </div>
@@ -769,6 +769,7 @@ export default function PortalApplicationPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [submitOpen, setSubmitOpen] = useState(false)
+  const [hasShownSubmitPrompt, setHasShownSubmitPrompt] = useState(false)
   const isSubmitted = answers?._applicationSubmitted
 
   useEffect(() => {
@@ -899,6 +900,15 @@ export default function PortalApplicationPage() {
 
   const completedCount = FORM_SECTIONS.filter(s => isSectionComplete(s.key)).length
   const allComplete = completedCount === FORM_SECTIONS.length
+
+  // Auto-show submit modal when all sections become complete
+  useEffect(() => {
+    if (allComplete && !isSubmitted && !hasShownSubmitPrompt) {
+      setHasShownSubmitPrompt(true)
+      // Small delay so the user sees the last save complete
+      setTimeout(() => setSubmitOpen(true), 500)
+    }
+  }, [allComplete, isSubmitted, hasShownSubmitPrompt])
 
   return (
     <div className="space-y-6">
