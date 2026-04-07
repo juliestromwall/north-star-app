@@ -171,7 +171,7 @@ export default function SharedProfilePage() {
             <div className="flex items-center justify-center py-4 border-b bg-white">
               <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 w-auto" />
             </div>
-            <ProfilePreview profile={profileData} photos={photos} hideFooter />
+            <ProfilePreview profile={profileData} photos={photos.filter(p => !(profileData?._hiddenPhotos || []).includes(p.path))} hideFooter />
           </div>
         ) : caseData ? (
           <Card className="rounded-2xl">

@@ -5,7 +5,7 @@ import {
   Ruler, Scale, CalendarDays, MapPin, Upload,
   Loader2, X, RotateCw, Crop as CropIcon, Eye,
   Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon,
-  DollarSign
+  DollarSign, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from '@/components/ui/card'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -865,7 +865,8 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   const firstName = about.firstName || 'Your Name'
   const heightStr = about.heightFt ? `${about.heightFt}'${about.heightIn || 0}"` : ''
   const bmi = about.bmi || (about.heightFt && about.weight ? ((parseFloat(about.weight) / ((parseInt(about.heightFt)*12 + parseInt(about.heightIn||0)) ** 2)) * 703).toFixed(1) : '')
-  const heroPhoto = photos?.[0]
+  const [carouselIdx, setCarouselIdx] = useState(0)
+  const heroPhoto = photos?.[carouselIdx] || photos?.[0]
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
 
@@ -882,11 +883,35 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   return (
     <HiddenFieldsContext.Provider value={hiddenFields}>
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
-      {/* ── Cover Photo ── */}
-      {heroPhoto ? (
-        <div className="w-full h-72 sm:h-96 overflow-hidden relative">
-          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover" />
+      {/* ── Photo Carousel ── */}
+      {photos?.length > 0 ? (
+        <div className="relative w-full h-72 sm:h-96 overflow-hidden group">
+          <img src={(photos[carouselIdx] || photos[0]).url} alt="" className="w-full h-full object-cover transition-opacity duration-300" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+          {/* Nav arrows */}
+          {photos.length > 1 && (
+            <>
+              <button onClick={() => setCarouselIdx(i => (i - 1 + photos.length) % photos.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 text-gray-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={() => setCarouselIdx(i => (i + 1) % photos.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 text-gray-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              {/* Dots */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {photos.map((_, i) => (
+                  <button key={i} onClick={() => setCarouselIdx(i)}
+                    className={`w-2 h-2 rounded-full transition-all ${i === carouselIdx ? 'bg-white w-5' : 'bg-white/50 hover:bg-white/80'}`} />
+                ))}
+              </div>
+              {/* Counter */}
+              <div className="absolute top-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+                {carouselIdx + 1} / {photos.length}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="w-full h-48 bg-gradient-to-br from-[#ed148c]/20 via-[#283693]/10 to-[#ed148c]/10 flex items-center justify-center">
@@ -894,19 +919,15 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         </div>
       )}
 
-      {/* ── Photo Gallery ── */}
-      {photos.length > 1 && (
-        <div className="flex gap-3 px-8 -mt-8 relative z-10">
-          {photos.slice(1, 6).map(ph => (
-            <div key={ph.path} className="w-16 h-16 rounded-xl overflow-hidden border-3 border-white shadow-md shrink-0">
+      {/* ── Thumbnail Strip ── */}
+      {photos?.length > 1 && (
+        <div className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1">
+          {photos.map((ph, i) => (
+            <button key={ph.path} onClick={() => setCarouselIdx(i)}
+              className={`w-14 h-14 rounded-lg overflow-hidden border-2 shadow-md shrink-0 transition-all ${i === carouselIdx ? 'border-white ring-2 ring-[#283693] scale-105' : 'border-white/80 opacity-70 hover:opacity-100'}`}>
               <img src={ph.url} alt="" className="w-full h-full object-cover" />
-            </div>
+            </button>
           ))}
-          {photos.length > 6 && (
-            <div className="w-16 h-16 rounded-xl bg-white/90 border-3 border-white shadow-md flex items-center justify-center text-sm font-bold text-[#283693]">
-              +{photos.length - 6}
-            </div>
-          )}
         </div>
       )}
 

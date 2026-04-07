@@ -32,10 +32,10 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto } from '@/lib/db'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer, RotateCw, ZoomIn, Crop, ChevronLeft, ChevronRight } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
@@ -2531,10 +2531,18 @@ function toBooleanDisplay(value) {
 }
 
 function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate }) {
-  const [lightboxUrl, setLightboxUrl] = useState(null)
+  const [editingPhoto, setEditingPhoto] = useState(null) // photo object being edited
+  const [rotation, setRotation] = useState(0)
+  const [scale, setScale] = useState(1)
+  const [cropMode, setCropMode] = useState(false)
+  const [cropStart, setCropStart] = useState(null)
+  const [cropRect, setCropRect] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const canvasRef = useRef(null)
+  const imgRef = useRef(null)
   const hiddenPhotos = profileData?._hiddenPhotos || []
 
-  async function togglePhotoHidden(photoPath) {
+  async function togglePhotoInactive(photoPath) {
     const current = profileData?._hiddenPhotos || []
     const updated = current.includes(photoPath)
       ? current.filter(p => p !== photoPath)
@@ -2554,94 +2562,216 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
     } catch {}
   }
 
-  // Separate portrait, cover (headshot), and gallery
-  let portrait = photos.find(p => p.path?.includes('/portrait/')) || null
-  // If no portrait in photos array but profilePhotoUrl exists in profile data, create a virtual entry
-  const profilePhotoUrl = profileData?.personal?.profilePhotoUrl || portraitUrl
-  if (!portrait && profilePhotoUrl) {
-    portrait = { url: profilePhotoUrl, path: '_profile_photo', name: 'Profile Photo' }
+  function openEditor(photo) {
+    setEditingPhoto(photo)
+    setRotation(0)
+    setScale(1)
+    setCropMode(false)
+    setCropRect(null)
+    setCropStart(null)
   }
-  const cover = photos.find(p => p.path?.includes('/headshot/'))
-  const gallery = photos.filter(p => p !== portrait && p !== cover && p.path !== '_profile_photo')
 
-  const totalCount = photos.length + (portrait && !photos.includes(portrait) ? 1 : 0)
+  function handleCropMouseDown(e) {
+    if (!cropMode) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left, y = e.clientY - rect.top
+    setCropStart({ x, y })
+    setCropRect({ x, y, w: 0, h: 0 })
+  }
+
+  function handleCropMouseMove(e) {
+    if (!cropMode || !cropStart) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left, y = e.clientY - rect.top
+    setCropRect({
+      x: Math.min(cropStart.x, x), y: Math.min(cropStart.y, y),
+      w: Math.abs(x - cropStart.x), h: Math.abs(y - cropStart.y),
+    })
+  }
+
+  function handleCropMouseUp() { setCropStart(null) }
+
+  async function saveEdits() {
+    if (!editingPhoto || !imgRef.current) return
+    setSaving(true)
+    try {
+      const img = imgRef.current
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      // Handle rotation
+      const isRotated = rotation % 180 !== 0
+      const sw = img.naturalWidth, sh = img.naturalHeight
+      let cw = sw, ch = sh
+      if (isRotated) { cw = sh; ch = sw }
+
+      // Handle crop (translate from display to natural coords)
+      if (cropRect && cropRect.w > 10 && cropRect.h > 10) {
+        const dispW = img.clientWidth, dispH = img.clientHeight
+        const scaleX = (isRotated ? sh : sw) / dispW
+        const scaleY = (isRotated ? sw : sh) / dispH
+        const cx = cropRect.x * scaleX, cy = cropRect.y * scaleY
+        const ccw = cropRect.w * scaleX, cch = cropRect.h * scaleY
+        canvas.width = ccw; canvas.height = cch
+        ctx.translate(ccw / 2, cch / 2)
+        ctx.rotate((rotation * Math.PI) / 180)
+        ctx.scale(scale, scale)
+        ctx.drawImage(img, -(sw / 2) + (isRotated ? -cy + (cch / 2 * (sw / cch)) * 0 : -cx), isRotated ? -cx : -cy)
+        // Simpler approach: render full transformed image, then crop
+        const tempCanvas = document.createElement('canvas')
+        tempCanvas.width = cw * scale; tempCanvas.height = ch * scale
+        const tctx = tempCanvas.getContext('2d')
+        tctx.translate(tempCanvas.width / 2, tempCanvas.height / 2)
+        tctx.rotate((rotation * Math.PI) / 180)
+        tctx.scale(scale, scale)
+        tctx.drawImage(img, -sw / 2, -sh / 2)
+
+        const scaleX2 = tempCanvas.width / img.clientWidth
+        const scaleY2 = tempCanvas.height / img.clientHeight
+        canvas.width = cropRect.w * scaleX2
+        canvas.height = cropRect.h * scaleY2
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.drawImage(tempCanvas, cropRect.x * scaleX2, cropRect.y * scaleY2, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height)
+      } else {
+        canvas.width = cw * scale; canvas.height = ch * scale
+        ctx.translate(canvas.width / 2, canvas.height / 2)
+        ctx.rotate((rotation * Math.PI) / 180)
+        ctx.scale(scale, scale)
+        ctx.drawImage(img, -sw / 2, -sh / 2)
+      }
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+      const result = await replaceProfilePhoto(editingPhoto.path, blob)
+      if (result) {
+        setPhotos(prev => prev.map(p => p.path === editingPhoto.path ? { ...p, url: result.url } : p))
+      }
+      setEditingPhoto(null)
+    } catch (err) {
+      console.error('Failed to save photo edits:', err)
+    }
+    setSaving(false)
+  }
+
+  // Combine all photos including virtual profile photo
+  let allPhotos = [...photos]
+  const profilePhotoUrl = profileData?.personal?.profilePhotoUrl || portraitUrl
+  const hasPortraitInPhotos = photos.some(p => p.path?.includes('/portrait/'))
+  if (!hasPortraitInPhotos && profilePhotoUrl) {
+    allPhotos = [{ url: profilePhotoUrl, path: '_profile_photo', name: 'Profile Photo' }, ...allPhotos]
+  }
+
+  const activeCount = allPhotos.filter(p => !hiddenPhotos.includes(p.path)).length
 
   return (
     <Card className="rounded-2xl">
       <CardHeader>
-        <CardTitle>Photos ({totalCount})</CardTitle>
-        <p className="text-xs text-muted-foreground">Click to view full size. Use the eye icon to hide from matching profile.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Profile & Cover photos */}
-        {(portrait || cover) && (
-          <div className="flex gap-4 flex-wrap">
-            {portrait && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Profile Photo</p>
-                <div className={`relative group w-32 h-32 rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(portrait.path) ? 'opacity-40 border-red-300' : 'border-[#283693]/20'}`}>
-                  <img src={portrait.url} alt="Profile" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(portrait.url)} />
-                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => togglePhotoHidden(portrait.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(portrait.path) ? 'text-red-500' : 'text-gray-400'}`}>
-                      {hiddenPhotos.includes(portrait.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    </button>
-                    <button onClick={() => handleDeletePhoto(portrait)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {cover && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Cover Photo</p>
-                <div className={`relative group w-48 h-32 rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(cover.path) ? 'opacity-40 border-red-300' : 'border-[#283693]/20'}`}>
-                  <img src={cover.url} alt="Cover" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(cover.url)} />
-                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => togglePhotoHidden(cover.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(cover.path) ? 'text-red-500' : 'text-gray-400'}`}>
-                      {hiddenPhotos.includes(cover.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    </button>
-                    <button onClick={() => handleDeletePhoto(cover)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Photos ({allPhotos.length})</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {activeCount} active{hiddenPhotos.length > 0 && <span className="text-amber-600"> &middot; {allPhotos.length - activeCount} inactive</span>}
+              {' '}&middot; Click photo to edit. Use the eye icon to mark inactive.
+            </p>
           </div>
-        )}
-        {/* Gallery photos */}
-        {gallery.length > 0 && (
-          <>
-            <p className="text-xs font-semibold text-muted-foreground uppercase">Gallery ({gallery.length})</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-              {gallery.map(p => (
-                <div key={p.path} className={`relative group aspect-square rounded-xl overflow-hidden border-2 ${hiddenPhotos.includes(p.path) ? 'opacity-40 border-red-300' : 'border-gray-100'}`}>
-                  <img src={p.url} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxUrl(p.url)} />
-                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => togglePhotoHidden(p.path)} className={`p-1 rounded-full bg-white/90 shadow ${hiddenPhotos.includes(p.path) ? 'text-red-500' : 'text-gray-400'}`}>
-                      {hiddenPhotos.includes(p.path) ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                    </button>
-                    <button onClick={() => handleDeletePhoto(p)} className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
-                      <Trash2 className="size-3.5" />
-                    </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          {allPhotos.map(p => {
+            const isInactive = hiddenPhotos.includes(p.path)
+            const isPortrait = p.path?.includes('/portrait/') || p.path === '_profile_photo'
+            const isCover = p.path?.includes('/headshot/')
+            return (
+              <div key={p.path} className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${isInactive ? 'opacity-50 border-red-300 grayscale' : 'border-gray-100 hover:border-[#283693]/40'}`}>
+                <img src={p.url} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => openEditor(p)} />
+                {/* Type badge */}
+                {(isPortrait || isCover) && (
+                  <div className="absolute top-1 left-1 bg-[#283693]/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    {isPortrait ? 'PROFILE' : 'COVER'}
                   </div>
-                  {hiddenPhotos.includes(p.path) && (
-                    <div className="absolute bottom-1 left-1 bg-red-500/80 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">HIDDEN</div>
-                  )}
+                )}
+                {/* Inactive badge */}
+                {isInactive && (
+                  <div className="absolute bottom-1 left-1 bg-red-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">INACTIVE</div>
+                )}
+                {/* Hover controls */}
+                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={(e) => { e.stopPropagation(); togglePhotoInactive(p.path) }} title={isInactive ? 'Mark active' : 'Mark inactive'} className={`p-1 rounded-full bg-white/90 shadow ${isInactive ? 'text-red-500' : 'text-gray-400 hover:text-amber-500'}`}>
+                    {isInactive ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); openEditor(p) }} title="Edit photo" className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-[#283693]">
+                    <Crop className="size-3.5" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeletePhoto(p) }} title="Delete photo" className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
+                    <Trash2 className="size-3.5" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+              </div>
+            )
+          })}
+        </div>
       </CardContent>
-      {/* Lightbox */}
-      {lightboxUrl && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
-          <button className="absolute top-4 right-4 text-white/80 hover:text-white" onClick={() => setLightboxUrl(null)}>
-            <X className="size-8" />
-          </button>
-          <img src={lightboxUrl} alt="" className="max-w-full max-h-[90vh] rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+
+      {/* Photo Editor Modal */}
+      {editingPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !saving && setEditingPhoto(null)}>
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            {/* Editor header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-sm">Edit Photo</h3>
+              <button onClick={() => setEditingPhoto(null)} className="text-gray-400 hover:text-gray-600"><X className="size-5" /></button>
+            </div>
+
+            {/* Image preview */}
+            <div className="relative bg-gray-100 flex items-center justify-center overflow-hidden" style={{ minHeight: 300 }}
+              onMouseDown={handleCropMouseDown} onMouseMove={handleCropMouseMove} onMouseUp={handleCropMouseUp}
+            >
+              <img
+                ref={imgRef}
+                src={editingPhoto.url}
+                alt=""
+                crossOrigin="anonymous"
+                className="max-w-full max-h-[60vh] select-none"
+                style={{
+                  transform: `rotate(${rotation}deg) scale(${scale})`,
+                  transition: 'transform 0.2s ease',
+                  cursor: cropMode ? 'crosshair' : 'default',
+                }}
+                draggable={false}
+              />
+              {/* Crop overlay */}
+              {cropRect && cropRect.w > 5 && (
+                <div className="absolute pointer-events-none border-2 border-dashed border-white bg-white/10" style={{
+                  left: cropRect.x, top: cropRect.y, width: cropRect.w, height: cropRect.h,
+                }} />
+              )}
+            </div>
+
+            {/* Toolbar */}
+            <div className="flex items-center justify-between p-4 border-t bg-gray-50">
+              <div className="flex items-center gap-2">
+                <button onClick={() => setRotation(r => (r + 90) % 360)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-white" title="Rotate 90°">
+                  <RotateCw className="size-3.5" /> Rotate
+                </button>
+                <button onClick={() => setCropMode(m => !m)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${cropMode ? 'bg-[#283693] text-white border-[#283693]' : 'hover:bg-white'}`} title="Crop">
+                  <Crop className="size-3.5" /> Crop
+                </button>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <ZoomIn className="size-3.5 text-gray-400" />
+                  <input type="range" min="0.5" max="2" step="0.05" value={scale} onChange={e => setScale(parseFloat(e.target.value))} className="w-24 accent-[#283693]" />
+                  <span className="text-[10px] text-gray-400 w-8">{Math.round(scale * 100)}%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setRotation(0); setScale(1); setCropRect(null); setCropMode(false) }} className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-white">
+                  Reset
+                </button>
+                <button onClick={saveEdits} disabled={saving || (rotation === 0 && scale === 1 && !cropRect)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#283693] text-white disabled:opacity-40">
+                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </Card>
@@ -3345,16 +3475,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         </div>
       ) : (
         <>
-          {(photos.length > 0 || portraitUrl || data?.personal?.profilePhotoUrl) && (
-            <AdminPhotosSection
-              photos={photos}
-              setPhotos={setPhotos}
-              profileData={data}
-              setProfileData={setProfileData}
-              portraitUrl={portraitUrl}
-              surrogate={surrogate}
-            />
-          )}
+          <AdminPhotosSection
+            photos={photos}
+            setPhotos={setPhotos}
+            profileData={data}
+            setProfileData={setProfileData}
+            portraitUrl={portraitUrl}
+            surrogate={surrogate}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {PROFILE_SECTIONS.map(sec => {

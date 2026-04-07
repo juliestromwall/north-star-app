@@ -623,6 +623,19 @@ export async function deleteProfilePhoto(path) {
   if (error) throw error
 }
 
+export async function replaceProfilePhoto(oldPath, blob) {
+  if (!supabase) return null
+  // Delete old, upload new with same path
+  await supabase.storage.from(BUCKET).remove([oldPath])
+  const { data, error } = await supabase.storage.from(BUCKET).upload(oldPath, blob, {
+    cacheControl: '3600',
+    upsert: true,
+  })
+  if (error) throw error
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path)
+  return { path: data.path, url: urlData.publicUrl + '?t=' + Date.now() }
+}
+
 export async function listProfilePhotos(userId) {
   if (!supabase) return []
   const { data, error } = await supabase.storage.from(BUCKET).list(userId, {
