@@ -151,7 +151,8 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
   return (
     <div>
       <style>{`
-        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; }
+        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
+        .signing-doc * { max-width: 100% !important; box-sizing: border-box; }
         .signing-doc p { margin: 0.4em 0; }
         .signing-doc ul { list-style: disc; padding-left: 1.5em; }
         .signing-doc ol { list-style: decimal; padding-left: 1.5em; }
@@ -568,8 +569,8 @@ export default function SignDocumentPage() {
         </div>
 
         {/* Document with inline fields */}
-        <Card className="rounded-2xl shadow-lg">
-          <CardContent className="p-8">
+        <Card className="rounded-2xl shadow-lg overflow-hidden">
+          <CardContent className="p-8 overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
             {loadingHtml ? (
               <div className="text-center py-12"><Loader2 className="size-6 animate-spin text-[#283693] mx-auto" /></div>
             ) : docHtml ? (
