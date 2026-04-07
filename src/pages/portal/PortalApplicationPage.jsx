@@ -455,6 +455,255 @@ function SignaturePad({ value, onChange, signerName }) {
   )
 }
 
+// ── Clinic & Hospital Form ─────────────────────────────
+const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy']
+const EMPTY_PREG = {
+  date: '', outcome: '', receivedPrenatalCare: '', wasSurrogacy: '',
+  obClinicName: '', obDoctorName: '', obPhone: '', obAddress: '',
+  hospitalName: '', hospitalPhone: '', hospitalAddress: '',
+  sawMFM: '', mfmClinicName: '', mfmDoctorName: '', mfmPhone: '', mfmAddress: '',
+  wasIVF: '', ivfClinicName: '', ivfDoctorName: '', ivfPhone: '', ivfAddress: '',
+}
+
+function ClinicHospitalForm({ data, onSave, saving, quizData, userId }) {
+  const [form, setForm] = useState({
+    currentOBGYN: '', currentOBPhone: '', currentOBAddress: '',
+    papDate: '', papDoctorName: '', papClinicName: '', papClinicCity: '', papClinicState: '', papClinicPhone: '',
+    experiencedSurrogate: '', numberOfPregnancies: '',
+    pregnancies: [],
+  })
+  const [editing, setEditing] = useState(false)
+
+  useEffect(() => {
+    // Try to get pregnancy count from profile (localStorage)
+    let profilePregs = []
+    let profileCount = 0
+    try {
+      const raw = localStorage.getItem(`abc-surrogate-profile-${userId || 'anonymous'}`)
+      if (raw) {
+        const profile = JSON.parse(raw)
+        profilePregs = profile?.pregnancyHistory?.pregnancies || []
+        profileCount = parseInt(profile?.pregnancyHistory?.numberOfPregnancies) || 0
+      }
+    } catch {}
+
+    const saved = data || {}
+    const count = Math.max(profileCount, profilePregs.length, (saved.pregnancies || []).length)
+    const pregnancies = []
+    for (let i = 0; i < Math.max(count, 0); i++) {
+      const ex = (saved.pregnancies || [])[i] || {}
+      const prof = profilePregs[i] || {}
+      pregnancies.push({
+        ...EMPTY_PREG, ...ex,
+        date: ex.date || prof.dob || '',
+        outcome: ex.outcome || prof.outcome || '',
+        wasSurrogacy: ex.wasSurrogacy ?? prof.wasSurrogacy ?? '',
+      })
+    }
+    setForm({
+      currentOBGYN: saved.currentOBGYN || '',
+      currentOBPhone: saved.currentOBPhone || '',
+      currentOBAddress: saved.currentOBAddress || '',
+      papDate: saved.papDate || '',
+      papDoctorName: saved.papDoctorName || '',
+      papClinicName: saved.papClinicName || '',
+      papClinicCity: saved.papClinicCity || '',
+      papClinicState: saved.papClinicState || '',
+      papClinicPhone: saved.papClinicPhone || '',
+      experiencedSurrogate: saved.experiencedSurrogate || '',
+      numberOfPregnancies: saved.numberOfPregnancies || profileCount || '',
+      pregnancies,
+    })
+  }, [data, userId])
+
+  function updatePreg(i, key, val) {
+    setForm(f => {
+      const pregnancies = [...(f.pregnancies || [])]
+      pregnancies[i] = { ...pregnancies[i], [key]: val }
+      return { ...f, pregnancies }
+    })
+  }
+
+  function handleCountChange(val) {
+    const num = parseInt(val) || 0
+    setForm(f => {
+      const existing = f.pregnancies || []
+      const pregnancies = []
+      for (let i = 0; i < num; i++) {
+        pregnancies.push(existing[i] || { ...EMPTY_PREG })
+      }
+      return { ...f, numberOfPregnancies: val, pregnancies }
+    })
+  }
+
+  const isNonDelivery = (outcome) => NON_DELIVERY_OUTCOMES.includes((outcome || '').toLowerCase())
+
+  // Completion: need currentOBGYN, numberOfPregnancies, and each pregnancy needs at least outcome + prenatal clinic
+  const hasPregs = (form.pregnancies || []).length > 0
+  const pregsValid = (form.pregnancies || []).every(p => {
+    if (!p.outcome) return false
+    const isNonDel = isNonDelivery(p.outcome)
+    if (isNonDel && p.receivedPrenatalCare === 'no') return true // skipped
+    if (!p.obClinicName || !p.obDoctorName) return false
+    if (!isNonDel && !p.hospitalName) return false
+    return true
+  })
+  const isComplete = !!(data && data.currentOBGYN && data.numberOfPregnancies && (data.pregnancies || []).length > 0 && pregsValid)
+  const canSave = form.currentOBGYN && form.numberOfPregnancies && hasPregs && (form.pregnancies || []).every(p => {
+    if (!p.outcome) return false
+    const isNonDel = isNonDelivery(p.outcome)
+    if (isNonDel && p.receivedPrenatalCare === 'no') return true
+    if (!p.obClinicName || !p.obDoctorName) return false
+    if (!isNonDel && !p.hospitalName) return false
+    return true
+  })
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={() => setEditing(!editing)}>
+        <div className="flex items-center gap-2">
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Clinic & Hospital Form</CardTitle>
+            <CardDescription>Provider information for each pregnancy</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {editing && (
+        <CardContent className="space-y-6">
+          {/* Current OB */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Current OB/GYN</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1"><FieldLabel>Doctor / Midwife Name <Req /></FieldLabel><Input value={form.currentOBGYN} onChange={e => setForm(f => ({ ...f, currentOBGYN: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={form.currentOBPhone} onChange={e => setForm(f => ({ ...f, currentOBPhone: formatPhone(e.target.value) }))} /></div>
+              <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={form.currentOBAddress} onChange={e => setForm(f => ({ ...f, currentOBAddress: e.target.value }))} placeholder="Optional" /></div>
+            </div>
+          </div>
+          {/* PAP Smear */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Most Recent PAP Smear</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={form.papDate} onChange={e => setForm(f => ({ ...f, papDate: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Doctor Name</FieldLabel><Input value={form.papDoctorName} onChange={e => setForm(f => ({ ...f, papDoctorName: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={form.papClinicName} onChange={e => setForm(f => ({ ...f, papClinicName: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.papClinicCity} onChange={e => setForm(f => ({ ...f, papClinicCity: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>State</FieldLabel>
+                <Select value={form.papClinicState} onValueChange={v => setForm(f => ({ ...f, papClinicState: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={form.papClinicPhone} onChange={e => setForm(f => ({ ...f, papClinicPhone: formatPhone(e.target.value) }))} /></div>
+            </div>
+          </div>
+          {/* Pregnancy count */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <FieldLabel>Are you an experienced surrogate?</FieldLabel>
+              <YesNoButtons value={form.experiencedSurrogate} onChange={v => setForm(f => ({ ...f, experiencedSurrogate: v }))} />
+            </div>
+            <div className="space-y-1">
+              <FieldLabel>Total number of pregnancies <Req /></FieldLabel>
+              <p className="text-[10px] text-stone-400 -mt-0.5">Include all deliveries, miscarriages, terminations, and ectopic pregnancies</p>
+              <Input type="number" min="0" max="20" value={form.numberOfPregnancies} onChange={e => handleCountChange(e.target.value)} />
+            </div>
+          </div>
+          {/* Per-Pregnancy */}
+          {(form.pregnancies || []).map((p, i) => {
+            const isNonDel = isNonDelivery(p.outcome)
+            const skipRelease = isNonDel && p.receivedPrenatalCare === 'no'
+            return (
+              <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
+                <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1"><FieldLabel>Date <Req /></FieldLabel><Input type="date" value={p.date} onChange={e => updatePreg(i, 'date', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Outcome <Req /></FieldLabel>
+                    <Select value={p.outcome} onValueChange={v => updatePreg(i, 'outcome', v)}>
+                      <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        {['Live Birth', 'Miscarriage', 'Ectopic Pregnancy', 'Termination', 'Chemical Pregnancy', 'Stillborn'].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1"><FieldLabel>Was this a surrogacy pregnancy?</FieldLabel><YesNoButtons value={p.wasSurrogacy} onChange={v => updatePreg(i, 'wasSurrogacy', v)} /></div>
+                </div>
+                {isNonDel && (
+                  <div className="space-y-1 max-w-xs">
+                    <FieldLabel>Did you receive any prenatal care for this pregnancy? <Req /></FieldLabel>
+                    <YesNoButtons value={p.receivedPrenatalCare} onChange={v => updatePreg(i, 'receivedPrenatalCare', v)} />
+                  </div>
+                )}
+                {skipRelease && <p className="text-xs text-stone-400 italic">No medical records release needed for this pregnancy.</p>}
+                {!skipRelease && p.outcome && (
+                  <>
+                    {/* Prenatal Care */}
+                    <div>
+                      <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Prenatal Care</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="space-y-1"><FieldLabel>Clinic Name <Req /></FieldLabel><Input value={p.obClinicName} onChange={e => updatePreg(i, 'obClinicName', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>OB Doctor / Midwife <Req /></FieldLabel><Input value={p.obDoctorName} onChange={e => updatePreg(i, 'obDoctorName', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.obPhone} onChange={e => updatePreg(i, 'obPhone', formatPhone(e.target.value))} /></div>
+                        <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.obAddress} onChange={e => updatePreg(i, 'obAddress', e.target.value)} placeholder="Optional" /></div>
+                      </div>
+                    </div>
+                    {/* Delivery Hospital */}
+                    {!isNonDel && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase mb-2">Delivery Hospital</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="space-y-1"><FieldLabel>Hospital Name <Req /></FieldLabel><Input value={p.hospitalName} onChange={e => updatePreg(i, 'hospitalName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.hospitalPhone} onChange={e => updatePreg(i, 'hospitalPhone', formatPhone(e.target.value))} /></div>
+                          <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.hospitalAddress} onChange={e => updatePreg(i, 'hospitalAddress', e.target.value)} placeholder="Optional" /></div>
+                        </div>
+                      </div>
+                    )}
+                    {/* MFM */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase">Did you see a Maternal Fetal Medicine (MFM) doctor?</p>
+                        <YesNoButtons value={p.sawMFM} onChange={v => updatePreg(i, 'sawMFM', v)} />
+                      </div>
+                      {(p.sawMFM === 'yes' || p.sawMFM === true) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="space-y-1"><FieldLabel>MFM Clinic Name</FieldLabel><Input value={p.mfmClinicName} onChange={e => updatePreg(i, 'mfmClinicName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>MFM Doctor Name</FieldLabel><Input value={p.mfmDoctorName} onChange={e => updatePreg(i, 'mfmDoctorName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.mfmPhone} onChange={e => updatePreg(i, 'mfmPhone', formatPhone(e.target.value))} /></div>
+                          <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.mfmAddress} onChange={e => updatePreg(i, 'mfmAddress', e.target.value)} placeholder="Optional" /></div>
+                        </div>
+                      )}
+                    </div>
+                    {/* IVF */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="text-[11px] font-semibold text-stone-500 uppercase">Was this an IVF pregnancy?</p>
+                        <YesNoButtons value={p.wasIVF} onChange={v => updatePreg(i, 'wasIVF', v)} />
+                      </div>
+                      {(p.wasIVF === 'yes' || p.wasIVF === true) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="space-y-1"><FieldLabel>IVF Clinic Name</FieldLabel><Input value={p.ivfClinicName} onChange={e => updatePreg(i, 'ivfClinicName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>IVF Doctor Name</FieldLabel><Input value={p.ivfDoctorName} onChange={e => updatePreg(i, 'ivfDoctorName', e.target.value)} /></div>
+                          <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" placeholder="xxx-xxx-xxxx" value={p.ivfPhone} onChange={e => updatePreg(i, 'ivfPhone', formatPhone(e.target.value))} /></div>
+                          <div className="space-y-1"><FieldLabel>Address</FieldLabel><Input value={p.ivfAddress} onChange={e => updatePreg(i, 'ivfAddress', e.target.value)} placeholder="Optional" /></div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
+          {!canSave && hasPregs && <p className="text-xs text-red-400">Please complete all required fields for each pregnancy.</p>}
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_clinicHospital', form)} disabled={saving || !canSave}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 // ── Social Media Release ───────────────────────────────
 function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
   const [form, setForm] = useState({ fullName: '', email: '', signatureDate: '', agreed: false, signature: null })
@@ -612,6 +861,17 @@ export default function PortalApplicationPage() {
       const fields = ['name', 'phone', 'email', 'cityState', 'relationship']
       return refs.every(r => fields.every(f => d[`${r}_${f}`]?.trim()))
     }
+    if (key === '_clinicHospital') {
+      if (!d.currentOBGYN || !d.numberOfPregnancies || !(d.pregnancies?.length > 0)) return false
+      return d.pregnancies.every(p => {
+        if (!p.outcome) return false
+        const isNonDel = NON_DELIVERY_OUTCOMES.includes((p.outcome || '').toLowerCase())
+        if (isNonDel && p.receivedPrenatalCare === 'no') return true
+        if (!p.obClinicName || !p.obDoctorName) return false
+        if (!isNonDel && !p.hospitalName) return false
+        return true
+      })
+    }
     if (key === '_socialMediaRelease') {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
@@ -640,6 +900,7 @@ export default function PortalApplicationPage() {
       <PersonalInfoForm data={answers._application} onSave={handleSave} saving={saving} />
       <ConfidentialForm data={answers._confidential} onSave={handleSave} saving={saving} quizData={answers} />
       <ReferencesForm data={answers._references} onSave={handleSave} saving={saving} />
+      <ClinicHospitalForm data={answers._clinicHospital} onSave={handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} />
       <SocialMediaForm data={answers._socialMediaRelease} onSave={handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} />
     </div>
   )
