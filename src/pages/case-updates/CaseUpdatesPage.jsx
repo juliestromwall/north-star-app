@@ -1,21 +1,155 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, fetchCaseEmails, fetchCaseTasks, fetchCaseNotes } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X } from 'lucide-react'
+import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/utils'
 import StageBadge from '@/components/shared/StageBadge'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
 const JOURNEY_STAGE_IDS = ['journey-oversight']
+
+// ── AI Case Summary ──
+function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistSteps, tracking, journeyData }) {
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [summary, setSummary] = useState(null)
+  const [error, setError] = useState(null)
+  const { currentUser } = useRole()
+
+  const generateSummary = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    setSummary(null)
+
+    try {
+      // Gather data in parallel
+      const [emails, tasks, notes] = await Promise.all([
+        fetchCaseEmails(caseId).catch(() => []),
+        fetchCaseTasks(caseId, caseType).catch(() => []),
+        fetchCaseNotes(caseId).catch(() => []),
+      ])
+
+      // Build checklist summary from tracking data
+      const checklist = (checklistSteps || []).map(step => {
+        const t = (tracking || {})[step.id] || {}
+        const history = t.history || []
+        const lastEntry = history[history.length - 1]
+        return { label: step.label, status: t.status || 'not_started', lastDate: lastEntry?.date || null }
+      })
+
+      // Calendar events — try to load if Google is connected
+      let appointments = []
+      try {
+        const { listCaseEvents, listCalendars } = await import('@/lib/google')
+        // Try primary + appointments calendar
+        const primary = await listCaseEvents(currentUser.id, caseId, caseType).catch(() => ({ items: [] }))
+        let apptCal = null
+        try {
+          const cals = await listCalendars(currentUser.id)
+          apptCal = (cals || []).find(c => c.summary?.toLowerCase() === 'appointments')
+        } catch {}
+        const apptEvents = apptCal ? await listCaseEvents(currentUser.id, caseId, caseType, { calendarId: apptCal.id }).catch(() => ({ items: [] })) : { items: [] }
+        const allEvents = [...(primary.items || []), ...(apptEvents.items || [])]
+        const seen = new Set()
+        appointments = allEvents.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true }).map(e => ({
+          date: e.start?.date || e.start?.dateTime?.split('T')[0] || '',
+          time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null,
+          title: e.summary || '',
+        }))
+      } catch {}
+
+      // Embryo transfers from journey data
+      const transfers = (journeyData?._transfers || []).map(t => ({
+        date: t.date || null,
+        embryoCount: t.embryoCount || null,
+        betaResult: t.betaValue || null,
+        heartbeat: !!t.heartbeatDate,
+        unsuccessful: !!t.unsuccessful,
+        dropped: !!t.dropped,
+      }))
+
+      const res = await fetch('/api/ai/case-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseName, caseType, stage, status,
+          emails: emails.slice(0, 15).map(e => ({ direction: e.direction, date: e.date, subject: e.subject, from: e.from_email, tags: e.tags })),
+          tasks: tasks.map(t => ({ status: t.status, title: t.title, priority: t.priority, due_date: t.due_date, notes: t.notes })),
+          notes: notes.slice(0, 10).map(n => ({ created_at: n.created_at, content: n.content })),
+          checklist,
+          appointments,
+          transfers: transfers.length > 0 ? transfers : undefined,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate summary')
+      setSummary(data.summary)
+    } catch (err) {
+      setError(err.message || 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }, [caseId, caseName, caseType, stage, status, checklistSteps, tracking, journeyData, currentUser])
+
+  return (
+    <>
+      <button
+        onClick={(e) => { e.preventDefault(); setOpen(true); generateSummary() }}
+        className="inline-flex items-center gap-1 text-[10px] text-violet-500 hover:text-violet-700 transition-colors mt-0.5"
+        title="AI Case Summary"
+      >
+        <Sparkles className="size-3" />
+        <span>AI Summary</span>
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="size-4 text-violet-500" />
+              Case Summary — {caseName}
+            </DialogTitle>
+          </DialogHeader>
+
+          {loading && (
+            <div className="flex items-center justify-center py-12 gap-2 text-stone-400">
+              <Loader2 className="size-5 animate-spin" />
+              <span className="text-sm">Generating summary...</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-600">
+              {error}
+              <button onClick={generateSummary} className="ml-2 underline hover:no-underline">Retry</button>
+            </div>
+          )}
+
+          {summary && (
+            <div className="prose prose-sm prose-stone max-w-none text-sm leading-relaxed whitespace-pre-wrap">
+              {summary}
+            </div>
+          )}
+
+          {summary && (
+            <p className="text-[10px] text-stone-300 mt-2 border-t pt-2">Generated by AI — verify details before acting on them</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
 
 export default function CaseUpdatesPage() {
   const [surrogates, setSurrogates] = useState([])
@@ -202,15 +336,24 @@ function SurrogateUpdatesSheet({ surrogates }) {
                   <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[150px]">
                     Screening Step
                   </th>
-                  {filtered.map(s => (
-                    <th key={s.id} className="text-left px-3 py-2.5 min-w-[180px]">
-                      <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
-                      <p className="text-[9px] text-stone-400 font-normal">
-                        {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
-                        {s.age ? ` · ${s.age}y` : ''}
-                      </p>
-                    </th>
-                  ))}
+                  {filtered.map(s => {
+                    const ss = allStageStatuses[s.id] || {}
+                    const stageLabel = SURROGATE_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
+                    return (
+                      <th key={s.id} className="text-left px-3 py-2.5 min-w-[180px]">
+                        <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
+                        <p className="text-[9px] text-stone-400 font-normal">
+                          {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
+                          {s.age ? ` · ${s.age}y` : ''}
+                        </p>
+                        <AISummaryButton
+                          caseId={s.id} caseName={s.name} caseType="surrogate"
+                          stage={stageLabel} status={ss.status}
+                          checklistSteps={sheetRows} tracking={allTracking[s.id]}
+                        />
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -395,12 +538,21 @@ function IPUpdatesSheet({ ips }) {
                   <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[120px]">
                     Checklist Step
                   </th>
-                  {filtered.map(ip => (
-                    <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
-                      <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
-                      <p className="text-[9px] text-stone-400 font-normal">{ip.location || ''}</p>
-                    </th>
-                  ))}
+                  {filtered.map(ip => {
+                    const ss = allStageStatuses[ip.id] || {}
+                    const stageLabel = SURROGATE_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
+                    return (
+                      <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
+                        <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
+                        <p className="text-[9px] text-stone-400 font-normal">{ip.location || ''}</p>
+                        <AISummaryButton
+                          caseId={ip.id} caseName={ip.names} caseType="ip"
+                          stage={stageLabel} status={ss.status}
+                          checklistSteps={sheetRows} tracking={allTracking[ip.id]}
+                        />
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -508,6 +660,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                   {filtered.map(j => {
                     const ip = ips.find(i => i.id === j.ip_case_id)
                     const gc = surrogates.find(s => s.id === j.gc_case_id)
+                    const journeyName = `${ip?.names || 'IP'} + ${gc?.name || 'GC'}`
                     return (
                       <th key={j.id} className="text-left px-3 py-2.5 min-w-[160px]">
                         <Link to={`/journeys/${j.id}`} className="hover:opacity-80 block text-center">
@@ -516,6 +669,14 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                           <p className="text-xs font-semibold text-[#ed148c]">{gc?.name || 'GC'}</p>
                         </Link>
                         <p className="text-[9px] text-stone-400 font-normal mt-1 text-center">{j.status || ''}</p>
+                        <div className="text-center mt-0.5">
+                          <AISummaryButton
+                            caseId={j.id} caseName={journeyName} caseType="journey"
+                            stage={j.stage} status={j.status}
+                            checklistSteps={sheetRows} tracking={allTracking[j.id]}
+                            journeyData={j.journey_data}
+                          />
+                        </div>
                       </th>
                     )
                   })}
