@@ -49,14 +49,17 @@ export default function SharedProfilePage() {
           if (gc?.email) {
             const profile = await fetchSurrogateProfileByEmail(gc.email).catch(() => null)
             if (profile?.profile_data) setProfileData(profile.profile_data)
-          }
-          if (gc?.userId) {
-            const ps = await Promise.all([
-              listProfilePhotos(gc.userId).catch(() => []),
-              listProfilePhotos(`${gc.userId}/headshot`).catch(() => []),
-              listProfilePhotos(`${gc.userId}/portrait`).catch(() => []),
-            ])
-            setPhotos([...ps[2], ...ps[1], ...ps[0]])
+            // Use user_id from profile record (most reliable) or from intake
+            const uid = profile?.user_id || gc.userId || gc.user_id
+            if (uid) {
+              const ps = await Promise.all([
+                listProfilePhotos(uid).catch(() => []),
+                listProfilePhotos(`${uid}/headshot`).catch(() => []),
+                listProfilePhotos(`${uid}/portrait`).catch(() => []),
+              ])
+              const allPhotos = [...ps[2], ...ps[1], ...ps[0]]
+              setPhotos(allPhotos)
+            }
           }
         } else {
           const all = await fetchIPsFromIntake()

@@ -867,8 +867,8 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   const firstName = about.firstName || 'Your Name'
   const heightStr = about.heightFt ? `${about.heightFt}'${about.heightIn || 0}"` : ''
   const bmi = about.bmi || (about.heightFt && about.weight ? ((parseFloat(about.weight) / ((parseInt(about.heightFt)*12 + parseInt(about.heightIn||0)) ** 2)) * 703).toFixed(1) : '')
-  const [carouselIdx, setCarouselIdx] = useState(0)
-  const heroPhoto = photos?.[carouselIdx] || photos?.[0]
+  const [lightboxIdx, setLightboxIdx] = useState(null)
+  const heroPhoto = photos?.[0]
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
 
@@ -885,34 +885,15 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   return (
     <HiddenFieldsContext.Provider value={hiddenFields}>
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
-      {/* ── Photo Carousel ── */}
-      {photos?.length > 0 ? (
-        <div className="relative w-full h-72 sm:h-96 overflow-hidden group">
-          <img src={(photos[carouselIdx] || photos[0]).url} alt="" className="w-full h-full object-cover transition-opacity duration-300" />
+      {/* ── Cover Photo (static) ── */}
+      {heroPhoto ? (
+        <div className="w-full h-72 sm:h-96 overflow-hidden relative">
+          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          {/* Nav arrows */}
           {photos.length > 1 && (
-            <>
-              <button onClick={() => setCarouselIdx(i => (i - 1 + photos.length) % photos.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 text-gray-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button onClick={() => setCarouselIdx(i => (i + 1) % photos.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 text-gray-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
-                <ChevronRight className="w-5 h-5" />
-              </button>
-              {/* Dots */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {photos.map((_, i) => (
-                  <button key={i} onClick={() => setCarouselIdx(i)}
-                    className={`w-2 h-2 rounded-full transition-all ${i === carouselIdx ? 'bg-white w-5' : 'bg-white/50 hover:bg-white/80'}`} />
-                ))}
-              </div>
-              {/* Counter */}
-              <div className="absolute top-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
-                {carouselIdx + 1} / {photos.length}
-              </div>
-            </>
+            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+              {photos.length} photos
+            </div>
           )}
         </div>
       ) : (
@@ -921,12 +902,12 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         </div>
       )}
 
-      {/* ── Thumbnail Strip ── */}
+      {/* ── Thumbnail Strip (opens lightbox) ── */}
       {photos?.length > 1 && (
         <div className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1">
           {photos.map((ph, i) => (
-            <button key={ph.path} onClick={() => setCarouselIdx(i)}
-              className={`w-14 h-14 rounded-lg overflow-hidden border-2 shadow-md shrink-0 transition-all ${i === carouselIdx ? 'border-white ring-2 ring-[#283693] scale-105' : 'border-white/80 opacity-70 hover:opacity-100'}`}>
+            <button key={ph.path} onClick={() => setLightboxIdx(i)}
+              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
               <img src={ph.url} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
@@ -960,14 +941,6 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
             </div>
           </div>
         </div>
-        {/* Bio */}
-        {(interests.personality || about.personality) && (
-          <div className="mt-5 pt-5 border-t border-gray-100">
-            <p className="text-sm leading-relaxed text-gray-600 italic text-center">
-              "{(interests.personality || about.personality)}"
-            </p>
-          </div>
-        )}
       </div>
 
       {/* ── All Sections ── */}
@@ -1223,6 +1196,45 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         )}
       </div>
     </div>
+
+    {/* ── Photo Lightbox Modal ── */}
+    {lightboxIdx !== null && photos?.length > 0 && (
+      <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightboxIdx(null)}>
+        <button className="absolute top-4 right-4 text-white/70 hover:text-white z-10" onClick={() => setLightboxIdx(null)}>
+          <X className="w-8 h-8" />
+        </button>
+        <div className="relative max-w-4xl w-full mx-4" onClick={e => e.stopPropagation()}>
+          <img src={photos[lightboxIdx].url} alt="" className="w-full max-h-[80vh] object-contain rounded-lg" />
+          {photos.length > 1 && (
+            <>
+              <button onClick={() => setLightboxIdx(i => (i - 1 + photos.length) % photos.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button onClick={() => setLightboxIdx(i => (i + 1) % photos.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
+                <ChevronRight className="w-6 h-6" />
+              </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm font-medium px-3 py-1 rounded-full">
+                {lightboxIdx + 1} / {photos.length}
+              </div>
+            </>
+          )}
+        </div>
+        {/* Thumbnail strip */}
+        {photos.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10">
+            {photos.map((ph, i) => (
+              <button key={ph.path} onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
+                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
+                <img src={ph.url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
     </HiddenFieldsContext.Provider>
   )
 }
