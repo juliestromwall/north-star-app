@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, fetchCaseEmails, fetchCaseTasks, fetchCaseNotes } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, fetchCaseEmails, fetchCaseTasks, fetchCaseNotes, fetchInsurance, fetchInsurancePayments, fetchJourneyExpenses } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
@@ -68,7 +68,7 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
         }))
       } catch {}
 
-      // Embryo transfers from journey data
+      // Embryo transfers from journey data (including pregnancy losses)
       const transfers = (journeyData?._transfers || []).map(t => ({
         date: t.date || null,
         embryoCount: t.embryoCount || null,
@@ -76,7 +76,43 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
         heartbeat: !!t.heartbeatDate,
         unsuccessful: !!t.unsuccessful,
         dropped: !!t.dropped,
+        lossType: t.lossType || null,
+        lossDate: t.lossDate || null,
       }))
+
+      // Insurance data
+      let insurance = null
+      try {
+        const insData = await fetchInsurance(caseId, caseType)
+        if (insData) {
+          const payments = await fetchInsurancePayments(insData.id).catch(() => [])
+          insurance = {
+            carrier: insData.carrier,
+            premium: insData.premium,
+            premiumDueDay: insData.premium_due_day,
+            startDate: insData.plan_start_date,
+            endDate: insData.plan_end_date,
+            status: insData.pay_status,
+            payments: payments.map(p => ({ monthFor: p.month_for, amount: p.amount, status: p.status })),
+          }
+        }
+      } catch {}
+
+      // Expenses (journey only)
+      let expenses = []
+      if (caseType === 'journey') {
+        try {
+          const exp = await fetchJourneyExpenses(caseId)
+          expenses = (exp || []).slice(0, 10).map(e => ({
+            date: e.expense_date,
+            amount: e.amount,
+            paidTo: e.paid_to,
+            escrow: e.is_escrow,
+            reconciled: e.is_reconciled,
+            notes: e.notes,
+          }))
+        } catch {}
+      }
 
       const res = await fetch('/api/ai/case-summary', {
         method: 'POST',
@@ -89,6 +125,8 @@ function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistS
           checklist,
           appointments,
           transfers: transfers.length > 0 ? transfers : undefined,
+          insurance: insurance || undefined,
+          expenses: expenses.length > 0 ? expenses : undefined,
         }),
       })
 

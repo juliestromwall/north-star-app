@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { caseName, caseType, stage, status, emails, tasks, notes, checklist, appointments, transfers, texts } = await context.request.json()
+  const { caseName, caseType, stage, status, emails, tasks, notes, checklist, appointments, transfers, texts, insurance, expenses } = await context.request.json()
 
   if (!caseName) {
     return new Response(JSON.stringify({ error: 'Missing caseName' }), {
@@ -81,9 +81,34 @@ export async function onRequestPost(context) {
       if (t.heartbeat) parts.push(`Heartbeat: confirmed`)
       if (t.unsuccessful) parts.push(`Status: unsuccessful`)
       if (t.dropped) parts.push(`Status: dropped`)
+      if (t.lossType) parts.push(`PREGNANCY LOSS: ${t.lossType}${t.lossDate ? ` on ${t.lossDate}` : ''}`)
       return `- ${parts.join(', ')}`
     }).join('\n')
     sections.push(`\nEmbryo Transfers:\n${transferSummary}`)
+  }
+
+  if (insurance) {
+    const insParts = []
+    if (insurance.carrier) insParts.push(`Carrier: ${insurance.carrier}`)
+    if (insurance.premium) insParts.push(`Premium: $${insurance.premium}`)
+    if (insurance.premiumDueDay) insParts.push(`Due day: ${insurance.premiumDueDay} of each month`)
+    if (insurance.startDate) insParts.push(`Start: ${insurance.startDate}`)
+    if (insurance.endDate) insParts.push(`End: ${insurance.endDate}`)
+    if (insurance.status) insParts.push(`Status: ${insurance.status}`)
+    if (insParts.length > 0) sections.push(`\nInsurance:\n${insParts.join('\n')}`)
+    if (insurance.payments?.length > 0) {
+      const paymentSummary = insurance.payments.slice(0, 6).map(p =>
+        `- ${p.monthFor || ''}: $${p.amount || '?'} — ${p.status || 'unknown'}`
+      ).join('\n')
+      sections.push(`\nRecent Insurance Payments:\n${paymentSummary}`)
+    }
+  }
+
+  if (expenses?.length > 0) {
+    const expSummary = expenses.slice(0, 10).map(e =>
+      `- ${e.date || ''}: $${e.amount || '?'} to ${e.paidTo || 'unknown'}${e.escrow ? ' [ESCROW]' : ''}${e.reconciled ? ' (reconciled)' : ' (not reconciled)'}${e.notes ? ` — ${e.notes.slice(0, 80)}` : ''}`
+    ).join('\n')
+    sections.push(`\nRecent Expenses (${expenses.length} total, showing last ${Math.min(10, expenses.length)}):\n${expSummary}`)
   }
 
   if (texts?.length > 0) {
@@ -101,8 +126,10 @@ export async function onRequestPost(context) {
 2. Highlight what's NEW or RECENT (last 1-2 weeks of activity)
 3. List any upcoming or past appointments
 4. Note any overdue tasks or items needing attention
-5. Mention embryo transfer status if applicable
-6. Flag any concerns or items that seem stalled
+5. Mention embryo transfer status if applicable — highlight any pregnancy losses (miscarriage, ectopic, chemical)
+6. Summarize insurance payment status — note any upcoming or overdue premiums
+7. Summarize recent expenses, especially those submitted to escrow
+8. Flag any concerns or items that seem stalled
 
 Keep it brief and actionable — this is for a case manager scanning updates quickly. Use bullet points. Do not make up information not present in the data. If a section has no data, skip it.`
 
