@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardHeader, CardTitle, CardContent, CardAction, CardDescription } from '@/components/ui/card'
@@ -189,7 +189,7 @@ function ReferencesForm({ data, onSave, saving }) {
 }
 
 // ── Confidential Information ───────────────────────────
-function ConfidentialForm({ data, onSave, saving }) {
+function ConfidentialForm({ data, onSave, saving, quizData }) {
   const [form, setForm] = useState({})
   const [editing, setEditing] = useState(false)
 
@@ -214,12 +214,20 @@ function ConfidentialForm({ data, onSave, saving }) {
   ]
 
   useEffect(() => {
-    if (data) {
-      const init = {}
-      for (const f of FIELDS) init[f.key] = data[f.key] || ''
-      setForm(init)
+    const init = {}
+    // Pre-fill from quiz data if available
+    const q = quizData || {}
+    const fullName = [q.firstName, q.lastName].filter(Boolean).join(' ')
+    const prefills = {
+      fullLegalName: fullName,
+      dob: q.dob || '',
+      hasSpouse: q.maritalStatus === 'Married' || q.maritalStatus === 'Domestic Partnership' ? 'yes' : '',
     }
-  }, [data])
+    for (const f of FIELDS) {
+      init[f.key] = data?.[f.key] || prefills[f.key] || ''
+    }
+    setForm(init)
+  }, [data, quizData])
 
   const hasData = data && Object.values(data).some(v => v)
 
@@ -267,19 +275,87 @@ function ConfidentialForm({ data, onSave, saving }) {
   )
 }
 
+// ── Signature Pad (type or draw) ───────────────────────
+function SignaturePad({ value, onChange, signerName }) {
+  const [mode, setMode] = useState('typed')
+  const canvasRef = useRef(null)
+  const drawingRef = useRef(false)
+
+  function handleDown(e) {
+    e.preventDefault(); drawingRef.current = true
+    const canvas = canvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); const rect = canvas.getBoundingClientRect()
+    const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
+    const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+    ctx.beginPath(); ctx.moveTo(x, y)
+  }
+  useEffect(() => {
+    function handleMove(e) {
+      if (!drawingRef.current) return
+      const canvas = canvasRef.current; if (!canvas) return
+      const ctx = canvas.getContext('2d'); const rect = canvas.getBoundingClientRect()
+      const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
+      const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+      ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
+      ctx.lineTo(x, y); ctx.stroke()
+    }
+    function handleUp() {
+      if (!drawingRef.current) return
+      drawingRef.current = false
+      if (canvasRef.current && mode === 'drawn') onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
+    }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
+    return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); window.removeEventListener('touchmove', handleMove); window.removeEventListener('touchend', handleUp) }
+  }, [mode, onChange, signerName])
+
+  return (
+    <div className="space-y-2">
+      <FieldLabel>Signature</FieldLabel>
+      <div className="flex gap-2 mb-1">
+        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+      </div>
+      {mode === 'typed' ? (
+        <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
+          onChange={e => onChange({ type: 'typed', name: e.target.value })}
+          placeholder="Type your full name"
+          className="w-full text-xl py-3 px-4 border-b-2 border-stone-300 bg-stone-50/50 outline-none rounded-t font-serif italic" />
+      ) : (
+        <div>
+          <canvas ref={canvasRef} width={400} height={80}
+            className="w-full border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none"
+            onMouseDown={handleDown} onTouchStart={handleDown} />
+          <button type="button" onClick={() => { const c = canvasRef.current; if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange(null) } }} className="text-xs text-stone-400 hover:text-red-500 mt-1">Clear</button>
+        </div>
+      )}
+      {value?.type === 'typed' && value?.name && (
+        <p className="text-lg text-[#283693] font-serif italic">{value.name}</p>
+      )}
+    </div>
+  )
+}
+
 // ── Social Media Release ───────────────────────────────
-function SocialMediaForm({ data, onSave, saving }) {
-  const [form, setForm] = useState({ fullName: '', email: '', signatureDate: '', agreed: false })
+function SocialMediaForm({ data, onSave, saving, quizData, userEmail }) {
+  const [form, setForm] = useState({ fullName: '', email: '', signatureDate: '', agreed: false, signature: null })
   const [editing, setEditing] = useState(false)
 
   useEffect(() => {
-    if (data) setForm({
-      fullName: data.fullName || '', email: data.email || '',
-      signatureDate: data.signatureDate || '', agreed: data.agreed || false,
+    const q = quizData || {}
+    const fullName = [q.firstName, q.lastName].filter(Boolean).join(' ')
+    setForm({
+      fullName: data?.fullName || fullName || '',
+      email: data?.email || userEmail || '',
+      signatureDate: data?.signatureDate || new Date().toISOString().split('T')[0],
+      agreed: data?.agreed || false,
+      signature: data?.signature || null,
     })
-  }, [data])
+  }, [data, quizData, userEmail])
 
-  const hasData = data?.agreed
+  const hasData = data?.agreed && data?.signature
 
   return (
     <Card className="rounded-2xl">
@@ -303,11 +379,12 @@ function SocialMediaForm({ data, onSave, saving }) {
             <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={form.signatureDate} onChange={e => setForm(f => ({ ...f, signatureDate: e.target.value }))} /></div>
           </div>
+          <SignaturePad value={form.signature} onChange={v => setForm(f => ({ ...f, signature: v }))} signerName={form.fullName} />
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.agreed} onChange={e => setForm(f => ({ ...f, agreed: e.target.checked }))} className="size-4 accent-[#283693]" />
             <span className="text-sm text-stone-700">I agree to the terms above</span>
           </label>
-          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving}>
+          <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_socialMediaRelease', form)} disabled={saving || !form.agreed || !form.signature}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>
         </CardContent>
@@ -414,9 +491,9 @@ export default function PortalApplicationPage() {
       </div>
 
       <PersonalInfoForm data={answers._application} onSave={handleSave} saving={saving} />
-      <ConfidentialForm data={answers._confidential} onSave={handleSave} saving={saving} />
+      <ConfidentialForm data={answers._confidential} onSave={handleSave} saving={saving} quizData={answers} />
       <ReferencesForm data={answers._references} onSave={handleSave} saving={saving} />
-      <SocialMediaForm data={answers._socialMediaRelease} onSave={handleSave} saving={saving} />
+      <SocialMediaForm data={answers._socialMediaRelease} onSave={handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} />
     </div>
   )
 }
