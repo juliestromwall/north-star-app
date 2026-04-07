@@ -522,7 +522,7 @@ export async function fetchSurrogateProfile(userId) {
   if (!supabase) return null
   const { data, error } = await supabase
     .from('surrogate_profiles')
-    .select('profile_data, updated_at')
+    .select('profile_data, updated_at, status')
     .eq('user_id', userId)
     .single()
   if (error) return null

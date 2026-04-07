@@ -732,11 +732,13 @@ export default function SurrogateProfilePage() {
 
         {/* Approved banner */}
         {profileApproved && (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
-            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+          <div className="flex items-center gap-3 p-5 rounded-xl bg-green-50 border-2 border-green-300 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            </div>
             <div>
-              <p className="font-semibold text-green-800 text-sm">Profile Approved</p>
-              <p className="text-xs text-green-600">Your profile has been reviewed and approved by the ABC team. It is now visible to intended parents.</p>
+              <p className="font-bold text-green-800">Profile Approved</p>
+              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. It is now visible to intended parents. If you need to make changes, please contact the agency.</p>
             </div>
           </div>
         )}
@@ -755,10 +757,10 @@ export default function SurrogateProfilePage() {
               const isOpen = !!openSections[sec.key]
 
               return (
-                <Collapsible key={sec.key} open={isOpen} onOpenChange={() => toggleSection(sec.key)}>
-                  <Card id={`section-${sec.key}`} className="rounded-2xl shadow-sm border-gray-100 overflow-hidden">
+                <Collapsible key={sec.key} open={profileApproved ? false : isOpen} onOpenChange={() => !profileApproved && toggleSection(sec.key)}>
+                  <Card id={`section-${sec.key}`} className={`rounded-2xl shadow-sm border-gray-100 overflow-hidden ${profileApproved ? 'opacity-60' : ''}`}>
                     <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-gray-50/50 transition-colors">
+                      <CardHeader className={`${profileApproved ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50/50'} transition-colors`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             complete ? 'bg-green-100' : 'bg-[#283693]/10'
