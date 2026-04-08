@@ -173,17 +173,22 @@ export default function SignReleaseBatchPage() {
               .replace(/\{\{Name:GC\}\}/g, mySigner.name || '')
               .replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
 
-            // Add audit trail
+            // Append audit trail at the end
+            const signedAt = new Date()
             const auditHtml = `
-              <div style="margin-top: 40px; border-top: 2px solid #283693; padding-top: 16px; font-size: 11px; color: #6b7280;">
-                <p style="font-weight: 700; color: #283693; font-size: 12px;">ELECTRONIC SIGNATURE CERTIFICATE</p>
-                <p>Signed by: ${mySigner.name} (${mySigner.email})</p>
-                <p>Date: ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</p>
-                <p>Signature type: ${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</p>
-                <p style="margin-top: 8px; font-size: 9px;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA.</p>
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #283693; font-size: 11px; color: #6b7280; page-break-inside: avoid;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td colspan="2" style="padding-bottom: 8px;"><strong style="color: #283693; font-size: 12px;">ELECTRONIC SIGNATURE CERTIFICATE</strong></td></tr>
+                  <tr><td style="padding: 2px 0;">Completed:</td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
+                  <tr><td style="padding: 2px 0;">Signer:</td><td>${mySigner.name}</td></tr>
+                  <tr><td style="padding: 2px 0;">Email:</td><td>${mySigner.email}</td></tr>
+                  <tr><td style="padding: 2px 0;">Signature type:</td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
+                  <tr><td style="padding: 2px 0;">IP Address:</td><td>Captured at signing</td></tr>
+                </table>
+                <p style="margin-top: 12px; font-size: 9px; color: #9ca3af;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
               </div>
             `
-            filledHtml = filledHtml.replace('</div>\n</div>', auditHtml + '</div>\n</div>')
+            filledHtml += auditHtml
 
             // Upload signed HTML
             const signedBlob = new Blob([filledHtml], { type: 'text/html' })

@@ -855,6 +855,7 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [selectedIndexes, setSelectedIndexes] = useState(new Set())
   const { currentUser } = useRole()
 
   const { extractProviders, generateReleaseFormHtml } = useMemo(() => {
@@ -873,9 +874,11 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
       // Generate a batch token to group all release forms
       const batchToken = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
 
-      const providers = extractProviders(clinicData)
+      const allProviders = extractProviders(clinicData)
+      // Filter to only selected providers
+      const providers = allProviders.filter((_, i) => selectedIndexes.has(i))
       if (providers.length === 0) {
-        setResult({ error: 'No providers found. Please ensure the clinic/hospital form is filled out.' })
+        setResult({ error: 'No providers selected. Please check at least one provider.' })
         setGenerating(false)
         return
       }
@@ -972,6 +975,23 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
               </div>
             `,
           })
+          // Log to case emails
+          const providerNames = created.map(d => d.clinicName).join(', ')
+          try {
+            await supabase.from('case_emails').insert({
+              gmail_message_id: 'release-forms-' + Date.now(),
+              case_id: surrogate.id,
+              case_type: 'gc',
+              subject: `Medical Records Release Forms - ${created.length} forms sent`,
+              from_address: currentUser?.email || '',
+              to_address: patient.email,
+              date: new Date().toISOString(),
+              snippet: `Sent ${created.length} medical records release forms for: ${providerNames}`,
+              logged_by: currentUser?.id,
+              logged_by_name: currentUser?.name || '',
+              tag: 'medical-records',
+            })
+          } catch {}
         } catch (emailErr) {
           console.error('Failed to email signer:', emailErr)
         }
@@ -992,8 +1012,19 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
       const { extractProviders } = await import('@/lib/releaseFormGenerator')
       const providers = extractProviders(clinicData)
       setShowPreview(true)
+      // Select all by default
+      setSelectedIndexes(new Set(providers.map((_, i) => i)))
       setResult({ preview: true, providers })
     } catch {}
+  }
+
+  function toggleProvider(idx) {
+    setSelectedIndexes(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) next.delete(idx)
+      else next.add(idx)
+      return next
+    })
   }
 
   return (
@@ -1004,22 +1035,27 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
             <Button variant="outline" size="sm" className="gap-1.5" onClick={handlePreview} disabled={generating}>
               <FileText className="size-3.5" /> Preview Release Forms
             </Button>
-            {result?.preview && (
+            {result?.preview && selectedIndexes.size > 0 && (
               <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#ed148c', color: '#fff' }} onClick={handleGenerate} disabled={generating}>
                 {generating ? <Loader2 className="size-3.5 animate-spin" /> : <FileText className="size-3.5" />}
-                {generating ? 'Generating...' : `Generate ${result.providers?.length || 0} Release Form${result.providers?.length === 1 ? '' : 's'}`}
+                {generating ? 'Generating...' : `Generate ${selectedIndexes.size} Release Form${selectedIndexes.size === 1 ? '' : 's'}`}
               </Button>
             )}
           </div>
           {result?.preview && result.providers?.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 mb-1">
+                <button className="text-[10px] text-[#283693] font-medium hover:underline" onClick={() => setSelectedIndexes(new Set(result.providers.map((_, i) => i)))}>Select All</button>
+                <span className="text-stone-300">|</span>
+                <button className="text-[10px] text-stone-500 font-medium hover:underline" onClick={() => setSelectedIndexes(new Set())}>Deselect All</button>
+              </div>
               {result.providers.map((p, i) => {
                 const typeLabels = { ob: 'Prenatal/OB', hospital: 'L&D Hospital', mfm: 'MFM', ivf: 'IVF/Fertility' }
                 return (
-                  <div key={i} className="flex items-center gap-2 text-xs text-stone-600">
-                    <span className="size-1.5 rounded-full bg-[#283693]" />
-                    <span className="font-medium">{typeLabels[p.type]}</span> — {p.clinicName} {p.doctorName && `(${p.doctorName})`}
-                  </div>
+                  <label key={i} className="flex items-center gap-2 text-xs text-stone-600 cursor-pointer hover:bg-stone-50 rounded px-1 py-0.5">
+                    <input type="checkbox" checked={selectedIndexes.has(i)} onChange={() => toggleProvider(i)} className="size-3.5 accent-[#283693]" />
+                    <span className="font-medium text-[#283693]">{typeLabels[p.type]}</span> — {p.clinicName} {p.doctorName && <span className="text-stone-400">({p.doctorName})</span>}
+                  </label>
                 )
               })}
             </div>
