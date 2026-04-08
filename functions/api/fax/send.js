@@ -73,10 +73,20 @@ export async function onRequestPost(context) {
       if (coverFromName) payload.sCPFromName = coverFromName
     }
 
+    // SRFax requires form-urlencoded POST
+    // Build body manually to handle large base64 payloads
+    const parts = []
+    for (const [key, val] of Object.entries(payload)) {
+      if (val !== undefined && val !== null) {
+        parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(val))
+      }
+    }
+    const body = parts.join('&')
+
     const res = await fetch('https://secure.srfax.com/SRF_SecWebSvc.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
     })
 
     const result = await res.json()

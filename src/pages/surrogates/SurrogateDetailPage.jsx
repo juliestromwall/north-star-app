@@ -2068,13 +2068,12 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       // Generate custom branded cover page as PDF
                       const coverHtml = `
                         <div style="font-family: Arial, sans-serif; width: 816px; padding: 50px; color: #000;">
-                          <div style="border: 2px solid #000; padding: 20px; text-align: center; margin-bottom: 30px; display: flex; align-items: center;">
-                            <div style="flex: 1;">
-                              <img src="/abc-logo.png" style="height: 60px; margin-bottom: 8px;" onerror="this.style.display='none'" />
-                              <p style="font-size: 18px; font-weight: 700; margin: 4px 0;">Abundant Beginnings Co.</p>
-                              <p style="font-size: 12px; margin: 0;">Tel: 323-207-5762 &nbsp; Fax: 323-843-9433</p>
+                          <div style="border: 2px solid #000; margin-bottom: 30px; display: flex; align-items: center;">
+                            <div style="flex: 1; text-align: center; padding: 20px;">
+                              <img src="/abc-logo.png" style="height: 90px;" onerror="this.style.display='none'" />
+                              <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 323-207-5762 &nbsp;&nbsp; Fax: 323-843-9433</p>
                             </div>
-                            <div style="border-left: 2px solid #000; padding: 15px 25px; font-size: 36px; font-weight: 700;">Fax</div>
+                            <div style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700;">Fax</div>
                           </div>
                           <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                             <tr>
