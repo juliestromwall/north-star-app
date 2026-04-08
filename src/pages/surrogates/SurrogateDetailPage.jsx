@@ -1460,6 +1460,10 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
   const [editingDoc, setEditingDoc] = useState(null)
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [faxDoc, setFaxDoc] = useState(null)
+  const [faxNumber, setFaxNumber] = useState('')
+  const [faxSending, setFaxSending] = useState(false)
+  const [faxResult, setFaxResult] = useState(null)
   const [editSaving, setEditSaving] = useState(false)
   const [docSearch, setDocSearch] = useState('')
   const [docView, setDocView] = useState('grid') // 'grid' | 'list'
@@ -1682,6 +1686,11 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
             className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={e => e.stopPropagation()} title="Download">
             <Download className="size-3 text-stone-400" />
           </a>
+          {doc.file_type === 'application/pdf' && (
+            <button className="size-7 rounded-full flex items-center justify-center hover:bg-blue-50" onClick={() => setFaxDoc(doc)} title="Fax">
+              <Printer className="size-3 text-stone-400" />
+            </button>
+          )}
           <button className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={() => startEdit(doc)} title="Edit">
             <Pencil className="size-3 text-stone-400" />
           </button>
@@ -1942,6 +1951,75 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels }) {
             <Button variant="outline" size="sm" onClick={() => setDeleteConfirmDoc(null)}>Cancel</Button>
             <Button variant="destructive" size="sm" onClick={handleDelete}>Delete Permanently</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fax Document Dialog */}
+      <Dialog open={faxDoc !== null} onOpenChange={v => { if (!v) { setFaxDoc(null); setFaxResult(null); setFaxNumber('') } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Printer className="size-5 text-[#283693]" /> Fax Document
+            </DialogTitle>
+          </DialogHeader>
+          {faxResult?.success ? (
+            <div className="text-center py-4 space-y-2">
+              <CheckCircle2 className="size-10 text-emerald-500 mx-auto" />
+              <p className="text-sm font-medium text-stone-700">Fax sent successfully!</p>
+              <p className="text-xs text-stone-400">Fax ID: {faxResult.faxId}</p>
+              <Button variant="outline" size="sm" onClick={() => { setFaxDoc(null); setFaxResult(null); setFaxNumber('') }}>Close</Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-stone-600">
+                Send <strong>{faxDoc?.file_name}</strong> via fax.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Fax Number</label>
+                <Input type="tel" placeholder="xxx-xxx-xxxx" value={faxNumber}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    if (digits.length <= 3) setFaxNumber(digits)
+                    else if (digits.length <= 6) setFaxNumber(`${digits.slice(0, 3)}-${digits.slice(3)}`)
+                    else setFaxNumber(`${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`)
+                  }} />
+              </div>
+              {faxResult?.error && <p className="text-xs text-red-500">{faxResult.error}</p>}
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => { setFaxDoc(null); setFaxResult(null); setFaxNumber('') }}>Cancel</Button>
+                <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+                  disabled={faxSending || !/^\d{3}-\d{3}-\d{4}$/.test(faxNumber)}
+                  onClick={async () => {
+                    setFaxSending(true); setFaxResult(null)
+                    try {
+                      const { sendFax } = await import('@/lib/fax')
+                      // Fetch PDF and convert to base64
+                      const response = await fetch(faxDoc.public_url)
+                      const blob = await response.blob()
+                      const base64 = await new Promise((resolve) => {
+                        const reader = new FileReader()
+                        reader.onload = () => resolve(reader.result.split(',')[1])
+                        reader.readAsDataURL(blob)
+                      })
+                      const digits = faxNumber.replace(/\D/g, '')
+                      const result = await sendFax({
+                        to: digits,
+                        fileName: faxDoc.file_name,
+                        fileContent: base64,
+                      })
+                      setFaxResult({ success: true, faxId: result.faxId || result.Status })
+                    } catch (err) {
+                      setFaxResult({ error: err.message || 'Failed to send fax' })
+                    } finally {
+                      setFaxSending(false)
+                    }
+                  }}>
+                  {faxSending ? <Loader2 className="size-3.5 animate-spin" /> : <Printer className="size-3.5" />}
+                  {faxSending ? 'Sending...' : 'Send Fax'}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
