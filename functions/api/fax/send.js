@@ -11,7 +11,7 @@ export async function onRequestPost(context) {
   const { env } = context
 
   try {
-    const { to, fileName, fileContent, coverPage, coverSubject, coverMessage } = await context.request.json()
+    const { to, fileName, fileContent, coverPage, coverSubject, coverMessage, coverToName, coverOrganization, coverFromName, additionalFiles } = await context.request.json()
 
     if (!to || !fileContent) {
       return new Response(JSON.stringify({ error: 'Missing "to" or "fileContent"' }), {
@@ -49,11 +49,22 @@ export async function onRequestPost(context) {
       sResponseFormat: 'JSON',
     }
 
+    // Additional files (e.g. driver's license)
+    if (additionalFiles && Array.isArray(additionalFiles)) {
+      additionalFiles.forEach((f, i) => {
+        payload[`sFileName_${i + 2}`] = f.fileName || `attachment_${i + 2}.pdf`
+        payload[`sFileContent_${i + 2}`] = f.fileContent
+      })
+    }
+
     // Optional cover page
     if (coverPage) {
       payload.sCoverPage = coverPage // 'Standard', 'Company', etc.
       if (coverSubject) payload.sCPSubject = coverSubject
       if (coverMessage) payload.sCPComments = coverMessage
+      if (coverToName) payload.sCPToName = coverToName
+      if (coverOrganization) payload.sCPOrganization = coverOrganization
+      if (coverFromName) payload.sCPFromName = coverFromName
     }
 
     const res = await fetch('https://secure.srfax.com/SRF_SecWebSvc.php', {
