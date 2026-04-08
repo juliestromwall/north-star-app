@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask, getRecordTracking, setRecordTracking } from '@/lib/db'
+import { createCaseTask } from '@/lib/db'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -849,13 +849,38 @@ export default function PortalApplicationPage() {
     setSaving(true)
     try {
       const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
-      const updated = { ...(fresh?.answers || answers), _applicationSubmitted: true, _applicationSubmittedAt: new Date().toISOString() }
+      const currentAnswers = fresh?.answers || answers
+
+      // Build checklist update inline (avoids separate read/write + RLS issues)
+      const existingTracking = currentAnswers._recordTracking || {}
+      const currentAppStep = existingTracking.app_complete || { history: [] }
+      const trackingEntry = {
+        status: 'reviewing',
+        date: new Date().toISOString().split('T')[0],
+        note: 'Submitted by Applicant',
+        by: 'System',
+      }
+      const updatedTracking = {
+        ...existingTracking,
+        app_complete: {
+          ...currentAppStep,
+          status: 'reviewing',
+          history: [...(currentAppStep.history || []), trackingEntry],
+        },
+      }
+
+      const updated = {
+        ...currentAnswers,
+        _applicationSubmitted: true,
+        _applicationSubmittedAt: new Date().toISOString(),
+        _recordTracking: updatedTracking,
+      }
       await supabase.from('intake_submissions').update({ answers: updated }).eq('id', caseId)
       setAnswers(updated)
       setSubmitOpen(false)
 
       // Create task for assigned admin to review the application
-      const surName = [answers?.firstName, answers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate'
+      const surName = [currentAnswers?.firstName, currentAnswers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate'
       try {
         await createCaseTask({
           case_id: Number(caseId),
@@ -870,29 +895,6 @@ export default function PortalApplicationPage() {
         })
       } catch (err) {
         console.error('Auto-task for app review failed:', err)
-      }
-
-      // Update checklist: mark "Application Complete" with system log
-      try {
-        const tracking = await getRecordTracking(caseId) || {}
-        const current = tracking.app_complete || { history: [] }
-        const entry = {
-          status: 'reviewing',
-          date: new Date().toISOString().split('T')[0],
-          note: 'Submitted by Applicant',
-          by: 'System',
-        }
-        const updatedTracking = {
-          ...tracking,
-          app_complete: {
-            ...current,
-            status: 'reviewing',
-            history: [...(current.history || []), entry],
-          },
-        }
-        await setRecordTracking(caseId, updatedTracking)
-      } catch (err) {
-        console.error('Checklist update failed:', err)
       }
     } catch (err) {
       console.error('Submit failed:', err)
