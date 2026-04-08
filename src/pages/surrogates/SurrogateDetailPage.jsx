@@ -2160,6 +2160,31 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                         additionalFiles,
                       })
                       setFaxResult({ success: true, faxId: result.faxId || result.Status })
+
+                      // Log fax to case emails
+                      try {
+                        const { supabase: sb } = await import('@/lib/supabase')
+                        if (sb && surrogateId) {
+                          const attachList = [faxDoc.file_name]
+                          if (faxIncludeDL) {
+                            const dlDoc = docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc')
+                            if (dlDoc) attachList.push(dlDoc.file_name)
+                          }
+                          await sb.from('case_emails').insert({
+                            gmail_message_id: 'fax-' + Date.now(),
+                            case_id: surrogateId,
+                            case_type: 'gc',
+                            subject: `Fax Sent to ${faxNumber}`,
+                            from_address: currentUser?.email || '',
+                            to_address: faxNumber,
+                            date: new Date().toISOString(),
+                            snippet: `Faxed by ${currentUser?.name || 'Admin'} to ${faxNumber}${faxToName ? ` (${faxToName})` : ''}\n\nSubject: ${faxSubject}\n\nAttachments: ${attachList.join(', ')}\n\nFax ID: ${result.faxId || result.Status}`,
+                            logged_by: currentUser?.id,
+                            logged_by_name: currentUser?.name || '',
+                            tag: 'fax',
+                          })
+                        }
+                      } catch (logErr) { console.error('Fax log failed:', logErr) }
                     } catch (err) {
                       setFaxResult({ error: err.message || 'Failed to send fax' })
                     } finally {
