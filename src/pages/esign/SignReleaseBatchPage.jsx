@@ -308,26 +308,36 @@ export default function SignReleaseBatchPage() {
     )
   }
 
-  // Email verification
+  // Email verification — branded like login page
   if (!verified) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16">
-        <Card className="rounded-2xl shadow-lg">
-          <CardContent className="py-8 px-6 text-center space-y-4">
-            <Shield className="size-10 text-[#283693] mx-auto" />
-            <h1 className="text-xl font-bold text-stone-800">Verify Your Identity</h1>
-            <p className="text-sm text-stone-500">Enter your email address to access {docs.length} medical records release form{docs.length === 1 ? '' : 's'}.</p>
-            <div className="space-y-3 pt-2">
-              <Input type="email" placeholder="your@email.com" value={signerEmail}
-                onChange={e => setSignerEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleVerify()}
-                className="text-center" />
-              <Button className="w-full gap-2" style={{ backgroundColor: '#283693' }} onClick={handleVerify}>
+      <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #f0f1fa 0%, #fdf8f3 30%, #fef9fb 60%, #f0f1fa 100%)' }}>
+        <div className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-8">
+              <img src="/abc-logo.png" alt="Abundant Beginnings Co." className="h-16 w-auto mx-auto mb-6" />
+              <h1 className="text-2xl font-heading font-bold" style={{ color: '#283693' }}>Medical Records <span style={{ color: '#ed148c' }}>Release</span></h1>
+              <p className="text-stone-400 text-sm mt-2">Verify your identity to continue</p>
+            </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-stone-200/60 shadow-lg p-6 space-y-4">
+              <div className="text-center">
+                <Shield className="size-8 text-[#283693] mx-auto mb-2" />
+                <p className="text-sm text-stone-500">Enter your email address to access {docs.length} medical records release form{docs.length === 1 ? '' : 's'}.</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Email</label>
+                <Input type="email" placeholder="your@email.com" value={signerEmail}
+                  onChange={e => setSignerEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleVerify()}
+                  className="h-11" />
+              </div>
+              <Button className="w-full h-11 gap-2 text-sm font-semibold" style={{ backgroundColor: '#283693' }} onClick={handleVerify}>
                 <Mail className="size-4" /> Verify & Continue
               </Button>
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-center text-xs text-stone-400 mt-6">Abundant Beginnings Company, LLC</p>
+          </div>
+        </div>
       </div>
     )
   }
