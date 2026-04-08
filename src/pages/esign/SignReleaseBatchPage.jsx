@@ -173,68 +173,81 @@ export default function SignReleaseBatchPage() {
               .replace(/\{\{Name:GC\}\}/g, mySigner.name || '')
               .replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))
 
-            // Append audit trail at the end
+            // Build audit trail HTML separately
             const signedAt = new Date()
             const auditHtml = `
-              <div style="page-break-before: always; padding-top: 20px; border-top: 2px solid #283693; font-size: 11px; color: #6b7280;">
-                <table style="width: 100%; border-collapse: collapse;">
-                  <tr><td colspan="2" style="padding-bottom: 8px;"><strong style="color: #283693; font-size: 12px;">ELECTRONIC SIGNATURE CERTIFICATE</strong></td></tr>
-                  <tr><td style="padding: 2px 0;">Completed:</td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
-                  <tr><td style="padding: 2px 0;">Signer:</td><td>${mySigner.name}</td></tr>
-                  <tr><td style="padding: 2px 0;">Email:</td><td>${mySigner.email}</td></tr>
-                  <tr><td style="padding: 2px 0;">Signature type:</td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
-                  <tr><td style="padding: 2px 0;">IP Address:</td><td>Captured at signing</td></tr>
-                </table>
-                <p style="margin-top: 12px; font-size: 9px; color: #555;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
+              <div style="font-family: Arial, sans-serif; padding: 40px; color: #000; font-size: 12px; line-height: 1.5;">
+                <div style="border-top: 2px solid #283693; padding-top: 20px;">
+                  <p style="font-weight: 700; color: #283693; font-size: 14px; margin: 0 0 12px 0;">ELECTRONIC SIGNATURE CERTIFICATE</p>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <tr><td style="padding: 4px 0; width: 180px;"><strong>Completed:</strong></td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
+                    <tr><td style="padding: 4px 0;"><strong>Signer:</strong></td><td>${mySigner.name}</td></tr>
+                    <tr><td style="padding: 4px 0;"><strong>Email:</strong></td><td>${mySigner.email}</td></tr>
+                    <tr><td style="padding: 4px 0;"><strong>Signature type:</strong></td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
+                    <tr><td style="padding: 4px 0;"><strong>IP Address:</strong></td><td>Captured at signing</td></tr>
+                  </table>
+                  <p style="margin-top: 16px; font-size: 10px; color: #555; border-top: 1px solid #ccc; padding-top: 12px;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
+                </div>
               </div>
             `
-            filledHtml += auditHtml
 
-            // Upload signed HTML
-            const signedBlob = new Blob([filledHtml], { type: 'text/html' })
+            // Upload signed HTML (form + audit combined for the HTML version)
+            const signedBlob = new Blob([filledHtml + auditHtml], { type: 'text/html' })
             const signedPath = `documents/signed_release_${doc.id}_${Date.now()}.html`
             await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
 
-            // Generate PDF using html2canvas + jsPDF directly
+            // Generate PDF — page 1: form, page 2: audit trail (separate renders)
             try {
               const html2canvas = (await import('html2canvas')).default
               const { jsPDF } = await import('jspdf')
 
-              // Create a full-page overlay so user doesn't see the render
               const overlay = document.createElement('div')
               overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
               overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Generating PDFs...</p>'
               document.body.appendChild(overlay)
 
-              const container = document.createElement('div')
-              container.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
-              container.innerHTML = `<div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; font-size: 14px; line-height: 1.6;">${filledHtml}</div>`
-              document.body.appendChild(container)
+              // Page 1: the release form (no audit trail)
+              const page1 = document.createElement('div')
+              page1.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
+              page1.innerHTML = `<div style="font-family: Arial, sans-serif; color: #000; font-size: 11px; line-height: 1.35;">${filledHtml}</div>`
+              document.body.appendChild(page1)
+
+              // Page 2: audit trail
+              const page2 = document.createElement('div')
+              page2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;padding:0;'
+              page2.innerHTML = auditHtml
+              document.body.appendChild(page2)
 
               await new Promise(r => setTimeout(r, 1000))
 
-              const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-              const imgData = canvas.toDataURL('image/jpeg', 0.95)
+              const canvas1 = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+              const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
 
-              // Letter size: 8.5 x 11 inches
+              document.body.removeChild(page1)
+              document.body.removeChild(page2)
+              document.body.removeChild(overlay)
+
               const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
               const pageWidth = 8.5
               const pageHeight = 11
-              const imgWidth = pageWidth
-              const imgHeight = (canvas.height * imgWidth) / canvas.width
 
-              // Add image, paginate if taller than one page
+              // Page 1 — form content (scale to fit page width, may overflow to bottom)
+              const img1 = canvas1.toDataURL('image/jpeg', 0.95)
+              const img1Height = (canvas1.height * pageWidth) / canvas1.width
               let yOffset = 0
-              while (yOffset < imgHeight) {
+              while (yOffset < img1Height) {
                 if (yOffset > 0) pdf.addPage()
-                pdf.addImage(imgData, 'JPEG', 0, -yOffset, imgWidth, imgHeight)
+                pdf.addImage(img1, 'JPEG', 0, -yOffset, pageWidth, img1Height)
                 yOffset += pageHeight
               }
 
-              const pdfBlob = pdf.output('blob')
+              // Page 2 — audit trail (always a new page)
+              pdf.addPage()
+              const img2 = canvas2.toDataURL('image/jpeg', 0.95)
+              const img2Height = (canvas2.height * pageWidth) / canvas2.width
+              pdf.addImage(img2, 'JPEG', 0, 0, pageWidth, img2Height)
 
-              document.body.removeChild(container)
-              document.body.removeChild(overlay)
+              const pdfBlob = pdf.output('blob')
 
               const pdfPath = `documents/signed_release_${doc.id}_${Date.now()}.pdf`
               await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
