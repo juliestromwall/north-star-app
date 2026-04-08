@@ -976,17 +976,17 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
             `,
           })
           // Log to case emails
-          const providerNames = created.map(d => d.clinicName).join(', ')
+          const providerList = created.map((d, i) => `${i + 1}. ${d.clinicName} (${{ ob: 'Prenatal/OB', hospital: 'Labor & Delivery', mfm: 'MFM', ivf: 'IVF/Fertility' }[d.type] || d.type})`).join('<br/>')
           try {
             await supabase.from('case_emails').insert({
               gmail_message_id: 'release-forms-' + Date.now(),
               case_id: surrogate.id,
               case_type: 'gc',
-              subject: `Medical Records Release Forms - ${created.length} forms sent`,
+              subject: `Medical Records Release Forms - ${created.length} form${created.length === 1 ? '' : 's'} sent`,
               from_address: currentUser?.email || '',
               to_address: patient.email,
               date: new Date().toISOString(),
-              snippet: `Sent ${created.length} medical records release forms for: ${providerNames}`,
+              snippet: `Sent ${created.length} medical records release form${created.length === 1 ? '' : 's'} to ${patient.name} for e-signature:<br/><br/>${providerList}<br/><br/>Signing link: <a href="${batchUrl}">${batchUrl}</a>`,
               logged_by: currentUser?.id,
               logged_by_name: currentUser?.name || '',
               tag: 'medical-records',

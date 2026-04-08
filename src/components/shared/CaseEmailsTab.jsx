@@ -90,10 +90,26 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   }
 
   const handleViewFull = async (loggedEmail) => {
-    if (!connected || !userId) return
     setSelectedEmail(loggedEmail)
     setLoadingFull(true)
     setFullEmail(null)
+
+    // System-generated emails (not from Gmail) — show snippet as body
+    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-')
+    if (isSystemEmail) {
+      setFullEmail({
+        from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
+        to: loggedEmail.to_address || '',
+        date: loggedEmail.date,
+        subject: loggedEmail.subject,
+        bodyHtml: `<p>${loggedEmail.snippet || loggedEmail.subject || ''}</p>`,
+        attachments: [],
+      })
+      setLoadingFull(false)
+      return
+    }
+
+    if (!connected || !userId) { setLoadingFull(false); return }
     try {
       const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
       const headers = parseEmailHeaders(full)
