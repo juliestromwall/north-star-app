@@ -190,9 +190,10 @@ export default function SignReleaseBatchPage() {
             const signedPath = `documents/signed_release_${doc.id}_${Date.now()}.html`
             await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
 
-            // Generate PDF via html2pdf — element must be fully visible
+            // Generate PDF using html2canvas + jsPDF directly
             try {
-              const html2pdf = (await import('html2pdf.js')).default
+              const html2canvas = (await import('html2canvas')).default
+              const { jsPDF } = await import('jspdf')
 
               // Create a full-page overlay so user doesn't see the render
               const overlay = document.createElement('div')
@@ -201,21 +202,31 @@ export default function SignReleaseBatchPage() {
               document.body.appendChild(overlay)
 
               const container = document.createElement('div')
-              container.style.cssText = 'position:fixed;top:0;left:0;width:800px;background:white;z-index:99998;padding:20px;'
+              container.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
               container.innerHTML = `<div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; font-size: 14px; line-height: 1.6;">${filledHtml}</div>`
               document.body.appendChild(container)
 
-              // Wait for render
-              await new Promise(r => setTimeout(r, 800))
+              await new Promise(r => setTimeout(r, 1000))
 
-              const worker = html2pdf().set({
-                margin: [0.4, 0.5, 0.4, 0.5],
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-              }).from(container)
+              const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+              const imgData = canvas.toDataURL('image/jpeg', 0.95)
 
-              const pdfBlob = await worker.toPdf().output('blob')
+              // Letter size: 8.5 x 11 inches
+              const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
+              const pageWidth = 8.5
+              const pageHeight = 11
+              const imgWidth = pageWidth
+              const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+              // Add image, paginate if taller than one page
+              let yOffset = 0
+              while (yOffset < imgHeight) {
+                if (yOffset > 0) pdf.addPage()
+                pdf.addImage(imgData, 'JPEG', 0, -yOffset, imgWidth, imgHeight)
+                yOffset += pageHeight
+              }
+
+              const pdfBlob = pdf.output('blob')
 
               document.body.removeChild(container)
               document.body.removeChild(overlay)
