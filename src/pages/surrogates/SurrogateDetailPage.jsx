@@ -17,7 +17,7 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
@@ -696,22 +696,41 @@ export default function SurrogateDetailPage() {
                     {quizAnswers._applicationSubmittedAt && (
                       <span className="text-[10px] text-stone-400">{new Date(quizAnswers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     )}
-                    <Button variant="outline" size="sm" className="gap-1 text-[10px] h-6 px-2 text-amber-600 border-amber-200 hover:bg-amber-50"
-                      onClick={async () => {
-                        if (!confirm('Reopen the application for updates? The surrogate will be able to edit and must re-submit.')) return
-                        try {
-                          const { supabase: sb } = await import('@/lib/supabase')
-                          if (!sb) return
-                          const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
-                          if (row) {
-                            const updated = { ...(row.answers || {}), _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString(), _applicationReopenedBy: currentUser.name }
-                            await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
-                            setQuizAnswers(prev => ({ ...prev, _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString() }))
-                          }
-                        } catch (err) { console.error('Failed to reopen application:', err) }
-                      }}>
-                      <Pencil className="size-2.5" /> Reopen for Updates
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1 text-[10px] h-6 px-2 text-amber-600 border-amber-200 hover:bg-amber-50">
+                          <Pencil className="size-2.5" /> Reopen for Updates
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                          <DialogTitle>Reopen Application?</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-stone-600 leading-relaxed">
+                          The surrogate will be able to edit their application and must re-submit when finished. No data will be erased.
+                        </p>
+                        <div className="flex justify-end gap-2 pt-2">
+                          <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                          <DialogClose asChild>
+                            <Button size="sm" className="gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+                              onClick={async () => {
+                                try {
+                                  const { supabase: sb } = await import('@/lib/supabase')
+                                  if (!sb) return
+                                  const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                                  if (row) {
+                                    const updated = { ...(row.answers || {}), _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString(), _applicationReopenedBy: currentUser.name }
+                                    await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+                                    setQuizAnswers(prev => ({ ...prev, _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString() }))
+                                  }
+                                } catch (err) { console.error('Failed to reopen application:', err) }
+                              }}>
+                              <Pencil className="size-3" /> Reopen Application
+                            </Button>
+                          </DialogClose>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 ) : quizAnswers?._applicationAvailable ? (
                   <div className="flex flex-col items-center">
