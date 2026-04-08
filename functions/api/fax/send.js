@@ -22,10 +22,16 @@ export async function onRequestPost(context) {
 
     const accessId = env.SRFAX_ACCESS_ID
     const accessPwd = env.SRFAX_ACCESS_PWD
-    const callerID = env.SRFAX_CALLER_ID || ''
+    const callerID = env.SRFAX_CALLER_ID
+    const senderEmail = env.SRFAX_SENDER_EMAIL
 
-    if (!accessId || !accessPwd) {
-      return new Response(JSON.stringify({ error: 'SRFax not configured' }), {
+    const missing = []
+    if (!accessId) missing.push('SRFAX_ACCESS_ID')
+    if (!accessPwd) missing.push('SRFAX_ACCESS_PWD')
+    if (!callerID) missing.push('SRFAX_CALLER_ID')
+    if (!senderEmail) missing.push('SRFAX_SENDER_EMAIL')
+    if (missing.length > 0) {
+      return new Response(JSON.stringify({ error: `SRFax not configured. Missing env vars: ${missing.join(', ')}` }), {
         status: 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
@@ -41,7 +47,7 @@ export async function onRequestPost(context) {
       access_id: accessId,
       access_pwd: accessPwd,
       sCallerID: callerID,
-      sSenderEmail: env.SRFAX_SENDER_EMAIL || '',
+      sSenderEmail: senderEmail,
       sFaxType: 'SINGLE',
       sToFaxNumber: cleanTo,
       sFileName_1: fileName || 'document.pdf',
