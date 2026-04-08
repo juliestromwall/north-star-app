@@ -75,8 +75,8 @@ export async function onRequestPost(context) {
 
     const res = await fetch('https://secure.srfax.com/SRF_SecWebSvc.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(payload).toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     })
 
     const result = await res.json()

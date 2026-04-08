@@ -1469,6 +1469,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
   const [faxSubject, setFaxSubject] = useState('')
   const [faxMessage, setFaxMessage] = useState('')
   const [faxToName, setFaxToName] = useState('')
+  const [faxSignatureHtml, setFaxSignatureHtml] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [docSearch, setDocSearch] = useState('')
   const [docView, setDocView] = useState('grid') // 'grid' | 'list'
@@ -1701,8 +1702,12 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               const dob = sd.dob ? new Date(sd.dob).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
               setFaxDoc(doc)
               setFaxSubject(`STAT! ABC Surrogacy requesting ALL Medical Records for ${name}${dob ? ` (DOB: ${dob})` : ''}`)
-              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send ALL medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@abcsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
+              setFaxMessage(`Please find the attached medical records release form for patient ${name}${dob ? ` (DOB: ${dob})` : ''}. Please send <b><u>ALL</u></b> medical records, reports, lab reports, discharge notes, and Doctor notes to either desiree@abcsurrogacy.com or fax to: 323-843-9433.\n\nThank you so much!`)
               setFaxIncludeDL(true)
+              // Fetch current user's Gmail signature
+              import('@/lib/google').then(({ getGmailSignature }) => {
+                if (currentUser?.id) getGmailSignature(currentUser.id).then(html => setFaxSignatureHtml(html || '')).catch(() => {})
+              })
             }} title="Fax">
               <Printer className="size-3 text-stone-400" />
             </button>
@@ -2030,6 +2035,16 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                 <textarea value={faxMessage} onChange={e => setFaxMessage(e.target.value)} rows={4}
                   className="w-full text-sm rounded-md border border-stone-200 bg-white px-3 py-2 outline-none focus:ring-2 focus:ring-[#283693]/30 resize-none" />
               </div>
+              {/* Signature preview */}
+              {faxSignatureHtml && (
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-stone-600">Your Signature (from Gmail)</label>
+                  <div className="border rounded-lg p-3 bg-stone-50 text-xs" dangerouslySetInnerHTML={{ __html: faxSignatureHtml }} />
+                </div>
+              )}
+              {!faxSignatureHtml && (
+                <p className="text-[10px] text-amber-500">No Gmail signature found — a default signature will be used.</p>
+              )}
               {/* Driver's License toggle */}
               <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-700">
                 <input type="checkbox" checked={faxIncludeDL} onChange={e => setFaxIncludeDL(e.target.checked)} className="size-4 accent-[#283693]" />
@@ -2075,14 +2090,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                             <p style="font-size: 16px; font-weight: 700; margin: 10px 0;"><strong>Subject:</strong> ${faxSubject}</p>
                           </div>
                           <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">${faxMessage}</div>
-                          <div style="margin-top: 40px; display: flex; align-items: flex-start; gap: 16px;">
-                            <img src="/abc-logo.png" style="height: 50px;" onerror="this.style.display='none'" />
-                            <div style="font-size: 12px; line-height: 1.5;">
-                              <p style="margin: 0; font-weight: 700;">${currentUser?.name || 'ABC Surrogacy'}</p>
-                              <p style="margin: 0; font-style: italic;">Case Manager</p>
-                              <p style="margin: 0;">C: 323-207-5762</p>
-                              <p style="margin: 0;">F: 323-843-9433</p>
-                            </div>
+                          <div style="margin-top: 40px;">
+                            ${faxSignatureHtml || `<div style="display: flex; align-items: flex-start; gap: 16px;"><img src="/abc-logo.png" style="height: 50px;" onerror="this.style.display='none'" /><div style="font-size: 12px; line-height: 1.5;"><p style="margin: 0; font-weight: 700;">${currentUser?.name || 'ABC Surrogacy'}</p><p style="margin: 0; font-style: italic;">Case Manager</p><p style="margin: 0;">F: 323-843-9433</p></div></div>`}
                           </div>
                           <div style="margin-top: 30px; padding: 12px; border: 1px solid #000; font-size: 9px; line-height: 1.4;">
                             ABUNDANT BEGINNINGS COMPANY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
