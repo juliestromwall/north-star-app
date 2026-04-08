@@ -691,11 +691,27 @@ export default function SurrogateDetailPage() {
               {/* Release Application button */}
               <div className="flex flex-col items-center gap-0.5">
                 {quizAnswers?._applicationSubmitted ? (
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center gap-1">
                     <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1"><CheckCircle2 className="size-3" /> Application Submitted</span>
                     {quizAnswers._applicationSubmittedAt && (
                       <span className="text-[10px] text-stone-400">{new Date(quizAnswers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     )}
+                    <Button variant="outline" size="sm" className="gap-1 text-[10px] h-6 px-2 text-amber-600 border-amber-200 hover:bg-amber-50"
+                      onClick={async () => {
+                        if (!confirm('Reopen the application for updates? The surrogate will be able to edit and must re-submit.')) return
+                        try {
+                          const { supabase: sb } = await import('@/lib/supabase')
+                          if (!sb) return
+                          const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                          if (row) {
+                            const updated = { ...(row.answers || {}), _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString(), _applicationReopenedBy: currentUser.name }
+                            await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+                            setQuizAnswers(prev => ({ ...prev, _applicationSubmitted: false, _applicationReopenedAt: new Date().toISOString() }))
+                          }
+                        } catch (err) { console.error('Failed to reopen application:', err) }
+                      }}>
+                      <Pencil className="size-2.5" /> Reopen for Updates
+                    </Button>
                   </div>
                 ) : quizAnswers?._applicationAvailable ? (
                   <div className="flex flex-col items-center">
