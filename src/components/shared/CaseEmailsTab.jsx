@@ -95,7 +95,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setFullEmail(null)
 
     // System-generated emails (not from Gmail) — show snippet as body
-    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-')
+    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
     if (isSystemEmail) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
