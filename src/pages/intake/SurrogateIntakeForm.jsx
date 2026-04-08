@@ -222,7 +222,13 @@ export default function SurrogateIntakeForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Phone number</Label>
-        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 555-0100" className="rounded-xl h-11" />
+        <Input type="tel" value={form.phone} onChange={e => {
+          const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+          let formatted = digits
+          if (digits.length > 6) formatted = `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+          else if (digits.length > 3) formatted = `${digits.slice(0,3)}-${digits.slice(3)}`
+          set('phone', formatted)
+        }} placeholder="555-555-0100" className="rounded-xl h-11" maxLength={12} />
         {form.phone && !phoneValid && (
           <p className="text-xs text-red-500">Enter a valid US phone number</p>
         )}
