@@ -66,6 +66,8 @@ export default function SurrogateIntakeForm() {
     maritalStatus: '', preferredContact: '',
     heightFt: '', heightIn: '', weightLbs: '',
     healthyPregnancy: null,
+    sixOrMoreDeliveries: null,
+    moreThanTwoCsections: null,
     hearAboutUs: '', agreeBackgroundCheck: false,
     ...prefill,
   })
@@ -88,8 +90,8 @@ export default function SurrogateIntakeForm() {
   const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state && form.usCitizen !== null && emailValid && phoneValid
   const step2Valid = form.maritalStatus && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
-  const step4Valid = form.healthyPregnancy !== null
-  const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck
+  const step4Valid = form.healthyPregnancy !== null && form.sixOrMoreDeliveries !== null && form.moreThanTwoCsections !== null
+  const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck && (form.hearAboutUs !== 'Friend or family' || form.referralName?.trim())
   const stepValid = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
   const [emailError, setEmailError] = useState(null)
   const [checking, setChecking] = useState(false)
@@ -306,17 +308,41 @@ export default function SurrogateIntakeForm() {
   // Step 4 — Pregnancy
   if (step === 4) return (
     <QuizShell {...shell(4)} title="Your pregnancy history" subtitle="This helps us understand your experience and eligibility." milestone="Almost done!">
-      <div>
-        <p className="text-sm font-medium text-stone-800 mb-1">Have you had a healthy pregnancy?</p>
-        <p className="text-xs text-stone-400 mb-3">No more than 5 vaginal deliveries or 2 C-sections.</p>
-        <YesNoGrid
-          value={form.healthyPregnancy}
-          onChange={v => set('healthyPregnancy', v)}
-          yesLabel="Yes, I have"
-          noLabel="Not yet"
-          accentColor={GC_COLOR}
-          accentFg={GC_FG}
-        />
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm font-medium text-stone-800 mb-1">Have you had a healthy pregnancy?</p>
+          <p className="text-xs text-stone-400 mb-3">At least one successful pregnancy carried to term.</p>
+          <YesNoGrid
+            value={form.healthyPregnancy}
+            onChange={v => set('healthyPregnancy', v)}
+            yesLabel="Yes, I have"
+            noLabel="Not yet"
+            accentColor={GC_COLOR}
+            accentFg={GC_FG}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-stone-800 mb-3">Have you had 6 or more deliveries?</p>
+          <YesNoGrid
+            value={form.sixOrMoreDeliveries}
+            onChange={v => set('sixOrMoreDeliveries', v)}
+            yesLabel="Yes"
+            noLabel="No"
+            accentColor={GC_COLOR}
+            accentFg={GC_FG}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-stone-800 mb-3">Have you had more than 2 C-sections?</p>
+          <YesNoGrid
+            value={form.moreThanTwoCsections}
+            onChange={v => set('moreThanTwoCsections', v)}
+            yesLabel="Yes"
+            noLabel="No"
+            accentColor={GC_COLOR}
+            accentFg={GC_FG}
+          />
+        </div>
       </div>
     </QuizShell>
   )
@@ -344,6 +370,12 @@ export default function SurrogateIntakeForm() {
           <div className="mt-3 space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please specify</Label>
             <Input value={form.hearAboutUsOther || ''} onChange={e => set('hearAboutUsOther', e.target.value)} placeholder="How did you find us?" className="rounded-xl h-11" />
+          </div>
+        )}
+        {form.hearAboutUs === 'Friend or family' && (
+          <div className="mt-3 space-y-1.5">
+            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Who referred you?</Label>
+            <Input value={form.referralName || ''} onChange={e => set('referralName', e.target.value)} placeholder="Their name" className="rounded-xl h-11" />
           </div>
         )}
       </div>

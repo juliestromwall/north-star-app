@@ -40,8 +40,12 @@ export function getGCDisqualifications(answers) {
   if (age !== null && (age < 21 || age > 40)) reasons.push('age_out_of_range')
   // BMI
   if (answers.bmi != null && (answers.bmi < 19 || answers.bmi > 33)) reasons.push('bmi_out_of_range')
-  // Healthy pregnancy check (replaces biologicalChildren + cSections)
+  // Healthy pregnancy check
   if (answers.healthyPregnancy === false) reasons.push('no_biological_children')
+  // Too many deliveries
+  if (answers.sixOrMoreDeliveries === true) reasons.push('too_many_deliveries')
+  // Too many C-sections
+  if (answers.moreThanTwoCsections === true) reasons.push('too_many_csections')
   return reasons
 }
 
