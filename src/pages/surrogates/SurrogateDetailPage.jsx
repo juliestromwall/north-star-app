@@ -2068,13 +2068,15 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       // Generate custom branded cover page as PDF
                       const coverHtml = `
                         <div style="font-family: Arial, sans-serif; width: 816px; padding: 50px; color: #000;">
-                          <div style="border: 2px solid #000; margin-bottom: 30px; display: flex; align-items: center;">
-                            <div style="flex: 1; text-align: center; padding: 20px;">
-                              <img src="/abc-logo.png" style="height: 90px;" onerror="this.style.display='none'" />
-                              <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 323-207-5762 &nbsp;&nbsp; Fax: 323-843-9433</p>
-                            </div>
-                            <div style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700;">Fax</div>
-                          </div>
+                          <table style="width: 100%; border: 2px solid #000; border-collapse: collapse; margin-bottom: 30px;">
+                            <tr>
+                              <td style="text-align: center; padding: 25px; vertical-align: middle;">
+                                <img src="${window.location.origin}/abc-logo.png" style="height: 90px; display: inline-block;" />
+                                <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 323-207-5762 &nbsp;&nbsp; Fax: 323-843-9433</p>
+                              </td>
+                              <td style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700; text-align: center; width: 120px; vertical-align: middle;">Fax</td>
+                            </tr>
+                          </table>
                           <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                             <tr>
                               <td style="padding: 10px 0; width: 50%;"><strong>To:</strong> &nbsp; ${faxToName || ''}</td>

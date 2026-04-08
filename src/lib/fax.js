@@ -2,11 +2,11 @@
 // Frontend helpers for the /api/fax/ Cloudflare Pages Functions
 
 /** Send a fax */
-export async function sendFax({ to, fileName, fileContent, coverPage, coverSubject, coverMessage }) {
+export async function sendFax(params) {
   const res = await fetch('/api/fax/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, fileName, fileContent, coverPage, coverSubject, coverMessage }),
+    body: JSON.stringify(params),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Failed to send fax')
