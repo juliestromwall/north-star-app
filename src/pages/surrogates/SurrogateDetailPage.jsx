@@ -1460,6 +1460,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
   const [editingDoc, setEditingDoc] = useState(null)
   const [editName, setEditName] = useState('')
   const [editCategory, setEditCategory] = useState('')
+  const [editLabel, setEditLabel] = useState('')
   const [faxDoc, setFaxDoc] = useState(null)
   const [faxNumber, setFaxNumber] = useState('')
   const [faxSending, setFaxSending] = useState(false)
@@ -1643,6 +1644,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       const updates = {}
       if (editName !== editingDoc.file_name) updates.file_name = editName
       if (editCategory !== editingDoc.category) updates.category = editCategory
+      if (editLabel !== (editingDoc.doc_label || '')) updates.doc_label = editLabel || null
       if (Object.keys(updates).length > 0) {
         await updateCaseDocument(editingDoc.id, updates)
         setDocs(prev => prev.map(d => d.id === editingDoc.id ? { ...d, ...updates } : d))
@@ -1655,6 +1657,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     setEditingDoc(doc)
     setEditName(doc.file_name)
     setEditCategory(doc.category)
+    setEditLabel(doc.doc_label || '')
   }
 
   function isPreviewable(fileType) {
@@ -1675,6 +1678,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
             {' · '}
             {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            {doc.doc_label && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{{ gc: 'GC', ip1: 'IP1', ip2: 'IP2', partner: 'Partner' }[doc.doc_label] || doc.doc_label}</span>}
             {compact && cat ? ` · ${cat.label}` : ''}
             {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-stone-100 text-stone-500">{doc._source}</span>}
             {!doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-amber-50 text-amber-600">Previous Match</span>}
@@ -1938,6 +1942,21 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                 </SelectContentUI>
               </SelectUI>
             </div>
+            {editCategory === 'photo-id' && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">ID Belongs To</Label>
+                <SelectUI value={editLabel || '_none'} onValueChange={v => setEditLabel(v === '_none' ? '' : v)}>
+                  <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
+                  <SelectContentUI>
+                    <SelectItemUI value="_none">Not specified</SelectItemUI>
+                    <SelectItemUI value="gc">GC (Surrogate)</SelectItemUI>
+                    <SelectItemUI value="ip1">Intended Parent 1</SelectItemUI>
+                    <SelectItemUI value="ip2">Intended Parent 2</SelectItemUI>
+                    <SelectItemUI value="partner">Spouse / Partner</SelectItemUI>
+                  </SelectContentUI>
+                </SelectUI>
+              </div>
+            )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setEditingDoc(null)}>Cancel</Button>
               <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} disabled={editSaving} onClick={handleEditSave}>
@@ -2015,8 +2034,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               <label className="flex items-center gap-2 cursor-pointer text-sm text-stone-700">
                 <input type="checkbox" checked={faxIncludeDL} onChange={e => setFaxIncludeDL(e.target.checked)} className="size-4 accent-[#283693]" />
                 Include Driver's License
-                {faxIncludeDL && !docs.find(d => d.category === 'photo-id') && (
-                  <span className="text-[10px] text-amber-500 ml-1">(No DL found in Photo IDs folder)</span>
+                {faxIncludeDL && !docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc') && (
+                  <span className="text-[10px] text-amber-500 ml-1">(No GC Photo ID found — label one in Photo IDs folder)</span>
                 )}
               </label>
               {faxResult?.error && <p className="text-xs text-red-500">{faxResult.error}</p>}
@@ -2040,7 +2059,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       // Find and attach driver's license if selected
                       const additionalFiles = []
                       if (faxIncludeDL) {
-                        const dlDoc = docs.find(d => d.category === 'photo-id')
+                        const dlDoc = docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc')
                         if (dlDoc?.public_url) {
                           try {
                             const dlResponse = await fetch(dlDoc.public_url)
