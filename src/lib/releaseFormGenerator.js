@@ -79,6 +79,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Header -->
   <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #283693;">
+    <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="height: 50px; margin-bottom: 4px;" onerror="this.style.display='none'" />
     <p style="color: #283693; font-size: 16px; font-weight: 700; margin: 0;">Abundant Beginnings Co.</p>
     <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 323-207-5762 | F: 323-843-9433</p>
     <p style="font-size: 14px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>

@@ -176,7 +176,7 @@ export default function SignReleaseBatchPage() {
             // Append audit trail at the end
             const signedAt = new Date()
             const auditHtml = `
-              <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #283693; font-size: 11px; color: #6b7280; page-break-inside: avoid;">
+              <div style="page-break-before: always; padding-top: 20px; border-top: 2px solid #283693; font-size: 11px; color: #6b7280;">
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr><td colspan="2" style="padding-bottom: 8px;"><strong style="color: #283693; font-size: 12px;">ELECTRONIC SIGNATURE CERTIFICATE</strong></td></tr>
                   <tr><td style="padding: 2px 0;">Completed:</td><td>${signedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}</td></tr>
@@ -185,7 +185,7 @@ export default function SignReleaseBatchPage() {
                   <tr><td style="padding: 2px 0;">Signature type:</td><td>${sig.type === 'drawn' ? 'Hand-drawn' : 'Typed'}</td></tr>
                   <tr><td style="padding: 2px 0;">IP Address:</td><td>Captured at signing</td></tr>
                 </table>
-                <p style="margin-top: 12px; font-size: 9px; color: #9ca3af;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
+                <p style="margin-top: 12px; font-size: 9px; color: #555;">Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.</p>
               </div>
             `
             filledHtml += auditHtml
