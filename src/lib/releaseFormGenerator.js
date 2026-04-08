@@ -75,91 +75,91 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   const expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
   return `
-<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; color: #1a1a2e; line-height: 1.6; font-size: 14px;">
+<div style="font-family: Arial, Helvetica, sans-serif; max-width: 800px; margin: 0 auto; color: #000; line-height: 1.5; font-size: 13px;">
 
   <!-- Header -->
-  <div style="text-align: center; padding-bottom: 20px; border-bottom: 3px solid #283693;">
-    <img src="https://app.abcsurrogacy.com/logo.png" alt="Abundant Beginnings Co." style="height: 60px; margin-bottom: 8px;" onerror="this.style.display='none'" />
-    <h1 style="color: #283693; font-size: 20px; margin: 0; letter-spacing: 0.5px;">AUTHORIZATION TO RELEASE</h1>
-    <h1 style="color: #283693; font-size: 20px; margin: 0; letter-spacing: 0.5px;">PROTECTED HEALTH INFORMATION</h1>
-    <p style="color: #ed148c; font-size: 13px; font-weight: 600; margin-top: 6px;">${typeInfo.label} Records</p>
+  <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #283693;">
+    <p style="color: #283693; font-size: 18px; font-weight: 700; margin: 0; letter-spacing: 0.5px;">Abundant Beginnings Co.</p>
+    <p style="font-size: 11px; margin: 4px 0 12px 0; color: #333;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 323-207-5762 | F: 323-843-9433</p>
+    <p style="font-size: 16px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>
+    <p style="font-size: 12px; font-weight: 600; margin-top: 4px;">${typeInfo.label} Records</p>
   </div>
 
   <!-- Patient Information -->
-  <div style="margin-top: 24px; background: #f8f9fc; border-radius: 8px; padding: 16px 20px; border: 1px solid #e2e4ef;">
-    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+  <div style="margin-top: 20px; padding: 12px 16px; border: 1px solid #000;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
       <tr>
-        <td style="padding: 4px 0; width: 50%;"><strong>Patient Name:</strong> ${patient.name || '{{Name:GC}}'}</td>
-        <td style="padding: 4px 0;"><strong>Date of Birth:</strong> ${confidentialData?.dob || '_______________'}</td>
+        <td style="padding: 3px 0; width: 50%;"><strong>Patient Name:</strong> ${patient.name || '{{Name:GC}}'}</td>
+        <td style="padding: 3px 0;"><strong>Date of Birth:</strong> ${confidentialData?.dob || '_______________'}</td>
       </tr>
       <tr>
-        <td style="padding: 4px 0;"><strong>Other Name(s) Used:</strong> ${confidentialData?.maidenName || 'N/A'}</td>
-        <td style="padding: 4px 0;"><strong>Last 4 of SSN:</strong> ${confidentialData?.ssn4 || '____'}</td>
+        <td style="padding: 3px 0;"><strong>Other Name(s) Used:</strong> ${confidentialData?.maidenName || 'N/A'}</td>
+        <td style="padding: 3px 0;"><strong>Last 4 of SSN:</strong> ${confidentialData?.ssn4 || '____'}</td>
       </tr>
     </table>
   </div>
 
   <!-- Authorization Statement -->
-  <div style="margin-top: 24px;">
+  <div style="margin-top: 20px;">
     <p>I authorize the release of <strong>healthcare information</strong> and <strong>reproductive health records</strong> of the patient named above for the purpose of <u>continuation of medical care</u> and evaluation for a gestational surrogacy arrangement to:</p>
   </div>
 
   <!-- Recipient -->
-  <div style="text-align: center; margin: 20px 0; background: #fdf2f8; border-radius: 8px; padding: 16px; border: 1px solid #fce7f3;">
-    <p style="font-weight: 700; color: #283693; font-size: 16px; margin: 0;">Abundant Beginnings Co.</p>
-    <p style="margin: 4px 0; font-size: 13px;">5627 Kanan Road #229, Agoura Hills, CA 91301</p>
-    <p style="margin: 4px 0; font-size: 13px;">Phone: 323-207-5762 &nbsp;|&nbsp; Fax: 323-843-9433</p>
-    <p style="margin: 4px 0; font-size: 13px;">Email: <strong>records@abcsurrogacy.com</strong></p>
+  <div style="text-align: center; margin: 16px 0; padding: 12px; border: 2px solid #283693;">
+    <p style="font-weight: 700; color: #283693; font-size: 15px; margin: 0;">Abundant Beginnings Co.</p>
+    <p style="margin: 3px 0; font-size: 12px;">5627 Kanan Road #229, Agoura Hills, CA 91301</p>
+    <p style="margin: 3px 0; font-size: 12px;">Phone: 323-207-5762 &nbsp;|&nbsp; Fax: 323-843-9433</p>
+    <p style="margin: 3px 0; font-size: 12px;">Email: <strong>records@abcsurrogacy.com</strong></p>
   </div>
 
   <!-- Provider Being Released -->
-  <div style="margin-top: 24px; background: #f0f1fa; border-radius: 8px; padding: 16px 20px; border: 1px solid #d4d6ef;">
-    <p style="font-weight: 700; color: #283693; font-size: 13px; text-transform: uppercase; margin: 0 0 8px 0;">Provider to Release Records:</p>
-    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+  <div style="margin-top: 20px; padding: 12px 16px; border: 1px solid #000;">
+    <p style="font-weight: 700; font-size: 12px; text-transform: uppercase; margin: 0 0 6px 0;">Provider to Release Records:</p>
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
       <tr>
-        <td style="padding: 4px 0; width: 50%;"><strong>Facility / Clinic:</strong> ${provider.clinicName || '_______________'}</td>
-        <td style="padding: 4px 0;"><strong>Doctor:</strong> ${provider.doctorName || 'N/A'}</td>
+        <td style="padding: 3px 0; width: 50%;"><strong>Facility / Clinic:</strong> ${provider.clinicName || '_______________'}</td>
+        <td style="padding: 3px 0;"><strong>Doctor:</strong> ${provider.doctorName || 'N/A'}</td>
       </tr>
       <tr>
-        <td style="padding: 4px 0;"><strong>Phone:</strong> ${provider.phone || '_______________'}</td>
-        <td style="padding: 4px 0;"><strong>Address:</strong> ${provider.address || '_______________'}</td>
+        <td style="padding: 3px 0;"><strong>Phone:</strong> ${provider.phone || '_______________'}</td>
+        <td style="padding: 3px 0;"><strong>Address:</strong> ${provider.address || '_______________'}</td>
       </tr>
     </table>
   </div>
 
   <!-- Records Description -->
-  <div style="margin-top: 24px;">
-    <p style="font-weight: 700; color: #283693; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid #e2e4ef; padding-bottom: 6px;">Description of Information to Be Released:</p>
-    <p style="font-size: 13px;">${typeInfo.recordTypes}, including but not limited to:</p>
-    <div style="columns: 2; column-gap: 24px; font-size: 12px; margin-top: 8px;">
-      <p style="margin: 3px 0;">&#9745; All PHI in medical record</p>
-      <p style="margin: 3px 0;">&#9745; Office visit notes</p>
-      <p style="margin: 3px 0;">&#9745; Lab results (including infectious disease, drug & nicotine testing)</p>
-      <p style="margin: 3px 0;">&#9745; Rx / medication information</p>
-      <p style="margin: 3px 0;">&#9745; Diagnostic imaging & ultrasounds</p>
-      <p style="margin: 3px 0;">&#9745; Operative notes & procedure reports</p>
-      <p style="margin: 3px 0;">&#9745; Admission & discharge summaries</p>
-      <p style="margin: 3px 0;">&#9745; Clinical testing results</p>
-      <p style="margin: 3px 0;">&#9745; Physician orders</p>
-      <p style="margin: 3px 0;">&#9745; Postpartum flow sheets</p>
+  <div style="margin-top: 20px;">
+    <p style="font-weight: 700; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px;">Description of Information to Be Released:</p>
+    <p style="font-size: 12px;">${typeInfo.recordTypes}, including but not limited to:</p>
+    <div style="columns: 2; column-gap: 20px; font-size: 11px; margin-top: 6px;">
+      <p style="margin: 2px 0;">&#9745; All PHI in medical record</p>
+      <p style="margin: 2px 0;">&#9745; Office visit notes</p>
+      <p style="margin: 2px 0;">&#9745; Lab results (incl. infectious disease, drug & nicotine)</p>
+      <p style="margin: 2px 0;">&#9745; Rx / medication information</p>
+      <p style="margin: 2px 0;">&#9745; Diagnostic imaging & ultrasounds</p>
+      <p style="margin: 2px 0;">&#9745; Operative notes & procedure reports</p>
+      <p style="margin: 2px 0;">&#9745; Admission & discharge summaries</p>
+      <p style="margin: 2px 0;">&#9745; Clinical testing results</p>
+      <p style="margin: 2px 0;">&#9745; Physician orders</p>
+      <p style="margin: 2px 0;">&#9745; Postpartum flow sheets</p>
     </div>
   </div>
 
   <!-- Sensitive Information Consent -->
-  <div style="margin-top: 24px; background: #fffbeb; border-radius: 8px; padding: 16px 20px; border: 1px solid #fef3c7;">
-    <p style="font-weight: 700; color: #92400e; font-size: 13px; margin: 0 0 8px 0;">AUTHORIZATION FOR SENSITIVE INFORMATION</p>
-    <p style="font-size: 12px; margin: 0 0 8px 0;">By signing below, I also authorize the release of the following categories of sensitive health information, if contained in my records:</p>
-    <div style="font-size: 12px;">
-      <p style="margin: 4px 0;">&#9745; <strong>HIV/AIDS</strong> — related records and test results</p>
-      <p style="margin: 4px 0;">&#9745; <strong>Genetic testing</strong> — information and results</p>
-      <p style="margin: 4px 0;">&#9745; <strong>Mental health</strong> — all related records</p>
-      <p style="margin: 4px 0;">&#9745; <strong>Alcohol and drug information</strong> — (Prohibited Re-Disclosure: 42 CFR Part 2 prohibits unauthorized disclosure of these records)</p>
+  <div style="margin-top: 20px; padding: 12px 16px; border: 1px solid #000;">
+    <p style="font-weight: 700; font-size: 12px; margin: 0 0 6px 0;">AUTHORIZATION FOR SENSITIVE INFORMATION</p>
+    <p style="font-size: 11px; margin: 0 0 6px 0;">By signing below, I also authorize the release of the following categories of sensitive health information, if contained in my records:</p>
+    <div style="font-size: 11px;">
+      <p style="margin: 3px 0;">&#9745; <strong>HIV/AIDS</strong> - related records and test results</p>
+      <p style="margin: 3px 0;">&#9745; <strong>Genetic testing</strong> - information and results</p>
+      <p style="margin: 3px 0;">&#9745; <strong>Mental health</strong> - all related records</p>
+      <p style="margin: 3px 0;">&#9745; <strong>Alcohol and drug information</strong> - (Prohibited Re-Disclosure: 42 CFR Part 2 prohibits unauthorized disclosure of these records)</p>
     </div>
   </div>
 
   <!-- Legal Terms -->
-  <div style="margin-top: 24px; font-size: 12px; color: #4a5568; line-height: 1.7;">
-    <p style="font-weight: 700; color: #283693; font-size: 13px; text-transform: uppercase; border-bottom: 1px solid #e2e4ef; padding-bottom: 6px;">Terms and Conditions</p>
+  <div style="margin-top: 20px; font-size: 11px; line-height: 1.6;">
+    <p style="font-weight: 700; font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px;">Terms and Conditions</p>
 
     <p><strong>Purpose:</strong> This authorization is for the purpose of evaluation and continuation of care related to a gestational surrogacy arrangement facilitated by Abundant Beginnings Co.</p>
 
@@ -175,28 +175,28 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   </div>
 
   <!-- Signature Block -->
-  <div style="margin-top: 32px; border-top: 2px solid #283693; padding-top: 20px;">
+  <div style="margin-top: 28px; border-top: 2px solid #000; padding-top: 16px;">
     <table style="width: 100%; border-collapse: collapse;">
       <tr>
         <td style="width: 60%; padding-right: 40px; vertical-align: bottom;">
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Patient Signature:</p>
+          <p style="font-size: 11px; margin-bottom: 4px;">Patient Signature:</p>
           <p style="font-size: 16px; margin: 0;">{{Signature:GC}}</p>
-          <div style="border-bottom: 1px solid #1a1a2e; margin-top: 4px;"></div>
+          <div style="border-bottom: 1px solid #000; margin-top: 4px;"></div>
         </td>
         <td style="width: 40%; vertical-align: bottom;">
-          <p style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Date Signed:</p>
+          <p style="font-size: 11px; margin-bottom: 4px;">Date Signed:</p>
           <p style="margin: 0;">{{Date:GC}}</p>
-          <div style="border-bottom: 1px solid #1a1a2e; margin-top: 4px;"></div>
+          <div style="border-bottom: 1px solid #000; margin-top: 4px;"></div>
         </td>
       </tr>
     </table>
-    <p style="font-size: 12px; color: #6b7280; margin-top: 16px;">Printed Name: {{Name:GC}}</p>
+    <p style="font-size: 11px; margin-top: 12px;">Printed Name: {{Name:GC}}</p>
   </div>
 
   <!-- Footer -->
-  <div style="margin-top: 32px; text-align: center; padding-top: 16px; border-top: 1px solid #e2e4ef;">
-    <p style="font-size: 10px; color: #9ca3af;">5627 Kanan Road #229, Agoura Hills, CA 91301 &nbsp;&#183;&nbsp; O: 323-207-5762 &nbsp;&#183;&nbsp; F: 323-843-9433 &nbsp;&#183;&nbsp; abcsurrogacy.com</p>
-    <p style="font-size: 9px; color: #9ca3af; margin-top: 4px;">This authorization complies with HIPAA (45 CFR &sect;164.508), the ESIGN Act, UETA, 42 CFR Part 2, and California Civil Code &sect;56.11.</p>
+  <div style="margin-top: 28px; text-align: center; padding-top: 12px; border-top: 1px solid #000;">
+    <p style="font-size: 9px; color: #333;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 323-207-5762 | F: 323-843-9433 | abcsurrogacy.com</p>
+    <p style="font-size: 8px; color: #555; margin-top: 3px;">This authorization complies with HIPAA (45 CFR 164.508), the ESIGN Act, UETA, 42 CFR Part 2, and California Civil Code 56.11.</p>
   </div>
 
 </div>`
