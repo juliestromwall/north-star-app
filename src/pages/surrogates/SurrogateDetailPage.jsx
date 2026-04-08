@@ -2047,10 +2047,75 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                     setFaxSending(true); setFaxResult(null)
                     try {
                       const { sendFax } = await import('@/lib/fax')
-                      // Fetch main PDF
+                      const html2canvas = (await import('html2canvas')).default
+                      const { jsPDF } = await import('jspdf')
+
+                      // Generate custom branded cover page as PDF
+                      const coverHtml = `
+                        <div style="font-family: Arial, sans-serif; width: 816px; padding: 50px; color: #000;">
+                          <div style="border: 2px solid #000; padding: 20px; text-align: center; margin-bottom: 30px; display: flex; align-items: center;">
+                            <div style="flex: 1;">
+                              <img src="/abc-logo.png" style="height: 60px; margin-bottom: 8px;" onerror="this.style.display='none'" />
+                              <p style="font-size: 18px; font-weight: 700; margin: 4px 0;">Abundant Beginnings Co.</p>
+                              <p style="font-size: 12px; margin: 0;">Tel: 323-207-5762 &nbsp; Fax: 323-843-9433</p>
+                            </div>
+                            <div style="border-left: 2px solid #000; padding: 15px 25px; font-size: 36px; font-weight: 700;">Fax</div>
+                          </div>
+                          <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                            <tr>
+                              <td style="padding: 10px 0; width: 50%;"><strong>To:</strong> &nbsp; ${faxToName || ''}</td>
+                              <td style="padding: 10px 0;"><strong>From:</strong> &nbsp; ${currentUser?.name || 'ABC Surrogacy'}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 10px 0;"><strong>Fax:</strong> &nbsp; ${faxNumber}</td>
+                              <td style="padding: 10px 0;"><strong>Date:</strong> &nbsp; ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</td>
+                            </tr>
+                          </table>
+                          <div style="margin-top: 10px; padding-top: 10px; border-top: 3px solid #000;">
+                            <p style="font-size: 16px; font-weight: 700; margin: 10px 0;"><strong>Subject:</strong> ${faxSubject}</p>
+                          </div>
+                          <div style="border-top: 1px solid #000; margin-top: 10px; padding-top: 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;">${faxMessage}</div>
+                          <div style="margin-top: 40px; display: flex; align-items: flex-start; gap: 16px;">
+                            <img src="/abc-logo.png" style="height: 50px;" onerror="this.style.display='none'" />
+                            <div style="font-size: 12px; line-height: 1.5;">
+                              <p style="margin: 0; font-weight: 700;">${currentUser?.name || 'ABC Surrogacy'}</p>
+                              <p style="margin: 0; font-style: italic;">Case Manager</p>
+                              <p style="margin: 0;">C: 323-207-5762</p>
+                              <p style="margin: 0;">F: 323-843-9433</p>
+                            </div>
+                          </div>
+                          <div style="margin-top: 30px; padding: 12px; border: 1px solid #000; font-size: 9px; line-height: 1.4;">
+                            ABUNDANT BEGINNINGS COMPANY, LLC does not and cannot give medical, insurance or legal advice. Nothing in this document or any communication written or verbal should in any way be considered medical, insurance or legal advice. If you have any questions, you should consult a qualified specialist.
+                          </div>
+                        </div>
+                      `
+
+                      // Render cover page
+                      const overlay = document.createElement('div')
+                      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:white;z-index:99999;display:flex;align-items:center;justify-content:center;'
+                      overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Preparing fax...</p>'
+                      document.body.appendChild(overlay)
+
+                      const coverEl = document.createElement('div')
+                      coverEl.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;'
+                      coverEl.innerHTML = coverHtml
+                      document.body.appendChild(coverEl)
+                      await new Promise(r => setTimeout(r, 800))
+
+                      const coverCanvas = await html2canvas(coverEl, { scale: 2, useCORS: true, backgroundColor: '#fff' })
+                      document.body.removeChild(coverEl)
+                      document.body.removeChild(overlay)
+
+                      const coverPdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
+                      const cImg = coverCanvas.toDataURL('image/jpeg', 0.95)
+                      const cHeight = (coverCanvas.height * 8.5) / coverCanvas.width
+                      coverPdf.addImage(cImg, 'JPEG', 0, 0, 8.5, cHeight)
+                      const coverBase64 = coverPdf.output('datauristring').split(',')[1]
+
+                      // Fetch main document PDF
                       const response = await fetch(faxDoc.public_url)
                       const blob = await response.blob()
-                      const base64 = await new Promise((resolve) => {
+                      const docBase64 = await new Promise((resolve) => {
                         const reader = new FileReader()
                         reader.onload = () => resolve(reader.result.split(',')[1])
                         reader.readAsDataURL(blob)
@@ -2058,6 +2123,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
                       // Find and attach driver's license if selected
                       const additionalFiles = []
+                      // Document PDF as file 2
+                      additionalFiles.push({ fileName: faxDoc.file_name, fileContent: docBase64 })
                       if (faxIncludeDL) {
                         const dlDoc = docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc')
                         if (dlDoc?.public_url) {
@@ -2075,17 +2142,12 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       }
 
                       const digits = faxNumber.replace(/\D/g, '')
+                      // Send cover page as file 1, no SRFax built-in cover
                       const result = await sendFax({
                         to: digits,
-                        fileName: faxDoc.file_name,
-                        fileContent: base64,
-                        coverPage: 'Standard',
-                        coverSubject: faxSubject,
-                        coverMessage: faxMessage,
-                        coverToName: faxToName,
-                        coverFromName: 'ABC Surrogacy',
-                        coverOrganization: 'Abundant Beginnings Co.',
-                        additionalFiles: additionalFiles.length > 0 ? additionalFiles : undefined,
+                        fileName: 'cover_page.pdf',
+                        fileContent: coverBase64,
+                        additionalFiles,
                       })
                       setFaxResult({ success: true, faxId: result.faxId || result.Status })
                     } catch (err) {
