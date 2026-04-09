@@ -96,7 +96,7 @@ export async function onRequestPost(context) {
               Click the button below to set a new password for your ABC Surrogacy portal at <a href="https://app.abcsurrogacy.com" style="color: #283693; font-weight: 600;">app.abcsurrogacy.com</a>.
             </p>
             <div style="text-align: center;">
-              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #7c3aed, #283693); color: white; padding: 16px 48px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: 0.3px;">
+              <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
                 Reset Password
               </a>
             </div>

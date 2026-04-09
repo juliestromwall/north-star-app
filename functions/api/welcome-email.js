@@ -79,7 +79,7 @@ export async function onRequestPost(context) {
   // 2. Send welcome email via Resend
   const portalButton = resetLink ? `
       <div style="text-align: center; margin: 20px 0 4px;">
-        <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #7c3aed, #283693); color: white; padding: 16px 48px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: 0.3px;">
+        <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
           Set Your Password
         </a>
       </div>
