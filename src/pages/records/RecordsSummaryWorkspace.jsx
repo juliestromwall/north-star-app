@@ -594,35 +594,24 @@ function SectionLabel({ children }) {
 
 function PregnancyBanner({ label, outcome, skipDetails, preg }) {
   const color = skipDetails ? '#d97706' : '#283693'
-  const details = []
-  if (preg?.dateOfDelivery) details.push({ label: 'Date', value: preg.dateOfDelivery })
-  if (preg?.gestationalAge) details.push({ label: 'GA', value: preg.gestationalAge })
-  if (preg?.infantBirthWeight) details.push({ label: 'Weight', value: preg.infantBirthWeight })
-  if (preg?.infantSex) details.push({ label: 'Sex', value: preg.infantSex })
-  if (preg?.typeOfDelivery) details.push({ label: 'Delivery', value: preg.typeOfDelivery })
+  const infoItems = []
+  if (outcome) infoItems.push(outcome)
+  if (preg?.dateOfDelivery) infoItems.push(preg.dateOfDelivery)
+  if (preg?.gestationalAge) infoItems.push(preg.gestationalAge)
+  if (preg?.infantBirthWeight) infoItems.push(preg.infantBirthWeight)
+  if (preg?.infantSex) infoItems.push(preg.infantSex)
+  if (preg?.typeOfDelivery) infoItems.push(preg.typeOfDelivery)
 
   return (
-    <div style={{ marginTop: 24, marginBottom: 10, borderRadius: 12, overflow: 'hidden', border: `1px solid ${skipDetails ? '#fde68a' : '#283693'}30` }}>
-      {/* Top bar — label + outcome */}
-      <div style={{ padding: '10px 16px', background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : 'linear-gradient(135deg, #283693, #1e2a6e)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.5px' }}>{label}</span>
-        {outcome && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: skipDetails ? '#92400e' : '#fff', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.2)', padding: '3px 14px', borderRadius: 20, letterSpacing: '0.3px' }}>
-            {outcome}
+    <div style={{ marginTop: 24, marginBottom: 10, padding: '10px 16px', borderRadius: 12, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : 'linear-gradient(135deg, #283693, #1e2a6e)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 16, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.5px', marginRight: 4 }}>{label}</span>
+        {infoItems.map((item, i) => (
+          <span key={i} style={{ fontSize: 11, fontWeight: 600, color: skipDetails ? '#92400e' : 'rgba(255,255,255,0.9)', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.15)', padding: '2px 10px', borderRadius: 6 }}>
+            {item}
           </span>
-        )}
+        ))}
       </div>
-      {/* Bottom bar — quick stats */}
-      {details.length > 0 && !skipDetails && (
-        <div style={{ display: 'flex', backgroundColor: '#f8f9fc', borderTop: '1px solid #e2e4ef' }}>
-          {details.map((d, i) => (
-            <div key={i} style={{ flex: 1, padding: '6px 14px', borderRight: i < details.length - 1 ? '1px solid #e2e4ef' : 'none', textAlign: 'center' }}>
-              <div style={{ fontSize: 8, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{d.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1917', marginTop: 1 }}>{d.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
