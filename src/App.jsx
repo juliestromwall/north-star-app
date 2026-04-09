@@ -27,6 +27,7 @@ import LoginPage from './pages/auth/LoginPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
+import ProfileRouter from './pages/profile/ProfileRouter'
 import TextMessagesPage from './pages/messages/TextMessagesPage'
 import BabiesBornPage from './pages/babies/BabiesBornPage'
 import ESignaturePage from './pages/esign/ESignaturePage'
@@ -102,7 +103,7 @@ export default function App() {
         <Route path="/time-clock" element={<TimeClockPage />} />
         <Route path="/intake" element={<IntakeSubmissionsPage />} />
         <Route path="/marketing" element={<MarketingDashboard />} />
-        <Route path="/my-profile" element={<SurrogateProfilePage />} />
+        <Route path="/my-profile" element={<ProfileRouter />} />
         <Route path="/my-documents" element={<PortalDocumentsPage />} />
         <Route path="/my-application" element={<PortalApplicationPage />} />
         <Route path="/text-messages" element={<TextMessagesPage />} />

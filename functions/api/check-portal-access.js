@@ -37,13 +37,27 @@ export async function onRequestPost(context) {
   }
 
   try {
-    // Get case ID from intake_submissions
+    const normalizedEmail = email.toLowerCase()
+
+    // Try primary email first
     const intakeRes = await fetch(
-      `${supabaseUrl}/rest/v1/intake_submissions?applicant_email=eq.${encodeURIComponent(email.toLowerCase())}&order=submitted_at.desc&limit=1&select=id`,
+      `${supabaseUrl}/rest/v1/intake_submissions?applicant_email=eq.${encodeURIComponent(normalizedEmail)}&order=submitted_at.desc&limit=1&select=id,intake_type`,
       { headers }
     )
     const intakeData = await intakeRes.json()
-    const caseId = intakeData?.[0]?.id
+    let caseId = intakeData?.[0]?.id
+
+    // If not found as primary, check as IP partner email
+    if (!caseId) {
+      const ipRes = await fetch(
+        `${supabaseUrl}/rest/v1/intake_submissions?intake_type=eq.ip&order=submitted_at.desc&select=id,answers`,
+        { headers }
+      )
+      const ipData = await ipRes.json()
+      const match = (ipData || []).find(r => r.answers?.ip2Email?.toLowerCase().trim() === normalizedEmail)
+      if (match) caseId = match.id
+    }
+
     if (!caseId) {
       return new Response(JSON.stringify({ blocked: false }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

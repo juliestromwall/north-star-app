@@ -53,6 +53,9 @@ export default function IPDetailPage() {
   const [inviting, setInviting] = useState(false)
   const [inviteResult, setInviteResult] = useState(null)
   const [portalStatus, setPortalStatus] = useState(null)
+  const [invitingPartner, setInvitingPartner] = useState(false)
+  const [partnerInviteResult, setPartnerInviteResult] = useState(null)
+  const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
@@ -84,7 +87,11 @@ export default function IPDetailPage() {
       fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ip.email }) })
         .then(r => r.json()).then(setPortalStatus).catch(() => {})
     }
-  }, [ip?.email])
+    if (ip?.ip2Email) {
+      fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ip.ip2Email }) })
+        .then(r => r.json()).then(setPortalStatus2).catch(() => {})
+    }
+  }, [ip?.email, ip?.ip2Email])
 
   // Load tracking from Supabase on mount
   useEffect(() => {
@@ -276,6 +283,42 @@ export default function IPDetailPage() {
                   </Button>
                   {ip.answers?._lastInvitedAt && (
                     <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  )}
+                </div>
+              )}
+              {/* Partner invite */}
+              {hasPartner && ip.ip2Email && (
+                <div className="flex flex-col items-center gap-0.5 ml-2 pl-2 border-l border-stone-200">
+                  {portalStatus2?.exists ? (
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">Partner Portal Active</span>
+                      {portalStatus2.lastSignIn && <span className="text-[10px] text-stone-400">Last login {new Date(portalStatus2.lastSignIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7" disabled={invitingPartner}
+                      onClick={async () => {
+                        setInvitingPartner(true); setPartnerInviteResult(null)
+                        try {
+                          await inviteUser(currentUser.id, { email: ip.ip2Email, name: ip.ip2Name, role: 'intended_parent', portalType: 'intended_parent' })
+                          setPartnerInviteResult('sent')
+                          try {
+                            const { supabase } = await import('@/lib/supabase')
+                            if (supabase) {
+                              const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
+                              if (row) {
+                                await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _partnerInvitedAt: new Date().toISOString() } }).eq('id', ip.id)
+                              }
+                            }
+                          } catch {}
+                        } catch (err) {
+                          setPartnerInviteResult(err.message?.includes('already') ? 'exists' : 'error')
+                        }
+                        setInvitingPartner(false)
+                        setTimeout(() => setPartnerInviteResult(null), 4000)
+                      }}>
+                      {invitingPartner ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                      {invitingPartner ? 'Sending...' : partnerInviteResult === 'sent' ? 'Sent!' : partnerInviteResult === 'exists' ? 'Has account' : `Invite Partner`}
+                    </Button>
                   )}
                 </div>
               )}

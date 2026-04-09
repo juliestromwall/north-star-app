@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchSurrogateProfileByEmail, findCaseByEmail } from '@/lib/db'
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -80,18 +80,32 @@ export function RoleProvider({ children }) {
         // Enrich: fetch real name + profile photo
         try {
           if (supabase) {
-            const profile = await fetchSurrogateProfileByEmail(user.email)
-            if (profile?.profile_data?.personal?.firstName) {
-              displayName = [profile.profile_data.personal.firstName, profile.profile_data.personal.lastName].filter(Boolean).join(' ')
-            }
-            if (profile?.profile_data?.personal?.profilePhotoUrl) {
-              avatar = profile.profile_data.personal.profilePhotoUrl
+            if (role === ROLES.INTENDED_PARENT) {
+              // For IPs: get name from intake case (primary or partner)
+              const ipCase = await findCaseByEmail(user.email)
+              if (ipCase?.answers) {
+                const a = ipCase.answers
+                const isPrimary = ipCase.intake_type === 'ip' && user.email.toLowerCase() === (a.email || '').toLowerCase()
+                if (isPrimary) {
+                  displayName = [a.primaryFirstName, a.primaryLastName].filter(Boolean).join(' ') || displayName
+                } else {
+                  displayName = [a.ip2FirstName, a.ip2LastName].filter(Boolean).join(' ') || displayName
+                }
+              }
+            } else {
+              const profile = await fetchSurrogateProfileByEmail(user.email)
+              if (profile?.profile_data?.personal?.firstName) {
+                displayName = [profile.profile_data.personal.firstName, profile.profile_data.personal.lastName].filter(Boolean).join(' ')
+              }
+              if (profile?.profile_data?.personal?.profilePhotoUrl) {
+                avatar = profile.profile_data.personal.profilePhotoUrl
+              }
             }
           }
         } catch {}
 
-        // Check if surrogate's portal access is blocked
-        if (role === ROLES.SURROGATE) {
+        // Check if portal access is blocked (surrogates + IPs)
+        if (role === ROLES.SURROGATE || role === ROLES.INTENDED_PARENT) {
           try {
             const checkRes = await fetch('/api/check-portal-access', {
               method: 'POST',

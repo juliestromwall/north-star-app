@@ -36,6 +36,34 @@ export async function setAppConfig(key, value) {
   return result.data
 }
 
+// ── Case Lookup (supports both primary and partner emails) ──
+
+export async function findCaseByEmail(email) {
+  if (!supabase || !email) return null
+  const normalized = email.trim().toLowerCase()
+
+  // Try primary email first
+  const { data: primary } = await supabase.from('intake_submissions')
+    .select('id, answers, assigned_to, intake_type')
+    .eq('applicant_email', normalized)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .single()
+  if (primary) return primary
+
+  // Try as IP partner email (ip2Email stored in answers JSON)
+  const { data: ipCases } = await supabase.from('intake_submissions')
+    .select('id, answers, assigned_to, intake_type')
+    .eq('intake_type', 'ip')
+    .order('submitted_at', { ascending: false })
+  if (ipCases) {
+    const match = ipCases.find(r => r.answers?.ip2Email?.trim().toLowerCase() === normalized)
+    if (match) return match
+  }
+
+  return null
+}
+
 // ── Record Tracking (per-surrogate, stored in intake_submissions.answers) ──
 
 export async function getRecordTracking(surrogateId) {

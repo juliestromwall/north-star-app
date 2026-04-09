@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { FileText, Download, Eye, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
+import { findCaseByEmail } from '@/lib/db'
 
 export default function PortalDocumentsPage() {
   const { currentUser } = useRole()
@@ -22,15 +23,8 @@ export default function PortalDocumentsPage() {
   async function loadDocuments() {
     setLoading(true)
     try {
-      // 1. Find the user's case ID from intake_submissions
-      const { data: intake } = await supabase
-        .from('intake_submissions')
-        .select('id')
-        .eq('applicant_email', currentUser.email.trim().toLowerCase())
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .single()
-
+      // 1. Find the user's case ID (supports both primary and partner IP emails)
+      const intake = await findCaseByEmail(currentUser.email)
       if (intake?.id) setCaseId(intake.id)
       const docs = []
 

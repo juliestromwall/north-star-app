@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Upload, X, Image } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask } from '@/lib/db'
+import { createCaseTask, findCaseByEmail } from '@/lib/db'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -893,13 +893,7 @@ export default function PortalApplicationPage() {
 
   async function loadData() {
     try {
-      const { data } = await supabase
-        .from('intake_submissions')
-        .select('id, answers, assigned_to')
-        .eq('applicant_email', currentUser.email.trim().toLowerCase())
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .single()
+      const data = await findCaseByEmail(currentUser.email)
       if (data) {
         setCaseId(data.id)
         setAnswers(data.answers || {})
