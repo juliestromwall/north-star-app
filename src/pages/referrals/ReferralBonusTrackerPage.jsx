@@ -557,7 +557,7 @@ function ReferralTable({ rows, onMarkHalfPaid, onMarkPaid, onDateChange, showPai
                       <span className="text-stone-300">—</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800" onClick={() => onMarkHalfPaid?.(row)}>
-                        <DollarSign className="size-3" /> $2,000
+                        <DollarSign className="size-3" /> 2,000
                       </Button>
                     )}
                   </td>
@@ -573,7 +573,7 @@ function ReferralTable({ rows, onMarkHalfPaid, onMarkPaid, onDateChange, showPai
                       <span className="text-emerald-600 font-medium">{row.paidDate ? formatDate(row.paidDate) : '—'}</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkPaid(row)}>
-                        <DollarSign className="size-3" /> $2,000
+                        <DollarSign className="size-3" /> 2,000
                       </Button>
                     )}
                   </td>
@@ -647,7 +647,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                       <span className="text-stone-300">—</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800" onClick={() => onMarkHalfPaid(row)}>
-                        <DollarSign className="size-3" /> $1,000
+                        <DollarSign className="size-3" /> 1,000
                       </Button>
                     )}
                   </td>
@@ -663,7 +663,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                       <span className="text-emerald-600 font-medium">{row.fullyPaidDate ? formatDate(row.fullyPaidDate) : '—'}</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkFullyPaid(row)}>
-                        <DollarSign className="size-3" /> $3,000
+                        <DollarSign className="size-3" /> 3,000
                       </Button>
                     )}
                   </td>
