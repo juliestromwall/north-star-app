@@ -514,8 +514,48 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
           <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Emergency Contact</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{emergencyFields.map(renderField)}</div>
         </div>
+        <PhotoIdDisplay surrogateId={surrogate.id} />
       </CardContent>
     </Card>
+  )
+}
+
+// ── Photo ID Display (admin view) ──────────────────────
+function PhotoIdDisplay({ surrogateId }) {
+  const [docs, setDocs] = useState([])
+  useEffect(() => {
+    if (!surrogateId) return
+    import('@/lib/supabase').then(({ supabase }) => {
+      if (!supabase) return
+      supabase.from('case_documents').select('*').eq('surrogate_id', surrogateId).eq('category', 'photo-id').then(({ data }) => {
+        if (data) setDocs(data)
+      })
+    })
+  }, [surrogateId])
+
+  if (docs.length === 0) return null
+  const labels = { gc: "GC Driver's License", partner: "Partner Driver's License", ip1: "IP1 Photo ID", ip2: "IP2 Photo ID" }
+
+  return (
+    <div>
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Photo IDs</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {docs.map(doc => (
+          <a key={doc.id} href={doc.public_url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-stone-50 transition-colors">
+            {doc.file_type?.startsWith('image/') ? (
+              <img src={doc.public_url} alt="" className="w-16 h-10 object-cover rounded border" />
+            ) : (
+              <div className="w-16 h-10 rounded border bg-stone-100 flex items-center justify-center text-stone-400 text-[10px]">PDF</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-stone-700 truncate">{labels[doc.doc_label] || doc.file_name}</p>
+              <p className="text-[10px] text-stone-400">{doc.doc_label ? labels[doc.doc_label] : 'Unlabeled'}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
   )
 }
 

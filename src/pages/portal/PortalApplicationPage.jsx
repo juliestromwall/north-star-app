@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send } from 'lucide-react'
+import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Upload, X, Image } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { createCaseTask } from '@/lib/db'
@@ -242,9 +242,53 @@ function ReferencesForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
 }
 
 // ── Confidential Information ───────────────────────────
-function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
+function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle, caseId }) {
   const [form, setForm] = useState({})
   const editing = isOpen
+  const [gcDlUrl, setGcDlUrl] = useState(null)
+  const [partnerDlUrl, setPartnerDlUrl] = useState(null)
+  const [uploading, setUploading] = useState(null) // 'gc' | 'partner' | null
+  const gcFileRef = useRef(null)
+  const partnerFileRef = useRef(null)
+
+  // Load existing DL photos
+  useEffect(() => {
+    if (!caseId || !supabase) return
+    supabase.from('case_documents').select('*').eq('surrogate_id', caseId).eq('category', 'photo-id').then(({ data: docs }) => {
+      if (docs) {
+        const gc = docs.find(d => d.doc_label === 'gc')
+        const partner = docs.find(d => d.doc_label === 'partner')
+        if (gc?.public_url) setGcDlUrl(gc.public_url)
+        if (partner?.public_url) setPartnerDlUrl(partner.public_url)
+      }
+    })
+  }, [caseId])
+
+  async function handleDlUpload(file, label) {
+    if (!file || !caseId || !supabase) return
+    setUploading(label)
+    try {
+      const path = `${caseId}/photo-id/${label}_dl_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('case-documents').upload(path, file, { cacheControl: '3600', upsert: false })
+      if (uploadError) throw uploadError
+      const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+      // Remove old DL for this label
+      const { data: existing } = await supabase.from('case_documents').select('id').eq('surrogate_id', caseId).eq('category', 'photo-id').eq('doc_label', label)
+      if (existing?.length > 0) {
+        for (const old of existing) await supabase.from('case_documents').delete().eq('id', old.id)
+      }
+      await supabase.from('case_documents').insert({
+        surrogate_id: caseId, category: 'photo-id', doc_label: label,
+        file_name: `${label === 'gc' ? "GC Driver's License" : "Partner Driver's License"} - ${file.name}`,
+        file_type: file.type, file_size: file.size,
+        storage_path: uploadData.path, public_url: urlData.publicUrl,
+        uploaded_by: 'Portal Upload',
+      })
+      if (label === 'gc') setGcDlUrl(urlData.publicUrl)
+      else setPartnerDlUrl(urlData.publicUrl)
+    } catch (err) { console.error('DL upload failed:', err); alert('Upload failed. Please try again.') }
+    finally { setUploading(null) }
+  }
 
   const FIELDS = [
     { key: 'fullLegalName', label: 'Full Legal Name' },
@@ -377,6 +421,66 @@ function ConfidentialForm({ data, onSave, saving, quizData, readOnly, isOpen, on
               )
             })}
           </div>
+          {/* Driver's License Uploads */}
+          <div className={`pt-3 border-t border-stone-200 space-y-4 ${readOnly ? '' : ''}`}>
+            <p className="text-xs font-semibold text-muted-foreground uppercase">Photo ID Uploads</p>
+
+            {/* GC Driver's License */}
+            <div className="space-y-2">
+              <FieldLabel>Your Driver's License <Req /></FieldLabel>
+              {gcDlUrl ? (
+                <div className="flex items-center gap-3">
+                  <a href={gcDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline">
+                    <Image className="size-4" /> View Driver's License
+                  </a>
+                  {!readOnly && (
+                    <button onClick={() => gcFileRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  {!readOnly && (
+                    <button onClick={() => gcFileRef.current?.click()} disabled={uploading === 'gc'}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                      {uploading === 'gc' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                      {uploading === 'gc' ? 'Uploading...' : 'Upload Photo of Driver\'s License'}
+                    </button>
+                  )}
+                  {!gcDlUrl && !readOnly && <p className="text-[10px] text-red-400 mt-1">Required</p>}
+                </div>
+              )}
+              <input ref={gcFileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleDlUpload(e.target.files[0], 'gc'); e.target.value = '' }} />
+            </div>
+
+            {/* Partner Driver's License — only if has spouse */}
+            {hasSpouse && (
+              <div className="space-y-2">
+                <FieldLabel>Spouse/Partner Driver's License <Req /></FieldLabel>
+                {partnerDlUrl ? (
+                  <div className="flex items-center gap-3">
+                    <a href={partnerDlUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline">
+                      <Image className="size-4" /> View Partner's License
+                    </a>
+                    {!readOnly && (
+                      <button onClick={() => partnerFileRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {!readOnly && (
+                      <button onClick={() => partnerFileRef.current?.click()} disabled={uploading === 'partner'}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                        {uploading === 'partner' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                        {uploading === 'partner' ? 'Uploading...' : "Upload Partner's Driver's License"}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <input ref={partnerFileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleDlUpload(e.target.files[0], 'partner'); e.target.value = '' }} />
+              </div>
+            )}
+          </div>
+
           {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
           {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_confidential', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
@@ -1000,7 +1104,7 @@ export default function PortalApplicationPage() {
 
       <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
-      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted}
+      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted} caseId={caseId}
         isOpen={activeSection === '_confidential'} onToggle={() => setActiveSection(activeSection === '_confidential' ? null : '_confidential')} />
       <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
