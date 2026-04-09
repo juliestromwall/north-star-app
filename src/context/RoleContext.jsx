@@ -120,10 +120,28 @@ export function RoleProvider({ children }) {
       setAuthLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const user = session.user
         const role = user.user_metadata?.role || ROLES.SURROGATE
+
+        // Check portal access for surrogates on every auth change
+        if (role === ROLES.SURROGATE) {
+          try {
+            const checkRes = await fetch('/api/check-portal-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: user.email }),
+            })
+            const checkData = await checkRes.json()
+            if (checkData.blocked) {
+              setPortalBlocked(true)
+              await supabase.auth.signOut()
+              return
+            }
+          } catch {}
+        }
+
         setAuthUser({
           id: user.id,
           name: user.user_metadata?.full_name || user.email,
