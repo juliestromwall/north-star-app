@@ -75,11 +75,16 @@ export function JourneyTileCard({ j }) {
             <StageBadge stage={j.stage} status={j.status} />
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[10px]">
-            {j.journey_data?.pregnant === 'yes' && (
+            {j.journey_data?.delivered ? (
+              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium inline-flex items-center gap-1">
+                <img src={j.journey_data.babySexes?.[0] === 'girl' ? '/baby-girl.png' : '/baby-boy.png'} alt="" className="size-4 object-contain" />
+                Born {j.journey_data.deliveryDate ? formatDate(j.journey_data.deliveryDate) : ''}
+              </span>
+            ) : j.journey_data?.pregnant === 'yes' ? (
               <span className="px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200 font-medium">
                 🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
               </span>
-            )}
+            ) : null}
             {j.journey_data?.escrowBalance && (
               <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
                 Escrow: {j.journey_data.escrowBalance}

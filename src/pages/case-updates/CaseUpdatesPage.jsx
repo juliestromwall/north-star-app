@@ -554,7 +554,23 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                           <p className="text-xs font-semibold text-[#ed148c]">{gc?.name || 'GC'}</p>
                         </Link>
                         <p className="text-[9px] text-stone-400 font-normal mt-1 text-center">{j.status || ''}</p>
-                        {isPregnant && gestAge && (
+                        {jd.delivered ? (
+                          <div className="text-center mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                              <img src={jd.babySexes?.[0] === 'girl' ? '/baby-girl.png' : '/baby-boy.png'} alt="" className="size-3.5 object-contain" />
+                              Born {jd.deliveryDate ? formatDate(jd.deliveryDate) : ''}
+                            </span>
+                            {jd.babyNames?.some(n => n) && (
+                              <p className="text-[9px] text-amber-600 mt-0.5">
+                                {jd.babyNames.map((name, i) => {
+                                  const sex = jd.babySexes?.[i]
+                                  const emoji = sex === 'girl' ? '👧' : sex === 'boy' ? '👦' : '👶'
+                                  return name ? `${emoji} ${name}` : null
+                                }).filter(Boolean).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        ) : isPregnant && gestAge ? (
                           <div className="text-center mt-1">
                             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-pink-600 bg-pink-50 border border-pink-200 rounded-full px-2 py-0.5">
                               🤰 {gestAge}
@@ -570,7 +586,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                               </p>
                             )}
                           </div>
-                        )}
+                        ) : null}
                         <div className="text-center mt-0.5">
                           <AISummaryButton
                             caseId={j.id} caseName={journeyName} caseType="journey"

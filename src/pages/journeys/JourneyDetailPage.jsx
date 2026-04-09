@@ -617,6 +617,9 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [babySexOpen, setBabySexOpen] = useState(false)
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
+  const [birthOpen, setBirthOpen] = useState(false)
+  const [birthForm, setBirthForm] = useState({ date: '', deliveryType: '', notes: '' })
+  const [birthBabies, setBirthBabies] = useState([])
   const [activeTab, setActiveTab] = useState(null)
   const [deleteConfirmIdx, setDeleteConfirmIdx] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -735,6 +738,39 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     setSaving(false)
   }
 
+  async function handleLogBirth() {
+    if (!birthForm.date) return
+    setSaving(true)
+    const updatedTransfers = [...transfers]
+    updatedTransfers[updatedTransfers.length - 1] = {
+      ...updatedTransfers[updatedTransfers.length - 1],
+      delivered: true,
+      deliveryDate: birthForm.date,
+      deliveryType: birthForm.deliveryType,
+      deliveryNotes: birthForm.notes,
+    }
+    // Update baby details from birth form
+    const newBabyNames = birthBabies.map(b => b.name)
+    const newBabySexes = birthBabies.map(b => b.sex)
+    const newBabyWeights = birthBabies.map(b => b.weight)
+    const newBabyLengths = birthBabies.map(b => b.length)
+    await onUpdate({
+      _transfers: updatedTransfers,
+      delivered: true,
+      deliveryDate: birthForm.date,
+      deliveryType: birthForm.deliveryType,
+      deliveryNotes: birthForm.notes,
+      babyNames: newBabyNames,
+      babySexes: newBabySexes,
+      babyWeights: newBabyWeights,
+      babyLengths: newBabyLengths,
+    })
+    setBirthOpen(false)
+    setBirthForm({ date: '', deliveryType: '', notes: '' })
+    setBirthBabies([])
+    setSaving(false)
+  }
+
   // Timeline steps
   const timelineSteps = [
     { key: 'transfer', label: 'Embryo Transfer', done: hasActiveTransfer },
@@ -760,29 +796,69 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
         )}
       </div>
 
-      {/* Pregnancy banner */}
-      {isPregnant && (
-        <div className="rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 p-4 mb-4">
+      {/* Pregnancy / Delivered banner */}
+      {(isPregnant || jd.delivered) && (
+        <div className={`rounded-xl border p-4 mb-4 ${jd.delivered ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200' : 'bg-gradient-to-r from-pink-50 to-purple-50 border-pink-200'}`}>
           <div className="flex items-center gap-3">
-            <span className="text-5xl">🤰</span>
+            {jd.delivered ? (
+              <img
+                src={jd.babySexes?.[0] === 'girl' ? '/baby-girl.png' : '/baby-boy.png'}
+                alt="Baby"
+                className="size-14 object-contain"
+              />
+            ) : (
+              <span className="text-5xl">🤰</span>
+            )}
             <div>
-              <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
-              <p className="text-sm text-stone-600">
-                Due {formatDate(jd.dueDate)}
-                {jd.babies > 1 ? ` · ${jd.babies} babies` : ''}
-                {(jd.babySexes?.length > 0 || jd.babyNames?.length > 0) && (
-                  <span className="ml-2">
-                    {(jd.babyNames || []).map((name, i) => {
-                      const sex = jd.babySexes?.[i]
-                      const emoji = sex === 'boy' ? '👦' : sex === 'girl' ? '👧' : ''
-                      return name ? `${emoji} ${name}` : emoji
-                    }).filter(Boolean).join(', ')}
-                    {(!jd.babyNames?.some(n => n) && jd.babySexes?.every(s => s === 'unknown')) && <span className="text-stone-400 text-xs ml-1">(details unknown)</span>}
-                  </span>
-                )}
-              </p>
+              {jd.delivered ? (
+                <>
+                  <p className="text-xl font-bold text-amber-700">Baby Born!</p>
+                  <p className="text-sm text-stone-600">
+                    Delivered {formatDate(jd.deliveryDate)}
+                    {jd.deliveryType ? ` · ${jd.deliveryType}` : ''}
+                    {jd.babies > 1 ? ` · ${jd.babies} babies` : ''}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xl font-bold text-pink-600">{calcGestationalWeeks(jd.dueDate) || ''}</p>
+                  <p className="text-sm text-stone-600">
+                    Due {formatDate(jd.dueDate)}
+                    {jd.babies > 1 ? ` · ${jd.babies} babies` : ''}
+                  </p>
+                </>
+              )}
+              {(jd.babySexes?.length > 0 || jd.babyNames?.length > 0) && (
+                <p className="text-sm text-stone-600 mt-0.5">
+                  {(jd.babyNames || []).map((name, i) => {
+                    const sex = jd.babySexes?.[i]
+                    const emoji = sex === 'boy' ? '👦' : sex === 'girl' ? '👧' : ''
+                    const weight = jd.babyWeights?.[i]
+                    const length = jd.babyLengths?.[i]
+                    const details = [weight ? `${weight}` : '', length ? `${length}"` : ''].filter(Boolean).join(', ')
+                    return [emoji, name, details ? `(${details})` : ''].filter(Boolean).join(' ')
+                  }).filter(Boolean).join(' · ')}
+                  {(!jd.babyNames?.some(n => n) && jd.babySexes?.every(s => s === 'unknown')) && <span className="text-stone-400 text-xs ml-1">(details unknown)</span>}
+                </p>
+              )}
+              {jd.deliveryNotes && <p className="text-xs text-stone-500 mt-1 italic">{jd.deliveryNotes}</p>}
             </div>
             <div className="ml-auto flex flex-col items-end gap-1">
+              {!jd.delivered && (
+                <button onClick={() => {
+                  const numBabies = jd.babies || 1
+                  setBirthBabies(Array.from({ length: numBabies }, (_, i) => ({
+                    name: jd.babyNames?.[i] || '',
+                    sex: jd.babySexes?.[i] || 'unknown',
+                    weight: jd.babyWeights?.[i] || '',
+                    length: jd.babyLengths?.[i] || '',
+                  })))
+                  setBirthForm({ date: '', deliveryType: '', notes: '' })
+                  setBirthOpen(true)
+                }} className="text-[10px] text-emerald-600 hover:underline font-medium">
+                  Log Birth
+                </button>
+              )}
               <button onClick={() => {
                 setBabySexes(jd.babySexes || Array(jd.babies || 1).fill('unknown'))
                 setBabyNames(jd.babyNames || Array(jd.babies || 1).fill(''))
@@ -790,9 +866,11 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               }} className="text-[10px] text-[#283693] hover:underline">
                 {jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
               </button>
-              <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
-                Record Loss
-              </button>
+              {!jd.delivered && (
+                <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
+                  Record Loss
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1162,6 +1240,81 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <Button size="sm" disabled={saving || !lossReason} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 Record Loss
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Birth Dialog */}
+      <Dialog open={birthOpen} onOpenChange={setBirthOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2 text-emerald-700">🎉 Log Birth</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Delivery Date *</label>
+                <input type="date" value={birthForm.date} onChange={e => setBirthForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Delivery Type</label>
+                <select value={birthForm.deliveryType} onChange={e => setBirthForm(f => ({ ...f, deliveryType: e.target.value }))}
+                  className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                  <option value="">Select...</option>
+                  <option value="Vaginal">Vaginal</option>
+                  <option value="C-Section">C-Section</option>
+                  <option value="C-Section (Scheduled)">C-Section (Scheduled)</option>
+                  <option value="C-Section (Emergency)">C-Section (Emergency)</option>
+                  <option value="VBAC">VBAC</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Per-baby details */}
+            {birthBabies.map((baby, i) => (
+              <div key={i} className="rounded-lg border border-stone-200 p-3 space-y-3">
+                <p className="text-xs font-semibold text-stone-500 uppercase">Baby {birthBabies.length > 1 ? i + 1 : ''}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Name</label>
+                    <input value={baby.name} onChange={e => { const u = [...birthBabies]; u[i] = { ...u[i], name: e.target.value }; setBirthBabies(u) }}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2" placeholder="Baby's name" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Sex</label>
+                    <select value={baby.sex} onChange={e => { const u = [...birthBabies]; u[i] = { ...u[i], sex: e.target.value }; setBirthBabies(u) }}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                      <option value="unknown">Unknown</option>
+                      <option value="boy">Boy</option>
+                      <option value="girl">Girl</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Weight (lbs oz)</label>
+                    <input value={baby.weight} onChange={e => { const u = [...birthBabies]; u[i] = { ...u[i], weight: e.target.value }; setBirthBabies(u) }}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2" placeholder="e.g. 7 lbs 4 oz" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Length (inches)</label>
+                    <input value={baby.length} onChange={e => { const u = [...birthBabies]; u[i] = { ...u[i], length: e.target.value }; setBirthBabies(u) }}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2" placeholder="e.g. 20.5" />
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Post-Delivery Notes / Complications</label>
+              <textarea value={birthForm.notes} onChange={e => setBirthForm(f => ({ ...f, notes: e.target.value }))}
+                className="w-full h-20 text-sm border border-stone-200 rounded-md px-2 py-1.5 resize-none" placeholder="Any complications or notes..." />
+            </div>
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setBirthOpen(false)}>Cancel</Button>
+              <Button size="sm" disabled={saving || !birthForm.date} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleLogBirth}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : '🎉'}
+                Log Birth
               </Button>
             </div>
           </div>
