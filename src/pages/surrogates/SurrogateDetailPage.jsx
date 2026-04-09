@@ -508,7 +508,7 @@ export default function SurrogateDetailPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
-                <AISummaryButton caseId={surrogate.id} caseName={surrogate.name} caseType="surrogate" stage={stageStatus.stage} status={stageStatus.status} checklistSteps={checklistSteps} tracking={recordTracking} />
+                <AISummaryButton caseId={surrogate.id} caseName={surrogate.name} caseType="surrogate" stage={stageStatus.stage} status={stageStatus.status} />
                 {surrogate.referralPartner === 'be_surrogacy' && (
                   <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
                 )}
