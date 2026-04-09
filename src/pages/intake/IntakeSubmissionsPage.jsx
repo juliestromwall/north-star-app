@@ -42,58 +42,56 @@ function formatDate(iso) {
 }
 
 function GCAnswerDetail({ answers }) {
+  const a = answers || {}
+  const yn = (v) => v === true || v === 'yes' ? 'Yes' : v === false || v === 'no' ? 'No' : '—'
+  const bmi = (a.heightFt && a.weightLbs) ? ((a.weightLbs * 703) / ((parseInt(a.heightFt) * 12 + parseInt(a.heightIn || 0)) ** 2)).toFixed(1) : null
+
   return (
     <div className="space-y-6 text-sm">
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">About You</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Personal Information</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Name</span><p className="font-medium">{answers.firstName} {answers.lastName}</p></div>
-          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{answers.dob}</p></div>
-          <div><span className="text-stone-400">Email</span><p className="font-medium">{answers.email}</p></div>
-          <div><span className="text-stone-400">Phone</span><p className="font-medium">{answers.phone}</p></div>
-          <div><span className="text-stone-400">Location</span><p className="font-medium">{answers.city}, {answers.state}</p></div>
-          <div><span className="text-stone-400">Marital Status</span><p className="font-medium">{answers.maritalStatus}</p></div>
-          {answers.partnerName && <div><span className="text-stone-400">Partner</span><p className="font-medium">{answers.partnerName}</p></div>}
+          <div><span className="text-stone-400">First Name</span><p className="font-medium">{a.firstName}</p></div>
+          <div><span className="text-stone-400">Last Name</span><p className="font-medium">{a.lastName}</p></div>
+          <div><span className="text-stone-400">Email</span><p className="font-medium">{a.email}</p></div>
+          <div><span className="text-stone-400">Phone</span><p className="font-medium">{a.phone}</p></div>
+          <div><span className="text-stone-400">Date of Birth</span><p className="font-medium">{a.dob}</p></div>
+          <div><span className="text-stone-400">State</span><p className="font-medium">{a.state}</p></div>
+          <div><span className="text-stone-400">U.S. Citizen</span><p className="font-medium">{yn(a.usCitizen)}</p></div>
+          <div><span className="text-stone-400">Marital Status</span><p className="font-medium">{a.maritalStatus || '—'}</p></div>
         </div>
       </section>
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Health & Lifestyle</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Physical</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Height</span><p className="font-medium">{answers.heightFt}'{answers.heightIn}"</p></div>
-          <div><span className="text-stone-400">Weight</span><p className="font-medium">{answers.weightLbs} lbs</p></div>
-          <div><span className="text-stone-400">BMI</span><p className={`font-medium ${answers.bmi > 33 || answers.bmi < 19 ? 'text-red-600' : 'text-emerald-600'}`}>{answers.bmi}</p></div>
-          <div><span className="text-stone-400">Tobacco Use</span><p className={`font-medium ${answers.tobaccoUse ? 'text-red-600' : ''}`}>{answers.tobaccoUse ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Drug Use</span><p className={`font-medium ${answers.drugUse ? 'text-red-600' : ''}`}>{answers.drugUse ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Medical Condition</span><p className={`font-medium ${answers.seriousMedicalCondition ? 'text-red-600' : ''}`}>{answers.seriousMedicalCondition ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Currently Pregnant</span><p className={`font-medium ${answers.currentlyPregnant ? 'text-red-600' : ''}`}>{answers.currentlyPregnant ? 'Yes' : 'No'}</p></div>
+          <div><span className="text-stone-400">Height</span><p className="font-medium">{a.heightFt}'{a.heightIn}"</p></div>
+          <div><span className="text-stone-400">Weight</span><p className="font-medium">{a.weightLbs} lbs</p></div>
+          {bmi && <div><span className="text-stone-400">BMI</span><p className={`font-medium ${bmi > 33 || bmi < 19 ? 'text-red-600' : 'text-emerald-600'}`}>{bmi}</p></div>}
         </div>
       </section>
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Pregnancy History</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Biological Children</span><p className={`font-medium ${answers.biologicalChildren === 0 ? 'text-red-600' : ''}`}>{answers.biologicalChildren}</p></div>
-          <div><span className="text-stone-400">Total Pregnancies</span><p className="font-medium">{answers.totalPregnancies}</p></div>
-          <div><span className="text-stone-400">Vaginal Deliveries</span><p className="font-medium">{answers.vaginalDeliveries}</p></div>
-          <div><span className="text-stone-400">C-Sections</span><p className={`font-medium ${answers.cSections > 3 ? 'text-red-600' : ''}`}>{answers.cSections}</p></div>
-          {answers.majorComplications && <div className="col-span-2"><span className="text-stone-400">Complications</span><p className="font-medium">{answers.majorComplications}</p></div>}
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Screening Questions</p>
+        <div className="grid grid-cols-1 gap-y-2">
+          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
+            <span className="text-stone-500">Have you had a healthy pregnancy and delivery?</span>
+            <span className={`font-semibold ${a.healthyPregnancy === false ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.healthyPregnancy)}</span>
+          </div>
+          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
+            <span className="text-stone-500">Have you had 6 or more pregnancies?</span>
+            <span className={`font-semibold ${a.sixOrMoreDeliveries === true ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.sixOrMoreDeliveries)}</span>
+          </div>
+          <div className="flex items-center justify-between py-1.5 border-b border-stone-100">
+            <span className="text-stone-500">Have you had more than 2 C-sections?</span>
+            <span className={`font-semibold ${a.moreThanTwoCsections === true ? 'text-red-600' : 'text-emerald-600'}`}>{yn(a.moreThanTwoCsections)}</span>
+          </div>
         </div>
       </section>
       <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Surrogacy Readiness</p>
+        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Other</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Previous Surrogate</span><p className="font-medium">{answers.previousSurrogacy ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Carry Multiples</span><p className="font-medium">{answers.willingToCarryMultiples ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">IP Contact Pref.</span><p className="font-medium">{answers.contactPreferenceWithIPs}</p></div>
-          <div><span className="text-stone-400">Support System</span><p className="font-medium">{answers.supportSystemConfirmed ? 'Confirmed' : 'Not yet'}</p></div>
-        </div>
-        <div className="mt-2"><span className="text-stone-400">Motivation</span><p className="mt-1 text-stone-600 leading-relaxed">{answers.motivation}</p></div>
-      </section>
-      <section>
-        <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Final Details</p>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <div><span className="text-stone-400">Govt. Assistance</span><p className={`font-medium ${answers.govtAssistance ? 'text-red-600' : ''}`}>{answers.govtAssistance ? 'Yes' : 'No'}</p></div>
-          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{answers.preferredContact}</p></div>
-          <div><span className="text-stone-400">Heard Via</span><p className="font-medium">{answers.hearAboutUs}</p></div>
+          <div><span className="text-stone-400">Preferred Contact</span><p className="font-medium">{a.preferredContact || '—'}</p></div>
+          <div><span className="text-stone-400">How did you hear about us?</span><p className="font-medium">{a.hearAboutUs || '—'}{a.hearAboutUsOther ? ` — ${a.hearAboutUsOther}` : ''}</p></div>
+          <div><span className="text-stone-400">Agreed to Background Check</span><p className="font-medium">{yn(a.agreeBackgroundCheck)}</p></div>
         </div>
       </section>
     </div>

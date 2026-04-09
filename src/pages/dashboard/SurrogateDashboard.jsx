@@ -283,9 +283,9 @@ function OnboardingDashboard({ name, currentUser }) {
     // Check if application has been released
     if (currentUser?.email) {
       fetchIntakeByEmail(currentUser.email).then(answers => {
-        if (answers?._applicationAvailable) {
-          setAppAvailable(true)
+        if (answers) {
           setAppAnswers(answers)
+          if (answers._applicationAvailable) setAppAvailable(true)
         }
       }).catch(() => {})
     }
