@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
-import { fetchCaseDocuments, getAppConfig, setAppConfig } from '@/lib/db'
+import { fetchCaseDocuments, getAppConfig, setAppConfig, fetchSurrogateProfileByEmail } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
 
@@ -586,15 +586,17 @@ export default function RecordsSummaryWorkspace() {
       fetchCaseDocuments(id),
       // Load saved summary
       getAppConfig(`${SUMMARY_KEY_PREFIX}${id}`),
-    ]).then(([{ data: intake }, docs, saved]) => {
+    ]).then(async ([{ data: intake }, docs, saved]) => {
       if (intake) {
         setSurrogate({ id: intake.id, name: intake.applicant_name, email: intake.applicant_email, dob: intake.answers?.dob, answers: intake.answers })
         setClinicData(intake.answers?._clinicHospital || {})
-        // Try loading profile from localStorage or answers
-        try {
-          const raw = localStorage.getItem(`abc-surrogate-profile-${intake.id}`)
-          if (raw) setProfileData(JSON.parse(raw))
-        } catch {}
+        // Fetch profile from Supabase
+        if (intake.applicant_email) {
+          try {
+            const profileRow = await fetchSurrogateProfileByEmail(intake.applicant_email)
+            if (profileRow?.profile_data) setProfileData(profileRow.profile_data)
+          } catch {}
+        }
       }
       setDocuments(docs || [])
       setSummary(saved || null)
