@@ -44,17 +44,20 @@ export function useBotProtection(startTimeRef) {
   const validateSubmission = useCallback(() => {
     // 1. Honeypot check — bots fill hidden fields
     if (honeypotValue) {
+      console.warn('Bot protection: honeypot triggered, value:', honeypotValue)
       return { ok: false, reason: 'honeypot' }
     }
 
     // 2. Time-based check — form completed too fast
     const elapsed = (Date.now() - startTimeRef.current) / 1000
     if (elapsed < MIN_FORM_TIME_SECONDS) {
+      console.warn('Bot protection: too fast, elapsed:', elapsed)
       return { ok: false, reason: 'too_fast' }
     }
 
     // 3. Rapid-fill detection — inhumanly fast field changes
     if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) {
+      console.warn('Bot protection: rapid fill detected, count:', maxRapidFillRef.current)
       return { ok: false, reason: 'rapid_fill' }
     }
 
@@ -96,12 +99,12 @@ export function HoneypotField({ value, onChange }) {
         tabIndex: -1,
       }}
     >
-      <label htmlFor="website_url">Website</label>
+      <label htmlFor="abc_hp_field">Do not fill</label>
       <input
         type="text"
-        id="website_url"
-        name="website_url"
-        autoComplete="off"
+        id="abc_hp_field"
+        name="abc_hp_field"
+        autoComplete="new-password"
         tabIndex={-1}
         value={value}
         onChange={e => onChange(e.target.value)}
