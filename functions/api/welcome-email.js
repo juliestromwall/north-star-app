@@ -26,64 +26,9 @@ export async function onRequestPost(context) {
   }
 
   const name = `${firstName} ${lastName || ''}`.trim()
-  let resetLink = null
 
-  // 1. Create portal account (if doesn't exist)
-  if (supabaseUrl && serviceKey) {
-    try {
-      // Check if user exists
-      const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
-        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-      })
-      const listData = await listRes.json()
-      const existing = (listData.users || []).find(u => u.email?.toLowerCase() === email.toLowerCase())
-
-      if (!existing) {
-        // Create user
-        const tempPassword = crypto.randomUUID().slice(0, 16) + '!A1'
-        await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password: tempPassword,
-            email_confirm: true,
-            user_metadata: { full_name: name, role: 'surrogate' },
-          }),
-        })
-      }
-
-      // Always generate a fresh reset link (new or existing user)
-      try {
-        const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'recovery', email, redirect_to: 'https://app.abcsurrogacy.com/reset-password' }),
-        })
-        const linkData = await linkRes.json()
-        resetLink = linkData?.properties?.action_link || linkData?.action_link || null
-        if (!resetLink && linkData?.properties?.hashed_token) {
-          resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent('https://app.abcsurrogacy.com/reset-password')}`
-        }
-        if (resetLink && !resetLink.includes('redirect_to')) {
-          resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
-        }
-      } catch (linkErr) {
-        console.error('Reset link generation failed:', linkErr)
-      }
-    } catch (err) {
-      console.error('Account creation failed:', err)
-    }
-  }
-
-  // 2. Send welcome email via Resend
-  const portalButton = resetLink ? `
-      <div style="text-align: center; margin: 20px 0 4px;">
-        <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
-          Set Your Password
-        </a>
-      </div>
-  ` : ''
+  // Account creation is handled on the confirmation page (signUp).
+  // This endpoint only sends the welcome email.
 
   const htmlBody = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
@@ -103,10 +48,9 @@ export async function onRequestPost(context) {
             What happens next?
           </p>
           <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 2;">
-            <li>If you haven't already, set up your user portal if you would like to get started on your profile.</li>
+            <li>If you haven't already, set up your portal password on the confirmation page to get started on your profile.</li>
             <li>Our intake coordinator, Jennifer, will be reaching out about next steps!</li>
           </ol>
-          ${portalButton}
         </div>
 
         <p style="text-align: center; font-size: 15px; color: #283693; font-weight: 600; margin: 24px 0 8px;">
@@ -148,7 +92,7 @@ export async function onRequestPost(context) {
     }
   }
 
-  return new Response(JSON.stringify({ success: true, hasPortal: !!resetLink }), {
+  return new Response(JSON.stringify({ success: true }), {
     headers: { 'Content-Type': 'application/json', ...corsHeaders },
   })
 }

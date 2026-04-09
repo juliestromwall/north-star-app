@@ -89,6 +89,7 @@ export default function IntakeConfirmationPage() {
     setSignupError(null)
     try {
       if (supabase) {
+        // Try signUp first (normal flow)
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -100,7 +101,29 @@ export default function IntakeConfirmationPage() {
           },
         })
         if (error) {
-          setSignupError(error.message.includes('already') ? 'User already registered' : error.message)
+          // If already registered (e.g. admin invited them), try signing in and updating password
+          if (error.message.includes('already')) {
+            try {
+              // Use the reset password API to set their password
+              const res = await fetch('/api/set-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, name, role: type === 'gc' ? 'surrogate' : 'intended_parent' }),
+              })
+              const data = await res.json()
+              if (data.success) {
+                // Sign them in
+                await supabase.auth.signInWithPassword({ email, password })
+                setPwSaved(true)
+                setSigningUp(false)
+                return
+              }
+            } catch {}
+            setSignupError('Account setup failed. Please use the password reset link from your email, or contact info@abcsurrogacy.com.')
+            setSigningUp(false)
+            return
+          }
+          setSignupError(error.message)
           setSigningUp(false)
           return
         }

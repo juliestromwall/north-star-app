@@ -32,13 +32,13 @@ export async function onRequestPost(context) {
         <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
           Hello, <span style="color: #ed148c;">${firstName}</span>! 👋
         </h1>
-        <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
-          We're so excited to hear from you
-        </p>
 
-        <div style="text-align: center; margin: 0 0 24px;">
-          <p style="font-size: 14px; color: #44403c; line-height: 1.6;">
-            We understand how important this journey is to you, and we're honored to be part of it.
+        <div style="text-align: center; margin: 16px 0 24px;">
+          <p style="font-size: 14px; color: #44403c; line-height: 1.7;">
+            We understand how deeply meaningful this journey is to you, and we're truly honored that you've chosen Abundant Beginnings to be part of it. Building a family is one of life's most beautiful experiences, and we want you to know that our team is here to support you with care, compassion, and expertise every step of the way.
+          </p>
+          <p style="font-size: 14px; color: #44403c; line-height: 1.7; margin-top: 12px;">
+            We can't wait to connect with you and learn more about your story.
           </p>
         </div>
 
@@ -47,7 +47,7 @@ export async function onRequestPost(context) {
             What happens next?
           </p>
           <p style="margin: 0; color: #44403c; font-size: 14px; line-height: 1.8;">
-            Our team is reviewing your information and we will reach out to you within <strong>48 hours</strong>.
+            Our team is reviewing your information and we will reach out to you within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
           </p>
         </div>
 
