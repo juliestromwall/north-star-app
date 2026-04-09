@@ -352,6 +352,22 @@ function OnboardingDashboard({ name, currentUser }) {
               </CardContent>
             </Card>
           </Link>
+        ) : appAnswers?._reviewedAt ? (
+          <Card className="border-emerald-200" style={{ backgroundColor: '#f0fdf4' }}>
+            <CardContent className="py-6">
+              <div className="flex items-start gap-4">
+                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-100 shrink-0">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-700 text-lg">We've reviewed your quiz results!</p>
+                  <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                    If we haven't connected yet, we will be reaching out very shortly! In the meantime, your quiz results look great and we would like to invite you to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
             <CardContent className="py-6">
@@ -386,8 +402,8 @@ function OnboardingDashboard({ name, currentUser }) {
       {/* Profile card — full width, prominent */}
       <ProfileProgressCard userId={userId || currentUser?.email} />
 
-      {/* Quiz Results card — hide once application is released */}
-      {!appAvailable && <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
+      {/* Quiz Results card — hide once application is released OR quiz is reviewed */}
+      {!appAvailable && !appAnswers?._reviewedAt && <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
         <CardContent className="py-4 flex items-center gap-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 shrink-0">
             <ClipboardList className="w-5 h-5 text-amber-600" />

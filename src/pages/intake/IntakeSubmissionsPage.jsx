@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Search, Filter, Eye, ExternalLink } from 'lucide-react'
+import { useRole } from '@/context/RoleContext'
+import { Search, Filter, Eye, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -163,6 +164,7 @@ function IPAnswerDetail({ answers }) {
 }
 
 export default function IntakeSubmissionsPage() {
+  const { currentUser } = useRole()
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -193,6 +195,24 @@ export default function IntakeSubmissionsPage() {
     setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: newStatus } : s))
     if (selected?.id === id) setSelected(prev => ({ ...prev, status: newStatus }))
     updateIntakeSubmissionStatus(id, newStatus).catch(() => {})
+  }
+
+  async function markAsReviewed(id) {
+    try {
+      const { supabase: sb } = await import('@/lib/supabase')
+      if (!sb) return
+      const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', id).single()
+      if (row) {
+        const updated = {
+          ...(row.answers || {}),
+          _reviewedAt: new Date().toISOString(),
+          _reviewedBy: currentUser?.name || currentUser?.email || 'Admin',
+        }
+        await sb.from('intake_submissions').update({ answers: updated, status: 'reviewed' }).eq('id', id)
+        setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status: 'reviewed', answers: updated } : s))
+        if (selected?.id === id) setSelected(prev => ({ ...prev, status: 'reviewed', answers: updated }))
+      }
+    } catch (err) { console.error('Mark reviewed failed:', err) }
   }
 
   const sources = [...new Set(submissions.map(s => s.tracking?.resolvedSource).filter(Boolean))]
@@ -360,20 +380,37 @@ export default function IntakeSubmissionsPage() {
                 }
               </div>
 
+              {/* Review info */}
+              {selected.answers?._reviewedAt && (
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
+                  <span className="text-emerald-700 font-medium">Reviewed by {selected.answers._reviewedBy}</span>
+                  <span className="text-emerald-500 ml-2">{new Date(selected.answers._reviewedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                </div>
+              )}
+
               {/* Status actions */}
-              <div className="flex flex-wrap gap-2 pt-4 border-t border-stone-100 mt-4">
-                <p className="text-xs text-stone-400 w-full mb-1">Update Status:</p>
-                {['pending_review', 'reviewed', 'qualified', 'approved', 'rejected'].map(s => (
-                  <Button
-                    key={s}
-                    variant={selected.status === s ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => updateStatus(selected.id, s)}
-                    className={selected.status === s ? 'bg-stone-800 text-white' : ''}
-                  >
-                    {STATUS_CONFIG[s]?.label || s}
+              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-stone-100 mt-4">
+                {!selected.answers?._reviewedAt && (
+                  <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => markAsReviewed(selected.id)}>
+                    <CheckCircle2 className="size-3.5" /> Mark as Reviewed
                   </Button>
-                ))}
+                )}
+                <Button
+                  variant={selected.status === 'qualified' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => updateStatus(selected.id, 'qualified')}
+                  className={selected.status === 'qualified' ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}
+                >
+                  Qualified
+                </Button>
+                <Button
+                  variant={selected.status === 'rejected' || selected.status === 'disqualified' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => updateStatus(selected.id, 'rejected')}
+                  className={selected.status === 'rejected' || selected.status === 'disqualified' ? 'bg-red-600 text-white hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50'}
+                >
+                  Rejected
+                </Button>
               </div>
             </>
           )}
