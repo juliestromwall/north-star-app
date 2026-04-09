@@ -1,11 +1,12 @@
 import { useState, Component } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { DraftProvider } from '@/context/DraftContext'
 import ComposeWindows from '@/components/shared/ComposeWindows'
 import { loadAdminUsers } from '@/data/mock/users'
+import { useRole } from '@/context/RoleContext'
 
 class ComposeErrorBoundary extends Component {
   state = { hasError: false }
@@ -15,9 +16,15 @@ class ComposeErrorBoundary extends Component {
 }
 
 export default function AppLayout() {
+  const { isAuthenticated, authLoading } = useRole()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [adminLoaded, setAdminLoaded] = useState(false)
   const location = useLocation()
+
+  // Redirect to login if not authenticated
+  if (!authLoading && !isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
   // Load admin users from Supabase on mount (with 3s timeout fallback)
   useEffect(() => {
