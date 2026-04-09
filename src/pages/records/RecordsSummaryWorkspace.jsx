@@ -45,25 +45,150 @@ function FormField({ label, value, onChange, type = 'text', placeholder, rows })
 function DocumentPanel({ documents, surrogateId }) {
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [mergeMode, setMergeMode] = useState(false)
+  const [mergeSelected, setMergeSelected] = useState(new Set())
+  const [merging, setMerging] = useState(false)
+  const [pageRemoveMode, setPageRemoveMode] = useState(false)
+  const [pdfPageCount, setPdfPageCount] = useState(0)
+  const [removedPages, setRemovedPages] = useState(new Set())
+  const [removingPages, setRemovingPages] = useState(false)
 
-  // Filter to medical records category
-  const medicalDocs = documents.filter(d =>
-    d.category === 'medical-records' || d.category === 'clinic' || d.category === 'e-signature' ||
-    d.file_name?.toLowerCase().includes('record') || d.file_name?.toLowerCase().includes('medical')
-  )
+  const pdfDocs = documents.filter(d => d.file_type === 'application/pdf')
   const allDocs = documents
 
   useEffect(() => {
-    if (selectedDoc?.public_url) {
-      setPreviewUrl(selectedDoc.public_url)
-    }
+    if (selectedDoc?.public_url) setPreviewUrl(selectedDoc.public_url)
   }, [selectedDoc])
+
+  // Get page count when entering page remove mode
+  useEffect(() => {
+    if (!pageRemoveMode || !selectedDoc?.public_url || selectedDoc.file_type !== 'application/pdf') return
+    ;(async () => {
+      try {
+        const { PDFDocument } = await import('pdf-lib')
+        const res = await fetch(selectedDoc.public_url)
+        const bytes = await res.arrayBuffer()
+        const pdf = await PDFDocument.load(bytes)
+        setPdfPageCount(pdf.getPageCount())
+        setRemovedPages(new Set())
+      } catch (err) { console.error('Failed to load PDF:', err); setPdfPageCount(0) }
+    })()
+  }, [pageRemoveMode, selectedDoc])
+
+  async function handleMerge() {
+    if (mergeSelected.size < 2) return
+    setMerging(true)
+    try {
+      const { PDFDocument } = await import('pdf-lib')
+      const mergedPdf = await PDFDocument.create()
+      const selectedDocs = allDocs.filter(d => mergeSelected.has(d.id))
+
+      for (const doc of selectedDocs) {
+        try {
+          const res = await fetch(doc.public_url)
+          const bytes = await res.arrayBuffer()
+          if (doc.file_type === 'application/pdf') {
+            const srcPdf = await PDFDocument.load(bytes)
+            const pages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices())
+            pages.forEach(p => mergedPdf.addPage(p))
+          } else if (doc.file_type?.startsWith('image/')) {
+            const page = mergedPdf.addPage()
+            let img
+            if (doc.file_type === 'image/png') img = await mergedPdf.embedPng(bytes)
+            else img = await mergedPdf.embedJpg(bytes)
+            const { width, height } = img.scale(Math.min(page.getWidth() / img.width, page.getHeight() / img.height))
+            page.drawImage(img, { x: (page.getWidth() - width) / 2, y: (page.getHeight() - height) / 2, width, height })
+          }
+        } catch (err) { console.error('Failed to add doc:', doc.file_name, err) }
+      }
+
+      const mergedBytes = await mergedPdf.save()
+      const blob = new Blob([mergedBytes], { type: 'application/pdf' })
+      const fileName = `Merged_Records_${Date.now()}.pdf`
+      const path = `${surrogateId}/medical-records/${fileName}`
+
+      if (supabase) {
+        await supabase.storage.from('case-documents').upload(path, blob, { contentType: 'application/pdf' })
+        const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(path)
+        await supabase.from('case_documents').insert({
+          surrogate_id: surrogateId, category: 'medical-records',
+          file_name: fileName, file_type: 'application/pdf', file_size: mergedBytes.length,
+          storage_path: path, public_url: urlData.publicUrl, uploaded_by: 'Records Summary (Merge)',
+        })
+        // Refresh — parent will need to reload
+        window.location.reload()
+      }
+    } catch (err) { console.error('Merge failed:', err); alert('Merge failed.') }
+    finally { setMerging(false) }
+  }
+
+  async function handleRemovePages() {
+    if (removedPages.size === 0 || !selectedDoc) return
+    setRemovingPages(true)
+    try {
+      const { PDFDocument } = await import('pdf-lib')
+      const res = await fetch(selectedDoc.public_url)
+      const bytes = await res.arrayBuffer()
+      const srcPdf = await PDFDocument.load(bytes)
+      const newPdf = await PDFDocument.create()
+
+      const keepIndices = srcPdf.getPageIndices().filter(i => !removedPages.has(i))
+      if (keepIndices.length === 0) { alert('Cannot remove all pages.'); setRemovingPages(false); return }
+
+      const pages = await newPdf.copyPages(srcPdf, keepIndices)
+      pages.forEach(p => newPdf.addPage(p))
+
+      const newBytes = await newPdf.save()
+      const blob = new Blob([newBytes], { type: 'application/pdf' })
+
+      // Save original as backup (if not already backed up)
+      if (supabase && !selectedDoc.file_name?.startsWith('[Original]')) {
+        const origPath = `${surrogateId}/medical-records/originals/${selectedDoc.file_name}`
+        await supabase.storage.from('case-documents').upload(origPath, await (await fetch(selectedDoc.public_url)).blob(), { contentType: 'application/pdf', upsert: true })
+        await supabase.from('case_documents').insert({
+          surrogate_id: surrogateId, category: 'medical-records',
+          file_name: `[Original] ${selectedDoc.file_name}`,
+          file_type: 'application/pdf', storage_path: origPath,
+          public_url: supabase.storage.from('case-documents').getPublicUrl(origPath).data?.publicUrl,
+          uploaded_by: 'Records Summary (Backup)',
+        })
+      }
+
+      // Overwrite the current doc
+      if (supabase) {
+        const newPath = selectedDoc.storage_path || `${surrogateId}/medical-records/${selectedDoc.file_name}`
+        await supabase.storage.from('case-documents').upload(newPath, blob, { contentType: 'application/pdf', upsert: true })
+        const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(newPath)
+        await supabase.from('case_documents').update({ public_url: urlData.publicUrl, file_size: newBytes.length }).eq('id', selectedDoc.id)
+        window.location.reload()
+      }
+    } catch (err) { console.error('Page removal failed:', err); alert('Failed to remove pages.') }
+    finally { setRemovingPages(false) }
+  }
+
+  function toggleMergeDoc(docId) {
+    setMergeSelected(prev => { const s = new Set(prev); if (s.has(docId)) s.delete(docId); else s.add(docId); return s })
+  }
 
   return (
     <div className="flex flex-col h-full">
       {/* Doc list header */}
-      <div className="p-3 border-b bg-stone-50">
-        <p className="text-xs font-semibold text-stone-600">Medical Records ({medicalDocs.length})</p>
+      <div className="p-3 border-b bg-stone-50 flex items-center justify-between">
+        <p className="text-xs font-semibold text-stone-600">Documents ({allDocs.length})</p>
+        <div className="flex items-center gap-1">
+          {!selectedDoc && (
+            <button onClick={() => { setMergeMode(!mergeMode); setMergeSelected(new Set()) }}
+              className={`text-[10px] px-2 py-1 rounded font-medium transition-colors ${mergeMode ? 'bg-[#283693] text-white' : 'text-stone-500 hover:bg-stone-200'}`}>
+              <Merge className="size-3 inline mr-1" />{mergeMode ? 'Cancel' : 'Merge'}
+            </button>
+          )}
+          {mergeMode && mergeSelected.size >= 2 && (
+            <button onClick={handleMerge} disabled={merging}
+              className="text-[10px] px-2 py-1 rounded font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+              {merging ? 'Merging...' : `Merge ${mergeSelected.size}`}
+            </button>
+          )}
+        </div>
       </div>
 
       {!selectedDoc ? (
@@ -72,29 +197,65 @@ function DocumentPanel({ documents, surrogateId }) {
             <p className="text-xs text-stone-400 text-center py-8">No documents found</p>
           )}
           {allDocs.map(doc => (
-            <button key={doc.id} onClick={() => setSelectedDoc(doc)}
-              className="w-full text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2">
-              <FileText className="size-4 text-stone-300 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
-                <p className="text-[10px] text-stone-400">{doc.category} · {formatDate(doc.created_at)}</p>
-              </div>
-            </button>
+            <div key={doc.id} className="flex items-center gap-2">
+              {mergeMode && doc.file_type === 'application/pdf' && (
+                <input type="checkbox" checked={mergeSelected.has(doc.id)} onChange={() => toggleMergeDoc(doc.id)} className="size-3.5 accent-[#283693] shrink-0 ml-1" />
+              )}
+              <button onClick={() => { if (!mergeMode) setSelectedDoc(doc) }}
+                className={`flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2 ${mergeMode && !doc.file_type?.includes('pdf') ? 'opacity-30' : ''}`}>
+                <FileText className="size-4 text-stone-300 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+                  <p className="text-[10px] text-stone-400">{doc.category} · {formatDate(doc.created_at)}</p>
+                </div>
+              </button>
+            </div>
           ))}
         </div>
       ) : (
         <div className="flex-1 flex flex-col">
-          {/* Back button */}
           <div className="p-2 border-b flex items-center justify-between">
-            <button onClick={() => { setSelectedDoc(null); setPreviewUrl(null) }} className="text-xs text-[#283693] hover:underline flex items-center gap-1">
+            <button onClick={() => { setSelectedDoc(null); setPreviewUrl(null); setPageRemoveMode(false); setRemovedPages(new Set()) }} className="text-xs text-[#283693] hover:underline flex items-center gap-1">
               <ArrowLeft className="size-3" /> Back to list
             </button>
-            <a href={selectedDoc.public_url} target="_blank" rel="noopener noreferrer" className="text-xs text-stone-400 hover:text-stone-600">
-              <Download className="size-3.5" />
-            </a>
+            <div className="flex items-center gap-1">
+              {selectedDoc.file_type === 'application/pdf' && !pageRemoveMode && (
+                <button onClick={() => setPageRemoveMode(true)} className="text-[10px] px-2 py-1 rounded text-stone-500 hover:bg-stone-200 font-medium">
+                  <Trash2 className="size-3 inline mr-1" />Remove Pages
+                </button>
+              )}
+              <a href={selectedDoc.public_url} target="_blank" rel="noopener noreferrer" className="text-xs text-stone-400 hover:text-stone-600 p-1">
+                <Download className="size-3.5" />
+              </a>
+            </div>
           </div>
+
+          {/* Page removal mode */}
+          {pageRemoveMode && (
+            <div className="px-3 py-2 bg-amber-50 border-b border-amber-200">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-amber-800">Select pages to remove ({removedPages.size} selected)</p>
+                <div className="flex gap-1">
+                  <button onClick={() => { setPageRemoveMode(false); setRemovedPages(new Set()) }} className="text-[10px] px-2 py-1 rounded bg-white border border-stone-200 text-stone-600">Cancel</button>
+                  <button onClick={handleRemovePages} disabled={removedPages.size === 0 || removingPages}
+                    className="text-[10px] px-2 py-1 rounded bg-red-600 text-white font-medium disabled:opacity-50">
+                    {removingPages ? 'Removing...' : `Remove ${removedPages.size} Page${removedPages.size !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {Array.from({ length: pdfPageCount }, (_, i) => (
+                  <button key={i} onClick={() => setRemovedPages(prev => { const s = new Set(prev); if (s.has(i)) s.delete(i); else s.add(i); return s })}
+                    className={`size-8 rounded text-[10px] font-medium border transition-colors ${removedPages.has(i) ? 'bg-red-500 text-white border-red-600' : 'bg-white text-stone-600 border-stone-200 hover:border-red-300'}`}>
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] text-amber-600 mt-1.5">Original document will be backed up before changes.</p>
+            </div>
+          )}
+
           <p className="text-xs font-medium text-stone-700 px-3 py-1.5 bg-stone-50 border-b truncate">{selectedDoc.file_name}</p>
-          {/* PDF preview */}
           <div className="flex-1">
             {previewUrl && selectedDoc.file_type === 'application/pdf' ? (
               <iframe src={previewUrl} className="w-full h-full border-0" title="Document preview" />
