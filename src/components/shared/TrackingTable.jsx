@@ -146,7 +146,9 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       </div>
                     </td>
                     <td className="px-3 py-3.5">
-                      {(step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
+                      {step.logType === 'date_completed' && currentStatus === 'complete' ? (
+                        <span className="text-xs font-semibold text-emerald-600">Completed {lastEntry?.date ? new Date(lastEntry.date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
+                      ) : (step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
                         <span className="text-sm font-medium text-stone-800">{currentStatus}</span>
                       ) : (
                         <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
@@ -200,7 +202,22 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
                       <td className="px-6 py-3 text-xs font-semibold text-[#283693]">New Log</td>
                       <td className="px-3 py-3">
-                        {step.logType === 'text' ? (
+                        {step.logType === 'date_completed' ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => { setLogStatus('complete'); setLogNote(''); setTimeout(() => submitLog(step.id), 50) }}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <Check className="size-3.5" /> Mark Complete
+                            </button>
+                            <button
+                              onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }}
+                              className="text-[10px] text-stone-400 hover:text-red-500"
+                            >
+                              N/A
+                            </button>
+                          </div>
+                        ) : step.logType === 'text' ? (
                           <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Enter value..." value={logStatus} onChange={e => setLogStatus(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
                         ) : step.logType === 'dropdown' && step.options?.length > 0 ? (
                           <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>

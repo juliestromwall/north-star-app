@@ -193,8 +193,8 @@ function AdminNotesSection() {
 
 // ── Sortable Step Row ──────────────────────────────────────
 
-const LOG_TYPE_LABELS = { status: 'Status Dropdown', text: 'Text Field', dropdown: 'Custom Dropdown' }
-const LOG_TYPE_COLORS = { status: 'bg-blue-50 text-blue-600', text: 'bg-amber-50 text-amber-600', dropdown: 'bg-purple-50 text-purple-600' }
+const LOG_TYPE_LABELS = { status: 'Status Dropdown', text: 'Text Field', dropdown: 'Custom Dropdown', date_completed: 'Date Completed' }
+const LOG_TYPE_COLORS = { status: 'bg-blue-50 text-blue-600', text: 'bg-amber-50 text-amber-600', dropdown: 'bg-purple-50 text-purple-600', date_completed: 'bg-emerald-50 text-emerald-600' }
 
 function SortableStepRow({ step, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false)
