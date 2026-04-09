@@ -307,7 +307,7 @@ function ReferralTable({ rows, onMarkPaid, showPaidCol }) {
                     {showPaidCol ? (
                       <span className="text-emerald-600 font-medium">{row.paidDate ? formatDate(row.paidDate) : '—'}</span>
                     ) : (
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => onMarkPaid(row)}>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkPaid(row)}>
                         <DollarSign className="size-3" /> Mark Paid
                       </Button>
                     )}
@@ -381,7 +381,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
                     ) : showPaidCol ? (
                       <span className="text-stone-300">—</span>
                     ) : (
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => onMarkHalfPaid(row)}>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800" onClick={() => onMarkHalfPaid(row)}>
                         <DollarSign className="size-3" /> Half
                       </Button>
                     )}
@@ -397,7 +397,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
                     {showPaidCol ? (
                       <span className="text-emerald-600 font-medium">{row.fullyPaidDate ? formatDate(row.fullyPaidDate) : '—'}</span>
                     ) : (
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => onMarkFullyPaid(row)}>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkFullyPaid(row)}>
                         <Check className="size-3" /> Fully Paid
                       </Button>
                     )}
