@@ -570,6 +570,38 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
 })
 
 // ── Summary Preview / PDF Export ────────────────────────
+function InfoGridRow({ label, value, span }) {
+  return (
+    <div style={{ backgroundColor: 'white', padding: '7px 14px', ...(span ? { gridColumn: `span ${span}` } : {}) }}>
+      <div style={{ fontSize: 9, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 1 }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 500, color: value ? '#1c1917' : '#d6d3d1' }}>{value || '—'}</div>
+    </div>
+  )
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 24, marginBottom: 8 }}>
+      <div style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: '#28369312', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FileText size={12} color="#283693" />
+      </div>
+      <h2 style={{ fontSize: 11, fontWeight: 600, color: '#283693', margin: 0, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{children}</h2>
+    </div>
+  )
+}
+
+function PregnancyBanner({ label, outcome, skipDetails }) {
+  const color = skipDetails ? '#d97706' : '#283693'
+  return (
+    <div style={{ marginTop: 20, marginBottom: 10, padding: '10px 16px', borderRadius: 10, background: `linear-gradient(135deg, ${color}10, ${color}06)`, borderLeft: `4px solid ${color}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label}</span>
+        {outcome && <span style={{ fontSize: 10, fontWeight: 600, color: skipDetails ? '#92400e' : '#166534', backgroundColor: skipDetails ? '#fef3c710' : '#f0fdf410', border: `1px solid ${skipDetails ? '#fde68a' : '#bbf7d0'}`, padding: '2px 10px', borderRadius: 20 }}>{outcome}</span>}
+      </div>
+    </div>
+  )
+}
+
 function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
   if (!data) return null
   const pregnancies = data.pregnancies || []
@@ -589,135 +621,147 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           </div>
         </div>
 
-        {/* Printable content */}
-        <div id="summary-preview-content" className="px-10 py-8 text-[13px] leading-relaxed text-stone-800" style={{ fontFamily: 'Arial, sans-serif' }}>
-          {/* Header */}
-          <div className="text-center mb-6 pb-4 border-b-2 border-[#283693]">
-            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-12 mx-auto mb-2" />
-            <p className="text-lg font-bold text-[#283693]">GC Summary of Records</p>
+        {/* Printable content — match sheet style */}
+        <div id="summary-preview-content" style={{ padding: '40px 48px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1c1917', fontSize: 13, lineHeight: 1.5 }}>
+
+          {/* Header — like match sheet */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <img src="/abc-logo.png" alt="ABC Surrogacy" style={{ height: 56 }} crossOrigin="anonymous" />
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px', textAlign: 'center', flex: 1 }}>GC Summary of Records</h1>
+            <div style={{ width: 56 }} />
+          </div>
+          <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 24 }} />
+
+          {/* Patient Info Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 8 }}>
+            <InfoGridRow label="Name" value={data.name} />
+            <InfoGridRow label="Date of Birth" value={data.dob} />
+            <InfoGridRow label="Marital Status" value={data.maritalStatus} />
+            <InfoGridRow label="Height" value={data.height} />
+            <InfoGridRow label="Weight" value={data.weight} />
+            <InfoGridRow label="BMI" value={data.bmi} />
           </div>
 
-          {/* Patient Info */}
-          <table className="w-full mb-4 text-[12px]">
-            <tbody>
-              <tr><td className="py-1 w-[180px] font-semibold">Name (Last, First):</td><td>{data.name}</td></tr>
-              <tr><td className="py-1 font-semibold">DOB:</td><td>{data.dob}</td></tr>
-              <tr><td className="py-1 font-semibold">Marital Status:</td><td>{data.maritalStatus}</td></tr>
-            </tbody>
-          </table>
-
           {/* General Medical History */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">General Medical History</p>
-          <table className="w-full text-[12px]">
-            <tbody>
-              <tr><td className="py-0.5 w-[180px]">HT:</td><td>{data.height}</td><td className="w-[100px]">WT:</td><td>{data.weight}</td><td className="w-[80px]">BMI:</td><td>{data.bmi}</td></tr>
-            </tbody>
-          </table>
-          <p className="mt-2 text-[12px]"><span className="font-semibold">Current Medications:</span> {data.currentMedications || '—'}</p>
-          <p className="text-[12px]"><span className="font-semibold">Allergies:</span> {data.allergies || '—'}</p>
-          <p className="text-[12px]"><span className="font-semibold">Pertinent Medical History:</span> {data.pertinentMedicalHistory || '—'}</p>
-          <p className="text-[12px]"><span className="font-semibold">Surgical History:</span> {data.surgicalHistory || '—'}</p>
+          <SectionLabel>General Medical History</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} />
+            <InfoGridRow label="Allergies" value={data.allergies} span={2} />
+            <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} />
+            <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} />
+          </div>
 
           {/* Social History */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Social History</p>
-          <table className="w-full text-[12px]">
-            <tbody>
-              <tr><td className="py-0.5 w-[180px]">Occupation:</td><td>{data.occupation}</td></tr>
-              <tr><td className="py-0.5">Lives with:</td><td>{data.livesWith}</td></tr>
-              <tr><td className="py-0.5">Alcohol:</td><td>{data.alcohol}</td></tr>
-              <tr><td className="py-0.5">Tobacco:</td><td>{data.tobacco}</td></tr>
-              <tr><td className="py-0.5">Recreational Drugs:</td><td>{data.recreationalDrugs}</td></tr>
-            </tbody>
-          </table>
+          <SectionLabel>Social History</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <InfoGridRow label="Occupation" value={data.occupation} />
+            <InfoGridRow label="Lives with" value={data.livesWith} />
+            <InfoGridRow label="Alcohol" value={data.alcohol} />
+            <InfoGridRow label="Tobacco" value={data.tobacco} />
+            <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} />
+          </div>
 
           {/* COVID */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">COVID-19 Screening</p>
-          <table className="w-full text-[12px]">
-            <tbody>
-              <tr><td className="py-0.5 w-[250px]">Ever tested positive for COVID-19:</td><td>{data.covidPositive || '—'}</td></tr>
-              <tr><td className="py-0.5">COVID-19 Vaccine:</td><td>{data.covidVaccine || '—'}</td></tr>
-            </tbody>
-          </table>
+          <SectionLabel>COVID-19 Screening</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <InfoGridRow label="Ever tested positive" value={data.covidPositive} />
+            <InfoGridRow label="COVID-19 Vaccine" value={data.covidVaccine} />
+          </div>
 
           {/* GYN History */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Gynecologic History</p>
-          <table className="w-full text-[12px]">
-            <tbody>
-              <tr><td className="py-0.5 w-[180px]">LMP:</td><td>{data.lmp}</td></tr>
-              <tr><td className="py-0.5">Cycle Length:</td><td>{data.cycleLength} days</td></tr>
-              <tr><td className="py-0.5">Menarche:</td><td>{data.menarche}</td></tr>
-              <tr><td className="py-0.5">Current Contraception:</td><td>{data.contraception}</td></tr>
-              <tr><td className="py-0.5">History of STD:</td><td>{data.stdHistory}</td></tr>
-              <tr><td className="py-0.5">History of GYN problems:</td><td>{data.gynProblems}</td></tr>
-              <tr><td className="py-0.5">History of Infertility:</td><td>{data.infertilityHistory}</td></tr>
-            </tbody>
-          </table>
+          <SectionLabel>Gynecologic History</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <InfoGridRow label="LMP" value={data.lmp} />
+            <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} />
+            <InfoGridRow label="Menarche" value={data.menarche} />
+            <InfoGridRow label="Current Contraception" value={data.contraception} />
+            <InfoGridRow label="History of STD" value={data.stdHistory} />
+            <InfoGridRow label="GYN Problems" value={data.gynProblems} />
+            <InfoGridRow label="Infertility History" value={data.infertilityHistory} span={3} />
+          </div>
 
           {/* Obstetrical History */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Obstetrical History</p>
-          <p className="text-[12px] font-semibold mb-3">{data.obstetricSummary}</p>
+          <SectionLabel>Obstetrical History</SectionLabel>
+          {data.obstetricSummary && (
+            <div style={{ padding: '8px 14px', backgroundColor: '#f8f9fc', borderRadius: 8, border: '1px solid #e2e4ef', marginBottom: 12, fontSize: 13, fontWeight: 600, color: '#283693' }}>
+              {data.obstetricSummary}
+            </div>
+          )}
 
           {pregnancies.map((preg, i) => (
-            <div key={i} className="mb-4 pb-3 border-b border-stone-200">
-              <p className="font-bold text-[13px] text-[#283693]">{preg.label || `G${i + 1}`} {preg.pageRef && <span className="font-normal text-stone-400 text-[11px]">({preg.pageRef})</span>}</p>
+            <div key={i}>
+              <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} />
               {preg.skipDetails ? (
-                <p className="text-[12px] text-stone-500 italic">{preg.outcome} — No prenatal care. {preg.notes && `Notes: ${preg.notes}`}</p>
+                <div style={{ padding: '8px 14px', backgroundColor: '#fffbeb', borderRadius: 8, border: '1px solid #fef3c7', fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>
+                  No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
+                </div>
               ) : (
-                <table className="w-full text-[11px] mt-1">
-                  <tbody>
-                    <tr><td className="py-0.5 w-[200px]">Date of Delivery:</td><td>{preg.dateOfDelivery}</td></tr>
-                    <tr><td className="py-0.5">Gestational Age:</td><td>{preg.gestationalAge}</td></tr>
-                    <tr><td className="py-0.5">Type of Delivery:</td><td>{preg.typeOfDelivery}</td></tr>
-                    <tr><td className="py-0.5">GBS:</td><td>{preg.gbs}</td></tr>
-                    <tr><td className="py-0.5">Glucose Screen:</td><td>{preg.glucoseScreen}</td></tr>
-                    {(preg.glucoseValues?.fasting || preg.glucoseValues?.oneHr) && (
-                      <tr><td className="py-0.5">Glucose Tolerance:</td><td>Fasting: {preg.glucoseValues?.fasting} | 1hr: {preg.glucoseValues?.oneHr} | 2hr: {preg.glucoseValues?.twoHr} | 3hr: {preg.glucoseValues?.threeHr}</td></tr>
-                    )}
-                    <tr><td className="py-0.5">BP's:</td><td>{preg.bps}</td></tr>
-                    <tr><td className="py-0.5">Anesthesia:</td><td>{preg.anesthesia}</td></tr>
-                    <tr><td className="py-0.5">Total Weight Gained:</td><td>{preg.weightGained}</td></tr>
-                    <tr><td className="py-0.5">Infant Birth Weight:</td><td>{preg.infantBirthWeight}</td></tr>
-                    <tr><td className="py-0.5">Complications:</td><td>{preg.complications}</td></tr>
-                    <tr><td className="py-0.5">GC Cycle:</td><td>{preg.gcCycle}</td></tr>
-                    <tr><td className="py-0.5">APGAR:</td><td>{preg.apgar}</td></tr>
-                    <tr><td className="py-0.5">Estimated Blood Loss:</td><td>{preg.ebl}</td></tr>
-                    <tr><td className="py-0.5">Delivery Complications:</td><td>{preg.deliveryComplications}</td></tr>
-                    <tr><td className="py-0.5">Postpartum:</td><td className="whitespace-pre-wrap">{preg.postpartumComplications}</td></tr>
-                  </tbody>
-                </table>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                  <InfoGridRow label="Date of Delivery" value={preg.dateOfDelivery} />
+                  <InfoGridRow label="Gestational Age" value={preg.gestationalAge} />
+                  <InfoGridRow label="Type of Delivery" value={preg.typeOfDelivery} />
+                  <InfoGridRow label="GBS" value={preg.gbs} />
+                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
+                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
+                  {(preg.glucoseValues?.fasting || preg.glucoseValues?.oneHr) && (
+                    <>
+                      <InfoGridRow label="Fasting" value={preg.glucoseValues?.fasting ? `${preg.glucoseValues.fasting} mg/dl` : ''} />
+                      <InfoGridRow label="1hr" value={preg.glucoseValues?.oneHr ? `${preg.glucoseValues.oneHr} mg/dl` : ''} />
+                      <InfoGridRow label="2hr / 3hr" value={[preg.glucoseValues?.twoHr, preg.glucoseValues?.threeHr].filter(Boolean).join(' / ') + (preg.glucoseValues?.twoHr ? ' mg/dl' : '')} />
+                    </>
+                  )}
+                  <InfoGridRow label="BP's" value={preg.bps} />
+                  <InfoGridRow label="Anesthesia" value={preg.anesthesia} />
+                  <InfoGridRow label="Weight Gained" value={preg.weightGained} />
+                  <InfoGridRow label="Infant Birth Weight" value={preg.infantBirthWeight} />
+                  <InfoGridRow label="APGAR" value={preg.apgar} />
+                  <InfoGridRow label="Est. Blood Loss" value={preg.ebl} />
+                  <InfoGridRow label="Complications" value={preg.complications} span={3} />
+                  <InfoGridRow label="Delivery Complications" value={preg.deliveryComplications} span={3} />
+                  <InfoGridRow label="Postpartum" value={preg.postpartumComplications} span={3} />
+                </div>
               )}
             </div>
           ))}
 
           {/* Labs */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Most Recent Labs</p>
-          <table className="w-full text-[11px] border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-1 font-semibold w-[35%]">Test</th>
-                <th className="text-left py-1 font-semibold w-[25%]">Result</th>
-                <th className="text-left py-1 font-semibold w-[20%]">Date</th>
-                <th className="text-left py-1 font-semibold w-[20%]">Page #</th>
-              </tr>
-            </thead>
-            <tbody>
-              {labs.map((lab, i) => (
-                <tr key={i} className="border-b border-stone-100">
-                  <td className="py-1">{lab.name}</td>
-                  <td className="py-1">{lab.result}</td>
-                  <td className="py-1">{lab.date}</td>
-                  <td className="py-1">{lab.pageNumber}</td>
+          <SectionLabel>Most Recent Labs</SectionLabel>
+          <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f5f5f4' }}>
+                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Test</th>
+                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Result</th>
+                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Page #</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {labs.map((lab, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
+                    <td style={{ padding: '6px 14px', fontWeight: 500 }}>{lab.name}</td>
+                    <td style={{ padding: '6px 14px' }}>{lab.result || <span style={{ color: '#d6d3d1' }}>—</span>}</td>
+                    <td style={{ padding: '6px 14px', color: '#78716c' }}>{lab.date || ''}</td>
+                    <td style={{ padding: '6px 14px', color: '#78716c' }}>{lab.pageNumber || ''}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* OB Clearance */}
-          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">OB Clearance</p>
-          <p className="text-[12px] whitespace-pre-wrap">{data.obClearance || '—'}</p>
+          <SectionLabel>OB Clearance</SectionLabel>
+          <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+            {data.obClearance || '—'}
+          </div>
 
           {/* Reviewer */}
-          <p className="mt-6 text-[12px]"><span className="font-semibold">Medical records reviewed by:</span> {data.reviewedBy}</p>
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1.5px solid #283693', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, color: '#78716c' }}>
+              <span style={{ fontWeight: 600 }}>Medical records reviewed by:</span> {data.reviewedBy || '—'}
+            </div>
+            <img src="/abc-logo.png" alt="" style={{ height: 28, opacity: 0.4 }} crossOrigin="anonymous" />
+          </div>
         </div>
       </div>
     </div>
