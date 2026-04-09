@@ -222,20 +222,7 @@ export default function IPIntakeForm() {
       }),
     }).catch(() => {})
 
-    // Notify admin of new IP application
-    fetch('/api/notify-new-application', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        applicantName: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
-        applicantEmail: form.email.trim(),
-        applicantPhone: `${form.phoneCountry} ${form.phone}`.trim(),
-        state: form.stateProv || form.country || '',
-        qualified,
-        dqReasons,
-        type: 'ip',
-      }),
-    }).catch(() => {})
+    // TODO: Add IP-specific admin notification when IP_APPLICATION_NOTIFY_EMAIL is configured
 
     navigate('/apply/confirmation', {
       state: { qualified, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
