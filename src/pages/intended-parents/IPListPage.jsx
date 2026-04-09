@@ -184,7 +184,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(canSeeAll ? 'all' : 'mine')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -286,12 +286,12 @@ export default function IPListPage() {
       {/* Hero stats — click to filter by stage */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => setStageFilter('all')}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => { setStageFilter('all'); setOwnerFilter('all') }}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
-          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ips.length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
         {IP_STAGES.map(stage => (
           <button

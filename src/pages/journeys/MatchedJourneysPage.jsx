@@ -109,7 +109,7 @@ export default function MatchedJourneysPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(canSeeAll ? 'all' : 'mine')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
 
   useEffect(() => {
@@ -183,12 +183,12 @@ export default function MatchedJourneysPage() {
       {/* Status filter boxes */}
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => setStatusFilter('all')}
-          className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => { setStatusFilter('all'); setOwnerFilter('all') }}
+          className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.length}</p>
-          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Total</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{enriched.length}</p>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
         {uniqueStatuses.map(status => (
           <button
