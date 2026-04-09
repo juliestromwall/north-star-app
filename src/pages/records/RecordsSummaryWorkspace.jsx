@@ -594,9 +594,14 @@ function SectionLabel({ children }) {
 
 function PregnancyBanner({ label, outcome, skipDetails, preg }) {
   const color = skipDetails ? '#d97706' : '#283693'
+  function fmtDate(d) {
+    if (!d) return null
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { const [y, m, day] = d.split('-'); return `${m}/${day}/${y}` }
+    return d
+  }
   const infoItems = []
   if (outcome) infoItems.push(outcome)
-  if (preg?.dateOfDelivery) infoItems.push(preg.dateOfDelivery)
+  if (preg?.dateOfDelivery) infoItems.push(fmtDate(preg.dateOfDelivery))
   if (preg?.gestationalAge) infoItems.push(preg.gestationalAge)
   if (preg?.infantBirthWeight) infoItems.push(preg.infantBirthWeight)
   if (preg?.infantSex) infoItems.push(preg.infantSex)
@@ -710,9 +715,6 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-                  <InfoGridRow label="Date of Delivery" value={preg.dateOfDelivery} />
-                  <InfoGridRow label="Gestational Age" value={preg.gestationalAge} />
-                  <InfoGridRow label="Type of Delivery" value={preg.typeOfDelivery} />
                   <InfoGridRow label="GBS" value={preg.gbs} />
                   <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
                   <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
@@ -726,8 +728,6 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                   <InfoGridRow label="BP's" value={preg.bps} />
                   <InfoGridRow label="Anesthesia" value={preg.anesthesia} />
                   <InfoGridRow label="Weight Gained" value={preg.weightGained} />
-                  <InfoGridRow label="Infant Birth Weight" value={preg.infantBirthWeight} />
-                  <InfoGridRow label="Infant Sex" value={preg.infantSex} />
                   <InfoGridRow label="APGAR" value={preg.apgar} />
                   <InfoGridRow label="Est. Blood Loss" value={preg.ebl} />
                   <InfoGridRow label="Complications" value={preg.complications} span={3} />
