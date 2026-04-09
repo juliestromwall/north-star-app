@@ -1,9 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogateProfileByEmail, getAppConfig } from '@/lib/db'
-
-const BLOCKED_STAGES = ['not-qualified', 'withdrawn']
+import { fetchSurrogateProfileByEmail } from '@/lib/db'
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -79,32 +77,29 @@ export function RoleProvider({ children }) {
         let displayName = user.user_metadata?.full_name || user.email
         let avatar = null
 
-        // Enrich: fetch real name from intake_submissions + profile photo
-        let caseId = null
+        // Enrich: fetch real name + profile photo
         try {
           if (supabase) {
-            const { data: intake } = await supabase.from('intake_submissions')
-              .select('id, applicant_name')
-              .eq('applicant_email', user.email.toLowerCase())
-              .order('submitted_at', { ascending: false })
-              .limit(1)
-              .single()
-            if (intake?.applicant_name) displayName = intake.applicant_name
-            if (intake?.id) caseId = intake.id
-
             const profile = await fetchSurrogateProfileByEmail(user.email)
+            if (profile?.profile_data?.personal?.firstName) {
+              displayName = [profile.profile_data.personal.firstName, profile.profile_data.personal.lastName].filter(Boolean).join(' ')
+            }
             if (profile?.profile_data?.personal?.profilePhotoUrl) {
               avatar = profile.profile_data.personal.profilePhotoUrl
             }
           }
         } catch {}
 
-        // Check if surrogate's case is in a blocked stage
-        if (role === ROLES.SURROGATE && caseId) {
+        // Check if surrogate's portal access is blocked
+        if (role === ROLES.SURROGATE) {
           try {
-            const stages = await getAppConfig('surrogate_stages')
-            const caseStage = stages?.[caseId]?.stage
-            if (caseStage && BLOCKED_STAGES.includes(caseStage)) {
+            const checkRes = await fetch('/api/check-portal-access', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: user.email }),
+            })
+            const checkData = await checkRes.json()
+            if (checkData.blocked) {
               setPortalBlocked(true)
               await supabase.auth.signOut()
               setAuthLoading(false)
