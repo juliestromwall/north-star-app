@@ -58,9 +58,10 @@ export function useBotProtection(startTimeRef) {
       return { ok: false, reason: 'rapid_fill' }
     }
 
-    // 4. Turnstile check — if configured, token must exist
+    // 4. Turnstile check — log if missing but don't block
+    // (some browsers/ad blockers prevent Turnstile from loading)
     if (TURNSTILE_SITE_KEY && !turnstileToken) {
-      return { ok: false, reason: 'turnstile_missing' }
+      console.warn('Turnstile token missing — allowing submission anyway')
     }
 
     return { ok: true, reason: null }

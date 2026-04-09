@@ -99,6 +99,7 @@ export default function IPIntakeForm() {
   const { state: navState } = useLocation()
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
   const startTimeRef = useRef(Date.now())
   const maxStepRef = useRef(1)
   useEffect(() => { window.scrollTo(0, 0) }, [step])
@@ -160,6 +161,8 @@ export default function IPIntakeForm() {
   }
 
   async function handleSubmit() {
+    if (submitting) return
+    setSubmitting(true)
     const botCheck = validateSubmission()
     if (!botCheck.ok) {
       navigate('/apply/confirmation', {
@@ -230,8 +233,8 @@ export default function IPIntakeForm() {
         applicantName: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
         applicantEmail: form.email.trim(),
         applicantPhone: `${form.phoneCountry} ${form.phone}`.trim(),
-        partnerName: hasPartner ? `${form.ip2FirstName} ${form.ip2LastName}`.trim() : null,
-        partnerEmail: hasPartner ? form.ip2Email?.trim() : null,
+        partnerName: isCouple ? `${form.ip2FirstName} ${form.ip2LastName}`.trim() : null,
+        partnerEmail: isCouple ? form.ip2Email?.trim() : null,
         location: [form.city, form.stateProv].filter(Boolean).join(', '),
         country: form.country || '',
       }),
