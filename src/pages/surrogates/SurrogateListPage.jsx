@@ -185,7 +185,7 @@ function BeBadge({ className = '' }) {
 }
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
-export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl }) {
+export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl, lastLogin }) {
   const navigate = useNavigate()
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
@@ -271,8 +271,8 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
         {/* Screening */}
         <ScreeningProgress screening={surrogate.screening} recordTracking={(() => { try { const d = localStorage.getItem(`abc_records_${surrogate.id}`); return d ? JSON.parse(d) : {} } catch { return {} } })()} surrogateId={surrogate.id} stageId={stageStatus.stage} />
 
-        {/* Footer: assignment + view link */}
-        <div className="pt-2 border-t border-stone-100">
+        {/* Footer: assignment + last login */}
+        <div className="pt-2 border-t border-stone-100 space-y-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
               <UserCog className="size-3.5 text-stone-300" />
@@ -296,6 +296,9 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
               </Select>
             </div>
           </div>
+          {lastLogin && (
+            <p className="text-[10px] text-stone-300 text-right">Last login {new Date(lastLogin).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -322,13 +325,15 @@ export default function SurrogateListPage() {
   const canSeeAll = isSuperAdmin || isMasterAdmin
 
   const [avatarUrls, setAvatarUrls] = useState({})
+  const [lastLogins, setLastLogins] = useState({}) // email → lastSignIn
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])
       .then(([data, profileList, journeys]) => {
         // Filter out matched surrogates
         const matchedGcIds = new Set((journeys || []).map(j => j.gc_case_id))
-        setSurrogates((data || []).filter(s => !matchedGcIds.has(s.id)))
+        const filtered = (data || []).filter(s => !matchedGcIds.has(s.id))
+        setSurrogates(filtered)
         const map = {}
         for (const p of (profileList || [])) {
           map[p.email] = p.profile_data
@@ -339,12 +344,17 @@ export default function SurrogateListPage() {
         for (const p of (profileList || [])) {
           const url = p.profile_data?.personal?.profilePhotoUrl
           if (url) {
-            // Match by email to surrogate
-            const match = (data || []).find(s => s.email === p.email)
+            const match = filtered.find(s => s.email === p.email)
             if (match) avatars[match.id] = url
           }
         }
         setAvatarUrls(avatars)
+        // Fetch last login dates
+        const emails = filtered.map(s => s.email).filter(Boolean)
+        if (emails.length) {
+          fetch('/api/user-status-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ emails }) })
+            .then(r => r.json()).then(setLastLogins).catch(() => {})
+        }
       })
       .catch(() => setSurrogates([]))
       .finally(() => setLoading(false))
@@ -549,6 +559,7 @@ export default function SurrogateListPage() {
               onAssign={handleAssign}
               stageStatus={allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }}
               avatarUrl={avatarUrls[surrogate.id]}
+              lastLogin={lastLogins[surrogate.email?.toLowerCase()]?.lastSignIn}
             />
           ))}
         </div>
