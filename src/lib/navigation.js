@@ -129,6 +129,12 @@ const nav = [
         path: '/referral-bonus-tracker',
         roles: ADMIN_ROLES,
       },
+      {
+        label: 'Records Summary',
+        icon: ClipboardCheck,
+        path: '/records-summary',
+        roles: [...ADMIN_ROLES, ROLES.RECORDS_ADMIN],
+      },
     ],
   },
   {

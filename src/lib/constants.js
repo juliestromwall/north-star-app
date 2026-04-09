@@ -6,6 +6,7 @@ export const ROLES = {
   SURROGATE_PARTNER: 'surrogate_partner',
   INTENDED_PARENT: 'intended_parent',
   MARKETING: 'marketing',
+  RECORDS_ADMIN: 'records_admin',
 }
 
 export const ROLE_LABELS = {
@@ -16,6 +17,7 @@ export const ROLE_LABELS = {
   [ROLES.SURROGATE_PARTNER]: 'Surrogate Partner',
   [ROLES.INTENDED_PARENT]: 'Intended Parent',
   [ROLES.MARKETING]: 'Marketing',
+  [ROLES.RECORDS_ADMIN]: 'Records Admin',
 }
 
 export const ADMIN_ROLES = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN]

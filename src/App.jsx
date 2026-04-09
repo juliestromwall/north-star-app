@@ -42,6 +42,8 @@ import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
 import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
 import ReferralBonusTrackerPage from './pages/referrals/ReferralBonusTrackerPage'
+import RecordsSummaryPage from './pages/records/RecordsSummaryPage'
+import RecordsSummaryWorkspace from './pages/records/RecordsSummaryWorkspace'
 import PsychTrackingPage from './pages/psych/PsychTrackingPage'
 import SharedPsychTrackingPage from './pages/psych/SharedPsychTrackingPage'
 import PortalDocumentsPage from './pages/portal/PortalDocumentsPage'
@@ -114,6 +116,8 @@ export default function App() {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/case-updates" element={<CaseUpdatesPage />} />
         <Route path="/referral-bonus-tracker" element={<ReferralBonusTrackerPage />} />
+        <Route path="/records-summary" element={<RecordsSummaryPage />} />
+        <Route path="/records-summary/:id" element={<RecordsSummaryWorkspace />} />
         <Route path="/psych-tracking" element={<PsychTrackingPage />} />
         <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
