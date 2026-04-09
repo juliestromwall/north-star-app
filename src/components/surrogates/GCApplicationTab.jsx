@@ -402,51 +402,31 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
   const employment = profileData?.employment || {}
 
   const fields = [
-    'fullLegalName', 'maidenName', 'street', 'cityStateZip', 'howLongAtAddress', 'ownRent',
-    'homePhone', 'homeVoicemail', 'workPhone', 'workMessages', 'mobilePhone', 'mobileVoicemail',
-    'emailAddress', 'emailConfidential', 'ssn', 'usCitizen',
-    'driversLicenseNumber', 'driversLicenseState', 'driversLicenseExpiration',
-    'age', 'dob', 'height', 'weight', 'placeOfBirth', 'religion',
-    'insuranceName', 'insuranceProvider', 'insuranceAddress', 'insurancePhone',
-    'insurancePolicyNumber', 'insuranceGroupName', 'insuranceCoversSurrogacy', 'insuranceUsedBefore',
+    'fullLegalName', 'maidenName', 'dob',
+    'ssn4', 'driversLicense', 'religion',
+    'hasInsurance',
+    'insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone',
     'hasSpouse',
-    'spouseFullName', 'spouseRelationshipLength', 'spouseUsCitizen',
-    'spouseDLNumber', 'spouseDLState', 'spouseDLExpiration', 'spouseDob',
-    'spouseEmail',
-    'spouseHomePhone', 'spouseWorkPhone', 'spouseCellPhone', 'spouseSSN',
-    'emergencyName', 'emergencyHomePhone', 'emergencyCellPhone',
+    'spouseFullName', 'spouseEmail', 'spousePhone',
+    'emergencyName', 'emergencyPhone', 'emergencyRelationship',
   ]
 
   const fieldLabels = {
-    fullLegalName: 'Full Legal Name', maidenName: 'Maiden Last Name', street: 'Street Address',
-    cityStateZip: 'City, State, Zip', howLongAtAddress: 'How long at current address?', ownRent: 'Own / Rent',
-    homePhone: 'Home Phone', homeVoicemail: 'Confidential messages on home voicemail?',
-    workPhone: 'Work Phone', workMessages: 'May I speak freely at work?',
-    mobilePhone: 'Mobile Phone', mobileVoicemail: 'Confidential messages on mobile?',
-    emailAddress: 'Email Address', emailConfidential: 'Email confidential?',
-    ssn: 'Social Security Number', usCitizen: 'US Citizen',
-    driversLicenseNumber: "Driver's License Number", driversLicenseState: "Driver's License State",
-    driversLicenseExpiration: "Driver's License Expiration",
-    age: 'Age', dob: 'Date of Birth', height: 'Height', weight: 'Weight',
-    placeOfBirth: 'Place of Birth', religion: 'Religion',
-    insuranceName: 'Name on Medical Insurance', insuranceProvider: 'Health Insurance Provider',
-    insuranceAddress: 'Insurance Provider Address', insurancePhone: 'Insurance Provider Phone',
-    insurancePolicyNumber: 'Policy Number', insuranceGroupName: 'Group Name',
-    insuranceCoversSurrogacy: 'Policy covers surrogacy?', insuranceUsedBefore: 'Used this insurance for surrogacy before?',
-    hasSpouse: 'Do you have a spouse / partner?',
-    spouseFullName: "Spouse's Full Legal Name", spouseRelationshipLength: 'Length of Relationship',
-    spouseUsCitizen: 'Spouse US Citizen', spouseDLNumber: "Spouse's DL Number",
-    spouseDLState: "Spouse's DL State", spouseDLExpiration: "Spouse's DL Expiration",
-    spouseDob: "Spouse's Date of Birth",
-    spouseEmail: "Spouse/Partner Email",
-    spouseHomePhone: "Spouse's Home Phone", spouseWorkPhone: "Spouse's Work Phone",
-    spouseCellPhone: "Spouse's Cell Phone", spouseSSN: "Spouse's SSN",
-    emergencyName: 'Emergency Contact Name', emergencyHomePhone: 'Emergency Home Phone',
-    emergencyCellPhone: 'Emergency Cell Phone',
+    fullLegalName: 'Full Legal Name', maidenName: 'Maiden Name (if applicable)',
+    dob: 'Date of Birth',
+    ssn4: 'Last 4 of SSN', driversLicense: "Driver's License #", religion: 'Religion (if applicable)',
+    hasInsurance: 'Do you have health insurance?',
+    insuranceProvider: 'Health Insurance Provider', insurancePolicyNumber: 'Policy Number',
+    insuranceGroupNumber: 'Group Number', insurancePhone: 'Insurance Phone',
+    hasSpouse: 'Do you have a spouse/partner?',
+    spouseFullName: 'Spouse/Partner Full Name', spouseEmail: 'Spouse/Partner Email',
+    spousePhone: 'Spouse/Partner Phone',
+    emergencyName: 'Emergency Contact Name', emergencyPhone: 'Emergency Contact Phone',
+    emergencyRelationship: 'Emergency Contact Relationship',
   }
 
-  const yesNoFields = new Set(['homeVoicemail', 'workMessages', 'mobileVoicemail', 'emailConfidential', 'usCitizen', 'insuranceCoversSurrogacy', 'insuranceUsedBefore', 'hasSpouse', 'spouseUsCitizen'])
-  const selectFields = { ownRent: ['Own', 'Rent', 'Other'], driversLicenseState: US_STATES, spouseDLState: US_STATES }
+  const yesNoFields = new Set(['hasInsurance', 'hasSpouse'])
+  const selectFields = {}
 
   const hasMatch = search ? fields.some(f => (fieldLabels[f] || f).toLowerCase().includes(search)) : true
 
@@ -458,17 +438,12 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
         // Pull from stored first, then profile data
         init[f] = saved[f] ?? ''
       }
-      // Pre-fill from profile
-      if (!init.fullLegalName) init.fullLegalName = `${profile.firstName || ''} ${answers?.lastName || ''}`.trim()
+      // Pre-fill from profile/quiz data
+      if (!init.fullLegalName) init.fullLegalName = `${profile.firstName || answers?.firstName || ''} ${profile.lastName || answers?.lastName || ''}`.trim()
       if (!init.dob) init.dob = profile.dob || answers?.dob || ''
-      if (!init.height) init.height = profile.heightFt ? `${profile.heightFt}'${profile.heightIn || 0}"` : ''
-      if (!init.weight) init.weight = profile.weight || answers?.weightLbs || ''
       if (!init.religion) init.religion = general.religion || ''
-      if (!init.usCitizen) init.usCitizen = profile.usCitizen || ''
-      if (!init.emailAddress) init.emailAddress = answers?.email || surrogate.email || ''
-      if (!init.mobilePhone) init.mobilePhone = answers?.phone || surrogate.phone || ''
-      if (!init.ownRent) init.ownRent = general.homeOwnership || ''
-      if (!init.howLongAtAddress) init.howLongAtAddress = general.homeDuration || ''
+      if (!init.hasSpouse && (answers?.maritalStatus === 'Married' || answers?.maritalStatus === 'Domestic Partnership')) init.hasSpouse = 'yes'
+      if (!init.hasInsurance && (employment.healthInsurance === 'yes' || employment.healthInsurance === true)) init.hasInsurance = 'yes'
       return init
     }
   )
@@ -478,8 +453,9 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
 
   const spouseFields = fields.filter(f => f.startsWith('spouse'))
   const emergencyFields = fields.filter(f => f.startsWith('emergency'))
-  const personalFields = fields.filter(f => !f.startsWith('spouse') && !f.startsWith('emergency') && !f.startsWith('insurance') && f !== 'hasSpouse')
+  const personalFields = fields.filter(f => !f.startsWith('spouse') && !f.startsWith('emergency') && !f.startsWith('insurance') && f !== 'hasSpouse' && f !== 'hasInsurance')
   const insuranceFields = fields.filter(f => f.startsWith('insurance'))
+  const showInsurance = editing ? form.hasInsurance === 'yes' || form.hasInsurance === true : stored.hasInsurance === 'yes' || stored.hasInsurance === true
 
   function renderField(f) {
     const label = fieldLabels[f] || f
@@ -493,26 +469,21 @@ function ConfidentialSection({ surrogate, answers, profileData, onSaved, search 
 
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Confidential Personal Information" description="Sensitive information — shared with IPs only with surrogate approval" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <EditHeader title="Confidential Information" description="Personal details, insurance, and emergency contact" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
       <CardContent className="space-y-6">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Personal Information</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{personalFields.map(renderField)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {personalFields.map(renderField)}
         </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Insurance</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{insuranceFields.map(renderField)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderField('hasInsurance')}
+          {showInsurance && insuranceFields.map(renderField)}
         </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Spouse / Partner</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {renderField('hasSpouse')}
-            {(editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true) && spouseFields.map(renderField)}
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderField('hasSpouse')}
+          {(editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true) && spouseFields.map(renderField)}
         </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Emergency Contact</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">{emergencyFields.map(renderField)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {emergencyFields.map(renderField)}
         </div>
         <PhotoIdDisplay surrogateId={surrogate.id} />
       </CardContent>
