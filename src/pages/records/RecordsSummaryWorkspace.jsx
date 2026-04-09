@@ -351,6 +351,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
           anesthesia: '',
           weightGained: '',
           infantBirthWeight: p.weight || '',
+          infantSex: p.sex || '',
           complications: p.complications || '',
           gcCycle: p.wasSurrogacy === 'yes' ? 'Yes' : 'No',
           deliveryNote: '',
@@ -408,7 +409,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b bg-stone-50 flex items-center justify-between">
-        <p className="text-xs font-semibold text-stone-600">GC Summary of Records</p>
+        <p className="text-xs font-semibold text-stone-600">GC Medical Records Summary</p>
         <Button size="sm" className="gap-1.5 h-7 text-xs" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving}>
           {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />} Save
         </Button>
@@ -507,8 +508,9 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
                       <FormField label="Anesthesia" value={preg.anesthesia} onChange={v => updatePregnancy(i, 'anesthesia', v)} />
                       <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" />
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <FormField label="Infant Birth Weight" value={preg.infantBirthWeight} onChange={v => updatePregnancy(i, 'infantBirthWeight', v)} />
+                      <FormField label="Infant Sex" value={preg.infantSex} onChange={v => updatePregnancy(i, 'infantSex', v)} placeholder="Male / Female" />
                       <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} />
                     </div>
                     <FormField label="Complications" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} />
@@ -590,14 +592,37 @@ function SectionLabel({ children }) {
   )
 }
 
-function PregnancyBanner({ label, outcome, skipDetails }) {
+function PregnancyBanner({ label, outcome, skipDetails, preg }) {
   const color = skipDetails ? '#d97706' : '#283693'
+  const details = []
+  if (preg?.dateOfDelivery) details.push({ label: 'Date', value: preg.dateOfDelivery })
+  if (preg?.gestationalAge) details.push({ label: 'GA', value: preg.gestationalAge })
+  if (preg?.infantBirthWeight) details.push({ label: 'Weight', value: preg.infantBirthWeight })
+  if (preg?.infantSex) details.push({ label: 'Sex', value: preg.infantSex })
+  if (preg?.typeOfDelivery) details.push({ label: 'Delivery', value: preg.typeOfDelivery })
+
   return (
-    <div style={{ marginTop: 20, marginBottom: 10, padding: '10px 16px', borderRadius: 10, background: `linear-gradient(135deg, ${color}10, ${color}06)`, borderLeft: `4px solid ${color}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color, letterSpacing: '0.5px' }}>{label}</span>
-        {outcome && <span style={{ fontSize: 10, fontWeight: 600, color: skipDetails ? '#92400e' : '#166534', backgroundColor: skipDetails ? '#fef3c710' : '#f0fdf410', border: `1px solid ${skipDetails ? '#fde68a' : '#bbf7d0'}`, padding: '2px 10px', borderRadius: 20 }}>{outcome}</span>}
+    <div style={{ marginTop: 24, marginBottom: 10, borderRadius: 12, overflow: 'hidden', border: `1px solid ${skipDetails ? '#fde68a' : '#283693'}30` }}>
+      {/* Top bar — label + outcome */}
+      <div style={{ padding: '10px 16px', background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : 'linear-gradient(135deg, #283693, #1e2a6e)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.5px' }}>{label}</span>
+        {outcome && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: skipDetails ? '#92400e' : '#fff', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.2)', padding: '3px 14px', borderRadius: 20, letterSpacing: '0.3px' }}>
+            {outcome}
+          </span>
+        )}
       </div>
+      {/* Bottom bar — quick stats */}
+      {details.length > 0 && !skipDetails && (
+        <div style={{ display: 'flex', backgroundColor: '#f8f9fc', borderTop: '1px solid #e2e4ef' }}>
+          {details.map((d, i) => (
+            <div key={i} style={{ flex: 1, padding: '6px 14px', borderRight: i < details.length - 1 ? '1px solid #e2e4ef' : 'none', textAlign: 'center' }}>
+              <div style={{ fontSize: 8, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{d.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1917', marginTop: 1 }}>{d.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -612,7 +637,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
       <div className="bg-white rounded-xl shadow-2xl max-w-[816px] w-full mx-4">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-6 py-3 border-b sticky top-0 bg-white rounded-t-xl z-10">
-          <p className="text-sm font-semibold text-stone-700">Preview — GC Summary of Records</p>
+          <p className="text-sm font-semibold text-stone-700">Preview — GC Medical Records Summary</p>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={onExport} disabled={exporting}>
               {exporting ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />} {exporting ? 'Generating...' : 'Download PDF'}
@@ -624,11 +649,10 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
         {/* Printable content — match sheet style */}
         <div id="summary-preview-content" style={{ padding: '40px 48px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1c1917', fontSize: 13, lineHeight: 1.5 }}>
 
-          {/* Header — like match sheet */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <img src="/abc-logo.png" alt="ABC Surrogacy" style={{ height: 56 }} crossOrigin="anonymous" />
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px', textAlign: 'center', flex: 1 }}>GC Summary of Records</h1>
-            <div style={{ width: 56 }} />
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style={{ height: 48, marginBottom: 12 }} crossOrigin="anonymous" />
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
           </div>
           <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 24 }} />
 
@@ -690,7 +714,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {pregnancies.map((preg, i) => (
             <div key={i}>
-              <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} />
+              <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} preg={preg} />
               {preg.skipDetails ? (
                 <div style={{ padding: '8px 14px', backgroundColor: '#fffbeb', borderRadius: 8, border: '1px solid #fef3c7', fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>
                   No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
@@ -714,6 +738,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                   <InfoGridRow label="Anesthesia" value={preg.anesthesia} />
                   <InfoGridRow label="Weight Gained" value={preg.weightGained} />
                   <InfoGridRow label="Infant Birth Weight" value={preg.infantBirthWeight} />
+                  <InfoGridRow label="Infant Sex" value={preg.infantSex} />
                   <InfoGridRow label="APGAR" value={preg.apgar} />
                   <InfoGridRow label="Est. Blood Loss" value={preg.ebl} />
                   <InfoGridRow label="Complications" value={preg.complications} span={3} />
