@@ -42,10 +42,9 @@ export function useBotProtection(startTimeRef) {
   }, [])
 
   const validateSubmission = useCallback(() => {
-    // 1. Honeypot check — bots fill hidden fields
+    // 1. Honeypot check — disabled (Safari mobile autofills hidden fields)
     if (honeypotValue) {
-      console.warn('Bot protection: honeypot triggered, value:', honeypotValue)
-      return { ok: false, reason: 'honeypot' }
+      console.warn('Bot protection: honeypot filled but not blocking (Safari compat):', honeypotValue)
     }
 
     // 2. Time-based check — form completed too fast
