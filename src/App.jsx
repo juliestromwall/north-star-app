@@ -41,6 +41,7 @@ import InsurancePage from './pages/insurance/InsurancePage'
 import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
 import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
+import ReferralBonusTrackerPage from './pages/referrals/ReferralBonusTrackerPage'
 import PortalDocumentsPage from './pages/portal/PortalDocumentsPage'
 import PortalApplicationPage from './pages/portal/PortalApplicationPage'
 
@@ -109,6 +110,7 @@ export default function App() {
         <Route path="/insurance" element={<InsurancePage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/case-updates" element={<CaseUpdatesPage />} />
+        <Route path="/referral-bonus-tracker" element={<ReferralBonusTrackerPage />} />
         <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
           <Route

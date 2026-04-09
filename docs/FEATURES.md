@@ -74,6 +74,7 @@
 | CaseCalendarWidget | src/components/shared/CaseCalendarWidget.jsx | Per-case Google Calendar appointments: add/delete, tagged with extendedProperties for filtering, syncs to full Google Calendar |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
+| ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral & sign-on bonus tracking: 4 tabs (Referrals, Sign-On Bonuses, Paid Referrals, Paid Bonuses). Auto-detects referrals from quiz "Friend or family" source, pulls Legal/Medical Clearance dates from journey checklists, mark half/fully paid with confirmation dialogs, expense-tracker table styling |
 
 ## Bot Protection
 
@@ -141,6 +142,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-04-08 | Referral & Bonus Tracker (/referral-bonus-tracker): 4-tab page (Referrals, Sign-On Bonuses, Paid Referrals, Paid Bonuses). Auto-detects referrals from quiz "Friend or family" source with referrer name. Pulls Legal/Medical Clearance dates from journey checklists. $1,000 default amounts. Mark half-paid and fully-paid with confirmation dialogs. Payment dates logged, paid items move to paid tabs. Expense-tracker table styling. AI Case Summary improvements: structured sections, gestational age, escrow, insurance, expenses, pregnancy losses. |
 | 2026-04-06 | E-sign fixes: signed PDF uses draft copy, matchCase true, typed initials, cross-run placeholder search, draft kept until signing complete. Match sheet emails: attorney picker, escrow/clinic templates with prefilled To/CC/body. Baby sex+name tracking. Partner auto-fill from confidential section, only when document requires Partner. OptionalInitials/OptionalText placeholders. Compose paragraph spacing. |
 | 2026-04-06 | E-sign: template copies in ABC Drafts folder, auto-deleted after send. Email templates: auto-welcome for qualified GCs (Resend API), 5 templates with merge fields, Send Template button on case Emails tab. Calendar picker (multi-calendar, Appointments default). Dashboard: searches both primary + Appointments calendar, case name links. |
 | 2026-04-06 | Email compose: fixed case selector names (grouped by Journeys/Surrogates/IPs). CaseEmailsTab: clickable subjects, Sent/Received badges, better tag selection UI. Auto-logout (admins 6hr, users 1hr). Root URL → login. Personal dashboard tasks (+ Add Task, case_type='personal'). Pregnancy tracker: transfer tabs, edit all fields, beta values, beta #2, babies count, dropped cycle, system delete dialog, auto-status "Pregnant". GC/IP sticky notes on journey cards. |

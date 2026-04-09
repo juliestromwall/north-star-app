@@ -258,6 +258,7 @@ Admins can add/edit/delete statuses per stage via the Status Settings dialog. Ne
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
 | Fax | /fax | admin+ | Built (SRFax API live, hero stats, table layout, send from case docs, fullscreen PDF preview with nav, file to Medical Records with rename + log update + auto-advance, filed case tracking, sidebar unread badge) |
+| Referral & Bonus Tracker | /referral-bonus-tracker | admin+ | Built (referrals from quiz, sign-on bonuses, clearance dates, payment tracking) |
 | HR Management | /hr | master_admin+ | Stub |
 | Payroll | /payroll | master_admin+ | Stub |
 

@@ -18,6 +18,7 @@ import {
   CreditCard,
   Upload,
   FileText,
+  Gift,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -113,6 +114,12 @@ const nav = [
         label: 'Expense Tracking',
         icon: CreditCard,
         path: '/expenses',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Referral & Bonus',
+        icon: Gift,
+        path: '/referral-bonus-tracker',
         roles: ADMIN_ROLES,
       },
     ],
