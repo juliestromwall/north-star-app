@@ -184,12 +184,16 @@ export default function ReferralBonusTrackerPage() {
 
   // ── Actions ──
   function markReferralHalfPaid(row) {
+    const today = new Date().toISOString().split('T')[0]
     setConfirmDialog({
       title: 'Mark $2,000 Paid (Medical Clearance)',
       message: `Mark the first $2,000 of the $${row.amountDue.toLocaleString()} referral for ${row.name} (referred by ${row.referredBy}) as paid at medical clearance?`,
       onConfirm: async () => {
-        const updated = { ...trackerData, [row.key]: { ...trackerData[row.key], halfPaidDate: new Date().toISOString().split('T')[0], amountDue: row.amountDue } }
-        await saveTracker(updated)
+        setTrackerData(prev => {
+          const updated = { ...prev, [row.key]: { ...(prev[row.key] || {}), halfPaidDate: today, amountDue: row.amountDue } }
+          setAppConfig(CONFIG_KEY, updated).catch(() => {})
+          return updated
+        })
         setConfirmDialog(null)
       },
     })
