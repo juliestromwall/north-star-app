@@ -69,12 +69,11 @@ export async function onRequestPost(context) {
     }
   }
 
-  // 2. Send welcome email via Resend (or fallback)
+  // 2. Send welcome email via Resend
   const portalSection = resetLink ? `
-    <div style="text-align: center; margin: 24px 0;">
-      <p style="font-size: 14px; color: #44403c; margin-bottom: 16px;">We've also set up your secure surrogate portal where you can track your journey:</p>
-      <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
-        Set Up Your Portal Password
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #7c3aed, #283693); color: white; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: 0.3px;">
+        Set Your Password
       </a>
     </div>
   ` : ''
@@ -96,31 +95,34 @@ export async function onRequestPost(context) {
           <p style="margin: 0 0 12px; font-size: 15px; color: #283693; font-weight: 600;">
             What happens next?
           </p>
-          <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 1.8;">
-            <li>Our team is reviewing your surrogacy quiz results</li>
-            <li>A case manager will reach out to you shortly to schedule a screening call</li>
-            <li>We'll guide you through every step of the process</li>
+          <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 2;">
+            <li>If you haven't already, set up your user portal if you would like to get started on your profile.</li>
+            <li>Our intake coordinator, Jennifer, will be reaching out about next steps!</li>
           </ol>
         </div>
 
         ${portalSection}
 
+        <p style="text-align: center; font-size: 15px; color: #283693; font-weight: 600; margin: 24px 0 8px;">
+          We are here for you every step of the way!
+        </p>
+
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
           <p style="margin: 0; font-size: 13px; color: #78716c;">
-            Have questions? Reach out anytime at<br/>
-            <a href="mailto:info@abcsurrogacy.com" style="color: #283693; font-weight: 600;">info@abcsurrogacy.com</a>
+            Have questions? Reach out anytime to<br/>
+            <a href="mailto:jenn@abcsurrogacy.com" style="color: #283693; font-weight: 600;">jenn@abcsurrogacy.com</a>
           </p>
         </div>
 
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
         <p style="color: #a8a29e; font-size: 11px; text-align: center;">
-          Abundant Beginnings Company, LLC · abcsurrogacy.com
+          Abundant Beginnings Company, LLC &middot; <a href="https://abcsurrogacy.com" style="color: #a8a29e;">abcsurrogacy.com</a>
         </p>
       </div>
     </div>
   `
 
-  // Try Resend API first, fallback to Supabase email
+  // Send via Resend
   if (resendKey) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -129,7 +131,7 @@ export async function onRequestPost(context) {
         body: JSON.stringify({
           from: `Abundant Beginnings Co. <${fromEmail}>`,
           to: [email],
-          subject: `We received your application, ${firstName}!`,
+          subject: `We received your surrogate quiz, ${firstName}!`,
           html: htmlBody,
         }),
       })
