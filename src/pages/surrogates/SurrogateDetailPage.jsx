@@ -632,19 +632,34 @@ export default function SurrogateDetailPage() {
                 </div>
               ) : portalStatus?.exists && !portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center gap-0.5">
-                  <Button variant="outline" size="sm" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50" disabled={inviting}
+                  <Button variant="outline" size="sm" className="gap-1.5 text-[#283693] border-[#283693]/30 hover:bg-[#283693] hover:text-white" disabled={inviting}
                     onClick={async () => {
                       if (!surrogate.email) return
                       setInviting(true); setInviteResult(null)
                       try {
-                        // Generate new reset link and resend email
-                        const res = await fetch('/api/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: surrogate.email, name: surrogate.name, role: 'surrogate' }) })
+                        // Resend welcome email with new reset link
+                        const res = await fetch('/api/welcome-email', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: surrogate.email, firstName: surrogate.name?.split(' ')[0] || '', lastName: surrogate.name?.split(' ').slice(1).join(' ') || '' }),
+                        })
                         const result = await res.json()
-                        if (result.error?.includes('already')) {
-                          // User exists — just generate a new reset link
-                          await inviteUser(currentUser.id, { email: surrogate.email, name: surrogate.name, role: 'surrogate', portalType: 'surrogate' }).catch(() => {})
+                        if (result.success) {
+                          setInviteResult('sent')
+                          // Log the invite timestamp
+                          try {
+                            const { supabase: sb } = await import('@/lib/supabase')
+                            if (sb) {
+                              const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                              if (row) {
+                                await sb.from('intake_submissions').update({ answers: { ...(row.answers || {}), _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }).eq('id', surrogate.id)
+                              }
+                            }
+                            setQuizAnswers(prev => ({ ...prev, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name }))
+                          } catch {}
+                        } else {
+                          setInviteResult('error')
                         }
-                        setInviteResult('sent')
                       } catch { setInviteResult('error') }
                       setInviting(false)
                       setTimeout(() => setInviteResult(null), 4000)
