@@ -106,13 +106,6 @@ export async function onRequestPost(context) {
             This link will expire in 24 hours. If you didn't request a password reset, you can safely ignore this email.
           </p>
 
-          <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
-            <p style="margin: 0; font-size: 13px; color: #78716c;">
-              Have questions? Reach out anytime to<br/>
-              <a href="mailto:jenn@abcsurrogacy.com" style="color: #283693; font-weight: 600;">jenn@abcsurrogacy.com</a>
-            </p>
-          </div>
-
           <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
           <p style="color: #a8a29e; font-size: 11px; text-align: center;">
             Abundant Beginnings Company, LLC &middot; <a href="https://abcsurrogacy.com" style="color: #a8a29e;">abcsurrogacy.com</a>
