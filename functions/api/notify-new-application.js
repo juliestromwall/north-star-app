@@ -15,8 +15,9 @@ export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
-  // TODO: Change to intake@abcsurrogacy.com once approved
-  const notifyEmail = env.APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com'
+  // Supports comma-separated list: intake@abcsurrogacy.com, nicole@abcsurrogacy.com
+  const notifyEmails = (env.GC_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
+    .split(',').map(e => e.trim()).filter(Boolean)
 
   const { applicantName, applicantEmail, applicantPhone, state, qualified, dqReasons } = await context.request.json()
 
@@ -93,7 +94,7 @@ export async function onRequestPost(context) {
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: `ABC Surrogacy <${fromEmail}>`,
-        to: [notifyEmail],
+        to: notifyEmails,
         subject: `${qualified ? '✅' : '❌'} New Surrogate Application — ${applicantName}`,
         html: htmlBody,
       }),
