@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, FileText, ChevronDown, ChevronRight, Save, Loader2, Download, Trash2, Plus, Merge, Eye, X, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -276,10 +276,14 @@ function DocumentPanel({ documents, surrogateId }) {
 }
 
 // ── Summary Form Panel ─────────────────────────────────
-function SummaryForm({ surrogateId, surrogate, profileData, clinicData, summary, onSave, saving }) {
+const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, profileData, clinicData, summary, onSave, saving }, ref) {
   const [form, setForm] = useState({})
   const [openSections, setOpenSections] = useState({ general: true, pregnancies: true, labs: true })
   const [labRows, setLabRows] = useState([])
+
+  useImperativeHandle(ref, () => ({
+    getFormData: () => ({ ...form, labs: labRows }),
+  }))
 
   // Initialize form from saved summary or profile data
   useEffect(() => {
@@ -563,7 +567,7 @@ function SummaryForm({ surrogateId, surrogate, profileData, clinicData, summary,
       </div>
     </div>
   )
-}
+})
 
 // ── Summary Preview / PDF Export ────────────────────────
 function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
@@ -733,6 +737,7 @@ export default function RecordsSummaryWorkspace() {
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const formRef = useRef(null) // ref to get current form data
 
   useEffect(() => {
     if (!id || !supabase) return
@@ -842,6 +847,7 @@ export default function RecordsSummaryWorkspace() {
         {/* Right: Summary Form */}
         <div className="w-1/2 flex flex-col overflow-hidden">
           <SummaryForm
+            ref={formRef}
             surrogateId={id}
             surrogate={surrogate}
             profileData={profileData}
@@ -856,7 +862,7 @@ export default function RecordsSummaryWorkspace() {
       {/* Preview modal */}
       {previewOpen && (
         <SummaryPreview
-          data={summary}
+          data={formRef.current?.getFormData() || summary}
           surrogateName={surrogate.name}
           onClose={() => setPreviewOpen(false)}
           onExport={handleExportPdf}
