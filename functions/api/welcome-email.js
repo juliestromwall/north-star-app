@@ -70,12 +70,12 @@ export async function onRequestPost(context) {
   }
 
   // 2. Send welcome email via Resend
-  const portalSection = resetLink ? `
-    <div style="text-align: center; margin: 32px 0;">
-      <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #7c3aed, #283693); color: white; padding: 16px 48px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: 0.3px;">
-        Set Your Password
-      </a>
-    </div>
+  const portalButton = resetLink ? `
+      <div style="text-align: center; margin: 20px 0 4px;">
+        <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #7c3aed, #283693); color: white; padding: 16px 48px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; letter-spacing: 0.3px;">
+          Set Your Password
+        </a>
+      </div>
   ` : ''
 
   const htmlBody = `
@@ -99,9 +99,8 @@ export async function onRequestPost(context) {
             <li>If you haven't already, set up your user portal if you would like to get started on your profile.</li>
             <li>Our intake coordinator, Jennifer, will be reaching out about next steps!</li>
           </ol>
+          ${portalButton}
         </div>
-
-        ${portalSection}
 
         <p style="text-align: center; font-size: 15px; color: #283693; font-weight: 600; margin: 24px 0 8px;">
           We are here for you every step of the way!
