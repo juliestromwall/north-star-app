@@ -565,6 +565,161 @@ function SummaryForm({ surrogateId, surrogate, profileData, clinicData, summary,
   )
 }
 
+// ── Summary Preview / PDF Export ────────────────────────
+function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
+  if (!data) return null
+  const pregnancies = data.pregnancies || []
+  const labs = data.labs || []
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto py-8">
+      <div className="bg-white rounded-xl shadow-2xl max-w-[816px] w-full mx-4">
+        {/* Toolbar */}
+        <div className="flex items-center justify-between px-6 py-3 border-b sticky top-0 bg-white rounded-t-xl z-10">
+          <p className="text-sm font-semibold text-stone-700">Preview — GC Summary of Records</p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={onExport} disabled={exporting}>
+              {exporting ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />} {exporting ? 'Generating...' : 'Download PDF'}
+            </Button>
+            <button onClick={onClose} className="text-stone-400 hover:text-stone-600"><X className="size-4" /></button>
+          </div>
+        </div>
+
+        {/* Printable content */}
+        <div id="summary-preview-content" className="px-10 py-8 text-[13px] leading-relaxed text-stone-800" style={{ fontFamily: 'Arial, sans-serif' }}>
+          {/* Header */}
+          <div className="text-center mb-6 pb-4 border-b-2 border-[#283693]">
+            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-12 mx-auto mb-2" />
+            <p className="text-lg font-bold text-[#283693]">GC Summary of Records</p>
+          </div>
+
+          {/* Patient Info */}
+          <table className="w-full mb-4 text-[12px]">
+            <tbody>
+              <tr><td className="py-1 w-[180px] font-semibold">Name (Last, First):</td><td>{data.name}</td></tr>
+              <tr><td className="py-1 font-semibold">DOB:</td><td>{data.dob}</td></tr>
+              <tr><td className="py-1 font-semibold">Marital Status:</td><td>{data.maritalStatus}</td></tr>
+            </tbody>
+          </table>
+
+          {/* General Medical History */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">General Medical History</p>
+          <table className="w-full text-[12px]">
+            <tbody>
+              <tr><td className="py-0.5 w-[180px]">HT:</td><td>{data.height}</td><td className="w-[100px]">WT:</td><td>{data.weight}</td><td className="w-[80px]">BMI:</td><td>{data.bmi}</td></tr>
+            </tbody>
+          </table>
+          <p className="mt-2 text-[12px]"><span className="font-semibold">Current Medications:</span> {data.currentMedications || '—'}</p>
+          <p className="text-[12px]"><span className="font-semibold">Allergies:</span> {data.allergies || '—'}</p>
+          <p className="text-[12px]"><span className="font-semibold">Pertinent Medical History:</span> {data.pertinentMedicalHistory || '—'}</p>
+          <p className="text-[12px]"><span className="font-semibold">Surgical History:</span> {data.surgicalHistory || '—'}</p>
+
+          {/* Social History */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Social History</p>
+          <table className="w-full text-[12px]">
+            <tbody>
+              <tr><td className="py-0.5 w-[180px]">Occupation:</td><td>{data.occupation}</td></tr>
+              <tr><td className="py-0.5">Lives with:</td><td>{data.livesWith}</td></tr>
+              <tr><td className="py-0.5">Alcohol:</td><td>{data.alcohol}</td></tr>
+              <tr><td className="py-0.5">Tobacco:</td><td>{data.tobacco}</td></tr>
+              <tr><td className="py-0.5">Recreational Drugs:</td><td>{data.recreationalDrugs}</td></tr>
+            </tbody>
+          </table>
+
+          {/* COVID */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">COVID-19 Screening</p>
+          <table className="w-full text-[12px]">
+            <tbody>
+              <tr><td className="py-0.5 w-[250px]">Ever tested positive for COVID-19:</td><td>{data.covidPositive || '—'}</td></tr>
+              <tr><td className="py-0.5">COVID-19 Vaccine:</td><td>{data.covidVaccine || '—'}</td></tr>
+            </tbody>
+          </table>
+
+          {/* GYN History */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Gynecologic History</p>
+          <table className="w-full text-[12px]">
+            <tbody>
+              <tr><td className="py-0.5 w-[180px]">LMP:</td><td>{data.lmp}</td></tr>
+              <tr><td className="py-0.5">Cycle Length:</td><td>{data.cycleLength} days</td></tr>
+              <tr><td className="py-0.5">Menarche:</td><td>{data.menarche}</td></tr>
+              <tr><td className="py-0.5">Current Contraception:</td><td>{data.contraception}</td></tr>
+              <tr><td className="py-0.5">History of STD:</td><td>{data.stdHistory}</td></tr>
+              <tr><td className="py-0.5">History of GYN problems:</td><td>{data.gynProblems}</td></tr>
+              <tr><td className="py-0.5">History of Infertility:</td><td>{data.infertilityHistory}</td></tr>
+            </tbody>
+          </table>
+
+          {/* Obstetrical History */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Obstetrical History</p>
+          <p className="text-[12px] font-semibold mb-3">{data.obstetricSummary}</p>
+
+          {pregnancies.map((preg, i) => (
+            <div key={i} className="mb-4 pb-3 border-b border-stone-200">
+              <p className="font-bold text-[13px] text-[#283693]">{preg.label || `G${i + 1}`} {preg.pageRef && <span className="font-normal text-stone-400 text-[11px]">({preg.pageRef})</span>}</p>
+              {preg.skipDetails ? (
+                <p className="text-[12px] text-stone-500 italic">{preg.outcome} — No prenatal care. {preg.notes && `Notes: ${preg.notes}`}</p>
+              ) : (
+                <table className="w-full text-[11px] mt-1">
+                  <tbody>
+                    <tr><td className="py-0.5 w-[200px]">Date of Delivery:</td><td>{preg.dateOfDelivery}</td></tr>
+                    <tr><td className="py-0.5">Gestational Age:</td><td>{preg.gestationalAge}</td></tr>
+                    <tr><td className="py-0.5">Type of Delivery:</td><td>{preg.typeOfDelivery}</td></tr>
+                    <tr><td className="py-0.5">GBS:</td><td>{preg.gbs}</td></tr>
+                    <tr><td className="py-0.5">Glucose Screen:</td><td>{preg.glucoseScreen}</td></tr>
+                    {(preg.glucoseValues?.fasting || preg.glucoseValues?.oneHr) && (
+                      <tr><td className="py-0.5">Glucose Tolerance:</td><td>Fasting: {preg.glucoseValues?.fasting} | 1hr: {preg.glucoseValues?.oneHr} | 2hr: {preg.glucoseValues?.twoHr} | 3hr: {preg.glucoseValues?.threeHr}</td></tr>
+                    )}
+                    <tr><td className="py-0.5">BP's:</td><td>{preg.bps}</td></tr>
+                    <tr><td className="py-0.5">Anesthesia:</td><td>{preg.anesthesia}</td></tr>
+                    <tr><td className="py-0.5">Total Weight Gained:</td><td>{preg.weightGained}</td></tr>
+                    <tr><td className="py-0.5">Infant Birth Weight:</td><td>{preg.infantBirthWeight}</td></tr>
+                    <tr><td className="py-0.5">Complications:</td><td>{preg.complications}</td></tr>
+                    <tr><td className="py-0.5">GC Cycle:</td><td>{preg.gcCycle}</td></tr>
+                    <tr><td className="py-0.5">APGAR:</td><td>{preg.apgar}</td></tr>
+                    <tr><td className="py-0.5">Estimated Blood Loss:</td><td>{preg.ebl}</td></tr>
+                    <tr><td className="py-0.5">Delivery Complications:</td><td>{preg.deliveryComplications}</td></tr>
+                    <tr><td className="py-0.5">Postpartum:</td><td className="whitespace-pre-wrap">{preg.postpartumComplications}</td></tr>
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ))}
+
+          {/* Labs */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">Most Recent Labs</p>
+          <table className="w-full text-[11px] border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-1 font-semibold w-[35%]">Test</th>
+                <th className="text-left py-1 font-semibold w-[25%]">Result</th>
+                <th className="text-left py-1 font-semibold w-[20%]">Date</th>
+                <th className="text-left py-1 font-semibold w-[20%]">Page #</th>
+              </tr>
+            </thead>
+            <tbody>
+              {labs.map((lab, i) => (
+                <tr key={i} className="border-b border-stone-100">
+                  <td className="py-1">{lab.name}</td>
+                  <td className="py-1">{lab.result}</td>
+                  <td className="py-1">{lab.date}</td>
+                  <td className="py-1">{lab.pageNumber}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* OB Clearance */}
+          <p className="font-bold text-[#283693] uppercase text-[11px] tracking-wider mt-6 mb-2 border-b pb-1">OB Clearance</p>
+          <p className="text-[12px] whitespace-pre-wrap">{data.obClearance || '—'}</p>
+
+          {/* Reviewer */}
+          <p className="mt-6 text-[12px]"><span className="font-semibold">Medical records reviewed by:</span> {data.reviewedBy}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Workspace ─────────────────────────────────────
 export default function RecordsSummaryWorkspace() {
   const { id } = useParams()
@@ -576,6 +731,8 @@ export default function RecordsSummaryWorkspace() {
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     if (!id || !supabase) return
@@ -603,6 +760,38 @@ export default function RecordsSummaryWorkspace() {
     }).catch(err => console.error('Failed to load workspace:', err))
       .finally(() => setLoading(false))
   }, [id])
+
+  async function handleExportPdf() {
+    setExporting(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const { jsPDF } = await import('jspdf')
+      const el = document.getElementById('summary-preview-content')
+      if (!el) { setExporting(false); return }
+
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#fff', windowWidth: 816 })
+      const imgData = canvas.toDataURL('image/jpeg', 0.95)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
+      const pageWidth = 8.5
+      const pageHeight = 11
+      const imgWidth = pageWidth
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      let yOffset = 0
+      while (yOffset < imgHeight) {
+        if (yOffset > 0) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, -yOffset, imgWidth, imgHeight)
+        yOffset += pageHeight
+      }
+
+      pdf.save(`GC_Summary_${surrogate.name?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
+    } catch (err) {
+      console.error('PDF export failed:', err)
+      alert('Failed to export PDF.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   async function handleSave(formData) {
     setSaving(true)
@@ -634,8 +823,8 @@ export default function RecordsSummaryWorkspace() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7">
-            <Download className="size-3" /> Export PDF
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => setPreviewOpen(true)}>
+            <Eye className="size-3" /> Preview & Export
           </Button>
           <Button size="sm" className="gap-1.5 text-xs h-7" style={{ backgroundColor: '#16a34a' }}>
             <CheckCircle2 className="size-3" /> Mark Complete
@@ -663,6 +852,17 @@ export default function RecordsSummaryWorkspace() {
           />
         </div>
       </div>
+
+      {/* Preview modal */}
+      {previewOpen && (
+        <SummaryPreview
+          data={summary}
+          surrogateName={surrogate.name}
+          onClose={() => setPreviewOpen(false)}
+          onExport={handleExportPdf}
+          exporting={exporting}
+        />
+      )}
     </div>
   )
 }
