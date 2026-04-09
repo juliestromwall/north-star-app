@@ -35,6 +35,58 @@ function isValidInternationalPhone(value) {
   return digits.length >= 7 && digits.length <= 15
 }
 
+const COUNTRY_CODES = [
+  { code: '+1', flag: '🇺🇸', label: 'US +1' },
+  { code: '+1', flag: '🇨🇦', label: 'CA +1' },
+  { code: '+44', flag: '🇬🇧', label: 'UK +44' },
+  { code: '+61', flag: '🇦🇺', label: 'AU +61' },
+  { code: '+49', flag: '🇩🇪', label: 'DE +49' },
+  { code: '+33', flag: '🇫🇷', label: 'FR +33' },
+  { code: '+34', flag: '🇪🇸', label: 'ES +34' },
+  { code: '+39', flag: '🇮🇹', label: 'IT +39' },
+  { code: '+81', flag: '🇯🇵', label: 'JP +81' },
+  { code: '+86', flag: '🇨🇳', label: 'CN +86' },
+  { code: '+91', flag: '🇮🇳', label: 'IN +91' },
+  { code: '+52', flag: '🇲🇽', label: 'MX +52' },
+  { code: '+55', flag: '🇧🇷', label: 'BR +55' },
+  { code: '+972', flag: '🇮🇱', label: 'IL +972' },
+  { code: '+971', flag: '🇦🇪', label: 'AE +971' },
+]
+
+function formatPhoneForCountry(value, countryCode) {
+  const digits = value.replace(/\D/g, '').slice(0, countryCode === '+1' ? 10 : 12)
+  if (countryCode === '+1') {
+    if (digits.length > 6) return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+    if (digits.length > 3) return `${digits.slice(0,3)}-${digits.slice(3)}`
+    return digits
+  }
+  return digits.replace(/(\d{3,4})(?=\d)/g, '$1-').replace(/-$/, '')
+}
+
+function PhoneWithCountryCode({ value, onChange, countryCode, onCountryChange, placeholder }) {
+  return (
+    <div className="flex gap-1.5">
+      <select
+        value={countryCode}
+        onChange={e => onCountryChange(e.target.value)}
+        className="rounded-xl h-11 border border-stone-200 bg-white px-2 text-sm min-w-[90px] outline-none focus:border-[#283693]"
+      >
+        {COUNTRY_CODES.map(c => (
+          <option key={c.label} value={c.code}>{c.flag} {c.code}</option>
+        ))}
+      </select>
+      <Input
+        type="tel"
+        value={value}
+        onChange={e => onChange(formatPhoneForCountry(e.target.value, countryCode))}
+        placeholder={placeholder || (countryCode === '+1' ? '555-555-0100' : '123-456-7890')}
+        className="rounded-xl h-11 flex-1"
+        maxLength={countryCode === '+1' ? 12 : 15}
+      />
+    </div>
+  )
+}
+
 function isValidPostalCode(country, value) {
   const trimmed = (value || '').trim()
   if (!trimmed) return false
@@ -54,10 +106,10 @@ export default function IPIntakeForm() {
     if (step > maxStepRef.current) maxStepRef.current = step
   }, [step])
   const [form, setForm] = useState({
-    primaryFirstName: '', primaryLastName: '', primaryDob: '', email: '', phone: '',
+    primaryFirstName: '', primaryLastName: '', primaryDob: '', email: '', phone: '', phoneCountry: '+1',
     country: 'United States', street: '', street2: '', city: '', stateProv: '', zipCode: '',
     hasPartner: null,
-    ip2FirstName: '', ip2LastName: '', ip2Dob: '', ip2Email: '', ip2Phone: '',
+    ip2FirstName: '', ip2LastName: '', ip2Dob: '', ip2Email: '', ip2Phone: '', ip2PhoneCountry: '+1',
     hasRE: null, reDoctorName: '',
     hasFrozenEmbryos: null, frozenEmbryoDetails: '',
     usingEggDonor: null, usingSpermDonor: null,
@@ -137,7 +189,7 @@ export default function IPIntakeForm() {
         dq_reasons: dqReasons,
         applicant_name: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
         applicant_email: form.email.trim(),
-        applicant_phone: form.phone.trim(),
+        applicant_phone: `${form.phoneCountry} ${form.phone}`.trim(),
         country: form.country || null,
         state_region: form.stateProv || null,
         city: form.city || null,
@@ -204,9 +256,14 @@ export default function IPIntakeForm() {
       </div>
       <div className="space-y-1.5">
         <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach you</Label>
-        <Input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+1 (555) 555-0100" className="rounded-xl h-11" />
+        <PhoneWithCountryCode
+          value={form.phone}
+          onChange={v => set('phone', v)}
+          countryCode={form.phoneCountry}
+          onCountryChange={v => set('phoneCountry', v)}
+        />
         {form.phone && !primaryPhoneValid && (
-          <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
+          <p className="text-xs text-red-500">Enter a valid phone number</p>
         )}
       </div>
       <p className="text-xs text-stone-400 pt-1">We will only reach out to share your results. No spam, ever.</p>
@@ -295,9 +352,14 @@ export default function IPIntakeForm() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Best number to reach partner</Label>
-            <Input type="tel" value={form.ip2Phone} onChange={e => set('ip2Phone', e.target.value)} placeholder="+1 (555) 555-0100" className="rounded-xl h-11" />
+            <PhoneWithCountryCode
+              value={form.ip2Phone}
+              onChange={v => set('ip2Phone', v)}
+              countryCode={form.ip2PhoneCountry}
+              onCountryChange={v => set('ip2PhoneCountry', v)}
+            />
             {form.ip2Phone && !partnerPhoneValid && (
-              <p className="text-xs text-red-500">Enter a valid phone number, including country code for international numbers</p>
+              <p className="text-xs text-red-500">Enter a valid phone number</p>
             )}
           </div>
         </>
