@@ -23,10 +23,13 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const res = await fetch('/api/reset-password-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
       })
-      if (error) throw error
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email')
       setResetSent(true)
     } catch (err) {
       setError(err.message || 'Failed to send reset email')
