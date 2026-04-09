@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Check, Gift, DollarSign, ArrowUpDown } from 'lucide-react'
+import { Search, Check, Gift, DollarSign, ArrowUpDown, Plus } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -168,6 +168,94 @@ export default function ReferralBonusTrackerPage() {
     })
   }
 
+  // ── Manual add ──
+  const [addReferralOpen, setAddReferralOpen] = useState(false)
+  const [addBonusOpen, setAddBonusOpen] = useState(false)
+  const [manualForm, setManualForm] = useState({ name: '', email: '', referredBy: '', amount: '1000', dateApplied: new Date().toISOString().split('T')[0] })
+
+  function resetManualForm() {
+    setManualForm({ name: '', email: '', referredBy: '', amount: '1000', dateApplied: new Date().toISOString().split('T')[0] })
+  }
+
+  async function saveManualReferral() {
+    if (!manualForm.name.trim()) return
+    const id = `manual_${Date.now()}`
+    const entry = {
+      manual: true,
+      name: manualForm.name.trim(),
+      email: manualForm.email.trim(),
+      referredBy: manualForm.referredBy.trim() || '—',
+      amountDue: parseFloat(manualForm.amount) || 1000,
+      dateApplied: manualForm.dateApplied,
+    }
+    const updated = { ...trackerData, [`ref_${id}`]: entry }
+    await saveTracker(updated)
+    setAddReferralOpen(false)
+    resetManualForm()
+  }
+
+  async function saveManualBonus() {
+    if (!manualForm.name.trim()) return
+    const id = `manual_${Date.now()}`
+    const entry = {
+      manual: true,
+      name: manualForm.name.trim(),
+      email: manualForm.email.trim(),
+      amountDue: parseFloat(manualForm.amount) || 1000,
+      dateApplied: manualForm.dateApplied,
+    }
+    const updated = { ...trackerData, [`bonus_${id}`]: entry }
+    await saveTracker(updated)
+    setAddBonusOpen(false)
+    resetManualForm()
+  }
+
+  // ── Build manual rows from trackerData ──
+  const manualReferralRows = useMemo(() => {
+    return Object.entries(trackerData)
+      .filter(([key, val]) => key.startsWith('ref_manual_') && val.manual)
+      .map(([key, val]) => ({
+        id: key.replace('ref_', ''),
+        key,
+        name: val.name,
+        email: val.email || '',
+        dateApplied: val.dateApplied,
+        referredBy: val.referredBy || '—',
+        amountDue: val.amountDue || 1000,
+        legalClearanceDate: null,
+        paid: !!val.paidDate,
+        paidDate: val.paidDate || null,
+        journeyPath: null,
+        manual: true,
+      }))
+  }, [trackerData])
+
+  const manualBonusRows = useMemo(() => {
+    return Object.entries(trackerData)
+      .filter(([key, val]) => key.startsWith('bonus_manual_') && val.manual)
+      .map(([key, val]) => ({
+        id: key.replace('bonus_', ''),
+        key,
+        name: val.name,
+        email: val.email || '',
+        dateApplied: val.dateApplied,
+        amountDue: val.amountDue || 1000,
+        medicalClearanceDate: null,
+        halfPaidDate: val.halfPaidDate || null,
+        legalClearanceDate: null,
+        fullyPaid: !!val.fullyPaidDate,
+        fullyPaidDate: val.fullyPaidDate || null,
+        journeyPath: null,
+        manual: true,
+      }))
+  }, [trackerData])
+
+  // Combine auto + manual rows
+  const allUnpaidReferrals = [...unpaidReferrals, ...manualReferralRows.filter(r => !r.paid)]
+  const allPaidReferrals = [...paidReferrals, ...manualReferralRows.filter(r => r.paid)]
+  const allUnpaidBonuses = [...unpaidBonuses, ...manualBonusRows.filter(r => !r.fullyPaid)]
+  const allPaidBonuses = [...paidBonuses, ...manualBonusRows.filter(r => r.fullyPaid)]
+
   // ── Filter ──
   function filterRows(rows) {
     if (!search) return rows
@@ -185,7 +273,7 @@ export default function ReferralBonusTrackerPage() {
     <div className="space-y-6">
       <PageHeader
         title="Referral & Bonus Tracker"
-        subtitle={`${unpaidReferrals.length} unpaid referrals · ${unpaidBonuses.length} unpaid bonuses`}
+        subtitle={`${allUnpaidReferrals.length} unpaid referrals · ${allUnpaidBonuses.length} unpaid bonuses`}
       />
 
       {/* Search */}
@@ -200,36 +288,46 @@ export default function ReferralBonusTrackerPage() {
         <TabsList>
           <TabsTrigger value="referrals" className="gap-1">
             Referrals
-            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{unpaidReferrals.length}</span>
+            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{allUnpaidReferrals.length}</span>
           </TabsTrigger>
           <TabsTrigger value="bonuses" className="gap-1">
             Sign-On Bonuses
-            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{unpaidBonuses.length}</span>
+            <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{allUnpaidBonuses.length}</span>
           </TabsTrigger>
           <TabsTrigger value="paid-referrals" className="gap-1">
             Paid Referrals
-            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{paidReferrals.length}</span>
+            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{allPaidReferrals.length}</span>
           </TabsTrigger>
           <TabsTrigger value="paid-bonuses" className="gap-1">
             Paid Bonuses
-            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{paidBonuses.length}</span>
+            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{allPaidBonuses.length}</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="referrals" className="mt-4">
-          <ReferralTable rows={filterRows(unpaidReferrals)} onMarkPaid={markReferralPaid} showPaidCol={false} />
+          <div className="flex justify-end mb-3">
+            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { resetManualForm(); setAddReferralOpen(true) }}>
+              <Plus className="size-3.5" /> Add Referral
+            </Button>
+          </div>
+          <ReferralTable rows={filterRows(allUnpaidReferrals)} onMarkPaid={markReferralPaid} showPaidCol={false} />
         </TabsContent>
 
         <TabsContent value="bonuses" className="mt-4">
-          <BonusTable rows={filterRows(unpaidBonuses)} onMarkHalfPaid={markHalfPaid} onMarkFullyPaid={markFullyPaid} showPaidCol={false} />
+          <div className="flex justify-end mb-3">
+            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { resetManualForm(); setAddBonusOpen(true) }}>
+              <Plus className="size-3.5" /> Add Sign-On Bonus
+            </Button>
+          </div>
+          <BonusTable rows={filterRows(allUnpaidBonuses)} onMarkHalfPaid={markHalfPaid} onMarkFullyPaid={markFullyPaid} showPaidCol={false} />
         </TabsContent>
 
         <TabsContent value="paid-referrals" className="mt-4">
-          <ReferralTable rows={filterRows(paidReferrals)} showPaidCol={true} />
+          <ReferralTable rows={filterRows(allPaidReferrals)} showPaidCol={true} />
         </TabsContent>
 
         <TabsContent value="paid-bonuses" className="mt-4">
-          <BonusTable rows={filterRows(paidBonuses)} showPaidCol={true} />
+          <BonusTable rows={filterRows(allPaidBonuses)} showPaidCol={true} />
         </TabsContent>
       </Tabs>
 
@@ -244,6 +342,80 @@ export default function ReferralBonusTrackerPage() {
             <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
             <Button size="sm" onClick={confirmDialog?.onConfirm} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
               <Check className="size-3.5" /> Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Referral Dialog */}
+      <Dialog open={addReferralOpen} onOpenChange={setAddReferralOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Referral</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Applicant Name *</label>
+              <Input value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} placeholder="First Last" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Email</label>
+              <Input value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Referred By *</label>
+              <Input value={manualForm.referredBy} onChange={e => setManualForm(f => ({ ...f, referredBy: e.target.value }))} placeholder="Name of referrer" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-stone-600">Amount Due</label>
+                <Input type="number" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-stone-600">Date Applied</label>
+                <Input type="date" value={manualForm.dateApplied} onChange={e => setManualForm(f => ({ ...f, dateApplied: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" onClick={saveManualReferral} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+              <Plus className="size-3.5" /> Add Referral
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Sign-On Bonus Dialog */}
+      <Dialog open={addBonusOpen} onOpenChange={setAddBonusOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Sign-On Bonus</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Surrogate Name *</label>
+              <Input value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} placeholder="First Last" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Email</label>
+              <Input value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-stone-600">Amount Due</label>
+                <Input type="number" value={manualForm.amount} onChange={e => setManualForm(f => ({ ...f, amount: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-stone-600">Date Applied</label>
+                <Input type="date" value={manualForm.dateApplied} onChange={e => setManualForm(f => ({ ...f, dateApplied: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" onClick={saveManualBonus} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+              <Plus className="size-3.5" /> Add Bonus
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -290,8 +462,12 @@ function ReferralTable({ rows, onMarkPaid, showPaidCol }) {
               {rows.map(row => (
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
-                    <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
-                    <p className="text-[10px] text-stone-400">{row.email}</p>
+                    {row.journeyPath ? (
+                      <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
+                    ) : (
+                      <span className="font-semibold text-xs text-stone-800">{row.name}</span>
+                    )}
+                    <p className="text-[10px] text-stone-400">{row.email}{row.manual ? <span className="ml-1 text-violet-400">(manual)</span> : ''}</p>
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.dateApplied ? formatDate(row.dateApplied) : '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100 font-medium text-stone-700">{row.referredBy}</td>
@@ -363,8 +539,12 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
               {rows.map(row => (
                 <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
-                    <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
-                    <p className="text-[10px] text-stone-400">{row.email}</p>
+                    {row.journeyPath ? (
+                      <Link to={row.journeyPath} className="text-[#ed148c] hover:underline font-semibold text-xs">{row.name}</Link>
+                    ) : (
+                      <span className="font-semibold text-xs text-stone-800">{row.name}</span>
+                    )}
+                    <p className="text-[10px] text-stone-400">{row.email}{row.manual ? <span className="ml-1 text-violet-400">(manual)</span> : ''}</p>
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.dateApplied ? formatDate(row.dateApplied) : '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100 font-semibold text-stone-800">${row.amountDue.toLocaleString()}</td>
