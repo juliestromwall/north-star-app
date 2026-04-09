@@ -176,6 +176,20 @@ export default function SurrogateIntakeForm() {
       }).catch(() => {}) // non-blocking
     }
 
+    // Notify admin of new application
+    fetch('/api/notify-new-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        applicantName: `${form.firstName} ${form.lastName}`.trim(),
+        applicantEmail: form.email.trim(),
+        applicantPhone: form.phone.trim(),
+        state: form.state || '',
+        qualified,
+        dqReasons,
+      }),
+    }).catch(() => {})
+
     navigate('/apply/confirmation', {
       state: {
         qualified,
