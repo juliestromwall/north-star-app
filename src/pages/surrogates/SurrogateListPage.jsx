@@ -454,7 +454,7 @@ export default function SurrogateListPage() {
           <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
-        {SURROGATE_STAGES.map(stage => (
+        {SURROGATE_STAGES.filter(s => !s.hidden).map(stage => (
           <button
             key={stage.id}
             onClick={() => setStatusFilter(statusFilter === stage.id ? 'all' : stage.id)}
@@ -507,7 +507,7 @@ export default function SurrogateListPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Stages</SelectItem>
-            {SURROGATE_STAGES.map(stage => (
+            {SURROGATE_STAGES.filter(s => !s.hidden).map(stage => (
               <SelectItem key={stage.id} value={stage.id}>{stage.label}</SelectItem>
             ))}
           </SelectContent>

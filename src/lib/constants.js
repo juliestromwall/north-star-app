@@ -67,7 +67,10 @@ export const SURROGATE_STAGES = [
   { id: 'pre-qualification', label: 'Pre-Qualification', color: '#ed148c', order: 1 },
   { id: 'screening',         label: 'Screening',         color: '#c4219a', order: 2 },
   { id: 'matching',          label: 'Matching',           color: '#9b2ea7', order: 3 },
-  { id: 'journey-oversight',  label: 'Matched Journey',    color: '#723bb4', order: 4 },
+  { id: 'holding',           label: 'Holding',            color: '#6b7280', order: 4 },
+  { id: 'not-qualified',     label: 'Not Qualified',      color: '#dc2626', order: 5 },
+  // journey-oversight kept for journey pages (not shown on surrogate list)
+  { id: 'journey-oversight', label: 'Matched Journey',    color: '#723bb4', order: 99, hidden: true },
 ]
 
 // IP-specific stage label overrides
@@ -91,6 +94,13 @@ export const DEFAULT_STATUSES_BY_STAGE = {
   'matching': [
     'Awaiting Match', 'Profile Shared', 'Meeting Scheduled',
     'Meeting Complete', 'Match Confirmed',
+  ],
+  'holding': [
+    'On Hold', 'Pending Review', 'Waiting on Surrogate',
+  ],
+  'not-qualified': [
+    'DQ — Age', 'DQ — BMI', 'DQ — Medical', 'DQ — Other',
+    'Declined', 'Withdrew',
   ],
   'journey-oversight': [
     'Legal Review', 'Medical Clearance', 'Transfer Prep',
