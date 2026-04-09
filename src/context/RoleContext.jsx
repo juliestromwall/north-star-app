@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchSurrogateProfileByEmail, getAppConfig } from '@/lib/db'
+
+const BLOCKED_STAGES = ['not-qualified', 'withdrawn']
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -61,6 +63,7 @@ export function RoleProvider({ children }) {
   const [currentRole, setCurrentRole] = useState(ROLES.MASTER_ADMIN)
   const [authUser, setAuthUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [portalBlocked, setPortalBlocked] = useState(false)
 
   // Listen for Supabase auth state changes
   useEffect(() => {
@@ -77,15 +80,17 @@ export function RoleProvider({ children }) {
         let avatar = null
 
         // Enrich: fetch real name from intake_submissions + profile photo
+        let caseId = null
         try {
           if (supabase) {
             const { data: intake } = await supabase.from('intake_submissions')
-              .select('applicant_name')
+              .select('id, applicant_name')
               .eq('applicant_email', user.email.toLowerCase())
               .order('submitted_at', { ascending: false })
               .limit(1)
               .single()
             if (intake?.applicant_name) displayName = intake.applicant_name
+            if (intake?.id) caseId = intake.id
 
             const profile = await fetchSurrogateProfileByEmail(user.email)
             if (profile?.profile_data?.personal?.profilePhotoUrl) {
@@ -93,6 +98,20 @@ export function RoleProvider({ children }) {
             }
           }
         } catch {}
+
+        // Check if surrogate's case is in a blocked stage
+        if (role === ROLES.SURROGATE && caseId) {
+          try {
+            const stages = await getAppConfig('surrogate_stages')
+            const caseStage = stages?.[caseId]?.stage
+            if (caseStage && BLOCKED_STAGES.includes(caseStage)) {
+              setPortalBlocked(true)
+              await supabase.auth.signOut()
+              setAuthLoading(false)
+              return
+            }
+          } catch {}
+        }
 
         setAuthUser({
           id: user.id,
@@ -179,6 +198,7 @@ export function RoleProvider({ children }) {
       authUser,
       authLoading,
       isAuthenticated: !!authUser,
+      portalBlocked,
       isAdmin,
       isSuperAdmin,
       isMasterAdmin,

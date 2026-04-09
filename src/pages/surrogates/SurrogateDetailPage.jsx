@@ -298,6 +298,7 @@ export default function SurrogateDetailPage() {
   const [insuranceOpen, setInsuranceOpen] = useState(false)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
+  const [stageConfirm, setStageConfirm] = useState(null) // { stageId } for blocked-stage confirmation
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
@@ -782,6 +783,33 @@ export default function SurrogateDetailPage() {
             </div>
           </div>
 
+          {/* Stage change confirmation for portal-blocking stages */}
+          <Dialog open={!!stageConfirm} onOpenChange={open => !open && setStageConfirm(null)}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-red-600">Remove Portal Access?</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-stone-600 leading-relaxed">
+                Moving this case to <strong>{SURROGATE_STAGES.find(s => s.id === stageConfirm?.stageId)?.label}</strong> will remove the surrogate's access to the portal. They will see a message to contact the agency if they try to log in.
+              </p>
+              <div className="flex justify-end gap-2 pt-2">
+                <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                <DialogClose asChild>
+                  <Button size="sm" className="gap-1.5 bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => {
+                      if (!stageConfirm) return
+                      const newStatus = getDefaultStatus(stageConfirm.stageId, 'gc')
+                      setSurrogateStageStatus(surrogate.id, stageConfirm.stageId, newStatus)
+                      setStageStatus({ stage: stageConfirm.stageId, status: newStatus })
+                      setStageConfirm(null)
+                    }}>
+                    <AlertTriangle className="size-3.5" /> Confirm
+                  </Button>
+                </DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {/* Stats grid — interactive flip cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {/* Age / DOB */}
@@ -859,7 +887,7 @@ export default function SurrogateDetailPage() {
                       <div className="fixed inset-0 z-30" onClick={() => setStageOpen(false)} />
                       <div className="absolute top-full right-0 mt-2 z-40 bg-white rounded-xl border border-stone-200 shadow-xl overflow-hidden w-52">
                         <div className="py-1">
-                          {SURROGATE_STAGES.map((stage, i) => (
+                          {SURROGATE_STAGES.filter(s => !s.hidden).map((stage, i) => (
                             <button
                               key={stage.id}
                               className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2.5 transition-colors ${
@@ -868,6 +896,11 @@ export default function SurrogateDetailPage() {
                               style={stageStatus.stage === stage.id ? { color: stage.color, backgroundColor: stage.color + '10' } : {}}
                               onClick={e => {
                                 e.stopPropagation()
+                                if (['not-qualified', 'withdrawn'].includes(stage.id)) {
+                                  setStageConfirm({ stageId: stage.id })
+                                  setStageOpen(false)
+                                  return
+                                }
                                 const newStatus = getDefaultStatus(stage.id, 'gc')
                                 setSurrogateStageStatus(surrogate.id, stage.id, newStatus)
                                 setStageStatus({ stage: stage.id, status: newStatus })

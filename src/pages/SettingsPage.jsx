@@ -534,7 +534,7 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
 
 // ── Checklists Section (collapsible) ──────────────────────
 
-const CASE_STAGES = ['pre-qualification', 'screening', 'matching', 'holding', 'not-qualified']
+const CASE_STAGES = ['pre-qualification', 'screening', 'matching', 'holding', 'not-qualified', 'withdrawn']
 const JOURNEY_STAGES = ['journey-oversight']
 
 function ChecklistsSection() {

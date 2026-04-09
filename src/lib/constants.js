@@ -69,6 +69,7 @@ export const SURROGATE_STAGES = [
   { id: 'matching',          label: 'Matching',           color: '#9b2ea7', order: 3 },
   { id: 'holding',           label: 'Holding',            color: '#6b7280', order: 4 },
   { id: 'not-qualified',     label: 'Not Qualified',      color: '#dc2626', order: 5 },
+  { id: 'withdrawn',         label: 'Withdrawn',          color: '#92400e', order: 6 },
   // journey-oversight kept for journey pages (not shown on surrogate list)
   { id: 'journey-oversight', label: 'Matched Journey',    color: '#723bb4', order: 99, hidden: true },
 ]
@@ -98,10 +99,8 @@ export const DEFAULT_STATUSES_BY_STAGE = {
   'holding': [
     'On Hold', 'Pending Review', 'Waiting on Surrogate',
   ],
-  'not-qualified': [
-    'DQ — Age', 'DQ — BMI', 'DQ — Medical', 'DQ — Other',
-    'Declined', 'Withdrew',
-  ],
+  'not-qualified': [],
+  'withdrawn': [],
   'journey-oversight': [
     'Legal Review', 'Medical Clearance', 'Transfer Prep',
     'Pregnant', 'Monitoring',

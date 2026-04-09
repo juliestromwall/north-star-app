@@ -57,6 +57,7 @@ const DEFAULT_CHECKLISTS = {
     'matching': { steps: [], milestones: [] },
     'holding': { steps: [], milestones: [] },
     'not-qualified': { steps: [], milestones: [] },
+    'withdrawn': { steps: [], milestones: [] },
     'journey-oversight': { steps: [], milestones: [] },
   },
   ip: {
