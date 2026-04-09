@@ -131,6 +131,7 @@ export default function ReferralBonusTrackerPage() {
         const journey = findJourneyForSurrogate(s.id, journeys)
         const legalDate = journey ? getChecklistDate(journey.journey_data, 'legal clearance') : null
         const td = trackerData[`ref_${s.id}`] || {}
+        const medicalDate = journey ? getChecklistDate(journey.journey_data, 'medical clearance') : null
         return {
           id: s.id,
           key: `ref_${s.id}`,
@@ -138,7 +139,9 @@ export default function ReferralBonusTrackerPage() {
           email: s.email,
           dateApplied: s.submittedAt,
           referredBy: s.answers?.referralName || '—',
-          amountDue: td.amountDue || 1000,
+          amountDue: td.amountDue || 4000,
+          medicalClearanceDate: medicalDate,
+          halfPaidDate: td.halfPaidDate || null,
           legalClearanceDate: legalDate,
           paid: !!td.paidDate,
           paidDate: td.paidDate || null,
@@ -164,7 +167,7 @@ export default function ReferralBonusTrackerPage() {
         name: s.name,
         email: s.email,
         dateApplied: s.submittedAt,
-        amountDue: td.amountDue || 1000,
+        amountDue: td.amountDue || 4000,
         medicalClearanceDate: medicalDate,
         halfPaidDate: td.halfPaidDate || null,
         legalClearanceDate: legalDate,
@@ -180,10 +183,22 @@ export default function ReferralBonusTrackerPage() {
   const paidBonuses = bonusRows.filter(r => r.fullyPaid)
 
   // ── Actions ──
+  function markReferralHalfPaid(row) {
+    setConfirmDialog({
+      title: 'Mark $2,000 Paid (Medical Clearance)',
+      message: `Mark the first $2,000 of the $${row.amountDue.toLocaleString()} referral for ${row.name} (referred by ${row.referredBy}) as paid at medical clearance?`,
+      onConfirm: async () => {
+        const updated = { ...trackerData, [row.key]: { ...trackerData[row.key], halfPaidDate: new Date().toISOString().split('T')[0], amountDue: row.amountDue } }
+        await saveTracker(updated)
+        setConfirmDialog(null)
+      },
+    })
+  }
+
   function markReferralPaid(row) {
     setConfirmDialog({
-      title: 'Mark Referral as Paid',
-      message: `Mark the $${row.amountDue.toLocaleString()} referral for ${row.name} (referred by ${row.referredBy}) as paid?`,
+      title: 'Mark $2,000 Paid (Legal Clearance)',
+      message: `Mark the remaining $2,000 of the $${row.amountDue.toLocaleString()} referral for ${row.name} (referred by ${row.referredBy}) as fully paid at legal clearance?`,
       onConfirm: async () => {
         const updated = { ...trackerData, [row.key]: { ...trackerData[row.key], paidDate: new Date().toISOString().split('T')[0], amountDue: row.amountDue } }
         await saveTracker(updated)
@@ -194,8 +209,8 @@ export default function ReferralBonusTrackerPage() {
 
   function markHalfPaid(row) {
     setConfirmDialog({
-      title: 'Mark Half Bonus Paid',
-      message: `Mark the first half ($${(row.amountDue / 2).toLocaleString()}) of ${row.name}'s sign-on bonus as paid?`,
+      title: 'Mark $1,000 Paid (Medical Clearance)',
+      message: `Mark $1,000 of ${row.name}'s $${row.amountDue.toLocaleString()} sign-on bonus as paid at medical clearance?`,
       onConfirm: async () => {
         const updated = { ...trackerData, [row.key]: { ...trackerData[row.key], halfPaidDate: new Date().toISOString().split('T')[0], amountDue: row.amountDue } }
         await saveTracker(updated)
@@ -206,8 +221,8 @@ export default function ReferralBonusTrackerPage() {
 
   function markFullyPaid(row) {
     setConfirmDialog({
-      title: 'Mark Bonus Fully Paid',
-      message: `Mark ${row.name}'s full $${row.amountDue.toLocaleString()} sign-on bonus as completely paid?`,
+      title: 'Mark $3,000 Paid (Legal Clearance)',
+      message: `Mark the remaining $3,000 of ${row.name}'s $${row.amountDue.toLocaleString()} sign-on bonus as paid at legal clearance?`,
       onConfirm: async () => {
         const updated = { ...trackerData, [row.key]: { ...trackerData[row.key], fullyPaidDate: new Date().toISOString().split('T')[0], amountDue: row.amountDue } }
         await saveTracker(updated)
@@ -225,10 +240,10 @@ export default function ReferralBonusTrackerPage() {
   // ── Manual add ──
   const [addReferralOpen, setAddReferralOpen] = useState(false)
   const [addBonusOpen, setAddBonusOpen] = useState(false)
-  const [manualForm, setManualForm] = useState({ name: '', email: '', referredBy: '', amount: '1000', dateApplied: new Date().toISOString().split('T')[0] })
+  const [manualForm, setManualForm] = useState({ name: '', email: '', referredBy: '', amount: '4000', dateApplied: new Date().toISOString().split('T')[0] })
 
   function resetManualForm() {
-    setManualForm({ name: '', email: '', referredBy: '', amount: '1000', dateApplied: new Date().toISOString().split('T')[0] })
+    setManualForm({ name: '', email: '', referredBy: '', amount: '4000', dateApplied: new Date().toISOString().split('T')[0] })
   }
 
   async function saveManualReferral() {
@@ -364,7 +379,7 @@ export default function ReferralBonusTrackerPage() {
               <Plus className="size-3.5" /> Add Referral
             </Button>
           </div>
-          <ReferralTable rows={filterRows(allUnpaidReferrals)} onMarkPaid={markReferralPaid} onDateChange={saveDate} showPaidCol={false} />
+          <ReferralTable rows={filterRows(allUnpaidReferrals)} onMarkHalfPaid={markReferralHalfPaid} onMarkPaid={markReferralPaid} onDateChange={saveDate} showPaidCol={false} />
         </TabsContent>
 
         <TabsContent value="bonuses" className="mt-4">
@@ -479,7 +494,7 @@ export default function ReferralBonusTrackerPage() {
 }
 
 // ── Referral Table ──
-function ReferralTable({ rows, onMarkPaid, onDateChange, showPaidCol }) {
+function ReferralTable({ rows, onMarkHalfPaid, onMarkPaid, onDateChange, showPaidCol }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -506,9 +521,11 @@ function ReferralTable({ rows, onMarkPaid, onDateChange, showPaidCol }) {
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Date Applied</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Referred By</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Amount Due</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Medical Clearance</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">$2,000 Paid</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Legal Clearance</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">
-                  {showPaidCol ? 'Date Paid' : 'Action'}
+                  {showPaidCol ? '$2,000 Paid' : '$2,000 Paid'}
                 </th>
               </tr>
             </thead>
@@ -528,17 +545,35 @@ function ReferralTable({ rows, onMarkPaid, onDateChange, showPaidCol }) {
                   <td className="px-4 py-3 border-r border-stone-100 font-semibold text-stone-800">${row.amountDue.toLocaleString()}</td>
                   <td className="px-4 py-3 border-r border-stone-100">
                     <EditableDateCell
+                      value={row.medicalClearanceDate}
+                      canEdit={!!row.manual}
+                      onSave={(date) => onDateChange?.(row.key, 'medicalClearanceDate', date)}
+                    />
+                  </td>
+                  <td className="px-4 py-3 border-r border-stone-100">
+                    {row.halfPaidDate ? (
+                      <span className="text-amber-600 font-medium">{formatDate(row.halfPaidDate)}</span>
+                    ) : showPaidCol ? (
+                      <span className="text-stone-300">—</span>
+                    ) : (
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800" onClick={() => onMarkHalfPaid?.(row)}>
+                        <DollarSign className="size-3" /> $2,000
+                      </Button>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 border-r border-stone-100">
+                    <EditableDateCell
                       value={row.legalClearanceDate}
                       canEdit={!!row.manual}
                       onSave={(date) => onDateChange?.(row.key, 'legalClearanceDate', date)}
                     />
                   </td>
                   <td className="px-4 py-3">
-                    {showPaidCol ? (
+                    {showPaidCol || row.paidDate ? (
                       <span className="text-emerald-600 font-medium">{row.paidDate ? formatDate(row.paidDate) : '—'}</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkPaid(row)}>
-                        <DollarSign className="size-3" /> Mark Paid
+                        <DollarSign className="size-3" /> $2,000
                       </Button>
                     )}
                   </td>
@@ -580,13 +615,9 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Date Applied</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Amount Due</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Medical Clearance</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">
-                  {showPaidCol ? 'Half Paid' : 'Half Paid'}
-                </th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">$1,000 Paid</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Legal Clearance</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">
-                  {showPaidCol ? 'Date Paid' : 'Fully Paid'}
-                </th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">$3,000 Paid</th>
               </tr>
             </thead>
             <tbody>
@@ -616,7 +647,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                       <span className="text-stone-300">—</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 bg-amber-50 hover:bg-amber-100 hover:text-amber-800" onClick={() => onMarkHalfPaid(row)}>
-                        <DollarSign className="size-3" /> Half
+                        <DollarSign className="size-3" /> $1,000
                       </Button>
                     )}
                   </td>
@@ -632,7 +663,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                       <span className="text-emerald-600 font-medium">{row.fullyPaidDate ? formatDate(row.fullyPaidDate) : '—'}</span>
                     ) : (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800" onClick={() => onMarkFullyPaid(row)}>
-                        <Check className="size-3" /> Fully Paid
+                        <DollarSign className="size-3" /> $3,000
                       </Button>
                     )}
                   </td>
