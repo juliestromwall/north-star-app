@@ -72,21 +72,38 @@ export default function SharedPsychTrackingPage() {
   }, [])
 
   const rows = useMemo(() => {
-    return journeys.map(j => {
-      const gc = surrogates.find(s => s.id === j.gc_case_id)
-      if (!gc) return null
-      const t = tracking[gc.id] || {}
-      return {
-        id: gc.id,
-        name: gc.name,
-        email: gc.email || '',
-        phone: gc.phone || '',
-        week10: t.week10 || null,
-        week20: t.week20 || null,
-        week30: t.week30 || null,
-        postDelivery: t.postDelivery || null,
-      }
-    }).filter(Boolean)
+    const pregnantRows = journeys
+      .filter(j => j.journey_data?.pregnant === 'yes')
+      .map(j => {
+        const gc = surrogates.find(s => s.id === j.gc_case_id)
+        if (!gc) return null
+        const t = tracking[gc.id] || {}
+        return {
+          id: gc.id,
+          name: gc.name,
+          email: gc.email || '',
+          phone: gc.phone || '',
+          week10: t.week10 || null,
+          week20: t.week20 || null,
+          week30: t.week30 || null,
+          postDelivery: t.postDelivery || null,
+        }
+      }).filter(Boolean)
+
+    const manualRows = Object.entries(tracking)
+      .filter(([key, val]) => key.startsWith('manual_') && val._manual)
+      .map(([key, val]) => ({
+        id: key,
+        name: val.name || 'Unknown',
+        email: val.email || '',
+        phone: val.phone || '',
+        week10: val.week10 || null,
+        week20: val.week20 || null,
+        week30: val.week30 || null,
+        postDelivery: val.postDelivery || null,
+      }))
+
+    return [...pregnantRows, ...manualRows]
   }, [surrogates, journeys, tracking])
 
   const filtered = useMemo(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Share2, Copy, Check, ExternalLink } from 'lucide-react'
+import { Search, Share2, Copy, Check, ExternalLink, Plus } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,6 +35,8 @@ export default function PsychTrackingPage() {
   const [shareOpen, setShareOpen] = useState(false)
   const [shareUrl, setShareUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [manualForm, setManualForm] = useState({ name: '', email: '', phone: '' })
 
   useEffect(() => {
     Promise.all([
@@ -54,26 +56,47 @@ export default function PsychTrackingPage() {
     await setAppConfig(TRACKING_KEY, updated).catch(() => {})
   }, [])
 
-  // Build rows: only surrogates that are in a matched journey
+  // Build rows: only surrogates with an active pregnancy tracker
   const rows = useMemo(() => {
-    return journeys.map(j => {
-      const gc = surrogates.find(s => s.id === j.gc_case_id)
-      if (!gc) return null
-      const t = tracking[gc.id] || {}
-      return {
-        id: gc.id,
-        name: gc.name,
-        email: gc.email || '',
-        phone: gc.phone || '',
-        journeyId: j.id,
-        journeyPath: `/journeys/${j.id}`,
-        casePath: `/surrogates/${gc.id}`,
-        week10: t.week10 || null,
-        week20: t.week20 || null,
-        week30: t.week30 || null,
-        postDelivery: t.postDelivery || null,
-      }
-    }).filter(Boolean)
+    const pregnantRows = journeys
+      .filter(j => j.journey_data?.pregnant === 'yes')
+      .map(j => {
+        const gc = surrogates.find(s => s.id === j.gc_case_id)
+        if (!gc) return null
+        const t = tracking[gc.id] || {}
+        return {
+          id: gc.id,
+          name: gc.name,
+          email: gc.email || '',
+          phone: gc.phone || '',
+          journeyId: j.id,
+          journeyPath: `/journeys/${j.id}`,
+          casePath: `/surrogates/${gc.id}`,
+          week10: t.week10 || null,
+          week20: t.week20 || null,
+          week30: t.week30 || null,
+          postDelivery: t.postDelivery || null,
+        }
+      }).filter(Boolean)
+
+    // Add manual entries from tracking data
+    const manualRows = Object.entries(tracking)
+      .filter(([key, val]) => key.startsWith('manual_') && val._manual)
+      .map(([key, val]) => ({
+        id: key,
+        name: val.name || 'Unknown',
+        email: val.email || '',
+        phone: val.phone || '',
+        journeyPath: null,
+        casePath: null,
+        manual: true,
+        week10: val.week10 || null,
+        week20: val.week20 || null,
+        week30: val.week30 || null,
+        postDelivery: val.postDelivery || null,
+      }))
+
+    return [...pregnantRows, ...manualRows]
   }, [surrogates, journeys, tracking])
 
   const filtered = useMemo(() => {
@@ -106,18 +129,38 @@ export default function PsychTrackingPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function saveManualEntry() {
+    if (!manualForm.name.trim()) return
+    const id = `manual_${Date.now()}`
+    const updated = {
+      ...tracking,
+      [id]: {
+        _manual: true,
+        name: manualForm.name.trim(),
+        email: manualForm.email.trim(),
+        phone: manualForm.phone.trim(),
+      },
+    }
+    await saveTracking(updated)
+    setAddOpen(false)
+    setManualForm({ name: '', email: '', phone: '' })
+  }
+
   if (loading) return <div className="p-8 text-center text-stone-400 text-sm">Loading...</div>
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Psych Tracking"
-        subtitle={`${rows.length} surrogates in matched journeys`}
-        actions={
+        subtitle={`${rows.length} pregnant surrogates tracked`}
+        actions={<>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setManualForm({ name: '', email: '', phone: '' }); setAddOpen(true) }}>
+            <Plus className="size-3.5" /> Add Surrogate
+          </Button>
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleShare}>
             <Share2 className="size-3.5" /> Share Link
           </Button>
-        }
+        </>}
       />
 
       <div className="flex gap-3">
@@ -148,6 +191,35 @@ export default function PsychTrackingPage() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Surrogate Dialog */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Surrogate to Psych Tracking</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Name *</label>
+              <Input value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} placeholder="First Last" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Email</label>
+              <Input value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-stone-600">Phone</label>
+              <Input value={manualForm.phone} onChange={e => setManualForm(f => ({ ...f, phone: e.target.value }))} placeholder="xxx-xxx-xxxx" />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" onClick={saveManualEntry} disabled={!manualForm.name.trim()} className="bg-[#ed148c] hover:bg-[#d4127d] text-white gap-1">
+              <Plus className="size-3.5" /> Add
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -231,6 +303,7 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                     ) : (
                       <span className="font-semibold text-xs text-stone-800">{row.name}</span>
                     )}
+                    {row.manual && !isSharedView && <span className="text-[10px] text-violet-400 ml-1">(manual)</span>}
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.email || '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.phone || '—'}</td>
