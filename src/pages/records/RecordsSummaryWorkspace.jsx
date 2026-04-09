@@ -574,20 +574,18 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
 // ── Summary Preview / PDF Export ────────────────────────
 function InfoGridRow({ label, value, span }) {
   return (
-    <div style={{ backgroundColor: 'white', padding: '7px 14px', ...(span ? { gridColumn: `span ${span}` } : {}) }}>
-      <div style={{ fontSize: 9, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 1 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: value ? '#1c1917' : '#d6d3d1' }}>{value || '—'}</div>
+    <div style={{ backgroundColor: 'white', padding: '5px 12px', ...(span ? { gridColumn: `span ${span}` } : {}) }}>
+      <div style={{ fontSize: 8, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 0 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: value ? '#1c1917' : '#d6d3d1' }}>{value || '—'}</div>
     </div>
   )
 }
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 24, marginBottom: 8 }}>
-      <div style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: '#28369312', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <FileText size={12} color="#283693" />
-      </div>
-      <h2 style={{ fontSize: 11, fontWeight: 600, color: '#283693', margin: 0, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{children}</h2>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, marginBottom: 5 }}>
+      <div style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: '#283693' }} />
+      <h2 style={{ fontSize: 10, fontWeight: 700, color: '#283693', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>{children}</h2>
     </div>
   )
 }
@@ -608,11 +606,11 @@ function PregnancyBanner({ label, outcome, skipDetails, preg }) {
   if (preg?.typeOfDelivery) infoItems.push(preg.typeOfDelivery)
 
   return (
-    <div style={{ marginTop: 24, marginBottom: 10, padding: '10px 16px', borderRadius: 12, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : 'linear-gradient(135deg, #283693, #1e2a6e)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 16, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.5px', marginRight: 4 }}>{label}</span>
+    <div style={{ marginTop: 16, marginBottom: 8, padding: '8px 14px', borderRadius: 8, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : '#283693' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.3px', marginRight: 2 }}>{label}</span>
         {infoItems.map((item, i) => (
-          <span key={i} style={{ fontSize: 11, fontWeight: 600, color: skipDetails ? '#92400e' : 'rgba(255,255,255,0.9)', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.15)', padding: '2px 10px', borderRadius: 6 }}>
+          <span key={i} style={{ fontSize: 10, fontWeight: 600, color: skipDetails ? '#92400e' : 'rgba(255,255,255,0.9)', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.15)', padding: '1px 8px', borderRadius: 4, lineHeight: '16px' }}>
             {item}
           </span>
         ))}
@@ -641,28 +639,27 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
         </div>
 
         {/* Printable content — match sheet style */}
-        <div id="summary-preview-content" style={{ padding: '40px 48px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1c1917', fontSize: 13, lineHeight: 1.5 }}>
+        <div id="summary-preview-content" style={{ padding: '32px 40px', fontFamily: 'system-ui, -apple-system, sans-serif', color: '#1c1917', fontSize: 12, lineHeight: 1.4 }}>
 
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style={{ height: 48, marginBottom: 12 }} crossOrigin="anonymous" />
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
+          <div style={{ textAlign: 'center', marginBottom: 16 }}>
+            <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style={{ height: 44, marginBottom: 8, display: 'inline-block' }} crossOrigin="anonymous" />
+            <h1 style={{ fontSize: 16, fontWeight: 800, color: '#283693', margin: 0, letterSpacing: '0.3px' }}>Gestational Carrier Medical Records Summary</h1>
           </div>
-          <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 24 }} />
+          <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 16 }} />
 
           {/* Patient Info Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 8 }}>
-            <InfoGridRow label="Name" value={data.name} />
-            <InfoGridRow label="Date of Birth" value={data.dob} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 6 }}>
+            <InfoGridRow label="Name" value={data.name} span={2} />
+            <InfoGridRow label="DOB" value={data.dob} />
             <InfoGridRow label="Marital Status" value={data.maritalStatus} />
-            <InfoGridRow label="Height" value={data.height} />
-            <InfoGridRow label="Weight" value={data.weight} />
-            <InfoGridRow label="BMI" value={data.bmi} />
+            <InfoGridRow label="HT" value={data.height} />
+            <InfoGridRow label="WT / BMI" value={[data.weight, data.bmi].filter(Boolean).join(' · ')} />
           </div>
 
           {/* General Medical History */}
           <SectionLabel>General Medical History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
             <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} />
             <InfoGridRow label="Allergies" value={data.allergies} span={2} />
             <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} />
@@ -671,7 +668,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* Social History */}
           <SectionLabel>Social History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
             <InfoGridRow label="Occupation" value={data.occupation} />
             <InfoGridRow label="Lives with" value={data.livesWith} />
             <InfoGridRow label="Alcohol" value={data.alcohol} />
@@ -681,14 +678,14 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* COVID */}
           <SectionLabel>COVID-19 Screening</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
             <InfoGridRow label="Ever tested positive" value={data.covidPositive} />
             <InfoGridRow label="COVID-19 Vaccine" value={data.covidVaccine} />
           </div>
 
           {/* GYN History */}
           <SectionLabel>Gynecologic History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
             <InfoGridRow label="LMP" value={data.lmp} />
             <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} />
             <InfoGridRow label="Menarche" value={data.menarche} />
@@ -701,7 +698,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* Obstetrical History */}
           <SectionLabel>Obstetrical History</SectionLabel>
           {data.obstetricSummary && (
-            <div style={{ padding: '8px 14px', backgroundColor: '#f8f9fc', borderRadius: 8, border: '1px solid #e2e4ef', marginBottom: 12, fontSize: 13, fontWeight: 600, color: '#283693' }}>
+            <div style={{ padding: '6px 12px', backgroundColor: '#f8f9fc', borderRadius: 6, border: '1px solid #e2e4ef', marginBottom: 8, fontSize: 12, fontWeight: 600, color: '#283693' }}>
               {data.obstetricSummary}
             </div>
           )}
@@ -710,11 +707,11 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
             <div key={i}>
               <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} preg={preg} />
               {preg.skipDetails ? (
-                <div style={{ padding: '8px 14px', backgroundColor: '#fffbeb', borderRadius: 8, border: '1px solid #fef3c7', fontSize: 12, color: '#92400e', fontStyle: 'italic' }}>
+                <div style={{ padding: '6px 12px', backgroundColor: '#fffbeb', borderRadius: 6, border: '1px solid #fef3c7', fontSize: 11, color: '#92400e', fontStyle: 'italic' }}>
                   No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
                   <InfoGridRow label="GBS" value={preg.gbs} />
                   <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
                   <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
@@ -740,23 +737,23 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* Labs */}
           <SectionLabel>Most Recent Labs</SectionLabel>
-          <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+          <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f5f5f4' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Test</th>
-                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Result</th>
-                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Date</th>
-                  <th style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Page #</th>
+                  <th style={{ textAlign: 'left', padding: '5px 10px', fontSize: 8, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Test</th>
+                  <th style={{ textAlign: 'left', padding: '5px 10px', fontSize: 8, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Result</th>
+                  <th style={{ textAlign: 'left', padding: '5px 10px', fontSize: 8, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Date</th>
+                  <th style={{ textAlign: 'left', padding: '5px 10px', fontSize: 8, fontWeight: 600, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Page #</th>
                 </tr>
               </thead>
               <tbody>
                 {labs.map((lab, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
-                    <td style={{ padding: '6px 14px', fontWeight: 500 }}>{lab.name}</td>
-                    <td style={{ padding: '6px 14px' }}>{lab.result || <span style={{ color: '#d6d3d1' }}>—</span>}</td>
-                    <td style={{ padding: '6px 14px', color: '#78716c' }}>{lab.date || ''}</td>
-                    <td style={{ padding: '6px 14px', color: '#78716c' }}>{lab.pageNumber || ''}</td>
+                    <td style={{ padding: '4px 10px', fontWeight: 500 }}>{lab.name}</td>
+                    <td style={{ padding: '4px 10px' }}>{lab.result || <span style={{ color: '#d6d3d1' }}>—</span>}</td>
+                    <td style={{ padding: '4px 10px', color: '#78716c' }}>{lab.date || ''}</td>
+                    <td style={{ padding: '4px 10px', color: '#78716c' }}>{lab.pageNumber || ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -765,16 +762,16 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* OB Clearance */}
           <SectionLabel>OB Clearance</SectionLabel>
-          <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+          <div style={{ padding: '8px 12px', backgroundColor: '#f0fdf4', borderRadius: 6, border: '1px solid #bbf7d0', fontSize: 12, whiteSpace: 'pre-wrap' }}>
             {data.obClearance || '—'}
           </div>
 
           {/* Reviewer */}
-          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1.5px solid #283693', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontSize: 11, color: '#78716c' }}>
+          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1.5px solid #283693', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 10, color: '#78716c' }}>
               <span style={{ fontWeight: 600 }}>Medical records reviewed by:</span> {data.reviewedBy || '—'}
             </div>
-            <img src="/abc-logo.png" alt="" style={{ height: 28, opacity: 0.4 }} crossOrigin="anonymous" />
+            <img src="/abc-logo-horz.png" alt="" style={{ height: 20, opacity: 0.3 }} crossOrigin="anonymous" />
           </div>
         </div>
       </div>
