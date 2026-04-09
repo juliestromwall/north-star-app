@@ -72,7 +72,7 @@ export function MilestoneProgress({ caseId, stageId, recordTracking }) {
   )
 }
 
-const IP_STAGES = SURROGATE_STAGES.map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
+const IP_STAGES = SURROGATE_STAGES.filter(s => !s.hidden).map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',

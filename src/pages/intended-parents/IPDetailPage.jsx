@@ -307,7 +307,7 @@ export default function IPDetailPage() {
             {/* Stage — clickable selector */}
             {(() => {
               const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
-              const caseStages = SURROGATE_STAGES.filter(s => ['pre-qualification', 'screening', 'matching'].includes(s.id))
+              const caseStages = SURROGATE_STAGES.filter(s => !s.hidden)
               return (
                 <div className="relative">
                   <div
