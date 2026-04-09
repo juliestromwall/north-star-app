@@ -376,7 +376,8 @@ export default function SurrogateListPage() {
         s.location.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase())
       const surrogateStage = allStageStatuses[s.id]?.stage || 'pre-qualification'
-      const matchesStatus = statusFilter === 'all' || surrogateStage === statusFilter
+      const inactiveStages = ['holding', 'not-qualified', 'withdrawn']
+      const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? !inactiveStages.includes(surrogateStage) : surrogateStage === statusFilter
       return matchesSearch && matchesStatus
     })
   }, [surrogates, search, statusFilter, ownerFilter, currentUser.email])
@@ -447,12 +448,12 @@ export default function SurrogateListPage() {
       {/* Hero stats — click to filter */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => { setStatusFilter('all'); setOwnerFilter('all') }}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'all' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => { setStatusFilter('active'); setOwnerFilter('all') }}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.length}</p>
-          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !['holding', 'not-qualified', 'withdrawn'].includes(st) }).length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {SURROGATE_STAGES.filter(s => !s.hidden).map(stage => (
           <button
