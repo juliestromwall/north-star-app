@@ -926,13 +926,17 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
         {timelineSteps.map((step, i) => {
           const done = step.done
           const isLast = i === timelineSteps.length - 1
+          // Pregnant step color based on baby sex
+          const babySex = jd.babySexes?.[0]
+          const pregnantBg = babySex === 'girl' ? 'bg-pink-500 border-pink-500' : babySex === 'boy' ? 'bg-blue-500 border-blue-500' : 'bg-green-500 border-green-500'
+          const pregnantText = babySex === 'girl' ? 'text-pink-600' : babySex === 'boy' ? 'text-blue-600' : 'text-green-600'
           return (
             <div key={step.key} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
-                <div className={`size-7 rounded-full border-[3px] flex items-center justify-center transition-all ${done ? step.key === 'delivered' ? 'bg-amber-500 border-amber-500 scale-110' : step.key === 'pregnant' ? 'bg-pink-500 border-pink-500 scale-110' : 'bg-green-500 border-green-500' : 'bg-white border-stone-200'}`}>
+                <div className={`size-7 rounded-full border-[3px] flex items-center justify-center transition-all ${done ? step.key === 'delivered' ? 'bg-amber-500 border-amber-500 scale-110' : step.key === 'pregnant' ? `${pregnantBg} scale-110` : 'bg-green-500 border-green-500' : 'bg-white border-stone-200'}`}>
                   {done && (step.key === 'delivered' ? '🎉' : <Check className="size-3.5 text-white" />)}
                 </div>
-                <p className={`text-[10px] mt-1 text-center font-medium ${done ? step.key === 'delivered' ? 'text-amber-600' : step.key === 'pregnant' ? 'text-pink-600' : 'text-green-600' : 'text-stone-400'}`}>{step.label}</p>
+                <p className={`text-[10px] mt-1 text-center font-medium ${done ? step.key === 'delivered' ? 'text-amber-600' : step.key === 'pregnant' ? pregnantText : 'text-green-600' : 'text-stone-400'}`}>{step.label}</p>
               </div>
               {!isLast && <div className={`flex-1 h-[3px] mx-1 mt-[-16px] rounded-full ${done && timelineSteps[i + 1]?.done ? 'bg-green-400' : done ? 'bg-green-200' : 'bg-stone-100'}`} />}
             </div>
