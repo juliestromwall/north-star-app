@@ -15,6 +15,54 @@ import { formatDate } from '@/lib/utils'
 
 const CONFIG_KEY = 'referral_bonus_tracker'
 
+// ── Inline editable date cell ──
+function EditableDateCell({ value, canEdit, onSave, placeholder = 'Pending' }) {
+  const [editing, setEditing] = useState(false)
+
+  if (value && !editing) {
+    return (
+      <span
+        className={`text-emerald-600 font-medium ${canEdit ? 'cursor-pointer hover:underline' : ''}`}
+        onClick={() => canEdit && setEditing(true)}
+        title={canEdit ? 'Click to edit' : undefined}
+      >
+        {formatDate(value)}
+      </span>
+    )
+  }
+
+  if (canEdit && !value) {
+    return editing ? (
+      <input
+        type="date"
+        autoFocus
+        className="text-xs border border-stone-300 rounded px-1.5 py-1 w-[130px]"
+        onBlur={(e) => { if (e.target.value) onSave(e.target.value); setEditing(false) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value) { onSave(e.target.value); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
+      />
+    ) : (
+      <button onClick={() => setEditing(true)} className="text-stone-400 hover:text-violet-500 text-xs transition-colors">
+        + Add date
+      </button>
+    )
+  }
+
+  if (canEdit && editing) {
+    return (
+      <input
+        type="date"
+        autoFocus
+        defaultValue={value}
+        className="text-xs border border-stone-300 rounded px-1.5 py-1 w-[130px]"
+        onBlur={(e) => { if (e.target.value) onSave(e.target.value); setEditing(false) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value) { onSave(e.target.value); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
+      />
+    )
+  }
+
+  return <span className="text-stone-300">{placeholder}</span>
+}
+
 // ── Helpers ──
 
 function getChecklistDate(journeyData, stepLabel) {
@@ -168,6 +216,12 @@ export default function ReferralBonusTrackerPage() {
     })
   }
 
+  // ── Save date on a manual row ──
+  async function saveDate(key, field, value) {
+    const updated = { ...trackerData, [key]: { ...trackerData[key], [field]: value } }
+    await saveTracker(updated)
+  }
+
   // ── Manual add ──
   const [addReferralOpen, setAddReferralOpen] = useState(false)
   const [addBonusOpen, setAddBonusOpen] = useState(false)
@@ -222,7 +276,7 @@ export default function ReferralBonusTrackerPage() {
         dateApplied: val.dateApplied,
         referredBy: val.referredBy || '—',
         amountDue: val.amountDue || 1000,
-        legalClearanceDate: null,
+        legalClearanceDate: val.legalClearanceDate || null,
         paid: !!val.paidDate,
         paidDate: val.paidDate || null,
         journeyPath: null,
@@ -240,9 +294,9 @@ export default function ReferralBonusTrackerPage() {
         email: val.email || '',
         dateApplied: val.dateApplied,
         amountDue: val.amountDue || 1000,
-        medicalClearanceDate: null,
+        medicalClearanceDate: val.medicalClearanceDate || null,
         halfPaidDate: val.halfPaidDate || null,
-        legalClearanceDate: null,
+        legalClearanceDate: val.legalClearanceDate || null,
         fullyPaid: !!val.fullyPaidDate,
         fullyPaidDate: val.fullyPaidDate || null,
         journeyPath: null,
@@ -310,7 +364,7 @@ export default function ReferralBonusTrackerPage() {
               <Plus className="size-3.5" /> Add Referral
             </Button>
           </div>
-          <ReferralTable rows={filterRows(allUnpaidReferrals)} onMarkPaid={markReferralPaid} showPaidCol={false} />
+          <ReferralTable rows={filterRows(allUnpaidReferrals)} onMarkPaid={markReferralPaid} onDateChange={saveDate} showPaidCol={false} />
         </TabsContent>
 
         <TabsContent value="bonuses" className="mt-4">
@@ -319,15 +373,15 @@ export default function ReferralBonusTrackerPage() {
               <Plus className="size-3.5" /> Add Sign-On Bonus
             </Button>
           </div>
-          <BonusTable rows={filterRows(allUnpaidBonuses)} onMarkHalfPaid={markHalfPaid} onMarkFullyPaid={markFullyPaid} showPaidCol={false} />
+          <BonusTable rows={filterRows(allUnpaidBonuses)} onMarkHalfPaid={markHalfPaid} onMarkFullyPaid={markFullyPaid} onDateChange={saveDate} showPaidCol={false} />
         </TabsContent>
 
         <TabsContent value="paid-referrals" className="mt-4">
-          <ReferralTable rows={filterRows(allPaidReferrals)} showPaidCol={true} />
+          <ReferralTable rows={filterRows(allPaidReferrals)} onDateChange={saveDate} showPaidCol={true} />
         </TabsContent>
 
         <TabsContent value="paid-bonuses" className="mt-4">
-          <BonusTable rows={filterRows(allPaidBonuses)} showPaidCol={true} />
+          <BonusTable rows={filterRows(allPaidBonuses)} onDateChange={saveDate} showPaidCol={true} />
         </TabsContent>
       </Tabs>
 
@@ -425,7 +479,7 @@ export default function ReferralBonusTrackerPage() {
 }
 
 // ── Referral Table ──
-function ReferralTable({ rows, onMarkPaid, showPaidCol }) {
+function ReferralTable({ rows, onMarkPaid, onDateChange, showPaidCol }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -473,11 +527,11 @@ function ReferralTable({ rows, onMarkPaid, showPaidCol }) {
                   <td className="px-4 py-3 border-r border-stone-100 font-medium text-stone-700">{row.referredBy}</td>
                   <td className="px-4 py-3 border-r border-stone-100 font-semibold text-stone-800">${row.amountDue.toLocaleString()}</td>
                   <td className="px-4 py-3 border-r border-stone-100">
-                    {row.legalClearanceDate ? (
-                      <span className="text-emerald-600 font-medium">{formatDate(row.legalClearanceDate)}</span>
-                    ) : (
-                      <span className="text-stone-300">Pending</span>
-                    )}
+                    <EditableDateCell
+                      value={row.legalClearanceDate}
+                      canEdit={!!row.manual}
+                      onSave={(date) => onDateChange?.(row.key, 'legalClearanceDate', date)}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     {showPaidCol ? (
@@ -499,7 +553,7 @@ function ReferralTable({ rows, onMarkPaid, showPaidCol }) {
 }
 
 // ── Bonus Table ──
-function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
+function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showPaidCol }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -549,11 +603,11 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.dateApplied ? formatDate(row.dateApplied) : '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100 font-semibold text-stone-800">${row.amountDue.toLocaleString()}</td>
                   <td className="px-4 py-3 border-r border-stone-100">
-                    {row.medicalClearanceDate ? (
-                      <span className="text-emerald-600 font-medium">{formatDate(row.medicalClearanceDate)}</span>
-                    ) : (
-                      <span className="text-stone-300">Pending</span>
-                    )}
+                    <EditableDateCell
+                      value={row.medicalClearanceDate}
+                      canEdit={!!row.manual}
+                      onSave={(date) => onDateChange?.(row.key, 'medicalClearanceDate', date)}
+                    />
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100">
                     {row.halfPaidDate ? (
@@ -567,11 +621,11 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, showPaidCol }) {
                     )}
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100">
-                    {row.legalClearanceDate ? (
-                      <span className="text-emerald-600 font-medium">{formatDate(row.legalClearanceDate)}</span>
-                    ) : (
-                      <span className="text-stone-300">Pending</span>
-                    )}
+                    <EditableDateCell
+                      value={row.legalClearanceDate}
+                      canEdit={!!row.manual}
+                      onSave={(date) => onDateChange?.(row.key, 'legalClearanceDate', date)}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     {showPaidCol ? (
