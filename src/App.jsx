@@ -42,6 +42,8 @@ import CaseImportPage from './pages/admin/CaseImportPage'
 import ExpensesPage from './pages/expenses/ExpensesPage'
 import CaseUpdatesPage from './pages/case-updates/CaseUpdatesPage'
 import ReferralBonusTrackerPage from './pages/referrals/ReferralBonusTrackerPage'
+import PsychTrackingPage from './pages/psych/PsychTrackingPage'
+import SharedPsychTrackingPage from './pages/psych/SharedPsychTrackingPage'
 import PortalDocumentsPage from './pages/portal/PortalDocumentsPage'
 import PortalApplicationPage from './pages/portal/PortalApplicationPage'
 
@@ -74,6 +76,7 @@ export default function App() {
       <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
       <Route path="/share/:token" element={<SharedProfilePage />} />
+      <Route path="/psych-tracking/share/:token" element={<SharedPsychTrackingPage />} />
       <Route path="/e-signature/:id" element={<SignDocumentPage />} />
       <Route path="/e-signature/sign/:token" element={<SignDocumentPage />} />
       <Route path="/e-signature/release/:batchToken" element={<SignReleaseBatchPage />} />
@@ -111,6 +114,7 @@ export default function App() {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/case-updates" element={<CaseUpdatesPage />} />
         <Route path="/referral-bonus-tracker" element={<ReferralBonusTrackerPage />} />
+        <Route path="/psych-tracking" element={<PsychTrackingPage />} />
         <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
           <Route

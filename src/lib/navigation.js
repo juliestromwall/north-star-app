@@ -19,6 +19,7 @@ import {
   Upload,
   FileText,
   Gift,
+  Brain,
 } from 'lucide-react'
 import { ROLES, ADMIN_ROLES } from './constants'
 
@@ -105,9 +106,15 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Insurance',
+        label: 'Insurance Tracking',
         icon: ShieldCheck,
         path: '/insurance',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Psych Tracking',
+        icon: Brain,
+        path: '/psych-tracking',
         roles: ADMIN_ROLES,
       },
       {

@@ -74,6 +74,8 @@
 | CaseCalendarWidget | src/components/shared/CaseCalendarWidget.jsx | Per-case Google Calendar appointments: add/delete, tagged with extendedProperties for filtering, syncs to full Google Calendar |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
+| PsychTrackingPage | src/pages/psych/PsychTrackingPage.jsx | Psych check-in tracking for matched surrogates: 10/20/30 week + post-delivery columns, editable dates, shareable external link with token auth, external users can update dates |
+| SharedPsychTrackingPage | src/pages/psych/SharedPsychTrackingPage.jsx | Public shared view of psych tracking — no login required, validates share token, full read/write access to check-in dates |
 | ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral & sign-on bonus tracking: 4 tabs (Referrals, Sign-On Bonuses, Paid Referrals, Paid Bonuses). Auto-detects referrals from quiz "Friend or family" source, pulls Legal/Medical Clearance dates from journey checklists, mark half/fully paid with confirmation dialogs, expense-tracker table styling |
 
 ## Bot Protection
