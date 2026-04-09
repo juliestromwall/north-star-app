@@ -145,6 +145,7 @@ export default function SurrogateIntakeForm() {
         applicant_name: `${form.firstName} ${form.lastName}`.trim(),
         applicant_email: form.email.trim(),
         applicant_phone: form.phone.trim(),
+        assigned_to: qualified ? 'intake@abcsurrogacy.com' : null,
         country: 'United States',
         state_region: form.state || null,
         city: null,
