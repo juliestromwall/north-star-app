@@ -17,6 +17,7 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
+import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -507,6 +508,7 @@ export default function SurrogateDetailPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{surrogate.name}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
+                <AISummaryButton caseId={surrogate.id} caseName={surrogate.name} caseType="surrogate" stage={stageStatus.stage} status={stageStatus.status} checklistSteps={checklistSteps} tracking={recordTracking} />
                 {surrogate.referralPartner === 'be_surrogacy' && (
                   <img src="/be-logo.png" alt="Be Surrogacy" className="h-7 w-auto" title="Be Surrogacy Referral" />
                 )}

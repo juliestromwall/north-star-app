@@ -14,6 +14,7 @@ import InfoRow from '@/components/shared/InfoRow'
 import EmptyState from '@/components/shared/EmptyState'
 import { DocumentsTab } from '@/pages/surrogates/SurrogateDetailPage'
 import StageBadge from '@/components/shared/StageBadge'
+import AISummaryButton from '@/components/shared/AISummaryButton'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import { useRole } from '@/context/RoleContext'
@@ -141,6 +142,7 @@ export default function IPDetailPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
+                <AISummaryButton caseId={ip.id} caseName={ip.names || ip.name} caseType="ip" stage={stageStatus.stage} status={stageStatus.status} />
                 <Badge variant="outline" className="text-xs bg-sky-100 text-sky-800 border-sky-200">
                   {ip.type}
                 </Badge>
