@@ -637,11 +637,11 @@ export default function SurrogateDetailPage() {
                       if (!surrogate.email) return
                       setInviting(true); setInviteResult(null)
                       try {
-                        // Resend welcome email with new reset link
-                        const res = await fetch('/api/welcome-email', {
+                        // Resend portal invite email
+                        const res = await fetch('/api/reinvite', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email: surrogate.email, firstName: surrogate.name?.split(' ')[0] || '', lastName: surrogate.name?.split(' ').slice(1).join(' ') || '' }),
+                          body: JSON.stringify({ email: surrogate.email, firstName: surrogate.name?.split(' ')[0] || '' }),
                         })
                         const result = await res.json()
                         if (result.success) {
