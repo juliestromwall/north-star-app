@@ -30,26 +30,24 @@ export async function onRequestPost(context) {
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
-          Thank you, <span style="color: #ed148c;">${firstName}</span>! 🎉
+          Hello, <span style="color: #ed148c;">${firstName}</span>! 👋
         </h1>
         <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
           We're so excited to hear from you
         </p>
 
+        <div style="text-align: center; margin: 0 0 24px;">
+          <p style="font-size: 14px; color: #44403c; line-height: 1.6;">
+            We understand how important this journey is to you, and we're honored to be part of it.
+          </p>
+        </div>
+
         <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 24px; margin: 0 0 24px;">
           <p style="margin: 0 0 12px; font-size: 15px; color: #283693; font-weight: 600;">
             What happens next?
           </p>
-          <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 1.8;">
-            <li>Our team is reviewing your information</li>
-            <li>A coordinator will reach out to you within <strong>48 hours</strong></li>
-            <li>We'll guide you through every step of the process</li>
-          </ol>
-        </div>
-
-        <div style="text-align: center; margin: 24px 0;">
-          <p style="font-size: 14px; color: #44403c; line-height: 1.6;">
-            We understand how important this journey is to you, and we're honored to be part of it. Our team will be in touch shortly to discuss next steps and answer any questions you may have.
+          <p style="margin: 0; color: #44403c; font-size: 14px; line-height: 1.8;">
+            Our team is reviewing your information and we will reach out to you within <strong>48 hours</strong>.
           </p>
         </div>
 
@@ -68,7 +66,7 @@ export async function onRequestPost(context) {
     </div>
   `
 
-  // Send to primary
+  // Send to primary IP only
   if (resendKey) {
     try {
       await fetch('https://api.resend.com/emails', {
@@ -77,31 +75,12 @@ export async function onRequestPost(context) {
         body: JSON.stringify({
           from: `Abundant Beginnings Co. <${fromEmail}>`,
           to: [email],
-          subject: `We received your application, ${firstName}!`,
+          subject: 'Abundant Beginnings Co. has received your information',
           html: htmlBody,
         }),
       })
     } catch (err) {
       console.error('IP welcome email failed:', err)
-    }
-
-    // Also send to partner if provided
-    if (partnerEmail && partnerFirstName) {
-      const partnerHtml = htmlBody.replace(firstName, partnerFirstName)
-      try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: `Abundant Beginnings Co. <${fromEmail}>`,
-            to: [partnerEmail],
-            subject: `We received your application, ${partnerFirstName}!`,
-            html: partnerHtml,
-          }),
-        })
-      } catch (err) {
-        console.error('IP partner welcome email failed:', err)
-      }
     }
   }
 
