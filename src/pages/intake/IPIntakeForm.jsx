@@ -210,6 +210,33 @@ export default function IPIntakeForm() {
     } catch {
       // Keep applicant flow moving even if persistence fails
     }
+    // Send welcome email to IP(s)
+    fetch('/api/ip-welcome-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email.trim(),
+        firstName: form.primaryFirstName.trim(),
+        partnerEmail: form.ip2Email?.trim() || null,
+        partnerFirstName: form.ip2FirstName?.trim() || null,
+      }),
+    }).catch(() => {})
+
+    // Notify admin of new IP application
+    fetch('/api/notify-new-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        applicantName: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
+        applicantEmail: form.email.trim(),
+        applicantPhone: `${form.phoneCountry} ${form.phone}`.trim(),
+        state: form.stateProv || form.country || '',
+        qualified,
+        dqReasons,
+        type: 'ip',
+      }),
+    }).catch(() => {})
+
     navigate('/apply/confirmation', {
       state: { qualified, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
     })
