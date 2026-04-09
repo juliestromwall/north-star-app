@@ -13,6 +13,8 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   const [editNote, setEditNote] = useState('')
   const [editingLabel, setEditingLabel] = useState(null)
   const [labelValue, setLabelValue] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [logDate, setLogDate] = useState('')
 
   const activeSteps = steps.filter(s => tracking[s.id]?.status !== 'na')
   const completeCount = activeSteps.filter(s => tracking[s.id]?.status === 'complete').length
@@ -22,7 +24,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     if (!logStatus) return
     const current = tracking[stepId] || { history: [] }
     const history = current.history || []
-    const entry = { status: logStatus, date: new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
+    const entry = { status: logStatus, date: logDate || new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
     onUpdate(stepId, { status: logStatus, history: [...history, entry] })
     const step = steps.find(s => s.id === stepId)
     console.log('[TrackingTable] submitLog:', { stepId, status: logStatus, hasOnStatusLog: !!onStatusLog })
@@ -43,7 +45,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   function saveEditLog(stepId, index) {
     const current = tracking[stepId] || { history: [] }
     const history = [...(current.history || [])]
-    history[index] = { ...history[index], status: editStatus, note: editNote.trim() || null }
+    history[index] = { ...history[index], status: editStatus, note: editNote.trim() || null, date: editDate || history[index].date }
     const newStatus = history[history.length - 1].status
     onUpdate(stepId, { status: newStatus, history })
     setEditingLog(null)
@@ -54,6 +56,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     setExpandedStep(stepId)
     setLogStatus('')
     setLogNote('')
+    setLogDate('')
     setEditingLog(null)
   }
 
@@ -184,7 +187,9 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                               {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
                             </select>
                           </td>
-                          <td className="px-3 py-2 text-stone-400">{formatDate(entry.date)}</td>
+                          <td className="px-3 py-2">
+                            <input type="date" className="rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white w-[130px]" value={editDate} onChange={e => setEditDate(e.target.value)} />
+                          </td>
                           <td className="px-3 py-2"><input className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} /></td>
                           <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
                           <td className="px-3 py-2 text-right">
@@ -203,7 +208,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
                         <td className="px-3 py-2 text-right">
                           <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || '') }} className="text-[10px] text-stone-400 hover:text-[#283693] mr-2">Edit</button>
+                            <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="text-[10px] text-stone-400 hover:text-[#283693] mr-2">Edit</button>
                             <button onClick={() => deleteLog(step.id, i)} className="text-[10px] text-stone-400 hover:text-red-500">Delete</button>
                           </span>
                         </td>
@@ -246,7 +251,9 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                           </select>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-stone-400 text-xs">Today</td>
+                      <td className="px-3 py-3">
+                        <input type="date" className="rounded-lg border border-stone-200 px-2 py-1 text-xs bg-white w-[120px]" value={logDate} onChange={e => setLogDate(e.target.value)} placeholder="Today" />
+                      </td>
                       <td className="px-3 py-3">
                         <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
                       </td>
