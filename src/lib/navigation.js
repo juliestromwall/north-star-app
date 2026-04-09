@@ -194,12 +194,12 @@ const nav = [
         path: '/my-documents',
         roles: [ROLES.SURROGATE, ROLES.INTENDED_PARENT],
       },
-      {
-        label: 'Appointments',
-        icon: Calendar,
-        path: '/appointments',
-        roles: [ROLES.SURROGATE, ROLES.SURROGATE_PARTNER, ROLES.INTENDED_PARENT],
-      },
+      // {
+      //   label: 'Appointments',
+      //   icon: Calendar,
+      //   path: '/appointments',
+      //   roles: [ROLES.SURROGATE, ROLES.SURROGATE_PARTNER, ROLES.INTENDED_PARENT],
+      // },
     ],
   },
 ]
