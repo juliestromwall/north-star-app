@@ -1,5 +1,85 @@
 # Session Log
 
+## 2026-04-07 through 2026-04-09 (Surrogate Portal, Medical Records Releases, Faxing, Auto-Emails, Application Workflow)
+
+**Worked on:** Surrogate portal application forms, HIPAA medical records release system, fax integration with branded cover pages, Resend transactional emails, application review workflow, referral/bonus tracker updates, checklist improvements
+
+**Changes made:**
+
+Surrogate Portal Application System:
+- Release Application flow: admin button → surrogate sees forms on dashboard
+- 5 form sections: Personal Info, Confidential, References, Clinic/Hospital, Social Media Release
+- All fields required with phone formatting (xxx-xxx-xxxx), email validation
+- Insurance fields conditional on "Do you have health insurance?"
+- Spouse/partner fields conditional on "Do you have a spouse/partner?"
+- Pre-fills from quiz data (name, DOB, marital status)
+- Accordion behavior: save collapses section, opens next
+- Submit Application modal auto-pops when all complete
+- Read-only after submission, admin sees status on case hero
+- Driver's License upload for GC + Partner (stored with doc_label)
+
+Clinic & Hospital Form (rebuilt):
+- Pre-fills pregnancy count from profile
+- Per-pregnancy: outcome, prenatal care, delivery hospital, MFM, IVF
+- Non-delivery outcomes ask about prenatal care, skip if none
+- "Did you use IVF or other third-party reproductive assistance?"
+- Experienced surrogate pre-fills from profile
+
+HIPAA Medical Records Release Forms:
+- Generated per unique provider from clinic/hospital data
+- HIPAA compliant (45 CFR 164.508, 42 CFR Part 2, Cal. Civil Code 56.11)
+- Fax-friendly: black/white, no colored backgrounds
+- Batch signing page: one email, one link, verify once, sign all
+- PDF generation via html2canvas + jsPDF (page 1: form, page 2: audit trail)
+- Signed PDFs auto-filed to case_documents
+- Admin can select which providers to generate
+- Email logged to case_emails with provider list
+
+Fax Integration (from case Documents tab):
+- Custom branded cover page (ABC logo, sender's Gmail signature)
+- Pre-filled subject/body for medical records requests
+- Driver's license attachment option (auto-finds GC-labeled photo ID)
+- SRFax API with multi-file support
+- Fax sends logged to case_emails with tag 'fax'
+
+Resend Transactional Emails:
+- Welcome email: "We received your surrogate quiz!" with Set Password button
+- Reinvite email: "Welcome to your secure portal" (for existing users)
+- Reset password email: branded with gradient button
+- New application notification: sends to configurable admin list (GC_APPLICATION_NOTIFY_EMAIL)
+- All from noreply@abcsurrogacy.com via Resend
+
+Application Review Workflow:
+- "Mark as Reviewed" button on intake applications page
+- Logs reviewer name + timestamp
+- Surrogate dashboard: green "We've reviewed your quiz results!" banner
+- Quiz Results card hidden after review
+- Simplified status buttons: Qualified / Rejected only
+- Quiz detail view updated to show actual quiz fields
+
+Other:
+- Portal Documents page (surrogate can view signed docs + upload)
+- Admin notes connected to Supabase (was in-memory only)
+- ZenQuotes proxied through Cloudflare Function (CORS fix)
+- AI Summary button added to all case/journey hero sections
+- Auto-assign qualified surrogates to intake@abcsurrogacy.com
+- Referral & Bonus tracker: $4,000 defaults, split payments at medical/legal clearance
+- "Date Completed" checklist step type with one-click Complete button
+- Appointments hidden from portal (temporarily)
+
+**Next steps:**
+- Build Records Summary feature (split-screen doc viewer + summary form)
+- Create "Records Admin" user role with limited access
+- PDF merge/page removal tools for medical records
+- Pre-fill summary template from pregnancy profile data
+- Labs table with configurable rows
+- Export completed summary as PDF
+
+**Open questions:**
+- None — all Records Summary requirements clarified
+
+---
+
 ## 2026-04-06 (Continued #2 — E-Sign Fixes, Match Sheet Emails, Baby Details, Partner Prefill)
 
 **Worked on:** E-signature signed PDF fixes, match sheet email templates, baby sex/name tracking, partner auto-fill, document overflow, compose paragraph spacing

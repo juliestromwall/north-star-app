@@ -28,7 +28,13 @@
 | MatchedJourneysPage | src/pages/journeys/MatchedJourneysPage.jsx | Dashboard for matched surrogacy journeys with tile/list views, stage filters, search |
 | ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Live stats (Surrogates, Intended Parents, Matches in Progress, Matched Journeys), clickable Surrogates tile → Screening Overview with card-style stage filters (Pre-Qualification/Screening/Matching), spreadsheet table, match pipeline, quick actions |
-| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card with CTA, Quiz Results dialog, tasks, contact |
+| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card, application CTA (3 states: not reviewed/reviewed/app released), tasks |
+| PortalApplicationPage | src/pages/portal/PortalApplicationPage.jsx | 5-section application form (Personal Info, Confidential, References, Clinic/Hospital, Social Media Release) with validation, accordion, submit flow, read-only after submission |
+| PortalDocumentsPage | src/pages/portal/PortalDocumentsPage.jsx | Surrogate portal documents: signed e-sign docs + user uploads |
+| SignReleaseBatchPage | src/pages/esign/SignReleaseBatchPage.jsx | Batch signing page for medical records releases — one link, verify once, sign all, PDF generation per form |
+| ReleaseFormGenerator | src/lib/releaseFormGenerator.js | HIPAA-compliant HTML release form generator per provider (OB, Hospital, MFM, IVF) |
+| AISummaryButton | src/components/shared/AISummaryButton.jsx | Shared AI case summary button — used on surrogate, IP, journey hero sections + Case Updates |
+| ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral ($4K) and sign-on bonus ($4K) tracking with split payments at medical/legal clearance |
 | IPListPage | src/pages/intended-parents/IPListPage.jsx | Live Supabase data. Tile/list view, search by name/email/location, status & type filters, RE/embryo/consultation info on cards |
 | IPDetailPage | src/pages/intended-parents/IPDetailPage.jsx | Live Supabase data. Hero with contact buttons, Overview (IP1, IP2, fertility details), Contact (copy-to-clipboard), Profile, Intake Answers tabs |
 | IPProfileTab | src/components/intended-parents/IPProfileTab.jsx | Comprehensive IP profile builder: 5 collapsible sections (Fertility, Surrogacy, Personal, Health, Personal History). Shared sections for couples + per-person sections with IP1/IP2 tabs. Edit/save per section, progress bar, stored in answers._ipProfile |

@@ -16,6 +16,7 @@
 | Surrogate Partner | Read-only view of surrogate's journey | Partner Dashboard, Documents, Messages |
 | Intended Parent | Own journey, shared profiles, messages | IP Dashboard, Forms, Documents, Messages, My Journey |
 | Marketing | Read-only analytics + intake submissions view | Marketing Dashboard, Intake Submissions |
+| Records Admin | Medical records summary only | Records Summary page (split-screen doc viewer + summary form) |
 
 ## Journey Stages
 
