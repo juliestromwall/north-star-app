@@ -21,11 +21,6 @@ export default function AppLayout() {
   const [adminLoaded, setAdminLoaded] = useState(false)
   const location = useLocation()
 
-  // Redirect to login if not authenticated
-  if (!authLoading && !isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
   // Load admin users from Supabase on mount (with 3s timeout fallback)
   useEffect(() => {
     const timeout = setTimeout(() => setAdminLoaded(true), 3000)
@@ -37,6 +32,11 @@ export default function AppLayout() {
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Redirect to login if not authenticated (after all hooks)
+  if (!authLoading && !isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
   return (
     <DraftProvider>
