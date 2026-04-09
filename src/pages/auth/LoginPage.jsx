@@ -29,7 +29,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email: email.trim() }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to send reset email')
+      if (!res.ok) throw new Error(data.debug ? `${data.error} (${data.debug})` : data.error || 'Failed to send reset email')
       setResetSent(true)
     } catch (err) {
       setError(err.message || 'Failed to send reset email')

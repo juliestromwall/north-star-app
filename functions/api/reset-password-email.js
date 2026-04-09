@@ -55,13 +55,21 @@ export async function onRequestPost(context) {
       body: JSON.stringify({ type: 'recovery', email, redirect_to: 'https://app.abcsurrogacy.com/reset-password' }),
     })
     const linkData = await linkRes.json()
-    let resetLink = linkData?.properties?.action_link || null
+    // Supabase returns action_link in different places depending on version
+    let resetLink = linkData?.properties?.action_link || linkData?.action_link || null
+
+    // If no action_link, try to build from hashed_token
+    if (!resetLink && linkData?.properties?.hashed_token) {
+      resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent('https://app.abcsurrogacy.com/reset-password')}`
+    }
+
     if (resetLink && !resetLink.includes('redirect_to')) {
       resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
     }
 
     if (!resetLink) {
-      return new Response(JSON.stringify({ error: 'Failed to generate reset link' }), {
+      console.error('generate_link response:', JSON.stringify(linkData))
+      return new Response(JSON.stringify({ error: 'Failed to generate reset link', debug: linkData?.msg || linkData?.error || 'unknown' }), {
         status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
     }
