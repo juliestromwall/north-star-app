@@ -862,11 +862,28 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                 </button>
               )}
               <button onClick={() => {
-                setBabySexes(jd.babySexes || Array(jd.babies || 1).fill('unknown'))
-                setBabyNames(jd.babyNames || Array(jd.babies || 1).fill(''))
-                setBabySexOpen(true)
+                const numBabies = jd.babies || 1
+                if (jd.delivered) {
+                  // Open full birth edit dialog pre-filled
+                  setBirthBabies(Array.from({ length: numBabies }, (_, i) => ({
+                    name: jd.babyNames?.[i] || '',
+                    sex: jd.babySexes?.[i] || 'unknown',
+                    weight: jd.babyWeights?.[i] || '',
+                    length: jd.babyLengths?.[i] || '',
+                  })))
+                  setBirthForm({
+                    date: jd.deliveryDate || '',
+                    deliveryType: jd.deliveryType || '',
+                    notes: jd.deliveryNotes || '',
+                  })
+                  setBirthOpen(true)
+                } else {
+                  setBabySexes(jd.babySexes || Array(numBabies).fill('unknown'))
+                  setBabyNames(jd.babyNames || Array(numBabies).fill(''))
+                  setBabySexOpen(true)
+                }
               }} className="text-[10px] text-[#283693] hover:underline">
-                {jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
+                {jd.delivered ? 'Edit Birth Details' : jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
               </button>
               {!jd.delivered && (
                 <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
@@ -1255,7 +1272,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       {/* Log Birth Dialog */}
       <Dialog open={birthOpen} onOpenChange={setBirthOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle className="flex items-center gap-2 text-emerald-700">🎉 Log Birth</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="flex items-center gap-2 text-emerald-700">{jd.delivered ? '✏️ Edit Birth Details' : '🎉 Log Birth'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -1319,8 +1336,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setBirthOpen(false)}>Cancel</Button>
               <Button size="sm" disabled={saving || !birthForm.date} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleLogBirth}>
-                {saving ? <Loader2 className="size-3 animate-spin" /> : '🎉'}
-                Log Birth
+                {saving ? <Loader2 className="size-3 animate-spin" /> : jd.delivered ? '✓' : '🎉'}
+                {jd.delivered ? 'Save Changes' : 'Log Birth'}
               </Button>
             </div>
           </div>
