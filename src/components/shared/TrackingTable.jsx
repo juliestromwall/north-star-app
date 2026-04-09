@@ -148,6 +148,19 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     <td className="px-3 py-3.5">
                       {step.logType === 'date_completed' && currentStatus === 'complete' ? (
                         <span className="text-xs font-semibold text-emerald-600">Completed {lastEntry?.date ? new Date(lastEntry.date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
+                      ) : step.logType === 'date_completed' && currentStatus !== 'complete' && currentStatus !== 'na' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const today = new Date().toISOString().split('T')[0]
+                            const entry = { status: 'complete', date: today, note: '', by: currentUserName }
+                            const updated = { ...data, status: 'complete', history: [...history, entry] }
+                            onUpdate(step.id, updated)
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          <Check className="size-3.5" /> Complete
+                        </button>
                       ) : (step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
                         <span className="text-sm font-medium text-stone-800">{currentStatus}</span>
                       ) : (
