@@ -51,18 +51,25 @@ export async function onRequestPost(context) {
             user_metadata: { full_name: name, role: 'surrogate' },
           }),
         })
+      }
 
-        // Generate reset link
+      // Always generate a fresh reset link (new or existing user)
+      try {
         const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'recovery', email, redirect_to: 'https://app.abcsurrogacy.com/reset-password' }),
         })
         const linkData = await linkRes.json()
-        resetLink = linkData?.properties?.action_link || null
+        resetLink = linkData?.properties?.action_link || linkData?.action_link || null
+        if (!resetLink && linkData?.properties?.hashed_token) {
+          resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent('https://app.abcsurrogacy.com/reset-password')}`
+        }
         if (resetLink && !resetLink.includes('redirect_to')) {
           resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
         }
+      } catch (linkErr) {
+        console.error('Reset link generation failed:', linkErr)
       }
     } catch (err) {
       console.error('Account creation failed:', err)
