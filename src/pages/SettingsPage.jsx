@@ -245,6 +245,7 @@ function SortableStepRow({ step, onEdit, onDelete }) {
                 <option value="status">Status Dropdown</option>
                 <option value="text">Text Field</option>
                 <option value="dropdown">Custom Dropdown</option>
+                <option value="date_completed">Date Completed</option>
               </select>
             </div>
             {editLogType === 'dropdown' && (
