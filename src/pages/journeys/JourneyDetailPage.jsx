@@ -765,6 +765,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       babyWeights: newBabyWeights,
       babyLengths: newBabyLengths,
     })
+    if (onStatusChange) await onStatusChange('Delivered')
     setBirthOpen(false)
     setBirthForm({ date: '', deliveryType: '', notes: '' })
     setBirthBabies([])
@@ -778,6 +779,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     ...(latestTransfer?.needsSecondBeta ? [{ key: 'beta2', label: 'Beta HCG #2', done: hasBeta2Done }] : []),
     { key: 'heartbeat', label: 'Heartbeat', done: hasHeartbeat },
     { key: 'pregnant', label: 'Pregnant!', done: isPregnant },
+    { key: 'delivered', label: 'Delivered', done: !!jd.delivered },
   ]
 
   const currentTabTransfer = activeTab !== null ? transfers[activeTab] : null
@@ -804,7 +806,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <img
                 src={jd.babySexes?.[0] === 'girl' ? '/baby-girl.png' : '/baby-boy.png'}
                 alt="Baby"
-                className="size-14 object-contain"
+                className="size-20 object-contain"
               />
             ) : (
               <span className="text-5xl">🤰</span>
@@ -927,10 +929,10 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
           return (
             <div key={step.key} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
-                <div className={`size-7 rounded-full border-[3px] flex items-center justify-center transition-all ${done ? step.key === 'pregnant' ? 'bg-pink-500 border-pink-500 scale-110' : 'bg-green-500 border-green-500' : 'bg-white border-stone-200'}`}>
-                  {done && <Check className="size-3.5 text-white" />}
+                <div className={`size-7 rounded-full border-[3px] flex items-center justify-center transition-all ${done ? step.key === 'delivered' ? 'bg-amber-500 border-amber-500 scale-110' : step.key === 'pregnant' ? 'bg-pink-500 border-pink-500 scale-110' : 'bg-green-500 border-green-500' : 'bg-white border-stone-200'}`}>
+                  {done && (step.key === 'delivered' ? '🎉' : <Check className="size-3.5 text-white" />)}
                 </div>
-                <p className={`text-[10px] mt-1 text-center font-medium ${done ? step.key === 'pregnant' ? 'text-pink-600' : 'text-green-600' : 'text-stone-400'}`}>{step.label}</p>
+                <p className={`text-[10px] mt-1 text-center font-medium ${done ? step.key === 'delivered' ? 'text-amber-600' : step.key === 'pregnant' ? 'text-pink-600' : 'text-green-600' : 'text-stone-400'}`}>{step.label}</p>
               </div>
               {!isLast && <div className={`flex-1 h-[3px] mx-1 mt-[-16px] rounded-full ${done && timelineSteps[i + 1]?.done ? 'bg-green-400' : done ? 'bg-green-200' : 'bg-stone-100'}`} />}
             </div>
