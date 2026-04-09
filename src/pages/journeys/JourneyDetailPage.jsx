@@ -709,6 +709,33 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     setSaving(false)
   }
 
+  // ── Update babies born counter ──
+  async function updateBabiesBornCounter(action, numBabies = 1) {
+    try {
+      const { getAppConfig, setAppConfig } = await import('@/lib/db')
+      const data = await getAppConfig('babies_born')
+      if (!data) return
+      const currentYear = new Date().getFullYear()
+      const updated = { ...data }
+      if (action === 'pregnant') {
+        updated.currentPregnant = (updated.currentPregnant || 0) + 1
+      } else if (action === 'delivered') {
+        updated.currentPregnant = Math.max(0, (updated.currentPregnant || 0) - 1)
+        const yearIdx = updated.years.findIndex(y => y.year === currentYear)
+        if (yearIdx >= 0) {
+          updated.years = [...updated.years]
+          updated.years[yearIdx] = { ...updated.years[yearIdx], births: (updated.years[yearIdx].births || 0) + numBabies }
+          if (numBabies > 1) updated.years[yearIdx].twins = (updated.years[yearIdx].twins || 0) + 1
+        } else {
+          updated.years = [...updated.years, { year: currentYear, births: numBabies, twins: numBabies > 1 ? 1 : 0, notes: '' }]
+        }
+      } else if (action === 'loss') {
+        updated.currentPregnant = Math.max(0, (updated.currentPregnant || 0) - 1)
+      }
+      await setAppConfig('babies_born', updated)
+    } catch {}
+  }
+
   async function handleHeartbeat() {
     if (!heartbeatDate) return
     setSaving(true)
@@ -723,6 +750,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     }
     await onUpdate({ _transfers: updated, pregnant: 'yes', dueDate: dueDateStr, babies: numBabies, babySexes: babySexes.slice(0, numBabies) })
     if (onStatusChange) await onStatusChange('Pregnant')
+    await updateBabiesBornCounter('pregnant')
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1'); setBabySexes([])
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
@@ -734,6 +762,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     const updated = [...transfers]
     updated[updated.length - 1] = { ...updated[updated.length - 1], lossType: lossReason, lossDate: new Date().toISOString().split('T')[0] }
     await onUpdate({ _transfers: updated, pregnant: 'no', dueDate: null })
+    await updateBabiesBornCounter('loss')
     setLossOpen(false); setLossReason('')
     setSaving(false)
   }
@@ -765,7 +794,12 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       babyWeights: newBabyWeights,
       babyLengths: newBabyLengths,
     })
-    if (onStatusChange) await onStatusChange('Delivered')
+    if (!jd.delivered) {
+      // Only update counters on first delivery, not when editing
+      if (onStatusChange) await onStatusChange('Delivered')
+      const numBabies = birthBabies.length || 1
+      await updateBabiesBornCounter('delivered', numBabies)
+    }
     setBirthOpen(false)
     setBirthForm({ date: '', deliveryType: '', notes: '' })
     setBirthBabies([])
