@@ -225,18 +225,12 @@ export default function IPIntakeForm() {
       }),
     }).catch(() => {})
 
-    // Notify admin of new IP application
+    // Notify admin of new IP application (send all answers)
     fetch('/api/notify-ip-application', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        applicantName: `${form.primaryFirstName} ${form.primaryLastName}`.trim(),
-        applicantEmail: form.email.trim(),
-        applicantPhone: `${form.phoneCountry} ${form.phone}`.trim(),
-        partnerName: isCouple ? `${form.ip2FirstName} ${form.ip2LastName}`.trim() : null,
-        partnerEmail: isCouple ? form.ip2Email?.trim() : null,
-        location: [form.city, form.stateProv].filter(Boolean).join(', '),
-        country: form.country || '',
+        answers: form,
       }),
     }).catch(() => {})
 
