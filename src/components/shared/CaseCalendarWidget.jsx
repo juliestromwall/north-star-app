@@ -112,10 +112,14 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [pastOpen, setPastOpen] = useState(false)
 
   // Split into upcoming and past
-  const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
-  const upcomingEvents = events.filter(e => (e.start?.dateTime || e.start?.date || '') >= todayStr)
-  const pastEvents = [...events.filter(e => (e.start?.dateTime || e.start?.date || '') < todayStr)].reverse()
+  // Split events: extract just the date part for comparison
+  function getEventDate(e) {
+    const dt = e.start?.dateTime || e.start?.date || ''
+    return dt.substring(0, 10) // YYYY-MM-DD
+  }
+  const todayStr = new Date().toISOString().split('T')[0]
+  const upcomingEvents = events.filter(e => getEventDate(e) >= todayStr)
+  const pastEvents = [...events.filter(e => getEventDate(e) < todayStr)].reverse()
 
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading appointments...</div>
 
