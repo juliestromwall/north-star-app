@@ -4,7 +4,7 @@ import { useRole } from '@/context/RoleContext'
 import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
-import { getChecklistConfig, setChecklistSteps, addChecklistStep, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones } from '@/lib/checklistStore'
+import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,7 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight } from 'lucide-react'
 import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 
@@ -196,11 +196,64 @@ function AdminNotesSection() {
 const LOG_TYPE_LABELS = { status: 'Status Dropdown', text: 'Text Field', dropdown: 'Custom Dropdown', date_completed: 'Date Completed' }
 const LOG_TYPE_COLORS = { status: 'bg-blue-50 text-blue-600', text: 'bg-amber-50 text-amber-600', dropdown: 'bg-purple-50 text-purple-600', date_completed: 'bg-emerald-50 text-emerald-600' }
 
-function SortableStepRow({ step, onEdit, onDelete }) {
+// Status choices a custom dropdown option can map to (drives the color shown)
+const OPTION_STATUS_CHOICES = [
+  { id: 'requested',   label: 'Requested',   dot: 'bg-amber-500' },
+  { id: 'in_progress', label: 'In Progress', dot: 'bg-blue-500' },
+  { id: 'reviewing',   label: 'Reviewing',   dot: 'bg-purple-500' },
+  { id: 'complete',    label: 'Complete',    dot: 'bg-green-500' },
+  { id: 'na',          label: 'N/A',         dot: 'bg-stone-400' },
+]
+
+function DropdownOptionsEditor({ options, onChange }) {
+  const opts = normalizeOptions(options)
+  const update = (i, patch) => onChange(opts.map((o, idx) => idx === i ? { ...o, ...patch } : o))
+  const remove = (i) => onChange(opts.filter((_, idx) => idx !== i))
+  const add = () => onChange([...opts, { label: '', mapsTo: 'in_progress' }])
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider">Options</label>
+      {opts.length === 0 && <p className="text-[11px] text-stone-400 italic">No options yet.</p>}
+      {opts.map((opt, i) => {
+        const choice = OPTION_STATUS_CHOICES.find(c => c.id === opt.mapsTo) || OPTION_STATUS_CHOICES[1]
+        return (
+          <div key={i} className="flex items-center gap-1.5">
+            <span className={`size-2.5 rounded-full shrink-0 ${choice.dot}`} />
+            <Input
+              value={opt.label}
+              onChange={e => update(i, { label: e.target.value })}
+              placeholder="Option label"
+              className="h-7 text-xs flex-1"
+            />
+            <select
+              value={opt.mapsTo}
+              onChange={e => update(i, { mapsTo: e.target.value })}
+              className="h-7 text-[10px] border rounded px-1.5 bg-white text-stone-600"
+              title="Color / status"
+            >
+              {OPTION_STATUS_CHOICES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+            <button onClick={() => remove(i)} className="p-1 text-stone-300 hover:text-red-500" title="Remove option">
+              <X className="size-3" />
+            </button>
+          </div>
+        )
+      })}
+      <button onClick={add} type="button" className="text-[11px] font-semibold text-[#283693] hover:underline">
+        + Add option
+      </button>
+    </div>
+  )
+}
+
+function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, onEditSubtask, onDeleteSubtask }) {
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(step.label)
   const [editLogType, setEditLogType] = useState(step.logType || 'status')
-  const [editOptions, setEditOptions] = useState((step.options || []).join(', '))
+  const [editOptions, setEditOptions] = useState(normalizeOptions(step.options))
+  const [addingSubtask, setAddingSubtask] = useState(false)
+  const [newSubtaskLabel, setNewSubtaskLabel] = useState('')
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id })
   const style = {
@@ -210,7 +263,9 @@ function SortableStepRow({ step, onEdit, onDelete }) {
   }
 
   const handleSave = () => {
-    const opts = editLogType === 'dropdown' ? editOptions.split(',').map(o => o.trim()).filter(Boolean) : []
+    const opts = editLogType === 'dropdown'
+      ? editOptions.filter(o => o.label.trim()).map(o => ({ label: o.label.trim(), mapsTo: o.mapsTo || 'in_progress' }))
+      : []
     onEdit(step.id, { label: editLabel.trim() || step.label, logType: editLogType, options: opts })
     setEditing(false)
   }
@@ -218,7 +273,7 @@ function SortableStepRow({ step, onEdit, onDelete }) {
   const handleCancel = () => {
     setEditLabel(step.label)
     setEditLogType(step.logType || 'status')
-    setEditOptions((step.options || []).join(', '))
+    setEditOptions(normalizeOptions(step.options))
     setEditing(false)
   }
 
@@ -249,16 +304,7 @@ function SortableStepRow({ step, onEdit, onDelete }) {
               </select>
             </div>
             {editLogType === 'dropdown' && (
-              <div className="space-y-1">
-                <label className="text-[10px] text-stone-400 font-medium">Options (comma-separated)</label>
-                <Input
-                  value={editOptions}
-                  onChange={e => setEditOptions(e.target.value)}
-                  className="h-8 text-sm"
-                  placeholder="e.g. Active, Pending, Denied, N/A"
-                  onKeyDown={e => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') handleCancel() }}
-                />
-              </div>
+              <DropdownOptionsEditor options={editOptions} onChange={setEditOptions} />
             )}
             <div className="flex gap-1">
               <button onClick={handleSave} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-4" /></button>
@@ -275,15 +321,16 @@ function SortableStepRow({ step, onEdit, onDelete }) {
                 </span>
               )}
               {logType === 'dropdown' && step.options?.length > 0 && (
-                <span className="text-[10px] text-stone-400 ml-1">({step.options.join(', ')})</span>
+                <span className="text-[10px] text-stone-400 ml-1">({normalizeOptions(step.options).map(o => o.label).join(', ')})</span>
               )}
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={() => { setAddingSubtask(true); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693]" title="Add subtask"><CornerDownRight className="size-3.5" /></button>
               {step.locked ? (
                 <span className="text-[9px] text-stone-400 font-medium px-1.5 py-0.5 rounded bg-stone-100">🔒 Locked</span>
               ) : (
                 <>
-                  <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions((step.options || []).join(', ')); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
+                  <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions(normalizeOptions(step.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
                   <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
                 </>
               )}
@@ -291,6 +338,87 @@ function SortableStepRow({ step, onEdit, onDelete }) {
           </>
         )}
       </div>
+
+      {/* Subtasks */}
+      {(subtasks.length > 0 || addingSubtask) && (
+        <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-stone-100 pl-3">
+          {subtasks.map(sub => (
+            <SubtaskRow
+              key={sub.id}
+              subtask={sub}
+              onEdit={(updates) => onEditSubtask(sub.id, updates)}
+              onDelete={() => onDeleteSubtask(sub.id)}
+            />
+          ))}
+          {addingSubtask && (
+            <div className="flex items-center gap-1.5 py-1">
+              <CornerDownRight className="size-3 text-stone-300 shrink-0" />
+              <Input
+                value={newSubtaskLabel}
+                onChange={e => setNewSubtaskLabel(e.target.value)}
+                placeholder="Subtask name"
+                className="h-7 text-xs flex-1"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newSubtaskLabel.trim()) {
+                    onAddSubtask(step.id, newSubtaskLabel.trim())
+                    setNewSubtaskLabel('')
+                    setAddingSubtask(false)
+                  }
+                  if (e.key === 'Escape') { setAddingSubtask(false); setNewSubtaskLabel('') }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (newSubtaskLabel.trim()) { onAddSubtask(step.id, newSubtaskLabel.trim()); setNewSubtaskLabel(''); setAddingSubtask(false) }
+                }}
+                className="p-1 rounded hover:bg-emerald-50 text-emerald-600"
+              ><Check className="size-3.5" /></button>
+              <button onClick={() => { setAddingSubtask(false); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-3.5" /></button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Subtask Row (label-only, no drag) ──────────────────────
+
+function SubtaskRow({ subtask, onEdit, onDelete }) {
+  const [editing, setEditing] = useState(false)
+  const [label, setLabel] = useState(subtask.label)
+
+  const save = () => {
+    if (label.trim() && label.trim() !== subtask.label) onEdit({ label: label.trim() })
+    setEditing(false)
+  }
+  const cancel = () => { setLabel(subtask.label); setEditing(false) }
+
+  return (
+    <div className="flex items-center gap-1.5 group/sub py-0.5">
+      <CornerDownRight className="size-3 text-stone-300 shrink-0" />
+      {editing ? (
+        <>
+          <Input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            className="h-7 text-xs flex-1"
+            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') cancel() }}
+          />
+          <button onClick={save} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-3.5" /></button>
+          <button onClick={cancel} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-3.5" /></button>
+        </>
+      ) : (
+        <>
+          <span className="text-xs text-stone-600 flex-1">{subtask.label}</span>
+          <div className="flex items-center gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+            <button onClick={() => { setLabel(subtask.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+            <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -379,7 +507,7 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
   const milestones = stageData?.milestones || []
   const [newStepLabel, setNewStepLabel] = useState('')
   const [newStepLogType, setNewStepLogType] = useState('status')
-  const [newStepOptions, setNewStepOptions] = useState('')
+  const [newStepOptions, setNewStepOptions] = useState([])
   const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
   const [confirmReset, setConfirmReset] = useState(false)
 
@@ -388,23 +516,48 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
 
+  // Split into top-level steps and subtasks (children grouped by parent)
+  const topLevelSteps = steps.filter(s => !s.parentId)
+  const subtasksByParent = steps.reduce((acc, s) => {
+    if (s.parentId) {
+      if (!acc[s.parentId]) acc[s.parentId] = []
+      acc[s.parentId].push(s)
+    }
+    return acc
+  }, {})
+
   const handleDragEnd = (event) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    const oldIndex = steps.findIndex(s => s.id === active.id)
-    const newIndex = steps.findIndex(s => s.id === over.id)
-    const reordered = arrayMove(steps, oldIndex, newIndex)
-    setChecklistSteps(userType, stage.id, reordered)
+    const oldIndex = topLevelSteps.findIndex(s => s.id === active.id)
+    const newIndex = topLevelSteps.findIndex(s => s.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reorderedTop = arrayMove(topLevelSteps, oldIndex, newIndex)
+    // Rebuild full list: each parent followed by its children
+    const newSteps = []
+    for (const parent of reorderedTop) {
+      newSteps.push(parent)
+      const children = subtasksByParent[parent.id] || []
+      newSteps.push(...children)
+    }
+    setChecklistSteps(userType, stage.id, newSteps)
+    onUpdate()
+  }
+
+  const handleAddSubtask = (parentId, label) => {
+    addChecklistSubtask(userType, stage.id, parentId, label)
     onUpdate()
   }
 
   const handleAddStep = () => {
     if (!newStepLabel.trim()) return
-    const opts = newStepLogType === 'dropdown' ? newStepOptions.split(',').map(o => o.trim()).filter(Boolean) : []
+    const opts = newStepLogType === 'dropdown'
+      ? newStepOptions.filter(o => o.label.trim()).map(o => ({ label: o.label.trim(), mapsTo: o.mapsTo || 'in_progress' }))
+      : []
     addChecklistStep(userType, stage.id, newStepLabel.trim(), newStepLogType, opts)
     setNewStepLabel('')
     setNewStepLogType('status')
-    setNewStepOptions('')
+    setNewStepOptions([])
     onUpdate()
   }
 
@@ -457,12 +610,21 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
         {/* Steps */}
         <div className="space-y-2">
           <p className="text-xs text-stone-500 uppercase tracking-wider font-semibold">Steps</p>
-          {steps.length > 0 ? (
+          {topLevelSteps.length > 0 ? (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={steps.map(s => s.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={topLevelSteps.map(s => s.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-1.5">
-                  {steps.map(step => (
-                    <SortableStepRow key={step.id} step={step} onEdit={handleEditStep} onDelete={handleDeleteStep} />
+                  {topLevelSteps.map(step => (
+                    <SortableStepRow
+                      key={step.id}
+                      step={step}
+                      subtasks={subtasksByParent[step.id] || []}
+                      onEdit={handleEditStep}
+                      onDelete={handleDeleteStep}
+                      onAddSubtask={handleAddSubtask}
+                      onEditSubtask={handleEditStep}
+                      onDeleteSubtask={handleDeleteStep}
+                    />
                   ))}
                 </div>
               </SortableContext>
@@ -489,13 +651,9 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
               </Button>
             </div>
             {newStepLogType === 'dropdown' && (
-              <Input
-                value={newStepOptions}
-                onChange={e => setNewStepOptions(e.target.value)}
-                placeholder="Options (comma-separated): Active, Pending, Denied"
-                className="h-8 text-sm"
-                onKeyDown={e => { if (e.key === 'Enter') handleAddStep() }}
-              />
+              <div className="rounded-lg border bg-stone-50/50 p-2.5">
+                <DropdownOptionsEditor options={newStepOptions} onChange={setNewStepOptions} />
+              </div>
             )}
           </div>
         </div>

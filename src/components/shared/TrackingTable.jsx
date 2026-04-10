@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Check, X, ChevronDown, CheckCircle2, Clock } from 'lucide-react'
+import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { normalizeOptions, deriveParentStatus } from '@/lib/checklistStore'
 
 export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
@@ -16,19 +17,123 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   const [editDate, setEditDate] = useState('')
   const [logDate, setLogDate] = useState('')
 
-  const activeSteps = steps.filter(s => tracking[s.id]?.status !== 'na')
-  const completeCount = activeSteps.filter(s => tracking[s.id]?.status === 'complete').length
+  // Build a flat render list that interleaves parents with their subtasks.
+  // Each item carries _depth (0 = top-level, 1 = subtask) and parents carry
+  // _children so the row can derive status from them.
+  const renderableSteps = useMemo(() => {
+    const childrenByParent = {}
+    for (const s of steps) {
+      if (s.parentId) {
+        if (!childrenByParent[s.parentId]) childrenByParent[s.parentId] = []
+        childrenByParent[s.parentId].push(s)
+      }
+    }
+    const result = []
+    const seen = new Set()
+    for (const s of steps) {
+      if (s.parentId) continue // children rendered under their parent
+      if (seen.has(s.id)) continue
+      seen.add(s.id)
+      const children = childrenByParent[s.id] || []
+      result.push({ ...s, _depth: 0, _children: children })
+      for (const child of children) {
+        seen.add(child.id)
+        result.push({ ...child, _depth: 1 })
+      }
+    }
+    // Sweep up any orphan subtasks (parent missing) so they still render
+    for (const s of steps) {
+      if (!seen.has(s.id)) {
+        result.push({ ...s, _depth: 0, _children: [] })
+        seen.add(s.id)
+      }
+    }
+    return result
+  }, [steps])
+
+  // Progress count: only top-level steps count toward the bar.
+  const topLevelSteps = steps.filter(s => !s.parentId)
+  const activeSteps = topLevelSteps.filter(s => {
+    const children = steps.filter(c => c.parentId === s.id)
+    if (children.length > 0) {
+      const derived = deriveParentStatus(children, tracking)
+      return derived !== 'na'
+    }
+    return tracking[s.id]?.status !== 'na'
+  })
+  const completeCount = activeSteps.filter(s => {
+    const children = steps.filter(c => c.parentId === s.id)
+    if (children.length > 0) {
+      return deriveParentStatus(children, tracking) === 'complete'
+    }
+    return tracking[s.id]?.status === 'complete'
+  }).length
   const totalActive = activeSteps.length
+
+  // Wrap onUpdate so logging on a subtask cascades a derived status update
+  // to the parent. Without this, the progress bar / parent display would
+  // stay stale until the next render path recomputed it.
+  function updateStep(stepId, data) {
+    onUpdate(stepId, data)
+    const step = steps.find(s => s.id === stepId)
+    if (!step?.parentId) return
+    const parent = steps.find(s => s.id === step.parentId)
+    if (!parent) return
+    const siblings = steps.filter(s => s.parentId === parent.id)
+    // Build the projected tracking with this update applied
+    const projected = { ...tracking, [stepId]: { ...(tracking[stepId] || {}), ...data } }
+    const newParentStatus = deriveParentStatus(siblings, projected)
+    if (!newParentStatus) return
+    const currentParentStatus = tracking[parent.id]?.status
+    if (newParentStatus === currentParentStatus) return
+    const parentData = tracking[parent.id] || { history: [] }
+    const entry = {
+      status: newParentStatus,
+      date: new Date().toISOString().split('T')[0],
+      note: 'Auto from subtasks',
+      by: 'System',
+      auto: true,
+    }
+    onUpdate(parent.id, {
+      status: newParentStatus,
+      history: [...(parentData.history || []), entry],
+    })
+  }
 
   function submitLog(stepId) {
     if (!logStatus) return
+    const step = steps.find(s => s.id === stepId)
     const current = tracking[stepId] || { history: [] }
     const history = current.history || []
-    const entry = { status: logStatus, date: logDate || new Date().toISOString().split('T')[0], note: logNote.trim() || null, by: currentUserName || 'Admin' }
-    onUpdate(stepId, { status: logStatus, history: [...history, entry] })
-    const step = steps.find(s => s.id === stepId)
-    console.log('[TrackingTable] submitLog:', { stepId, status: logStatus, hasOnStatusLog: !!onStatusLog })
-    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: logStatus, by: currentUserName })
+
+    // For custom dropdown options, map the picked option label to its
+    // underlying status (so colors + completion logic still work) but
+    // remember the original label for display.
+    let entryStatus = logStatus
+    let entryOptionLabel = null
+    if (step?.logType === 'dropdown' && step.options?.length > 0) {
+      const opts = normalizeOptions(step.options)
+      const picked = opts.find(o => o.label === logStatus)
+      if (picked) {
+        entryStatus = picked.mapsTo || 'in_progress'
+        entryOptionLabel = picked.label
+      }
+    }
+
+    const entry = {
+      status: entryStatus,
+      date: logDate || new Date().toISOString().split('T')[0],
+      note: logNote.trim() || null,
+      by: currentUserName || 'Admin',
+      ...(entryOptionLabel ? { optionLabel: entryOptionLabel } : {}),
+    }
+    updateStep(stepId, {
+      status: entryStatus,
+      ...(entryOptionLabel ? { optionLabel: entryOptionLabel } : { optionLabel: null }),
+      history: [...history, entry],
+    })
+    console.log('[TrackingTable] submitLog:', { stepId, status: entryStatus, optionLabel: entryOptionLabel, hasOnStatusLog: !!onStatusLog })
+    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: entryStatus, by: currentUserName })
     setLogStatus('')
     setLogNote('')
     setAddingLogFor(null)
@@ -39,7 +144,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     const history = [...(current.history || [])]
     history.splice(index, 1)
     const newStatus = history.length > 0 ? history[history.length - 1].status : 'not_started'
-    onUpdate(stepId, { status: newStatus, history })
+    updateStep(stepId, { status: newStatus, history })
   }
 
   function saveEditLog(stepId, index) {
@@ -47,7 +152,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     const history = [...(current.history || [])]
     history[index] = { ...history[index], status: editStatus, note: editNote.trim() || null, date: editDate || history[index].date }
     const newStatus = history[history.length - 1].status
-    onUpdate(stepId, { status: newStatus, history })
+    updateStep(stepId, { status: newStatus, history })
     setEditingLog(null)
   }
 
@@ -102,24 +207,36 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
             </tr>
           </thead>
           <tbody>
-            {steps.map((step, stepIdx) => {
+            {renderableSteps.map((step, stepIdx) => {
+              const isSubtask = step._depth > 0
+              const hasChildren = !isSubtask && step._children && step._children.length > 0
               const data = tracking[step.id] || {}
               const history = data.history || []
-              const currentStatus = data.status || 'not_started'
+              // Parents with children: status is derived from children, not stored.
+              const storedStatus = data.status || 'not_started'
+              const currentStatus = hasChildren
+                ? (deriveParentStatus(step._children, tracking) || 'not_started')
+                : storedStatus
               const isDeactivated = currentStatus === 'na' || currentStatus === 'deactivated'
               const isComplete = currentStatus === 'complete' || currentStatus === 'partial_complete'
               const lastEntry = history.length > 0 ? history[history.length - 1] : null
               const isExpanded = expandedStep === step.id
               const isAddingLog = addingLogFor === step.id
+              const rowClickable = !hasChildren // parents-with-children are read-only
 
               return (
                 <React.Fragment key={step.id ?? stepIdx}>
                   <tr
-                    onClick={() => { if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') } else { openAddLog(step.id) } }}
-                    className={`border-b border-stone-100 cursor-pointer ${isDeactivated ? 'bg-stone-50/50 opacity-40' : isComplete ? 'bg-green-50/70 hover:bg-green-50' : 'hover:bg-stone-50/50'} transition-colors`}
+                    onClick={() => {
+                      if (!rowClickable) return
+                      if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') }
+                      else { openAddLog(step.id) }
+                    }}
+                    className={`border-b border-stone-100 ${rowClickable ? 'cursor-pointer' : 'cursor-default'} ${isDeactivated ? 'bg-stone-50/50 opacity-40' : isComplete ? 'bg-green-50/70 hover:bg-green-50' : isSubtask ? 'bg-stone-50/30 hover:bg-stone-50/60' : 'hover:bg-stone-50/50'} transition-colors`}
                   >
                     <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" style={{ paddingLeft: isSubtask ? 24 : 0 }}>
+                        {isSubtask && <CornerDownRight className="size-3 text-stone-300 shrink-0 -ml-1" />}
                         {isDeactivated ? (
                           <div className="size-4 rounded-full bg-stone-200 shrink-0" />
                         ) : isComplete ? (
@@ -142,10 +259,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                                 {data.customLabel || step.label}
                               </span>
                               {step.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded self-start mt-0.5 ${step.badge.color}`}>{step.badge.label}</span>}
+                              {hasChildren && <span className="text-[9px] font-medium text-stone-400 self-start mt-0.5">{step._children.length} subtask{step._children.length !== 1 ? 's' : ''}</span>}
                             </div>
                           </>
                         )}
-                        {currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
+                        {!hasChildren && currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                       </div>
                     </td>
                     <td className="px-3 py-3.5">
@@ -158,13 +276,15 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                             const today = new Date().toISOString().split('T')[0]
                             const entry = { status: 'complete', date: today, note: '', by: currentUserName }
                             const updated = { ...data, status: 'complete', history: [...history, entry] }
-                            onUpdate(step.id, updated)
+                            updateStep(step.id, updated)
                           }}
                           className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
                         >
                           <Check className="size-3.5" /> Complete
                         </button>
-                      ) : (step.logType === 'text' || step.logType === 'dropdown') && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
+                      ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
+                        <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
+                      ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
                         <span className="text-sm font-medium text-stone-800">{currentStatus}</span>
                       ) : (
                         <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
@@ -202,7 +322,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     return (
                       <tr key={`h-${i}`} className="bg-stone-50/60 border-b border-stone-100/50 group">
                         <td className="px-6 py-2" />
-                        <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{getStatusLabel(entry.status)}</td>
+                        <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || getStatusLabel(entry.status)}</td>
                         <td className="px-3 py-2 text-stone-400">{formatDate(entry.date)}</td>
                         <td className="px-3 py-2 text-stone-500">{entry.note || ''}</td>
                         <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
@@ -240,7 +360,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         ) : step.logType === 'dropdown' && step.options?.length > 0 ? (
                           <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
                             <option value="">Select...</option>
-                            {step.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            {normalizeOptions(step.options).map(opt => <option key={opt.label} value={opt.label}>{opt.label}</option>)}
                             <option value="complete">Complete</option>
                             <option value="na">N/A (Deactivate)</option>
                           </select>

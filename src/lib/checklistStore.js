@@ -25,6 +25,39 @@ export const CHECKLIST_STEP_STATUSES = [
   { id: 'na', label: 'Not Needed' },
 ]
 
+/**
+ * Normalize a step's `options` array to {label, mapsTo} objects.
+ * Backwards-compat: legacy string options become {label: str, mapsTo: 'in_progress'}.
+ */
+export function normalizeOptions(options) {
+  if (!Array.isArray(options)) return []
+  return options.map(o =>
+    typeof o === 'string'
+      ? { label: o, mapsTo: 'in_progress' }
+      : { label: o?.label || '', mapsTo: o?.mapsTo || 'in_progress' }
+  )
+}
+
+/**
+ * Derive a parent step's status from its children.
+ * - All children complete or na  → 'complete'
+ * - Any reviewing/in_progress/requested → highest priority active state
+ * - Otherwise → 'not_started'
+ * Returns null if there are no children.
+ */
+export function deriveParentStatus(children, tracking) {
+  if (!Array.isArray(children) || children.length === 0) return null
+  const statuses = children.map(c => tracking?.[c.id]?.status || 'not_started')
+  const allDoneOrNa = statuses.every(s => s === 'complete' || s === 'na' || s === 'partial_complete')
+  if (allDoneOrNa) return 'complete'
+  // Priority order — highest "active" wins
+  const priority = ['reviewing', 'in_progress', 'requested', 'partial_received', 'records_received']
+  for (const p of priority) {
+    if (statuses.includes(p)) return p
+  }
+  return 'not_started'
+}
+
 // Default checklists seeded on first load
 const DEFAULT_CHECKLISTS = {
   gc: {
@@ -289,6 +322,24 @@ export function addChecklistStep(userType, stageId, label, logType = 'status', o
   return config[userType][stageId].steps
 }
 
+/** Add a subtask under a parent step. Inserted right after the parent's existing children. */
+export function addChecklistSubtask(userType, stageId, parentId, label) {
+  const config = getChecklistConfig()
+  const stageData = config[userType]?.[stageId]
+  if (!stageData) return
+  const steps = stageData.steps
+  const parentIndex = steps.findIndex(s => s.id === parentId)
+  if (parentIndex === -1) return
+  const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_' + Date.now()
+  const subtask = { id, label, parentId }
+  // Insert after the parent and any of its existing children
+  let insertAt = parentIndex + 1
+  while (insertAt < steps.length && steps[insertAt].parentId === parentId) insertAt++
+  steps.splice(insertAt, 0, subtask)
+  save(config)
+  return steps
+}
+
 /** Edit a step (label, logType, options) */
 export function editChecklistStep(userType, stageId, stepId, updates) {
   const config = getChecklistConfig()
@@ -307,16 +358,21 @@ export function editChecklistStep(userType, stageId, stepId, updates) {
   save(config)
 }
 
-/** Delete a step (also removes from any milestones). Locked steps cannot be deleted. */
+/** Delete a step (also removes from any milestones, and cascades to subtasks). Locked steps cannot be deleted. */
 export function deleteChecklistStep(userType, stageId, stepId) {
   const config = getChecklistConfig()
   const stageData = config[userType]?.[stageId]
   if (!stageData) return
   const step = stageData.steps.find(s => s.id === stepId)
   if (step?.locked) return // Cannot delete locked steps
-  stageData.steps = stageData.steps.filter(s => s.id !== stepId)
+  // Cascade: also remove any subtasks of this step
+  const removedIds = new Set([stepId])
+  for (const s of stageData.steps) {
+    if (s.parentId === stepId) removedIds.add(s.id)
+  }
+  stageData.steps = stageData.steps.filter(s => !removedIds.has(s.id))
   for (const ms of stageData.milestones || []) {
-    ms.stepIds = ms.stepIds.filter(id => id !== stepId)
+    ms.stepIds = ms.stepIds.filter(id => !removedIds.has(id))
   }
   save(config)
 }
