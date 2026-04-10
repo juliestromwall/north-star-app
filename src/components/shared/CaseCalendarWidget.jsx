@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil } from 'lucide-react'
+import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -34,18 +34,17 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   useEffect(() => {
     if (!caseId || !userId) { setLoading(false); return }
     const now = new Date()
-    const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    // Load past 6 months + future 3 months
+    const timeMin = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()).toISOString()
     const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString()
-    // Load calendars first to find default, then load events from that calendar
     listCalendars(userId).catch(() => []).then(cals => {
       const writable = (cals || []).filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')
       setCalendars(writable)
       const apptCal = writable.find(c => c.summary?.toLowerCase() === 'appointments')
       const calId = apptCal?.id || 'primary'
       if (apptCal) setDefaultCalId(calId)
-      // Load events from both primary and appointments calendar, dedupe
-      const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 20 })]
-      if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 20 }))
+      const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 50 })]
+      if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 50 }))
       return Promise.all(fetches)
     }).then(results => {
       const all = results.flatMap(r => r.items || [])
@@ -110,56 +109,91 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     } catch (err) { alert('Failed to update: ' + err.message) }
   }
 
+  const [pastOpen, setPastOpen] = useState(false)
+
+  // Split into upcoming and past
+  const now = new Date()
+  const todayStr = now.toISOString().split('T')[0]
+  const upcomingEvents = events.filter(e => (e.start?.dateTime || e.start?.date || '') >= todayStr)
+  const pastEvents = [...events.filter(e => (e.start?.dateTime || e.start?.date || '') < todayStr)].reverse()
+
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading appointments...</div>
+
+  function EventRow({ event, isPast }) {
+    const startDt = event.start?.dateTime || event.start?.date || ''
+    const isAllDay = !!event.start?.date && !event.start?.dateTime
+    const today = isToday(startDt)
+    return (
+      <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${isPast ? 'opacity-60' : today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
+            {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
+          </p>
+          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+            <span>{formatDate(startDt)}</span>
+            {!isAllDay && event.start?.dateTime && (
+              <span className="flex items-center gap-0.5">
+                <Clock className="size-2.5" />
+                {formatTime(event.start.dateTime)}
+                {event.end?.dateTime ? ` – ${formatTime(event.end.dateTime)}` : ''}
+              </span>
+            )}
+            {today && <span className="text-[#283693] font-semibold">Today</span>}
+          </div>
+        </div>
+        {!isPast && (
+          <div className="flex gap-1 shrink-0">
+            <button onClick={() => setEditEvent(event)} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
+            <button onClick={() => handleDelete(event.id)} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
+              {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
           <CalendarDays className="size-4 text-stone-400" /> Appointments
+          {pastEvents.length > 0 && (
+            <button onClick={() => setPastOpen(true)} className="text-[10px] text-stone-400 hover:text-[#283693] font-medium ml-2 flex items-center gap-1 transition-colors">
+              <History className="size-3" /> {pastEvents.length} past
+            </button>
+          )}
         </h3>
         <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Appointment
         </Button>
       </div>
 
-      {events.length === 0 ? (
+      {upcomingEvents.length === 0 ? (
         <p className="text-xs text-stone-400 py-4 text-center">No upcoming appointments</p>
       ) : (
         <div className="space-y-1.5">
-          {events.map(event => {
-            const startDt = event.start?.dateTime || event.start?.date || ''
-            const isAllDay = !!event.start?.date && !event.start?.dateTime
-            const today = isToday(startDt)
-            return (
-              <div key={event.id} className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
-                    {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
-                  </p>
-                  <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                    <span>{formatDate(startDt)}</span>
-                    {!isAllDay && event.start?.dateTime && (
-                      <span className="flex items-center gap-0.5">
-                        <Clock className="size-2.5" />
-                        {formatTime(event.start.dateTime)}
-                        {event.end?.dateTime ? ` – ${formatTime(event.end.dateTime)}` : ''}
-                      </span>
-                    )}
-                    {today && <span className="text-[#283693] font-semibold">Today</span>}
-                  </div>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => setEditEvent(event)} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
-                  <button onClick={() => handleDelete(event.id)} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
-                    {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+          {upcomingEvents.map(event => <EventRow key={event.id} event={event} />)}
         </div>
       )}
+
+      {/* Past Appointments Modal */}
+      <Dialog open={pastOpen} onOpenChange={setPastOpen}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="size-4 text-stone-400" /> Past Appointments ({pastEvents.length})
+            </DialogTitle>
+          </DialogHeader>
+          {pastEvents.length === 0 ? (
+            <p className="text-sm text-stone-400 text-center py-6">No past appointments found.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {pastEvents.map(event => <EventRow key={event.id} event={event} isPast />)}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AddAppointmentDialog open={addOpen} onOpenChange={setAddOpen} onSave={handleCreate} calendars={calendars} defaultCalId={defaultCalId} />
       <AddAppointmentDialog
