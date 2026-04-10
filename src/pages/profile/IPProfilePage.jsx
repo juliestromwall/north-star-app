@@ -401,7 +401,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   const profilePhoto = photos?.find(p => p.kind === 'portrait') || photos?.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
   const coverPhoto = photos?.find(p => p.kind === 'cover') || photos?.find(p => p.path?.includes('/cover/') || p.path?.includes('/ip-cover/'))
   const galleryPhotos = photos?.filter(p => p.kind === 'gallery' || (p.path?.includes('/gallery/') && !p.path?.includes('/portrait/') && !p.path?.includes('/cover/'))) || []
-  const [galleryIdx, setGalleryIdx] = useState(0)
+  // All viewable photos for lightbox: cover first, then gallery
+  const lightboxPhotos = coverPhoto ? [coverPhoto, ...galleryPhotos] : galleryPhotos
+  const [lightboxIdx, setLightboxIdx] = useState(null)
   const fertility = profile?.fertility || {}
   const surrogacy = profile?.surrogacy || {}
   const ip1 = profile?.ip1 || {}
@@ -437,75 +439,52 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   }
 
   return (
+    <>
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-      {/* Cover photo */}
+      {/* Cover photo — full image, no crop */}
       {coverPhoto ? (
-        <div className="w-full h-64 sm:h-80 overflow-hidden relative">
-          <img src={coverPhoto.url} alt="Cover" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <div className="w-full bg-stone-100 relative">
+          <img src={coverPhoto.url} alt="Cover" className="w-full h-auto max-h-[500px] object-contain" />
+          {lightboxPhotos.length > 1 && (
+            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+              {lightboxPhotos.length} photos
+            </div>
+          )}
         </div>
       ) : (
         <div className="w-full h-32 bg-gradient-to-br from-[#283693]/20 via-[#4a4fbf]/10 to-[#283693]/10" />
       )}
 
-      {/* Header with profile photo */}
-      <div className="px-6 pt-0 pb-6 relative">
-        {profilePhoto ? (
-          <img src={profilePhoto.url} alt="Profile" className="size-28 rounded-full border-4 border-white object-cover -mt-14 shadow-md" />
-        ) : (
-          <div className="size-28 rounded-full border-4 border-white -mt-14 shadow-md bg-[#283693]/10 flex items-center justify-center">
-            <User className="size-10 text-[#283693]/40" />
-          </div>
-        )}
-        <div className="mt-4">
-          <h2 className="text-2xl font-bold text-[#283693]">
-            {hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
-          </h2>
-          {location && <p className="text-sm text-stone-500 mt-0.5">📍 {location}</p>}
-        </div>
-      </div>
-
-      {/* Photo Gallery Carousel */}
-      {galleryPhotos.length > 0 && (
-        <div className="px-6 pb-6">
-          <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1 mb-3">Photo Gallery</h3>
-          <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100">
-            <img src={galleryPhotos[galleryIdx].url} alt="" className="w-full h-full object-cover" />
-            {galleryPhotos.length > 1 && (
-              <>
-                <button
-                  onClick={() => setGalleryIdx(i => (i - 1 + galleryPhotos.length) % galleryPhotos.length)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <ChevronLeft className="size-5" />
-                </button>
-                <button
-                  onClick={() => setGalleryIdx(i => (i + 1) % galleryPhotos.length)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-                >
-                  <ChevronRight className="size-5" />
-                </button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium">
-                  {galleryIdx + 1} / {galleryPhotos.length}
-                </div>
-              </>
-            )}
-          </div>
-          {galleryPhotos.length > 1 && (
-            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-              {galleryPhotos.map((photo, i) => (
-                <button
-                  key={photo.path}
-                  onClick={() => setGalleryIdx(i)}
-                  className={`shrink-0 size-16 rounded-lg overflow-hidden border-2 transition-all ${i === galleryIdx ? 'border-[#283693] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                >
-                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+      {/* Thumbnail strip — peeks under the cover, opens lightbox */}
+      {lightboxPhotos.length > 1 && (
+        <div className="flex gap-2 px-6 -mt-6 relative z-10 overflow-x-auto pb-1">
+          {lightboxPhotos.map((ph, i) => (
+            <button key={ph.path} onClick={() => setLightboxIdx(i)}
+              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
+              <img src={ph.url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
         </div>
       )}
+
+      {/* Header with profile photo */}
+      <div className="px-6 pt-4 pb-6 relative">
+        <div className="flex items-center gap-4">
+          {profilePhoto ? (
+            <img src={profilePhoto.url} alt="Profile" className="size-24 rounded-full border-4 border-white object-cover shadow-md" />
+          ) : (
+            <div className="size-24 rounded-full border-4 border-white shadow-md bg-[#283693]/10 flex items-center justify-center">
+              <User className="size-10 text-[#283693]/40" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-2xl font-bold text-[#283693]">
+              {hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
+            </h2>
+            {location && <p className="text-sm text-stone-500 mt-0.5">📍 {location}</p>}
+          </div>
+        </div>
+      </div>
 
       {/* Sections */}
       <div className="px-6 pb-8 space-y-6">
@@ -559,6 +538,45 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         })}
       </div>
     </div>
+
+    {/* ── Photo Lightbox Modal ── */}
+    {lightboxIdx !== null && lightboxPhotos.length > 0 && (
+      <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightboxIdx(null)}>
+        <button className="absolute top-4 right-4 text-white/70 hover:text-white z-10" onClick={() => setLightboxIdx(null)}>
+          <X className="w-8 h-8" />
+        </button>
+        <div className="relative max-w-4xl w-full mx-4" onClick={e => e.stopPropagation()}>
+          <img src={lightboxPhotos[lightboxIdx].url} alt="" className="w-full max-h-[80vh] object-contain rounded-lg" />
+          {lightboxPhotos.length > 1 && (
+            <>
+              <button onClick={() => setLightboxIdx(i => (i - 1 + lightboxPhotos.length) % lightboxPhotos.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button onClick={() => setLightboxIdx(i => (i + 1) % lightboxPhotos.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
+                <ChevronRight className="w-6 h-6" />
+              </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm font-medium px-3 py-1 rounded-full">
+                {lightboxIdx + 1} / {lightboxPhotos.length}
+              </div>
+            </>
+          )}
+        </div>
+        {/* Thumbnail strip */}
+        {lightboxPhotos.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10">
+            {lightboxPhotos.map((ph, i) => (
+              <button key={ph.path} onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
+                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
+                <img src={ph.url} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+    </>
   )
 }
 
