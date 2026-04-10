@@ -28,6 +28,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [addOpen, setAddOpen] = useState(false)
   const [editEvent, setEditEvent] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [calendars, setCalendars] = useState([])
   const [defaultCalId, setDefaultCalId] = useState('primary')
 
@@ -101,13 +102,15 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     } catch (err) { alert('Failed to create: ' + err.message) }
   }
 
-  async function handleDelete(eventId) {
+  async function confirmDelete() {
+    if (!deleteConfirm) return
+    const eventId = deleteConfirm.id
     setDeleting(eventId)
     try {
       await deleteEvent(userId, 'primary', eventId)
       setEvents(prev => prev.filter(e => e.id !== eventId))
     } catch (err) { alert('Failed to delete: ' + err.message) }
-    finally { setDeleting(null) }
+    finally { setDeleting(null); setDeleteConfirm(null) }
   }
 
   async function handleEdit(eventData) {
@@ -162,14 +165,12 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
             {today && <span className="text-[#283693] font-semibold">Today</span>}
           </div>
         </div>
-        {!isPast && (
-          <div className="flex gap-1 shrink-0">
-            <button onClick={() => setEditEvent(event)} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
-            <button onClick={() => handleDelete(event.id)} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
-              {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-            </button>
-          </div>
-        )}
+        <div className="flex gap-1 shrink-0">
+          <button onClick={(e) => { e.stopPropagation(); setEditEvent(event) }} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
+          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(event) }} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
+            {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+          </button>
+        </div>
       </div>
     )
   }
@@ -197,6 +198,29 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
           {upcomingEvents.map(event => <EventRow key={event.id} event={event} />)}
         </div>
       )}
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteConfirm} onOpenChange={v => { if (!v) setDeleteConfirm(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="size-4" /> Delete Appointment
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            Are you sure you want to delete <strong>{deleteConfirm?.summary?.includes(' — ') ? deleteConfirm.summary.split(' — ')[0] : deleteConfirm?.summary}</strong>?
+          </p>
+          <p className="text-xs text-stone-400">
+            {deleteConfirm?.start?.dateTime ? formatDate(deleteConfirm.start.dateTime) : deleteConfirm?.start?.date ? formatDate(deleteConfirm.start.date) : ''}
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete} disabled={deleting} className="gap-1">
+              {deleting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />} Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Past Appointments Modal */}
       <Dialog open={pastOpen} onOpenChange={setPastOpen}>
