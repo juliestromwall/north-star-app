@@ -5,6 +5,7 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { DraftProvider } from '@/context/DraftContext'
 import ComposeWindows from '@/components/shared/ComposeWindows'
+import FloatingStickyNotes from '@/components/shared/FloatingStickyNotes'
 import { loadAdminUsers } from '@/data/mock/users'
 import { useRole } from '@/context/RoleContext'
 
@@ -52,6 +53,7 @@ export default function AppLayout() {
         </div>
       </div>
       <ComposeErrorBoundary><ComposeWindows /></ComposeErrorBoundary>
+      <FloatingStickyNotes />
     </DraftProvider>
   )
 }
