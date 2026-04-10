@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck } from 'lucide-react'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ── Field definitions ──
@@ -488,6 +488,7 @@ export default function IPProfilePage() {
   const ip1Name = caseData?.answers?.primaryFirstName || 'IP1'
   const ip2Name = caseData?.answers?.ip2FirstName || 'IP2'
   const completion = useMemo(() => countCompletion(profile, hasPartner), [profile, hasPartner])
+  const isApproved = !!profile?._approved
 
   // Auto-save with debounce (2 seconds after last change)
   const scheduleAutoSave = useCallback((updatedProfile) => {
@@ -502,6 +503,7 @@ export default function IPProfilePage() {
 
   // Update a shared section field
   function updateField(sectionKey, fieldKey, value) {
+    if (profile?._approved) return
     const updated = { ...profile, [sectionKey]: { ...profile[sectionKey], [fieldKey]: value } }
     setProfile(updated)
     scheduleAutoSave(updated)
@@ -509,6 +511,7 @@ export default function IPProfilePage() {
 
   // Update a per-person section field
   function updatePersonField(person, sectionKey, fieldKey, value) {
+    if (profile?._approved) return
     const updated = { ...profile, [person]: { ...profile[person], [sectionKey]: { ...profile[person]?.[sectionKey], [fieldKey]: value } } }
     setProfile(updated)
     scheduleAutoSave(updated)
@@ -569,6 +572,19 @@ export default function IPProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Approved banner */}
+      {isApproved && (
+        <div className="flex items-center gap-3 p-5 rounded-xl bg-green-50 border-2 border-green-300 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-6 h-6 text-green-600" />
+          </div>
+          <div>
+            <p className="font-bold text-green-800">Profile Approved</p>
+            <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. If you need to make changes, please contact the agency.</p>
+          </div>
+        </div>
+      )}
 
       {previewOpen ? (
         <div className="max-w-[850px] mx-auto">

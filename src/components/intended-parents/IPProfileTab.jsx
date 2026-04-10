@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2
+  ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2,
+  Eye, Download, ShieldCheck, ShieldX
 } from 'lucide-react'
+import { IPProfilePreview } from '@/pages/profile/IPProfilePage'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -597,6 +599,10 @@ export default function IPProfileTab({ ip, onUpdate }) {
   // Local copy of profile for immediate UI updates; debounced save bubbles up
   const [localProfile, setLocalProfile] = useState(answers._ipProfile || {})
   const saveTimer = useRef(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewPhotos, setPreviewPhotos] = useState([])
+  const [approvalSaving, setApprovalSaving] = useState(false)
+  const previewRef = useRef(null)
 
   // Sync localProfile when ip prop changes (e.g., navigating to a different IP)
   useEffect(() => {
@@ -605,6 +611,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   const profile = localProfile
   const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
+  const isApproved = !!profile?._approved
 
   const ip1Name = ip?.ip1Name || answers.primaryFirstName || 'IP1'
   const ip2Name = ip?.ip2Name || answers.ip2FirstName || 'IP2'
@@ -617,6 +624,71 @@ export default function IPProfileTab({ ip, onUpdate }) {
     saveTimer.current = setTimeout(() => {
       onUpdate({ ...answers, _ipProfile: updatedProfile })
     }, 1500)
+  }
+
+  async function openPreview() {
+    if (previewOpen) { setPreviewOpen(false); return }
+    const baseId = ip?.user_id || `case-${ip?.id}`
+    try {
+      const [portrait, cover] = await Promise.all([
+        listProfilePhotos(`${baseId}/ip-portrait`).catch(() => []),
+        listProfilePhotos(`${baseId}/ip-cover`).catch(() => []),
+      ])
+      setPreviewPhotos([...portrait, ...cover])
+    } catch {
+      setPreviewPhotos([])
+    }
+    setPreviewOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function toggleApproval() {
+    setApprovalSaving(true)
+    const updatedProfile = isApproved
+      ? { ...profile, _approved: false, _approvedAt: null }
+      : { ...profile, _approved: true, _approvedAt: new Date().toISOString() }
+    setLocalProfile(updatedProfile)
+    try {
+      await onUpdate({ ...answers, _ipProfile: updatedProfile })
+    } catch {} finally { setApprovalSaving(false) }
+  }
+
+  function downloadPDF() {
+    if (!previewOpen) {
+      openPreview().then(() => setTimeout(doPrint, 400))
+    } else {
+      doPrint()
+    }
+  }
+
+  function doPrint() {
+    if (!previewRef.current) return
+    const name = (ip?.ip1Name || answers.primaryFirstName || 'IP').replace(/[^a-zA-Z0-9]/g, '')
+    const printWin = window.open('', '_blank')
+    if (!printWin) { alert('Please allow popups to save as PDF'); return }
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map(el => el.outerHTML).join('\n')
+    const html = `<!DOCTYPE html><html><head><title>${name} - IP Profile</title>${styles}
+      <style>
+        @page { size: letter; margin: 0; }
+        @media print {
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
+          .print-bar { display: none !important; }
+          .print-container { max-width: 100% !important; padding: 0 !important; }
+        }
+        body { background: #fff; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        .print-container { max-width: 100%; margin: 0; padding: 0; }
+        .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+        .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+      </style></head><body>
+      <div class="print-bar">
+        <strong>${name}'s Intended Parent Profile</strong>
+        <button onclick="window.print()">Save as PDF</button>
+      </div>
+      <div class="print-container">${previewRef.current.innerHTML}</div>
+      </body></html>`
+    printWin.document.write(html)
+    printWin.document.close()
   }
 
   // Save a shared section (fertility, surrogacy)
@@ -639,48 +711,91 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   return (
     <div className="space-y-6 mt-4">
-      {/* Admin Photos */}
-      <IPAdminPhotosSection ip={ip} profile={profile} onProfileChange={scheduleAutoSave} />
+      {/* Approved banner */}
+      {isApproved && (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
+          <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
+          <p className="text-sm font-medium text-green-800">Profile is approved. The IP can no longer edit it.</p>
+        </div>
+      )}
 
-      {/* Progress Bar */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-stone-700">Profile Completion</p>
-            <p className="text-sm font-semibold text-[#283693]">{percent}%</p>
+      {/* Progress Bar + action buttons */}
+      <Card className="rounded-2xl">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Profile Completion</CardTitle>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={openPreview}>
+              <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF}>
+              <Download className="size-3.5" /> Save as PDF
+            </Button>
+            <Button
+              size="sm"
+              className={`gap-1.5 rounded-full ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'} text-white`}
+              onClick={toggleApproval}
+              disabled={approvalSaving}
+            >
+              {approvalSaving ? <Loader2 className="size-3.5 animate-spin" /> : isApproved ? <ShieldX className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
+              {isApproved ? 'Unapprove' : 'Approve'}
+            </Button>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div
-              className="h-2.5 rounded-full transition-all duration-500 bg-[#283693]"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            {filled} of {total} fields completed
-          </p>
-        </CardContent>
+        </CardHeader>
+        {!previewOpen && (
+          <CardContent className="pt-0 space-y-3">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                </div>
+              </div>
+              <span className="text-sm font-bold text-[#283693]">{percent}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{filled} of {total} fields completed</p>
+          </CardContent>
+        )}
       </Card>
 
-      {/* Sections */}
-      {SECTIONS.map(section =>
-        section.perPerson ? (
-          <PerPersonSectionCard
-            key={section.key}
-            section={section}
+      {previewOpen ? (
+        <div className="max-w-[850px] mx-auto" ref={previewRef}>
+          <IPProfilePreview
             profile={profile}
+            photos={previewPhotos}
             hasPartner={hasPartner}
             ip1Name={ip1Name}
             ip2Name={ip2Name}
-            onSave={handlePerPersonSave}
+            primaryName={[answers.primaryFirstName, answers.primaryLastName].filter(Boolean).join(' ') || 'Intended Parent'}
+            ip2FullName={[answers.ip2FirstName, answers.ip2LastName].filter(Boolean).join(' ')}
+            location={[answers.city, answers.stateProv].filter(Boolean).join(', ')}
           />
-        ) : (
-          <SharedSectionCard
-            key={section.key}
-            section={section}
-            profile={profile}
-            onSave={handleSharedSave}
-          />
-        )
+        </div>
+      ) : (
+        <>
+          {/* Admin Photos */}
+          <IPAdminPhotosSection ip={ip} profile={profile} onProfileChange={scheduleAutoSave} />
+
+          {/* Sections */}
+          {SECTIONS.map(section =>
+            section.perPerson ? (
+              <PerPersonSectionCard
+                key={section.key}
+                section={section}
+                profile={profile}
+                hasPartner={hasPartner}
+                ip1Name={ip1Name}
+                ip2Name={ip2Name}
+                onSave={handlePerPersonSave}
+              />
+            ) : (
+              <SharedSectionCard
+                key={section.key}
+                section={section}
+                profile={profile}
+                onSave={handleSharedSave}
+              />
+            )
+          )}
+        </>
       )}
     </div>
   )
