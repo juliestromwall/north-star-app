@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ── Field definitions ──
@@ -175,11 +175,81 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
   )
 }
 
+// ── Photo Gallery (multi-upload, delete) ──
+
+function PhotoGallery({ storagePath }) {
+  const [photos, setPhotos] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    listProfilePhotos(storagePath).then(list => {
+      if (!cancelled) setPhotos(list || [])
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [storagePath])
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true); setError(null)
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
+        const jpeg = await convertToJpeg(file)
+        const result = await uploadProfilePhoto(storagePath, jpeg)
+        if (result) setPhotos(prev => [...prev, result])
+      }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete(photo) {
+    if (!confirm('Delete this photo?')) return
+    try {
+      await deleteProfilePhoto(photo.path)
+      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+    } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-stone-500">Add favorite photos that show your personality. Surrogates will see these in a carousel on your profile.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {photos.map(photo => (
+          <div key={photo.path} className="relative group aspect-square rounded-2xl overflow-hidden border border-stone-200">
+            <img src={photo.url} alt="" className="w-full h-full object-cover" />
+            <button onClick={() => handleDelete(photo)}
+              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Delete">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+              <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Add Photo</span></>
+            )}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      </div>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
 // ── IP Profile Preview Component ──
 
 export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name, primaryName, ip2FullName, location }) {
-  const profilePhoto = photos?.find(p => p.path?.includes('/ip-portrait/'))
-  const coverPhoto = photos?.find(p => p.path?.includes('/ip-cover/'))
+  // Photos can be tagged with kind, or fall back to path matching
+  const profilePhoto = photos?.find(p => p.kind === 'portrait') || photos?.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
+  const coverPhoto = photos?.find(p => p.kind === 'cover') || photos?.find(p => p.path?.includes('/cover/') || p.path?.includes('/ip-cover/'))
+  const galleryPhotos = photos?.filter(p => p.kind === 'gallery' || (p.path?.includes('/gallery/') && !p.path?.includes('/portrait/') && !p.path?.includes('/cover/'))) || []
+  const [galleryIdx, setGalleryIdx] = useState(0)
   const fertility = profile?.fertility || {}
   const surrogacy = profile?.surrogacy || {}
   const ip1 = profile?.ip1 || {}
@@ -242,6 +312,48 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           {location && <p className="text-sm text-stone-500 mt-0.5">📍 {location}</p>}
         </div>
       </div>
+
+      {/* Photo Gallery Carousel */}
+      {galleryPhotos.length > 0 && (
+        <div className="px-6 pb-6">
+          <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1 mb-3">Photo Gallery</h3>
+          <div className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100">
+            <img src={galleryPhotos[galleryIdx].url} alt="" className="w-full h-full object-cover" />
+            {galleryPhotos.length > 1 && (
+              <>
+                <button
+                  onClick={() => setGalleryIdx(i => (i - 1 + galleryPhotos.length) % galleryPhotos.length)}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+                <button
+                  onClick={() => setGalleryIdx(i => (i + 1) % galleryPhotos.length)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium">
+                  {galleryIdx + 1} / {galleryPhotos.length}
+                </div>
+              </>
+            )}
+          </div>
+          {galleryPhotos.length > 1 && (
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+              {galleryPhotos.map((photo, i) => (
+                <button
+                  key={photo.path}
+                  onClick={() => setGalleryIdx(i)}
+                  className={`shrink-0 size-16 rounded-lg overflow-hidden border-2 transition-all ${i === galleryIdx ? 'border-[#283693] scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                >
+                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Sections */}
       <div className="px-6 pb-8 space-y-6">
@@ -523,13 +635,20 @@ export default function IPProfilePage() {
 
   async function openPreview() {
     if (previewOpen) { setPreviewOpen(false); return }
-    const userId = currentUser?.id || currentUser?.email || 'anonymous'
+    if (!caseData?.id) { setPreviewOpen(true); return }
+    const base = `ip-${caseData.id}`
     try {
-      const [portrait, cover] = await Promise.all([
-        listProfilePhotos(`${userId}/ip-portrait`).catch(() => []),
-        listProfilePhotos(`${userId}/ip-cover`).catch(() => []),
+      const [portrait, cover, gallery] = await Promise.all([
+        listProfilePhotos(`${base}/portrait`).catch(() => []),
+        listProfilePhotos(`${base}/cover`).catch(() => []),
+        listProfilePhotos(`${base}/gallery`).catch(() => []),
       ])
-      setPreviewPhotos([...portrait, ...cover])
+      const tagged = [
+        ...portrait.map(p => ({ ...p, kind: 'portrait' })),
+        ...cover.map(p => ({ ...p, kind: 'cover' })),
+        ...gallery.map(p => ({ ...p, kind: 'gallery' })),
+      ]
+      setPreviewPhotos(tagged)
     } catch {
       setPreviewPhotos([])
     }
@@ -626,8 +745,8 @@ export default function IPProfilePage() {
                 <PhotoUpload
                   label="Profile Photo"
                   hint={hasPartner ? 'Upload a favorite picture of the two of you!' : 'Upload a favorite picture of just you!'}
-                  userId={currentUser?.id || currentUser?.email || 'anonymous'}
-                  subfolder="ip-portrait"
+                  userId={`ip-${caseData?.id}`}
+                  subfolder="portrait"
                   onPhotoChange={(url) => {
                     const updated = { ...profile, profilePhotoUrl: url || '' }
                     setProfile(updated)
@@ -637,8 +756,8 @@ export default function IPProfilePage() {
                 <PhotoUpload
                   label="Cover Photo"
                   hint="Upload a favorite picture of you doing something you love!"
-                  userId={currentUser?.id || currentUser?.email || 'anonymous'}
-                  subfolder="ip-cover"
+                  userId={`ip-${caseData?.id}`}
+                  subfolder="cover"
                   onPhotoChange={(url) => {
                     const updated = { ...profile, coverPhotoUrl: url || '' }
                     setProfile(updated)
@@ -646,6 +765,33 @@ export default function IPProfilePage() {
                   }}
                 />
               </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Photo Gallery */}
+      <Collapsible open={openSections['gallery']} onOpenChange={() => toggleSection('gallery')}>
+        <Card className="rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="size-10 rounded-xl flex items-center justify-center bg-[#283693]/10">
+                  <Camera className="size-5 text-[#283693]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base text-[#283693]">Photo Gallery</CardTitle>
+                  <CardDescription>Upload favorite photos to share with surrogates</CardDescription>
+                </div>
+              </div>
+              <CardAction>
+                <ChevronDown className={`size-5 text-stone-400 transition-transform ${openSections['gallery'] ? 'rotate-180' : ''}`} />
+              </CardAction>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <PhotoGallery storagePath={`ip-${caseData?.id}/gallery`} />
             </CardContent>
           </CollapsibleContent>
         </Card>

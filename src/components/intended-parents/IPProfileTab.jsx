@@ -556,9 +556,8 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
 }
 
 function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
-  // Use IP's auth user_id if available so it shares storage with portal uploads,
-  // otherwise fall back to a case-id-keyed path (admin-only photos)
-  const baseId = ip?.user_id || `case-${ip?.id}`
+  // Stable case-keyed path so admin and portal share storage
+  const baseId = `ip-${ip?.id}`
 
   function handlePortraitChange(url) {
     onProfileChange({ ...profile, profilePhotoUrl: url || '' })
@@ -574,23 +573,92 @@ function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
           <Camera className="w-4 h-4 text-[#283693]" /> Profile Photos
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <AdminPhotoSlot
             label="Profile Photo"
             hint="A picture of the IP(s) — couples or single"
-            storagePath={`${baseId}/ip-portrait`}
+            storagePath={`${baseId}/portrait`}
             onChange={handlePortraitChange}
           />
           <AdminPhotoSlot
             label="Cover Photo"
             hint="A favorite picture doing something they love"
-            storagePath={`${baseId}/ip-cover`}
+            storagePath={`${baseId}/cover`}
             onChange={handleCoverChange}
           />
         </div>
+        <div>
+          <p className="text-sm font-semibold text-stone-700 mb-1">Photo Gallery</p>
+          <p className="text-xs text-stone-400 mb-3">Additional favorite photos shown in the carousel on the profile preview</p>
+          <AdminPhotoGallery storagePath={`${baseId}/gallery`} />
+        </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ── Admin Photo Gallery (multi upload + delete) ──
+function AdminPhotoGallery({ storagePath }) {
+  const [photos, setPhotos] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    listProfilePhotos(storagePath).then(list => {
+      if (!cancelled) setPhotos(list || [])
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [storagePath])
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true); setError(null)
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
+        const jpeg = await convertToJpeg(file)
+        const result = await uploadProfilePhoto(storagePath, jpeg)
+        if (result) setPhotos(prev => [...prev, result])
+      }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete(photo) {
+    if (!confirm('Delete this photo?')) return
+    try {
+      await deleteProfilePhoto(photo.path)
+      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+    } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+        {photos.map(photo => (
+          <div key={photo.path} className="relative group aspect-square rounded-xl overflow-hidden border border-stone-200">
+            <img src={photo.url} alt="" className="w-full h-full object-cover" />
+            <button onClick={() => handleDelete(photo)}
+              className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+              <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
+            )}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      </div>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+    </>
   )
 }
 
@@ -628,13 +696,19 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   async function openPreview() {
     if (previewOpen) { setPreviewOpen(false); return }
-    const baseId = ip?.user_id || `case-${ip?.id}`
+    const baseId = `ip-${ip?.id}`
     try {
-      const [portrait, cover] = await Promise.all([
-        listProfilePhotos(`${baseId}/ip-portrait`).catch(() => []),
-        listProfilePhotos(`${baseId}/ip-cover`).catch(() => []),
+      const [portrait, cover, gallery] = await Promise.all([
+        listProfilePhotos(`${baseId}/portrait`).catch(() => []),
+        listProfilePhotos(`${baseId}/cover`).catch(() => []),
+        listProfilePhotos(`${baseId}/gallery`).catch(() => []),
       ])
-      setPreviewPhotos([...portrait, ...cover])
+      const tagged = [
+        ...portrait.map(p => ({ ...p, kind: 'portrait' })),
+        ...cover.map(p => ({ ...p, kind: 'cover' })),
+        ...gallery.map(p => ({ ...p, kind: 'gallery' })),
+      ]
+      setPreviewPhotos(tagged)
     } catch {
       setPreviewPhotos([])
     }
