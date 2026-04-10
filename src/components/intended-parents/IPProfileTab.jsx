@@ -3,7 +3,9 @@ import {
   ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2,
   Eye, Download, ShieldCheck, ShieldX
 } from 'lucide-react'
-import { IPProfilePreview } from '@/pages/profile/IPProfilePage'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { IPProfilePreview, SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -565,6 +567,9 @@ function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
   function handleCoverChange(url) {
     onProfileChange({ ...profile, coverPhotoUrl: url || '' })
   }
+  function handleOrderChange(newOrder) {
+    onProfileChange({ ...profile, _photoOrder: newOrder })
+  }
 
   return (
     <Card>
@@ -590,28 +595,51 @@ function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
         </div>
         <div>
           <p className="text-sm font-semibold text-stone-700 mb-1">Photo Gallery</p>
-          <p className="text-xs text-stone-400 mb-3">Additional favorite photos shown in the carousel on the profile preview</p>
-          <AdminPhotoGallery storagePath={`${baseId}/gallery`} />
+          <p className="text-xs text-stone-400 mb-3">Additional favorite photos shown in the carousel on the profile preview. Drag to reorder. Click to crop or rotate.</p>
+          <AdminPhotoGallery
+            storagePath={`${baseId}/gallery`}
+            order={profile?._photoOrder}
+            onOrderChange={handleOrderChange}
+          />
         </div>
       </CardContent>
     </Card>
   )
 }
 
-// ── Admin Photo Gallery (multi upload + delete) ──
-function AdminPhotoGallery({ storagePath }) {
+// ── Admin Photo Gallery (drag-reorder, crop, rotate, multi-upload, delete) ──
+function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
   const [photos, setPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
 
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
     listProfilePhotos(storagePath).then(list => {
-      if (!cancelled) setPhotos(list || [])
+      if (cancelled) return
+      const loaded = list || []
+      if (order && order.length > 0) {
+        const byPath = Object.fromEntries(loaded.map(p => [p.path, p]))
+        const ordered = order.map(path => byPath[path]).filter(Boolean)
+        const extras = loaded.filter(p => !order.includes(p.path))
+        setPhotos([...ordered, ...extras])
+      } else {
+        setPhotos(loaded)
+      }
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [storagePath])
+  }, [storagePath]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function persistOrder(list) {
+    if (onOrderChange) onOrderChange(list.map(p => p.path))
+  }
 
   async function handleUpload(e) {
     const files = Array.from(e.target.files || [])
@@ -622,7 +650,9 @@ function AdminPhotoGallery({ storagePath }) {
         if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
         const jpeg = await convertToJpeg(file)
         const result = await uploadProfilePhoto(storagePath, jpeg)
-        if (result) setPhotos(prev => [...prev, result])
+        if (result) {
+          setPhotos(prev => { const next = [...prev, result]; persistOrder(next); return next })
+        }
       }
     } catch (err) { setError(err.message || 'Upload failed') }
     finally { setUploading(false); e.target.value = '' }
@@ -632,31 +662,56 @@ function AdminPhotoGallery({ storagePath }) {
     if (!confirm('Delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
-      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+      setPhotos(prev => { const next = prev.filter(p => p.path !== photo.path); persistOrder(next); return next })
     } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  async function handleCropSave(oldPhoto, croppedFile) {
+    try {
+      const result = await uploadProfilePhoto(storagePath, croppedFile)
+      if (result) {
+        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
+        setPhotos(prev => { const next = prev.map(p => p.path === oldPhoto.path ? result : p); persistOrder(next); return next })
+      }
+      setEditing(null)
+    } catch (err) { setError(err.message || 'Save failed') }
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setPhotos(prev => {
+      const oldIndex = prev.findIndex(p => p.path === active.id)
+      const newIndex = prev.findIndex(p => p.path === over.id)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      persistOrder(next)
+      return next
+    })
+  }
+
+  if (editing) {
+    return <PhotoEditor photo={editing} onSave={handleCropSave} onClose={() => setEditing(null)} />
   }
 
   return (
     <>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-        {photos.map(photo => (
-          <div key={photo.path} className="relative group aspect-square rounded-xl overflow-hidden border border-stone-200">
-            <img src={photo.url} alt="" className="w-full h-full object-cover" />
-            <button onClick={() => handleDelete(photo)}
-              className="absolute top-1 right-1 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-              <Trash2 className="w-3 h-3" />
-            </button>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {photos.map(photo => (
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+            <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="text-center">
+                {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+                  <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
+                )}
+              </div>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
           </div>
-        ))}
-        <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
-          <div className="text-center">
-            {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
-              <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
-            )}
-          </div>
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
-        </label>
-      </div>
+        </SortableContext>
+      </DndContext>
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
     </>
   )
@@ -703,10 +758,19 @@ export default function IPProfileTab({ ip, onUpdate }) {
         listProfilePhotos(`${baseId}/cover`).catch(() => []),
         listProfilePhotos(`${baseId}/gallery`).catch(() => []),
       ])
+      const order = profile?._photoOrder
+      let orderedGallery = gallery
+      if (order && order.length > 0) {
+        const byPath = Object.fromEntries(gallery.map(p => [p.path, p]))
+        orderedGallery = [
+          ...order.map(path => byPath[path]).filter(Boolean),
+          ...gallery.filter(p => !order.includes(p.path)),
+        ]
+      }
       const tagged = [
         ...portrait.map(p => ({ ...p, kind: 'portrait' })),
         ...cover.map(p => ({ ...p, kind: 'cover' })),
-        ...gallery.map(p => ({ ...p, kind: 'gallery' })),
+        ...orderedGallery.map(p => ({ ...p, kind: 'gallery' })),
       ]
       setPreviewPhotos(tagged)
     } catch {

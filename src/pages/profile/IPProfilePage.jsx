@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import Cropper from 'react-easy-crop'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ── Field definitions ──
@@ -175,21 +179,131 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
   )
 }
 
-// ── Photo Gallery (multi-upload, delete) ──
+// ── Crop helper ──
+function getCroppedImg(imageSrc, crop, rotation = 0) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const rad = (rotation * Math.PI) / 180
+      const sin = Math.abs(Math.sin(rad))
+      const cos = Math.abs(Math.cos(rad))
+      const bw = img.width * cos + img.height * sin
+      const bh = img.width * sin + img.height * cos
+      canvas.width = crop.width
+      canvas.height = crop.height
+      ctx.translate(-crop.x, -crop.y)
+      ctx.translate(bw / 2, bh / 2)
+      ctx.rotate(rad)
+      ctx.translate(-img.width / 2, -img.height / 2)
+      ctx.drawImage(img, 0, 0)
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Crop failed')), 'image/jpeg', 0.9)
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = imageSrc
+  })
+}
 
-function PhotoGallery({ storagePath }) {
+// ── Sortable photo tile ──
+export function SortablePhoto({ photo, onEdit, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.path })
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 50 : 'auto', opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div ref={setNodeRef} style={style} className="relative group aspect-square rounded-2xl overflow-hidden border border-stone-200 touch-none" {...attributes} {...listeners}>
+      <img src={photo.url} alt="" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button onClick={(e) => { e.stopPropagation(); onEdit(photo) }}
+          className="p-1.5 rounded-full bg-white/90 text-stone-700 hover:bg-white shadow-sm">
+          <CropIcon className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={(e) => { e.stopPropagation(); onDelete(photo) }}
+          className="p-1.5 rounded-full bg-white/90 text-red-500 hover:bg-white shadow-sm">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Photo Editor (crop + rotate) ──
+export function PhotoEditor({ photo, onSave, onClose }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
+  const [croppedArea, setCroppedArea] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (!croppedArea) return
+    setSaving(true)
+    try {
+      const blob = await getCroppedImg(photo.url, croppedArea, rotation)
+      const file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' })
+      await onSave(photo, file)
+    } catch {} finally { setSaving(false) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="relative w-full h-80 sm:h-96 bg-stone-900 rounded-xl overflow-hidden">
+        <Cropper image={photo.url} crop={crop} zoom={zoom} rotation={rotation} aspect={1}
+          onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, area) => setCroppedArea(area)} />
+      </div>
+      <div className="flex items-center gap-4">
+        <label className="text-xs text-stone-500 shrink-0">Zoom</label>
+        <input type="range" min={1} max={3} step={0.1} value={zoom} onChange={e => setZoom(Number(e.target.value))} className="flex-1 accent-[#283693]" />
+        <button onClick={() => setRotation(r => (r + 90) % 360)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-stone-200 rounded-lg hover:bg-stone-50">
+          <RotateCw className="w-3.5 h-3.5" /> Rotate
+        </button>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button onClick={onClose} className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg hover:bg-stone-50">Cancel</button>
+        <button onClick={handleSave} disabled={saving} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white" style={{ backgroundColor: '#283693' }}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Photo Gallery (drag to reorder, click to edit, multi-upload, delete) ──
+
+function PhotoGallery({ storagePath, order, onOrderChange }) {
   const [photos, setPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
 
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
     listProfilePhotos(storagePath).then(list => {
-      if (!cancelled) setPhotos(list || [])
+      if (cancelled) return
+      const loaded = list || []
+      // Apply persisted order if provided
+      if (order && order.length > 0) {
+        const byPath = Object.fromEntries(loaded.map(p => [p.path, p]))
+        const ordered = order.map(path => byPath[path]).filter(Boolean)
+        const extras = loaded.filter(p => !order.includes(p.path))
+        setPhotos([...ordered, ...extras])
+      } else {
+        setPhotos(loaded)
+      }
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [storagePath])
+  }, [storagePath]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function persistOrder(list) {
+    if (onOrderChange) onOrderChange(list.map(p => p.path))
+  }
 
   async function handleUpload(e) {
     const files = Array.from(e.target.files || [])
@@ -200,7 +314,13 @@ function PhotoGallery({ storagePath }) {
         if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
         const jpeg = await convertToJpeg(file)
         const result = await uploadProfilePhoto(storagePath, jpeg)
-        if (result) setPhotos(prev => [...prev, result])
+        if (result) {
+          setPhotos(prev => {
+            const next = [...prev, result]
+            persistOrder(next)
+            return next
+          })
+        }
       }
     } catch (err) { setError(err.message || 'Upload failed') }
     finally { setUploading(false); e.target.value = '' }
@@ -210,33 +330,65 @@ function PhotoGallery({ storagePath }) {
     if (!confirm('Delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
-      setPhotos(prev => prev.filter(p => p.path !== photo.path))
+      setPhotos(prev => {
+        const next = prev.filter(p => p.path !== photo.path)
+        persistOrder(next)
+        return next
+      })
     } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  async function handleCropSave(oldPhoto, croppedFile) {
+    try {
+      const result = await uploadProfilePhoto(storagePath, croppedFile)
+      if (result) {
+        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
+        setPhotos(prev => {
+          const next = prev.map(p => p.path === oldPhoto.path ? result : p)
+          persistOrder(next)
+          return next
+        })
+      }
+      setEditing(null)
+    } catch (err) { setError(err.message || 'Save failed') }
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setPhotos(prev => {
+      const oldIndex = prev.findIndex(p => p.path === active.id)
+      const newIndex = prev.findIndex(p => p.path === over.id)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      persistOrder(next)
+      return next
+    })
+  }
+
+  if (editing) {
+    return <PhotoEditor photo={editing} onSave={handleCropSave} onClose={() => setEditing(null)} />
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-stone-500">Add favorite photos that show your personality. Surrogates will see these in a carousel on your profile.</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {photos.map(photo => (
-          <div key={photo.path} className="relative group aspect-square rounded-2xl overflow-hidden border border-stone-200">
-            <img src={photo.url} alt="" className="w-full h-full object-cover" />
-            <button onClick={() => handleDelete(photo)}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Delete">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+      <p className="text-sm text-stone-500">Add favorite photos that show your personality. Drag to reorder. Tap a photo to crop or rotate.</p>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {photos.map(photo => (
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+            <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="text-center">
+                {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+                  <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Add Photo</span></>
+                )}
+              </div>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
           </div>
-        ))}
-        <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
-          <div className="text-center">
-            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
-              <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Add Photo</span></>
-            )}
-          </div>
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
-        </label>
-      </div>
+        </SortableContext>
+      </DndContext>
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   )
@@ -643,10 +795,20 @@ export default function IPProfilePage() {
         listProfilePhotos(`${base}/cover`).catch(() => []),
         listProfilePhotos(`${base}/gallery`).catch(() => []),
       ])
+      // Apply user-defined gallery ordering if persisted
+      const order = profile?._photoOrder
+      let orderedGallery = gallery
+      if (order && order.length > 0) {
+        const byPath = Object.fromEntries(gallery.map(p => [p.path, p]))
+        orderedGallery = [
+          ...order.map(path => byPath[path]).filter(Boolean),
+          ...gallery.filter(p => !order.includes(p.path)),
+        ]
+      }
       const tagged = [
         ...portrait.map(p => ({ ...p, kind: 'portrait' })),
         ...cover.map(p => ({ ...p, kind: 'cover' })),
-        ...gallery.map(p => ({ ...p, kind: 'gallery' })),
+        ...orderedGallery.map(p => ({ ...p, kind: 'gallery' })),
       ]
       setPreviewPhotos(tagged)
     } catch {
@@ -791,7 +953,15 @@ export default function IPProfilePage() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <PhotoGallery storagePath={`ip-${caseData?.id}/gallery`} />
+              <PhotoGallery
+                storagePath={`ip-${caseData?.id}/gallery`}
+                order={profile?._photoOrder}
+                onOrderChange={(newOrder) => {
+                  const updated = { ...profile, _photoOrder: newOrder }
+                  setProfile(updated)
+                  scheduleAutoSave(updated)
+                }}
+              />
             </CardContent>
           </CollapsibleContent>
         </Card>
