@@ -96,7 +96,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setLoadingFull(true)
     setFullEmail(null)
 
-    // Use stored body_html first (works for any admin without Gmail access)
+    // 1. Use stored body_html first (works for any admin without Gmail access)
     if (loggedEmail.body_html) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
@@ -110,7 +110,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       return
     }
 
-    // System-generated emails (not from Gmail) — show snippet as body
+    // 2. System-generated emails (not from Gmail) — show snippet as body
     const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
     if (isSystemEmail) {
       setFullEmail({
@@ -125,17 +125,34 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       return
     }
 
-    // Fall back to fetching from Gmail (only works if current admin has access)
-    if (!connected || !userId) { setLoadingFull(false); return }
-    try {
-      const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
-      const headers = parseEmailHeaders(full)
-      const bodyHtml = parseEmailBody(full)
-      const attachments = parseEmailAttachments(full)
-      setFullEmail({ ...headers, bodyHtml, attachments })
-    } catch {
-      setFullEmail(null)
+    // 3. Try fetching from Gmail (only works if current admin has access)
+    if (connected && userId) {
+      try {
+        const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
+        const headers = parseEmailHeaders(full)
+        const bodyHtml = parseEmailBody(full)
+        const attachments = parseEmailAttachments(full)
+        setFullEmail({ ...headers, bodyHtml, attachments })
+        setLoadingFull(false)
+        return
+      } catch {}
     }
+
+    // 4. Fallback — show whatever metadata we have (snippet + logged_by info)
+    setFullEmail({
+      from: loggedEmail.from_address || '',
+      to: loggedEmail.to_address || '',
+      date: loggedEmail.date,
+      subject: loggedEmail.subject,
+      bodyHtml: `
+        <div style="background: #fef3c7; border-left: 3px solid #f59e0b; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+          <p style="margin: 0; font-size: 12px; color: #92400e;"><strong>Note:</strong> Full email body not available — this email was logged before body storage was enabled, or the original logger no longer has access to the email in their inbox.</p>
+        </div>
+        <p>${loggedEmail.snippet || '(No preview available)'}</p>
+        <p style="color: #78716c; font-size: 12px; margin-top: 16px;">Logged by ${loggedEmail.logged_by_name || 'Unknown'}</p>
+      `,
+      attachments: [],
+    })
     setLoadingFull(false)
   }
 
