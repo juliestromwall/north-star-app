@@ -1,5 +1,45 @@
 # Session Log
 
+## 2026-04-10 (Floating Sticky Notes + Bot Protection Fixes + UI Polish)
+
+**Worked on:** Draggable floating sticky notes, removed dashboard calculator/sticky notes, Couple/Single badge cleanup, bot protection adjustments for Safari mobile, surrogate notification email enhancements
+
+**Changes made:**
+
+Floating Sticky Notes:
+- New FloatingStickyNotes component with draggable, persistent post-it notes
+- 5 colors (yellow, pink, blue, green, purple) with paper fold effect
+- Click to edit, click away to save
+- Minimize button shrinks notes to small pills in TopBar (right after calendar icon via React portal)
+- Per-user persistence in Supabase app_config (each admin has their own notes)
+- Admin-only feature, renders on all pages via AppLayout
+- Removed old dashboard calculator and sticky notes (replaced by floating version)
+
+UI Cleanup:
+- Removed Couple/Single parent badge from IP cards (list, detail, hero)
+- Removed Type column from IP list view table
+- Names already indicate couple status (e.g., "Sam & Alex Jones")
+- Pluralization on journey pages kept ("Intended Parent" vs "Intended Parents")
+
+Bot Protection (Safari mobile fixes):
+- Disabled rapid-fill detection (Safari mobile false positive)
+- Honeypot, Turnstile already disabled
+- Only time check (15s minimum) remains active
+- Real surrogates can now submit without being silently DQ'd
+
+Email Notifications:
+- Surrogate admin notification email now includes "How They Heard" section
+- "Friend or family" shows referrer name
+- "Other" shows custom text
+- Standard sources show as-is
+
+**Next steps:**
+- Test sticky notes on production
+- Continue with whatever Julie wants next
+
+**Open questions:**
+- None — all features working as intended
+
 ## 2026-04-09 — 2026-04-10 (Psych Tracking, Birth Logging, IP Profile Builder)
 
 **Worked on:** Editable checklist dates for case imports, Psych Tracking page with shareable external link, pregnancy tracker birth logging, baby images, IP portal redesign, IP profile builder
