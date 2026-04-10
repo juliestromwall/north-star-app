@@ -247,39 +247,22 @@ export default function IPDashboard() {
         </Card>
       )}
 
-      {/* Quick links row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
+      {/* Coordinator */}
+      {caseData?.assigned_to && (
+        <Card>
           <CardContent className="py-4">
-            <Link to="/my-documents" className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-violet-50 shrink-0">
-                <FileText className="w-5 h-5 text-violet-600" />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 shrink-0">
+                <User className="w-5 h-5 text-emerald-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-stone-700 text-sm">My Documents</p>
-                <p className="text-xs text-stone-400 mt-0.5">View and manage your documents</p>
+                <p className="text-xs text-stone-400">Your Coordinator</p>
+                <p className="font-semibold text-stone-700 text-sm">{caseData.assigned_to}</p>
               </div>
-              <ArrowRight className="w-4 h-4 text-stone-400 shrink-0" />
-            </Link>
+            </div>
           </CardContent>
         </Card>
-
-        {caseData?.assigned_to && (
-          <Card>
-            <CardContent className="py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 shrink-0">
-                  <User className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-stone-400">Your Coordinator</p>
-                  <p className="font-semibold text-stone-700 text-sm">{caseData.assigned_to}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      )}
 
       {/* To Do section */}
       {activeTasks.length > 0 && (
