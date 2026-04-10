@@ -1,5 +1,72 @@
 # Session Log
 
+## 2026-04-09 — 2026-04-10 (Psych Tracking, Birth Logging, IP Profile Builder)
+
+**Worked on:** Editable checklist dates for case imports, Psych Tracking page with shareable external link, pregnancy tracker birth logging, baby images, IP portal redesign, IP profile builder
+
+**Changes made:**
+
+Checklist log dates editable:
+- New log entries: date picker (defaults to today, supports past dates for case imports)
+- Editing existing entries: date is now an editable date input instead of read-only
+- Works across all checklists (surrogate, IP, journey)
+
+Psych Tracking page (`/psych-tracking`):
+- New page under Operations between Insurance Tracking and Expense Tracking
+- Renamed "Insurance" → "Insurance Tracking" in sidebar
+- Auto-populates surrogates with active pregnancy tracker (`pregnant === 'yes'`)
+- Manual "+ Add Surrogate" entry via modal (name, email, phone)
+- Columns: Surrogate, Contact (email + phone stacked), Due Date, 10 Week (Due/Completed), 20 Week (Due/Completed), 30 Week (Due/Completed), Delivery Date, Post Delivery
+- Gestational milestone dates auto-calculated (due - 280 days + 70/140/210)
+- Editable check-in date cells, green when set
+- Share Link button generates token-based public URL at `/psych-tracking/share/:token`
+- External users can view AND update check-in dates without login
+- Both admin and shared views match layout
+
+Pregnancy tracker — Log Birth:
+- New "Log Birth" button on pregnancy banner (pre-delivery)
+- Dialog: delivery date, type (Vaginal/C-Section variants/VBAC), per-baby name/sex/weight/length, post-delivery notes
+- After birth: banner turns amber "Baby Born!", status auto-updates to "Delivered"
+- 🤰 emoji replaced with baby-boy.png or baby-girl.png based on first baby's sex
+- New "Delivered" step added to pregnancy timeline (amber circle with 🎉)
+- "Pregnant!" timeline step colored by baby sex (pink girl, blue boy, green unknown)
+- "Edit Birth Details" button after delivery opens full birth form pre-filled
+- Baby images replace 🤰 across MatchedJourneysPage and CaseUpdatesPage
+- Babies born counter auto-updates: heartbeat → +1 pregnant, birth → -1 pregnant + births for current year, loss → -1 pregnant
+- Status dropdown always includes current status even if not in stage's configured list
+
+IP portal redesign:
+- IPDashboard rebuilt to match SurrogateDashboard pattern
+- Welcome banner, pending tasks badge, "My Intake Answers" card with dialog
+- Tasks To Do + Completed sections, coordinator card, contact card
+- Removed inline intake form display (now in dialog like surrogate's quiz results)
+
+IP Profile Builder (full rewrite):
+- 5 collapsible sections: Fertility, Surrogacy, Personal (per-person), Health (per-person), History (per-person)
+- All fields always editable inline (no Edit/Save toggle) with auto-save (2s debounce)
+- Layout matches GC profile exactly: progress ring, gradient bar, section cards, "5/6" count format
+- IP1/IP2 tabs for per-person sections when partner exists
+- Pre-fills from intake quiz answers on first load (frozen embryos, donors, RE doctor, DOB)
+- New "Basic Information" section at top with profile photo + cover photo upload
+  - Profile photo hint changes based on partner status
+  - Cover photo: "favorite picture of you doing something you love"
+
+Other:
+- Removed delivery history for journey 14 manually via Supabase
+
+**Next steps:**
+- IP photo upload verification
+- IP profile preview button
+- Admin photo editing for IP profile
+- Admin IP profile edit UI matching GC pattern
+- Admin IP preview, approve, save PDF
+
+**Open questions:**
+- Should manual psych tracking entries be removable from the shared view?
+- Birth logging — should it create a journey note automatically?
+
+---
+
 ## 2026-04-07 through 2026-04-09 (Major Feature Session)
 
 **Worked on:** Photo management overhaul, profile sharing, surrogate stages, IP portal, bot protection, email notifications, auth fixes, data reset
