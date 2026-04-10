@@ -43,13 +43,28 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       const apptCal = writable.find(c => c.summary?.toLowerCase() === 'appointments')
       const calId = apptCal?.id || 'primary'
       if (apptCal) setDefaultCalId(calId)
+      const tag = `${caseType}_${caseId}`
       const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 50 })]
       if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 50 }))
-      return Promise.all(fetches)
-    }).then(results => {
-      const all = results.flatMap(r => r.items || [])
-      console.log('[Calendar] Fetched events:', all.length, 'timeMin:', timeMin, 'timeMax:', timeMax)
-      all.forEach(e => console.log('[Calendar] Event:', e.summary, e.start?.dateTime || e.start?.date))
+      return Promise.all(fetches).then(async (results) => {
+        let all = results.flatMap(r => r.items || [])
+        // If no tagged events found, fallback: search by summary text match
+        if (all.length === 0 && caseName) {
+          try {
+            const params = new URLSearchParams({ timeMin, timeMax, maxResults: '50', singleEvents: 'true', orderBy: 'startTime', q: caseName })
+            const token = await (await import('@/lib/google')).getAccessToken(userId)
+            const calIds = [calId]
+            if (calId !== 'primary') calIds.push('primary')
+            for (const cid of calIds) {
+              const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cid)}/events?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+              if (res.ok) { const data = await res.json(); all.push(...(data.items || [])) }
+            }
+          } catch {}
+        }
+        return all
+      })
+    }).then(all => {
+      console.log('[Calendar] Fetched events:', all.length)
       const seen = new Set()
       const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
       setEvents(deduped.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
