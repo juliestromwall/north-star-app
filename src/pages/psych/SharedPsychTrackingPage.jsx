@@ -18,6 +18,18 @@ const CHECKIN_COLS = [
   { key: 'postDelivery', label: 'Post Delivery' },
 ]
 
+function calcMilestoneDates(dueDate) {
+  if (!dueDate) return {}
+  const due = new Date(dueDate + 'T00:00:00')
+  const conceptionMs = due.getTime() - 280 * 24 * 60 * 60 * 1000
+  const fmt = (ms) => new Date(ms).toISOString().split('T')[0]
+  return {
+    week10Date: fmt(conceptionMs + 70 * 24 * 60 * 60 * 1000),
+    week20Date: fmt(conceptionMs + 140 * 24 * 60 * 60 * 1000),
+    week30Date: fmt(conceptionMs + 210 * 24 * 60 * 60 * 1000),
+  }
+}
+
 async function getAppConfigPublic(key) {
   if (!supabase) return null
   const { data, error } = await supabase.from('app_config').select('config_value').eq('config_key', key).single()
@@ -78,11 +90,16 @@ export default function SharedPsychTrackingPage() {
         const gc = surrogates.find(s => s.id === j.gc_case_id)
         if (!gc) return null
         const t = tracking[gc.id] || {}
+        const jd = j.journey_data || {}
+        const milestones = calcMilestoneDates(jd.dueDate)
         return {
           id: gc.id,
           name: gc.name,
           email: gc.email || '',
           phone: gc.phone || '',
+          dueDate: jd.dueDate || null,
+          deliveryDate: jd.deliveryDate || null,
+          ...milestones,
           week10: t.week10 || null,
           week20: t.week20 || null,
           week30: t.week30 || null,
@@ -97,6 +114,9 @@ export default function SharedPsychTrackingPage() {
         name: val.name || 'Unknown',
         email: val.email || '',
         phone: val.phone || '',
+        dueDate: val.dueDate || null,
+        deliveryDate: val.deliveryDate || null,
+        ...calcMilestoneDates(val.dueDate),
         week10: val.week10 || null,
         week20: val.week20 || null,
         week30: val.week30 || null,
@@ -224,11 +244,26 @@ function SharedPsychTable({ rows, onDateChange }) {
                 </th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Email</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Phone</th>
-                {CHECKIN_COLS.map(col => (
-                  <th key={col.key} className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 last:border-r-0">
-                    {col.label}
-                  </th>
-                ))}
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Due Date</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">30 Week</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Delivery Date</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">Post Delivery</th>
+              </tr>
+              <tr className="bg-stone-50/50 border-b border-stone-200">
+                <th className="sticky left-0 bg-stone-50/50 z-20 border-r border-stone-200" />
+                <th className="border-r border-stone-100" />
+                <th className="border-r border-stone-100" />
+                <th className="border-r border-stone-100" />
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
+                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
+                <th className="border-r border-stone-100" />
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -239,14 +274,25 @@ function SharedPsychTable({ rows, onDateChange }) {
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.email || '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.phone || '—'}</td>
-                  {CHECKIN_COLS.map(col => (
-                    <td key={col.key} className={`px-4 py-3 border-r border-stone-100 last:border-r-0 ${row[col.key] ? 'bg-green-50/60' : ''}`}>
-                      <EditableDateCell
-                        value={row[col.key]}
-                        onSave={(date) => onDateChange(row.id, col.key, date)}
-                      />
-                    </td>
-                  ))}
+                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600 font-medium">{row.dueDate ? formatDate(row.dueDate) : '—'}</td>
+                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week10Date ? formatDate(row.week10Date) : '—'}</td>
+                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week10 ? 'bg-green-50/60' : ''}`}>
+                    <EditableDateCell value={row.week10} onSave={(date) => onDateChange(row.id, 'week10', date)} />
+                  </td>
+                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week20Date ? formatDate(row.week20Date) : '—'}</td>
+                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week20 ? 'bg-green-50/60' : ''}`}>
+                    <EditableDateCell value={row.week20} onSave={(date) => onDateChange(row.id, 'week20', date)} />
+                  </td>
+                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week30Date ? formatDate(row.week30Date) : '—'}</td>
+                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week30 ? 'bg-green-50/60' : ''}`}>
+                    <EditableDateCell value={row.week30} onSave={(date) => onDateChange(row.id, 'week30', date)} />
+                  </td>
+                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600">
+                    {row.deliveryDate ? <span className="font-medium text-emerald-600">{formatDate(row.deliveryDate)}</span> : <span className="text-stone-300">—</span>}
+                  </td>
+                  <td className={`px-3 py-3 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
+                    <EditableDateCell value={row.postDelivery} onSave={(date) => onDateChange(row.id, 'postDelivery', date)} />
+                  </td>
                 </tr>
               ))}
             </tbody>
