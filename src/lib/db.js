@@ -320,7 +320,9 @@ export async function fetchIPsFromIntake() {
     const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
     return {
       id: row.id,
+      user_id: row.user_id || null,
       names: names || 'Unknown',
+
       ip1Name,
       ip2Name,
       email: row.applicant_email || a.email || '',

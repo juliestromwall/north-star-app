@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen
+  ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
+import { uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ─────────────────────────────────────────────────────────
 // Field Components
@@ -526,6 +527,144 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
 // Main Component
 // ─────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────
+// Admin Photos Section (profile + cover photo upload)
+// ─────────────────────────────────────────────────────────
+
+async function convertToJpeg(file, maxSize = 1200) {
+  if (file.name?.match(/\.hei[cf]$/i)) {
+    const heic2any = (await import('heic2any')).default
+    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+    file = new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+  }
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      if (width > maxSize || height > maxSize) {
+        if (width > height) { height = Math.round(height * maxSize / width); width = maxSize }
+        else { width = Math.round(width * maxSize / height); height = maxSize }
+      }
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })), 'image/jpeg', 0.85)
+    }
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
+  const [photo, setPhoto] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    listProfilePhotos(storagePath).then(photos => {
+      if (cancelled) return
+      if (photos.length > 0) setPhoto(photos[0])
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [storagePath])
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
+    setUploading(true); setError(null)
+    try {
+      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
+      const jpeg = await convertToJpeg(file)
+      const result = await uploadProfilePhoto(storagePath, jpeg)
+      if (result) { setPhoto(result); if (onChange) onChange(result.url) }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete() {
+    if (!photo) return
+    if (!confirm('Delete this photo?')) return
+    try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
+    catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <p className="text-sm font-semibold text-stone-700">{label}</p>
+        {hint && <p className="text-xs text-stone-400 mt-0.5">{hint}</p>}
+      </div>
+      {photo ? (
+        <div className="relative group w-40 h-40">
+          <img src={photo.url} alt={label} className="w-40 h-40 rounded-2xl object-cover border border-stone-200" />
+          <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
+              <Upload className="w-4 h-4" />
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
+            <button onClick={handleDelete} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+              <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
+            )}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      )}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+function IPAdminPhotosSection({ ip, profile, onUpdate }) {
+  // Use IP's auth user_id if available so it shares storage with portal uploads,
+  // otherwise fall back to a case-id-keyed path (admin-only photos)
+  const baseId = ip?.user_id || `case-${ip?.id}`
+
+  async function handlePortraitChange(url) {
+    const updated = { ...(ip?.answers || {}), _ipProfile: { ...profile, profilePhotoUrl: url || '' } }
+    await onUpdate(updated)
+  }
+  async function handleCoverChange(url) {
+    const updated = { ...(ip?.answers || {}), _ipProfile: { ...profile, coverPhotoUrl: url || '' } }
+    await onUpdate(updated)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Camera className="w-4 h-4 text-[#283693]" /> Profile Photos
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <AdminPhotoSlot
+            label="Profile Photo"
+            hint="A picture of the IP(s) — couples or single"
+            storagePath={`${baseId}/ip-portrait`}
+            onChange={handlePortraitChange}
+          />
+          <AdminPhotoSlot
+            label="Cover Photo"
+            hint="A favorite picture doing something they love"
+            storagePath={`${baseId}/ip-cover`}
+            onChange={handleCoverChange}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function IPProfileTab({ ip, onUpdate }) {
   const answers = ip?.answers || {}
   const profile = answers._ipProfile || {}
@@ -567,6 +706,9 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   return (
     <div className="space-y-6 mt-4">
+      {/* Admin Photos */}
+      <IPAdminPhotosSection ip={ip} profile={profile} onUpdate={onUpdate} />
+
       {/* Progress Bar */}
       <Card>
         <CardContent className="py-4">
