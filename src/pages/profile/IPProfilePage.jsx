@@ -3,10 +3,11 @@ import { useRole } from '@/context/RoleContext'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardAction } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye } from 'lucide-react'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ── Field definitions ──
@@ -118,9 +119,13 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!userId || userId === 'anonymous') return
+    let cancelled = false
     listProfilePhotos(`${userId}/${subfolder}`).then(photos => {
-      if (photos.length > 0) { setPhoto(photos[0]); if (onPhotoChange) onPhotoChange(photos[0].url) }
+      if (cancelled) return
+      if (photos.length > 0) setPhoto(photos[0])
     }).catch(() => {})
+    return () => { cancelled = true }
   }, [userId, subfolder])
 
   async function handleUpload(e) {
@@ -166,6 +171,129 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
         </label>
       )}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
+}
+
+// ── IP Profile Preview Component ──
+
+export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name, primaryName, ip2FullName, location }) {
+  const profilePhoto = photos?.find(p => p.path?.includes('/ip-portrait/'))
+  const coverPhoto = photos?.find(p => p.path?.includes('/ip-cover/'))
+  const fertility = profile?.fertility || {}
+  const surrogacy = profile?.surrogacy || {}
+  const ip1 = profile?.ip1 || {}
+  const ip2 = profile?.ip2 || {}
+
+  const yn = (v) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : null
+
+  const renderField = (label, value) => {
+    if (!value) return null
+    return (
+      <div>
+        <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-400 mb-0.5">{label}</p>
+        <p className="text-sm text-stone-700 whitespace-pre-line">{value}</p>
+      </div>
+    )
+  }
+
+  const renderSection = (title, fields, data, fieldDefs) => {
+    const visible = fieldDefs.filter(f => {
+      if (f.conditional && !f.conditional(data)) return false
+      const val = data[f.key]
+      return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
+    })
+    if (visible.length === 0) return null
+    return (
+      <section className="space-y-3">
+        <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{title}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          {visible.map(f => renderField(f.label, f.type === 'yesno' ? yn(data[f.key]) : Array.isArray(data[f.key]) ? data[f.key].join(', ') : data[f.key]))}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+      {/* Cover photo */}
+      {coverPhoto ? (
+        <div className="w-full h-64 sm:h-80 overflow-hidden relative">
+          <img src={coverPhoto.url} alt="Cover" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        </div>
+      ) : (
+        <div className="w-full h-32 bg-gradient-to-br from-[#283693]/20 via-[#4a4fbf]/10 to-[#283693]/10" />
+      )}
+
+      {/* Header with profile photo */}
+      <div className="px-6 pt-0 pb-6 relative">
+        {profilePhoto ? (
+          <img src={profilePhoto.url} alt="Profile" className="size-28 rounded-full border-4 border-white object-cover -mt-14 shadow-md" />
+        ) : (
+          <div className="size-28 rounded-full border-4 border-white -mt-14 shadow-md bg-[#283693]/10 flex items-center justify-center">
+            <User className="size-10 text-[#283693]/40" />
+          </div>
+        )}
+        <div className="mt-4">
+          <h2 className="text-2xl font-bold text-[#283693]">
+            {hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
+          </h2>
+          {location && <p className="text-sm text-stone-500 mt-0.5">📍 {location}</p>}
+        </div>
+      </div>
+
+      {/* Sections */}
+      <div className="px-6 pb-8 space-y-6">
+        {renderSection('Fertility Information', null, fertility, FERTILITY_FIELDS)}
+        {renderSection('Surrogacy Information', null, surrogacy, SURROGACY_FIELDS)}
+
+        {/* Per-person sections */}
+        {(['personal', 'health', 'history']).map(secKey => {
+          const fieldDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
+          const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
+
+          if (!hasPartner) {
+            return ip1[secKey] ? (
+              <div key={secKey}>
+                {renderSection(sectionLabel, null, ip1[secKey] || {}, fieldDefs)}
+              </div>
+            ) : null
+          }
+
+          return (
+            <div key={secKey} className="space-y-4">
+              <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{sectionLabel}</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {ip1[secKey] && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{ip1Name}</p>
+                    <div className="grid grid-cols-1 gap-y-3">
+                      {fieldDefs.filter(f => {
+                        if (f.conditional && !f.conditional(ip1[secKey] || {})) return false
+                        const val = ip1[secKey]?.[f.key]
+                        return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
+                      }).map(f => renderField(f.label, f.type === 'yesno' ? yn(ip1[secKey][f.key]) : Array.isArray(ip1[secKey][f.key]) ? ip1[secKey][f.key].join(', ') : ip1[secKey][f.key]))}
+                    </div>
+                  </div>
+                )}
+                {ip2[secKey] && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{ip2Name}</p>
+                    <div className="grid grid-cols-1 gap-y-3">
+                      {fieldDefs.filter(f => {
+                        if (f.conditional && !f.conditional(ip2[secKey] || {})) return false
+                        const val = ip2[secKey]?.[f.key]
+                        return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
+                      }).map(f => renderField(f.label, f.type === 'yesno' ? yn(ip2[secKey][f.key]) : Array.isArray(ip2[secKey][f.key]) ? ip2[secKey][f.key].join(', ') : ip2[secKey][f.key]))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -315,6 +443,8 @@ export default function IPProfilePage() {
   const [profile, setProfile] = useState({})
   const [loading, setLoading] = useState(true)
   const [openSections, setOpenSections] = useState({})
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewPhotos, setPreviewPhotos] = useState([])
   const saveTimer = useRef(null)
 
   useEffect(() => {
@@ -388,6 +518,22 @@ export default function IPProfilePage() {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  async function openPreview() {
+    if (previewOpen) { setPreviewOpen(false); return }
+    const userId = currentUser?.id || currentUser?.email || 'anonymous'
+    try {
+      const [portrait, cover] = await Promise.all([
+        listProfilePhotos(`${userId}/ip-portrait`).catch(() => []),
+        listProfilePhotos(`${userId}/ip-cover`).catch(() => []),
+      ])
+      setPreviewPhotos([...portrait, ...cover])
+    } catch {
+      setPreviewPhotos([])
+    }
+    setPreviewOpen(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 className="size-6 animate-spin text-stone-400" /></div>
   }
@@ -409,7 +555,7 @@ export default function IPProfilePage() {
             <ProgressRing percent={completion} />
             <div className="flex-1 min-w-0 text-center sm:text-left">
               <p className="font-heading font-bold text-xl text-stone-800">My Profile</p>
-              <p className="text-sm text-stone-500 mt-1">Complete your matching profile so intended parents can get to know you.</p>
+              <p className="text-sm text-stone-500 mt-1">Complete your matching profile so surrogates can get to know you.</p>
               <div className="mt-3 max-w-sm mx-auto sm:mx-0">
                 <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all duration-700" style={{ width: `${completion}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
@@ -417,10 +563,28 @@ export default function IPProfilePage() {
                 <p className="text-xs text-stone-400 mt-1">{completion}% complete</p>
               </div>
             </div>
+            <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
+              <Eye className="size-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
+      {previewOpen ? (
+        <div className="max-w-[850px] mx-auto">
+          <IPProfilePreview
+            profile={profile}
+            photos={previewPhotos}
+            hasPartner={hasPartner}
+            ip1Name={ip1Name}
+            ip2Name={ip2Name}
+            primaryName={[caseData?.answers?.primaryFirstName, caseData?.answers?.primaryLastName].filter(Boolean).join(' ') || 'Intended Parent'}
+            ip2FullName={[caseData?.answers?.ip2FirstName, caseData?.answers?.ip2LastName].filter(Boolean).join(' ')}
+            location={[caseData?.answers?.city, caseData?.answers?.stateProv].filter(Boolean).join(', ')}
+          />
+        </div>
+      ) : (
+      <>
       {/* Basic Information — Photos */}
       <Collapsible open={openSections['basic']} onOpenChange={() => toggleSection('basic')}>
         <Card className="rounded-2xl">
@@ -522,6 +686,8 @@ export default function IPProfilePage() {
           </Collapsible>
         )
       })}
+      </>
+      )}
 
       {/* Contact */}
       <Card className="bg-stone-50 border-dashed rounded-2xl">
