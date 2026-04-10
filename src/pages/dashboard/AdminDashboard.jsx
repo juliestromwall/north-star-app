@@ -45,12 +45,9 @@ export default function AdminDashboard() {
   const [addTaskOpen, setAddTaskOpen] = useState(false)
   const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'normal', description: '' })
   const [caseView, setCaseView] = useState('grid')
-  const [showCalc, setShowCalc] = useState(false)
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [tasksOpen, setTasksOpen] = useState(true)
-  const stickyKey = `sticky_notes_${currentUser?.email || 'default'}`
-  const [stickyNotes, setStickyNotes] = useState([])
-  const stickyLoaded = useRef(false)
+
 
   useEffect(() => {
     Promise.all([
@@ -120,20 +117,6 @@ export default function AdminDashboard() {
     fetchActiveAdminNotes().then(notes => setAdminNotes(notes || [])).catch(() => {})
   }, [])
 
-  // Load sticky notes from Supabase on mount
-  useEffect(() => {
-    if (!currentUser?.email) return
-    getAppConfig(stickyKey).then(val => {
-      if (val && Array.isArray(val)) setStickyNotes(val)
-      stickyLoaded.current = true
-    }).catch(() => { stickyLoaded.current = true })
-  }, [currentUser?.email])
-
-  // Save sticky notes to Supabase when changed
-  useEffect(() => {
-    if (!stickyLoaded.current) return
-    setAppConfig(stickyKey, stickyNotes).catch(() => {})
-  }, [stickyNotes])
 
   // Build "My Cases" — only cases assigned to the logged-in admin
   const myEmail = currentUser?.email
@@ -443,126 +426,7 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* Bottom row: Calculator + Sticky Notes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calculator */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Calculator className="size-4 text-stone-400" /> Calculator
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QuickCalculator />
-          </CardContent>
-        </Card>
-
-        {/* Sticky Notes */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <StickyNote className="size-4 text-stone-400" /> Sticky Notes
-            </CardTitle>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setStickyNotes(prev => [...prev, { id: Date.now(), text: '', color: ['bg-yellow-100', 'bg-pink-100', 'bg-blue-100', 'bg-green-100'][prev.length % 4] }])}>
-              <Plus className="size-3" /> Add
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {stickyNotes.length === 0 ? (
-              <p className="text-xs text-stone-400 text-center py-6">No sticky notes yet. Click + Add to create one.</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {stickyNotes.map(note => (
-                  <div key={note.id} className={`${note.color} rounded-lg p-3 relative group`}>
-                    <button onClick={() => setStickyNotes(prev => prev.filter(n => n.id !== note.id))}
-                      className="absolute top-1 right-1 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <X className="size-3" />
-                    </button>
-                    <textarea
-                      value={note.text}
-                      onChange={e => setStickyNotes(prev => prev.map(n => n.id === note.id ? { ...n, text: e.target.value } : n))}
-                      placeholder="Type a note..."
-                      className="w-full bg-transparent text-xs text-stone-700 resize-none border-none focus:outline-none min-h-[60px]"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }
 
-// ── Simple Calculator ──
-function QuickCalculator() {
-  const [display, setDisplay] = useState('0')
-  const [prev, setPrev] = useState(null)
-  const [op, setOp] = useState(null)
-  const [reset, setReset] = useState(false)
-
-  function input(val) {
-    if (reset) { setDisplay(val); setReset(false); return }
-    setDisplay(d => d === '0' ? val : d + val)
-  }
-  function decimal() {
-    if (reset) { setDisplay('0.'); setReset(false); return }
-    if (!display.includes('.')) setDisplay(d => d + '.')
-  }
-  function operate(nextOp) {
-    if (prev !== null && op) {
-      const result = calc(prev, parseFloat(display), op)
-      setDisplay(String(result))
-      setPrev(result)
-    } else {
-      setPrev(parseFloat(display))
-    }
-    setOp(nextOp)
-    setReset(true)
-  }
-  function equals() {
-    if (prev !== null && op) {
-      const result = calc(prev, parseFloat(display), op)
-      setDisplay(String(result))
-      setPrev(null)
-      setOp(null)
-      setReset(true)
-    }
-  }
-  function clear() { setDisplay('0'); setPrev(null); setOp(null); setReset(false) }
-  function calc(a, b, operator) {
-    if (operator === '+') return +(a + b).toFixed(10)
-    if (operator === '-') return +(a - b).toFixed(10)
-    if (operator === '×') return +(a * b).toFixed(10)
-    if (operator === '÷') return b !== 0 ? +(a / b).toFixed(10) : 0
-    return b
-  }
-
-  const btn = (label, onClick, className = '') => (
-    <button onClick={onClick} className={`h-9 rounded-lg text-sm font-medium transition-colors ${className}`}>{label}</button>
-  )
-
-  return (
-    <div className="space-y-2">
-      <div className="bg-stone-50 rounded-lg px-3 py-2 text-right text-lg font-mono font-semibold text-stone-800 min-h-[40px] flex items-center justify-end">
-        {display}
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        {btn('C', clear, 'bg-stone-200 hover:bg-stone-300 text-stone-700')}
-        {btn('±', () => setDisplay(d => d.startsWith('-') ? d.slice(1) : '-' + d), 'bg-stone-200 hover:bg-stone-300 text-stone-700')}
-        {btn('%', () => setDisplay(d => String(parseFloat(d) / 100)), 'bg-stone-200 hover:bg-stone-300 text-stone-700')}
-        {btn('÷', () => operate('÷'), `${op === '÷' ? 'bg-[#283693] text-white' : 'bg-[#283693]/10 text-[#283693]'} hover:bg-[#283693]/20`)}
-        {['7','8','9'].map(n => btn(n, () => input(n), 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-800'))}
-        {btn('×', () => operate('×'), `${op === '×' ? 'bg-[#283693] text-white' : 'bg-[#283693]/10 text-[#283693]'} hover:bg-[#283693]/20`)}
-        {['4','5','6'].map(n => btn(n, () => input(n), 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-800'))}
-        {btn('-', () => operate('-'), `${op === '-' ? 'bg-[#283693] text-white' : 'bg-[#283693]/10 text-[#283693]'} hover:bg-[#283693]/20`)}
-        {['1','2','3'].map(n => btn(n, () => input(n), 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-800'))}
-        {btn('+', () => operate('+'), `${op === '+' ? 'bg-[#283693] text-white' : 'bg-[#283693]/10 text-[#283693]'} hover:bg-[#283693]/20`)}
-        {btn('0', () => input('0'), 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-800 col-span-2')}
-        {btn('.', decimal, 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-800')}
-        {btn('=', equals, 'bg-[#283693] text-white hover:bg-[#283693]/90')}
-      </div>
-    </div>
-  )
-}
