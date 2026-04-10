@@ -42,16 +42,15 @@ export function useBotProtection(startTimeRef) {
   }, [])
 
   const validateSubmission = useCallback(() => {
-    // ALL BOT CHECKS TEMPORARILY DISABLED — debugging Safari mobile DQ issue
-    // Logging only, no blocking
-    if (honeypotValue) console.warn('Bot: honeypot filled:', honeypotValue)
+    // Time-based check — only real protection that doesn't false-positive on mobile
     const elapsed = (Date.now() - startTimeRef.current) / 1000
-    if (elapsed < MIN_FORM_TIME_SECONDS) console.warn('Bot: too fast:', elapsed, 's')
-    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) console.warn('Bot: rapid fill:', maxRapidFillRef.current)
-    if (TURNSTILE_SITE_KEY && !turnstileToken) console.warn('Bot: no turnstile token')
+    if (elapsed < MIN_FORM_TIME_SECONDS) {
+      return { ok: false, reason: 'too_fast' }
+    }
 
+    // Honeypot, rapid-fill, and Turnstile disabled — Safari mobile triggers false positives
     return { ok: true, reason: null }
-  }, [honeypotValue, turnstileToken, startTimeRef])
+  }, [startTimeRef])
 
   return {
     honeypotValue,
