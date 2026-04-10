@@ -1,5 +1,55 @@
 # Session Log
 
+## 2026-04-09 (Continued — Records Summary, Checklist Date Completed, UI Polish)
+
+**Worked on:** Records Summary feature (split-screen workspace), PDF merge/page removal tools, checklist Date Completed type, preview/export PDF, UI polish
+
+**Changes made:**
+
+Records Summary Feature:
+- Records Admin role added to constants
+- Records Summary list page (/records-summary) — shows surrogates with "Records Summary" checklist = Requested
+- Split-screen workspace (/records-summary/:id):
+  - Left panel: document viewer with inline PDF preview, merge PDFs, remove pages
+  - Right panel: GC Medical Records Summary form matching the docx template
+  - Pre-fills from Supabase surrogate profile (not localStorage)
+  - Sections: General Info, Social History, COVID, GYN, Obstetrical History, Labs, OB Clearance
+  - Per-pregnancy sections auto-generated from profile pregnancy count
+  - Miscarriage with no prenatal care = notes-only box
+  - Labs table with 14 defaults + add custom rows
+  - Saves to app_config per surrogate
+- Preview modal with match-sheet styling (condensed grids, navy accents)
+- Pregnancy headers: G1 banner with inline pills (outcome, date MM/DD/YYYY, GA, weight, sex, delivery type)
+- Export to PDF via html2canvas + jsPDF
+- Horizontal ABC logo (no URL version) for header
+
+PDF Tools (in document panel):
+- Merge: select multiple PDFs → combine into one via pdf-lib
+- Page removal: click page numbers to select → remove from PDF
+- Original auto-backed up as "[Original] filename.pdf" before changes
+
+Checklist:
+- "Date Completed" step type added to Settings dropdown
+- Direct "Complete" button on checklist rows for date_completed type
+- Shows "Completed MM/DD/YYYY" in green after clicking
+
+Other:
+- Psych Tracking nav item added (by user)
+- IP Detail page stage selector updated (by user)
+- Portal blocked state on login page (by user)
+
+**Next steps:**
+- Continue refining Records Summary UI/UX
+- Wire up "Mark Complete" button to update checklist step
+- Add ability for Records Admin to only see Records Summary page
+- Build PDF export with proper page breaks for multi-page summaries
+- Consider adding document annotations/notes per page
+
+**Open questions:**
+- None currently
+
+---
+
 ## 2026-04-07 through 2026-04-09 (Surrogate Portal, Medical Records Releases, Faxing, Auto-Emails, Application Workflow)
 
 **Worked on:** Surrogate portal application forms, HIPAA medical records release system, fax integration with branded cover pages, Resend transactional emails, application review workflow, referral/bonus tracker updates, checklist improvements

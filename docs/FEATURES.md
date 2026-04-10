@@ -35,6 +35,8 @@
 | ReleaseFormGenerator | src/lib/releaseFormGenerator.js | HIPAA-compliant HTML release form generator per provider (OB, Hospital, MFM, IVF) |
 | AISummaryButton | src/components/shared/AISummaryButton.jsx | Shared AI case summary button — used on surrogate, IP, journey hero sections + Case Updates |
 | ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral ($4K) and sign-on bonus ($4K) tracking with split payments at medical/legal clearance |
+| RecordsSummaryPage | src/pages/records/RecordsSummaryPage.jsx | List of surrogates needing records summary (from checklist "Requested" status) |
+| RecordsSummaryWorkspace | src/pages/records/RecordsSummaryWorkspace.jsx | Split-screen: PDF doc viewer (left) + GC Medical Records Summary form (right). PDF merge, page removal, preview, export. Pre-fills from profile. |
 | IPListPage | src/pages/intended-parents/IPListPage.jsx | Live Supabase data. Tile/list view, search by name/email/location, status & type filters, RE/embryo/consultation info on cards |
 | IPDetailPage | src/pages/intended-parents/IPDetailPage.jsx | Live Supabase data. Hero with contact buttons, Overview (IP1, IP2, fertility details), Contact (copy-to-clipboard), Profile, Intake Answers tabs |
 | IPProfileTab | src/components/intended-parents/IPProfileTab.jsx | Comprehensive IP profile builder: 5 collapsible sections (Fertility, Surrogacy, Personal, Health, Personal History). Shared sections for couples + per-person sections with IP1/IP2 tabs. Edit/save per section, progress bar, stored in answers._ipProfile |
