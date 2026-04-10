@@ -34,9 +34,9 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   useEffect(() => {
     if (!caseId || !userId) { setLoading(false); return }
     const now = new Date()
-    // Load past 6 months + future 3 months
-    const timeMin = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()).toISOString()
-    const timeMax = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString()
+    // Load past 2 years + future 6 months
+    const timeMin = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString()
+    const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString()
     listCalendars(userId).catch(() => []).then(cals => {
       const writable = (cals || []).filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')
       setCalendars(writable)
