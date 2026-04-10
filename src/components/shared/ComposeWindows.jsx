@@ -291,6 +291,7 @@ function ComposeWindow({ draft, index }) {
             to_address: draft.to,
             date: new Date().toISOString(),
             snippet: (editor?.getText() || '').slice(0, 200),
+            body_html: editor?.getHTML() || null,
             logged_by: userId,
             logged_by_name: currentUser?.name || '',
             tag: draft.emailTag || null,

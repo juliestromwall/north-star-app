@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useRole } from '@/context/RoleContext'
-import { fetchCaseEmails, deleteCaseEmail } from '@/lib/db'
+import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate } from '@/lib/db'
 import { getGoogleStatus, getEmail, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
 import { useDrafts } from '@/context/DraftContext'
@@ -49,7 +49,7 @@ const EMAIL_TAGS = [
 ]
 
 export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, additionalCaseIds = [], caseManagerName }) {
-  const { currentUser } = useRole()
+  const { currentUser, isMasterAdmin } = useRole()
   const userId = currentUser?.id
   const [emails, setEmails] = useState([])
   const [loading, setLoading] = useState(true)
@@ -78,10 +78,12 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       }),
       userId ? getGoogleStatus(userId).catch(() => ({ connected: false })) : Promise.resolve({ connected: false }),
     ]).then(([emailData, status]) => {
-      setEmails(emailData)
+      // Filter out private emails for non-master admins
+      const visible = isMasterAdmin ? emailData : emailData.filter(e => !e.is_private)
+      setEmails(visible)
       setConnected(status.connected)
     }).finally(() => setLoading(false))
-  }, [caseId, userId])
+  }, [caseId, userId, isMasterAdmin])
 
   const handleDelete = async (emailId) => {
     if (!confirm('Remove this email from this case?')) return
@@ -93,6 +95,20 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setSelectedEmail(loggedEmail)
     setLoadingFull(true)
     setFullEmail(null)
+
+    // Use stored body_html first (works for any admin without Gmail access)
+    if (loggedEmail.body_html) {
+      setFullEmail({
+        from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
+        to: loggedEmail.to_address || '',
+        date: loggedEmail.date,
+        subject: loggedEmail.subject,
+        bodyHtml: loggedEmail.body_html,
+        attachments: [],
+      })
+      setLoadingFull(false)
+      return
+    }
 
     // System-generated emails (not from Gmail) — show snippet as body
     const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
@@ -109,6 +125,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       return
     }
 
+    // Fall back to fetching from Gmail (only works if current admin has access)
     if (!connected || !userId) { setLoadingFull(false); return }
     try {
       const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
@@ -120,6 +137,15 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       setFullEmail(null)
     }
     setLoadingFull(false)
+  }
+
+  async function togglePrivate(emailId, currentVal) {
+    try {
+      await updateCaseEmailPrivate(emailId, !currentVal)
+      setEmails(prev => prev.map(e => e.id === emailId ? { ...e, is_private: !currentVal } : e))
+    } catch (err) {
+      console.error('Failed to toggle private:', err)
+    }
   }
 
   const handleDownloadAttachment = async (att) => {
@@ -213,13 +239,18 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
             {filteredEmails.map(email => {
               const tagObj = email.tag ? EMAIL_TAGS.find(t => t.value === email.tag) : null
               return (
-              <div key={email.id} className="px-4 py-3 flex items-start gap-3 group">
+              <div key={email.id} className={`px-4 py-3 flex items-start gap-3 group ${email.is_private ? 'bg-purple-50/40' : ''}`}>
                 <Mail className="size-4 text-muted-foreground mt-1 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <button onClick={() => connected && handleViewFull(email)} className={`text-sm font-medium truncate text-left ${connected ? 'text-[#283693] hover:underline cursor-pointer' : ''}`}>{email.subject || '(no subject)'}</button>
+                      <button onClick={() => handleViewFull(email)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">{email.subject || '(no subject)'}</button>
                       {tagObj && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tagObj.color}`}>{tagObj.label}</span>}
+                      {email.is_private && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-purple-100 text-purple-700 inline-flex items-center gap-0.5">
+                          <Lock className="size-2.5" /> Private
+                        </span>
+                      )}
                       {email.from_address?.includes(currentUser?.email) || email.to_address?.includes(currentUser?.email) ? (
                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${email.from_address?.includes(currentUser?.email) ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>
                           {email.from_address?.includes(currentUser?.email) ? 'Sent' : 'Received'}
@@ -239,6 +270,15 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {isMasterAdmin && (
+                    <button
+                      onClick={() => togglePrivate(email.id, email.is_private)}
+                      className={`p-1.5 rounded hover:bg-purple-100 ${email.is_private ? 'text-purple-600' : 'text-muted-foreground hover:text-purple-600'}`}
+                      title={email.is_private ? 'Make public' : 'Mark as private (master admins only)'}
+                    >
+                      {email.is_private ? <Lock className="size-3.5" /> : <Unlock className="size-3.5" />}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(email.id)}
                     className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"

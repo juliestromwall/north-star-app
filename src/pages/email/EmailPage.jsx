@@ -206,6 +206,13 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     if (!c) return
     setSaving(true)
     try {
+      // Fetch full email body so other admins can see it without Gmail access
+      let bodyHtml = null
+      try {
+        const full = await getEmail(userId, email.id, 'full')
+        bodyHtml = parseEmailBody(full)
+      } catch {}
+
       const { error } = await supabase.from('case_emails').insert({
         gmail_message_id: email.id,
         gmail_thread_id: email.threadId,
@@ -216,6 +223,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         to_address: email.to,
         date: email.date ? new Date(email.date).toISOString() : null,
         snippet: email.snippet,
+        body_html: bodyHtml,
         logged_by: userId,
         logged_by_name: userName,
         tag: selectedTag || null,
