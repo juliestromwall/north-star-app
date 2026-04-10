@@ -48,13 +48,7 @@ export function useBotProtection(startTimeRef) {
       return { ok: false, reason: 'too_fast' }
     }
 
-    // 2. Rapid-fill detection — inhumanly fast field changes
-    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) {
-      return { ok: false, reason: 'rapid_fill' }
-    }
-
-    // Honeypot disabled — Safari mobile autofills hidden fields
-    // Turnstile disabled — fails to load on some browsers/ad blockers
+    // Rapid-fill, honeypot, Turnstile all disabled — Safari mobile false positives
     return { ok: true, reason: null }
   }, [startTimeRef])
 
