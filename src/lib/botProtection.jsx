@@ -42,13 +42,19 @@ export function useBotProtection(startTimeRef) {
   }, [])
 
   const validateSubmission = useCallback(() => {
-    // Time-based check — only real protection that doesn't false-positive on mobile
+    // 1. Time-based check — form completed too fast
     const elapsed = (Date.now() - startTimeRef.current) / 1000
     if (elapsed < MIN_FORM_TIME_SECONDS) {
       return { ok: false, reason: 'too_fast' }
     }
 
-    // Honeypot, rapid-fill, and Turnstile disabled — Safari mobile triggers false positives
+    // 2. Rapid-fill detection — inhumanly fast field changes
+    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) {
+      return { ok: false, reason: 'rapid_fill' }
+    }
+
+    // Honeypot disabled — Safari mobile autofills hidden fields
+    // Turnstile disabled — fails to load on some browsers/ad blockers
     return { ok: true, reason: null }
   }, [startTimeRef])
 
