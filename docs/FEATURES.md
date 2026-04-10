@@ -86,14 +86,36 @@
 | SharedPsychTrackingPage | src/pages/psych/SharedPsychTrackingPage.jsx | Public shared view of psych tracking — no login required, validates share token, full read/write access to check-in dates |
 | ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral & sign-on bonus tracking: 4 tabs (Referrals, Sign-On Bonuses, Paid Referrals, Paid Bonuses). Auto-detects referrals from quiz "Friend or family" source, pulls Legal/Medical Clearance dates from journey checklists, mark half/fully paid with confirmation dialogs, expense-tracker table styling |
 
+| AdminPhotosSection | src/pages/surrogates/SurrogateDetailPage.jsx | Unified photo grid with PROFILE/COVER badges, crop/rotate/resize editor, inactive toggle for shared profiles |
+| PhotoLightbox | src/pages/profile/SurrogateProfilePage.jsx | Full-screen photo lightbox modal with arrows, thumbnails, counter — used in ProfilePreview |
+| IPDashboard | src/pages/dashboard/IPDashboard.jsx | Real IP portal dashboard: case info, partner info, coordinator, quick links |
+| IPProfilePage | src/pages/profile/IPProfilePage.jsx | Read-only IP profile view: personal, partner, location, fertility info |
+| ProfileRouter | src/pages/profile/ProfileRouter.jsx | Routes /my-profile to IPProfilePage or SurrogateProfilePage based on role |
+| findCaseByEmail | src/lib/db.js | Helper that finds intake case by primary email OR partner ip2Email (supports IP couple logins) |
+
 ## Bot Protection
 
-| Layer | Location | Description |
-|-------|----------|-------------|
-| Honeypot | src/lib/botProtection.jsx | Hidden field bots auto-fill, humans never see |
-| Time-based | src/lib/botProtection.jsx | Rejects form submissions under 15 seconds |
-| Rapid-fill | src/lib/botProtection.jsx | Detects inhumanly fast field changes |
-| Cloudflare Turnstile | src/lib/botProtection.jsx | CAPTCHA widget, activated via VITE_TURNSTILE_SITE_KEY env var |
+| Layer | Location | Status |
+|-------|----------|--------|
+| Time-based | src/lib/botProtection.jsx | ACTIVE — rejects submissions under 15 seconds |
+| Rapid-fill | src/lib/botProtection.jsx | ACTIVE — detects inhumanly fast field changes |
+| Honeypot | src/lib/botProtection.jsx | DISABLED — Safari mobile autofills hidden fields |
+| Cloudflare Turnstile | src/lib/botProtection.jsx | DISABLED — fails to load on some browsers/ad blockers |
+
+## API Endpoints (Cloudflare Functions)
+
+| Endpoint | File | Description |
+|----------|------|-------------|
+| /api/welcome-email | functions/api/welcome-email.js | Surrogate welcome email (Resend) — no account creation |
+| /api/ip-welcome-email | functions/api/ip-welcome-email.js | IP welcome email with warm copy + 48hr timeline |
+| /api/notify-new-application | functions/api/notify-new-application.js | GC admin notification (GC_APPLICATION_NOTIFY_EMAIL) |
+| /api/notify-ip-application | functions/api/notify-ip-application.js | IP admin notification with all answers (IP_APPLICATION_NOTIFY_EMAIL) |
+| /api/notify-question | functions/api/notify-question.js | Email admin when question asked on shared profile |
+| /api/check-portal-access | functions/api/check-portal-access.js | Server-side check if surrogate/IP case is in blocked stage |
+| /api/set-password | functions/api/set-password.js | Sets password for existing auth user (service role) |
+| /api/user-status | functions/api/user-status.js | Check if user has portal account + last login |
+| /api/user-status-batch | functions/api/user-status-batch.js | Batch last-login lookup for surrogate list cards |
+| /api/invite | functions/api/invite.js | Create auth user + generate reset link for portal invite |
 
 ## Stages & Statuses
 

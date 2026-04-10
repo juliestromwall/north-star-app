@@ -1,5 +1,81 @@
 # Session Log
 
+## 2026-04-07 through 2026-04-09 (Major Feature Session)
+
+**Worked on:** Photo management overhaul, profile sharing, surrogate stages, IP portal, bot protection, email notifications, auth fixes, data reset
+
+**Changes made:**
+
+Photos & Profile:
+- Unified admin photo grid with crop/rotate/resize editor + inactive toggle
+- Photo carousel with lightbox modal on shared profiles
+- Cover photo ordering (headshot first), PDF print view fixes
+- Fixed photo loading (user_id from surrogate_profiles table)
+
+Stages & Statuses:
+- Removed "Matched Journey" from surrogate/IP stages (lives under /journeys)
+- Added Holding, Not Qualified, Withdrawn stages with customizable statuses
+- "Active Cases" button replaces "Total" (excludes holding/DQ/withdrawn)
+- Portal blocking for DQ/withdrawn surrogates via /api/check-portal-access
+- Admin confirmation dialog when moving case to DQ/withdrawn
+
+IP Portal (NEW):
+- Both IPs can be invited (primary + partner) from admin detail page
+- findCaseByEmail() helper matches primary OR partner ip2Email
+- Both IPs share same case data (documents, forms, dashboard)
+- Real IP Dashboard replacing mock (case info, coordinator, links)
+- IP Profile page (read-only view of case info)
+- ProfileRouter directs IPs vs surrogates to correct profile page
+
+Emails:
+- IP welcome email on quiz submit (branded, 48hr response timeline)
+- IP admin notification with all intake answers
+- Separate IP_APPLICATION_NOTIFY_EMAIL env var
+- Fixed surrogate welcome email (no longer pre-creates auth user)
+
+Auth & Portal:
+- Fixed "already registered" error (confirmation page signUp is single source of truth)
+- New /api/set-password endpoint for users who were admin-invited
+- Auth redirect to /login when not authenticated
+- Portal access check supports both surrogate and IP cases
+
+Bot Protection:
+- Fixed Safari mobile DQ (honeypot autofill + Turnstile blocking)
+- Disabled honeypot and Turnstile, kept time check + rapid-fill
+- Phone number auto-formatting (xxx-xxx-xxxx) on surrogate + IP forms
+- Country code selector on IP phone fields
+
+Intake Form Updates:
+- Added "6+ deliveries" and "2+ C-sections" DQ questions
+- "Friend or family" referral requires name
+- Default assignment to intake@abcsurrogacy.com for qualified surrogates
+
+Application Flow:
+- Reopen application for updates (admin button, in-app dialog)
+- Auto-task on application submit (Review Application, high priority)
+- Checklist "app_complete" step auto-set to "Reviewing" on submit
+- Profile lock when approved (sections collapse, not editable)
+
+Admin Dashboard:
+- Task case names with clickable links
+- Fixed case_type mismatch (gc → surrogate normalization)
+- Last login date on surrogate cards (batch API)
+- Admin confidential form simplified to match portal
+
+Data:
+- Full data reset script (cleared all test data, kept config)
+- Reset ID sequence for fresh start
+
+**Next steps:**
+- Draggable sticky notes (floating, persistent, minimizable to top bar)
+- Fix Resend email notifications (shared profile questions)
+- IP application forms (if needed beyond intake quiz)
+- Text API integration (Twilio)
+
+**Open questions:**
+- Resend API key may need reconfiguring for some email flows
+- IP_APPLICATION_NOTIFY_EMAIL needs to be set in Cloudflare env vars
+
 ## 2026-04-09 (Continued — Records Summary, Checklist Date Completed, UI Polish)
 
 **Worked on:** Records Summary feature (split-screen workspace), PDF merge/page removal tools, checklist Date Completed type, preview/export PDF, UI polish
