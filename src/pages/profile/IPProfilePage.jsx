@@ -6,8 +6,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2 } from 'lucide-react'
-import { findCaseByEmail, updateIntakeSubmission } from '@/lib/db'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera } from 'lucide-react'
+import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
 
 // ── Field definitions ──
 
@@ -86,6 +86,89 @@ const HISTORY_FIELDS = [
   { key: 'personality', label: 'Describe yourself and personality', type: 'textarea' },
   { key: 'messageToSurrogate', label: 'What else would you like to tell the prospective surrogate?', type: 'textarea' },
 ]
+
+// ── Photo helpers ──
+
+async function convertToJpeg(file, maxSize = 1200) {
+  if (file.name?.match(/\.hei[cf]$/i)) {
+    const heic2any = (await import('heic2any')).default
+    const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.85 })
+    file = new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+  }
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      if (width > maxSize || height > maxSize) {
+        if (width > height) { height = Math.round(height * maxSize / width); width = maxSize }
+        else { width = Math.round(width * maxSize / height); height = maxSize }
+      }
+      canvas.width = width; canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+      canvas.toBlob(blob => resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })), 'image/jpeg', 0.85)
+    }
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
+  const [photo, setPhoto] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    listProfilePhotos(`${userId}/${subfolder}`).then(photos => {
+      if (photos.length > 0) { setPhoto(photos[0]); if (onPhotoChange) onPhotoChange(photos[0].url) }
+    }).catch(() => {})
+  }, [userId, subfolder])
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
+    setUploading(true); setError(null)
+    try {
+      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
+      const jpeg = await convertToJpeg(file)
+      const result = await uploadProfilePhoto(`${userId}/${subfolder}`, jpeg)
+      if (result) { setPhoto(result); if (onPhotoChange) onPhotoChange(result.url) }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete() {
+    if (!photo) return
+    try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onPhotoChange) onPhotoChange(null) }
+    catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      {hint && <p className="text-xs text-stone-400">{hint}</p>}
+      {photo ? (
+        <div className="relative group w-32 h-32">
+          <img src={photo.url} alt={label} className="w-32 h-32 rounded-2xl object-cover border border-stone-200" />
+          <button onClick={handleDelete}
+            className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <label className={`flex items-center justify-center w-32 h-32 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+              <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
+            )}
+          </div>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
+}
 
 const SECTIONS = [
   { key: 'fertility', label: 'Fertility Information', description: 'Embryos, donors, and fertility history', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
@@ -337,6 +420,56 @@ export default function IPProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Basic Information — Photos */}
+      <Collapsible open={openSections['basic']} onOpenChange={() => toggleSection('basic')}>
+        <Card className="rounded-2xl">
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="size-10 rounded-xl flex items-center justify-center bg-[#283693]/10">
+                  <Camera className="size-5 text-[#283693]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base text-[#283693]">Basic Information</CardTitle>
+                  <CardDescription>Profile photo and cover photo</CardDescription>
+                </div>
+              </div>
+              <CardAction>
+                <ChevronDown className={`size-5 text-stone-400 transition-transform ${openSections['basic'] ? 'rotate-180' : ''}`} />
+              </CardAction>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <PhotoUpload
+                  label="Profile Photo"
+                  hint={hasPartner ? 'Upload a favorite picture of the two of you!' : 'Upload a favorite picture of just you!'}
+                  userId={currentUser?.id || currentUser?.email || 'anonymous'}
+                  subfolder="ip-portrait"
+                  onPhotoChange={(url) => {
+                    const updated = { ...profile, profilePhotoUrl: url || '' }
+                    setProfile(updated)
+                    scheduleAutoSave(updated)
+                  }}
+                />
+                <PhotoUpload
+                  label="Cover Photo"
+                  hint="Upload a favorite picture of you doing something you love!"
+                  userId={currentUser?.id || currentUser?.email || 'anonymous'}
+                  subfolder="ip-cover"
+                  onPhotoChange={(url) => {
+                    const updated = { ...profile, coverPhotoUrl: url || '' }
+                    setProfile(updated)
+                    scheduleAutoSave(updated)
+                  }}
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Sections */}
       {SECTIONS.map(sec => {
