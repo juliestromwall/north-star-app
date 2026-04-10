@@ -239,7 +239,34 @@ export default function IPProfilePage() {
     findCaseByEmail(currentUser.email).then(data => {
       if (data) {
         setCaseData(data)
-        setProfile(data.answers?._ipProfile || {})
+        const existing = data.answers?._ipProfile || {}
+        // Pre-fill from intake answers if profile sections are empty
+        const a = data.answers || {}
+        const boolToYN = (v) => v === true ? 'yes' : v === false ? 'no' : undefined
+        if (!existing.fertility || Object.keys(existing.fertility).length === 0) {
+          existing.fertility = {
+            hasFrozenEmbryos: boolToYN(a.hasFrozenEmbryos),
+            frozenEmbryoCount: a.frozenEmbryoDetails || '',
+            usingEggDonor: boolToYN(a.usingEggDonor),
+            usingSpermDonor: boolToYN(a.usingSpermDonor),
+            hasOtherChildren: boolToYN(a.hasOtherChildren),
+            otherChildrenDetails: a.otherChildrenDetails || '',
+          }
+        }
+        if (!existing.surrogacy || Object.keys(existing.surrogacy).length === 0) {
+          const clinicParts = [a.reDoctorName, a.hasRE === true ? 'RE' : ''].filter(Boolean)
+          existing.surrogacy = {
+            clinicName: clinicParts.length > 0 ? clinicParts.join(' — ') : '',
+          }
+        }
+        const hp = a.hasPartner === 'yes' || a.hasPartner === true
+        if (!existing.ip1?.personal || Object.keys(existing.ip1?.personal || {}).length === 0) {
+          existing.ip1 = { ...existing.ip1, personal: { dob: a.primaryDob || '', ...(existing.ip1?.personal || {}) } }
+        }
+        if (hp && (!existing.ip2?.personal || Object.keys(existing.ip2?.personal || {}).length === 0)) {
+          existing.ip2 = { ...existing.ip2, personal: { dob: a.ip2Dob || '', ...(existing.ip2?.personal || {}) } }
+        }
+        setProfile(existing)
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [currentUser?.email])
