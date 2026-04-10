@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2
 } from 'lucide-react'
@@ -335,77 +335,44 @@ function renderDisplayField(field, data) {
 // ─────────────────────────────────────────────────────────
 
 function SharedSectionCard({ section, profile, onSave }) {
-  const [open, setOpen] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [editData, setEditData] = useState({})
-  const [saving, setSaving] = useState(false)
-
+  const [open, setOpen] = useState(false)
   const sectionData = profile?.[section.key] || {}
   const Icon = section.icon
 
-  function startEdit() {
-    const merged = { ...sectionData }
-    for (const f of section.fields) {
-      if (!(f.key in merged)) merged[f.key] = f.type === 'checkboxGroup' ? [] : ''
-    }
-    setEditData(merged)
-    setEditing(true)
-  }
-
   function handleFieldChange(key, value) {
-    setEditData(prev => ({ ...prev, [key]: value }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await onSave(section.key, editData)
-      setEditing(false)
-    } finally {
-      setSaving(false)
-    }
+    const updated = { ...sectionData, [key]: value }
+    onSave(section.key, updated)
   }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card>
+      <Card className="rounded-2xl">
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Icon className="size-5 text-[#283693]" />
-                <CardTitle className="text-base">{section.label}</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
+                  <Icon className="size-5 text-[#283693]" />
+                </div>
+                <CardTitle className="text-base text-[#283693]">{section.label}</CardTitle>
               </div>
-              <ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`size-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
             </div>
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0">
-            {editing ? (
-              <div className="space-y-4">
-                {section.fields.map(f => renderEditField(f, editData, handleFieldChange))}
-                <div className="flex items-center gap-2 pt-2">
-                  <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
-                    <Save className="size-3.5" />
-                    {saving ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {section.fields.map(f => renderDisplayField(f, sectionData))}
-                </div>
-                {section.fields.every(f => !isFieldFilled(sectionData[f.key])) && (
-                  <p className="text-sm text-muted-foreground italic">No data entered yet.</p>
-                )}
-                <Button size="sm" variant="outline" onClick={startEdit} className="mt-2">
-                  Edit
-                </Button>
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {section.fields.map(f => {
+                const node = renderEditField(f, sectionData, handleFieldChange)
+                if (!node) return null
+                return (
+                  <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
+                    {node}
+                  </div>
+                )
+              })}
+            </div>
           </CardContent>
         </CollapsibleContent>
       </Card>
@@ -418,87 +385,49 @@ function SharedSectionCard({ section, profile, onSave }) {
 // ─────────────────────────────────────────────────────────
 
 function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, onSave }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('ip1')
-  const [editing, setEditing] = useState(null) // 'ip1' | 'ip2' | null
-  const [editData, setEditData] = useState({})
-  const [saving, setSaving] = useState(false)
-
   const Icon = section.icon
 
   function getPersonData(person) {
     return profile?.[person]?.[section.key] || {}
   }
 
-  function startEdit(person) {
-    const data = getPersonData(person)
-    const merged = { ...data }
-    for (const f of section.fields) {
-      if (!(f.key in merged)) merged[f.key] = f.type === 'checkboxGroup' ? [] : ''
-    }
-    setEditData(merged)
-    setEditing(person)
-  }
-
-  function handleFieldChange(key, value) {
-    setEditData(prev => ({ ...prev, [key]: value }))
-  }
-
-  async function handleSave() {
-    setSaving(true)
-    try {
-      await onSave(editing, section.key, editData)
-      setEditing(null)
-    } finally {
-      setSaving(false)
-    }
+  function handleFieldChange(person, key, value) {
+    const updated = { ...getPersonData(person), [key]: value }
+    onSave(person, section.key, updated)
   }
 
   function renderPersonContent(person) {
     const personData = getPersonData(person)
-    const isEditing = editing === person
-
-    if (isEditing) {
-      return (
-        <div className="space-y-4">
-          {section.fields.map(f => renderEditField(f, editData, handleFieldChange))}
-          <div className="flex items-center gap-2 pt-2">
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
-              <Save className="size-3.5" />
-              {saving ? 'Saving...' : 'Save'}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-          </div>
-        </div>
-      )
-    }
-
     return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {section.fields.map(f => renderDisplayField(f, personData))}
-        </div>
-        {section.fields.every(f => !isFieldFilled(personData[f.key])) && (
-          <p className="text-sm text-muted-foreground italic">No data entered yet.</p>
-        )}
-        <Button size="sm" variant="outline" onClick={() => startEdit(person)} className="mt-2">
-          Edit
-        </Button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {section.fields.map(f => {
+          const node = renderEditField(f, personData, (k, v) => handleFieldChange(person, k, v))
+          if (!node) return null
+          return (
+            <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
+              {node}
+            </div>
+          )
+        })}
       </div>
     )
   }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card>
+      <Card className="rounded-2xl">
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Icon className="size-5 text-[#283693]" />
-                <CardTitle className="text-base">{section.label}</CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
+                  <Icon className="size-5 text-[#283693]" />
+                </div>
+                <CardTitle className="text-base text-[#283693]">{section.label}</CardTitle>
               </div>
-              <ChevronDown className={`size-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`size-5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
             </div>
           </CardHeader>
         </CollapsibleTrigger>
@@ -507,8 +436,8 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
             {hasPartner ? (
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="mb-4">
-                  <TabsTrigger value="ip1">IP1 ({ip1Name || 'IP1'})</TabsTrigger>
-                  <TabsTrigger value="ip2">IP2 ({ip2Name || 'IP2'})</TabsTrigger>
+                  <TabsTrigger value="ip1">{ip1Name || 'IP1'}</TabsTrigger>
+                  <TabsTrigger value="ip2">{ip2Name || 'IP2'}</TabsTrigger>
                 </TabsList>
                 <TabsContent value="ip1">{renderPersonContent('ip1')}</TabsContent>
                 <TabsContent value="ip2">{renderPersonContent('ip2')}</TabsContent>
@@ -624,18 +553,16 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
   )
 }
 
-function IPAdminPhotosSection({ ip, profile, onUpdate }) {
+function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
   // Use IP's auth user_id if available so it shares storage with portal uploads,
   // otherwise fall back to a case-id-keyed path (admin-only photos)
   const baseId = ip?.user_id || `case-${ip?.id}`
 
-  async function handlePortraitChange(url) {
-    const updated = { ...(ip?.answers || {}), _ipProfile: { ...profile, profilePhotoUrl: url || '' } }
-    await onUpdate(updated)
+  function handlePortraitChange(url) {
+    onProfileChange({ ...profile, profilePhotoUrl: url || '' })
   }
-  async function handleCoverChange(url) {
-    const updated = { ...(ip?.answers || {}), _ipProfile: { ...profile, coverPhotoUrl: url || '' } }
-    await onUpdate(updated)
+  function handleCoverChange(url) {
+    onProfileChange({ ...profile, coverPhotoUrl: url || '' })
   }
 
   return (
@@ -667,7 +594,16 @@ function IPAdminPhotosSection({ ip, profile, onUpdate }) {
 
 export default function IPProfileTab({ ip, onUpdate }) {
   const answers = ip?.answers || {}
-  const profile = answers._ipProfile || {}
+  // Local copy of profile for immediate UI updates; debounced save bubbles up
+  const [localProfile, setLocalProfile] = useState(answers._ipProfile || {})
+  const saveTimer = useRef(null)
+
+  // Sync localProfile when ip prop changes (e.g., navigating to a different IP)
+  useEffect(() => {
+    setLocalProfile(answers._ipProfile || {})
+  }, [ip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const profile = localProfile
   const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
 
   const ip1Name = ip?.ip1Name || answers.primaryFirstName || 'IP1'
@@ -675,21 +611,22 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   const { filled, total, percent } = countProfileCompletion(profile, hasPartner)
 
+  function scheduleAutoSave(updatedProfile) {
+    setLocalProfile(updatedProfile)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      onUpdate({ ...answers, _ipProfile: updatedProfile })
+    }, 1500)
+  }
+
   // Save a shared section (fertility, surrogacy)
-  async function handleSharedSave(sectionKey, data) {
-    const updatedProfile = {
-      ...profile,
-      [sectionKey]: data,
-    }
-    const updatedAnswers = {
-      ...answers,
-      _ipProfile: updatedProfile,
-    }
-    await onUpdate(updatedAnswers)
+  function handleSharedSave(sectionKey, data) {
+    const updatedProfile = { ...profile, [sectionKey]: data }
+    scheduleAutoSave(updatedProfile)
   }
 
   // Save a per-person section (personal, health, history)
-  async function handlePerPersonSave(person, sectionKey, data) {
+  function handlePerPersonSave(person, sectionKey, data) {
     const updatedProfile = {
       ...profile,
       [person]: {
@@ -697,17 +634,13 @@ export default function IPProfileTab({ ip, onUpdate }) {
         [sectionKey]: data,
       },
     }
-    const updatedAnswers = {
-      ...answers,
-      _ipProfile: updatedProfile,
-    }
-    await onUpdate(updatedAnswers)
+    scheduleAutoSave(updatedProfile)
   }
 
   return (
     <div className="space-y-6 mt-4">
       {/* Admin Photos */}
-      <IPAdminPhotosSection ip={ip} profile={profile} onUpdate={onUpdate} />
+      <IPAdminPhotosSection ip={ip} profile={profile} onProfileChange={scheduleAutoSave} />
 
       {/* Progress Bar */}
       <Card>
