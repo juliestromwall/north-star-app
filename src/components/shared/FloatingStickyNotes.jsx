@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, X, Minimize2, GripHorizontal, StickyNote } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { getAppConfig, setAppConfig } from '@/lib/db'
@@ -207,19 +208,26 @@ export default function FloatingStickyNotes() {
           onMinimize={minimizeNote}
         />
       ))}
-
-      {/* Minimized notes in top bar area */}
-      <MinimizedBar notes={minimizedNotes} onRestore={restoreNote} onDelete={deleteNote} onAdd={addNote} totalCount={notes.length} />
+      {/* Minimized bar — positioned in the top bar after nav icons */}
+      <MinimizedBar notes={minimizedNotes} onRestore={restoreNote} onDelete={deleteNote} onAdd={addNote} />
     </>
   )
 }
 
-export function MinimizedBar({ notes, onRestore, onDelete, onAdd, totalCount }) {
-  const [open, setOpen] = useState(false)
+export function MinimizedBar({ notes, onRestore, onDelete, onAdd }) {
+  const [target, setTarget] = useState(null)
+  useEffect(() => {
+    // Wait for TopBar to render the portal target
+    const el = document.getElementById('sticky-notes-bar')
+    if (el) setTarget(el)
+    else {
+      const timer = setTimeout(() => setTarget(document.getElementById('sticky-notes-bar')), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
-  return (
-    <div className="fixed top-2 right-48 z-[61] flex items-center gap-1.5">
-      {/* Add note button */}
+  const content = (
+    <>
       <button
         onClick={onAdd}
         className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-700 text-[10px] font-semibold border border-yellow-300 shadow-sm transition-colors"
@@ -228,8 +236,6 @@ export function MinimizedBar({ notes, onRestore, onDelete, onAdd, totalCount }) 
         <StickyNote className="size-3" />
         <Plus className="size-2.5" />
       </button>
-
-      {/* Minimized notes */}
       {notes.map(note => {
         const color = getColor(note.color)
         return (
@@ -245,6 +251,9 @@ export function MinimizedBar({ notes, onRestore, onDelete, onAdd, totalCount }) 
           </button>
         )
       })}
-    </div>
+    </>
   )
+
+  if (target) return createPortal(content, target)
+  return null
 }

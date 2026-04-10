@@ -112,6 +112,9 @@ export default function TopBar({ onMenuClick }) {
         ))}
       </nav>
 
+      {/* Portal target for sticky notes minimized bar */}
+      <div id="sticky-notes-bar" className="hidden sm:flex items-center gap-1.5 mx-2" />
+
       <div className="flex items-center gap-2 sm:gap-3 ml-auto">
         <div className="text-right hidden sm:block">
           <p className="text-sm font-medium leading-none">{currentUser.name}</p>
