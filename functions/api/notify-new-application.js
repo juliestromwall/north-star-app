@@ -19,7 +19,12 @@ export async function onRequestPost(context) {
   const notifyEmails = (env.GC_APPLICATION_NOTIFY_EMAIL || 'juliestromwall@gmail.com')
     .split(',').map(e => e.trim()).filter(Boolean)
 
-  const { applicantName, applicantEmail, applicantPhone, state, qualified, dqReasons } = await context.request.json()
+  const { applicantName, applicantEmail, applicantPhone, state, qualified, dqReasons, hearAboutUs, referralName, hearAboutUsOther } = await context.request.json()
+
+  // Build "How they heard" display
+  let hearAboutDisplay = hearAboutUs || '—'
+  if (hearAboutUs === 'Friend or family' && referralName) hearAboutDisplay = `Friend or family — ${referralName}`
+  else if (hearAboutUs === 'Other' && hearAboutUsOther) hearAboutDisplay = `Other — ${hearAboutUsOther}`
 
   if (!resendKey || !applicantName) {
     return new Response(JSON.stringify({ error: 'Missing data or Resend not configured' }), {
@@ -61,9 +66,13 @@ export async function onRequestPost(context) {
             <td style="padding: 10px 0; color: #78716c;"><strong>Phone</strong></td>
             <td style="padding: 10px 0; color: #1a1a2e;">${applicantPhone || '—'}</td>
           </tr>
-          <tr>
+          <tr style="border-bottom: 1px solid #f0f0f0;">
             <td style="padding: 10px 0; color: #78716c;"><strong>State</strong></td>
             <td style="padding: 10px 0; color: #1a1a2e;">${state || '—'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0; color: #78716c;"><strong>How They Heard</strong></td>
+            <td style="padding: 10px 0; color: #1a1a2e;">${hearAboutDisplay}</td>
           </tr>
         </table>
 

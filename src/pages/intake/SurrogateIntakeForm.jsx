@@ -187,6 +187,9 @@ export default function SurrogateIntakeForm() {
         state: form.state || '',
         qualified,
         dqReasons,
+        hearAboutUs: form.hearAboutUs || '',
+        referralName: form.referralName || '',
+        hearAboutUsOther: form.hearAboutUsOther || '',
       }),
     }).catch(() => {})
 
