@@ -150,9 +150,6 @@ export default function IPDetailPage() {
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
                 <AISummaryButton caseId={ip.id} caseName={ip.names || ip.name} caseType="ip" stage={stageStatus.stage} status={stageStatus.status} />
-                <Badge variant="outline" className="text-xs bg-sky-100 text-sky-800 border-sky-200">
-                  {ip.type}
-                </Badge>
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
                 {ip.location && (
@@ -334,7 +331,6 @@ export default function IPDetailPage() {
               const ageDisplay = age1 && age2 ? `${age1} / ${age2}` : age1 ? `${age1}` : '—'
               return [
               { icon: Calendar, label: hasPartner ? 'Ages' : 'Age', value: ageDisplay },
-              { icon: Users, label: 'Type', value: ip.type || '—' },
               { icon: Heart, label: 'Relationship', value: a.maritalStatus || '—' },
               { icon: Stethoscope, label: 'RE Doctor', value: ip.hasRE ? (ip.reDoctorName || 'Yes') : '—' },
               { icon: Baby, label: 'Embryos', value: ip.hasFrozenEmbryos ? (ip.frozenEmbryoDetails || 'Yes') : boolLabel(ip.hasFrozenEmbryos) },

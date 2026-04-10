@@ -126,7 +126,6 @@ export function IPTileCard({ ip, stageStatus, recordTracking }) {
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
                 <StageBadge stage={ss.stage} status={ss.status} />
-                <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>{ip.type}</Badge>
               </div>
             </div>
           </div>
@@ -401,7 +400,6 @@ export default function IPListPage() {
                       )}
                       <div className="flex items-center gap-1.5 mt-1.5">
                         <StageBadge stage={ss.stage} status={ss.status} />
-                        <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>{ip.type}</Badge>
                       </div>
                     </div>
                   </div>
@@ -444,7 +442,6 @@ export default function IPListPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>RE</TableHead>
                 <TableHead>Embryos</TableHead>
                 <TableHead>Submitted</TableHead>
@@ -468,11 +465,6 @@ export default function IPListPage() {
                   </TableCell>
                   <TableCell>{ip.location}</TableCell>
                   <TableCell><StatusBadge status={ip.status} /></TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`text-[10px] ${TYPE_STYLES[ip.type] || ''}`}>
-                      {ip.type}
-                    </Badge>
-                  </TableCell>
                   <TableCell>{ip.hasRE === true ? (ip.reDoctorName || 'Yes') : ip.hasRE === false ? 'Not yet' : '—'}</TableCell>
                   <TableCell>{ip.hasFrozenEmbryos === true ? 'Yes' : ip.hasFrozenEmbryos === false ? 'No' : '—'}</TableCell>
                   <TableCell className="text-stone-500">{new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</TableCell>
