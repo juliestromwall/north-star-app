@@ -1947,7 +1947,8 @@ export default function JourneyDetailPage() {
   )
 
   const stageObj = JOURNEY_STAGES.find(s => s.id === journey.stage) || JOURNEY_STAGES[0]
-  const statuses = getStatusesForStage(journey.stage, 'journey')
+  const stageStatuses = getStatusesForStage(journey.stage, 'journey')
+  const statuses = stageStatuses.includes(journey.status) ? stageStatuses : [journey.status, ...stageStatuses]
   const jd = journey.journey_data || {}
 
   return (
