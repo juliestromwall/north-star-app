@@ -22,7 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Search, RefreshCw, Mail, MailOpen, Send, Paperclip, ArrowLeft,
   Star, Archive, Trash2, Reply, Forward, X, Loader2, LinkIcon,
-  Inbox, CheckCircle2, Download, Tag,
+  Inbox, CheckCircle2, Download, Tag, Lock,
   SendHorizonal, FileText, AlertTriangle,
   MailPlus, Clock, ChevronRight, Users, Info, MessageSquare, ShoppingBag, Megaphone, ChevronDown,
 } from 'lucide-react'
@@ -160,11 +160,12 @@ const EMAIL_TAGS = [
 
 export { EMAIL_TAGS }
 
-function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
+function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMasterAdmin }) {
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCase, setSelectedCase] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [caseSearch, setCaseSearch] = useState('')
@@ -177,6 +178,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
     setSaved(false)
     setSelectedCase('')
     setSelectedTag('')
+    setIsPrivate(false)
     setCaseSearch('')
     setAiStep(null)
     setAiData(null)
@@ -227,6 +229,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
         logged_by: userId,
         logged_by_name: userName,
         tag: selectedTag || null,
+        is_private: isPrivate,
       })
       if (error) throw error
 
@@ -455,6 +458,25 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName }) {
                   </div>
                 </div>
               )}
+
+              {/* Private toggle (master admin only) */}
+              {selectedCase && isMasterAdmin && (
+                <div className="space-y-1.5 pt-2 border-t border-stone-100">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isPrivate}
+                      onChange={e => setIsPrivate(e.target.checked)}
+                      className="size-4 accent-purple-600"
+                    />
+                    <span className="text-sm text-stone-700 flex items-center gap-1.5">
+                      <Lock className="size-3.5 text-purple-600" />
+                      Mark as Private
+                    </span>
+                  </label>
+                  <p className="text-[10px] text-stone-400 ml-6">Only master admins will be able to see this email.</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -589,7 +611,7 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
         </div>
       </div>
 
-      <LogToCaseDialog open={logOpen} onOpenChange={setLogOpen} email={email} userId={userId} userName={userName} />
+      <LogToCaseDialog open={logOpen} onOpenChange={setLogOpen} email={email} userId={userId} userName={userName} isMasterAdmin={isMasterAdmin} />
     </div>
   )
 }
@@ -830,7 +852,7 @@ function EmailList({ messages, loading, onOpenEmail, loadingEmail, onLoadMore, h
 // ── Main Email Page ─────────────────────────────────────
 
 export default function EmailPage() {
-  const { currentUser } = useRole()
+  const { currentUser, isMasterAdmin } = useRole()
   const { openDraft } = useDrafts()
   const userId = currentUser?.id
 
