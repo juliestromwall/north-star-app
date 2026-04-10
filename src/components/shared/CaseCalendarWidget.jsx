@@ -48,6 +48,8 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       return Promise.all(fetches)
     }).then(results => {
       const all = results.flatMap(r => r.items || [])
+      console.log('[Calendar] Fetched events:', all.length, 'timeMin:', timeMin, 'timeMax:', timeMax)
+      all.forEach(e => console.log('[Calendar] Event:', e.summary, e.start?.dateTime || e.start?.date))
       const seen = new Set()
       const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
       setEvents(deduped.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
