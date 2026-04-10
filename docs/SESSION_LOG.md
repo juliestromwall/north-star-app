@@ -1,5 +1,82 @@
 # Session Log
 
+## 2026-04-10 (E-Sign Polish, Records Summary, HIPAA Releases, Past Calendar Events)
+
+**Worked on:** E-signature initials/optional field fixes, portal Documents visibility, GC Application reorg, Clinic & Hospital provider rebuild, HIPAA medical records release generation + batch signing, fax integration with cover page, Resend transactional emails, application review workflow, referral & bonus tracker, date_completed checklist step, Records Summary workspace, past calendar events with edit/delete + confirmation dialog.
+
+**Changes made:**
+
+E-Signature:
+- Initials use Dancing Script font (replaceAllText then updateTextStyle)
+- Drawn initials uploaded as images and inserted via insertInlineImage (like signatures)
+- Support for Initials/Initials2/Signature2-5/checkbox2 placeholders
+- Optional field cleanup pass scans for remaining `{{...}}`
+- Audit trail rendered as separate canvas page in PDF (html2canvas + jsPDF direct)
+
+Portal Documents:
+- Surrogates/IPs see only e-signed documents and what they uploaded
+- Uploaded docs visible on case Documents tab
+
+GC Application Reorganization:
+- "Application" tab renamed to "Personal Information"
+- Sections reordered, References gets admin-only reference notes
+- Confidential section displays Driver's License via PhotoIdDisplay component
+- Photo ID labeled per uploader (GC/IP1/IP2/Partner)
+
+Clinic & Hospital (Medical Records Release purpose):
+- Rebuilt with per-pregnancy provider details (OB, hospital, MFM, etc.)
+- GenerateReleaseFormsButton with selectable providers
+
+HIPAA Medical Records Release:
+- `releaseFormGenerator.js` — fax-friendly HTML release per provider
+- Batch signing flow at `SignReleaseBatchPage.jsx` — one link, one verification
+- Branded verify page matching login
+
+Fax Integration:
+- Custom branded cover page generator
+- Fixed `sendFax()` dropping `additionalFiles` (was destructuring specific params)
+- Fax dialog from case documents with DL attachment + signature block
+
+Resend Transactional Emails:
+- `welcome-email.js`, `reinvite.js`, `reset-password-email.js`, `notify-new-application.js`
+- Notification email includes "How They Heard" with referral name / other text
+- Reset password handles multiple Supabase response formats (action_link/hashed_token)
+
+Application Review Workflow:
+- "Mark as Reviewed" button updates dashboard
+
+Referral & Bonus Tracker:
+- `ReferralBonusTrackerPage.jsx` — $4K default, split payments at medical/legal clearance
+
+Checklist:
+- New `date_completed` step type with direct Complete button (TrackingTable.jsx)
+
+Records Summary Workspace:
+- `RecordsSummaryWorkspace.jsx` — split-screen docs left, form right
+- PDF merge + page removal tools, preview modal with match-sheet styling
+- forwardRef + useImperativeHandle exposes form data for live preview
+- Pre-fills from Supabase `surrogate_profiles` (not localStorage)
+- Pregnancy banner with inline pills (outcome, date, GA, weight, sex, delivery)
+- New `records_admin` role added to constants
+- Records Summary nav item under Operations
+
+Past Calendar Events (CaseCalendarWidget):
+- Loads 2 years back + 6 months forward
+- Split into upcomingEvents / pastEvents
+- "X past" button opens modal listing all past appointments
+- New EventRow reusable component (used in upcoming + past)
+- Added in-app delete confirmation dialog (replaced browser confirm)
+- Fixed `handleCreate` to tag events with `extendedProperties.private.caseId`
+- Fixed `confirmDelete` to try both `defaultCalId` and `'primary'` calendars
+- Fixed `handleEdit` to try both `defaultCalId` and `'primary'` calendars (matches delete fix)
+
+**Next steps:**
+- Test edit flow on production for events on the appointments calendar
+- Continue with Match-Centric Case Architecture plan (`~/.claude/plans/goofy-waddling-dawn.md`)
+
+**Open questions:**
+- None blocking
+
 ## 2026-04-10 (Floating Sticky Notes + Bot Protection Fixes + UI Polish)
 
 **Worked on:** Draggable floating sticky notes, removed dashboard calculator/sticky notes, Couple/Single badge cleanup, bot protection adjustments for Safari mobile, surrogate notification email enhancements

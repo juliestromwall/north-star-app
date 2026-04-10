@@ -107,7 +107,18 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     const eventId = deleteConfirm.id
     setDeleting(eventId)
     try {
-      await deleteEvent(userId, 'primary', eventId)
+      // Try deleting from the appointments calendar first, then primary
+      const calIds = [defaultCalId]
+      if (defaultCalId !== 'primary') calIds.push('primary')
+      let deleted = false
+      for (const calId of calIds) {
+        try {
+          await deleteEvent(userId, calId, eventId)
+          deleted = true
+          break
+        } catch {}
+      }
+      if (!deleted) throw new Error('Event not found on any calendar')
       setEvents(prev => prev.filter(e => e.id !== eventId))
     } catch (err) { alert('Failed to delete: ' + err.message) }
     finally { setDeleting(null); setDeleteConfirm(null) }
@@ -123,7 +134,17 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       end: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.endTime || eventData.startTime}:00`, timeZone: tz },
     }
     try {
-      const updated = await updateEvent(userId, 'primary', editEvent.id, updates)
+      // Try updating on the appointments calendar first, then primary
+      const calIds = [defaultCalId]
+      if (defaultCalId !== 'primary') calIds.push('primary')
+      let updated = null
+      for (const calId of calIds) {
+        try {
+          updated = await updateEvent(userId, calId, editEvent.id, updates)
+          break
+        } catch {}
+      }
+      if (!updated) throw new Error('Event not found on any calendar')
       setEvents(prev => prev.map(e => e.id === editEvent.id ? updated : e).sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
       setEditEvent(null)
     } catch (err) { alert('Failed to update: ' + err.message) }

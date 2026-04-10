@@ -79,7 +79,7 @@
 | InsuranceCardIcon | src/components/shared/InsuranceTab.jsx | SVG icon for insurance card display |
 | CaseTasksWidget | src/components/shared/CaseTasksWidget.jsx | Case-level task management: add/complete/delete tasks, priority, due dates, notes, overdue highlighting. Shows on Overview tab |
 | DashboardTasksWidget | src/components/shared/CaseTasksWidget.jsx | Dashboard "My Tasks" widget: cross-case task view, searchable case picker for adding tasks from dashboard |
-| CaseCalendarWidget | src/components/shared/CaseCalendarWidget.jsx | Per-case Google Calendar appointments: add/delete, tagged with extendedProperties for filtering, syncs to full Google Calendar |
+| CaseCalendarWidget | src/components/shared/CaseCalendarWidget.jsx | Per-case Google Calendar appointments: add/edit/delete with in-app confirmation dialog, past appointments modal (loads 2 years back), tagged with extendedProperties for filtering, syncs to full Google Calendar, multi-calendar fallback for edit/delete |
 | TimeClockPage | src/pages/time-clock/TimeClockPage.jsx | Clock in/out with pay period tracking |
 | SettingsPage | src/pages/SettingsPage.jsx | Admin notes, team management, stage statuses, checklists, Google integration connect/disconnect |
 | PsychTrackingPage | src/pages/psych/PsychTrackingPage.jsx | Psych check-in tracking for surrogates with active pregnancy tracker. Columns: Surrogate, Contact (email+phone), Due Date, 10/20/30 Week (Due/Completed), Delivery Date, Post Delivery. Auto-calculates milestone dates from due date. Manual entry modal. Token-based shareable external link. |
