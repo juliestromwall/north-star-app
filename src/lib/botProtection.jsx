@@ -42,29 +42,13 @@ export function useBotProtection(startTimeRef) {
   }, [])
 
   const validateSubmission = useCallback(() => {
-    // 1. Honeypot check — disabled (Safari mobile autofills hidden fields)
-    if (honeypotValue) {
-      console.warn('Bot protection: honeypot filled but not blocking (Safari compat):', honeypotValue)
-    }
-
-    // 2. Time-based check — form completed too fast
+    // ALL BOT CHECKS TEMPORARILY DISABLED — debugging Safari mobile DQ issue
+    // Logging only, no blocking
+    if (honeypotValue) console.warn('Bot: honeypot filled:', honeypotValue)
     const elapsed = (Date.now() - startTimeRef.current) / 1000
-    if (elapsed < MIN_FORM_TIME_SECONDS) {
-      console.warn('Bot protection: too fast, elapsed:', elapsed)
-      return { ok: false, reason: 'too_fast' }
-    }
-
-    // 3. Rapid-fill detection — inhumanly fast field changes
-    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) {
-      console.warn('Bot protection: rapid fill detected, count:', maxRapidFillRef.current)
-      return { ok: false, reason: 'rapid_fill' }
-    }
-
-    // 4. Turnstile check — log if missing but don't block
-    // (some browsers/ad blockers prevent Turnstile from loading)
-    if (TURNSTILE_SITE_KEY && !turnstileToken) {
-      console.warn('Turnstile token missing — allowing submission anyway')
-    }
+    if (elapsed < MIN_FORM_TIME_SECONDS) console.warn('Bot: too fast:', elapsed, 's')
+    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) console.warn('Bot: rapid fill:', maxRapidFillRef.current)
+    if (TURNSTILE_SITE_KEY && !turnstileToken) console.warn('Bot: no turnstile token')
 
     return { ok: true, reason: null }
   }, [honeypotValue, turnstileToken, startTimeRef])
