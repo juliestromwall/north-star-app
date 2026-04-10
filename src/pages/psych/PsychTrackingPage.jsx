@@ -308,8 +308,7 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                 <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[180px] border-r border-stone-200">
                   Surrogate
                 </th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Email</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Phone</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Contact</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Due Date</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
@@ -319,7 +318,6 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
               </tr>
               <tr className="bg-stone-50/50 border-b border-stone-200">
                 <th className="sticky left-0 bg-stone-50/50 z-20 border-r border-stone-200" />
-                <th className="border-r border-stone-100" />
                 <th className="border-r border-stone-100" />
                 <th className="border-r border-stone-100" />
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
@@ -343,8 +341,10 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                     )}
                     {row.manual && !isSharedView && <span className="text-[10px] text-violet-400 ml-1">(manual)</span>}
                   </td>
-                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.email || '—'}</td>
-                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.phone || '—'}</td>
+                  <td className="px-4 py-3 border-r border-stone-100">
+                    <p className="text-stone-600">{row.email || '—'}</p>
+                    {row.phone && <p className="text-stone-400 text-[10px]">{row.phone}</p>}
+                  </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600 font-medium">{row.dueDate ? formatDate(row.dueDate) : '—'}</td>
                   {/* 10 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week10Date ? formatDate(row.week10Date) : '—'}</td>
