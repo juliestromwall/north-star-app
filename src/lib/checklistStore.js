@@ -10,6 +10,10 @@ const CONFIG_KEY = 'checklist_config'
 
 // Module-level cache (synchronous reads after initial load)
 let _cache = null
+// True only after a successful Supabase load (or localStorage migration).
+// All save() calls are BLOCKED while this is false to prevent overwriting
+// real data with the defaults that the sync fallback returns.
+let _loaded = false
 
 // Default step statuses available for all checklists
 export const CHECKLIST_STEP_STATUSES = [
@@ -132,10 +136,9 @@ function ensureDefaults(config) {
       }
     }
   }
-  if (changed) {
-    // Force save to Supabase + localStorage so locked steps persist
-    save(config)
-  }
+  // NOTE: do NOT call save() here. Callers decide whether to persist.
+  // Saving from inside ensureDefaults previously caused defaults to be
+  // written to Supabase during the startup race, wiping user data.
   return changed
 }
 
@@ -153,9 +156,10 @@ export async function loadChecklistConfig() {
       let changed = migrateIfNeeded(config)
       if (ensureDefaults(config)) changed = true
       _cache = config
+      _loaded = true // ← unblock save() now that we have real data
       saveToLocalStorage(config)
       if (changed) saveToSupabase(config)
-      clearLocalStorage()
+      // Keep localStorage as a safety net — do NOT clear it.
       return config
     }
 
@@ -165,31 +169,43 @@ export async function loadChecklistConfig() {
       migrateIfNeeded(local)
       ensureDefaults(local)
       _cache = local
+      _loaded = true
       saveToSupabase(local)
-      clearLocalStorage()
       return local
     }
 
     // Nothing anywhere — seed defaults
     const defaults = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
     _cache = defaults
+    _loaded = true
     saveToSupabase(defaults)
     return defaults
   } catch {
-    // Fallback to localStorage or defaults
+    // Supabase failed — fall back to localStorage if available
     const local = loadFromLocalStorage()
     if (local) {
       migrateIfNeeded(local)
       ensureDefaults(local)
       _cache = local
+      // Do NOT mark _loaded = true: we never confirmed against Supabase,
+      // so saves stay blocked until a real load succeeds. This prevents
+      // overwriting Supabase with stale localStorage data.
       return local
     }
-    _cache = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
-    return _cache
+    // No data anywhere — return defaults but DO NOT cache or mark loaded.
+    // Saves remain blocked so we can't clobber Supabase with defaults.
+    return JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
   }
 }
 
 function save(config) {
+  if (!_loaded) {
+    // Block writes until we've confirmed what's in Supabase. Without this
+    // guard, the startup race could overwrite real data with the defaults
+    // returned by the sync fallback.
+    console.warn('[checklistStore] save() blocked — config not loaded from Supabase yet')
+    return
+  }
   _cache = config
   saveToLocalStorage(config)
   saveToSupabase(config)
@@ -198,14 +214,17 @@ function save(config) {
 /** Get full config (synchronous — reads from cache) */
 export function getChecklistConfig() {
   if (_cache) return _cache
-  // Fallback: if cache not loaded yet, read from localStorage
+  // Fallback path — async load hasn't finished yet. Return defaults (or
+  // localStorage if present) for rendering, but DO NOT cache them as
+  // truth and DO NOT mark _loaded = true. save() stays blocked, so even
+  // if a component tries to persist while we're in this state, it can't
+  // overwrite real Supabase data.
   let config = loadFromLocalStorage()
   if (!config) {
     config = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
   }
   migrateIfNeeded(config)
   ensureDefaults(config)
-  _cache = config
   return config
 }
 

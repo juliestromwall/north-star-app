@@ -9,25 +9,31 @@ import App from './App'
 import { loadChecklistConfig } from './lib/checklistStore'
 import { loadStageStatuses } from './lib/stageStatusStore'
 
-// Pre-load shared configs from Supabase into memory caches (fire-and-forget)
-loadChecklistConfig().catch(() => {})
-loadStageStatuses().catch(() => {})
-
 // Initialize dark mode from localStorage before render to prevent flash
 if (localStorage.getItem('abc_dark_mode') === 'true') {
   document.documentElement.classList.add('dark')
 }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <RoleProvider>
-        <AdminNotesProvider>
-          <TooltipProvider>
-            <App />
-          </TooltipProvider>
-        </AdminNotesProvider>
-      </RoleProvider>
-    </BrowserRouter>
-  </StrictMode>,
-)
+// Pre-load shared configs from Supabase BEFORE mounting React. This closes
+// the race condition where components could read defaults from the sync
+// fallback and accidentally overwrite real Supabase data on the next save.
+// stageStatuses is fired in parallel and not awaited (less risk).
+loadStageStatuses().catch(() => {})
+
+loadChecklistConfig()
+  .catch(() => {}) // save() guard handles failure case
+  .finally(() => {
+    createRoot(document.getElementById('root')).render(
+      <StrictMode>
+        <BrowserRouter>
+          <RoleProvider>
+            <AdminNotesProvider>
+              <TooltipProvider>
+                <App />
+              </TooltipProvider>
+            </AdminNotesProvider>
+          </RoleProvider>
+        </BrowserRouter>
+      </StrictMode>,
+    )
+  })
