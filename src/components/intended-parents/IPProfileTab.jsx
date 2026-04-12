@@ -224,7 +224,10 @@ const HEALTH_FIELDS = [
   { key: 'mentalHealthHospitalization', label: 'Mental health hospitalization?', type: 'yesno' },
   { key: 'mentalHealthHospitalizationDetails', label: 'Hospitalization details', type: 'textarea', conditional: d => d.mentalHealthHospitalization === 'yes' },
   { key: 'healthConditionsList', label: 'Health conditions', type: 'checkboxGroup', options: HEALTH_CONDITIONS },
-  { key: 'healthConditionsDetails', label: 'Dates for any of the above', type: 'textarea' },
+  { key: 'healthConditionsDetails', label: 'Dates for any of the above', type: 'textarea', conditional: d => {
+    const list = d.healthConditionsList
+    return Array.isArray(list) && list.length > 0 && !list.every(v => v === 'None of the above')
+  }},
 ]
 
 const HISTORY_FIELDS = [
