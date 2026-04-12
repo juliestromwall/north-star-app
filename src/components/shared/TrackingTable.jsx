@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight } from 'lucide-react'
+import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight, Plus, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { normalizeOptions, deriveParentStatus } from '@/lib/checklistStore'
 
@@ -16,13 +16,30 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   const [labelValue, setLabelValue] = useState('')
   const [editDate, setEditDate] = useState('')
   const [logDate, setLogDate] = useState('')
+  const [addingCaseSubtask, setAddingCaseSubtask] = useState(null) // parentId currently adding to
+  const [caseSubtaskLabel, setCaseSubtaskLabel] = useState('')
+
+  // Extract case-specific subtasks embedded in tracking data. These are
+  // per-case subtasks added from the case page (not the global template).
+  const caseSubtasks = useMemo(() => {
+    const subs = []
+    for (const [key, val] of Object.entries(tracking || {})) {
+      if (val?._isCaseSubtask && !val?._deleted) {
+        subs.push({ id: key, label: val._label || key, parentId: val._parentId, _isCaseSubtask: true })
+      }
+    }
+    return subs
+  }, [tracking])
+
+  // Merge global template steps + case-specific subtasks
+  const allSteps = useMemo(() => [...steps, ...caseSubtasks], [steps, caseSubtasks])
 
   // Build a flat render list that interleaves parents with their subtasks.
   // Each item carries _depth (0 = top-level, 1 = subtask) and parents carry
   // _children so the row can derive status from them.
   const renderableSteps = useMemo(() => {
     const childrenByParent = {}
-    for (const s of steps) {
+    for (const s of allSteps) {
       if (s.parentId) {
         if (!childrenByParent[s.parentId]) childrenByParent[s.parentId] = []
         childrenByParent[s.parentId].push(s)
@@ -30,7 +47,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     }
     const result = []
     const seen = new Set()
-    for (const s of steps) {
+    for (const s of allSteps) {
       if (s.parentId) continue // children rendered under their parent
       if (seen.has(s.id)) continue
       seen.add(s.id)
@@ -42,19 +59,19 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
       }
     }
     // Sweep up any orphan subtasks (parent missing) so they still render
-    for (const s of steps) {
+    for (const s of allSteps) {
       if (!seen.has(s.id)) {
         result.push({ ...s, _depth: 0, _children: [] })
         seen.add(s.id)
       }
     }
     return result
-  }, [steps])
+  }, [allSteps])
 
   // Progress count: only top-level steps count toward the bar.
-  const topLevelSteps = steps.filter(s => !s.parentId)
+  const topLevelSteps = allSteps.filter(s => !s.parentId)
   const activeSteps = topLevelSteps.filter(s => {
-    const children = steps.filter(c => c.parentId === s.id)
+    const children = allSteps.filter(c => c.parentId === s.id)
     if (children.length > 0) {
       const derived = deriveParentStatus(children, tracking)
       return derived !== 'na'
@@ -62,7 +79,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     return tracking[s.id]?.status !== 'na'
   })
   const completeCount = activeSteps.filter(s => {
-    const children = steps.filter(c => c.parentId === s.id)
+    const children = allSteps.filter(c => c.parentId === s.id)
     if (children.length > 0) {
       return deriveParentStatus(children, tracking) === 'complete'
     }
@@ -75,11 +92,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   // stay stale until the next render path recomputed it.
   function updateStep(stepId, data) {
     onUpdate(stepId, data)
-    const step = steps.find(s => s.id === stepId)
+    const step = allSteps.find(s => s.id === stepId)
     if (!step?.parentId) return
-    const parent = steps.find(s => s.id === step.parentId)
+    const parent = allSteps.find(s => s.id === step.parentId)
     if (!parent) return
-    const siblings = steps.filter(s => s.parentId === parent.id)
+    const siblings = allSteps.filter(s => s.parentId === parent.id)
     // Build the projected tracking with this update applied
     const projected = { ...tracking, [stepId]: { ...(tracking[stepId] || {}), ...data } }
     const newParentStatus = deriveParentStatus(siblings, projected)
@@ -100,9 +117,27 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     })
   }
 
+  function addCaseSubtask(parentId) {
+    if (!caseSubtaskLabel.trim()) return
+    const id = 'csub_' + Date.now()
+    onUpdate(id, {
+      status: 'not_started',
+      history: [],
+      _isCaseSubtask: true,
+      _parentId: parentId,
+      _label: caseSubtaskLabel.trim(),
+    })
+    setCaseSubtaskLabel('')
+    setAddingCaseSubtask(null)
+  }
+
+  function deleteCaseSubtask(subtaskId) {
+    onUpdate(subtaskId, { ...(tracking[subtaskId] || {}), _deleted: true })
+  }
+
   function submitLog(stepId) {
     if (!logStatus) return
-    const step = steps.find(s => s.id === stepId)
+    const step = allSteps.find(s => s.id === stepId)
     const current = tracking[stepId] || { history: [] }
     const history = current.history || []
 
@@ -263,6 +298,20 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                             </div>
                           </>
                         )}
+                        {/* Add case subtask button — on all top-level rows */}
+                        {!isSubtask && (
+                          <button onClick={(e) => { e.stopPropagation(); setAddingCaseSubtask(addingCaseSubtask === step.id ? null : step.id); setCaseSubtaskLabel('') }}
+                            className="text-stone-200 hover:text-[#283693] transition-colors shrink-0" title="Add subtask for this case">
+                            <Plus className="size-3.5" />
+                          </button>
+                        )}
+                        {/* Delete button for case-specific subtasks */}
+                        {isSubtask && step._isCaseSubtask && (
+                          <button onClick={(e) => { e.stopPropagation(); deleteCaseSubtask(step.id) }}
+                            className="text-stone-200 hover:text-red-500 transition-colors shrink-0" title="Remove this subtask">
+                            <Trash2 className="size-3" />
+                          </button>
+                        )}
                         {!hasChildren && currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                       </div>
                     </td>
@@ -388,6 +437,26 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                             </>
                           )}
                           <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {/* Inline input for adding a case-specific subtask */}
+                  {!isSubtask && addingCaseSubtask === step.id && (
+                    <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
+                      <td className="px-6 py-2.5" colSpan={6}>
+                        <div className="flex items-center gap-2" style={{ paddingLeft: 24 }}>
+                          <CornerDownRight className="size-3 text-stone-300 shrink-0" />
+                          <input
+                            className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none"
+                            placeholder="Subtask name for this case..."
+                            value={caseSubtaskLabel}
+                            onChange={e => setCaseSubtaskLabel(e.target.value)}
+                            autoFocus
+                            onKeyDown={e => { if (e.key === 'Enter') addCaseSubtask(step.id); if (e.key === 'Escape') { setAddingCaseSubtask(null); setCaseSubtaskLabel('') } }}
+                          />
+                          <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Add</button>
+                          <button onClick={() => { setAddingCaseSubtask(null); setCaseSubtaskLabel('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
                         </div>
                       </td>
                     </tr>

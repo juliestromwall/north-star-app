@@ -182,13 +182,22 @@ function SurrogateUpdatesSheet({ surrogates }) {
   function getCellData(surrogateId, stepId, stepLabel) {
     const rt = allTracking[surrogateId] || {}
     const data = rt[stepId] || {}
-    const status = data.status || 'not_started'
+    const storedStatus = data.status || 'not_started'
     const history = data.history || []
     const lastEntry = history.length > 0 ? history[history.length - 1] : null
     const prefix = getRecordPrefix(stepLabel)
     let subRecords = []
     if (prefix) subRecords = getSubRecords(surrogateId, prefix)
     const activeRecords = subRecords.filter(r => !r.isExcluded)
+
+    // Derive parent status from global subtasks + case-specific subtasks
+    const globalSubs = subtasksByParent[stepId] || []
+    const caseSubs = Object.entries(rt)
+      .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === stepId)
+      .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
+    const allSubs = [...globalSubs, ...caseSubs]
+    const status = allSubs.length > 0 ? (deriveParentStatus(allSubs, rt) || storedStatus) : storedStatus
+
     return { status, lastEntry, history, subRecords, activeRecords, isRecordType: !!prefix, doneCount: activeRecords.filter(r => r.isComplete).length, totalCount: activeRecords.length }
   }
 
@@ -264,7 +273,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             ) : status === 'not_started' ? (
                               <span className="text-xs text-stone-300">Not Started</span>
                             ) : (
-                              <span className="text-xs text-stone-600">
+                              <span className={`text-xs ${status === 'in_progress' ? 'text-blue-600' : status === 'reviewing' ? 'text-purple-600' : status === 'requested' ? 'text-amber-600' : 'text-stone-600'} font-medium`}>
                                 {lastEntry?.date ? formatDate(lastEntry.date) : ''}{' '}
                                 <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                               </span>
@@ -285,8 +294,12 @@ function SurrogateUpdatesSheet({ surrogates }) {
                           </div>
                           {/* Checklist log popover — shows parent step history + subtasks */}
                           {isLogOpen && (() => {
-                            const subs = subtasksByParent[row.id] || []
                             const rt = allTracking[s.id] || {}
+                            const globalSubs = subtasksByParent[row.id] || []
+                            const caseSubs = Object.entries(rt)
+                              .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id)
+                              .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
+                            const subs = [...globalSubs, ...caseSubs]
                             return (
                             <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
                               <div className="flex items-center justify-between mb-1">
@@ -485,7 +498,11 @@ function IPUpdatesSheet({ ips }) {
                       const rt = allTracking[ip.id] || {}
                       const d = rt[step.id] || {}
                       const history = d.history || []
-                      const subs = ipSubtasksByParent[step.id] || []
+                      const globalSubs = ipSubtasksByParent[step.id] || []
+                      const caseSubs = Object.entries(rt)
+                        .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === step.id)
+                        .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
+                      const subs = [...globalSubs, ...caseSubs]
                       const hasChildren = subs.length > 0
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
@@ -497,10 +514,14 @@ function IPUpdatesSheet({ ips }) {
                             {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                {entry.note && !entry.auto && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
-                            )) : <span className="text-xs text-stone-300">Not Started</span>}
+                            )) : (
+                              hasChildren ? (
+                                <span className={`text-xs font-medium ${effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'complete' ? 'text-green-600' : 'text-stone-300'}`}>{effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              ) : <span className="text-xs text-stone-300">Not Started</span>
+                            )}
                             {(history.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
@@ -658,7 +679,11 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const rt = allTracking[j.id] || {}
                       const d = rt[step.id] || {}
                       const history = d.history || []
-                      const subs = journeySubtasksByParent[step.id] || []
+                      const globalSubs = journeySubtasksByParent[step.id] || []
+                      const caseSubs = Object.entries(rt)
+                        .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === step.id)
+                        .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
+                      const subs = [...globalSubs, ...caseSubs]
                       const hasChildren = subs.length > 0
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
@@ -670,10 +695,14 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                {entry.note && !entry.auto && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
-                            )) : <span className="text-xs text-stone-300">Not Started</span>}
+                            )) : (
+                              hasChildren ? (
+                                <span className={`text-xs font-medium ${effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'complete' ? 'text-green-600' : 'text-stone-300'}`}>{effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                              ) : <span className="text-xs text-stone-300">Not Started</span>
+                            )}
                             {(history.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
