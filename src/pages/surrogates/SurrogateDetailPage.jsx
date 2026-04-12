@@ -2650,13 +2650,84 @@ const PROFILE_SECTIONS = [
 ]
 
 function countSectionFilled(data, section) {
-  if (!data?.[section.key]) return { filled: 0, total: section.fields.length }
-  let filled = 0
+  const sData = data?.[section.key] || {}
+
+  // Map of "details" fields to their parent toggle fields
+  // If the parent is 'no'/empty, the detail field is not required
+  const CONDITIONAL_PAIRS = {
+    otherLanguagesDetails: { parent: 'otherLanguages', show: 'yes' },
+    sameBioFatherDetails: { parent: 'sameBioFather', show: 'no' },
+    infertilityTreatmentDetails: { parent: 'infertilityTreatment', show: 'yes' },
+    gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', show: 'yes' },
+    cycleLengthDetails: { parent: 'cycleLength', show: 'irregular' },
+    breastfeedingStopDate: { parent: 'breastfeeding', show: 'yes' },
+    pregnancyMedicationList: { parent: 'pregnancyMedication', show: 'yes' },
+    childrenFullTimeDetails: { parent: 'childrenFullTime', show: 'no' },
+    childrenSpecialNeedsDetails: { parent: 'childrenSpecialNeeds', show: 'yes' },
+    placedForAdoptionDetails: { parent: 'placedForAdoption', show: 'yes' },
+    planMoreChildrenDetails: { parent: 'planMoreChildren', show: 'yes' },
+    smokingHistoryDetails: { parent: 'smokingHistory', show: 'yes' },
+    householdSmokerDetails: { parent: 'householdSmoker', show: 'yes' },
+    alcoholDrugsDetails: { parent: 'alcoholDrugs', show: 'yes' },
+    advisedLimitDetails: { parent: 'advisedLimitSubstances', show: 'yes' },
+    householdSubstancesDetails: { parent: 'householdControlledSubstances', show: 'yes' },
+    householdSubstancesPurpose: { parent: 'householdControlledSubstances', show: 'yes' },
+    gunsDetails: { parent: 'gunsOwned', show: 'yes' },
+    piercingsTattoosDetails: { parent: 'piercingsTattoos', show: 'yes' },
+    lastTattooDate: { parent: 'piercingsTattoos', show: 'yes' },
+    nonSterilePiercing: { parent: 'piercingsTattoos', show: 'yes' },
+    eatingDisordersDetails: { parent: 'eatingDisorders', show: 'yes' },
+    criminalHistoryDetails: { parent: 'criminalHistory', show: 'yes' },
+    recentTravelDetails: { parent: 'recentTravel', show: 'yes' },
+    travelPlansDetails: { parent: 'travelPlans', show: 'yes' },
+    sleepIssuesDetails: { parent: 'sleepIssues', show: 'yes' },
+    mentalHealthDetails: { parent: 'mentalHealthDiagnosis', show: 'yes' },
+    mentalHealthHospDetails: { parent: 'mentalHealthHospitalization', show: 'yes' },
+    mentalHealthMedDetails: { parent: 'mentalHealthMedication', show: 'yes' },
+    counselingDetails: { parent: 'counselingTherapy', show: 'yes' },
+    familyMentalHealthDetails: { parent: 'familyMentalHealth', show: 'yes' },
+    domesticViolenceDetails: { parent: 'domesticViolence', show: 'yes' },
+    diseaseHistoryDetails: { parent: 'diseaseHistory', show: 'yes' },
+    vaccinationReasons: { parent: 'openToVaccinations', show: 'no' },
+    governmentAssistanceDetails: { parent: 'governmentAssistance', show: 'yes' },
+    cvsAmnioDetails: { parent: 'cvsAmnio' },
+    lifestyleChangesDetails: { parent: 'lifestyleChanges', show: 'yes' },
+    ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments' },
+    currentlyInSchoolDetails: { parent: 'currentlyInSchool', show: 'yes' },
+    // Partner fields — skip if not in a relationship
+    partnerName: { parent: 'maritalStatus', show: '_partner' },
+    partnerDob: { parent: 'maritalStatus', show: '_partner' },
+    partnerUsCitizen: { parent: 'maritalStatus', show: '_partner' },
+    relationshipLength: { parent: 'maritalStatus', show: '_partner' },
+    monogamous: { parent: 'maritalStatus', show: '_partner' },
+    sexualPartners: { parent: 'maritalStatus', show: '_partner' },
+    partnerOccupation: { parent: 'maritalStatus', show: '_partner' },
+    partnerWeeklyIncome: { parent: 'maritalStatus', show: '_partner' },
+    partnerFdaTests: { parent: 'maritalStatus', show: '_partner' },
+    partnerAgreesTermination: { parent: 'maritalStatus', show: '_partner' },
+  }
+
+  const PARTNER_STATUSES = ['In a Relationship', 'Married', 'Domestic Partnership']
+
+  let filled = 0, total = 0
   for (const f of section.fields) {
-    const val = data[section.key][f]
+    const cond = CONDITIONAL_PAIRS[f]
+    if (cond) {
+      const parentVal = sData[cond.parent]
+      if (cond.show === '_partner') {
+        if (!PARTNER_STATUSES.includes(parentVal)) continue // skip partner fields for singles
+      } else if (cond.show) {
+        if (parentVal !== cond.show) continue // skip if parent condition not met
+      } else {
+        // Generic: skip if parent is empty
+        if (!parentVal || parentVal === 'no') continue
+      }
+    }
+    total++
+    const val = sData[f]
     if (val !== undefined && val !== '' && val !== null && !(Array.isArray(val) && val.length === 0)) filled++
   }
-  return { filled, total: section.fields.length }
+  return { filled, total }
 }
 
 // ── Case Texts Tab ────────────────────────────────────────
