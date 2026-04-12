@@ -461,7 +461,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
     if (visible.length === 0) return null
     return (
       <section className="space-y-3">
-        <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{title}</h3>
+        <h3 className="text-base font-bold text-[#ed148c] border-b border-stone-200 pb-1">{title}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
           {visible.map(f => renderField(f.label, fmtFieldValue(f, data)))}
         </div>
@@ -559,18 +559,16 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
           return (
             <div key={secKey} className="space-y-4">
-              <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{sectionLabel}</h3>
+              <h3 className="text-base font-bold text-[#ed148c] border-b border-stone-200 pb-1">{sectionLabel}</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* IP1 card — indigo tint */}
-                <div className="rounded-xl border border-[#283693]/15 bg-[#283693]/[0.03] p-5 space-y-3">
-                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-[#283693]/10">{ip1Name}{ip1Age ? `, ${ip1Age}` : ''}</p>
+                <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-5 space-y-3">
+                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-stone-200">{ip1Name}</p>
                   <div className="grid grid-cols-1 gap-y-3">
                     {renderPersonFields(ip1[secKey] || {})}
                   </div>
                 </div>
-                {/* IP2 card — pink tint */}
-                <div className="rounded-xl border border-[#ed148c]/15 bg-[#ed148c]/[0.03] p-5 space-y-3">
-                  <p className="text-sm font-bold text-[#ed148c] pb-1 border-b border-[#ed148c]/10">{ip2Name}{ip2Age ? `, ${ip2Age}` : ''}</p>
+                <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-5 space-y-3">
+                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-stone-200">{ip2Name}</p>
                   <div className="grid grid-cols-1 gap-y-3">
                     {renderPersonFields(ip2[secKey] || {})}
                   </div>
