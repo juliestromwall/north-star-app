@@ -4,7 +4,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, fetchCaseEmails, fetchCaseTasks, fetchCaseNotes, fetchInsurance, fetchInsurancePayments, fetchJourneyExpenses } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
-import { getAllChecklistSteps, getChecklistMilestones } from '@/lib/checklistStore'
+import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2 } from 'lucide-react'
@@ -98,7 +98,13 @@ function SurrogateUpdatesSheet({ surrogates }) {
   const [stageFilter, setStageFilter] = useState('pre-qualification')
   const [logPopover, setLogPopover] = useState(null)
   const [docPopover, setDocPopover] = useState(null)
-  const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
+  const allSteps = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
+  const sheetRows = useMemo(() => allSteps.filter(s => !s.parentId), [allSteps])
+  const subtasksByParent = useMemo(() => {
+    const map = {}
+    for (const s of allSteps) { if (s.parentId) { if (!map[s.parentId]) map[s.parentId] = []; map[s.parentId].push(s) } }
+    return map
+  }, [allSteps])
 
   const allStageStatuses = useMemo(() => {
     const map = {}
@@ -266,7 +272,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             {isRecordType && totalCount > 0 && (
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
                             )}
-                            {history.length > 0 && (
+                            {(history.length > 0 || subtasksByParent[row.id]?.length > 0) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="View checklist log">
                                 <ScrollText className="size-3.5" />
                               </button>
@@ -277,25 +283,53 @@ function SurrogateUpdatesSheet({ surrogates }) {
                               </button>
                             )}
                           </div>
-                          {/* Checklist log popover — shows parent step history, newest first */}
-                          {isLogOpen && (
+                          {/* Checklist log popover — shows parent step history + subtasks */}
+                          {isLogOpen && (() => {
+                            const subs = subtasksByParent[row.id] || []
+                            const rt = allTracking[s.id] || {}
+                            return (
                             <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
                               <div className="flex items-center justify-between mb-1">
                                 <p className="text-[10px] font-semibold text-stone-400 uppercase">Checklist Log</p>
                                 <button onClick={() => setLogPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
                               </div>
-                              {[...history].reverse().map((entry, i) => (
+                              {[...history].reverse().filter(e => !e.auto).map((entry, i) => (
                                 <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
                                   <div className="flex items-center gap-2">
-                                    <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                    <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                                     <span className="text-stone-400">{formatDate(entry.date)}</span>
                                   </div>
                                   {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
                                   {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
                                 </div>
                               ))}
+                              {subs.length > 0 && (
+                                <div className="border-t border-stone-100 mt-2 pt-2">
+                                  <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1.5">Subtasks</p>
+                                  {subs.map(sub => {
+                                    const subData = rt[sub.id] || {}
+                                    const subStatus = subData.status || 'not_started'
+                                    const subLastEntry = subData.history?.length > 0 ? subData.history[subData.history.length - 1] : null
+                                    return (
+                                      <div key={sub.id} className="flex items-center gap-2 py-1 text-xs">
+                                        {subStatus === 'complete' || subStatus === 'na' ? (
+                                          <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
+                                        ) : (
+                                          <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+                                        )}
+                                        <span className={`flex-1 ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                                        <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
+                                          {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
+                                        </span>
+                                        {subLastEntry?.date && <span className="text-[9px] text-stone-300">{formatDate(subLastEntry.date)}</span>}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
                             </div>
-                          )}
+                            )
+                          })()}
                           {/* Medical records popover — shows each sub-record with full log */}
                           {isDocOpen && (() => {
                             const rt = allTracking[s.id] || {}
@@ -357,7 +391,13 @@ function SurrogateUpdatesSheet({ surrogates }) {
 function IPUpdatesSheet({ ips }) {
   const [stageFilter, setStageFilter] = useState('pre-qualification')
   const [logPopover, setLogPopover] = useState(null)
-  const sheetRows = useMemo(() => getAllChecklistSteps('ip').filter(s => s.stageId === stageFilter), [stageFilter])
+  const allIpSteps = useMemo(() => getAllChecklistSteps('ip').filter(s => s.stageId === stageFilter), [stageFilter])
+  const sheetRows = useMemo(() => allIpSteps.filter(s => !s.parentId), [allIpSteps])
+  const ipSubtasksByParent = useMemo(() => {
+    const map = {}
+    for (const s of allIpSteps) { if (s.parentId) { if (!map[s.parentId]) map[s.parentId] = []; map[s.parentId].push(s) } }
+    return map
+  }, [allIpSteps])
 
   const allStageStatuses = useMemo(() => {
     const map = {}
@@ -445,25 +485,29 @@ function IPUpdatesSheet({ ips }) {
                       const rt = allTracking[ip.id] || {}
                       const d = rt[step.id] || {}
                       const history = d.history || []
-                      const isComplete = (d.status || 'not_started') === 'complete' || d.status === 'na'
+                      const subs = ipSubtasksByParent[step.id] || []
+                      const hasChildren = subs.length > 0
+                      const rawStatus = d.status || 'not_started'
+                      const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
+                      const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {history.length > 0 ? [...history].reverse().map((entry, i) => (
+                            {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                                 {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
                             )) : <span className="text-xs text-stone-300">Not Started</span>}
-                            {history.length > 0 && (
+                            {(history.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
                             )}
                           </div>
-                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} />}
+                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
                         </td>
                       )
                     })}
@@ -483,7 +527,13 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   const [stageFilter, setStageFilter] = useState('journey-oversight')
   const [logPopover, setLogPopover] = useState(null)
   // Journey checklist steps are stored under 'gc' type with journey stage IDs
-  const sheetRows = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
+  const allJourneySteps = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
+  const sheetRows = useMemo(() => allJourneySteps.filter(s => !s.parentId), [allJourneySteps])
+  const journeySubtasksByParent = useMemo(() => {
+    const map = {}
+    for (const s of allJourneySteps) { if (s.parentId) { if (!map[s.parentId]) map[s.parentId] = []; map[s.parentId].push(s) } }
+    return map
+  }, [allJourneySteps])
 
   const stageCounts = useMemo(() => {
     const counts = {}
@@ -608,25 +658,29 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const rt = allTracking[j.id] || {}
                       const d = rt[step.id] || {}
                       const history = d.history || []
-                      const isComplete = (d.status || 'not_started') === 'complete' || d.status === 'na'
+                      const subs = journeySubtasksByParent[step.id] || []
+                      const hasChildren = subs.length > 0
+                      const rawStatus = d.status || 'not_started'
+                      const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
+                      const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {history.length > 0 ? [...history].reverse().map((entry, i) => (
+                            {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                                 {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
                             )) : <span className="text-xs text-stone-300">Not Started</span>}
-                            {history.length > 0 && (
+                            {(history.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
                             )}
                           </div>
-                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} />}
+                          {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
                         </td>
                       )
                     })}
@@ -658,23 +712,47 @@ function CellStatus({ status, lastEntry }) {
   )
 }
 
-function LogPopover({ history, onClose }) {
+function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
   return (
-    <div className="absolute z-20 top-full left-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+    <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
         <button onClick={onClose} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
       </div>
-      {[...history].reverse().map((entry, i) => (
+      {[...history].reverse().filter(e => !e.auto).map((entry, i) => (
         <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-stone-600">{entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+            <span className="font-medium text-stone-600">{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
             <span className="text-stone-400">{formatDate(entry.date)}</span>
           </div>
           {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
           {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
         </div>
       ))}
+      {subtasks.length > 0 && (
+        <div className="border-t border-stone-100 mt-2 pt-2">
+          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1.5">Subtasks</p>
+          {subtasks.map(sub => {
+            const subData = tracking[sub.id] || {}
+            const subStatus = subData.status || 'not_started'
+            const subLastEntry = subData.history?.length > 0 ? subData.history[subData.history.length - 1] : null
+            return (
+              <div key={sub.id} className="flex items-center gap-2 py-1 text-xs">
+                {subStatus === 'complete' || subStatus === 'na' ? (
+                  <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
+                ) : (
+                  <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+                )}
+                <span className={`flex-1 ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
+                  {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
+                </span>
+                {subLastEntry?.date && <span className="text-[9px] text-stone-300">{formatDate(subLastEntry.date)}</span>}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

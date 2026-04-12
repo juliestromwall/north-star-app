@@ -55,6 +55,10 @@ export function deriveParentStatus(children, tracking) {
   for (const p of priority) {
     if (statuses.includes(p)) return p
   }
+  // If any child has started (e.g. some complete, some not) but not all
+  // done, treat parent as in_progress.
+  const anyStarted = statuses.some(s => s !== 'not_started')
+  if (anyStarted) return 'in_progress'
   return 'not_started'
 }
 
