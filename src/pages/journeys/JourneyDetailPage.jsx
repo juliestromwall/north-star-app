@@ -416,11 +416,20 @@ function JourneyChecklistTab({ journey, onUpdate }) {
   const tracking = journey.journey_data?._checklistTracking || {}
   const { currentUser } = useRole()
 
+  // Ref tracks in-flight tracking changes so consecutive calls (e.g.
+  // subtask + parent cascade) don't overwrite each other.  Without
+  // this, both reads would start from the same stale prop and the
+  // second write would clobber the first.
+  const pendingTrackingRef = useRef(null)
   async function handleUpdate(stepId, updates) {
-    const ct = { ...(journey.journey_data?._checklistTracking || {}) }
+    const base = pendingTrackingRef.current || journey.journey_data?._checklistTracking || {}
+    const ct = { ...base }
     ct[stepId] = { ...(ct[stepId] || {}), ...updates }
+    pendingTrackingRef.current = ct
     const jd = { ...(journey.journey_data || {}), _checklistTracking: ct }
     await onUpdate({ journey_data: jd })
+    // Clear pending once the write lands — next call will read fresh props
+    pendingTrackingRef.current = null
   }
 
   return (
