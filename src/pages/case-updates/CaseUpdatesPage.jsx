@@ -281,7 +281,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             {isRecordType && totalCount > 0 && (
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
                             )}
-                            {(history.length > 0 || subtasksByParent[row.id]?.length > 0) && (
+                            {(history.length > 0 || (subtasksByParent[row.id] || []).length > 0 || Object.values(allTracking[s.id] || {}).some(v => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id)) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="View checklist log">
                                 <ScrollText className="size-3.5" />
                               </button>
@@ -322,19 +322,34 @@ function SurrogateUpdatesSheet({ surrogates }) {
                                   {subs.map(sub => {
                                     const subData = rt[sub.id] || {}
                                     const subStatus = subData.status || 'not_started'
-                                    const subLastEntry = subData.history?.length > 0 ? subData.history[subData.history.length - 1] : null
+                                    const subHistory = (subData.history || []).filter(e => !e.auto)
                                     return (
-                                      <div key={sub.id} className="flex items-center gap-2 py-1 text-xs">
-                                        {subStatus === 'complete' || subStatus === 'na' ? (
-                                          <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
-                                        ) : (
-                                          <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+                                      <div key={sub.id} className="mb-2 last:mb-0">
+                                        <div className="flex items-center gap-2 text-xs">
+                                          {subStatus === 'complete' || subStatus === 'na' ? (
+                                            <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
+                                          ) : (
+                                            <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+                                          )}
+                                          <span className={`flex-1 font-medium ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                                          <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
+                                            {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
+                                          </span>
+                                        </div>
+                                        {subHistory.length > 0 && (
+                                          <div className="ml-5.5 mt-1 space-y-0.5 border-l-2 border-stone-100 pl-2.5">
+                                            {[...subHistory].reverse().map((entry, i) => (
+                                              <div key={i} className="text-[11px]">
+                                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'in_progress' ? 'text-blue-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-500'}`}>
+                                                  {entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                                </span>
+                                                <span className="text-stone-300 ml-1.5">{formatDate(entry.date)}</span>
+                                                {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
+                                                {entry.by && <span className="text-stone-300 text-[9px] ml-1">({entry.by})</span>}
+                                              </div>
+                                            ))}
+                                          </div>
                                         )}
-                                        <span className={`flex-1 ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
-                                        <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
-                                          {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
-                                        </span>
-                                        {subLastEntry?.date && <span className="text-[9px] text-stone-300">{formatDate(subLastEntry.date)}</span>}
                                       </div>
                                     )
                                   })}
@@ -742,13 +757,14 @@ function CellStatus({ status, lastEntry }) {
 }
 
 function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
+  const manualHistory = [...history].reverse().filter(e => !e.auto)
   return (
-    <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+    <div className="absolute z-20 top-full left-0 mt-1 w-80 max-h-[450px] overflow-y-auto bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
         <button onClick={onClose} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
       </div>
-      {[...history].reverse().filter(e => !e.auto).map((entry, i) => (
+      {manualHistory.length > 0 ? manualHistory.map((entry, i) => (
         <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
           <div className="flex items-center gap-2">
             <span className="font-medium text-stone-600">{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
@@ -757,26 +773,43 @@ function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
           {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
           {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
         </div>
-      ))}
+      )) : subtasks.length === 0 ? (
+        <p className="text-xs text-stone-300 py-1">No log entries</p>
+      ) : null}
       {subtasks.length > 0 && (
         <div className="border-t border-stone-100 mt-2 pt-2">
           <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1.5">Subtasks</p>
           {subtasks.map(sub => {
             const subData = tracking[sub.id] || {}
             const subStatus = subData.status || 'not_started'
-            const subLastEntry = subData.history?.length > 0 ? subData.history[subData.history.length - 1] : null
+            const subHistory = (subData.history || []).filter(e => !e.auto)
             return (
-              <div key={sub.id} className="flex items-center gap-2 py-1 text-xs">
-                {subStatus === 'complete' || subStatus === 'na' ? (
-                  <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
-                ) : (
-                  <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+              <div key={sub.id} className="mb-2 last:mb-0">
+                <div className="flex items-center gap-2 text-xs">
+                  {subStatus === 'complete' || subStatus === 'na' ? (
+                    <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
+                  ) : (
+                    <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
+                  )}
+                  <span className={`flex-1 font-medium ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                  <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
+                    {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
+                  </span>
+                </div>
+                {subHistory.length > 0 && (
+                  <div className="ml-5.5 mt-1 space-y-0.5 border-l-2 border-stone-100 pl-2.5">
+                    {[...subHistory].reverse().map((entry, i) => (
+                      <div key={i} className="text-[11px]">
+                        <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'in_progress' ? 'text-blue-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-500'}`}>
+                          {entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                        </span>
+                        <span className="text-stone-300 ml-1.5">{formatDate(entry.date)}</span>
+                        {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
+                        {entry.by && <span className="text-stone-300 text-[9px] ml-1">({entry.by})</span>}
+                      </div>
+                    ))}
+                  </div>
                 )}
-                <span className={`flex-1 ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
-                <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
-                  {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
-                </span>
-                {subLastEntry?.date && <span className="text-[9px] text-stone-300">{formatDate(subLastEntry.date)}</span>}
               </div>
             )
           })}
