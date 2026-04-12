@@ -3213,7 +3213,41 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [openAdminSections, setOpenAdminSections] = useState({})
+  const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
+
+  // Auto-save a section's data with debounce
+  function autoSaveSection(sectionKey, sectionData) {
+    const newData = { ...data, [sectionKey]: sectionData }
+    setProfileData(newData)
+    if (adminSaveTimer.current) clearTimeout(adminSaveTimer.current)
+    adminSaveTimer.current = setTimeout(async () => {
+      if (!surrogate.email) return
+      try {
+        await adminUpdateSurrogateProfile(surrogate.email, newData)
+        if (sectionKey === 'personal' && surrogate.id) {
+          const { supabase: sb } = await import('@/lib/supabase')
+          if (sb) {
+            const row = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+            if (row.data) {
+              const updated = { ...(row.data.answers || {}), _surrogateProfile: newData }
+              await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+            }
+          }
+        }
+      } catch {}
+    }, 1500)
+  }
+
+  function updateSectionField(sectionKey, fieldKey, value) {
+    const sectionData = { ...(data[sectionKey] || {}), [fieldKey]: value }
+    autoSaveSection(sectionKey, sectionData)
+  }
+
+  function updateSectionData(sectionKey, sectionData) {
+    autoSaveSection(sectionKey, sectionData)
+  }
 
   function downloadPDF() {
     if (!previewOpen) setPreviewOpen(true)
@@ -3342,10 +3376,18 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           next.pregnancies = current.slice(0, num)
         }
       }
-      // When householdMembers count changes (if it's a number field)
       return next
     })
   }
+
+  // Auto-save editData changes via debounce
+  useEffect(() => {
+    if (!editData || !editingSection) return
+    if (adminSaveTimer.current) clearTimeout(adminSaveTimer.current)
+    adminSaveTimer.current = setTimeout(() => {
+      autoSaveSection(editingSection.key, editData)
+    }, 1500)
+  }, [editData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveSectionEdit() {
     if (!editingSection) return
@@ -3928,10 +3970,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             surrogate={surrogate}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
             {PROFILE_SECTIONS.map(sec => {
               const sectionData = data[sec.key] || {}
               const isEditing = editingSection?.key === sec.key
+              const isOpen = openAdminSections[sec.key]
               const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && k !== '_hiddenFields' && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
 
               const scalarFields = allFields.filter(f => {
@@ -3948,41 +3991,42 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               }) : []
 
               return (
+                <Collapsible key={sec.key} open={isOpen} onOpenChange={() => {
+                  const newOpen = !isOpen
+                  setOpenAdminSections(prev => ({ ...prev, [sec.key]: newOpen }))
+                  if (newOpen && !isEditing) startSectionEdit(sec)
+                  if (!newOpen && isEditing) setEditingSection(null)
+                }}>
                 <Card
-                  key={sec.key}
                   id={`admin-sec-${sec.key}`}
-                  className={`rounded-2xl transition-all duration-300 ease-in-out ${isEditing ? 'lg:col-span-2 shadow-lg border-[#283693]/30 ring-2 ring-[#283693]/10' : ''}`}
+                  className="rounded-2xl"
                 >
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base">{sec.title}</CardTitle>
-                      {SECTION_DESCRIPTIONS[sec.key] && <p className="text-xs text-muted-foreground mt-0.5">{SECTION_DESCRIPTIONS[sec.key]}</p>}
-                    </div>
-                    {isEditing ? (
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setEditingSection(null)}>Cancel</Button>
-                        <Button size="sm" onClick={saveSectionEdit} disabled={saving} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-                          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                          Save
-                        </Button>
+                  <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-xl bg-[#283693]/10 flex items-center justify-center">
+                          <ChevronDown className={`size-5 text-[#283693] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base text-[#283693]">{sec.title}</CardTitle>
+                          {SECTION_DESCRIPTIONS[sec.key] && <p className="text-xs text-muted-foreground mt-0.5">{SECTION_DESCRIPTIONS[sec.key]}</p>}
+                        </div>
                       </div>
-                    ) : (
-                      <Button variant="ghost" size="sm" className="gap-1" onClick={() => startSectionEdit(sec)}>
-                        <Pencil className="size-3.5" /> Edit
-                      </Button>
-                    )}
+                    </div>
                   </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
                   <CardContent>
                     {isEditing && editData ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {scalarFields.map(field => renderScalarFieldEdit(field, sec.key))}
                         </div>
                         {arrayFields.map(field => (
                           <div key={field}>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
-                              {/* Pregnancies count is controlled by numberOfPregnancies input, not add/remove */}
                               {field !== 'pregnancies' && (
                                 <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
                                   <Plus className="size-3" /> {getAddButtonLabel(field)}
@@ -4052,7 +4096,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                       </div>
                     )}
                   </CardContent>
+                  </CollapsibleContent>
                 </Card>
+                </Collapsible>
               )
             })}
           </div>
