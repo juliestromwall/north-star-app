@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -59,7 +59,7 @@ const HEALTH_CONDITIONS = [
   'Blood Transfusion', 'Polio or Meningitis', 'High Blood Pressure', 'Scarlet Fever',
   'Nervous Breakdown', 'Heart Disease', 'Low Blood Pressure', 'Gonorrhea/Syphilis',
   'Jaundice', 'Epilepsy', 'Migraines', 'Tuberculosis', 'Cancer', 'Hepatitis',
-  'HIV/AIDS', 'Herpes', 'Chicken Pox',
+  'HIV/AIDS', 'Herpes', 'Chicken Pox', 'None of the above',
 ]
 
 const HEALTH_FIELDS = [
@@ -411,6 +411,37 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
   const yn = (v) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : null
 
+  function calcAge(dob) {
+    if (!dob) return null
+    const birth = new Date(dob)
+    const today = new Date()
+    let a = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) a--
+    return a > 0 ? a : null
+  }
+
+  function fmtDate(d) {
+    if (!d) return null
+    const dt = new Date(d + 'T00:00:00')
+    return dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  }
+
+  function fmtFieldValue(f, data) {
+    const val = data[f.key]
+    if (f.type === 'yesno') return yn(val)
+    if (f.type === 'date') return fmtDate(val)
+    if (f.key === 'healthConditionsList' && Array.isArray(val)) {
+      if (val.includes('None of the above')) return 'None'
+      return val.join(', ')
+    }
+    if (Array.isArray(val)) return val.join(', ')
+    return val
+  }
+
+  const ip1Age = calcAge(ip1?.personal?.dob)
+  const ip2Age = hasPartner ? calcAge(ip2?.personal?.dob) : null
+
   const renderField = (label, value) => {
     if (!value) return null
     return (
@@ -432,7 +463,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
       <section className="space-y-3">
         <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{title}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          {visible.map(f => renderField(f.label, f.type === 'yesno' ? yn(data[f.key]) : Array.isArray(data[f.key]) ? data[f.key].join(', ') : data[f.key]))}
+          {visible.map(f => renderField(f.label, fmtFieldValue(f, data)))}
         </div>
       </section>
     )
@@ -467,21 +498,34 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         </div>
       )}
 
-      {/* Header with profile photo */}
-      <div className="px-6 pt-4 pb-6 relative">
-        <div className="flex items-center gap-4">
-          {profilePhoto ? (
-            <img src={profilePhoto.url} alt="Profile" className="size-24 rounded-full border-4 border-white object-cover shadow-md" />
-          ) : (
-            <div className="size-24 rounded-full border-4 border-white shadow-md bg-[#283693]/10 flex items-center justify-center">
-              <User className="size-10 text-[#283693]/40" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold text-[#283693]">
+      {/* Summary Header — matches GC profile pattern */}
+      <div className="mx-6 mt-6 bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+        <div className="flex flex-col sm:flex-row items-center gap-5">
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <h2 className="text-3xl font-heading font-bold text-[#283693]">
               {hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
             </h2>
-            {location && <p className="text-sm text-stone-500 mt-0.5">📍 {location}</p>}
+            {location && (
+              <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-stone-500 mt-1.5">
+                <MapPin className="w-4 h-4" /> {location}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {ip1Age && (
+              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#283693]/5">
+                <CalendarDays className="w-5 h-5 text-[#283693] mb-1" />
+                <span className="text-2xl font-bold text-[#283693]">{ip1Age}</span>
+                <span className="text-[11px] text-stone-400">{hasPartner ? ip1Name : 'Age'}</span>
+              </div>
+            )}
+            {ip2Age && (
+              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#ed148c]/5">
+                <CalendarDays className="w-5 h-5 text-[#ed148c] mb-1" />
+                <span className="text-2xl font-bold text-[#ed148c]">{ip2Age}</span>
+                <span className="text-[11px] text-stone-400">{ip2Name}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -496,6 +540,15 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           const fieldDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
           const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
 
+          const renderPersonFields = (personData) => {
+            const visible = fieldDefs.filter(f => {
+              if (f.conditional && !f.conditional(personData)) return false
+              const val = personData[f.key]
+              return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
+            })
+            return visible.map(f => renderField(f.label, fmtFieldValue(f, personData)))
+          }
+
           if (!hasPartner) {
             return ip1[secKey] ? (
               <div key={secKey}>
@@ -507,31 +560,21 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           return (
             <div key={secKey} className="space-y-4">
               <h3 className="text-base font-bold text-[#283693] border-b border-stone-200 pb-1">{sectionLabel}</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {ip1[secKey] && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{ip1Name}</p>
-                    <div className="grid grid-cols-1 gap-y-3">
-                      {fieldDefs.filter(f => {
-                        if (f.conditional && !f.conditional(ip1[secKey] || {})) return false
-                        const val = ip1[secKey]?.[f.key]
-                        return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
-                      }).map(f => renderField(f.label, f.type === 'yesno' ? yn(ip1[secKey][f.key]) : Array.isArray(ip1[secKey][f.key]) ? ip1[secKey][f.key].join(', ') : ip1[secKey][f.key]))}
-                    </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* IP1 card — indigo tint */}
+                <div className="rounded-xl border border-[#283693]/15 bg-[#283693]/[0.03] p-5 space-y-3">
+                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-[#283693]/10">{ip1Name}{ip1Age ? `, ${ip1Age}` : ''}</p>
+                  <div className="grid grid-cols-1 gap-y-3">
+                    {renderPersonFields(ip1[secKey] || {})}
                   </div>
-                )}
-                {ip2[secKey] && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{ip2Name}</p>
-                    <div className="grid grid-cols-1 gap-y-3">
-                      {fieldDefs.filter(f => {
-                        if (f.conditional && !f.conditional(ip2[secKey] || {})) return false
-                        const val = ip2[secKey]?.[f.key]
-                        return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
-                      }).map(f => renderField(f.label, f.type === 'yesno' ? yn(ip2[secKey][f.key]) : Array.isArray(ip2[secKey][f.key]) ? ip2[secKey][f.key].join(', ') : ip2[secKey][f.key]))}
-                    </div>
+                </div>
+                {/* IP2 card — pink tint */}
+                <div className="rounded-xl border border-[#ed148c]/15 bg-[#ed148c]/[0.03] p-5 space-y-3">
+                  <p className="text-sm font-bold text-[#ed148c] pb-1 border-b border-[#ed148c]/10">{ip2Name}{ip2Age ? `, ${ip2Age}` : ''}</p>
+                  <div className="grid grid-cols-1 gap-y-3">
+                    {renderPersonFields(ip2[secKey] || {})}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )

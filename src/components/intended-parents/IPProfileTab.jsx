@@ -166,7 +166,7 @@ const HEALTH_CONDITIONS = [
   'Low Blood Pressure', 'Gonorrhea/Syphilis', 'Jaundice',
   'Epilepsy', 'Migraines', 'Tuberculosis',
   'Cancer', 'Hepatitis', 'HIV/AIDS',
-  'Herpes', 'Chicken Pox'
+  'Herpes', 'Chicken Pox', 'None of the above'
 ]
 
 // ─────────────────────────────────────────────────────────
