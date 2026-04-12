@@ -257,6 +257,28 @@ const SECTIONS = [
 // Helpers
 // ─────────────────────────────────────────────────────────
 
+function countSectionCompletion(profile, section, hasPartner) {
+  let total = 0, filled = 0
+  if (section.perPerson) {
+    for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
+      const d = profile?.[person]?.[section.key] || {}
+      for (const f of section.fields) {
+        if (f.conditional && !f.conditional(d)) continue
+        total++
+        if (isFieldFilled(d[f.key])) filled++
+      }
+    }
+  } else {
+    const d = profile?.[section.key] || {}
+    for (const f of section.fields) {
+      if (f.conditional && !f.conditional(d)) continue
+      total++
+      if (isFieldFilled(d[f.key])) filled++
+    }
+  }
+  return { filled, total, complete: total > 0 && filled === total }
+}
+
 function countProfileCompletion(profile, hasPartner) {
   let total = 0
   let filled = 0
@@ -341,7 +363,7 @@ function renderDisplayField(field, data) {
 // Section Editor (shared section)
 // ─────────────────────────────────────────────────────────
 
-function SharedSectionCard({ section, profile, onSave }) {
+function SharedSectionCard({ section, profile, onSave, id }) {
   const [open, setOpen] = useState(false)
   const sectionData = profile?.[section.key] || {}
   const Icon = section.icon
@@ -353,7 +375,7 @@ function SharedSectionCard({ section, profile, onSave }) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl" id={id}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
@@ -391,7 +413,7 @@ function SharedSectionCard({ section, profile, onSave }) {
 // Section Editor (per-person section with IP1/IP2 tabs)
 // ─────────────────────────────────────────────────────────
 
-function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, onSave }) {
+function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, onSave, id }) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('ip1')
   const Icon = section.icon
@@ -424,7 +446,7 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <Card className="rounded-2xl">
+      <Card className="rounded-2xl" id={id}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
@@ -883,7 +905,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
           </div>
         </CardHeader>
         {!previewOpen && (
-          <CardContent className="pt-0 space-y-3">
+          <CardContent className="pt-0 space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex-1">
                 <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -892,7 +914,22 @@ export default function IPProfileTab({ ip, onUpdate }) {
               </div>
               <span className="text-sm font-bold text-[#283693]">{percent}%</span>
             </div>
-            <p className="text-xs text-muted-foreground">{filled} of {total} fields completed</p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {SECTIONS.map(sec => {
+                const { filled: sf, total: st, complete: sc } = countSectionCompletion(profile, sec, hasPartner)
+                return (
+                  <button key={sec.key}
+                    onClick={() => document.getElementById(`ip-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className={`rounded-xl border p-3 text-center cursor-pointer hover:shadow-sm transition-shadow ${sc ? 'border-green-200 bg-green-50' : sf > 0 ? 'border-amber-200 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <p className="text-xs font-medium text-gray-600 truncate">{sec.label}</p>
+                    <p className={`text-sm font-bold mt-1 ${sc ? 'text-green-600' : sf > 0 ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {st > 0 ? `${sf}/${st}` : '—'}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
           </CardContent>
         )}
       </Card>
@@ -926,6 +963,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
                 ip1Name={ip1Name}
                 ip2Name={ip2Name}
                 onSave={handlePerPersonSave}
+                id={`ip-sec-${section.key}`}
               />
             ) : (
               <SharedSectionCard
@@ -933,6 +971,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
                 section={section}
                 profile={profile}
                 onSave={handleSharedSave}
+                id={`ip-sec-${section.key}`}
               />
             )
           )}
