@@ -163,13 +163,13 @@ const nav = [
   },
   {
     section: 'Admin',
-    roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN],
+    roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN],
     items: [
       {
         label: 'Settings',
         icon: Settings,
         path: '/settings',
-        roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN],
+        roles: [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN],
       },
       {
         label: 'Case Import',

@@ -12,6 +12,7 @@ export default function DashboardRouter() {
   switch (currentRole) {
     case ROLES.SUPER_ADMIN:
     case ROLES.MASTER_ADMIN:
+    case ROLES.OFFICE_ADMIN:
     case ROLES.ADMIN:
       return <AdminDashboard />
     case ROLES.SURROGATE:

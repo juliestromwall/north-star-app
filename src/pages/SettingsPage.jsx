@@ -1350,9 +1350,9 @@ function GoogleIntegrationSection() {
 }
 
 export default function SettingsPage() {
-  const { currentRole, isMasterAdmin } = useRole()
+  const { currentRole, isMasterAdmin, canEditSettings } = useRole()
 
-  if (!isMasterAdmin && currentRole !== ROLES.SUPER_ADMIN) {
+  if (!canEditSettings) {
     return <Navigate to="/dashboard" replace />
   }
 

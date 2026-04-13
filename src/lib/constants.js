@@ -1,6 +1,7 @@
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   MASTER_ADMIN: 'master_admin',
+  OFFICE_ADMIN: 'office_admin',
   ADMIN: 'admin',
   SURROGATE: 'surrogate',
   SURROGATE_PARTNER: 'surrogate_partner',
@@ -12,6 +13,7 @@ export const ROLES = {
 export const ROLE_LABELS = {
   [ROLES.SUPER_ADMIN]: 'Super Admin',
   [ROLES.MASTER_ADMIN]: 'Master Admin',
+  [ROLES.OFFICE_ADMIN]: 'Office Admin',
   [ROLES.ADMIN]: 'Admin',
   [ROLES.SURROGATE]: 'Surrogate',
   [ROLES.SURROGATE_PARTNER]: 'Surrogate Partner',
@@ -20,7 +22,7 @@ export const ROLE_LABELS = {
   [ROLES.RECORDS_ADMIN]: 'Records Admin',
 }
 
-export const ADMIN_ROLES = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN]
+export const ADMIN_ROLES = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN, ROLES.ADMIN]
 
 export const MATCH_STAGES = [
   'Profile Review',

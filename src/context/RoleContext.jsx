@@ -211,11 +211,13 @@ export function RoleProvider({ children }) {
   // Use auth user if logged in, otherwise fall back to mock user for dev
   const currentUser = authUser || MOCK_USERS[currentRole]
 
-  const isAdmin = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN].includes(currentRole)
+  const isAdmin = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN, ROLES.ADMIN].includes(currentRole)
   const isSuperAdmin = currentRole === ROLES.SUPER_ADMIN
   const isMasterAdmin = currentRole === ROLES.MASTER_ADMIN
+  const isOfficeAdmin = currentRole === ROLES.OFFICE_ADMIN
   const isMarketing = currentRole === ROLES.MARKETING
   const canViewMarketing = [ROLES.MARKETING, ROLES.MASTER_ADMIN, ROLES.SUPER_ADMIN].includes(currentRole)
+  const canEditSettings = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.OFFICE_ADMIN].includes(currentRole)
 
   return (
     <RoleContext.Provider value={{
@@ -229,8 +231,10 @@ export function RoleProvider({ children }) {
       isAdmin,
       isSuperAdmin,
       isMasterAdmin,
+      isOfficeAdmin,
       isMarketing,
       canViewMarketing,
+      canEditSettings,
       signOut,
       allUsers: MOCK_USERS,
     }}>

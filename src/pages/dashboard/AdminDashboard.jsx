@@ -25,7 +25,8 @@ import {
 } from 'lucide-react'
 
 export default function AdminDashboard() {
-  const { currentUser } = useRole()
+  const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
+  const showAllCases = isSuperAdmin || isMasterAdmin
   const [adminNotes, setAdminNotes] = useState([])
   const visibleNotes = (adminNotes || []).filter(n => {
     if (!n.is_active) return false
@@ -118,21 +119,14 @@ export default function AdminDashboard() {
   }, [])
 
 
-  // Build "My Cases" — only cases assigned to the logged-in admin
+  // Build cases — super/master admins see all, others see only assigned
   const myEmail = currentUser?.email
   const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
   const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
 
-  // My journeys (assigned to me)
-  const myJourneys = journeys.filter(j => j.assigned_to === myEmail)
-  const myJourneyGcIds = new Set(myJourneys.map(j => j.gc_case_id))
-  const myJourneyIpIds = new Set(myJourneys.map(j => j.ip_case_id))
-
-  // My unmatched surrogates (assigned to me, not in a journey)
-  const mySurrogates = surrogates.filter(s => s.assignedTo === myEmail && !matchedGcIds.has(s.id))
-
-  // My unmatched IPs (assigned to me, not in a journey)
-  const myIPs = ips.filter(ip => !matchedIpIds.has(ip.id))
+  const myJourneys = showAllCases ? journeys : journeys.filter(j => j.assigned_to === myEmail)
+  const mySurrogates = surrogates.filter(s => (showAllCases || s.assignedTo === myEmail) && !matchedGcIds.has(s.id))
+  const myIPs = ips.filter(ip => (showAllCases || ip.assignedTo === myEmail) && !matchedIpIds.has(ip.id))
 
   async function completeTask(taskId) {
     try {
@@ -364,7 +358,7 @@ export default function AdminDashboard() {
       {/* My Cases — separated by type */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-stone-700">My Cases ({myJourneys.length + mySurrogates.length + myIPs.length})</h3>
+          <h3 className="text-sm font-semibold text-stone-700">{showAllCases ? 'All Cases' : 'My Cases'} ({myJourneys.length + mySurrogates.length + myIPs.length})</h3>
           <div className="flex items-center border rounded-md">
             <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-8" onClick={() => setCaseView('grid')}>
               <LayoutGrid className="size-3.5" />
