@@ -942,8 +942,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
             hasPartner={hasPartner}
             ip1Name={ip1Name}
             ip2Name={ip2Name}
-            primaryName={[answers.primaryFirstName, answers.primaryLastName].filter(Boolean).join(' ') || 'Intended Parent'}
-            ip2FullName={[answers.ip2FirstName, answers.ip2LastName].filter(Boolean).join(' ')}
+            primaryName={answers.primaryFirstName || 'Intended Parent'}
+            ip2FullName={answers.ip2FirstName || ''}
             location={[answers.city, answers.stateProv].filter(Boolean).join(', ')}
           />
         </div>

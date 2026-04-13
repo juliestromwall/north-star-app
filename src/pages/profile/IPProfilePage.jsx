@@ -937,8 +937,8 @@ export default function IPProfilePage() {
             hasPartner={hasPartner}
             ip1Name={ip1Name}
             ip2Name={ip2Name}
-            primaryName={[caseData?.answers?.primaryFirstName, caseData?.answers?.primaryLastName].filter(Boolean).join(' ') || 'Intended Parent'}
-            ip2FullName={[caseData?.answers?.ip2FirstName, caseData?.answers?.ip2LastName].filter(Boolean).join(' ')}
+            primaryName={caseData?.answers?.primaryFirstName || 'Intended Parent'}
+            ip2FullName={caseData?.answers?.ip2FirstName || ''}
             location={[caseData?.answers?.city, caseData?.answers?.stateProv].filter(Boolean).join(', ')}
           />
         </div>
