@@ -1016,15 +1016,30 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         <PVSection title="Fertility Information" icon={Stethoscope}>
           <div className="space-y-1">
             <PVYesNo label="Same biological father for all children" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
+            {fertility.sameBioFather === 'no' && <PVField label="Details" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
             <PVYesNo label="Infertility treatment" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
+            {fertility.infertilityTreatment === 'yes' && <PVField label="Details" value={fertility.infertilityTreatmentDetails} fp="fertility.infertilityTreatmentDetails" />}
             <PVYesNo label="Gynecological problems" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
+            {fertility.gynecologicalProblems === 'yes' && <PVField label="Details" value={fertility.gynecologicalProblemsDetails} fp="fertility.gynecologicalProblemsDetails" />}
             <PVYesNo label="Currently breastfeeding" value={fertility.breastfeeding} fp="fertility.breastfeeding" />
+            {fertility.breastfeeding === 'yes' && <PVField label="When do you expect to stop?" value={fertility.breastfeedingStopDate} fp="fertility.breastfeedingStopDate" />}
+            <PVYesNo label="Cycles 28–30 days" value={fertility.cycleLength} fp="fertility.cycleLength" />
+            {fertility.cycleLength === 'no' && <PVField label="Typical cycle length" value={fertility.cycleLengthDetails} fp="fertility.cycleLengthDetails" />}
+            <PVYesNo label="Medication during pregnancy (aside from prenatals)" value={fertility.pregnancyMedication} fp="fertility.pregnancyMedication" />
+            {fertility.pregnancyMedication === 'yes' && <PVField label="Medications" value={fertility.pregnancyMedicationList} fp="fertility.pregnancyMedicationList" />}
+            <PVYesNo label="Willing to travel to Level II+ NICU" value={fertility.willingToTravelNICU} fp="fertility.willingToTravelNICU" />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
             <PVField label="Contraceptive Method" value={fertility.contraceptiveMethod} fp="fertility.contraceptiveMethod" />
-            <PVField label="Cycles 28–30 days" value={fertility.cycleLength === 'yes' ? 'Yes' : fertility.cycleLength === 'no' ? (fertility.cycleLengthDetails || 'No') : null} fp="fertility.cycleLength" />
+            <PVField label="Last Period" value={fertility.lastPeriod} fp="fertility.lastPeriod" />
             <PVField label="Nearest NICU" value={fertility.nearestNICU} fp="fertility.nearestNICU" />
+            <PVField label="Time to conceive after stopping contraceptives" value={fertility.timeToConceive} fp="fertility.timeToConceive" className="col-span-2" />
           </div>
+          {fertility.pregnancyDetails && (
+            <div className="mt-4 pt-4 border-t border-gray-50">
+              <PVField label="Pregnancy Details" value={fertility.pregnancyDetails} fp="fertility.pregnancyDetails" />
+            </div>
+          )}
         </PVSection>
 
         {/* General Information */}
@@ -1032,64 +1047,141 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
             <PVField label="Home" value={general.homeOwnership} fp="general.homeOwnership" />
             <PVField label="Time at Home" value={general.homeDuration} fp="general.homeDuration" />
-            <PVField label="Children Full Time" value={general.childrenFullTime === 'yes' ? 'Yes' : general.childrenFullTime === 'no' ? 'No' : null} fp="general.childrenFullTime" />
-            <PVField label="Plan More Children" value={general.planMoreChildren === 'yes' ? 'Yes' : general.planMoreChildren === 'no' ? 'No' : null} fp="general.planMoreChildren" />
             <PVField label="Ethnicity" value={general.ethnicity} fp="general.ethnicity" />
             <PVField label="Religion" value={general.religion} fp="general.religion" />
+            <PVField label="Importance of Religion" value={general.religionImportance} fp="general.religionImportance" />
+            <PVField label="Sleep Hours" value={general.sleepHours} fp="general.sleepHours" />
           </div>
           <div className="mt-4 pt-4 border-t border-gray-50 space-y-1">
+            <PVYesNo label="Children live full time" value={general.childrenFullTime} fp="general.childrenFullTime" />
+            {general.childrenFullTime === 'no' && general.childrenFullTimeDetails && <PVField label="" value={general.childrenFullTimeDetails} fp="general.childrenFullTimeDetails" />}
+            <PVYesNo label="Children with special needs" value={general.childrenSpecialNeeds} fp="general.childrenSpecialNeeds" />
+            {general.childrenSpecialNeeds === 'yes' && general.childrenSpecialNeedsDetails && <PVField label="" value={general.childrenSpecialNeedsDetails} fp="general.childrenSpecialNeedsDetails" />}
+            <PVYesNo label="Placed a child for adoption" value={general.placedForAdoption} fp="general.placedForAdoption" />
+            {general.placedForAdoption === 'yes' && general.placedForAdoptionDetails && <PVField label="" value={general.placedForAdoptionDetails} fp="general.placedForAdoptionDetails" />}
+            <PVYesNo label="Plan more children" value={general.planMoreChildren} fp="general.planMoreChildren" />
+            {general.planMoreChildren === 'yes' && general.planMoreChildrenDetails && <PVField label="" value={general.planMoreChildrenDetails} fp="general.planMoreChildrenDetails" />}
             <PVYesNo label="Smoke or vape" value={general.smokeVape} fp="general.smokeVape" />
+            <PVYesNo label="History of smoking" value={general.smokingHistory} fp="general.smokingHistory" />
+            {general.smokingHistory === 'yes' && general.smokingHistoryDetails && <PVField label="" value={general.smokingHistoryDetails} fp="general.smokingHistoryDetails" />}
+            <PVYesNo label="Household smoker" value={general.householdSmoker} fp="general.householdSmoker" />
+            {general.householdSmoker === 'yes' && general.householdSmokerDetails && <PVField label="" value={general.householdSmokerDetails} fp="general.householdSmokerDetails" />}
             <PVYesNo label="Alcohol or recreational drugs" value={general.alcoholDrugs} fp="general.alcoholDrugs" />
+            {general.alcoholDrugs === 'yes' && general.alcoholDrugsDetails && <PVField label="" value={general.alcoholDrugsDetails} fp="general.alcoholDrugsDetails" />}
+            <PVYesNo label="Advised to limit substance use" value={general.advisedLimitSubstances} fp="general.advisedLimitSubstances" />
+            {general.advisedLimitSubstances === 'yes' && general.advisedLimitDetails && <PVField label="" value={general.advisedLimitDetails} fp="general.advisedLimitDetails" />}
+            <PVYesNo label="Household controlled substances" value={general.householdControlledSubstances} fp="general.householdControlledSubstances" />
+            {general.householdControlledSubstances === 'yes' && general.householdSubstancesDetails && <PVField label="" value={general.householdSubstancesDetails} fp="general.householdSubstancesDetails" />}
+            <PVYesNo label="Own guns" value={general.gunsOwned} fp="general.gunsOwned" />
+            {general.gunsOwned === 'yes' && general.gunsDetails && <PVField label="" value={general.gunsDetails} fp="general.gunsDetails" />}
             <PVYesNo label="Piercings or tattoos" value={general.piercingsTattoos} fp="general.piercingsTattoos" />
+            {general.piercingsTattoos === 'yes' && general.piercingsTattoosDetails && <PVField label="" value={general.piercingsTattoosDetails} fp="general.piercingsTattoosDetails" />}
+            {general.piercingsTattoos === 'yes' && general.lastTattooDate && <PVField label="Last tattoo date" value={general.lastTattooDate} fp="general.lastTattooDate" />}
+            <PVYesNo label="Non-sterile piercing in last 12 months" value={general.nonSterilePiercing} fp="general.nonSterilePiercing" />
+            <PVYesNo label="Eating disorder history" value={general.eatingDisorders} fp="general.eatingDisorders" />
+            {general.eatingDisorders === 'yes' && general.eatingDisordersDetails && <PVField label="" value={general.eatingDisordersDetails} fp="general.eatingDisordersDetails" />}
+            <PVYesNo label="Criminal history" value={general.criminalHistory} fp="general.criminalHistory" />
+            {general.criminalHistory === 'yes' && general.criminalHistoryDetails && <PVField label="" value={general.criminalHistoryDetails} fp="general.criminalHistoryDetails" />}
+            <PVYesNo label="Recent travel outside U.S." value={general.recentTravel} fp="general.recentTravel" />
+            {general.recentTravel === 'yes' && general.recentTravelDetails && <PVField label="" value={general.recentTravelDetails} fp="general.recentTravelDetails" />}
+            <PVYesNo label="Upcoming travel plans" value={general.travelPlans} fp="general.travelPlans" />
+            {general.travelPlans === 'yes' && general.travelPlansDetails && <PVField label="" value={general.travelPlansDetails} fp="general.travelPlansDetails" />}
+            <PVYesNo label="Sleep issues" value={general.sleepIssues} fp="general.sleepIssues" />
+            {general.sleepIssues === 'yes' && general.sleepIssuesDetails && <PVField label="" value={general.sleepIssuesDetails} fp="general.sleepIssuesDetails" />}
             <PVYesNo label="Reliable vehicle" value={general.reliableVehicle} fp="general.reliableVehicle" />
+            <PVYesNo label="Automobile insurance" value={general.autoInsurance} fp="general.autoInsurance" />
             <PVYesNo label="Valid driver's license" value={general.validLicense} fp="general.validLicense" />
+            {hasPartner && <PVYesNo label="Partner willing to submit to FDA lab tests" value={general.partnerFdaTests} fp="general.partnerFdaTests" />}
           </div>
-          {general.typicalDiet && (
+          {general.differentReligion && (
             <div className="mt-4 pt-4 border-t border-gray-50">
-              <PVField label="Diet & Eating Habits" value={general.typicalDiet} fp="general.typicalDiet" />
+              <PVField label="Different Religious Beliefs" value={general.differentReligion} fp="general.differentReligion" />
             </div>
           )}
-          {general.exerciseFrequency && (
+          {general.divorcedRelationship && (
             <div className="mt-3">
-              <PVField label="Exercise" value={general.exerciseFrequency} fp="general.exerciseFrequency" />
+              <PVField label="Relationship with Other Parent" value={general.divorcedRelationship} fp="general.divorcedRelationship" />
             </div>
           )}
+          <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+            <PVField label="Diet & Eating Habits" value={general.typicalDiet} fp="general.typicalDiet" />
+            <PVField label="Exercise" value={general.exerciseFrequency} fp="general.exerciseFrequency" />
+          </div>
         </PVSection>
 
         {/* Health */}
         <PVSection title="Health Information" icon={HeartPulse}>
           <div className="space-y-1">
             <PVYesNo label="Mental health challenge diagnosis" value={health.mentalHealthDiagnosis} fp="health.mentalHealthDiagnosis" />
+            {health.mentalHealthDiagnosis === 'yes' && health.mentalHealthDetails && <PVField label="" value={health.mentalHealthDetails} fp="health.mentalHealthDetails" />}
             <PVYesNo label="Hospitalized for mental health" value={health.mentalHealthHospitalization} fp="health.mentalHealthHospitalization" />
+            {health.mentalHealthHospitalization === 'yes' && health.mentalHealthHospDetails && <PVField label="" value={health.mentalHealthHospDetails} fp="health.mentalHealthHospDetails" />}
             <PVYesNo label="Mental health medication" value={health.mentalHealthMedication} fp="health.mentalHealthMedication" />
+            {health.mentalHealthMedication === 'yes' && health.mentalHealthMedDetails && <PVField label="" value={health.mentalHealthMedDetails} fp="health.mentalHealthMedDetails" />}
             <PVYesNo label="Counseling or psychotherapy" value={health.counselingTherapy} fp="health.counselingTherapy" />
+            {health.counselingTherapy === 'yes' && health.counselingDetails && <PVField label="" value={health.counselingDetails} fp="health.counselingDetails" />}
             <PVYesNo label="Family mental health history" value={health.familyMentalHealth} fp="health.familyMentalHealth" />
+            {health.familyMentalHealth === 'yes' && health.familyMentalHealthDetails && <PVField label="" value={health.familyMentalHealthDetails} fp="health.familyMentalHealthDetails" />}
+            <PVYesNo label="Domestic violence history" value={health.domesticViolence} fp="health.domesticViolence" />
+            {health.domesticViolence === 'yes' && health.domesticViolenceDetails && <PVField label="" value={health.domesticViolenceDetails} fp="health.domesticViolenceDetails" />}
             <PVYesNo label="Open to vaccinations" value={health.openToVaccinations} fp="health.openToVaccinations" />
+            {health.openToVaccinations === 'no' && health.vaccinationReasons && <PVField label="" value={health.vaccinationReasons} fp="health.vaccinationReasons" />}
             <PVYesNo label="Covid-19 vaccinated" value={health.covidVaccine} fp="health.covidVaccine" />
+            {health.covidVaccine === 'no' && <PVYesNo label="Willing to receive Covid-19 vaccination" value={health.covidVaccineWilling} fp="health.covidVaccineWilling" />}
+            <PVYesNo label="Had Covid-19" value={health.hadCovid} fp="health.hadCovid" />
+            <PVYesNo label="Covid-19 booster" value={health.covidBooster} fp="health.covidBooster" />
+            {health.covidBooster === 'no' && <PVYesNo label="Comfortable getting booster if requested" value={health.covidBoosterWilling} fp="health.covidBoosterWilling" />}
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
             <PVField label="Allergies" value={health.allergies} fp="health.allergies" />
             <PVField label="Last Physical" value={health.lastPhysical} fp="health.lastPhysical" />
             <PVField label="Last Pap" value={health.lastPap} fp="health.lastPap" />
+            <PVField label="Medical Conditions" value={health.medicalConditions} fp="health.medicalConditions" />
           </div>
-          {health.medicalConditions && (
-            <div className="mt-3">
-              <PVField label="Medical Conditions" value={health.medicalConditions} fp="health.medicalConditions" />
+          {health.diseaseHistory && Array.isArray(health.diseaseHistory) && health.diseaseHistory.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-gray-50">
+              <PVField label="Health Conditions History" value={health.diseaseHistory.join(', ')} fp="health.diseaseHistory" />
+              {health.diseaseHistoryDetails && <PVField label="Details" value={health.diseaseHistoryDetails} fp="health.diseaseHistoryDetails" />}
+            </div>
+          )}
+          {(health.surgeries || health.nonPrescriptionMeds || health.prescriptionMeds || health.currentMeds) && (
+            <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+              <PVField label="Surgeries/Hospitalization (past 5 years)" value={health.surgeries} fp="health.surgeries" />
+              <PVField label="Non-Prescription Medications" value={health.nonPrescriptionMeds} fp="health.nonPrescriptionMeds" />
+              <PVField label="Prescription Medications (past 5 years)" value={health.prescriptionMeds} fp="health.prescriptionMeds" />
+              <PVField label="Current Medications & Supplements" value={health.currentMeds} fp="health.currentMeds" />
             </div>
           )}
         </PVSection>
 
         {/* Employment */}
         <PVSection title="Employment" icon={Briefcase}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
-            <PVField label="Currently Employed" value={employment.currentlyEmployed === 'yes' ? 'Yes' : employment.currentlyEmployed === 'no' ? 'No' : null} fp="employment.currentlyEmployed" />
-            {employment.currentlyEmployed === 'yes' && (
-              <>
-                <PVField label="Occupation" value={employment.occupation} fp="employment.occupation" />
-                <PVField label="Work Hours" value={employment.workHours} fp="employment.workHours" />
-              </>
-            )}
-            <PVField label="Health Insurance" value={employment.healthInsurance || (employment.insuranceType === 'No insurance' ? 'None' : null)} fp="employment.healthInsurance" />
+          <div className="space-y-1">
+            <PVYesNo label="Currently employed" value={employment.currentlyEmployed} fp="employment.currentlyEmployed" />
+          </div>
+          {employment.currentlyEmployed === 'yes' && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 mt-3">
+              <PVField label="Industry" value={employment.employmentIndustry} fp="employment.employmentIndustry" />
+              <PVField label="Occupation" value={employment.occupation} fp="employment.occupation" />
+              <PVField label="Work Hours" value={employment.workHours} fp="employment.workHours" />
+              <PVField label="Length at Employer" value={employment.lengthAtEmployer} fp="employment.lengthAtEmployer" />
+              <PVField label="Hourly Rate" value={employment.hourlyRate} fp="employment.hourlyRate" />
+              <PVField label="Weekly Income" value={employment.weeklyIncome} fp="employment.weeklyIncome" />
+            </div>
+          )}
+          {hasPartner && (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-3">
+              <PVField label="Partner's Occupation" value={employment.partnerOccupation} fp="employment.partnerOccupation" />
+              <PVField label="Partner's Weekly Income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
+            <PVField label="Health Insurance" value={employment.healthInsurance} fp="employment.healthInsurance" />
+            <PVField label="Insurance Type" value={employment.insuranceType} fp="employment.insuranceType" />
+          </div>
+          <div className="mt-3 space-y-1">
+            <PVYesNo label="Government assistance" value={employment.governmentAssistance} fp="employment.governmentAssistance" />
+            {employment.governmentAssistance === 'yes' && employment.governmentAssistanceDetails && <PVField label="" value={employment.governmentAssistanceDetails} fp="employment.governmentAssistanceDetails" />}
           </div>
         </PVSection>
 
@@ -1161,13 +1253,20 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
             <PVYesNo label="Willing to have 3 transfer attempts" value={hopes.threeTransferAttempts} fp="hopesWishes.threeTransferAttempts" />
             <PVYesNo label="Willing to reduce caffeine" value={hopes.reduceCaffeine} fp="hopesWishes.reduceCaffeine" />
             <PVYesNo label="Open to lifestyle changes at IP request" value={hopes.lifestyleChanges} fp="hopesWishes.lifestyleChanges" />
+            {hopes.lifestyleChanges === 'yes' && hopes.lifestyleChangesDetails && <PVField label="" value={hopes.lifestyleChangesDetails} fp="hopesWishes.lifestyleChangesDetails" />}
             <PVYesNo label="Open to pumping colostrum/breast milk" value={hopes.pumpBreastmilk} fp="hopesWishes.pumpBreastmilk" />
             <PVYesNo label="IPs at appointments and delivery" value={hopes.ipsAtAppointments} fp="hopesWishes.ipsAtAppointments" />
+            {hopes.ipsAtAppointments === 'no' && hopes.ipsAtAppointmentsDetails && <PVField label="" value={hopes.ipsAtAppointmentsDetails} fp="hopesWishes.ipsAtAppointmentsDetails" />}
             <PVYesNo label="Match with IPs who have children" value={hopes.ipsWithChildren} fp="hopesWishes.ipsWithChildren" />
             <PVYesNo label="Open to LGBTQ+ IPs" value={hopes.openLGBTQ} fp="hopesWishes.openLGBTQ" />
             <PVYesNo label="Open to single IP" value={hopes.openSingleIP} fp="hopesWishes.openSingleIP" />
             <PVYesNo label="Embryo transfer in another state" value={hopes.transferAnotherState} fp="hopesWishes.transferAnotherState" />
             <PVYesNo label="IPs outside the U.S." value={hopes.ipsOutsideUS} fp="hopesWishes.ipsOutsideUS" />
+            <PVYesNo label="CVS/amniocentesis if recommended" value={hopes.cvsAmnio} fp="hopesWishes.cvsAmnio" />
+            {hopes.cvsAmnio === 'no' && hopes.cvsAmnioDetails && <PVField label="" value={hopes.cvsAmnioDetails} fp="hopesWishes.cvsAmnioDetails" />}
+            <PVYesNo label="Carry twins if embryo splits" value={hopes.carryTwins} fp="hopesWishes.carryTwins" />
+            <PVYesNo label="Compensation negotiable" value={hopes.compensationNegotiable} fp="hopesWishes.compensationNegotiable" />
+            {hasPartner && <PVYesNo label="Partner agrees with termination decision" value={hopes.partnerAgreesTermination} fp="hopesWishes.partnerAgreesTermination" />}
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
             <PVField label="Ideal Intended Parents" value={hopes.idealIPs} fp="hopesWishes.idealIPs" />
@@ -1176,7 +1275,21 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
             <PVField label="Ready to Begin" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
             <PVField label="Post-Birth Relationship" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
             <PVField label="Embryos to Transfer" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
+            <PVField label="Desired Compensation" value={hopes.desiredCompensation ? `$${Number(hopes.desiredCompensation).toLocaleString()}` : null} fp="hopesWishes.desiredCompensation" />
           </div>
+          {(hopes.deliveryRoomOthers || hopes.ipsCantAttend || hopes.childCareTraveling) && (
+            <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+              <PVField label="Others in delivery room" value={hopes.deliveryRoomOthers} fp="hopesWishes.deliveryRoomOthers" />
+              <PVField label="If IPs can't attend regularly" value={hopes.ipsCantAttend} fp="hopesWishes.ipsCantAttend" />
+              <PVField label="Childcare when traveling" value={hopes.childCareTraveling} fp="hopesWishes.childCareTraveling" />
+            </div>
+          )}
+          {(hopes.willingnessToTerminate || hopes.conditionsWontTerminate) && (
+            <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+              <PVField label="Willingness to terminate" value={hopes.willingnessToTerminate} fp="hopesWishes.willingnessToTerminate" />
+              <PVField label="Conditions where would not terminate" value={hopes.conditionsWontTerminate} fp="hopesWishes.conditionsWontTerminate" />
+            </div>
+          )}
           {hopes.additionalComments && (
             <div className="mt-4 p-4 rounded-xl bg-[#fdf8f3] border border-gray-100">
               <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Message to Intended Parents</p>
