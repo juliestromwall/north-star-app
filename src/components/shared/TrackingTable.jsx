@@ -168,8 +168,10 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
         entryStatus = 'in_progress'
       } else {
         entryStatus = effectiveLogStatus
-        // Complete/NA — preserve existing text value
-        textValue = current._textValue || null
+        // Complete/NA — preserve text: use what's in the input field
+        // (logStatus) if it's real text, otherwise fall back to stored value
+        const inputText = logStatus && logStatus !== 'complete' && logStatus !== 'na' ? logStatus : null
+        textValue = inputText || current._textValue || null
       }
     }
 
