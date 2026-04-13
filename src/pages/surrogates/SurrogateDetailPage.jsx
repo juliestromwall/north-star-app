@@ -33,7 +33,10 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto } from '@/lib/db'
+import { SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
+import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer, RotateCw, ZoomIn, Crop, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -46,10 +49,8 @@ import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import SortableTabsList from '@/components/shared/SortableTabsList'
-import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus } from 'lucide-react'
+import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
@@ -2959,6 +2960,166 @@ function toBooleanDisplay(value) {
   return ''
 }
 
+// ── Photo upload slot (profile / cover) ──
+function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
+  const [photo, setPhoto] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    listProfilePhotos(storagePath).then(list => {
+      if (!cancelled && list.length > 0) setPhoto(list[0])
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [storagePath])
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
+    setUploading(true); setError(null)
+    try {
+      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
+      const result = await uploadProfilePhoto(storagePath, file)
+      if (result) { setPhoto(result); if (onChange) onChange(result.url) }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete() {
+    if (!photo || !confirm('Delete this photo?')) return
+    try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
+    catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <p className="text-sm font-semibold text-stone-700">{label}</p>
+        {hint && <p className="text-xs text-stone-400 mt-0.5">{hint}</p>}
+      </div>
+      {photo ? (
+        <div className="relative group w-40 h-40">
+          <img src={photo.url} alt={label} className="w-40 h-40 rounded-2xl object-cover border border-stone-200" />
+          <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
+              <Upload className="w-4 h-4" />
+              <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
+            <button onClick={handleDelete} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+          <div className="text-center">
+            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+              <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
+            )}
+          </div>
+          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+        </label>
+      )}
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
+// ── Admin gallery (drag-reorder, crop, rotate, multi-upload, delete) ──
+function AdminGallery({ storagePath, onPhotosChange }) {
+  const [galleryPhotos, setGalleryPhotos] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+  )
+
+  useEffect(() => {
+    if (!storagePath) return
+    let cancelled = false
+    listProfilePhotos(storagePath).then(list => {
+      if (!cancelled) { setGalleryPhotos(list || []); if (onPhotosChange) onPhotosChange(list || []) }
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [storagePath]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true); setError(null)
+    try {
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { setError('Photos must be under 10MB each'); continue }
+        const result = await uploadProfilePhoto(storagePath, file)
+        if (result) setGalleryPhotos(prev => { const next = [...prev, result]; if (onPhotosChange) onPhotosChange(next); return next })
+      }
+    } catch (err) { setError(err.message || 'Upload failed') }
+    finally { setUploading(false); e.target.value = '' }
+  }
+
+  async function handleDelete(photo) {
+    if (!confirm('Delete this photo?')) return
+    try {
+      await deleteProfilePhoto(photo.path)
+      setGalleryPhotos(prev => { const next = prev.filter(p => p.path !== photo.path); if (onPhotosChange) onPhotosChange(next); return next })
+    } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  async function handleCropSave(oldPhoto, croppedFile) {
+    try {
+      const result = await uploadProfilePhoto(storagePath, croppedFile)
+      if (result) {
+        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
+        setGalleryPhotos(prev => { const next = prev.map(p => p.path === oldPhoto.path ? result : p); if (onPhotosChange) onPhotosChange(next); return next })
+      }
+      setEditing(null)
+    } catch (err) { setError(err.message || 'Save failed') }
+  }
+
+  function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setGalleryPhotos(prev => {
+      const oldIndex = prev.findIndex(p => p.path === active.id)
+      const newIndex = prev.findIndex(p => p.path === over.id)
+      const next = arrayMove(prev, oldIndex, newIndex)
+      if (onPhotosChange) onPhotosChange(next)
+      return next
+    })
+  }
+
+  if (editing) return <PhotoEditor photo={editing} onSave={handleCropSave} onClose={() => setEditing(null)} />
+
+  return (
+    <>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={galleryPhotos.map(p => p.path)} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {galleryPhotos.map(photo => (
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+            ))}
+            <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+              <div className="text-center">
+                {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+                  <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
+                )}
+              </div>
+              <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+            </label>
+          </div>
+        </SortableContext>
+      </DndContext>
+      {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+    </>
+  )
+}
+
 function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate }) {
   const [editingPhoto, setEditingPhoto] = useState(null) // photo object being edited
   const [rotation, setRotation] = useState(0)
@@ -2970,6 +3131,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const hiddenPhotos = profileData?._hiddenPhotos || []
+  const baseId = surrogate?.userId || surrogate?.id
 
   async function togglePhotoInactive(photoPath) {
     const current = profileData?._hiddenPhotos || []
@@ -3094,115 +3256,31 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   return (
     <Card className="rounded-2xl">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Photos ({allPhotos.length})</CardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {activeCount} active{hiddenPhotos.length > 0 && <span className="text-amber-600"> &middot; {allPhotos.length - activeCount} inactive</span>}
-              {' '}&middot; Click photo to edit. Use the eye icon to mark inactive.
-            </p>
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Camera className="w-4 h-4 text-[#283693]" /> Profile Photos
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {allPhotos.map(p => {
-            const isInactive = hiddenPhotos.includes(p.path)
-            const isPortrait = p.path?.includes('/portrait/') || p.path === '_profile_photo'
-            const isCover = p.path?.includes('/headshot/')
-            return (
-              <div key={p.path} className={`relative group aspect-square rounded-xl overflow-hidden border-2 transition-all ${isInactive ? 'opacity-50 border-red-300 grayscale' : 'border-gray-100 hover:border-[#283693]/40'}`}>
-                <img src={p.url} alt="" className="w-full h-full object-cover cursor-pointer" onClick={() => openEditor(p)} />
-                {/* Type badge */}
-                {(isPortrait || isCover) && (
-                  <div className="absolute top-1 left-1 bg-[#283693]/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
-                    {isPortrait ? 'PROFILE' : 'COVER'}
-                  </div>
-                )}
-                {/* Inactive badge */}
-                {isInactive && (
-                  <div className="absolute bottom-1 left-1 bg-red-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">INACTIVE</div>
-                )}
-                {/* Hover controls */}
-                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={(e) => { e.stopPropagation(); togglePhotoInactive(p.path) }} title={isInactive ? 'Mark active' : 'Mark inactive'} className={`p-1 rounded-full bg-white/90 shadow ${isInactive ? 'text-red-500' : 'text-gray-400 hover:text-amber-500'}`}>
-                    {isInactive ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); openEditor(p) }} title="Edit photo" className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-[#283693]">
-                    <Crop className="size-3.5" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeletePhoto(p) }} title="Delete photo" className="p-1 rounded-full bg-white/90 shadow text-gray-400 hover:text-red-500">
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
+      <CardContent className="space-y-6">
+        {/* Profile + Cover upload */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <AdminPhotoSlot
+            label="Profile Photo"
+            hint="A favorite recent photo of just them"
+            storagePath={`${baseId}/portrait`}
+          />
+          <AdminPhotoSlot
+            label="Cover Photo"
+            hint="A favorite picture with family or doing something they love"
+            storagePath={`${baseId}/headshot`}
+          />
+        </div>
+        {/* Gallery */}
+        <div>
+          <p className="text-sm font-semibold text-stone-700 mb-1">Photo Gallery</p>
+          <p className="text-xs text-stone-400 mb-3">Additional photos shown in the carousel. Drag to reorder. Click to crop or rotate.</p>
+          <AdminGallery storagePath={baseId} onPhotosChange={(list) => setPhotos(list)} />
         </div>
       </CardContent>
-
-      {/* Photo Editor Modal */}
-      {editingPhoto && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => !saving && setEditingPhoto(null)}>
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-            {/* Editor header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-sm">Edit Photo</h3>
-              <button onClick={() => setEditingPhoto(null)} className="text-gray-400 hover:text-gray-600"><X className="size-5" /></button>
-            </div>
-
-            {/* Image preview */}
-            <div className="relative bg-gray-100 flex items-center justify-center overflow-hidden" style={{ minHeight: 300 }}
-              onMouseDown={handleCropMouseDown} onMouseMove={handleCropMouseMove} onMouseUp={handleCropMouseUp}
-            >
-              <img
-                ref={imgRef}
-                src={editingPhoto.url}
-                alt=""
-                crossOrigin="anonymous"
-                className="max-w-full max-h-[60vh] select-none"
-                style={{
-                  transform: `rotate(${rotation}deg) scale(${scale})`,
-                  transition: 'transform 0.2s ease',
-                  cursor: cropMode ? 'crosshair' : 'default',
-                }}
-                draggable={false}
-              />
-              {/* Crop overlay */}
-              {cropRect && cropRect.w > 5 && (
-                <div className="absolute pointer-events-none border-2 border-dashed border-white bg-white/10" style={{
-                  left: cropRect.x, top: cropRect.y, width: cropRect.w, height: cropRect.h,
-                }} />
-              )}
-            </div>
-
-            {/* Toolbar */}
-            <div className="flex items-center justify-between p-4 border-t bg-gray-50">
-              <div className="flex items-center gap-2">
-                <button onClick={() => setRotation(r => (r + 90) % 360)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-white" title="Rotate 90°">
-                  <RotateCw className="size-3.5" /> Rotate
-                </button>
-                <button onClick={() => setCropMode(m => !m)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border ${cropMode ? 'bg-[#283693] text-white border-[#283693]' : 'hover:bg-white'}`} title="Crop">
-                  <Crop className="size-3.5" /> Crop
-                </button>
-                <div className="flex items-center gap-1.5 ml-2">
-                  <ZoomIn className="size-3.5 text-gray-400" />
-                  <input type="range" min="0.5" max="2" step="0.05" value={scale} onChange={e => setScale(parseFloat(e.target.value))} className="w-24 accent-[#283693]" />
-                  <span className="text-[10px] text-gray-400 w-8">{Math.round(scale * 100)}%</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { setRotation(0); setScale(1); setCropRect(null); setCropMode(false) }} className="px-3 py-1.5 rounded-lg text-xs font-medium border hover:bg-white">
-                  Reset
-                </button>
-                <button onClick={saveEdits} disabled={saving || (rotation === 0 && scale === 1 && !cropRect)} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-[#283693] text-white disabled:opacity-40">
-                  {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </Card>
   )
 }
