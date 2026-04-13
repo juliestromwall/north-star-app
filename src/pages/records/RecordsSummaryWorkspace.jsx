@@ -675,21 +675,29 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {(() => {
             const dobStr = data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
             const calcAge = data.dob ? (() => { const b = new Date(data.dob); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a > 0 ? a : null })() : null
+            const iconStyle = { width: 18, height: 18, stroke: '#283693', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
+            const icons = {
+              age: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>,
+              height: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>,
+              weight: <svg viewBox="0 0 24 24" style={iconStyle}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1ZM7 21h10M12 3v18M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>,
+              bmi: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>,
+              status: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
+            }
             const statCards = [
-              { emoji: '📅', label: 'Age', value: calcAge, sub: dobStr },
-              { emoji: '📏', label: 'Height', value: data.height },
-              { emoji: '⚖️', label: 'Weight', value: data.weight },
-              { emoji: '💗', label: 'BMI', value: data.bmi },
-              { emoji: '💍', label: 'Status', value: data.maritalStatus },
+              { icon: icons.age, label: 'Age', value: calcAge, sub: dobStr },
+              { icon: icons.height, label: 'Height', value: data.height },
+              { icon: icons.weight, label: 'Weight', value: data.weight },
+              { icon: icons.bmi, label: 'BMI', value: data.bmi },
+              { icon: icons.status, label: 'Status', value: data.maritalStatus },
             ]
             return (
               <div style={{ marginBottom: 12 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: '0 0 10px', letterSpacing: '0.3px' }}>{data.name}</h2>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {statCards.map(s => s.value ? (
-                    <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 14px', borderRadius: 10, backgroundColor: s.label === 'BMI' ? '#fdf2f8' : '#f0f0ff', border: `1px solid ${s.label === 'BMI' ? '#fbcfe8' : '#e0e0f0'}`, minWidth: 60 }}>
-                      <span style={{ fontSize: 14, marginBottom: 2 }}>{s.emoji}</span>
-                      <span style={{ fontSize: 16, fontWeight: 700, color: s.label === 'BMI' ? '#be185d' : '#283693' }}>{s.value}</span>
+                    <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 16px', borderRadius: 12, backgroundColor: '#fff', border: '1px solid #e7e5e4', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minWidth: 70 }}>
+                      {s.icon}
+                      <span style={{ fontSize: 15, fontWeight: 700, color: '#283693', marginTop: 4 }}>{s.value}</span>
                       <span style={{ fontSize: 8, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{s.label}</span>
                       {s.sub && <span style={{ fontSize: 8, color: '#a8a29e', marginTop: 1 }}>{s.sub}</span>}
                     </div>
