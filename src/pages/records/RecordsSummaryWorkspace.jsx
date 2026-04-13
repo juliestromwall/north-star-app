@@ -436,20 +436,10 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
             <FormField label="Surgical History" value={form.surgicalHistory} onChange={v => updateField('surgicalHistory', v)} rows={2} />
 
             <p className="text-[10px] font-bold text-stone-500 uppercase mt-3">Social History</p>
-            <div className="grid grid-cols-2 gap-3">
-              <FormField label="Occupation" value={form.occupation} onChange={v => updateField('occupation', v)} />
-              <FormField label="Lives with" value={form.livesWith} onChange={v => updateField('livesWith', v)} />
-            </div>
             <div className="grid grid-cols-3 gap-3">
               <FormField label="Alcohol" value={form.alcohol} onChange={v => updateField('alcohol', v)} />
               <FormField label="Tobacco" value={form.tobacco} onChange={v => updateField('tobacco', v)} />
               <FormField label="Recreational Drugs" value={form.recreationalDrugs} onChange={v => updateField('recreationalDrugs', v)} />
-            </div>
-
-            <p className="text-[10px] font-bold text-stone-500 uppercase mt-3">COVID-19</p>
-            <div className="grid grid-cols-2 gap-3">
-              <FormField label="Ever tested positive" value={form.covidPositive} onChange={v => updateField('covidPositive', v)} />
-              <FormField label="COVID-19 Vaccine" value={form.covidVaccine} onChange={v => updateField('covidVaccine', v)} />
             </div>
 
             <p className="text-[10px] font-bold text-stone-500 uppercase mt-3">Gynecologic History</p>
@@ -651,7 +641,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* Patient Info Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 6 }}>
             <InfoGridRow label="Name" value={data.name} span={2} />
-            <InfoGridRow label="DOB" value={data.dob} />
+            <InfoGridRow label="DOB" value={data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''} />
             <InfoGridRow label="Marital Status" value={data.maritalStatus} />
             <InfoGridRow label="HT" value={data.height} />
             <InfoGridRow label="WT / BMI" value={[data.weight, data.bmi].filter(Boolean).join(' · ')} />
@@ -669,18 +659,9 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* Social History */}
           <SectionLabel>Social History</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <InfoGridRow label="Occupation" value={data.occupation} />
-            <InfoGridRow label="Lives with" value={data.livesWith} />
             <InfoGridRow label="Alcohol" value={data.alcohol} />
             <InfoGridRow label="Tobacco" value={data.tobacco} />
             <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} />
-          </div>
-
-          {/* COVID */}
-          <SectionLabel>COVID-19 Screening</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <InfoGridRow label="Ever tested positive" value={data.covidPositive} />
-            <InfoGridRow label="COVID-19 Vaccine" value={data.covidVaccine} />
           </div>
 
           {/* GYN History */}
