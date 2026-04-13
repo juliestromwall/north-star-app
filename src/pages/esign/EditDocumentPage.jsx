@@ -457,8 +457,10 @@ export default function EditDocumentPage() {
           <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Name:GC}}'}</code>{' '}
           <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Date:GC}}'}</code>{' '}
           <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Email:GC}}'}</code>{' '}
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Initials:GC}}'}</code>{' '}
           <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Text:GC}}'}</code>{' '}
-          — Replace GC with IP1, IP2, or Admin
+          <code className="bg-stone-100 px-1 rounded text-[10px]">{'{{Checkbox:GC}}'}</code>{' '}
+          — Replace GC with IP1, IP2, Partner, or Admin
         </p>
       </div>
 
