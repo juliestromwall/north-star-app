@@ -334,12 +334,15 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
       pregnancies: saved.pregnancies || pregnancies.map((p, i) => {
         const clinicPreg = (clinic.pregnancies || [])[i] || {}
         const isNonDelivery = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy'].includes((p.outcome || '').toLowerCase())
-        const skipDetails = isNonDelivery && clinicPreg.receivedPrenatalCare === 'no'
+        const hadPrenatalCare = clinicPreg.receivedPrenatalCare === 'yes'
+        const skipDetails = isNonDelivery && !hadPrenatalCare
         return {
           label: `G${i + 1}`,
           pageRef: '',
           dateOfDelivery: p.dob || '',
           outcome: p.outcome || '',
+          isNonDelivery,
+          hadPrenatalCare,
           skipDetails,
           gestationalAge: p.gestationWeeks ? `${p.gestationWeeks}w ${p.gestationDays || 0}d` : '',
           typeOfDelivery: p.deliveryType || '',
@@ -461,19 +464,39 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
         <SectionHeader title={`Obstetrical History (${form.numberOfPregnancies || 0} pregnancies)`} open={openSections.pregnancies} onToggle={() => toggleSection('pregnancies')} />
         {openSections.pregnancies && (
           <div className="space-y-4 pl-2">
-            <FormField label="Obstetric Summary (G T P A L)" value={form.obstetricSummary} onChange={v => updateField('obstetricSummary', v)} placeholder="G4 T3 P0 A1 L3 (3 vaginal 0 cesarean)" />
-
-            {(form.pregnancies || []).map((preg, i) => (
+            {(form.pregnancies || []).map((preg, i) => {
+              const isNonDel = preg.isNonDelivery
+              const limitedFields = isNonDel && preg.hadPrenatalCare
+              return (
               <div key={i} className="rounded-lg border border-stone-200 p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-bold text-[#283693]">{preg.label || `G${i + 1}`}</p>
-                  {preg.outcome && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${preg.skipDetails ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{preg.outcome}</span>}
+                  {preg.outcome && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${preg.skipDetails ? 'bg-amber-100 text-amber-700' : isNonDel ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'}`}>{preg.outcome}</span>}
                 </div>
 
                 {preg.skipDetails ? (
                   <div className="space-y-2">
                     <p className="text-xs text-stone-400 italic">No prenatal care received — details not required</p>
                     <FormField label="Notes" value={preg.notes} onChange={v => updatePregnancy(i, 'notes', v)} rows={2} placeholder="Additional notes..." />
+                  </div>
+                ) : limitedFields ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-600 italic">Prenatal care received — limited fields</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <FormField label="Page Ref" value={preg.pageRef} onChange={v => updatePregnancy(i, 'pageRef', v)} placeholder="(pg.)" />
+                      <FormField label="Date" value={preg.dateOfDelivery} onChange={v => updatePregnancy(i, 'dateOfDelivery', v)} type="date" />
+                      <FormField label="Gestational Age" value={preg.gestationalAge} onChange={v => updatePregnancy(i, 'gestationalAge', v)} placeholder="8w 2d" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FormField label="GBS" value={preg.gbs} onChange={v => updatePregnancy(i, 'gbs', v)} placeholder="Negative/Positive" />
+                      <FormField label="Glucose Screen" value={preg.glucoseScreen} onChange={v => updatePregnancy(i, 'glucoseScreen', v)} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} />
+                      <FormField label="BP's" value={preg.bps} onChange={v => updatePregnancy(i, 'bps', v)} />
+                      <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" />
+                    </div>
+                    <FormField label="Notes" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} />
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -513,7 +536,8 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
 
@@ -678,18 +702,25 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
 
           {/* Obstetrical History */}
           <SectionLabel>Obstetrical History</SectionLabel>
-          {data.obstetricSummary && (
-            <div style={{ padding: '6px 12px', backgroundColor: '#f8f9fc', borderRadius: 6, border: '1px solid #e2e4ef', marginBottom: 8, fontSize: 12, fontWeight: 600, color: '#283693' }}>
-              {data.obstetricSummary}
-            </div>
-          )}
 
-          {pregnancies.map((preg, i) => (
+          {pregnancies.map((preg, i) => {
+            const isNonDel = preg.isNonDelivery
+            const limitedFields = isNonDel && preg.hadPrenatalCare
+            return (
             <div key={i}>
               <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} preg={preg} />
               {preg.skipDetails ? (
                 <div style={{ padding: '6px 12px', backgroundColor: '#fffbeb', borderRadius: 6, border: '1px solid #fef3c7', fontSize: 11, color: '#92400e', fontStyle: 'italic' }}>
                   No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
+                </div>
+              ) : limitedFields ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                  <InfoGridRow label="GBS" value={preg.gbs} />
+                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
+                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
+                  <InfoGridRow label="BP's" value={preg.bps} />
+                  <InfoGridRow label="Weight Gained" value={preg.weightGained} />
+                  <InfoGridRow label="Notes" value={preg.complications} span={3} />
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
@@ -714,7 +745,8 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                 </div>
               )}
             </div>
-          ))}
+            )
+          })}
 
           {/* Labs */}
           <SectionLabel>Most Recent Labs</SectionLabel>
