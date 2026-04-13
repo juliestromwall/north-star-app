@@ -4,6 +4,12 @@ import { Sparkles, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchCaseEmails, fetchCaseTasks, fetchCaseNotes, fetchInsurance, fetchInsurancePayments, fetchJourneyExpenses } from '@/lib/db'
 
+function fmtDate(d) {
+  if (!d) return ''
+  const dt = new Date(d + (d.includes('T') ? '' : 'T00:00:00'))
+  return dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+}
+
 export default function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistSteps, tracking, journeyData, className }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -26,17 +32,24 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
         caseType === 'journey' ? fetchJourneyExpenses(caseId).catch(() => []) : Promise.resolve([]),
       ])
 
-      // Build checklist summary
+      // Build checklist summary WITH log history
       let checklist = null
       if (checklistSteps?.length > 0 && tracking) {
-        checklist = checklistSteps.map(s => ({
-          label: s.label,
-          status: tracking[s.id]?.status || 'not_started',
-        }))
+        checklist = checklistSteps.map(s => {
+          const t = tracking[s.id] || {}
+          const history = (t.history || []).slice(-3) // last 3 log entries
+          return {
+            label: t.customLabel || s.label,
+            status: t.status || 'not_started',
+            lastDate: history.length > 0 ? fmtDate(history[history.length - 1].date) : null,
+            logs: history.map(h => `${fmtDate(h.date)}: ${h.status?.replace(/_/g, ' ')}${h.note ? ' — ' + h.note : ''}`),
+          }
+        })
       }
 
-      // Calendar events
-      let appointments = []
+      // Calendar events — split into past and upcoming
+      let pastAppointments = [], upcomingAppointments = []
+      const today = new Date().toISOString().split('T')[0]
       try {
         const { listCaseEvents, listCalendars } = await import('@/lib/google')
         const primary = await listCaseEvents(currentUser.id, caseId, caseType).catch(() => ({ items: [] }))
@@ -48,39 +61,74 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
         const apptEvents = apptCal ? await listCaseEvents(currentUser.id, caseId, caseType, { calendarId: apptCal.id }).catch(() => ({ items: [] })) : { items: [] }
         const allEvents = [...(primary.items || []), ...(apptEvents.items || [])]
         const seen = new Set()
-        appointments = allEvents.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true }).map(e => ({
-          date: e.start?.date || e.start?.dateTime?.split('T')[0] || '',
-          time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null,
-          title: e.summary || '',
-        }))
+        const deduped = allEvents.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+        for (const e of deduped) {
+          const eventDate = e.start?.date || e.start?.dateTime?.split('T')[0] || ''
+          const item = {
+            date: fmtDate(eventDate),
+            time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : null,
+            title: e.summary || '',
+          }
+          if (eventDate >= today) upcomingAppointments.push(item)
+          else pastAppointments.push(item)
+        }
       } catch {}
 
-      // Pregnancy / transfers from journey data
-      let pregnancy = null, transfers = [], escrow = null
+      // Pregnancy / delivery / transfers from journey data
       const jd = journeyData || {}
-      if (jd.dueDate) {
-        const due = new Date(jd.dueDate)
-        const conception = new Date(due.getTime() - 280 * 24 * 60 * 60 * 1000)
-        const diffMs = new Date() - conception
-        const weeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
-        const days = Math.floor((diffMs % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
-        if (weeks >= 0 && weeks <= 42) pregnancy = { weeks, days, dueDate: jd.dueDate, babySex: jd.babySex, babyNames: jd.babyNames }
+      let pregnancy = null
+      if (jd.dueDate || jd.delivered) {
+        pregnancy = {
+          isPregnant: jd.pregnant === 'yes',
+          delivered: !!jd.delivered,
+          dueDate: jd.dueDate ? fmtDate(jd.dueDate) : null,
+          deliveryDate: jd.deliveryDate ? fmtDate(jd.deliveryDate) : null,
+          deliveryType: jd.deliveryType || null,
+          deliveryNotes: jd.deliveryNotes || null,
+          babies: jd.babies,
+          babySexes: jd.babySexes,
+          babyNames: jd.babyNames,
+          babyWeights: jd.babyWeights,
+          babyLengths: jd.babyLengths,
+        }
+        if (!jd.delivered && jd.dueDate) {
+          const due = new Date(jd.dueDate)
+          const conception = new Date(due.getTime() - 280 * 24 * 60 * 60 * 1000)
+          const diffMs = new Date() - conception
+          const weeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000))
+          const days = Math.floor((diffMs % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
+          if (weeks >= 0 && weeks <= 42) pregnancy.gestationalAge = `${weeks}w ${days}d`
+        }
       }
+
+      let transfers = (jd._transfers || []).map(t => ({
+        date: t.date ? fmtDate(t.date) : null,
+        embryoCount: t.embryoCount || null,
+        betaResult: t.betaValue || null,
+        heartbeat: !!t.heartbeatDate,
+        unsuccessful: !!t.unsuccessful,
+        dropped: !!t.dropped,
+        lossType: t.lossType || null,
+        lossDate: t.lossDate ? fmtDate(t.lossDate) : null,
+      }))
+
+      let escrow = null
       if (jd.escrowBalance || jd.escrowMin) escrow = { balance: jd.escrowBalance, minimum: jd.escrowMin }
 
       const res = await fetch('/api/ai/case-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          caseName, caseType, stage, status,
-          emails: emails.slice(0, 15).map(e => ({ direction: e.direction, date: e.date, subject: e.subject, from: e.from_email, tags: e.tags })),
-          tasks: tasks.map(t => ({ status: t.status, title: t.title, priority: t.priority, due_date: t.due_date, notes: t.notes })),
-          notes: notes.slice(0, 10).map(n => ({ created_at: n.created_at, content: n.content })),
+          caseName, caseType, status,
+          emails: emails.slice(0, 15).map(e => ({ direction: e.direction, date: e.date ? fmtDate(e.date) : '', subject: e.subject, from: e.from_email, tags: e.tags, snippet: (e.body_text || e.snippet || '').slice(0, 200) })),
+          tasks: tasks.map(t => ({ status: t.status, title: t.title, priority: t.priority, due_date: t.due_date ? fmtDate(t.due_date) : null, notes: t.notes })),
+          notes: notes.slice(0, 10).map(n => ({ created_at: n.created_at ? fmtDate(n.created_at) : '', content: n.content })),
           checklist,
-          appointments,
+          pastAppointments: pastAppointments.length > 0 ? pastAppointments : undefined,
+          upcomingAppointments: upcomingAppointments.length > 0 ? upcomingAppointments : undefined,
           transfers: transfers.length > 0 ? transfers : undefined,
           insurance: insurance || undefined,
-          expenses: expenses.length > 0 ? expenses : undefined,
+          expenses: expenses.length > 0 ? expenses.slice(0, 10).map(e => ({ date: e.expense_date ? fmtDate(e.expense_date) : '', amount: e.amount, paidTo: e.paid_to, escrow: e.is_escrow, reconciled: e.is_reconciled, notes: e.notes })) : undefined,
           pregnancy: pregnancy || undefined,
           escrow: escrow || undefined,
         }),
@@ -114,7 +162,7 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
               <Sparkles className="size-4 text-violet-500" />
               {caseName}
             </DialogTitle>
-            <p className="text-xs text-stone-400 mt-0.5">{stage}{status ? ` · ${status}` : ''}</p>
+            {status && <p className="text-xs text-stone-400 mt-0.5">{status}</p>}
           </DialogHeader>
 
           {loading && (
@@ -148,7 +196,7 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
                         {body.split('\n').map((line, j) => {
                           const trimmed = line.replace(/^[-•]\s*/, '').trim()
                           if (!trimmed) return null
-                          const isWarning = /overdue|below|missing|stalled|concern|urgent|⚠/i.test(trimmed)
+                          const isWarning = /overdue|below|missing|stalled|concern|urgent|⚠|critical/i.test(trimmed)
                           return (
                             <p key={j} className={`flex items-start gap-1.5 ${isWarning ? 'text-amber-700 font-medium' : ''}`}>
                               <span className="text-stone-300 mt-0.5 shrink-0">•</span>

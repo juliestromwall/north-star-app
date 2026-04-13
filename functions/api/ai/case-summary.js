@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { caseName, caseType, stage, status, emails, tasks, notes, checklist, appointments, transfers, texts, insurance, expenses, pregnancy, escrow } = await context.request.json()
+  const { caseName, caseType, status, emails, tasks, notes, checklist, pastAppointments, upcomingAppointments, transfers, insurance, expenses, pregnancy, escrow } = await context.request.json()
 
   if (!caseName) {
     return new Response(JSON.stringify({ error: 'Missing caseName' }), {
@@ -35,31 +35,41 @@ export async function onRequestPost(context) {
   const sections = []
 
   sections.push(`Case: ${caseName} (${caseType || 'unknown type'})`)
-  if (stage) sections.push(`Current Stage: ${stage}`)
   if (status) sections.push(`Current Status: ${status}`)
 
   if (pregnancy) {
     const pregParts = []
-    if (pregnancy.gestationalAge) pregParts.push(`Gestational Age: ${pregnancy.gestationalAge}`)
-    if (pregnancy.dueDate) pregParts.push(`Due Date: ${pregnancy.dueDate}`)
-    if (pregnancy.isPregnant) pregParts.push('Status: Currently Pregnant')
-    if (pregnancy.babies) pregParts.push(`Babies: ${pregnancy.babies}`)
-    if (pregnancy.babySexes?.length > 0) pregParts.push(`Sex: ${pregnancy.babySexes.join(', ')}`)
-    if (pregnancy.babyNames?.length > 0 && pregnancy.babyNames.some(n => n)) pregParts.push(`Names: ${pregnancy.babyNames.filter(n => n).join(', ')}`)
-    if (pregParts.length > 0) sections.push(`\nPregnancy Status:\n${pregParts.join('\n')}`)
+    if (pregnancy.delivered) {
+      pregParts.push('STATUS: Baby has been BORN')
+      if (pregnancy.deliveryDate) pregParts.push(`Delivery Date: ${pregnancy.deliveryDate}`)
+      if (pregnancy.deliveryType) pregParts.push(`Delivery Type: ${pregnancy.deliveryType}`)
+      if (pregnancy.dueDate) pregParts.push(`Original Due Date: ${pregnancy.dueDate}`)
+      if (pregnancy.babyNames?.length > 0 && pregnancy.babyNames.some(n => n)) pregParts.push(`Baby Name(s): ${pregnancy.babyNames.filter(n => n).join(', ')}`)
+      if (pregnancy.babySexes?.length > 0) pregParts.push(`Sex: ${pregnancy.babySexes.join(', ')}`)
+      if (pregnancy.babyWeights?.length > 0) pregParts.push(`Weight: ${pregnancy.babyWeights.filter(w => w).join(', ')}`)
+      if (pregnancy.babyLengths?.length > 0) pregParts.push(`Length: ${pregnancy.babyLengths.filter(l => l).join(', ')}`)
+      if (pregnancy.deliveryNotes) pregParts.push(`Notes: ${pregnancy.deliveryNotes}`)
+    } else if (pregnancy.isPregnant) {
+      pregParts.push('Status: Currently Pregnant')
+      if (pregnancy.gestationalAge) pregParts.push(`Gestational Age: ${pregnancy.gestationalAge}`)
+      if (pregnancy.dueDate) pregParts.push(`Due Date: ${pregnancy.dueDate}`)
+      if (pregnancy.babies) pregParts.push(`Babies: ${pregnancy.babies}`)
+      if (pregnancy.babySexes?.length > 0) pregParts.push(`Sex: ${pregnancy.babySexes.join(', ')}`)
+      if (pregnancy.babyNames?.length > 0 && pregnancy.babyNames.some(n => n)) pregParts.push(`Names: ${pregnancy.babyNames.filter(n => n).join(', ')}`)
+    }
+    if (pregParts.length > 0) sections.push(`\nPregnancy / Birth:\n${pregParts.join('\n')}`)
   }
 
   if (escrow) {
     const escParts = []
     if (escrow.balance) escParts.push(`Balance: ${escrow.balance}`)
     if (escrow.minimum) escParts.push(`Minimum: ${escrow.minimum}`)
-    if (escrow.lastUpdated) escParts.push(`Last Updated: ${escrow.lastUpdated}`)
     if (escParts.length > 0) sections.push(`\nEscrow:\n${escParts.join('\n')}`)
   }
 
   if (emails?.length > 0) {
     const emailSummary = emails.slice(0, 15).map(e =>
-      `- [${e.direction || 'unknown'}] ${e.date || ''}: "${e.subject || '(no subject)'}" ${e.from ? `from ${e.from}` : ''} ${e.tags?.length ? `[${e.tags.join(', ')}]` : ''}`
+      `- [${e.direction || 'unknown'}] ${e.date || ''}: "${e.subject || '(no subject)'}" ${e.from ? `from ${e.from}` : ''}${e.snippet ? ` — ${e.snippet}` : ''} ${e.tags?.length ? `[${e.tags.join(', ')}]` : ''}`
     ).join('\n')
     sections.push(`\nRecent Emails (${emails.length} total, showing last ${Math.min(15, emails.length)}):\n${emailSummary}`)
   }
@@ -79,17 +89,29 @@ export async function onRequestPost(context) {
   }
 
   if (checklist?.length > 0) {
-    const checkSummary = checklist.map(c =>
-      `- ${c.label}: ${c.status === 'complete' ? 'Complete' : c.status === 'na' ? 'N/A' : c.status === 'not_started' ? 'Not Started' : c.status?.replace(/_/g, ' ') || 'Not Started'}${c.lastDate ? ` (${c.lastDate})` : ''}`
-    ).join('\n')
+    const checkSummary = checklist.map(c => {
+      const statusLabel = c.status === 'complete' ? 'Complete' : c.status === 'na' ? 'N/A' : c.status === 'not_started' ? 'Not Started' : c.status?.replace(/_/g, ' ') || 'Not Started'
+      let line = `- ${c.label}: ${statusLabel}${c.lastDate ? ` (${c.lastDate})` : ''}`
+      if (c.logs?.length > 0) line += `\n  Logs: ${c.logs.join(' → ')}`
+      return line
+    }).join('\n')
     sections.push(`\nChecklist Progress:\n${checkSummary}`)
   }
 
-  if (appointments?.length > 0) {
-    const apptSummary = appointments.map(a =>
+  if (upcomingAppointments?.length > 0) {
+    const apptSummary = upcomingAppointments.map(a =>
       `- ${a.date || ''}: ${a.title || '(untitled)'}${a.time ? ` at ${a.time}` : ''}`
     ).join('\n')
-    sections.push(`\nAppointments:\n${apptSummary}`)
+    sections.push(`\nUpcoming Appointments:\n${apptSummary}`)
+  } else {
+    sections.push(`\nUpcoming Appointments: None scheduled`)
+  }
+
+  if (pastAppointments?.length > 0) {
+    const pastSummary = pastAppointments.slice(-7).map(a =>
+      `- ${a.date || ''}: ${a.title || '(untitled)'}${a.time ? ` at ${a.time}` : ''}`
+    ).join('\n')
+    sections.push(`\nRecent Past Appointments (last 7):\n${pastSummary}`)
   }
 
   if (transfers?.length > 0) {
@@ -111,53 +133,45 @@ export async function onRequestPost(context) {
     if (insurance.carrier) insParts.push(`Carrier: ${insurance.carrier}`)
     if (insurance.premium) insParts.push(`Premium: $${insurance.premium}`)
     if (insurance.premiumDueDay) insParts.push(`Due day: ${insurance.premiumDueDay} of each month`)
-    if (insurance.startDate) insParts.push(`Start: ${insurance.startDate}`)
-    if (insurance.endDate) insParts.push(`End: ${insurance.endDate}`)
-    if (insurance.status) insParts.push(`Status: ${insurance.status}`)
     if (insParts.length > 0) sections.push(`\nInsurance:\n${insParts.join('\n')}`)
-    if (insurance.payments?.length > 0) {
-      const paymentSummary = insurance.payments.slice(0, 6).map(p =>
-        `- ${p.monthFor || ''}: $${p.amount || '?'} — ${p.status || 'unknown'}`
-      ).join('\n')
-      sections.push(`\nRecent Insurance Payments:\n${paymentSummary}`)
-    }
   }
 
   if (expenses?.length > 0) {
     const expSummary = expenses.slice(0, 10).map(e =>
       `- ${e.date || ''}: $${e.amount || '?'} to ${e.paidTo || 'unknown'}${e.escrow ? ' [ESCROW]' : ''}${e.reconciled ? ' (reconciled)' : ' (not reconciled)'}${e.notes ? ` — ${e.notes.slice(0, 80)}` : ''}`
     ).join('\n')
-    sections.push(`\nRecent Expenses (${expenses.length} total, showing last ${Math.min(10, expenses.length)}):\n${expSummary}`)
-  }
-
-  if (texts?.length > 0) {
-    const textSummary = texts.slice(0, 10).map(t =>
-      `- [${t.direction || '?'}] ${t.date || ''}: ${(t.body || '').slice(0, 100)}`
-    ).join('\n')
-    sections.push(`\nRecent Text Messages (${texts.length} total, showing last ${Math.min(10, texts.length)}):\n${textSummary}`)
+    sections.push(`\nRecent Expenses (${expenses.length} total):\n${expSummary}`)
   }
 
   const caseData = sections.join('\n')
 
-  const systemPrompt = `You are an AI assistant for ABC Surrogacy, a surrogacy agency. Generate a concise case summary using EXACTLY this section order. Skip any section that has no relevant data. Use the exact headers shown:
+  const systemPrompt = `You are an AI assistant for ABC Surrogacy, a surrogacy agency. Generate a concise case summary using EXACTLY this section order. Skip any section that has no relevant data. Use the exact headers shown. ALL DATES must be formatted as MM/DD/YYYY.
+
+**🤰 Pregnancy / Birth**
+If baby has been born: show birth date, baby name(s), sex, weight, length, delivery type, and any notes. Keep the original due date for reference.
+If still pregnant: show gestational age, due date, baby name(s) and sex if known.
+If there was a loss: note the type and date.
 
 **🔬 Embryo Transfer**
-Upcoming transfer date, or most recent transfer result. Highlight any pregnancy losses (miscarriage, ectopic, chemical).
+Most recent transfer result. Only show if relevant.
 
-**🤰 Pregnancy**
-Gestational age, due date, baby name(s) and sex if known.
+**📅 Upcoming Appointments**
+List future appointments. If none are scheduled, say "None currently scheduled."
 
-**📅 Appointments**
-Upcoming appointments, or any from the past week. Include scheduled transfers.
+**📅 Recent Appointments**
+Appointments from the past week or two. Skip if none.
 
 **💰 Escrow**
-Current balance vs minimum. Flag if balance is below minimum.
+Current balance vs minimum. Flag if balance is below minimum or not set up.
 
 **✈️ Travel**
-Any travel-related expenses or email threads (flights, hotels, car rentals).
+Any travel-related expenses or email threads (flights, hotels, car rentals). Skip if none.
 
 **📝 Case Activity**
-Brief summary of recent notes, texts, and emails logged. What's new in the last 1-2 weeks?
+Summarize recent emails, notes, and text messages. What's new? Include key details from email subjects/snippets. Highlight anything that needs follow-up.
+
+**📋 Checklist Progress**
+Summarize checklist status — what's complete, what's in progress, what's not started. Include notable log entries if they contain useful info.
 
 **💳 Recent Expenses**
 Recent expenses, especially those submitted to escrow. Note unreconciled items.
@@ -168,7 +182,7 @@ Payment status — is it up to date? Note upcoming or overdue premiums.
 **⚠️ Outstanding Tasks**
 Open or overdue tasks needing attention.
 
-Keep each section to 1-3 bullet points max. Be brief and actionable — this is for a case manager scanning quickly. Do not make up information not in the data.`
+Keep each section to 1-3 bullet points max. Be brief and actionable — this is for a case manager scanning quickly. Do not make up information not in the data. Do NOT include a "Case Summary" header or repeat the case name.`
 
   const userPrompt = `Generate a case summary for this surrogacy case:\n\n${caseData}`
 
@@ -182,7 +196,7 @@ Keep each section to 1-3 bullet points max. Be brief and actionable — this is 
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
+        max_tokens: 1000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
