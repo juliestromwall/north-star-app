@@ -495,6 +495,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
 // ── Email Detail View ───────────────────────────────────
 
 function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onArchive, onTrash }) {
+  const { isMasterAdmin } = useRole()
   const [logOpen, setLogOpen] = useState(false)
   const [downloading, setDownloading] = useState(null)
 
