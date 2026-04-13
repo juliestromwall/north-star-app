@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  ChevronDown, Save, Baby, Stethoscope, User, Heart, BookOpen, Camera, Upload, X, Loader2, Trash2,
+  ChevronDown, Save, Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, Camera, Upload, X, Loader2, Trash2,
   Eye, Download, ShieldCheck, ShieldX
 } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -247,9 +247,9 @@ const HISTORY_FIELDS = [
 
 const SECTIONS = [
   { key: 'fertility', label: 'Fertility Information', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
-  { key: 'surrogacy', label: 'Surrogacy Information', icon: Stethoscope, fields: SURROGACY_FIELDS, perPerson: false },
+  { key: 'surrogacy', label: 'Surrogacy Information', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
   { key: 'personal', label: 'Personal Information', icon: User, fields: PERSONAL_FIELDS, perPerson: true },
-  { key: 'health', label: 'Health Information', icon: Heart, fields: HEALTH_FIELDS, perPerson: true },
+  { key: 'health', label: 'Health Information', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
   { key: 'history', label: 'Personal History', icon: BookOpen, fields: HISTORY_FIELDS, perPerson: true },
 ]
 

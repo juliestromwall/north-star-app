@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -482,9 +482,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
   const sectionIcons = {
     fertility: Baby,
-    surrogacy: Stethoscope,
+    surrogacy: Heart,
     personal: User,
-    health: Heart,
+    health: HeartPulse,
     history: BookOpen,
   }
 
@@ -555,7 +555,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           {renderSectionContent(fertility, FERTILITY_FIELDS)}
         </IPSection>
 
-        <IPSection title="Surrogacy Information" icon={Stethoscope}>
+        <IPSection title="Surrogacy Information" icon={Heart}>
           {renderSectionContent(surrogacy, SURROGACY_FIELDS)}
         </IPSection>
 
@@ -634,9 +634,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
 const SECTIONS = [
   { key: 'fertility', label: 'Fertility Information', description: 'Embryos, donors, and fertility history', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
-  { key: 'surrogacy', label: 'Surrogacy Information', description: 'Preferences, expectations, and clinic details', icon: Stethoscope, fields: SURROGACY_FIELDS, perPerson: false },
+  { key: 'surrogacy', label: 'Surrogacy Information', description: 'Preferences, expectations, and clinic details', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
   { key: 'personal', label: 'Personal Information', description: 'Background, citizenship, and personal details', icon: User, fields: PERSONAL_FIELDS, perPerson: true },
-  { key: 'health', label: 'Health Information', description: 'Medical history and health conditions', icon: Heart, fields: HEALTH_FIELDS, perPerson: true },
+  { key: 'health', label: 'Health Information', description: 'Medical history and health conditions', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
   { key: 'history', label: 'Personal History', description: 'Interests, favorites, and personality', icon: BookOpen, fields: HISTORY_FIELDS, perPerson: true },
 ]
 
