@@ -609,10 +609,7 @@ function InfoGridRow({ label, value, span }) {
 
 function SectionLabel({ children }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, marginBottom: 5, padding: '5px 12px', borderRadius: 6, background: 'linear-gradient(135deg, #fce4ec, #f8bbd0)' }}>
-      <div style={{ width: 3, height: 14, borderRadius: 2, backgroundColor: '#ed148c' }} />
-      <h2 style={{ fontSize: 10, fontWeight: 700, color: '#ad1457', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>{children}</h2>
-    </div>
+    <h2 style={{ fontSize: 10, fontWeight: 700, color: '#ed148c', margin: 0, marginTop: 14, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '1px' }}>{children}</h2>
   )
 }
 
