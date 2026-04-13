@@ -259,6 +259,9 @@ function SurrogateUpdatesSheet({ surrogates }) {
                     <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                     {filtered.map(s => {
                       const { status, lastEntry, history, activeRecords, isRecordType, doneCount, totalCount } = getCellData(s.id, row.id, row.label)
+                      const rt = allTracking[s.id] || {}
+                      const stepData = rt[row.id] || {}
+                      const textVal = stepData._textValue || lastEntry?.textValue
                       const isLogOpen = logPopover?.surrogateId === s.id && logPopover?.stepId === row.id
                       const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
                       const isComplete = status === 'complete'
@@ -267,7 +270,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                         <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : isNotNeeded ? 'bg-stone-50/60' : ''}`}>
                           <div className="flex items-center gap-1.5">
                             {isComplete ? (
-                              <span className="text-xs text-green-600 font-medium">Completed {lastEntry?.date ? formatDate(lastEntry.date) : ''}</span>
+                              <span className="text-xs text-green-600 font-medium">{lastEntry?.date ? formatDate(lastEntry.date) : ''} {textVal || 'Completed'}</span>
                             ) : isNotNeeded ? (
                               <span className="text-xs text-stone-400 italic">Not Needed</span>
                             ) : status === 'not_started' ? (
@@ -275,7 +278,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             ) : (
                               <span className={`text-xs ${status === 'in_progress' ? 'text-blue-600' : status === 'reviewing' ? 'text-purple-600' : status === 'requested' ? 'text-amber-600' : 'text-stone-600'} font-medium`}>
                                 {lastEntry?.date ? formatDate(lastEntry.date) : ''}{' '}
-                                <span className="font-medium">{status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                <span className="font-medium">{textVal || status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                               </span>
                             )}
                             {isRecordType && totalCount > 0 && (
@@ -528,7 +531,8 @@ function IPUpdatesSheet({ ips }) {
                       const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
                       const displayDate = lastManual?.date || lastAutoDate
-                      const statusLabel = lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      const textValue = d._textValue || lastManual?.textValue
+                      const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
@@ -713,7 +717,8 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
                       const displayDate = lastManual?.date || lastAutoDate
-                      const statusLabel = lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      const textValue = d._textValue || lastManual?.textValue
+                      const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">

@@ -146,12 +146,25 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     // remember the original label for display.
     let entryStatus = logStatus
     let entryOptionLabel = null
+    let textValue = null
     if (step?.logType === 'dropdown' && step.options?.length > 0) {
       const opts = normalizeOptions(step.options)
       const picked = opts.find(o => o.label === logStatus)
       if (picked) {
         entryStatus = picked.mapsTo || 'in_progress'
         entryOptionLabel = picked.label
+      }
+    } else if (step?.logType === 'text') {
+      // For text fields: the typed value is logStatus, but we need a
+      // proper status for lifecycle tracking. If the value is 'complete'
+      // or 'na' it's a system status; otherwise it's the user's text
+      // and the underlying status is 'in_progress'.
+      if (logStatus !== 'complete' && logStatus !== 'na') {
+        textValue = logStatus
+        entryStatus = 'in_progress'
+      } else {
+        // Complete/NA — preserve existing text value
+        textValue = current._textValue || null
       }
     }
 
@@ -161,13 +174,15 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
       note: logNote.trim() || null,
       by: currentUserName || 'Admin',
       ...(entryOptionLabel ? { optionLabel: entryOptionLabel } : {}),
+      ...(textValue ? { textValue } : {}),
     }
     updateStep(stepId, {
       status: entryStatus,
       ...(entryOptionLabel ? { optionLabel: entryOptionLabel } : { optionLabel: null }),
+      ...(textValue !== null ? { _textValue: textValue } : {}),
       history: [...history, entry],
     })
-    console.log('[TrackingTable] submitLog:', { stepId, status: entryStatus, optionLabel: entryOptionLabel, hasOnStatusLog: !!onStatusLog })
+    console.log('[TrackingTable] submitLog:', { stepId, status: entryStatus, optionLabel: entryOptionLabel, textValue, hasOnStatusLog: !!onStatusLog })
     if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: entryStatus, by: currentUserName })
     setLogStatus('')
     setLogNote('')
@@ -194,7 +209,14 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   function openAddLog(stepId) {
     setAddingLogFor(stepId)
     setExpandedStep(stepId)
-    setLogStatus('')
+    // For text steps, pre-fill with existing text value so user can edit it
+    const step = allSteps.find(s => s.id === stepId)
+    const data = tracking[stepId] || {}
+    if (step?.logType === 'text' && data._textValue) {
+      setLogStatus(data._textValue)
+    } else {
+      setLogStatus('')
+    }
     setLogNote('')
     setLogDate('')
     setEditingLog(null)
@@ -333,8 +355,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         </button>
                       ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
                         <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
-                      ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' && currentStatus !== 'complete' ? (
-                        <span className="text-sm font-medium text-stone-800">{currentStatus}</span>
+                      ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-stone-800">{data._textValue || currentStatus}</span>
+                          {currentStatus === 'complete' && <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />}
+                        </div>
                       ) : (
                         <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
                       )}
@@ -430,9 +455,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Save</button>
-                          {(step.logType === 'text') && currentStatus !== 'na' && currentStatus !== 'complete' && (
+                          {(step.logType === 'text') && currentStatus !== 'na' && (
                             <>
-                              <button onClick={() => { setLogStatus('complete'); setLogNote(logNote || logStatus); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
+                              {currentStatus !== 'complete' && (
+                                <button onClick={() => { setLogStatus('complete'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
+                              )}
                               <button onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
                             </>
                           )}
