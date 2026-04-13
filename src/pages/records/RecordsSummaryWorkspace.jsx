@@ -671,13 +671,33 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           </div>
           <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 16 }} />
 
-          {/* Patient Info Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 6 }}>
-            <InfoGridRow label="Name" value={data.name} span={2} />
-            <InfoGridRow label="DOB" value={data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''} />
-            <InfoGridRow label="Marital Status" value={data.maritalStatus} />
-            <InfoGridRow label="Height / Weight / BMI" value={[data.height, data.weight, data.bmi ? `BMI ${data.bmi}` : ''].filter(Boolean).join('  ·  ')} />
-          </div>
+          {/* Patient Header — name + stat cards */}
+          {(() => {
+            const dobStr = data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
+            const calcAge = data.dob ? (() => { const b = new Date(data.dob); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a > 0 ? a : null })() : null
+            const statCards = [
+              { emoji: '📅', label: 'Age', value: calcAge, sub: dobStr },
+              { emoji: '📏', label: 'Height', value: data.height },
+              { emoji: '⚖️', label: 'Weight', value: data.weight },
+              { emoji: '💗', label: 'BMI', value: data.bmi },
+              { emoji: '💍', label: 'Status', value: data.maritalStatus },
+            ]
+            return (
+              <div style={{ marginBottom: 12 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: '0 0 10px', letterSpacing: '0.3px' }}>{data.name}</h2>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {statCards.map(s => s.value ? (
+                    <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 14px', borderRadius: 10, backgroundColor: s.label === 'BMI' ? '#fdf2f8' : '#f0f0ff', border: `1px solid ${s.label === 'BMI' ? '#fbcfe8' : '#e0e0f0'}`, minWidth: 60 }}>
+                      <span style={{ fontSize: 14, marginBottom: 2 }}>{s.emoji}</span>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: s.label === 'BMI' ? '#be185d' : '#283693' }}>{s.value}</span>
+                      <span style={{ fontSize: 8, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{s.label}</span>
+                      {s.sub && <span style={{ fontSize: 8, color: '#a8a29e', marginTop: 1 }}>{s.sub}</span>}
+                    </div>
+                  ) : null)}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* General Medical History */}
           <div data-section="medical">
