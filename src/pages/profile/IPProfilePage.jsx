@@ -448,36 +448,49 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   const ip1Age = calcAge(ip1?.personal?.dob)
   const ip2Age = hasPartner ? calcAge(ip2?.personal?.dob) : null
 
-  const renderField = (label, value) => {
-    if (!value) return null
-    return (
-      <div>
-        <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-400 mb-0.5">{label}</p>
-        <p className="text-sm text-stone-700 whitespace-pre-line">{value}</p>
-      </div>
-    )
-  }
+  const PVField = ({ label, value }) => (
+    <div>
+      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-sm text-gray-800">{value || <span className="italic text-gray-300">Not provided</span>}</p>
+    </div>
+  )
 
-  const renderSection = (title, fields, data, fieldDefs) => {
+  const IPSection = ({ title, icon: Icon, children }) => (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
+        <div className="flex items-center gap-2.5">
+          {Icon && <Icon className="w-4.5 h-4.5 text-[#283693]" />}
+          <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wide">{title}</h3>
+        </div>
+      </div>
+      <div className="px-6 py-5">{children}</div>
+    </div>
+  )
+
+  const renderSectionContent = (data, fieldDefs) => {
     const visible = fieldDefs.filter(f => {
       if (f.conditional && !f.conditional(data)) return false
       const val = data[f.key]
       return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
     })
-    if (visible.length === 0) return null
     return (
-      <section className="space-y-3">
-        <h3 className="text-base font-bold text-[#ed148c] border-b border-stone-200 pb-1">{title}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-          {visible.map(f => renderField(f.label, fmtFieldValue(f, data)))}
-        </div>
-      </section>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+        {visible.map(f => <PVField key={f.key} label={f.label} value={fmtFieldValue(f, data)} />)}
+      </div>
     )
+  }
+
+  const sectionIcons = {
+    fertility: Baby,
+    surrogacy: Stethoscope,
+    personal: User,
+    health: Heart,
+    history: BookOpen,
   }
 
   return (
     <>
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
+    <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
       {/* Cover photo — full image, no crop */}
       {coverPhoto ? (
         <div className="w-full bg-stone-100 relative">
@@ -537,50 +550,42 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
       </div>
 
       {/* Sections */}
-      <div className="px-6 pb-8 space-y-6">
-        {renderSection('Fertility Information', null, fertility, FERTILITY_FIELDS)}
-        {renderSection('Surrogacy Information', null, surrogacy, SURROGACY_FIELDS)}
+      <div className="px-6 sm:px-8 py-6 space-y-5">
+        <IPSection title="Fertility Information" icon={Baby}>
+          {renderSectionContent(fertility, FERTILITY_FIELDS)}
+        </IPSection>
+
+        <IPSection title="Surrogacy Information" icon={Stethoscope}>
+          {renderSectionContent(surrogacy, SURROGACY_FIELDS)}
+        </IPSection>
 
         {/* Per-person sections */}
         {(['personal', 'health', 'history']).map(secKey => {
           const fieldDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
           const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
-
-          const renderPersonFields = (personData) => {
-            const visible = fieldDefs.filter(f => {
-              if (f.conditional && !f.conditional(personData)) return false
-              const val = personData[f.key]
-              return val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)
-            })
-            return visible.map(f => renderField(f.label, fmtFieldValue(f, personData)))
-          }
+          const Icon = sectionIcons[secKey]
 
           if (!hasPartner) {
-            return ip1[secKey] ? (
-              <div key={secKey}>
-                {renderSection(sectionLabel, null, ip1[secKey] || {}, fieldDefs)}
-              </div>
-            ) : null
+            return (
+              <IPSection key={secKey} title={sectionLabel} icon={Icon}>
+                {renderSectionContent(ip1[secKey] || {}, fieldDefs)}
+              </IPSection>
+            )
           }
 
           return (
-            <div key={secKey} className="space-y-4">
-              <h3 className="text-base font-bold text-[#ed148c] border-b border-stone-200 pb-1">{sectionLabel}</h3>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-5 space-y-3">
-                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-stone-200">{ip1Name}</p>
-                  <div className="grid grid-cols-1 gap-y-3">
-                    {renderPersonFields(ip1[secKey] || {})}
-                  </div>
+            <IPSection key={secKey} title={sectionLabel} icon={Icon}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <p className="text-xs font-bold text-[#283693] uppercase tracking-wider border-b border-gray-100 pb-2">{ip1Name}</p>
+                  {renderSectionContent(ip1[secKey] || {}, fieldDefs)}
                 </div>
-                <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-5 space-y-3">
-                  <p className="text-sm font-bold text-[#283693] pb-1 border-b border-stone-200">{ip2Name}</p>
-                  <div className="grid grid-cols-1 gap-y-3">
-                    {renderPersonFields(ip2[secKey] || {})}
-                  </div>
+                <div className="space-y-4 lg:border-l lg:border-gray-100 lg:pl-6">
+                  <p className="text-xs font-bold text-[#283693] uppercase tracking-wider border-b border-gray-100 pb-2">{ip2Name}</p>
+                  {renderSectionContent(ip2[secKey] || {}, fieldDefs)}
                 </div>
               </div>
-            </div>
+            </IPSection>
           )
         })}
       </div>
