@@ -873,7 +873,6 @@ export default function RecordsSummaryWorkspace() {
     printWin.document.close()
     setExporting(false)
   }
-  }
 
   async function handleSave(formData) {
     setSaving(true)
