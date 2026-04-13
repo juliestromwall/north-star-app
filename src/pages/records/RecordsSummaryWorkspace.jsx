@@ -356,7 +356,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
           apgar: '',
           ebl: '',
           postpartumComplications: 'Unremarkable hospital postpartum course\nPer patient no postpartum complications',
-          notes: '',
+          notes: p.complications || '',
         }))
         // Always re-derive flags from clinic data
         return base.map((preg, i) => {
@@ -481,7 +481,7 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
                 {preg.skipDetails ? (
                   <div className="space-y-2">
                     <p className="text-xs text-stone-400 italic">No prenatal care received — details not required</p>
-                    <FormField label="Notes" value={preg.notes} onChange={v => updatePregnancy(i, 'notes', v)} rows={2} placeholder="Additional notes..." />
+                    <FormField label="Notes / Details" value={preg.notes} onChange={v => updatePregnancy(i, 'notes', v)} rows={3} placeholder="Details about the miscarriage, termination, or other outcome..." />
                   </div>
                 ) : limitedFields ? (
                   <div className="space-y-2">
