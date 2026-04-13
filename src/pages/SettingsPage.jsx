@@ -839,7 +839,22 @@ function UserManagementSection() {
   const handleSave = async () => {
     if (!form.name.trim() || !form.email.trim()) return
     if (editingId) {
-      setUsers(prev => prev.map(u => u.id === editingId ? { ...u, name: form.name.trim(), email: form.email.trim(), role: form.role } : u))
+      // Persist to Supabase Auth
+      try {
+        const res = await fetch('/api/update-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: editingId, name: form.name.trim(), email: form.email.trim(), role: form.role }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update')
+        // Update local state + refresh cache
+        setUsers(prev => prev.map(u => u.id === editingId ? { ...u, name: form.name.trim(), email: form.email.trim(), role: form.role } : u))
+        await loadAdminUsers()
+      } catch (err) {
+        alert('Failed to save: ' + err.message)
+        return
+      }
       setAddOpen(false)
       setEditingId(null)
     } else {
