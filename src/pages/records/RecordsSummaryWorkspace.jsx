@@ -302,7 +302,16 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
       maritalStatus: saved.maritalStatus || personal.maritalStatus || '',
       height: saved.height || (personal.heightFt ? `${personal.heightFt}'${personal.heightIn || 0}"` : ''),
       weight: saved.weight || (personal.weight ? `${personal.weight} lbs` : ''),
-      bmi: saved.bmi || '',
+      bmi: saved.bmi || (() => {
+        const ft = parseInt(personal.heightFt)
+        const inches = parseInt(personal.heightIn) || 0
+        const wt = parseFloat(personal.weight)
+        if (ft && wt) {
+          const totalInches = ft * 12 + inches
+          return ((wt / (totalInches * totalInches)) * 703).toFixed(1)
+        }
+        return ''
+      })(),
       currentMedications: saved.currentMedications || '',
       allergies: saved.allergies || '',
       pertinentMedicalHistory: saved.pertinentMedicalHistory || '',
@@ -666,12 +675,13 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 16 }} />
 
           {/* Patient Info Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4', marginBottom: 6 }}>
             <InfoGridRow label="Name" value={data.name} span={2} />
             <InfoGridRow label="DOB" value={data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''} />
             <InfoGridRow label="Marital Status" value={data.maritalStatus} />
-            <InfoGridRow label="HT" value={data.height} />
-            <InfoGridRow label="WT / BMI" value={[data.weight, data.bmi].filter(Boolean).join(' · ')} />
+            <InfoGridRow label="Height" value={data.height} />
+            <InfoGridRow label="Weight" value={data.weight} />
+            <InfoGridRow label="BMI" value={data.bmi} />
           </div>
 
           {/* General Medical History */}
