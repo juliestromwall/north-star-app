@@ -135,8 +135,12 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     onUpdate(subtaskId, { ...(tracking[subtaskId] || {}), _deleted: true })
   }
 
-  function submitLog(stepId) {
-    if (!logStatus) return
+  function submitLog(stepId, overrideStatus) {
+    // overrideStatus bypasses the stale closure from setTimeout — used
+    // by the Complete/Deactivate/NA buttons that need to set a specific
+    // status without waiting for React state to update.
+    const effectiveLogStatus = overrideStatus || logStatus
+    if (!effectiveLogStatus) return
     const step = allSteps.find(s => s.id === stepId)
     const current = tracking[stepId] || { history: [] }
     const history = current.history || []
@@ -144,25 +148,26 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     // For custom dropdown options, map the picked option label to its
     // underlying status (so colors + completion logic still work) but
     // remember the original label for display.
-    let entryStatus = logStatus
+    let entryStatus = effectiveLogStatus
     let entryOptionLabel = null
     let textValue = null
     if (step?.logType === 'dropdown' && step.options?.length > 0) {
       const opts = normalizeOptions(step.options)
-      const picked = opts.find(o => o.label === logStatus)
+      const picked = opts.find(o => o.label === effectiveLogStatus)
       if (picked) {
         entryStatus = picked.mapsTo || 'in_progress'
         entryOptionLabel = picked.label
       }
     } else if (step?.logType === 'text') {
-      // For text fields: the typed value is logStatus, but we need a
-      // proper status for lifecycle tracking. If the value is 'complete'
-      // or 'na' it's a system status; otherwise it's the user's text
-      // and the underlying status is 'in_progress'.
-      if (logStatus !== 'complete' && logStatus !== 'na') {
-        textValue = logStatus
+      // For text fields: the typed value is effectiveLogStatus, but we
+      // need a proper status for lifecycle tracking. If the value is
+      // 'complete' or 'na' it's a system status; otherwise it's the
+      // user's text and the underlying status is 'in_progress'.
+      if (effectiveLogStatus !== 'complete' && effectiveLogStatus !== 'na') {
+        textValue = effectiveLogStatus
         entryStatus = 'in_progress'
       } else {
+        entryStatus = effectiveLogStatus
         // Complete/NA — preserve existing text value
         textValue = current._textValue || null
       }
@@ -417,13 +422,13 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         {step.logType === 'date_completed' ? (
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => { setLogStatus('complete'); setLogNote(''); setTimeout(() => submitLog(step.id), 50) }}
+                              onClick={() => { submitLog(step.id, 'complete') }}
                               className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               <Check className="size-3.5" /> Mark Complete
                             </button>
                             <button
-                              onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }}
+                              onClick={() => { submitLog(step.id, 'na') }}
                               className="text-[10px] text-stone-400 hover:text-red-500"
                             >
                               N/A
@@ -458,9 +463,9 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                           {(step.logType === 'text') && currentStatus !== 'na' && (
                             <>
                               {currentStatus !== 'complete' && (
-                                <button onClick={() => { setLogStatus('complete'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
+                                <button onClick={() => { submitLog(step.id, 'complete') }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
                               )}
-                              <button onClick={() => { setLogStatus('na'); setTimeout(() => submitLog(step.id), 50) }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
+                              <button onClick={() => { submitLog(step.id, 'na') }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
                             </>
                           )}
                           <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
