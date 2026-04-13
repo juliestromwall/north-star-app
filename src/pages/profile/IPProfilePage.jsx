@@ -399,6 +399,9 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
 
 // ── IP Profile Preview Component ──
 
+const STATE_ABBR = { AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming' }
+function expandState(s) { return (s && STATE_ABBR[s.toUpperCase()]) || s }
+
 export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name, primaryName, ip2FullName, location }) {
   // Photos can be tagged with kind, or fall back to path matching
   const profilePhoto = photos?.find(p => p.kind === 'portrait') || photos?.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
@@ -939,7 +942,7 @@ export default function IPProfilePage() {
             ip2Name={ip2Name}
             primaryName={caseData?.answers?.primaryFirstName || 'Intended Parent'}
             ip2FullName={caseData?.answers?.ip2FirstName || ''}
-            location={[caseData?.answers?.city, caseData?.answers?.stateProv].filter(Boolean).join(', ')}
+            location={[caseData?.answers?.city, expandState(caseData?.answers?.stateProv)].filter(Boolean).join(', ')}
           />
         </div>
       ) : (

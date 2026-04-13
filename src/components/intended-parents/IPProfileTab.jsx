@@ -761,8 +761,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
   const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
   const isApproved = !!profile?._approved
 
-  const ip1Name = ip?.ip1Name || answers.primaryFirstName || 'IP1'
-  const ip2Name = ip?.ip2Name || answers.ip2FirstName || 'IP2'
+  const ip1Name = answers.primaryFirstName || 'IP1'
+  const ip2Name = answers.ip2FirstName || 'IP2'
 
   const { filled, total, percent } = countProfileCompletion(profile, hasPartner)
 
@@ -944,7 +944,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
             ip2Name={ip2Name}
             primaryName={answers.primaryFirstName || 'Intended Parent'}
             ip2FullName={answers.ip2FirstName || ''}
-            location={[answers.city, answers.stateProv].filter(Boolean).join(', ')}
+            location={[answers.city, ({'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California','CO':'Colorado','CT':'Connecticut','DE':'Delaware','FL':'Florida','GA':'Georgia','HI':'Hawaii','ID':'Idaho','IL':'Illinois','IN':'Indiana','IA':'Iowa','KS':'Kansas','KY':'Kentucky','LA':'Louisiana','ME':'Maine','MD':'Maryland','MA':'Massachusetts','MI':'Michigan','MN':'Minnesota','MS':'Mississippi','MO':'Missouri','MT':'Montana','NE':'Nebraska','NV':'Nevada','NH':'New Hampshire','NJ':'New Jersey','NM':'New Mexico','NY':'New York','NC':'North Carolina','ND':'North Dakota','OH':'Ohio','OK':'Oklahoma','OR':'Oregon','PA':'Pennsylvania','RI':'Rhode Island','SC':'South Carolina','SD':'South Dakota','TN':'Tennessee','TX':'Texas','UT':'Utah','VT':'Vermont','VA':'Virginia','WA':'Washington','WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'})[answers.stateProv?.toUpperCase()] || answers.stateProv].filter(Boolean).join(', ')}
           />
         </div>
       ) : (
