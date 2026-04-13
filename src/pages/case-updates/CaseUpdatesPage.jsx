@@ -523,21 +523,22 @@ function IPUpdatesSheet({ ips }) {
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
+                      const manualHistory = history.filter(e => !e.auto)
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
+                            {manualHistory.length > 0 ? [...manualHistory].reverse().map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
                                 <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && !entry.auto && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
                             )) : (
-                              hasChildren ? (
-                                <span className={`text-xs font-medium ${effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'complete' ? 'text-green-600' : 'text-stone-300'}`}>{effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                              ) : <span className="text-xs text-stone-300">Not Started</span>
+                              <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
+                                {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              </span>
                             )}
-                            {(history.length > 0 || hasChildren) && (
+                            {(manualHistory.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
@@ -704,21 +705,22 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
+                      const manualHistory = history.filter(e => !e.auto)
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {history.length > 0 ? [...history].reverse().filter(e => !e.auto).map((entry, i) => (
+                            {manualHistory.length > 0 ? [...manualHistory].reverse().map((entry, i) => (
                               <div key={i} className="text-xs">
                                 <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
                                 <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && !entry.auto && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
                               </div>
                             )) : (
-                              hasChildren ? (
-                                <span className={`text-xs font-medium ${effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'complete' ? 'text-green-600' : 'text-stone-300'}`}>{effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                              ) : <span className="text-xs text-stone-300">Not Started</span>
+                              <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
+                                {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                              </span>
                             )}
-                            {(history.length > 0 || hasChildren) && (
+                            {(manualHistory.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
                                 <ScrollText className="size-3.5" />
                               </button>
