@@ -329,21 +329,15 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
       // OB clearance
       obClearance: saved.obClearance || '',
       reviewedBy: saved.reviewedBy || '',
-      // Pregnancies
+      // Pregnancies — always re-derive flags from source data
       numberOfPregnancies: saved.numberOfPregnancies || numPreg,
-      pregnancies: saved.pregnancies || pregnancies.map((p, i) => {
-        const clinicPreg = (clinic.pregnancies || [])[i] || {}
-        const isNonDelivery = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy'].includes((p.outcome || '').toLowerCase())
-        const hadPrenatalCare = clinicPreg.receivedPrenatalCare === 'yes'
-        const skipDetails = isNonDelivery && !hadPrenatalCare
-        return {
+      pregnancies: (() => {
+        const NON_DELIVERY_OUTCOMES = ['miscarriage', 'ectopic', 'ectopic pregnancy', 'termination', 'chemical', 'chemical pregnancy']
+        const base = saved.pregnancies || pregnancies.map((p, i) => ({
           label: `G${i + 1}`,
           pageRef: '',
           dateOfDelivery: p.dob || '',
           outcome: p.outcome || '',
-          isNonDelivery,
-          hadPrenatalCare,
-          skipDetails,
           gestationalAge: p.gestationWeeks ? `${p.gestationWeeks}w ${p.gestationDays || 0}d` : '',
           typeOfDelivery: p.deliveryType || '',
           antenatalMonitoring: '',
@@ -361,10 +355,20 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
           deliveryComplications: '',
           apgar: '',
           ebl: '',
-          postpartumComplications: saved.pregnancies?.[i]?.postpartumComplications || 'Unremarkable hospital postpartum course\nPer patient no postpartum complications',
+          postpartumComplications: 'Unremarkable hospital postpartum course\nPer patient no postpartum complications',
           notes: '',
-        }
-      }),
+        }))
+        // Always re-derive flags from clinic data
+        return base.map((preg, i) => {
+          const clinicPreg = (clinic.pregnancies || [])[i] || {}
+          const profilePreg = pregnancies[i] || {}
+          const outcome = preg.outcome || profilePreg.outcome || ''
+          const isNonDelivery = NON_DELIVERY_OUTCOMES.includes(outcome.toLowerCase())
+          const hadPrenatalCare = clinicPreg.receivedPrenatalCare === 'yes'
+          const skipDetails = isNonDelivery && !hadPrenatalCare
+          return { ...preg, isNonDelivery, hadPrenatalCare, skipDetails }
+        })
+      })(),
     }
 
     // Initialize labs
