@@ -16,7 +16,7 @@ const DEFAULT_LABS = [
   'Blood Type', 'Antibody Screen', 'Hgb/Hct', 'PAP', 'Rubella Titer',
   'Varicella Titer', 'CMV IgG', 'Hepatitis B Surface Antibody',
   'Hepatitis B Surface Antigen', 'Syphilis/RPR', 'HIV 1 & 2',
-  'Hepatitis C', 'Chlamydia', 'Gonorrhea',
+  'Hepatitis C', 'Chlamydia', 'Gonorrhea', 'OB Clearance',
 ]
 
 function SectionHeader({ title, open, onToggle }) {
@@ -579,9 +579,8 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
           </div>
         )}
 
-        {/* OB Clearance & Reviewer */}
+        {/* Reviewer */}
         <div className="space-y-3 pt-4 border-t">
-          <FormField label="OB Clearance" value={form.obClearance} onChange={v => updateField('obClearance', v)} rows={2} />
           <FormField label="Medical records reviewed by" value={form.reviewedBy} onChange={v => updateField('reviewedBy', v)} placeholder="Name, credentials" />
         </div>
       </div>
@@ -775,12 +774,6 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* OB Clearance */}
-          <SectionLabel>OB Clearance</SectionLabel>
-          <div style={{ padding: '8px 12px', backgroundColor: '#f0fdf4', borderRadius: 6, border: '1px solid #bbf7d0', fontSize: 12, whiteSpace: 'pre-wrap' }}>
-            {data.obClearance || '—'}
           </div>
 
           {/* Reviewer */}
