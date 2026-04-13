@@ -594,7 +594,7 @@ function InfoGridRow({ label, value, span }) {
   return (
     <div style={{ backgroundColor: 'white', padding: '5px 12px', ...(span ? { gridColumn: `span ${span}` } : {}) }}>
       <div style={{ fontSize: 8, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 0 }}>{label}</div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: value ? '#1c1917' : '#d6d3d1' }}>{value || '—'}</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: value ? '#1c1917' : '#d6d3d1', whiteSpace: 'pre-wrap' }}>{value || '—'}</div>
     </div>
   )
 }
