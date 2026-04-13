@@ -524,6 +524,7 @@ function IPUpdatesSheet({ ips }) {
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
+                      const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
@@ -535,6 +536,7 @@ function IPUpdatesSheet({ ips }) {
                               </div>
                             )) : (
                               <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
+                                {lastAutoDate && effectiveStatus !== 'not_started' ? <span className="text-stone-400 font-normal">{formatDate(lastAutoDate)} </span> : null}
                                 {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                               </span>
                             )}
@@ -706,6 +708,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
+                      const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
@@ -717,6 +720,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                               </div>
                             )) : (
                               <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
+                                {lastAutoDate && effectiveStatus !== 'not_started' ? <span className="text-stone-400 font-normal">{formatDate(lastAutoDate)} </span> : null}
                                 {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                               </span>
                             )}
