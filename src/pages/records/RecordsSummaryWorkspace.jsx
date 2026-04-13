@@ -624,10 +624,10 @@ function PregnancyBanner({ label, outcome, skipDetails, preg }) {
 
   return (
     <div style={{ marginTop: 16, marginBottom: 8, padding: '8px 14px', borderRadius: 8, background: skipDetails ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : '#283693' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 14, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.3px', marginRight: 2 }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', lineHeight: '22px' }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: skipDetails ? '#92400e' : '#fff', letterSpacing: '0.3px' }}>{label}</span>
         {infoItems.map((item, i) => (
-          <span key={i} style={{ fontSize: 10, fontWeight: 600, color: skipDetails ? '#92400e' : 'rgba(255,255,255,0.9)', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.15)', padding: '1px 8px', borderRadius: 4, lineHeight: '16px' }}>
+          <span key={i} style={{ fontSize: 10, fontWeight: 600, color: skipDetails ? '#92400e' : 'rgba(255,255,255,0.9)', backgroundColor: skipDetails ? '#fef3c750' : 'rgba(255,255,255,0.15)', padding: '2px 10px', borderRadius: 4, display: 'inline-block', verticalAlign: 'middle' }}>
             {item}
           </span>
         ))}
@@ -675,32 +675,38 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           </div>
 
           {/* General Medical History */}
-          <SectionLabel>General Medical History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} />
-            <InfoGridRow label="Allergies" value={data.allergies} span={2} />
-            <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} />
-            <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} />
+          <div data-section="medical">
+            <SectionLabel>General Medical History</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+              <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} />
+              <InfoGridRow label="Allergies" value={data.allergies} span={2} />
+              <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} />
+              <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} />
+            </div>
           </div>
 
           {/* Social History */}
-          <SectionLabel>Social History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <InfoGridRow label="Alcohol" value={data.alcohol} />
-            <InfoGridRow label="Tobacco" value={data.tobacco} />
-            <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} />
+          <div data-section="social">
+            <SectionLabel>Social History</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+              <InfoGridRow label="Alcohol" value={data.alcohol} />
+              <InfoGridRow label="Tobacco" value={data.tobacco} />
+              <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} />
+            </div>
           </div>
 
           {/* GYN History */}
-          <SectionLabel>Gynecologic History</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <InfoGridRow label="LMP" value={data.lmp} />
-            <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} />
-            <InfoGridRow label="Menarche" value={data.menarche} />
-            <InfoGridRow label="Current Contraception" value={data.contraception} />
-            <InfoGridRow label="History of STD" value={data.stdHistory} />
-            <InfoGridRow label="GYN Problems" value={data.gynProblems} />
-            <InfoGridRow label="Infertility History" value={data.infertilityHistory} span={3} />
+          <div data-section="gyn">
+            <SectionLabel>Gynecologic History</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+              <InfoGridRow label="LMP" value={data.lmp} />
+              <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} />
+              <InfoGridRow label="Menarche" value={data.menarche} />
+              <InfoGridRow label="Current Contraception" value={data.contraception} />
+              <InfoGridRow label="History of STD" value={data.stdHistory} />
+              <InfoGridRow label="GYN Problems" value={data.gynProblems} />
+              <InfoGridRow label="Infertility History" value={data.infertilityHistory} span={3} />
+            </div>
           </div>
 
           {/* Obstetrical History */}
@@ -710,7 +716,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
             const isNonDel = preg.isNonDelivery
             const limitedFields = isNonDel && preg.hadPrenatalCare
             return (
-            <div key={i}>
+            <div key={i} data-section={`preg-${i}`}>
               <PregnancyBanner label={preg.label || `G${i + 1}`} outcome={preg.outcome} skipDetails={preg.skipDetails} preg={preg} />
               {preg.skipDetails ? (
                 <div style={{ padding: '6px 12px', backgroundColor: '#fffbeb', borderRadius: 6, border: '1px solid #fef3c7', fontSize: 11, color: '#92400e', fontStyle: 'italic' }}>
@@ -752,6 +758,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           })}
 
           {/* Labs */}
+          <div data-section="labs">
           <SectionLabel>Most Recent Labs</SectionLabel>
           <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
             <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
@@ -774,6 +781,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
 
           {/* Reviewer */}
@@ -831,36 +839,40 @@ export default function RecordsSummaryWorkspace() {
       .finally(() => setLoading(false))
   }, [id])
 
-  async function handleExportPdf() {
+  function handleExportPdf() {
+    const el = document.getElementById('summary-preview-content')
+    if (!el) return
     setExporting(true)
-    try {
-      const html2canvas = (await import('html2canvas')).default
-      const { jsPDF } = await import('jspdf')
-      const el = document.getElementById('summary-preview-content')
-      if (!el) { setExporting(false); return }
-
-      const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#fff', windowWidth: 816 })
-      const imgData = canvas.toDataURL('image/jpeg', 0.95)
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
-      const pageWidth = 8.5
-      const pageHeight = 11
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * imgWidth) / canvas.width
-
-      let yOffset = 0
-      while (yOffset < imgHeight) {
-        if (yOffset > 0) pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, -yOffset, imgWidth, imgHeight)
-        yOffset += pageHeight
-      }
-
-      pdf.save(`GC_Summary_${surrogate.name?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`)
-    } catch (err) {
-      console.error('PDF export failed:', err)
-      alert('Failed to export PDF.')
-    } finally {
-      setExporting(false)
-    }
+    const firstName = (surrogate.name || 'Surrogate').split(' ')[0]
+    const printWin = window.open('', '_blank')
+    if (!printWin) { alert('Please allow popups to save as PDF'); setExporting(false); return }
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(el => el.outerHTML).join('\n')
+    const html = `<!DOCTYPE html><html><head><title>GC Summary — ${surrogate.name}</title>${styles}
+      <style>
+        @page { size: letter; margin: 0.4in 0.5in; }
+        body { margin: 0; padding: 0; background: white; font-family: system-ui, -apple-system, sans-serif; }
+        .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+        .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
+        .print-content { max-width: 100%; padding: 0; }
+        /* Prevent page breaks inside sections */
+        .print-content > div > div { break-inside: avoid; }
+        [data-section] { break-inside: avoid; page-break-inside: avoid; }
+        @media print {
+          .print-bar { display: none !important; }
+          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      </style></head><body>
+      <div class="print-bar">
+        <div><strong>${firstName}'s GC Medical Records Summary</strong><span class="hint">Use "Save as PDF" as destination</span></div>
+        <button onclick="window.print()">Save as PDF</button>
+      </div>
+      <div class="print-content">${el.innerHTML}</div>
+    </body></html>`
+    printWin.document.write(html)
+    printWin.document.close()
+    setExporting(false)
+  }
   }
 
   async function handleSave(formData) {
