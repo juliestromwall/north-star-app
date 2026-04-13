@@ -6,11 +6,11 @@ import { getAppConfig, setAppConfig } from '@/lib/db'
 import { ADMIN_ROLES } from '@/lib/constants'
 
 const COLORS = [
-  { id: 'yellow', bg: '#fef9c3', border: '#fde047', text: '#854d0e', shadow: 'shadow-yellow-200/50' },
-  { id: 'pink', bg: '#fce7f3', border: '#f9a8d4', text: '#9d174d', shadow: 'shadow-pink-200/50' },
-  { id: 'blue', bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', shadow: 'shadow-blue-200/50' },
-  { id: 'green', bg: '#dcfce7', border: '#86efac', text: '#166534', shadow: 'shadow-green-200/50' },
-  { id: 'purple', bg: '#f3e8ff', border: '#c4b5fd', text: '#6b21a8', shadow: 'shadow-purple-200/50' },
+  { id: 'yellow', bg: '#faff00', border: '#d4e600', text: '#3d4000', shadow: 'shadow-yellow-400/40', dot: '#e6f000' },
+  { id: 'pink', bg: '#ff4dff', border: '#e600e6', text: '#fff', shadow: 'shadow-pink-400/40', dot: '#ff1aff' },
+  { id: 'blue', bg: '#00e5ff', border: '#00b8d4', text: '#003340', shadow: 'shadow-cyan-400/40', dot: '#00cfeb' },
+  { id: 'green', bg: '#39ff14', border: '#2dd40e', text: '#0a3300', shadow: 'shadow-green-400/40', dot: '#30e610' },
+  { id: 'purple', bg: '#bf5fff', border: '#a033e6', text: '#fff', shadow: 'shadow-purple-400/40', dot: '#ad40f0' },
 ]
 
 function getColor(id) {
@@ -19,9 +19,11 @@ function getColor(id) {
 
 function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
   const [dragging, setDragging] = useState(false)
+  const [resizing, setResizing] = useState(false)
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(note.text)
   const dragOffset = useRef({ x: 0, y: 0 })
+  const resizeStart = useRef({ y: 0, h: 0 })
   const noteRef = useRef(null)
   const color = getColor(note.color)
 
@@ -66,6 +68,36 @@ function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
     }
   }, [dragging])
 
+  // Resize drag
+  function handleResizeStart(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    setResizing(true)
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY
+    resizeStart.current = { y: clientY, h: note.height || noteRef.current?.offsetHeight || 120 }
+  }
+
+  useEffect(() => {
+    if (!resizing) return
+    function handleMove(e) {
+      const clientY = e.clientY ?? e.touches?.[0]?.clientY
+      if (clientY == null) return
+      const newH = Math.max(80, resizeStart.current.h + (clientY - resizeStart.current.y))
+      onUpdate(note.id, { height: newH })
+    }
+    function handleUp() { setResizing(false) }
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+      window.removeEventListener('touchmove', handleMove)
+      window.removeEventListener('touchend', handleUp)
+    }
+  }, [resizing])
+
   function handleSave() {
     setEditing(false)
     onUpdate(note.id, { text })
@@ -74,14 +106,16 @@ function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
   return (
     <div
       ref={noteRef}
-      className={`fixed z-[60] w-52 rounded-lg shadow-lg ${color.shadow} transition-shadow ${dragging ? 'shadow-xl scale-[1.03]' : 'hover:shadow-xl'}`}
+      className={`fixed z-[60] w-52 rounded-lg shadow-lg ${color.shadow} transition-shadow ${dragging ? 'shadow-xl scale-[1.03]' : 'hover:shadow-xl'} flex flex-col`}
       style={{
         left: note.x ?? 100,
         top: note.y ?? 100,
+        height: note.height ? `${note.height}px` : 'auto',
+        minHeight: 80,
         backgroundColor: color.bg,
         borderLeft: `4px solid ${color.border}`,
         cursor: dragging ? 'grabbing' : 'default',
-        userSelect: dragging ? 'none' : 'auto',
+        userSelect: (dragging || resizing) ? 'none' : 'auto',
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -107,7 +141,7 @@ function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
         </div>
       </div>
       {/* Content */}
-      <div className="note-content px-3 pb-3">
+      <div className="note-content px-3 pb-3 flex-1 overflow-y-auto">
         {editing ? (
           <textarea
             autoFocus
@@ -115,8 +149,8 @@ function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
             onChange={e => setText(e.target.value)}
             onBlur={handleSave}
             onKeyDown={e => { if (e.key === 'Escape') handleSave() }}
-            className="w-full bg-transparent border-none outline-none resize-none text-xs leading-relaxed"
-            style={{ color: color.text, minHeight: 60 }}
+            className="w-full h-full bg-transparent border-none outline-none resize-none text-xs leading-relaxed"
+            style={{ color: color.text, minHeight: 40 }}
             placeholder="Type your note..."
           />
         ) : (
@@ -129,11 +163,15 @@ function DraggableNote({ note, onUpdate, onDelete, onMinimize }) {
           </p>
         )}
       </div>
-      {/* Paper fold effect */}
-      <div className="absolute bottom-0 right-0 size-4" style={{
-        background: `linear-gradient(135deg, transparent 50%, ${color.border}40 50%)`,
-        borderRadius: '0 0 8px 0',
-      }} />
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleResizeStart}
+        onTouchStart={handleResizeStart}
+        className="h-2 cursor-ns-resize flex items-center justify-center shrink-0 rounded-b-lg"
+        style={{ backgroundColor: `${color.border}30` }}
+      >
+        <div className="w-8 h-[2px] rounded-full" style={{ backgroundColor: `${color.border}80` }} />
+      </div>
     </div>
   )
 }
@@ -230,7 +268,8 @@ export function MinimizedBar({ notes, onRestore, onDelete, onAdd }) {
     <>
       <button
         onClick={onAdd}
-        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-700 text-[10px] font-semibold border border-yellow-300 shadow-sm transition-colors"
+        className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold border shadow-sm transition-colors"
+        style={{ backgroundColor: '#faff00', borderColor: '#d4e600', color: '#3d4000' }}
         title="Add sticky note"
       >
         <StickyNote className="size-3" />
