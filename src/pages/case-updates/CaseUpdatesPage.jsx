@@ -524,21 +524,22 @@ function IPUpdatesSheet({ ips }) {
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
+                      const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
                       const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
+                      const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
+                      const displayDate = lastManual?.date || lastAutoDate
+                      const statusLabel = lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {manualHistory.length > 0 ? [...manualHistory].reverse().map((entry, i) => (
-                              <div key={i} className="text-xs">
-                                <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                            {displayStatus !== 'not_started' ? (
+                              <div className="text-xs">
+                                <span className="text-stone-400">{displayDate ? formatDate(displayDate) : ''}</span>{' '}
+                                <span className={`font-medium ${displayStatus === 'complete' ? 'text-green-600' : displayStatus === 'in_progress' ? 'text-blue-600' : displayStatus === 'reviewing' ? 'text-purple-600' : displayStatus === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{statusLabel}</span>
+                                {lastManual?.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{lastManual.note}</p>}
                               </div>
-                            )) : (
-                              <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
-                                {lastAutoDate && effectiveStatus !== 'not_started' ? <span className="text-stone-400 font-normal">{formatDate(lastAutoDate)} </span> : null}
-                                {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                              </span>
+                            ) : (
+                              <span className="text-xs text-stone-300">Not Started</span>
                             )}
                             {(manualHistory.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
@@ -708,21 +709,22 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
+                      const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
                       const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
+                      const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
+                      const displayDate = lastManual?.date || lastAutoDate
+                      const statusLabel = lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
                           <div className="space-y-1">
-                            {manualHistory.length > 0 ? [...manualHistory].reverse().map((entry, i) => (
-                              <div key={i} className="text-xs">
-                                <span className="text-stone-400">{formatDate(entry.date)}</span>{' '}
-                                <span className={`font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : 'text-stone-600'}`}>{entry.optionLabel || effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                {entry.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{entry.note}</p>}
+                            {displayStatus !== 'not_started' ? (
+                              <div className="text-xs">
+                                <span className="text-stone-400">{displayDate ? formatDate(displayDate) : ''}</span>{' '}
+                                <span className={`font-medium ${displayStatus === 'complete' ? 'text-green-600' : displayStatus === 'in_progress' ? 'text-blue-600' : displayStatus === 'reviewing' ? 'text-purple-600' : displayStatus === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{statusLabel}</span>
+                                {lastManual?.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{lastManual.note}</p>}
                               </div>
-                            )) : (
-                              <span className={`text-xs font-medium ${effectiveStatus === 'complete' ? 'text-green-600' : effectiveStatus === 'in_progress' ? 'text-blue-600' : effectiveStatus === 'reviewing' ? 'text-purple-600' : effectiveStatus === 'requested' ? 'text-amber-600' : 'text-stone-300'}`}>
-                                {lastAutoDate && effectiveStatus !== 'not_started' ? <span className="text-stone-400 font-normal">{formatDate(lastAutoDate)} </span> : null}
-                                {effectiveStatus === 'not_started' ? 'Not Started' : effectiveStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                              </span>
+                            ) : (
+                              <span className="text-xs text-stone-300">Not Started</span>
                             )}
                             {(manualHistory.length > 0 || hasChildren) && (
                               <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
