@@ -1834,6 +1834,8 @@ export default function JourneyDetailPage() {
       setProviderForm({ ...base, name: jd.deliveryHospital || '', phone: jd.deliveryHospitalPhone || '', street: jd.deliveryHospitalStreet || '', city: jd.deliveryHospitalCity || '', state: jd.deliveryHospitalState || '', zip: jd.deliveryHospitalZip || '', website: jd.deliveryHospitalWebsite || '' })
     } else if (type === 'ob') {
       setProviderForm({ ...base, name: jd.obClinic || '', doctor: jd.obDoctor || '', phone: jd.obPhone || '', street: jd.obStreet || '', city: jd.obCity || '', state: jd.obState || '', zip: jd.obZip || '', website: jd.obWebsite || '' })
+    } else if (type === 'monitoring') {
+      setProviderForm({ ...base, name: jd.monitoringClinic || '', doctor: jd.monitoringDoctor || '', phone: jd.monitoringPhone || '', street: jd.monitoringStreet || '', city: jd.monitoringCity || '', state: jd.monitoringState || '', zip: jd.monitoringZip || '', website: jd.monitoringWebsite || '' })
     } else {
       setProviderForm({ ...base, name: jd.ivfClinic || '', doctor: jd.ivfDoctor || '', street: jd.ivfStreet || '', city: jd.ivfCity || '', state: jd.ivfState || '', zip: jd.ivfZip || '', website: jd.ivfWebsite || '', coordinator: jd.ivfCoordinator || '', coordinatorEmail: jd.ivfCoordinatorEmail || '' })
     }
@@ -1845,6 +1847,8 @@ export default function JourneyDetailPage() {
     const fields = {}
     if (providerEdit === 'ivf') {
       Object.assign(fields, { ivfClinic: f.name, ivfDoctor: f.doctor, ivfStreet: f.street, ivfCity: f.city, ivfState: f.state, ivfZip: f.zip, ivfWebsite: f.website, ivfCoordinator: f.coordinator, ivfCoordinatorEmail: f.coordinatorEmail })
+    } else if (providerEdit === 'monitoring') {
+      Object.assign(fields, { monitoringClinic: f.name, monitoringDoctor: f.doctor, monitoringPhone: f.phone, monitoringStreet: f.street, monitoringCity: f.city, monitoringState: f.state, monitoringZip: f.zip, monitoringWebsite: f.website })
     } else if (providerEdit === 'ob') {
       Object.assign(fields, { obClinic: f.name, obDoctor: f.doctor, obPhone: f.phone, obStreet: f.street, obCity: f.city, obState: f.state, obZip: f.zip, obWebsite: f.website })
     } else {
@@ -2207,14 +2211,22 @@ export default function JourneyDetailPage() {
             {/* ── Providers (clickable to edit via modal) ── */}
             <div className="border-t border-stone-100 pt-4">
               <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-3">Providers</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Fertility Clinic */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* IVF / Fertility Clinic */}
                 <button onClick={() => openProviderEdit('ivf')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
-                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><EmbryoIcon size={12} color="#a8a29e" /> Fertility Clinic</p>
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><EmbryoIcon size={12} color="#a8a29e" /> IVF Clinic</p>
                   <p className="text-sm font-semibold text-stone-800 truncate">{jd.ivfClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
                   {jd.ivfDoctor && <p className="text-xs text-stone-500">Dr. {jd.ivfDoctor}</p>}
                   {jd.ivfCoordinator && <p className="text-xs text-stone-500">{jd.ivfCoordinator}</p>}
                   {jd.ivfCity && <p className="text-[11px] text-stone-400">{[jd.ivfCity, jd.ivfState].filter(Boolean).join(', ')}</p>}
+                </button>
+                {/* Monitoring Clinic */}
+                <button onClick={() => openProviderEdit('monitoring')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1"><Stethoscope className="size-3" /> Monitoring Clinic</p>
+                  <p className="text-sm font-semibold text-stone-800 truncate">{jd.monitoringClinic || <span className="text-stone-300 font-normal">+ Add clinic</span>}</p>
+                  {jd.monitoringDoctor && <p className="text-xs text-stone-500">Dr. {jd.monitoringDoctor}</p>}
+                  {jd.monitoringPhone && <p className="text-xs text-stone-500">{jd.monitoringPhone}</p>}
+                  {jd.monitoringCity && <p className="text-[11px] text-stone-400">{[jd.monitoringCity, jd.monitoringState].filter(Boolean).join(', ')}</p>}
                 </button>
                 {/* OB Clinic */}
                 <button onClick={() => openProviderEdit('ob')} className="text-left rounded-xl border border-stone-100 p-3 hover:border-stone-300 hover:shadow-sm transition-all cursor-pointer space-y-1">
@@ -2611,7 +2623,8 @@ export default function JourneyDetailPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {providerEdit === 'ivf' && <><EmbryoIcon size={18} color="#283693" /> Fertility Clinic</>}
+              {providerEdit === 'ivf' && <><EmbryoIcon size={18} color="#283693" /> IVF Clinic</>}
+              {providerEdit === 'monitoring' && <><Stethoscope className="size-5 text-[#283693]" /> Monitoring Clinic</>}
               {providerEdit === 'ob' && <><Stethoscope className="size-5 text-[#283693]" /> OB Clinic</>}
               {providerEdit === 'hospital' && <><Hospital className="size-5 text-[#283693]" /> Delivery Hospital</>}
             </DialogTitle>
