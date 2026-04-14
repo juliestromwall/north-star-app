@@ -146,11 +146,19 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setLoadingFull(false)
   }
 
-  // Quick-log an inbox email to this case
-  const handleQuickLog = async (msg) => {
-    if (!supabase || !caseId) return
+  // Open log dialog for an inbox email
+  const openLogDialog = (msg) => {
+    setLogDialog(msg)
+    setLogTag('')
+    setLogPrivate(false)
+  }
+
+  // Confirm log with tag
+  const handleConfirmLog = async () => {
+    const msg = logDialog
+    if (!msg || !supabase || !caseId) return
+    setLogging(true)
     try {
-      // Fetch body for storage
       let bodyHtml = null
       try {
         const full = await getEmail(userId, msg.id, 'full')
@@ -169,19 +177,23 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         body_html: bodyHtml,
         logged_by: userId,
         logged_by_name: currentUser?.name || '',
+        tag: logTag || null,
+        is_private: logPrivate,
       })
       if (!error) {
-        // Move from inbox list to logged list
         setInboxEmails(prev => prev.filter(e => e.id !== msg.id))
         setEmails(prev => [{
           gmail_message_id: msg.id, subject: msg.subject, from_address: msg.from,
           to_address: msg.to, date: msg.date ? new Date(msg.date).toISOString() : null,
           snippet: msg.snippet, body_html: bodyHtml, logged_by_name: currentUser?.name || '',
+          tag: logTag || null, is_private: logPrivate,
         }, ...prev])
+        setLogDialog(null)
       }
     } catch (err) {
-      console.error('Quick log failed:', err)
+      console.error('Log failed:', err)
     }
+    setLogging(false)
   }
 
   const handleDelete = async (emailId) => {
@@ -267,6 +279,10 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   const [savingAtt, setSavingAtt] = useState(null)
   const [saveAttDialog, setSaveAttDialog] = useState(null) // attachment to save
   const [saveCategory, setSaveCategory] = useState('other')
+  const [logDialog, setLogDialog] = useState(null) // inbox email to log
+  const [logTag, setLogTag] = useState('')
+  const [logPrivate, setLogPrivate] = useState(false)
+  const [logging, setLogging] = useState(false)
 
   const DOC_FOLDERS = [
     { id: 'agency-documents', label: 'Agency Documents' },
@@ -438,7 +454,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                       <p className="text-xs text-muted-foreground truncate">From: {extractName(msg.from) || msg.from}</p>
                       {msg.snippet && <p className="text-xs text-muted-foreground truncate mt-0.5">{msg.snippet}</p>}
                     </div>
-                    <button onClick={() => handleQuickLog(msg)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log to this case">
+                    <button onClick={() => openLogDialog(msg)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log to this case">
                       <LinkIcon className="size-3 inline mr-1" />Log
                     </button>
                   </div>
@@ -562,7 +578,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               {selectedEmail?._fromInbox && (
                 <div className="border-t pt-3 flex items-center gap-2">
                   <Button size="sm" className="gap-1.5 text-xs" style={{ backgroundColor: '#283693' }}
-                    onClick={() => { handleQuickLog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
+                    onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
                     <LinkIcon className="size-3" /> Log to Case
                   </Button>
                 </div>
@@ -600,6 +616,42 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               onClick={() => saveAttDialog && handleSaveAttToCase(saveAttDialog, saveCategory)}>
               {savingAtt === saveAttDialog?.attachmentId ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
               {savingAtt ? 'Saving...' : 'Save to Documents'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Log Email Dialog — tag + private */}
+      <Dialog open={!!logDialog} onOpenChange={(open) => { if (!open) setLogDialog(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Log Email to Case</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-stone-50 px-3 py-2">
+              <p className="text-xs font-medium truncate">{logDialog?.subject || '(no subject)'}</p>
+              <p className="text-[10px] text-stone-400">From: {logDialog?.from}</p>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase">Tag (optional)</p>
+              <div className="flex flex-wrap gap-1.5">
+                {EMAIL_TAGS.map(t => (
+                  <button key={t.value} onClick={() => setLogTag(logTag === t.value ? '' : t.value)}
+                    className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-all ${logTag === t.value ? t.color + ' border-transparent' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {isMasterAdmin && (
+              <label className="flex items-center gap-2 cursor-pointer pt-1 border-t border-stone-100">
+                <input type="checkbox" checked={logPrivate} onChange={e => setLogPrivate(e.target.checked)} className="size-4 accent-purple-600" />
+                <span className="text-sm text-stone-700 flex items-center gap-1.5"><Lock className="size-3.5 text-purple-600" /> Mark as Private</span>
+              </label>
+            )}
+            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={logging} onClick={handleConfirmLog}>
+              {logging ? <Loader2 className="size-3 animate-spin" /> : <LinkIcon className="size-3" />}
+              {logging ? 'Logging...' : 'Log to Case'}
             </Button>
           </div>
         </DialogContent>
