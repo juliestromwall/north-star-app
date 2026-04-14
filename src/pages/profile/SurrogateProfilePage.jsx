@@ -1634,22 +1634,69 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                 </div>
               </div>
 
-              {pregnancies[expandedIdx]?.outcome === 'Live Birth' && (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <SelectField label="Sex" value={pregnancies[expandedIdx]?.sex || ''} onChange={val => updatePregnancy(expandedIdx, 'sex', val)}
-                      options={['Male', 'Female']} />
-                    <SelectField label="Delivery Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
-                      options={['Vaginal', 'C-Section']} />
-                    <SelectField label="Single or Multiples" value={pregnancies[expandedIdx]?.singleOrMultiples || ''} onChange={val => updatePregnancy(expandedIdx, 'singleOrMultiples', val)}
+              {pregnancies[expandedIdx]?.outcome === 'Live Birth' && (() => {
+                const p = pregnancies[expandedIdx]
+                const isMultiples = p?.singleOrMultiples === 'Twins' || p?.singleOrMultiples === 'Triplets+'
+                const isTriplets = p?.singleOrMultiples === 'Triplets+'
+                return (
+                  <>
+                    <SelectField label="Single or Multiples" value={p?.singleOrMultiples || ''} onChange={val => updatePregnancy(expandedIdx, 'singleOrMultiples', val)}
                       options={['Single', 'Twins', 'Triplets+']} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <TextField label="Birth Weight" value={pregnancies[expandedIdx]?.weight || ''} onChange={val => updatePregnancy(expandedIdx, 'weight', val)} placeholder="e.g. 7 lbs 4 oz" />
-                    <TextField label="Birth Length" value={pregnancies[expandedIdx]?.length || ''} onChange={val => updatePregnancy(expandedIdx, 'length', val)} placeholder="inches" />
-                  </div>
-                </>
-              )}
+
+                    {/* Baby A */}
+                    <div className={isMultiples ? 'rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4' : ''}>
+                      {isMultiples && <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby A</p>}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <TextField label="Name" value={p?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder="Baby's name" />
+                        <SelectField label="Sex" value={p?.sex || ''} onChange={val => updatePregnancy(expandedIdx, 'sex', val)}
+                          options={['Male', 'Female']} />
+                        <SelectField label="Delivery Type" value={p?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
+                          options={['Vaginal', 'C-Section']} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <TextField label="Birth Weight" value={p?.weight || ''} onChange={val => updatePregnancy(expandedIdx, 'weight', val)} placeholder="e.g. 7 lbs 4 oz" />
+                        <TextField label="Birth Length" value={p?.length || ''} onChange={val => updatePregnancy(expandedIdx, 'length', val)} placeholder="inches" />
+                      </div>
+                    </div>
+
+                    {/* Baby B */}
+                    {isMultiples && (
+                      <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4">
+                        <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby B</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <TextField label="Name" value={p?.babyBName || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBName', val)} placeholder="Baby's name" />
+                          <SelectField label="Sex" value={p?.babyBSex || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBSex', val)}
+                            options={['Male', 'Female']} />
+                          <SelectField label="Delivery Type" value={p?.babyBDeliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBDeliveryType', val)}
+                            options={['Vaginal', 'C-Section']} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <TextField label="Birth Weight" value={p?.babyBWeight || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBWeight', val)} placeholder="e.g. 7 lbs 4 oz" />
+                          <TextField label="Birth Length" value={p?.babyBLength || ''} onChange={val => updatePregnancy(expandedIdx, 'babyBLength', val)} placeholder="inches" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Baby C */}
+                    {isTriplets && (
+                      <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4 space-y-4">
+                        <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">Baby C</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <TextField label="Name" value={p?.babyCName || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCName', val)} placeholder="Baby's name" />
+                          <SelectField label="Sex" value={p?.babyCSex || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCSex', val)}
+                            options={['Male', 'Female']} />
+                          <SelectField label="Delivery Type" value={p?.babyCDeliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCDeliveryType', val)}
+                            options={['Vaginal', 'C-Section']} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <TextField label="Birth Weight" value={p?.babyCWeight || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCWeight', val)} placeholder="e.g. 7 lbs 4 oz" />
+                          <TextField label="Birth Length" value={p?.babyCLength || ''} onChange={val => updatePregnancy(expandedIdx, 'babyCLength', val)} placeholder="inches" />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
 
               {(pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Stillborn' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' || pregnancies[expandedIdx]?.outcome === 'Termination') && (
                 <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
