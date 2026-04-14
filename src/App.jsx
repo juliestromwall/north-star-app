@@ -34,6 +34,7 @@ import ESignaturePage from './pages/esign/ESignaturePage'
 import SignDocumentPage from './pages/esign/SignDocumentPage'
 import EditDocumentPage from './pages/esign/EditDocumentPage'
 import SignReleaseBatchPage from './pages/esign/SignReleaseBatchPage'
+import SignFormPage from './pages/esign/SignFormPage'
 import EmailPage from './pages/email/EmailPage'
 import FaxPage from './pages/fax/FaxPage'
 import SharedProfilePage from './pages/matching/SharedProfilePage'
@@ -83,6 +84,7 @@ export default function App() {
       <Route path="/e-signature/:id" element={<SignDocumentPage />} />
       <Route path="/e-signature/sign/:token" element={<SignDocumentPage />} />
       <Route path="/e-signature/release/:batchToken" element={<SignReleaseBatchPage />} />
+      <Route path="/e-signature/form/:formToken" element={<SignFormPage />} />
 
       {/* Authenticated app */}
       <Route element={<AppLayout />}>
