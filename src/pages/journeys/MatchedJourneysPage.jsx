@@ -114,7 +114,7 @@ export default function MatchedJourneysPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
 
   useEffect(() => {

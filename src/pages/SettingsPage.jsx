@@ -795,12 +795,14 @@ function ChecklistsSection() {
 
 const ROLE_OPTIONS = [
   { value: 'master_admin', label: 'Master Admin' },
+  { value: 'office_admin', label: 'Office Admin' },
   { value: 'admin', label: 'Admin' },
   { value: 'marketing', label: 'Marketing' },
 ]
 
 const ROLE_BADGE_STYLES = {
   master_admin: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  office_admin: 'bg-violet-100 text-violet-700 border-violet-200',
   admin: 'bg-sky-100 text-sky-700 border-sky-200',
   marketing: 'bg-amber-100 text-amber-700 border-amber-200',
   super_admin: 'bg-red-100 text-red-700 border-red-200',
@@ -976,6 +978,7 @@ function UserManagementSection() {
                       <p className="text-sm font-medium">{opt.label}</p>
                       <p className="text-xs text-stone-400">
                         {opt.value === 'master_admin' && 'Full access to all modules and settings'}
+                        {opt.value === 'office_admin' && 'Admin access plus settings (notes, team, statuses, checklists)'}
                         {opt.value === 'admin' && 'Operations, clients, forms, and messaging'}
                         {opt.value === 'marketing' && 'Read-only analytics and intake submissions'}
                       </p>

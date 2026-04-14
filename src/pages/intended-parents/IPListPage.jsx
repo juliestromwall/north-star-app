@@ -183,7 +183,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
