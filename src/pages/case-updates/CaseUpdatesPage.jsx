@@ -192,6 +192,8 @@ const JOURNEY_STAGE_IDS = ['journey-oversight']
 
 // Re-export shared component for backward compat
 import AISummaryButton from '@/components/shared/AISummaryButton'
+import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
+import ProviderInfoButton from '@/components/shared/ProviderInfoButton'
 
 export default function CaseUpdatesPage() {
   const [surrogates, setSurrogates] = useState([])
@@ -861,7 +863,10 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             stage={j.stage} status={j.status}
                             checklistSteps={sheetRows} tracking={allTracking[j.id]}
                             journeyData={j.journey_data}
+                            iconOnly
                           />
+                          <JourneyUpdateButton caseId={j.id} caseType="journey" caseName={journeyName} compact />
+                          <ProviderInfoButton journeyData={j.journey_data || {}} gcInsurance={null} compact />
                           <AppointmentsBadge caseId={j.id} caseType="journey" caseName={journeyName} />
                         </div>
                       </th>

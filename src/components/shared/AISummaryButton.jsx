@@ -10,7 +10,7 @@ function fmtDate(d) {
   return dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 }
 
-export default function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistSteps, tracking, journeyData, className }) {
+export default function AISummaryButton({ caseId, caseName, caseType, stage, status, checklistSteps, tracking, journeyData, className, iconOnly = false }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState(null)
@@ -152,7 +152,7 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
         title="Case Summary"
       >
         <Sparkles className="size-3" />
-        <span>Summary</span>
+        {!iconOnly && <span>Summary</span>}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

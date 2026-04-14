@@ -25,6 +25,7 @@ import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } fr
 import { getAdminStaff } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import QuickNote from '@/components/shared/QuickNote'
+import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
@@ -225,6 +226,7 @@ export default function IPDetailPage() {
                   <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /> Call</a>
                 </Button>
               )}
+              <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />
               {/* Invite / Portal status */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center">

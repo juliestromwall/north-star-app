@@ -15,6 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import QuickNote from '@/components/shared/QuickNote'
+import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
@@ -2120,6 +2121,7 @@ export default function JourneyDetailPage() {
                   )}
                 </div>
                 <AISummaryButton caseId={journey.id} caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} caseType="journey" stage={stageObj.label} status={journey.status} journeyData={jd} />
+                <JourneyUpdateButton caseId={journey.id} caseType="journey" caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} />
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>

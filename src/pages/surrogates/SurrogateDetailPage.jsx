@@ -49,6 +49,7 @@ import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import QuickNote from '@/components/shared/QuickNote'
+import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera } from 'lucide-react'
@@ -628,6 +629,7 @@ export default function SurrogateDetailPage() {
                   preferred={surrogate.preferredContact === 'Phone'}
                 />
               )}
+              <JourneyUpdateButton caseId={surrogate.id} caseType="gc" caseName={surrogate.name} />
               {/* Invite / Portal status */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center">
