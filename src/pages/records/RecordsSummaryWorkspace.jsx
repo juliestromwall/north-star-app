@@ -520,56 +520,56 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
                   <div className="space-y-2">
                     <p className="text-xs text-amber-600 italic">Prenatal care received — limited fields</p>
                     <div className="grid grid-cols-3 gap-2">
-                      <FormField label="Page Ref" value={preg.pageRef} onChange={v => updatePregnancy(i, 'pageRef', v)} placeholder="(pg.)" />
-                      <FormField label="Date" value={preg.dateOfDelivery} onChange={v => updatePregnancy(i, 'dateOfDelivery', v)} type="date" />
-                      <FormField label="Gestational Age" value={preg.gestationalAge} onChange={v => updatePregnancy(i, 'gestationalAge', v)} placeholder="8w 2d" />
+                      <FormField label="Page Ref" value={preg.pageRef} onChange={v => updatePregnancy(i, 'pageRef', v)} placeholder="(pg.)" fp={`g${i}_page_ref`} />
+                      <FormField label="Date" value={preg.dateOfDelivery} onChange={v => updatePregnancy(i, 'dateOfDelivery', v)} type="date" fp={`g${i}_date_of_delivery`} />
+                      <FormField label="Gestational Age" value={preg.gestationalAge} onChange={v => updatePregnancy(i, 'gestationalAge', v)} placeholder="8w 2d" fp={`g${i}_gestational_age`} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <FormField label="GBS" value={preg.gbs} onChange={v => updatePregnancy(i, 'gbs', v)} placeholder="Negative/Positive" />
-                      <FormField label="Glucose Screen" value={preg.glucoseScreen} onChange={v => updatePregnancy(i, 'glucoseScreen', v)} />
+                      <FormField label="GBS" value={preg.gbs} onChange={v => updatePregnancy(i, 'gbs', v)} placeholder="Negative/Positive" fp={`g${i}_gbs`} />
+                      <FormField label="Glucose Screen" value={preg.glucoseScreen} onChange={v => updatePregnancy(i, 'glucoseScreen', v)} fp={`g${i}_glucose_screen`} />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} />
-                      <FormField label="BP's" value={preg.bps} onChange={v => updatePregnancy(i, 'bps', v)} />
-                      <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" />
+                      <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} fp={`g${i}_gc_cycle`} />
+                      <FormField label="BP's" value={preg.bps} onChange={v => updatePregnancy(i, 'bps', v)} fp={`g${i}_bp_s`} />
+                      <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" fp={`g${i}_weight_gained`} />
                     </div>
-                    <FormField label="Notes" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} />
+                    <FormField label="Notes" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} fp={`g${i}_complications`} />
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="grid grid-cols-3 gap-2">
-                      <FormField label="Page Ref" value={preg.pageRef} onChange={v => updatePregnancy(i, 'pageRef', v)} placeholder="(pg.)" />
-                      <FormField label="Date of Delivery" value={preg.dateOfDelivery} onChange={v => updatePregnancy(i, 'dateOfDelivery', v)} type="date" />
-                      <FormField label="Gestational Age" value={preg.gestationalAge} onChange={v => updatePregnancy(i, 'gestationalAge', v)} placeholder="38w 2d" />
+                      <FormField label="Page Ref" value={preg.pageRef} onChange={v => updatePregnancy(i, 'pageRef', v)} placeholder="(pg.)" fp={`g${i}_page_ref`} />
+                      <FormField label="Date of Delivery" value={preg.dateOfDelivery} onChange={v => updatePregnancy(i, 'dateOfDelivery', v)} type="date" fp={`g${i}_date_of_delivery`} />
+                      <FormField label="Gestational Age" value={preg.gestationalAge} onChange={v => updatePregnancy(i, 'gestationalAge', v)} placeholder="38w 2d" fp={`g${i}_gestational_age`} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <FormField label="Type of Delivery" value={preg.typeOfDelivery} onChange={v => updatePregnancy(i, 'typeOfDelivery', v)} />
-                      <FormField label="GBS" value={preg.gbs} onChange={v => updatePregnancy(i, 'gbs', v)} placeholder="Negative/Positive (PG.)" />
+                      <FormField label="Type of Delivery" value={preg.typeOfDelivery} onChange={v => updatePregnancy(i, 'typeOfDelivery', v)} fp={`g${i}_type_of_delivery`} />
+                      <FormField label="GBS" value={preg.gbs} onChange={v => updatePregnancy(i, 'gbs', v)} placeholder="Negative/Positive (PG.)" fp={`g${i}_gbs`} />
                     </div>
-                    <FormField label="Glucose Screen" value={preg.glucoseScreen} onChange={v => updatePregnancy(i, 'glucoseScreen', v)} placeholder="Normal/Abnormal 1-hour/50gm = __ mg/DL" />
+                    <FormField label="Glucose Screen" value={preg.glucoseScreen} onChange={v => updatePregnancy(i, 'glucoseScreen', v)} placeholder="Normal/Abnormal 1-hour/50gm = __ mg/DL" fp={`g${i}_glucose_screen`} />
                     <div className="grid grid-cols-4 gap-2">
-                      <FormField label="Fasting" value={preg.glucoseValues?.fasting} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, fasting: v })} placeholder="mg/dl" />
-                      <FormField label="1hr" value={preg.glucoseValues?.oneHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, oneHr: v })} placeholder="mg/dl" />
-                      <FormField label="2hr" value={preg.glucoseValues?.twoHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, twoHr: v })} placeholder="mg/dl" />
-                      <FormField label="3hr" value={preg.glucoseValues?.threeHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, threeHr: v })} placeholder="mg/dl" />
+                      <FormField label="Fasting" value={preg.glucoseValues?.fasting} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, fasting: v })} placeholder="mg/dl" fp={`g${i}_fasting`} />
+                      <FormField label="1hr" value={preg.glucoseValues?.oneHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, oneHr: v })} placeholder="mg/dl" fp={`g${i}_1hr`} />
+                      <FormField label="2hr" value={preg.glucoseValues?.twoHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, twoHr: v })} placeholder="mg/dl" fp={`g${i}_2hr`} />
+                      <FormField label="3hr" value={preg.glucoseValues?.threeHr} onChange={v => updatePregnancy(i, 'glucoseValues', { ...preg.glucoseValues, threeHr: v })} placeholder="mg/dl" fp={`g${i}_3hr`} />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <FormField label="BP's" value={preg.bps} onChange={v => updatePregnancy(i, 'bps', v)} />
-                      <FormField label="Anesthesia" value={preg.anesthesia} onChange={v => updatePregnancy(i, 'anesthesia', v)} />
-                      <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" />
+                      <FormField label="BP's" value={preg.bps} onChange={v => updatePregnancy(i, 'bps', v)} fp={`g${i}_bp_s`} />
+                      <FormField label="Anesthesia" value={preg.anesthesia} onChange={v => updatePregnancy(i, 'anesthesia', v)} fp={`g${i}_anesthesia`} />
+                      <FormField label="Weight Gained" value={preg.weightGained} onChange={v => updatePregnancy(i, 'weightGained', v)} placeholder="lbs" fp={`g${i}_weight_gained`} />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <FormField label="Infant Birth Weight" value={preg.infantBirthWeight} onChange={v => updatePregnancy(i, 'infantBirthWeight', v)} />
-                      <FormField label="Infant Sex" value={preg.infantSex} onChange={v => updatePregnancy(i, 'infantSex', v)} placeholder="Male / Female" />
-                      <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} />
+                      <FormField label="Infant Birth Weight" value={preg.infantBirthWeight} onChange={v => updatePregnancy(i, 'infantBirthWeight', v)} fp={`g${i}_infant_birth_weight`} />
+                      <FormField label="Infant Sex" value={preg.infantSex} onChange={v => updatePregnancy(i, 'infantSex', v)} placeholder="Male / Female" fp={`g${i}_infant_sex`} />
+                      <FormField label="GC Cycle" value={preg.gcCycle} onChange={v => updatePregnancy(i, 'gcCycle', v)} fp={`g${i}_gc_cycle`} />
                     </div>
-                    <FormField label="Complications" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} />
+                    <FormField label="Complications" value={preg.complications} onChange={v => updatePregnancy(i, 'complications', v)} rows={2} fp={`g${i}_complications`} />
                     <div className="grid grid-cols-2 gap-2">
-                      <FormField label="APGAR" value={preg.apgar} onChange={v => updatePregnancy(i, 'apgar', v)} placeholder="8/9" />
-                      <FormField label="Estimated Blood Loss" value={preg.ebl} onChange={v => updatePregnancy(i, 'ebl', v)} placeholder="ml" />
+                      <FormField label="APGAR" value={preg.apgar} onChange={v => updatePregnancy(i, 'apgar', v)} placeholder="8/9" fp={`g${i}_apgar`} />
+                      <FormField label="Estimated Blood Loss" value={preg.ebl} onChange={v => updatePregnancy(i, 'ebl', v)} placeholder="ml" fp={`g${i}_ebl`} />
                     </div>
-                    <FormField label="Delivery Note / Complications" value={preg.deliveryComplications} onChange={v => updatePregnancy(i, 'deliveryComplications', v)} rows={2} />
-                    <FormField label="Postpartum Complications" value={preg.postpartumComplications} onChange={v => updatePregnancy(i, 'postpartumComplications', v)} rows={2} />
+                    <FormField label="Delivery Note / Complications" value={preg.deliveryComplications} onChange={v => updatePregnancy(i, 'deliveryComplications', v)} rows={2} fp={`g${i}_delivery_complications`} />
+                    <FormField label="Postpartum Complications" value={preg.postpartumComplications} onChange={v => updatePregnancy(i, 'postpartumComplications', v)} rows={2} fp={`g${i}_postpartum`} />
                   </div>
                 )}
               </div>
@@ -825,34 +825,35 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                   No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
                 </div>
               ) : limitedFields ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-                  <InfoGridRow label="GBS" value={preg.gbs} />
-                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
-                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
-                  <InfoGridRow label="BP's" value={preg.bps} />
-                  <InfoGridRow label="Weight Gained" value={preg.weightGained} />
-                  <InfoGridRow label="Notes" value={preg.complications} span={3} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                  <InfoGridRow label="GBS" value={preg.gbs} fp={`g${i}_gbs`} />
+                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp={`g${i}_glucose_screen`} />
+                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp={`g${i}_gc_cycle`} />
+                  <InfoGridRow label="BP's" value={preg.bps} fp={`g${i}_bp_s`} />
+                  <InfoGridRow label="Weight Gained" value={preg.weightGained} fp={`g${i}_weight_gained`} />
+                  <InfoGridRow label="Notes" value={preg.complications} span={3} fp={`g${i}_complications`} />
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-                  <InfoGridRow label="GBS" value={preg.gbs} fp="gbs" />
-                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp="glucose_screen" />
-                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp="gc_cycle" />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                  <InfoGridRow label="GBS" value={preg.gbs} fp={`g${i}_gbs`} />
+                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp={`g${i}_glucose_screen`} />
+                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp={`g${i}_gc_cycle`} />
+                  <InfoGridRow label="BP's" value={preg.bps} fp={`g${i}_bp_s`} />
                   {(preg.glucoseValues?.fasting || preg.glucoseValues?.oneHr) && (
                     <>
-                      <InfoGridRow label="Fasting" value={preg.glucoseValues?.fasting ? `${preg.glucoseValues.fasting} mg/dl` : ''} fp="fasting" />
-                      <InfoGridRow label="1hr" value={preg.glucoseValues?.oneHr ? `${preg.glucoseValues.oneHr} mg/dl` : ''} fp="1hr" />
-                      <InfoGridRow label="2hr / 3hr" value={[preg.glucoseValues?.twoHr, preg.glucoseValues?.threeHr].filter(Boolean).join(' / ') + (preg.glucoseValues?.twoHr ? ' mg/dl' : '')} fp="2hr_3hr" />
+                      <InfoGridRow label="Fasting" value={preg.glucoseValues?.fasting ? `${preg.glucoseValues.fasting} mg/dl` : ''} fp={`g${i}_fasting`} />
+                      <InfoGridRow label="1hr" value={preg.glucoseValues?.oneHr ? `${preg.glucoseValues.oneHr} mg/dl` : ''} fp={`g${i}_1hr`} />
+                      <InfoGridRow label="2hr" value={preg.glucoseValues?.twoHr ? `${preg.glucoseValues.twoHr} mg/dl` : ''} fp={`g${i}_2hr`} />
+                      <InfoGridRow label="3hr" value={preg.glucoseValues?.threeHr ? `${preg.glucoseValues.threeHr} mg/dl` : ''} fp={`g${i}_3hr`} />
                     </>
                   )}
-                  <InfoGridRow label="BP's" value={preg.bps} fp="bp_s" />
-                  <InfoGridRow label="Anesthesia" value={preg.anesthesia} fp="anesthesia" />
-                  <InfoGridRow label="Weight Gained" value={preg.weightGained} fp="weight_gained" />
-                  <InfoGridRow label="APGAR" value={preg.apgar} fp="apgar" />
-                  <InfoGridRow label="Est. Blood Loss" value={preg.ebl} fp="estimated_blood_loss" />
-                  <InfoGridRow label="Complications" value={preg.complications} span={3} fp="complications" />
-                  <InfoGridRow label="Delivery Complications" value={preg.deliveryComplications} span={3} fp="delivery_note_complications" />
-                  <InfoGridRow label="Postpartum" value={preg.postpartumComplications} span={3} fp="postpartum_complications" />
+                  <InfoGridRow label="Anesthesia" value={preg.anesthesia} fp={`g${i}_anesthesia`} />
+                  <InfoGridRow label="Weight Gained" value={preg.weightGained} fp={`g${i}_weight_gained`} />
+                  <InfoGridRow label="APGAR" value={preg.apgar} fp={`g${i}_apgar`} />
+                  <InfoGridRow label="Est. Blood Loss" value={preg.ebl} fp={`g${i}_ebl`} />
+                  <InfoGridRow label="Complications" value={preg.complications} span={4} fp={`g${i}_complications`} />
+                  <InfoGridRow label="Delivery Complications" value={preg.deliveryComplications} span={4} fp={`g${i}_delivery_complications`} />
+                  <InfoGridRow label="Postpartum" value={preg.postpartumComplications} span={4} fp={`g${i}_postpartum`} />
                 </div>
               )}
             </div>
