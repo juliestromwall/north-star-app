@@ -463,28 +463,65 @@ export default function IPDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* Milestones */}
+          {/* Milestones — timeline visual matching GC pattern */}
           {(() => {
             const milestones = getChecklistMilestones('ip', stageStatus?.stage || 'pre-qualification')
-            if (milestones.length === 0) return null
+            const rt = recordTracking || {}
+            let completed = 0
+            const milestoneData = milestones.map(ms => {
+              const stepIds = ms.stepIds || []
+              const relevantSteps = stepIds.filter(id => rt[id]?.status || !id.startsWith('_'))
+              const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
+              const anyStarted = relevantSteps.some(id => rt[id]?.status && rt[id].status !== 'not_started')
+              const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+              if (allComplete) completed++
+              return { ...ms, status }
+            })
+            const total = milestones.length
+            const getGradientColor = (index) => {
+              if (total <= 1) return '#ed148c'
+              const t = index / (total - 1)
+              const r = Math.round(237 + (40 - 237) * t)
+              const g = Math.round(20 + (54 - 20) * t)
+              const b = Math.round(140 + (147 - 140) * t)
+              return `rgb(${r},${g},${b})`
+            }
             return (
-              <Card className="rounded-2xl">
-                <CardHeader><CardTitle>Milestones</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {milestones.map(m => {
-                      const t = recordTracking[m.id] || {}
-                      const done = t.status === 'complete'
-                      return (
-                        <div key={m.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${done ? 'bg-green-50 border-green-200 text-green-700' : 'bg-stone-50 border-stone-200 text-stone-500'}`}>
-                          {done ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-3.5" />}
-                          {m.label}
-                        </div>
-                      )
-                    })}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-[#283693]">Milestones</h3>
+                  <span className="text-sm font-semibold text-stone-400">{completed}/{total}</span>
+                </div>
+                {milestoneData.length === 0 ? (
+                  <p className="text-sm text-stone-400 text-center py-4">No milestones configured. Set them up in Settings.</p>
+                ) : (
+                  <div className="relative pt-4 pb-2 overflow-x-auto">
+                    <div className="relative flex items-start" style={{ minWidth: `${Math.max(milestoneData.length * 120, 400)}px` }}>
+                      <div className="absolute top-[14px] left-[14px] right-[14px] h-[3px] bg-stone-200 rounded-full" />
+                      {completed > 0 && (
+                        <div className="absolute top-[14px] left-[14px] h-[3px] rounded-full transition-all duration-700"
+                          style={{
+                            width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
+                            maxWidth: 'calc(100% - 28px)',
+                            background: 'linear-gradient(90deg, #ed148c, #283693)',
+                          }} />
+                      )}
+                      {milestoneData.map((ms, i) => {
+                        const isComplete = ms.status === 'complete'
+                        const isActive = ms.status === 'in_progress'
+                        const color = getGradientColor(i)
+                        return (
+                          <div key={ms.id} className="flex-1 flex flex-col items-center relative z-10" style={{ minWidth: '80px' }}>
+                            <div className={`w-7 h-7 rounded-full border-[3px] transition-all duration-300 ${isComplete ? 'scale-110' : isActive ? 'scale-105 shadow-md' : ''}`}
+                              style={{ backgroundColor: isComplete ? color : isActive ? color + '40' : '#e7e5e4', borderColor: isComplete || isActive ? color : '#d6d3d1' }} />
+                            <p className={`text-[11px] mt-2 text-center leading-tight font-medium max-w-[90px] ${isComplete ? 'text-stone-800' : isActive ? 'text-stone-600' : 'text-stone-400'}`}>{ms.label}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             )
           })()}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

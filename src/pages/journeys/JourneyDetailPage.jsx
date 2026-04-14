@@ -2419,7 +2419,6 @@ export default function JourneyDetailPage() {
           { value: 'overview', label: 'Overview' },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
-          { value: 'checklist', label: 'Checklist' },
           { value: 'match-sheets', label: 'Match Sheets' },
           { value: 'documents', label: 'Documents' },
           { value: 'insurance', label: 'Insurance' },
@@ -2435,14 +2434,14 @@ export default function JourneyDetailPage() {
             <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
-        </TabsContent>
-
-        <TabsContent value="checklist" className="mt-4">
+          {/* Checklist */}
           <JourneyChecklistTab journey={journey} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
         </TabsContent>
+
+        {/* Checklist tab removed — now in Overview */}
 
         {/* Application Tab — GC/IP sub-tabs */}
         <TabsContent value="application" className="mt-4">
