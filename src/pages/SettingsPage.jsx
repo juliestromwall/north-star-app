@@ -282,7 +282,7 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
   const isInfoRow = step.type === 'info_row'
 
   return (
-    <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-violet-50/50 border-violet-200' : 'bg-white'}`}>
+    <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-[#283693]/5 border-[#283693]/20' : 'bg-white'}`}>
       <div className="flex items-center gap-2">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
           <GripVertical className="size-4" />
@@ -290,8 +290,8 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
         {isInfoRow ? (
           <>
             <div className="flex-1 flex items-center gap-2">
-              <span className="text-[9px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded">INFO</span>
-              <span className="text-sm font-medium text-violet-700">{step.label}</span>
+              <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded">INFO</span>
+              <span className="text-sm font-medium text-[#283693]">{step.label}</span>
             </div>
             <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>
           </>
@@ -682,14 +682,14 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
           {/* Info Rows — journey only */}
           {isJourney && availableInfoFields.length > 0 && (
             <div className="border-t border-stone-100 pt-3 mt-2">
-              <p className="text-[10px] text-violet-500 uppercase tracking-wider font-semibold mb-2">Provider Info Rows</p>
+              <p className="text-[10px] text-[#283693] uppercase tracking-wider font-semibold mb-2">Provider Info Rows</p>
               <p className="text-[10px] text-stone-400 mb-2">These show provider data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
               <div className="flex items-center gap-2">
                 <select value={infoRowField} onChange={e => setInfoRowField(e.target.value)} className="h-8 text-sm border rounded px-2 bg-white text-stone-600 flex-1">
                   <option value="">Select provider field...</option>
                   {availableInfoFields.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
                 </select>
-                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-violet-200 text-violet-600 hover:bg-violet-50" onClick={handleAddInfoRow} disabled={!infoRowField}>
+                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-[#283693]/30 text-[#283693] hover:bg-[#283693]/5" onClick={handleAddInfoRow} disabled={!infoRowField}>
                   <Plus className="size-3.5" /> Add Info Row
                 </Button>
               </div>
