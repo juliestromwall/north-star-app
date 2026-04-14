@@ -671,11 +671,11 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           </div>
           <div style={{ height: 1.5, background: '#283693', borderRadius: 1, marginBottom: 16 }} />
 
-          {/* Patient Header — name + stat cards */}
+          {/* Patient Header — name + stat cards + pregnancy history */}
           {(() => {
             const dobStr = data.dob ? new Date(data.dob + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''
             const calcAge = data.dob ? (() => { const b = new Date(data.dob); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a > 0 ? a : null })() : null
-            const iconStyle = { width: 18, height: 18, stroke: '#283693', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
+            const iconStyle = { width: 14, height: 14, stroke: '#283693', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }
             const icons = {
               age: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>,
               height: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"/></svg>,
@@ -684,25 +684,65 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
               status: <svg viewBox="0 0 24 24" style={iconStyle}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>,
             }
             const statCards = [
-              { icon: icons.age, label: 'Age', value: calcAge, sub: dobStr },
+              { icon: icons.age, label: 'Age', value: calcAge, sub: `DOB ${dobStr}` },
               { icon: icons.height, label: 'Height', value: data.height },
               { icon: icons.weight, label: 'Weight', value: data.weight },
               { icon: icons.bmi, label: 'BMI', value: data.bmi },
               { icon: icons.status, label: 'Status', value: data.maritalStatus },
             ]
+            // GTPAL from pregnancies
+            const pregs = data.pregnancies || []
+            const g = data.numberOfPregnancies || pregs.length
+            let term = 0, preterm = 0, losses = 0, living = 0
+            for (const p of pregs) {
+              const outcome = (p.outcome || '').toLowerCase()
+              if (outcome === 'live birth') {
+                const weeks = parseInt(p.gestationalAge) || 40
+                if (weeks >= 37) term++; else preterm++
+                living++
+              } else { losses++ }
+            }
+            const hasGtpal = g > 0
+            const gtpalChips = [
+              { label: 'Pregnancies', value: g, color: '#283693' },
+              { label: 'Term', value: term, color: '#10b981' },
+              { label: 'Preterm', value: preterm, color: '#f59e0b' },
+              { label: 'Losses', value: losses, color: '#ef4444' },
+              { label: 'Living', value: living, color: '#8b5cf6' },
+            ]
             return (
               <div style={{ marginBottom: 12 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: '0 0 10px', letterSpacing: '0.3px' }}>{data.name}</h2>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800, color: '#283693', margin: '0 0 8px', letterSpacing: '0.3px' }}>{data.name}</h2>
+                {/* Stat cards — full width, horizontal */}
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${statCards.filter(s => s.value).length}, 1fr)`, gap: 6, marginBottom: hasGtpal ? 6 : 0 }}>
                   {statCards.map(s => s.value ? (
-                    <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 16px', borderRadius: 12, backgroundColor: '#fff', border: '1px solid #e7e5e4', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minWidth: 70 }}>
+                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, backgroundColor: '#fff', border: '1px solid #e7e5e4' }}>
                       {s.icon}
-                      <span style={{ fontSize: 15, fontWeight: 700, color: '#283693', marginTop: 4 }}>{s.value}</span>
-                      <span style={{ fontSize: 8, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{s.label}</span>
-                      {s.sub && <span style={{ fontSize: 8, color: '#a8a29e', marginTop: 1 }}>{s.sub}</span>}
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#283693', lineHeight: 1.2 }}>{s.value}</div>
+                        <div style={{ fontSize: 7, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{s.sub || s.label}</div>
+                      </div>
                     </div>
                   ) : null)}
                 </div>
+                {/* Pregnancy History — GTPAL bar */}
+                {hasGtpal && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 12px', borderRadius: 8, background: 'linear-gradient(135deg, #fdf2f8, #eef2ff)', border: '1px solid #f3e8ff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <svg viewBox="0 0 24 24" style={{ width: 13, height: 13, stroke: '#ec4899', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M9 12h.01M15 12h.01M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5"/><path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1"/></svg>
+                      <span style={{ fontSize: 8, fontWeight: 600, color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pregnancy History</span>
+                    </div>
+                    <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 14, fontWeight: 800, color: '#283693', letterSpacing: '1px' }}>G{g}P{term}{preterm}{losses}{living}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 4 }}>
+                      {gtpalChips.map(c => (
+                        <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: c.color, color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{c.value}</span>
+                          <span style={{ fontSize: 9, color: '#57534e', fontWeight: 500 }}>{c.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })()}
