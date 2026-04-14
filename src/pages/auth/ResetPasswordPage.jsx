@@ -4,6 +4,7 @@ import { Eye, EyeOff, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 
 export default function ResetPasswordPage() {
@@ -15,6 +16,9 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [expired, setExpired] = useState(false)
+  const [agreedTerms, setAgreedTerms] = useState(false)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [termsContent, setTermsContent] = useState('')
 
   // Check for error in URL hash (expired/invalid link)
   useEffect(() => {
@@ -98,13 +102,39 @@ export default function ResetPasswordPage() {
                 />
               </div>
 
+              {/* Terms & Conditions */}
+              <div className="flex items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  id="agree-terms"
+                  checked={agreedTerms}
+                  onChange={e => setAgreedTerms(e.target.checked)}
+                  className="mt-0.5 rounded border-stone-300"
+                />
+                <label htmlFor="agree-terms" className="text-xs text-stone-500 leading-relaxed">
+                  I have read and agree to the{' '}
+                  <button type="button" onClick={async () => {
+                    if (!termsContent) {
+                      try {
+                        const res = await fetch('/terms-and-conditions.md')
+                        const text = await res.text()
+                        setTermsContent(text)
+                      } catch { setTermsContent('Failed to load terms.') }
+                    }
+                    setTermsOpen(true)
+                  }} className="text-[#283693] underline hover:text-[#ed148c] font-medium">
+                    Terms of Use & Privacy Policy
+                  </button>
+                </label>
+              </div>
+
               {error && (
                 <p className="text-xs text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>
               )}
 
               <Button
                 type="submit"
-                disabled={!password || !confirmPw || loading}
+                disabled={!password || !confirmPw || !agreedTerms || loading}
                 className="w-full h-11 rounded-xl text-sm font-semibold text-white border-0"
                 style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
               >
@@ -118,6 +148,37 @@ export default function ResetPasswordPage() {
       <footer className="py-8 text-center text-xs text-stone-300">
         © {new Date().getFullYear()} Abundant Beginnings Co.
       </footer>
+
+      {/* Terms & Conditions Dialog */}
+      <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Terms of Use & Privacy Policy</DialogTitle>
+          </DialogHeader>
+          <div className="prose prose-sm prose-stone max-w-none text-sm leading-relaxed">
+            {termsContent.split('\n').map((line, i) => {
+              if (line.startsWith('# ')) return <h1 key={i} className="text-lg font-bold text-[#283693] mt-6 mb-2">{line.replace('# ', '')}</h1>
+              if (line.startsWith('## ')) return <h2 key={i} className="text-base font-bold text-[#283693] mt-5 mb-2">{line.replace('## ', '')}</h2>
+              if (line.startsWith('### ')) return <h3 key={i} className="text-sm font-bold text-stone-700 mt-4 mb-1">{line.replace('### ', '')}</h3>
+              if (line.startsWith('- **')) {
+                const match = line.match(/^- \*\*(.+?)\*\*:?\s*(.*)$/)
+                if (match) return <p key={i} className="ml-4 text-stone-600"><strong className="text-stone-800">{match[1]}:</strong> {match[2]}</p>
+              }
+              if (line.startsWith('- ')) return <p key={i} className="ml-4 text-stone-600">• {line.replace('- ', '')}</p>
+              if (line.startsWith('**') && line.endsWith('**')) return <p key={i} className="font-bold text-stone-800 mt-3">{line.replace(/\*\*/g, '')}</p>
+              if (line.startsWith('*') && line.endsWith('*')) return <p key={i} className="italic text-stone-500 mt-4 text-center">{line.replace(/\*/g, '')}</p>
+              if (line === '---') return <hr key={i} className="my-6 border-stone-200" />
+              if (line.trim() === '') return <div key={i} className="h-2" />
+              return <p key={i} className="text-stone-600">{line}</p>
+            })}
+          </div>
+          <div className="flex justify-end pt-4 border-t">
+            <Button size="sm" onClick={() => { setTermsOpen(false); setAgreedTerms(true) }} className="gap-1" style={{ backgroundColor: '#283693' }}>
+              <CheckCircle2 className="size-3.5" /> I Agree
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
