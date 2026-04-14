@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
 import { useDrafts } from '@/context/DraftContext'
