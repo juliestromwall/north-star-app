@@ -264,25 +264,42 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     }
   }
 
-  const handleDownloadAttachment = async (att) => {
+  const [previewAtt, setPreviewAtt] = useState(null) // { url, filename, mimeType }
+  const [savingAtt, setSavingAtt] = useState(null)
+
+  async function getAttachmentBlob(att) {
+    const msgId = selectedEmail.gmail_message_id || selectedEmail.id
+    const data = await getAttachment(userId, msgId, att.attachmentId)
+    const base64 = data.data.replace(/-/g, '+').replace(/_/g, '/')
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new Blob([bytes], { type: att.mimeType })
+  }
+
+  const handlePreviewAttachment = async (att) => {
     if (!selectedEmail || !userId) return
     setDownloading(att.attachmentId)
     try {
-      const msgId = selectedEmail.gmail_message_id || selectedEmail.id
-      const data = await getAttachment(userId, msgId, att.attachmentId)
-      const base64 = data.data.replace(/-/g, '+').replace(/_/g, '/')
-      const binary = atob(base64)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-      const blob = new Blob([bytes], { type: att.mimeType })
+      const blob = await getAttachmentBlob(att)
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = att.filename
-      a.click()
-      URL.revokeObjectURL(url)
+      setPreviewAtt({ url, filename: att.filename, mimeType: att.mimeType })
     } catch {}
     setDownloading(null)
+  }
+
+  const handleSaveAttToCase = async (att) => {
+    if (!selectedEmail || !userId || !caseId || !supabase) return
+    setSavingAtt(att.attachmentId)
+    try {
+      const blob = await getAttachmentBlob(att)
+      const file = new File([blob], att.filename, { type: att.mimeType })
+      const { uploadCaseDocument } = await import('@/lib/db')
+      await uploadCaseDocument({ surrogateId: caseId, category: 'Email Attachments', file, uploadedBy: currentUser?.name || 'Admin' })
+    } catch (err) {
+      console.error('Save attachment to case failed:', err)
+    }
+    setSavingAtt(null)
   }
 
   if (loading) {
@@ -498,19 +515,25 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 <p className="text-xs text-muted-foreground">{formatDate(fullEmail.date)}</p>
               </div>
               {fullEmail.attachments?.length > 0 && (
-                <div className="flex flex-wrap gap-2 border-t pt-3">
-                  {fullEmail.attachments.map((att, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleDownloadAttachment(att)}
-                      disabled={downloading === att.attachmentId}
-                      className="flex items-center gap-1.5 rounded-md border bg-muted/50 px-2.5 py-1.5 text-xs hover:bg-muted transition-colors"
-                    >
-                      {downloading === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
-                      <span className="max-w-[150px] truncate">{att.filename}</span>
-                      <span className="text-muted-foreground">{fileSizeLabel(att.size)}</span>
-                    </button>
-                  ))}
+                <div className="border-t pt-3 space-y-2">
+                  <p className="text-[10px] font-semibold text-stone-400 uppercase">Attachments ({fullEmail.attachments.length})</p>
+                  <div className="space-y-1.5">
+                    {fullEmail.attachments.map((att, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-lg border bg-stone-50/50 px-3 py-2">
+                        <Paperclip className="size-3.5 text-stone-400 shrink-0" />
+                        <span className="text-xs font-medium truncate flex-1">{att.filename}</span>
+                        <span className="text-[10px] text-stone-400 shrink-0">{fileSizeLabel(att.size)}</span>
+                        <button onClick={() => handlePreviewAttachment(att)} disabled={downloading === att.attachmentId}
+                          className="text-[10px] font-semibold text-[#283693] hover:underline shrink-0">
+                          {downloading === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : 'Preview'}
+                        </button>
+                        <button onClick={() => handleSaveAttToCase(att)} disabled={savingAtt === att.attachmentId}
+                          className="text-[10px] font-semibold text-emerald-600 hover:underline shrink-0">
+                          {savingAtt === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : 'Save to Case'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               <div className="border-t pt-4">
@@ -526,11 +549,6 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                     onClick={() => { handleQuickLog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
                     <LinkIcon className="size-3" /> Log to Case
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
-                    <a href={`https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="size-3" /> Open in Gmail
-                    </a>
-                  </Button>
                 </div>
               )}
             </div>
@@ -541,6 +559,33 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Attachment Preview */}
+      {previewAtt && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <p className="text-sm font-semibold truncate">{previewAtt.filename}</p>
+              <button onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }} className="text-stone-400 hover:text-stone-600">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-1">
+              {previewAtt.mimeType?.startsWith('image/') ? (
+                <img src={previewAtt.url} alt={previewAtt.filename} className="max-w-full max-h-[75vh] mx-auto" />
+              ) : previewAtt.mimeType === 'application/pdf' ? (
+                <iframe src={previewAtt.url} className="w-full h-[75vh] rounded" title={previewAtt.filename} />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-stone-400">
+                  <Paperclip className="size-10 mb-3" />
+                  <p className="text-sm">Preview not available for this file type</p>
+                  <p className="text-xs mt-1">{previewAtt.mimeType}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Template Selection Dialog */}
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
