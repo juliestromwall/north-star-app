@@ -87,10 +87,11 @@ function UpdateDialog({ open, onOpenChange, updates, newUpdate, setNewUpdate, sa
               onChange={e => setNewUpdate(e.target.value)}
               placeholder="Type a journey update..."
               rows={1}
-              className="text-sm flex-1 resize-none border-stone-200 focus:border-stone-300 focus:ring-0"
+              className="text-sm flex-1 resize-none border-stone-200 focus:border-stone-300 !ring-0 !outline-none !shadow-none"
+              style={{ boxShadow: 'none' }}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAdd() } }}
             />
-            <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#283693' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
+            <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#ed148c' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Add
             </Button>
           </div>
