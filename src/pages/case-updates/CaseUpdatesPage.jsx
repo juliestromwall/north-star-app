@@ -436,7 +436,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const isComplete = status === 'complete'
                       const isNotNeeded = status === 'na' || status === 'deactivated'
                       return (
-                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : isNotNeeded ? 'bg-stone-50/60' : ''}`}>
+                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? '' : isNotNeeded ? 'bg-stone-50/60' : ''}`}>
                           <div className="flex items-center gap-1.5">
                             {isComplete ? (
                               <span className="text-xs text-green-600 font-medium">{lastEntry?.date ? formatDate(lastEntry.date) : ''} {textVal || 'Completed'}</span>
@@ -708,7 +708,7 @@ function IPUpdatesSheet({ ips }) {
                       const textValue = d._textValue || lastManual?.textValue
                       const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
-                        <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                        <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? '' : ''}`}>
                           <div className="space-y-1">
                             {displayStatus !== 'not_started' ? (
                               <div className="text-xs">
@@ -876,8 +876,8 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                   if (isInfoRow) {
                     return (
                       <tr key={step.id} className="border-b border-stone-100">
-                        <td className="px-3 py-2 sticky left-0 bg-white z-10">
-                          <span className="text-xs font-medium text-[#283693]">{step.label}</span>
+                        <td className="px-3 py-2 font-medium text-stone-700 sticky left-0 bg-white z-10">
+                          <span className="text-xs">{step.label}</span>
                         </td>
                         {filtered.map(j => {
                           const jd = j.journey_data || {}
@@ -925,7 +925,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const textValue = d._textValue || lastManual?.textValue
                       const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
-                        <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? 'bg-green-50/60' : ''}`}>
+                        <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? '' : ''}`}>
                           <div className="space-y-1">
                             {displayStatus !== 'not_started' ? (
                               <div className="text-xs">
