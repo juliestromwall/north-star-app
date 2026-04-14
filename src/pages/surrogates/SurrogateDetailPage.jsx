@@ -1059,7 +1059,7 @@ export default function SurrogateDetailPage() {
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
-            const allSteps = getChecklistSteps('gc', currentStageId)
+            const allSteps = getChecklistSteps('gc', currentStageId).filter(s => s.type !== 'info_row')
             return (
               <TrackingTable
                 title={`${currentStageLabel} Checklist`}

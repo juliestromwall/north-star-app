@@ -870,7 +870,37 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                 </tr>
               </thead>
               <tbody>
-                {sheetRows.map(step => (
+                {sheetRows.map(step => {
+                  const isInfoRow = step.type === 'info_row'
+
+                  if (isInfoRow) {
+                    return (
+                      <tr key={step.id} className="border-b border-violet-100 bg-violet-50/30">
+                        <td className="px-3 py-2 sticky left-0 bg-violet-50/50 z-10">
+                          <span className="text-xs font-medium text-violet-600">{step.label}</span>
+                        </td>
+                        {filtered.map(j => {
+                          const jd = j.journey_data || {}
+                          const primary = jd[step.dataPath] || ''
+                          const secondary = step.secondaryPath ? jd[step.secondaryPath] || '' : ''
+                          return (
+                            <td key={j.id} className="px-3 py-2 bg-violet-50/20">
+                              {primary ? (
+                                <div>
+                                  <p className="text-xs font-medium text-violet-700">{primary}</p>
+                                  {secondary && <p className="text-[10px] text-violet-400">{secondary}</p>}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-stone-300 italic">Not set</span>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  }
+
+                  return (
                   <tr key={step.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                     <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{step.label}</td>
                     {filtered.map(j => {
@@ -917,7 +947,8 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       )
                     })}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

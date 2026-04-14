@@ -412,7 +412,7 @@ function JourneyMilestoneTimeline({ journey }) {
 function JourneyChecklistTab({ journey, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
-  const steps = getChecklistSteps('gc', stageId)
+  const steps = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
   const tracking = journey.journey_data?._checklistTracking || {}
   const { currentUser } = useRole()
 
