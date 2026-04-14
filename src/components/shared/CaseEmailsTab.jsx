@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useRole } from '@/context/RoleContext'
 import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
@@ -297,7 +296,10 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     try {
       const blob = await getAttachmentBlob(att)
       const url = URL.createObjectURL(blob)
-      setPreviewAtt({ url, filename: att.filename, mimeType: att.mimeType })
+      // Close email dialog first, then show preview
+      setSelectedEmail(null)
+      setFullEmail(null)
+      setTimeout(() => setPreviewAtt({ url, filename: att.filename, mimeType: att.mimeType }), 100)
     } catch {}
     setDownloading(null)
   }
@@ -513,7 +515,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       </Card>}
 
       {/* Full email view dialog */}
-      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open && !previewAtt) { setSelectedEmail(null); setFullEmail(null) } }}>
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setFullEmail(null) } }}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedEmail?.subject || '(no subject)'}</DialogTitle>
@@ -578,34 +580,27 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         </DialogContent>
       </Dialog>
 
-      {/* Attachment Preview — portaled to body to escape Radix Dialog focus trap */}
-      {previewAtt && createPortal(
-        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
-          onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <p className="text-sm font-semibold truncate">{previewAtt.filename}</p>
-              <button onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }} className="text-stone-400 hover:text-stone-600 p-2 rounded hover:bg-stone-100">
-                <X className="size-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-1">
-              {previewAtt.mimeType?.startsWith('image/') ? (
-                <img src={previewAtt.url} alt={previewAtt.filename} className="max-w-full max-h-[75vh] mx-auto" />
-              ) : previewAtt.mimeType === 'application/pdf' ? (
-                <iframe src={previewAtt.url} className="w-full h-[75vh] rounded" title={previewAtt.filename} />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-stone-400">
-                  <Paperclip className="size-10 mb-3" />
-                  <p className="text-sm">Preview not available for this file type</p>
-                  <p className="text-xs mt-1">{previewAtt.mimeType}</p>
-                </div>
-              )}
-            </div>
+      {/* Attachment Preview — close email dialog first, then show preview */}
+      <Dialog open={!!previewAtt} onOpenChange={(open) => { if (!open && previewAtt) { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <p className="text-sm font-semibold truncate">{previewAtt?.filename}</p>
           </div>
-        </div>,
-        document.body
-      )}
+          <div className="flex-1 overflow-auto p-1">
+            {previewAtt?.mimeType?.startsWith('image/') ? (
+              <img src={previewAtt?.url} alt={previewAtt?.filename} className="max-w-full max-h-[75vh] mx-auto" />
+            ) : previewAtt?.mimeType === 'application/pdf' ? (
+              <iframe src={previewAtt?.url} className="w-full h-[75vh] rounded" title={previewAtt?.filename} />
+            ) : previewAtt ? (
+              <div className="flex flex-col items-center justify-center py-16 text-stone-400">
+                <Paperclip className="size-10 mb-3" />
+                <p className="text-sm">Preview not available for this file type</p>
+                <p className="text-xs mt-1">{previewAtt.mimeType}</p>
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Save Attachment to Case — Folder Picker */}
       <Dialog open={!!saveAttDialog} onOpenChange={(open) => { if (!open) setSaveAttDialog(null) }}>
