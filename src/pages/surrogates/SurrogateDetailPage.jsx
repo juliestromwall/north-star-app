@@ -54,7 +54,6 @@ import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera } from '
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
-import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
 
 // ── GTPAL ──────────────────────────────────────────────────
 function getGTPAL(profileData) {
@@ -2922,17 +2921,6 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
         </div>
       )}
 
-      {/* Background Waivers */}
-      <div className="mt-4 p-4 rounded-xl border border-stone-100 bg-stone-50/50">
-        <h4 className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Background Waivers</h4>
-        <div className="flex flex-wrap gap-2">
-          <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
-          <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate}
-            partnerName={surrogate?.answers?._confidential?.partnerFullName}
-            partnerEmail={surrogate?.answers?._confidential?.partnerEmail}
-          />
-        </div>
-      </div>
     </div>
   )
 }

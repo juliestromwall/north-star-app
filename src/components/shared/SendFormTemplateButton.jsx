@@ -1,21 +1,62 @@
-import { useState } from 'react'
-import { FileSignature, Loader2, CheckCircle2, Send } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileSignature, Loader2, CheckCircle2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
+import { supabase } from '@/lib/supabase'
 
 export default function SendFormTemplateButton({ templateId, surrogate, partnerName, partnerEmail }) {
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null)
+  const [existingDoc, setExistingDoc] = useState(null) // { status: 'pending' | 'signed' }
+  const [checking, setChecking] = useState(true)
   const { currentUser } = useRole()
 
   const template = FORM_TEMPLATES[templateId]
+
+  // Check if this form was already sent/signed for this case
+  useEffect(() => {
+    if (!template || !surrogate?.id || !supabase) { setChecking(false); return }
+    supabase.from('esign_documents')
+      .select('id, status, document_hash')
+      .eq('case_id', surrogate.id)
+      .then(({ data }) => {
+        const match = (data || []).find(d => {
+          try {
+            const meta = JSON.parse(d.document_hash || '{}')
+            return meta.templateId === templateId
+          } catch { return false }
+        })
+        if (match) setExistingDoc({ status: match.status })
+      })
+      .finally(() => setChecking(false))
+  }, [surrogate?.id, templateId])
+
   if (!template) return null
 
-  // Determine signer based on template role
   const isPartner = template.signerRole === 'partner'
   const signerName = isPartner ? (partnerName || 'Partner') : (surrogate?.name || '')
   const signerEmail = isPartner ? (partnerEmail || '') : (surrogate?.email || '')
+
+  // Already signed
+  if (existingDoc?.status === 'signed') {
+    return (
+      <div className="flex items-center gap-2 text-xs py-1">
+        <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+        <span className="text-green-700 font-medium">{template.title} — Signed</span>
+      </div>
+    )
+  }
+
+  // Already sent, pending
+  if (existingDoc?.status === 'pending') {
+    return (
+      <div className="flex items-center gap-2 text-xs py-1">
+        <Clock className="size-4 text-amber-500 shrink-0" />
+        <span className="text-amber-700 font-medium">{template.title} — Pending signature</span>
+      </div>
+    )
+  }
 
   async function handleSend() {
     if (!signerEmail) {
@@ -49,8 +90,8 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       await sendDocument(doc.id)
 
-      const link = `${window.location.origin}/e-signature/form/${formToken}`
-      setResult({ success: true, link })
+      setExistingDoc({ status: 'pending' })
+      setResult({ success: true })
     } catch (err) {
       setResult({ error: err.message })
     } finally {
@@ -60,13 +101,14 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
   if (result?.success) {
     return (
-      <div className="flex items-center gap-2 text-xs">
-        <CheckCircle2 className="size-4 text-green-500" />
-        <span className="text-green-700 font-medium">Sent to {signerEmail}</span>
-        <button onClick={() => { navigator.clipboard.writeText(result.link); }} className="text-[#283693] hover:underline text-[10px]">Copy link</button>
+      <div className="flex items-center gap-2 text-xs py-1">
+        <Clock className="size-4 text-amber-500 shrink-0" />
+        <span className="text-amber-700 font-medium">{template.title} — Sent, pending signature</span>
       </div>
     )
   }
+
+  if (checking) return null
 
   return (
     <Button

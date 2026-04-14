@@ -6,10 +6,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
-import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield } from 'lucide-react'
 import { updateIntakeSubmission } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
+import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -1175,6 +1176,25 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
       <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
+
+      {/* Background Waivers */}
+      {(!searchLower || 'background waiver'.includes(searchLower)) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Shield className="size-4 text-[#283693]" /> Background Waivers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
+            <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate}
+              partnerName={answers?._confidential?.partnerFullName}
+              partnerEmail={answers?._confidential?.partnerEmail}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
     </div>
   )
