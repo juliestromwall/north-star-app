@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil, History } from 'lucide-react'
+import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil, History, CheckCircle2, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { useRole } from '@/context/RoleContext'
 import { listCaseEvents, createEvent, deleteEvent, updateEvent, listCalendars } from '@/lib/google'
+import { getAppConfig, setAppConfig } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 function formatTime(dateTimeStr) {
@@ -20,6 +21,8 @@ function isToday(dateStr) {
   return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()
 }
 
+const APPT_NOTES_KEY_PREFIX = 'appt_notes_'
+
 export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const { currentUser } = useRole()
   const userId = currentUser?.userId || currentUser?.id
@@ -31,11 +34,20 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [calendars, setCalendars] = useState([])
   const [defaultCalId, setDefaultCalId] = useState('primary')
+  const [apptMeta, setApptMeta] = useState({}) // { eventId: { followedUp, followedUpBy, followedUpAt, notes } }
+  const [notesModal, setNotesModal] = useState(null) // event being noted
+  const [noteText, setNoteText] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [followingUp, setFollowingUp] = useState(null)
 
   useEffect(() => {
     if (!caseId || !userId) { setLoading(false); return }
+    // Load appointment metadata
+    getAppConfig(`${APPT_NOTES_KEY_PREFIX}${caseType}_${caseId}`).then(data => {
+      if (data) setApptMeta(data)
+    }).catch(() => {})
+
     const now = new Date()
-    // Load past 2 years + future 6 months
     const timeMin = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString()
     const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString()
     listCalendars(userId).catch(() => []).then(cals => {
@@ -44,12 +56,10 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       const apptCal = writable.find(c => c.summary?.toLowerCase() === 'appointments')
       const calId = apptCal?.id || 'primary'
       if (apptCal) setDefaultCalId(calId)
-      const tag = `${caseType}_${caseId}`
       const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 50 })]
       if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 50 }))
       return Promise.all(fetches).then(async (results) => {
         let all = results.flatMap(r => r.items || [])
-        // If no tagged events found, fallback: search by summary text match
         if (all.length === 0 && caseName) {
           try {
             const params = new URLSearchParams({ timeMin, timeMax, maxResults: '50', singleEvents: 'true', orderBy: 'startTime', q: caseName })
@@ -65,12 +75,16 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
         return all
       })
     }).then(all => {
-      console.log('[Calendar] Fetched events:', all.length)
       const seen = new Set()
       const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
       setEvents(deduped.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [caseId, userId])
+
+  async function saveApptMeta(updated) {
+    setApptMeta(updated)
+    await setAppConfig(`${APPT_NOTES_KEY_PREFIX}${caseType}_${caseId}`, updated).catch(() => {})
+  }
 
   function getCaseUrl() {
     const base = typeof window !== 'undefined' ? window.location.origin : ''
@@ -107,16 +121,11 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     const eventId = deleteConfirm.id
     setDeleting(eventId)
     try {
-      // Try deleting from the appointments calendar first, then primary
       const calIds = [defaultCalId]
       if (defaultCalId !== 'primary') calIds.push('primary')
       let deleted = false
       for (const calId of calIds) {
-        try {
-          await deleteEvent(userId, calId, eventId)
-          deleted = true
-          break
-        } catch {}
+        try { await deleteEvent(userId, calId, eventId); deleted = true; break } catch {}
       }
       if (!deleted) throw new Error('Event not found on any calendar')
       setEvents(prev => prev.filter(e => e.id !== eventId))
@@ -134,15 +143,11 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       end: eventData.allDay ? { date: eventData.date } : { dateTime: `${eventData.date}T${eventData.endTime || eventData.startTime}:00`, timeZone: tz },
     }
     try {
-      // Try updating on the appointments calendar first, then primary
       const calIds = [defaultCalId]
       if (defaultCalId !== 'primary') calIds.push('primary')
       let updated = null
       for (const calId of calIds) {
-        try {
-          updated = await updateEvent(userId, calId, editEvent.id, updates)
-          break
-        } catch {}
+        try { updated = await updateEvent(userId, calId, editEvent.id, updates); break } catch {}
       }
       if (!updated) throw new Error('Event not found on any calendar')
       setEvents(prev => prev.map(e => e.id === editEvent.id ? updated : e).sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
@@ -150,13 +155,45 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     } catch (err) { alert('Failed to update: ' + err.message) }
   }
 
+  async function handleFollowUp(event) {
+    setFollowingUp(event.id)
+    try {
+      // Update Google Calendar title to add ✅
+      const currentTitle = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+      const cleanTitle = currentTitle.replace(/^✅\s*/, '') // remove if already there
+      const newSummary = `✅ ${cleanTitle} — ${caseName || ''}`
+      const calIds = [defaultCalId]
+      if (defaultCalId !== 'primary') calIds.push('primary')
+      let updated = null
+      for (const calId of calIds) {
+        try { updated = await updateEvent(userId, calId, event.id, { summary: newSummary }); break } catch {}
+      }
+      if (updated) {
+        setEvents(prev => prev.map(e => e.id === event.id ? updated : e))
+      }
+      // Log follow-up metadata
+      const meta = { ...apptMeta, [event.id]: { ...(apptMeta[event.id] || {}), followedUp: true, followedUpBy: currentUser?.name || 'Admin', followedUpAt: new Date().toISOString() } }
+      await saveApptMeta(meta)
+    } catch (err) { alert('Failed: ' + err.message) }
+    finally { setFollowingUp(null) }
+  }
+
+  async function handleSaveNotes() {
+    if (!notesModal) return
+    setSavingNote(true)
+    try {
+      const meta = { ...apptMeta, [notesModal.id]: { ...(apptMeta[notesModal.id] || {}), notes: noteText, notesBy: currentUser?.name || 'Admin', notesAt: new Date().toISOString() } }
+      await saveApptMeta(meta)
+      setNotesModal(null)
+      setNoteText('')
+    } catch {} finally { setSavingNote(false) }
+  }
+
   const [pastOpen, setPastOpen] = useState(false)
 
-  // Split into upcoming and past
-  // Split events: extract just the date part for comparison
   function getEventDate(e) {
     const dt = e.start?.dateTime || e.start?.date || ''
-    return dt.substring(0, 10) // YYYY-MM-DD
+    return dt.substring(0, 10)
   }
   const todayStr = new Date().toISOString().split('T')[0]
   const upcomingEvents = events.filter(e => getEventDate(e) >= todayStr)
@@ -164,33 +201,64 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
 
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading appointments...</div>
 
+  function getDisplayTitle(event) {
+    return event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+  }
+
   function EventRow({ event, isPast }) {
     const startDt = event.start?.dateTime || event.start?.date || ''
     const isAllDay = !!event.start?.date && !event.start?.dateTime
     const today = isToday(startDt)
+    const meta = apptMeta[event.id] || {}
+    const title = getDisplayTitle(event)
+    const isFollowedUp = meta.followedUp || title.startsWith('✅')
+
     return (
-      <div className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${isPast ? 'opacity-60' : today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
-            {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
-          </p>
-          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-            <span>{formatDate(startDt)}</span>
-            {!isAllDay && event.start?.dateTime && (
-              <span className="flex items-center gap-0.5">
-                <Clock className="size-2.5" />
-                {formatTime(event.start.dateTime)}
-                {event.end?.dateTime ? ` – ${formatTime(event.end.dateTime)}` : ''}
-              </span>
+      <div className={`rounded-lg border px-3 py-2 ${isPast ? 'opacity-60' : today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>{title}</p>
+            <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+              <span>{formatDate(startDt)}</span>
+              {!isAllDay && event.start?.dateTime && (
+                <span className="flex items-center gap-0.5">
+                  <Clock className="size-2.5" />
+                  {formatTime(event.start.dateTime)}
+                  {event.end?.dateTime ? ` – ${formatTime(event.end.dateTime)}` : ''}
+                </span>
+              )}
+              {today && <span className="text-[#283693] font-semibold">Today</span>}
+              {isFollowedUp && <span className="text-emerald-600 font-semibold">Followed Up</span>}
+            </div>
+            {meta.notes && (
+              <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 120)}{meta.notes.length > 120 ? '...' : ''}</p>
             )}
-            {today && <span className="text-[#283693] font-semibold">Today</span>}
           </div>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={(e) => { e.stopPropagation(); setEditEvent(event) }} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
-          <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm(event) }} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
-            {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-          </button>
+          <div className="flex flex-col gap-1 shrink-0 items-end">
+            <div className="flex gap-1">
+              <button onClick={() => setEditEvent(event)} className="text-stone-300 hover:text-stone-600" title="Edit"><Pencil className="size-3" /></button>
+              <button onClick={() => setDeleteConfirm(event)} className="text-stone-300 hover:text-red-500" disabled={deleting === event.id}>
+                {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+              </button>
+            </div>
+            {isPast && !isFollowedUp && (
+              <button
+                onClick={() => handleFollowUp(event)}
+                disabled={followingUp === event.id}
+                className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
+              >
+                {followingUp === event.id ? <Loader2 className="size-2.5 animate-spin" /> : <CheckCircle2 className="size-2.5" />}
+                Follow Up
+              </button>
+            )}
+            <button
+              onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
+              className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
+            >
+              <FileText className="size-2.5" />
+              {meta.notes ? 'Edit Notes' : 'Add Notes'}
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -229,10 +297,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-600">
-            Are you sure you want to delete <strong>{deleteConfirm?.summary?.includes(' — ') ? deleteConfirm.summary.split(' — ')[0] : deleteConfirm?.summary}</strong>?
-          </p>
-          <p className="text-xs text-stone-400">
-            {deleteConfirm?.start?.dateTime ? formatDate(deleteConfirm.start.dateTime) : deleteConfirm?.start?.date ? formatDate(deleteConfirm.start.date) : ''}
+            Are you sure you want to delete <strong>{getDisplayTitle(deleteConfirm || {})}</strong>?
           </p>
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" size="sm" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
@@ -261,13 +326,37 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
         </DialogContent>
       </Dialog>
 
+      {/* Appointment Notes Modal */}
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="size-4 text-[#283693]" />
+              Appointment Notes
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600 font-medium">{getDisplayTitle(notesModal || {})}</p>
+          <p className="text-xs text-stone-400">{notesModal?.start?.dateTime ? formatDate(notesModal.start.dateTime) : notesModal?.start?.date ? formatDate(notesModal.start.date) : ''}</p>
+          <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this appointment..." rows={4} />
+          {apptMeta[notesModal?.id]?.notesBy && (
+            <p className="text-[10px] text-stone-400">Last edited by {apptMeta[notesModal?.id].notesBy} on {apptMeta[notesModal?.id].notesAt ? formatDate(apptMeta[notesModal.id].notesAt) : ''}</p>
+          )}
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveNotes} disabled={savingNote}>
+              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save Notes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AddAppointmentDialog open={addOpen} onOpenChange={setAddOpen} onSave={handleCreate} calendars={calendars} defaultCalId={defaultCalId} />
       <AddAppointmentDialog
         open={!!editEvent}
         onOpenChange={v => { if (!v) setEditEvent(null) }}
         onSave={handleEdit}
         initialData={editEvent ? {
-          title: (editEvent.summary?.includes(' — ') ? editEvent.summary.split(' — ')[0] : editEvent.summary) || '',
+          title: (editEvent.summary?.includes(' — ') ? editEvent.summary.split(' — ')[0] : editEvent.summary)?.replace(/^✅\s*/, '') || '',
           date: (editEvent.start?.dateTime || editEvent.start?.date || '').slice(0, 10),
           startTime: editEvent.start?.dateTime ? new Date(editEvent.start.dateTime).toTimeString().slice(0, 5) : '09:00',
           endTime: editEvent.end?.dateTime ? new Date(editEvent.end.dateTime).toTimeString().slice(0, 5) : '10:00',
@@ -339,10 +428,19 @@ function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMod
               </select>
             </div>
           )}
-          <div className="space-y-1">
-            <label className="text-[11px] text-stone-400 font-medium">Notes</label>
-            <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional details..." rows={2} />
-          </div>
+          {editMode ? (
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Calendar API Note</label>
+              <div className="text-xs text-stone-400 bg-stone-50 border border-stone-200 rounded-md px-3 py-2 whitespace-pre-wrap min-h-[40px]">
+                {form.description || <span className="italic">No calendar note</span>}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional details..." rows={2} />
+            </div>
+          )}
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSave} disabled={saving || !form.title.trim() || !form.date}>
