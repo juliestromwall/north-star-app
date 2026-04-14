@@ -5,7 +5,7 @@
 export let mockUsers = []
 
 export function getAdminStaff() {
-  return mockUsers.filter(u => ['super_admin', 'master_admin', 'admin'].includes(u.role))
+  return mockUsers.filter(u => ['super_admin', 'master_admin', 'office_admin', 'admin'].includes(u.role))
 }
 
 export async function loadAdminUsers() {
