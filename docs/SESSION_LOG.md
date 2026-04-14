@@ -1,5 +1,73 @@
 # Session Log
 
+## 2026-04-13 — 2026-04-14 (Checklist Subtasks, Records Summary PDF, Profiles, Form Templates)
+
+**Worked on:** Checklist subtasks + auto-derive, custom dropdown colors, case-updates page fixes, text field checklist type, Records Summary PDF redesign, GC profile preview completeness, sticky notes neon colors, team management save fix, form template e-sign system (Background Waivers)
+
+**Changes made:**
+
+Checklist System:
+- Subtasks with `parentId` field — auto-derived parent status (all complete → parent complete, any started → in_progress)
+- Case-specific subtasks (per-case, stored in tracking data with `_isCaseSubtask`)
+- Custom dropdown options with `{label, mapsTo}` — mapped to status colors
+- Fixed checklist wipe race condition (blocked saves until Supabase loaded, `_loaded` flag)
+- Fixed journey `handleUpdate` clobbering subtask with parent cascade (`pendingTrackingRef`)
+- Text field checklist type: `_textValue` preserved through complete, pre-fills on re-edit
+- Fixed stale closure bug on Complete/NA buttons (`overrideStatus` parameter)
+
+Case Updates Page:
+- Subtasks hidden from rows, shown in scroll popover with full log history
+- Derived parent status displayed (In Progress / Complete with dates)
+- Fixed: only show most recent log in cell, use entry.status not effectiveStatus
+- Case-specific subtasks merged into case-updates derivation + popovers
+
+Records Summary PDF:
+- Redesigned header: stat cards with Lucide SVG icons (Age/Height/Weight/BMI/Status)
+- GTPAL pregnancy history bar with colored chips
+- Hot pink section headers (no background)
+- General Medical History 2×2 grid, pregnancy grids 4 columns
+- Per-pregnancy hidden fields (eye toggle, `_hiddenFields` stored per summary)
+- White grid gaps, notes pre-fill from pregnancy complications
+- BMI auto-calculates from height/weight
+
+GC Profile Preview:
+- Added ~40% of missing fields to match form 1:1 (Fertility, General, Health, Employment, Hopes & Wishes)
+- All conditional detail fields (yes/no → explanation)
+
+Sticky Notes:
+- Neon colors (yellow, magenta, cyan, green, purple)
+- Drag-to-resize height handle
+
+Team Management:
+- `POST /api/update-admin` endpoint — persists name/email/role edits to Supabase Auth
+- Fixed save handler to call API instead of local-only state update
+
+E-Sign Date Placeholders:
+- `{{Date:IP1}}`, `{{Date:IP2}}`, `{{Date:Partner}}`, `{{Date:Admin}}` already supported
+- Updated help text to list Partner role + Initials/Checkbox fields
+
+Form Template E-Sign System:
+- New `src/lib/formTemplates.js` — template definitions + HTML generators
+- `src/pages/esign/SignFormPage.jsx` — email verify, form fields, 3 signature pads, live preview, PDF + audit trail
+- `src/components/shared/SendFormTemplateButton.jsx` — send button with signed/pending/unsent status tracking
+- GC Background Waiver + Partner Background Waiver on GC Application tab
+- IP Background Waiver + IP2 Background Waiver on IP Application tab
+- Route: `/e-signature/form/:formToken`
+
+Bug Fixes:
+- Email crash: `isMasterAdmin` not defined in EmailDetail
+- Build fix: extra `}` in RecordsSummaryWorkspace.jsx
+- Build fix: unclosed fragment in IPProfilePage.jsx
+- Sign-on bonuses: only show surrogates in matched journeys
+
+**Next steps:**
+- Clean up GC Background Waiver form fields (user will provide feedback)
+- Match-Centric Case Architecture (plan exists)
+- Continue with whatever Julie wants next
+
+**Open questions:**
+- None blocking
+
 ## 2026-04-13 (Records Summary Fixes, Office Admin Role, Data Cleanup, Email Sharing)
 
 **Worked on:** Records summary improvements (DOB format, COVID removal, pregnancy field logic, PDF page breaks), Office Admin role, selective data cleanup, email body storage for cross-admin viewing, private emails
