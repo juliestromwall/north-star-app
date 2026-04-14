@@ -4,8 +4,9 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
-import { ChevronDown, Search, Pencil, Save, Loader2 } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Save, Loader2, Shield } from 'lucide-react'
 import { updateIntakeSubmission } from '@/lib/db'
+import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -532,6 +533,32 @@ export default function IPApplicationTab({ ip, setIp }) {
       <ContactInfoSection ip={ip} setIp={setIp} search={searchLower} />
       <ClinicSection ip={ip} setIp={setIp} search={searchLower} />
       <ReferencesSection ip={ip} setIp={setIp} search={searchLower} />
+
+      {/* Background Waivers */}
+      {(!searchLower || 'background waiver'.includes(searchLower)) && (() => {
+        const a = ip?.answers || {}
+        const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
+        const ip2Name = (a.hasPartner === true || a.hasPartner === 'yes') ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : ''
+        // For SendFormTemplateButton, pass the IP as "surrogate" (it just needs .id, .name, .email)
+        const ip1AsSurrogate = { id: ip.id, name: ip1Name || ip.names, email: ip.email }
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield className="size-4 text-[#283693]" /> Background Waivers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <SendFormTemplateButton templateId="ip_background_waiver" surrogate={ip1AsSurrogate} />
+              {ip2Name && ip.ip2Email && (
+                <SendFormTemplateButton templateId="ip2_background_waiver"
+                  surrogate={{ id: ip.id, name: ip2Name, email: ip.ip2Email }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

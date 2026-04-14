@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { logAuditEvent, signDocument } from '@/lib/esign'
-import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateAuditTrailHtml } from '@/lib/formTemplates'
+import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateIPBackgroundWaiverHtml, generateAuditTrailHtml } from '@/lib/formTemplates'
 
 // ── Signature Pad ──
 function SignaturePad({ value, onChange, signerName }) {
@@ -136,7 +136,8 @@ export default function SignFormPage() {
     setSigning(true)
     try {
       // Generate filled PDF HTML
-      const filledHtml = generateBackgroundWaiverHtml(fieldValues, signatures, {
+      const generateHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+      const filledHtml = generateHtml(fieldValues, signatures, {
         signerName: mySigner.name,
         signerEmail: mySigner.email,
         forPdf: true,
@@ -295,7 +296,8 @@ export default function SignFormPage() {
   )
 
   // ── Form Filling ──
-  const previewHtml = generateBackgroundWaiverHtml(fieldValues, signatures, {
+  const generatePreviewHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+  const previewHtml = generatePreviewHtml(fieldValues, signatures, {
     signerName: mySigner.name,
     signerEmail: mySigner.email,
     forPdf: false,
