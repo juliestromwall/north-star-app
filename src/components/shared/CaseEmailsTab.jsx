@@ -264,7 +264,6 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     }
   }
 
-  const [previewAtt, setPreviewAtt] = useState(null) // { url, filename, mimeType }
   const [savingAtt, setSavingAtt] = useState(null)
   const [saveAttDialog, setSaveAttDialog] = useState(null) // attachment to save
   const [saveCategory, setSaveCategory] = useState('other')
@@ -296,10 +295,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     try {
       const blob = await getAttachmentBlob(att)
       const url = URL.createObjectURL(blob)
-      // Close email dialog first, then show preview
-      setSelectedEmail(null)
-      setFullEmail(null)
-      setTimeout(() => setPreviewAtt({ url, filename: att.filename, mimeType: att.mimeType }), 100)
+      window.open(url, '_blank')
     } catch {}
     setDownloading(null)
   }
@@ -580,27 +576,6 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         </DialogContent>
       </Dialog>
 
-      {/* Attachment Preview — close email dialog first, then show preview */}
-      <Dialog open={!!previewAtt} onOpenChange={(open) => { if (!open && previewAtt) { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) } }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <p className="text-sm font-semibold truncate">{previewAtt?.filename}</p>
-          </div>
-          <div className="flex-1 overflow-auto p-1">
-            {previewAtt?.mimeType?.startsWith('image/') ? (
-              <img src={previewAtt?.url} alt={previewAtt?.filename} className="max-w-full max-h-[75vh] mx-auto" />
-            ) : previewAtt?.mimeType === 'application/pdf' ? (
-              <iframe src={previewAtt?.url} className="w-full h-[75vh] rounded" title={previewAtt?.filename} />
-            ) : previewAtt ? (
-              <div className="flex flex-col items-center justify-center py-16 text-stone-400">
-                <Paperclip className="size-10 mb-3" />
-                <p className="text-sm">Preview not available for this file type</p>
-                <p className="text-xs mt-1">{previewAtt.mimeType}</p>
-              </div>
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Save Attachment to Case — Folder Picker */}
       <Dialog open={!!saveAttDialog} onOpenChange={(open) => { if (!open) setSaveAttDialog(null) }}>
