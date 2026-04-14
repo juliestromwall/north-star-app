@@ -50,6 +50,12 @@ export default function CaseUpdatesPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Exclude surrogates and IPs that are in a matched journey
+  const matchedGcIds = useMemo(() => new Set(journeys.map(j => j.gc_case_id).filter(Boolean)), [journeys])
+  const matchedIpIds = useMemo(() => new Set(journeys.map(j => j.ip_case_id).filter(Boolean)), [journeys])
+  const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id)), [surrogates, matchedGcIds])
+  const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id)), [ips, matchedIpIds])
+
   if (loading) return <div className="p-6 text-center text-stone-400">Loading...</div>
 
   return (
@@ -64,11 +70,11 @@ export default function CaseUpdatesPage() {
         </TabsList>
 
         <TabsContent value="surrogates" className="mt-4">
-          <SurrogateUpdatesSheet surrogates={surrogates} />
+          <SurrogateUpdatesSheet surrogates={unmatchedSurrogates} />
         </TabsContent>
 
         <TabsContent value="ips" className="mt-4">
-          <IPUpdatesSheet ips={ips} />
+          <IPUpdatesSheet ips={unmatchedIps} />
         </TabsContent>
 
         <TabsContent value="journeys" className="mt-4">
