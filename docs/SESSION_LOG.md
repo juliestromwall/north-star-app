@@ -1,5 +1,64 @@
 # Session Log
 
+## 2026-04-13 (Records Summary Fixes, Office Admin Role, Data Cleanup, Email Sharing)
+
+**Worked on:** Records summary improvements (DOB format, COVID removal, pregnancy field logic, PDF page breaks), Office Admin role, selective data cleanup, email body storage for cross-admin viewing, private emails
+
+**Changes made:**
+
+Records Summary:
+- DOB formatted as MM/DD/YYYY (was YYYY-MM-DD)
+- Removed COVID-19 screening section entirely
+- Removed Occupation and Lives With from Social History
+- Miscarriage/termination pregnancies: if no prenatal care → skip details; if prenatal care → show only GBS, Glucose Screen, GC Cycle, BPs, Weight Gained
+- "Complications" renamed to "Notes" for non-delivery pregnancies
+- Flags (isNonDelivery, hadPrenatalCare, skipDetails) now re-derived from clinic data on every load
+- Removed Obstetric Summary field
+- OB Clearance moved to last row in Most Recent Labs table
+- Line breaks preserved in PDF preview (whiteSpace: pre-wrap)
+- PDF export switched from html2canvas/jsPDF to browser print dialog with break-inside:avoid CSS
+- Pregnancy banner pill alignment fixed (baseline + inline-block)
+
+Email Sharing:
+- Email body (body_html) now stored in case_emails table when logging
+- Other admins can view logged emails without Gmail access
+- Graceful fallback for old emails (shows snippet + explanation instead of error)
+- Master admins can mark emails as Private (is_private flag)
+- Private emails hidden from non-master admins
+- Lock/unlock toggle on email list + in Log to Case dialog
+- Migration: case_emails_body_private_migration.sql
+
+Office Admin Role:
+- New role: office_admin — normal admin + Settings access (notes, team, statuses, checklists)
+- Added to ADMIN_ROLES, navigation, DashboardRouter, admin-users API, getAdminStaff()
+- canEditSettings flag for Settings page access
+- Role selector in Team Members with purple badge + description
+
+Dashboard & List Pages:
+- Dashboard shows only assigned cases for regular admins
+- Super Admin / Master Admin see all cases on dashboard + list pages
+- /surrogates, /intended-parents, /journeys default to 'all' for super/master, 'mine' for others
+
+Data Cleanup:
+- Selective cleanup keeping journeys 15,18 + surrogate 35 + IP 43
+- Cleared expenses, insurance, psych tracking, referral bonuses, e-sign, admin notes
+- Cleared non-kept auth users (accidentally included admins — lesson learned)
+
+Bot Protection:
+- Disabled rapid-fill detection (Safari mobile false positive)
+- Only time check (15s min) remains active
+
+Other:
+- Surrogate admin notification email now includes "How They Heard" with referral name
+- IP_STAGES separated from SURROGATE_STAGES in constants
+
+**Next steps:**
+- Build Gmail inbox integration on case Emails tab (pull unread emails from case contacts)
+- Unread indicator (flashing dot) on Emails tab
+
+**Open questions:**
+- None
+
 ## 2026-04-10 (E-Sign Polish, Records Summary, HIPAA Releases, Past Calendar Events)
 
 **Worked on:** E-signature initials/optional field fixes, portal Documents visibility, GC Application reorg, Clinic & Hospital provider rebuild, HIPAA medical records release generation + batch signing, fax integration with cover page, Resend transactional emails, application review workflow, referral & bonus tracker, date_completed checklist step, Records Summary workspace, past calendar events with edit/delete + confirmation dialog.

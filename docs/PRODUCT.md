@@ -9,9 +9,10 @@
 
 | Role | Access | Key Screens |
 |------|--------|-------------|
-| Super Admin | Everything + system tools | All modules + System page |
-| Master Admin | Everything except system | All modules |
-| Admin | Operations, clients, forms, messaging. Can only see own assigned cases by default. | Dashboard, Client Mgmt, Forms, Communication |
+| Super Admin | Everything + system tools. Sees all cases by default. | All modules + System page |
+| Master Admin | Everything except system. Sees all cases by default. Can mark emails private. | All modules |
+| Office Admin | Same as Admin + Settings access (notes, team, statuses, checklists). Own cases by default. | All modules + Settings |
+| Admin | Operations, clients, forms, messaging. Own assigned cases by default. | Dashboard, Client Mgmt, Forms, Communication |
 | Surrogate | Own journey, forms, messages, docs | Surrogate Dashboard, Forms, Documents, Messages, My Journey |
 | Surrogate Partner | Read-only view of surrogate's journey | Partner Dashboard, Documents, Messages |
 | Intended Parent | Own journey, shared profiles, messages | IP Dashboard, Forms, Documents, Messages, My Journey |
