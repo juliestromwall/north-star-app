@@ -292,7 +292,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     )
   }
 
-  if (emails.length === 0) {
+  if (emails.length === 0 && inboxEmails.length === 0 && !loadingInbox && contactEmails.length === 0) {
     return (
       <Card className="rounded-2xl">
         <CardContent className="py-12 text-center">
@@ -304,6 +304,11 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         </CardContent>
       </Card>
     )
+  }
+
+  // Auto-switch to inbox if no logged emails but inbox has items
+  if (emails.length === 0 && inboxEmails.length > 0 && viewMode === 'logged') {
+    setViewMode('inbox')
   }
 
   // Filter emails
