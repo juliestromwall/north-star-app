@@ -1781,6 +1781,7 @@ export default function JourneyDetailPage() {
   const [gcCase, setGcCase] = useState(null)
   const [ipCase, setIpCase] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [profileView, setProfileView] = useState('gc')
@@ -2424,7 +2425,7 @@ export default function JourneyDetailPage() {
           { value: 'insurance', label: 'Insurance' },
           { value: 'expenses', label: 'Expenses' },
           { value: 'notes', label: 'Notes' },
-          { value: 'emails', label: 'Emails' },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'texts', label: 'Texts' },
         ]} />
 
@@ -2512,7 +2513,7 @@ export default function JourneyDetailPage() {
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">
-          <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} />
+          <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} contactEmails={[gcCase?.email, ipCase?.email, ipCase?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />
         </TabsContent>
         <TabsContent value="texts" className="mt-4"><EmptyState title="Text Messages" description="GC and IP text threads." /></TabsContent>
       </Tabs>

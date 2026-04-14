@@ -295,6 +295,7 @@ export default function SurrogateDetailPage() {
   const [portalStatus, setPortalStatus] = useState(null) // { exists, lastSignIn }
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
+  const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   const [portraitUrl, setPortraitUrl] = useState(null)
   const [insuranceStatus, setInsuranceStatus] = useState(null) // null=loading, {has_insurance, company, status}
   const [insuranceOpen, setInsuranceOpen] = useState(false)
@@ -1043,7 +1044,7 @@ export default function SurrogateDetailPage() {
           { value: 'documents', label: 'Documents' },
           { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'insurance', label: 'Insurance' },
-          { value: 'emails', label: 'Emails' },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'notes', label: 'Notes' },
           ...(quizAnswers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
@@ -1193,7 +1194,7 @@ export default function SurrogateDetailPage() {
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="mt-4">
-          <CaseEmailsTab caseId={surrogate.id} caseType="gc" caseName={surrogate.name} caseEmail={surrogate.email} caseManagerName={getAdminStaff().find(a => a.email === surrogate.assignedTo)?.name} />
+          <CaseEmailsTab caseId={surrogate.id} caseType="gc" caseName={surrogate.name} caseEmail={surrogate.email} caseManagerName={getAdminStaff().find(a => a.email === surrogate.assignedTo)?.name} contactEmails={[surrogate.email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />
         </TabsContent>
 
         {/* Notes Tab */}

@@ -57,6 +57,7 @@ export default function IPDetailPage() {
   const [partnerInviteResult, setPartnerInviteResult] = useState(null)
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
+  const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
@@ -455,7 +456,7 @@ export default function IPDetailPage() {
           { value: 'profile', label: 'Profile' },
           { value: 'documents', label: 'Documents' },
           { value: 'texts', label: 'Texts' },
-          { value: 'emails', label: 'Emails' },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'notes', label: 'Notes' },
           ...(ip?.answers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
@@ -552,7 +553,7 @@ export default function IPDetailPage() {
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="space-y-6 mt-4">
-          <CaseEmailsTab caseId={ip?.id} caseType="ip" caseName={ip?.names} caseEmail={ip?.email} caseManagerName={getAdminStaff().find(a => a.email === ip?.assignedTo)?.name} />
+          <CaseEmailsTab caseId={ip?.id} caseType="ip" caseName={ip?.names} caseEmail={ip?.email} caseManagerName={getAdminStaff().find(a => a.email === ip?.assignedTo)?.name} contactEmails={[ip?.email, ip?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />
         </TabsContent>
 
         {/* Notes Tab */}

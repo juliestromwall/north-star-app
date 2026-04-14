@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate } from '@/lib/db'
-import { getGoogleStatus, getEmail, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
+import { supabase } from '@/lib/supabase'
+import { getGoogleStatus, getEmail, listEmails, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
 import { useDrafts } from '@/context/DraftContext'
@@ -48,10 +49,12 @@ const EMAIL_TAGS = [
   { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
 ]
 
-export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, additionalCaseIds = [], caseManagerName }) {
+export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, additionalCaseIds = [], caseManagerName, contactEmails = [], onUnreadCount }) {
   const { currentUser, isMasterAdmin } = useRole()
   const userId = currentUser?.id
   const [emails, setEmails] = useState([])
+  const [inboxEmails, setInboxEmails] = useState([])
+  const [loadingInbox, setLoadingInbox] = useState(false)
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
   const [selectedEmail, setSelectedEmail] = useState(null)
@@ -62,6 +65,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   const [emailSearch, setEmailSearch] = useState('')
   const [templateOpen, setTemplateOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
+  const [viewMode, setViewMode] = useState('logged') // 'logged' | 'inbox'
   const { openDraft } = useDrafts()
 
   useEffect(() => {
@@ -82,8 +86,103 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       const visible = isMasterAdmin ? emailData : emailData.filter(e => !e.is_private)
       setEmails(visible)
       setConnected(status.connected)
+      // Fetch inbox emails from Gmail for case contacts
+      if (status.connected && userId && contactEmails.length > 0) {
+        fetchInboxEmails(userId, contactEmails, visible)
+      }
     }).finally(() => setLoading(false))
   }, [caseId, userId, isMasterAdmin])
+
+  async function fetchInboxEmails(uid, contacts, loggedEmails) {
+    setLoadingInbox(true)
+    try {
+      const query = contacts.map(e => `from:${e} OR to:${e}`).join(' OR ')
+      const data = await listEmails(uid, { query, maxResults: 30 })
+      if (!data.messages?.length) { setInboxEmails([]); setLoadingInbox(false); return }
+
+      // Fetch metadata for each message
+      const fetched = await Promise.all(
+        data.messages.slice(0, 30).map(m => getEmail(uid, m.id, 'metadata').catch(() => null))
+      )
+      const parsed = fetched.filter(Boolean).map(parseEmailHeaders)
+
+      // Filter out already-logged emails
+      const loggedIds = new Set(loggedEmails.map(e => e.gmail_message_id))
+      const unlogged = parsed.filter(e => !loggedIds.has(e.id))
+
+      setInboxEmails(unlogged)
+
+      // Report unread count to parent
+      const unreadCount = unlogged.filter(e => e.isUnread).length
+      if (onUnreadCount) onUnreadCount(unreadCount)
+    } catch (err) {
+      console.error('Failed to fetch inbox emails:', err)
+    }
+    setLoadingInbox(false)
+  }
+
+  // View a Gmail inbox email
+  const handleViewInboxEmail = async (msg) => {
+    setSelectedEmail({ ...msg, _fromInbox: true })
+    setLoadingFull(true)
+    setFullEmail(null)
+    try {
+      const full = await getEmail(userId, msg.id, 'full')
+      const headers = parseEmailHeaders(full)
+      const bodyHtml = parseEmailBody(full)
+      const attachments = parseEmailAttachments(full)
+      setFullEmail({ ...headers, bodyHtml, attachments })
+      // Mark as read in Gmail
+      if (msg.isUnread) {
+        const { modifyEmail } = await import('@/lib/google')
+        await modifyEmail(userId, msg.id, { removeLabels: ['UNREAD'] })
+        setInboxEmails(prev => prev.map(e => e.id === msg.id ? { ...e, isUnread: false, labelIds: (e.labelIds || []).filter(l => l !== 'UNREAD') } : e))
+        const newUnread = inboxEmails.filter(e => e.isUnread && e.id !== msg.id).length
+        if (onUnreadCount) onUnreadCount(newUnread)
+      }
+    } catch {
+      setFullEmail(null)
+    }
+    setLoadingFull(false)
+  }
+
+  // Quick-log an inbox email to this case
+  const handleQuickLog = async (msg) => {
+    if (!supabase || !caseId) return
+    try {
+      // Fetch body for storage
+      let bodyHtml = null
+      try {
+        const full = await getEmail(userId, msg.id, 'full')
+        bodyHtml = parseEmailBody(full)
+      } catch {}
+      const { error } = await supabase.from('case_emails').insert({
+        gmail_message_id: msg.id,
+        gmail_thread_id: msg.threadId,
+        case_id: caseId,
+        case_type: caseType,
+        subject: msg.subject,
+        from_address: msg.from,
+        to_address: msg.to,
+        date: msg.date ? new Date(msg.date).toISOString() : null,
+        snippet: msg.snippet,
+        body_html: bodyHtml,
+        logged_by: userId,
+        logged_by_name: currentUser?.name || '',
+      })
+      if (!error) {
+        // Move from inbox list to logged list
+        setInboxEmails(prev => prev.filter(e => e.id !== msg.id))
+        setEmails(prev => [{
+          gmail_message_id: msg.id, subject: msg.subject, from_address: msg.from,
+          to_address: msg.to, date: msg.date ? new Date(msg.date).toISOString() : null,
+          snippet: msg.snippet, body_html: bodyHtml, logged_by_name: currentUser?.name || '',
+        }, ...prev])
+      }
+    } catch (err) {
+      console.error('Quick log failed:', err)
+    }
+  }
 
   const handleDelete = async (emailId) => {
     if (!confirm('Remove this email from this case?')) return
@@ -220,23 +319,47 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   // Tags that exist on logged emails
   const usedTags = [...new Set(emails.map(e => e.tag).filter(Boolean))]
 
+  const unreadInboxCount = inboxEmails.filter(e => e.isUnread).length
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{filteredEmails.length} of {emails.length} email{emails.length !== 1 ? 's' : ''}</p>
+        <div className="flex items-center gap-2">
+          {/* View mode tabs */}
+          {contactEmails.length > 0 && connected && (
+            <div className="flex items-center border rounded-lg overflow-hidden">
+              <button onClick={() => setViewMode('logged')} className={`px-3 py-1 text-xs font-medium transition-colors ${viewMode === 'logged' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+                Logged ({emails.length})
+              </button>
+              <button onClick={() => setViewMode('inbox')} className={`px-3 py-1 text-xs font-medium transition-colors relative ${viewMode === 'inbox' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
+                Inbox ({inboxEmails.length})
+                {unreadInboxCount > 0 && viewMode !== 'inbox' && (
+                  <span className="absolute -top-1 -right-1 flex size-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full size-2 bg-pink-500" />
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+          {viewMode === 'logged' && <p className="text-sm text-muted-foreground">{filteredEmails.length} email{filteredEmails.length !== 1 ? 's' : ''}</p>}
+          {viewMode === 'inbox' && <p className="text-sm text-muted-foreground">{inboxEmails.length} from contacts{unreadInboxCount > 0 ? ` · ${unreadInboxCount} unread` : ''}</p>}
+        </div>
         <div className="flex items-center gap-2">
           {caseEmail && (
             <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => setTemplateOpen(true)}>
               <FileText className="size-3" /> Send Template
             </Button>
           )}
-          <div className="relative w-48">
-            <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
-            <Input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Search emails..." className="h-7 text-xs pl-8" />
-          </div>
+          {viewMode === 'logged' && (
+            <div className="relative w-48">
+              <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+              <Input value={emailSearch} onChange={e => setEmailSearch(e.target.value)} placeholder="Search emails..." className="h-7 text-xs pl-8" />
+            </div>
+          )}
         </div>
       </div>
-      {usedTags.length > 0 && (
+      {viewMode === 'logged' && usedTags.length > 0 && (
         <div className="flex flex-wrap gap-1">
           <button onClick={() => setTagFilter('')} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${!tagFilter ? 'bg-[#283693] text-white border-transparent' : 'bg-white text-stone-500 border-stone-200'}`}>All</button>
           {usedTags.map(t => {
@@ -250,7 +373,45 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           })}
         </div>
       )}
-      <Card className="rounded-2xl">
+      {/* Inbox view */}
+      {viewMode === 'inbox' && (
+        <Card className="rounded-2xl">
+          <CardContent className="p-0">
+            {loadingInbox ? (
+              <div className="flex items-center justify-center py-8"><Loader2 className="size-5 animate-spin text-stone-400" /></div>
+            ) : inboxEmails.length === 0 ? (
+              <p className="text-sm text-stone-400 text-center py-8">No recent emails from case contacts</p>
+            ) : (
+              <div className="divide-y">
+                {inboxEmails.map(msg => (
+                  <div key={msg.id} className={`px-4 py-3 flex items-start gap-3 group ${msg.isUnread ? 'bg-blue-50/40' : ''}`}>
+                    {msg.isUnread ? <MailOpen className="size-4 text-blue-500 mt-1 shrink-0" /> : <Mail className="size-4 text-muted-foreground mt-1 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button onClick={() => handleViewInboxEmail(msg)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">
+                            {msg.subject || '(no subject)'}
+                          </button>
+                          {msg.isUnread && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">New</span>}
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">{formatDate(msg.date)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">From: {extractName(msg.from) || msg.from}</p>
+                      {msg.snippet && <p className="text-xs text-muted-foreground truncate mt-0.5">{msg.snippet}</p>}
+                    </div>
+                    <button onClick={() => handleQuickLog(msg)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log to this case">
+                      <LinkIcon className="size-3 inline mr-1" />Log
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Logged emails view */}
+      {viewMode === 'logged' && <Card className="rounded-2xl">
         <CardContent className="p-0">
           <div className="divide-y">
             {filteredEmails.map(email => {
@@ -308,7 +469,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
             )})}
           </div>
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Full email view dialog */}
       <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setFullEmail(null) } }}>
