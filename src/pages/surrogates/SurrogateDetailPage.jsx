@@ -1023,7 +1023,6 @@ export default function SurrogateDetailPage() {
           { value: 'overview', label: 'Overview' },
           { value: 'contact', label: 'Application' },
           { value: 'profile', label: 'Profile' },
-          { value: 'screening', label: 'Checklist' },
           { value: 'records', label: (() => {
             const rt = recordTracking || {}
             const pregs = profileData?.pregnancyHistory?.pregnancies || []
@@ -1055,6 +1054,22 @@ export default function SurrogateDetailPage() {
             <CaseCalendarWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
             <CaseTasksWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
           </div>
+          {/* Checklist */}
+          {(() => {
+            const currentStageId = stageStatus?.stage || 'pre-qualification'
+            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
+            const allSteps = getChecklistSteps('gc', currentStageId)
+            return (
+              <TrackingTable
+                title={`${currentStageLabel} Checklist`}
+                steps={allSteps}
+                statuses={CHECKLIST_STEP_STATUSES}
+                tracking={recordTracking}
+                onUpdate={updateRecord}
+                currentUserName={currentUser.name}
+              />
+            )
+          })()}
         </TabsContent>
 
         {/* Application Tab */}
@@ -1080,24 +1095,7 @@ export default function SurrogateDetailPage() {
           />
         </TabsContent>
 
-        {/* Checklist Tab */}
-        <TabsContent value="screening" className="mt-4 space-y-6">
-          {(() => {
-            const currentStageId = stageStatus?.stage || 'pre-qualification'
-            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
-            const allSteps = getChecklistSteps('gc', currentStageId)
-            return (
-              <TrackingTable
-                title={`${currentStageLabel} Checklist`}
-                steps={allSteps}
-                statuses={CHECKLIST_STEP_STATUSES}
-                tracking={recordTracking}
-                onUpdate={updateRecord}
-                currentUserName={currentUser.name}
-              />
-            )
-          })()}
-        </TabsContent>
+        {/* Checklist tab removed — now in Overview */}
 
         {/* Medical Records Tab */}
         <TabsContent value="records" className="mt-4 space-y-6">

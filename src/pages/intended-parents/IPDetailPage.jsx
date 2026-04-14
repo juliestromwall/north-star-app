@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2,
+  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -32,7 +32,7 @@ import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
-import { getChecklistSteps, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
 
 function boolLabel(val, yesText = 'Yes', noText = 'No') {
@@ -453,7 +453,6 @@ export default function IPDetailPage() {
           { value: 'overview', label: 'Overview' },
           { value: 'application', label: 'Application' },
           { value: 'profile', label: 'Profile' },
-          { value: 'checklist', label: 'Checklist' },
           { value: 'documents', label: 'Documents' },
           { value: 'texts', label: 'Texts' },
           { value: 'emails', label: 'Emails' },
@@ -463,58 +462,50 @@ export default function IPDetailPage() {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="rounded-2xl">
-              <CardHeader><CardTitle>Intended Parent 1</CardTitle></CardHeader>
-              <CardContent className="space-y-1">
-                <InfoRow icon={Users} label="Name" value={ip.ip1Name} />
-                <InfoRow icon={Calendar} label="Date of Birth" value={a.primaryDob} />
-                {ip.age && <InfoRow icon={Users} label="Age" value={`${ip.age}`} />}
-                <InfoRow icon={Mail} label="Email" value={ip.email} />
-                <InfoRow icon={Phone} label="Phone" value={ip.phone} />
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl">
-              <CardHeader><CardTitle>Intended Parent 2</CardTitle></CardHeader>
-              <CardContent className="space-y-1">
-                {hasPartner ? (
-                  <>
-                    <InfoRow icon={Users} label="Name" value={ip.ip2Name} />
-                    <InfoRow icon={Calendar} label="Date of Birth" value={a.ip2Dob} />
-                    <InfoRow icon={Mail} label="Email" value={ip.ip2Email} />
-                    <InfoRow icon={Phone} label="Phone" value={ip.ip2Phone} />
-                  </>
-                ) : (
-                  <p className="text-sm text-stone-400">No partner on this journey</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl">
-              <CardHeader><CardTitle>Fertility Details</CardTitle></CardHeader>
-              <CardContent className="space-y-1">
-                <InfoRow icon={Stethoscope} label="Has RE" value={boolLabel(ip.hasRE)} />
-                {ip.hasRE && ip.reDoctorName && <InfoRow icon={Stethoscope} label="RE Doctor / Clinic" value={ip.reDoctorName} />}
-                <InfoRow icon={Baby} label="Frozen Embryos" value={boolLabel(ip.hasFrozenEmbryos)} />
-                {ip.hasFrozenEmbryos && ip.frozenEmbryoDetails && <InfoRow icon={Baby} label="Embryo Details" value={ip.frozenEmbryoDetails} />}
-                <InfoRow icon={Egg} label="Using Egg Donor" value={boolLabel(ip.usingEggDonor)} />
-                <InfoRow icon={Heart} label="Using Sperm Donor" value={boolLabel(ip.usingSpermDonor)} />
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl">
-              <CardHeader><CardTitle>Additional Details</CardTitle></CardHeader>
-              <CardContent className="space-y-1">
-                <InfoRow icon={ClipboardList} label="Wants Consultation" value={boolLabel(ip.wantsConsultation, 'Yes', 'Not right now')} />
-                <InfoRow icon={ClipboardList} label="How They Heard" value={ip.hearAboutUs || '—'} />
-              </CardContent>
-            </Card>
-          </div>
+          {/* Milestones */}
+          {(() => {
+            const milestones = getChecklistMilestones('ip', stageStatus?.stage || 'pre-qualification')
+            if (milestones.length === 0) return null
+            return (
+              <Card className="rounded-2xl">
+                <CardHeader><CardTitle>Milestones</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-3">
+                    {milestones.map(m => {
+                      const t = recordTracking[m.id] || {}
+                      const done = t.status === 'complete'
+                      return (
+                        <div key={m.id} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${done ? 'bg-green-50 border-green-200 text-green-700' : 'bg-stone-50 border-stone-200 text-stone-500'}`}>
+                          {done ? <CheckCircle2 className="size-3.5" /> : <Circle className="size-3.5" />}
+                          {m.label}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })()}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CaseCalendarWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
             <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
           </div>
+          {/* Checklist */}
+          {(() => {
+            const currentStageId = stageStatus?.stage || 'pre-qualification'
+            const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Consultation'
+            const allSteps = getChecklistSteps('ip', currentStageId)
+            return (
+              <TrackingTable
+                title={`${currentStageLabel} Checklist`}
+                steps={allSteps}
+                statuses={CHECKLIST_STEP_STATUSES}
+                tracking={recordTracking}
+                onUpdate={updateRecord}
+                currentUserName={currentUser.name}
+              />
+            )
+          })()}
         </TabsContent>
 
         {/* Application Tab */}
@@ -537,24 +528,7 @@ export default function IPDetailPage() {
           />
         </TabsContent>
 
-        {/* Checklist Tab */}
-        <TabsContent value="checklist" className="mt-4 space-y-6">
-          {(() => {
-            const currentStageId = stageStatus?.stage || 'pre-qualification'
-            const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
-            const allSteps = getChecklistSteps('ip', currentStageId)
-            return (
-              <TrackingTable
-                title={`${currentStageLabel} Checklist`}
-                steps={allSteps}
-                statuses={CHECKLIST_STEP_STATUSES}
-                tracking={recordTracking}
-                onUpdate={updateRecord}
-                currentUserName={currentUser.name}
-              />
-            )
-          })()}
-        </TabsContent>
+        {/* Checklist tab removed — now in Overview */}
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-6 mt-4">
