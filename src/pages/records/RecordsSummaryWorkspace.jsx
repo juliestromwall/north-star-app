@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
+import { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle, createContext, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileText, ChevronDown, ChevronRight, Save, Loader2, Download, Trash2, Plus, Merge, Eye, X, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, FileText, ChevronDown, ChevronRight, Save, Loader2, Download, Trash2, Plus, Merge, Eye, EyeOff, X, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
 
 const SUMMARY_KEY_PREFIX = 'records_summary_'
+const HiddenFieldsContext = createContext([])
 
 const DEFAULT_LABS = [
   'Blood Type', 'Antibody Screen', 'Hgb/Hct', 'PAP', 'Rubella Titer',
@@ -28,10 +29,23 @@ function SectionHeader({ title, open, onToggle }) {
   )
 }
 
-function FormField({ label, value, onChange, type = 'text', placeholder, rows }) {
+const HiddenToggleContext = createContext(null)
+
+function FormField({ label, value, onChange, type = 'text', placeholder, rows, fp: fpProp }) {
+  const ctx = useContext(HiddenToggleContext)
+  // Auto-generate fp from label if not provided
+  const fp = fpProp || (label ? label.toLowerCase().replace(/[^a-z0-9]+/g, '_') : null)
+  const isHidden = fp && ctx?.hiddenFields?.includes(fp)
   return (
-    <div className="space-y-0.5">
-      <label className="text-[10px] font-semibold text-stone-400 uppercase">{label}</label>
+    <div className={`space-y-0.5 ${isHidden ? 'opacity-40' : ''}`}>
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] font-semibold text-stone-400 uppercase">{label}</label>
+        {fp && ctx?.onToggle && (
+          <button onClick={() => ctx.onToggle(fp)} className={`p-0.5 rounded transition-colors ${isHidden ? 'text-red-400 hover:text-red-600' : 'text-stone-300 hover:text-stone-500'}`} title={isHidden ? 'Hidden from PDF — click to show' : 'Visible on PDF — click to hide'}>
+            {isHidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+          </button>
+        )}
+      </div>
       {rows ? (
         <Textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows} className="text-sm" />
       ) : (
@@ -281,8 +295,10 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
   const [openSections, setOpenSections] = useState({ general: true, pregnancies: true, labs: true })
   const [labRows, setLabRows] = useState([])
 
+  const [hiddenFields, setHiddenFields] = useState([])
+
   useImperativeHandle(ref, () => ({
-    getFormData: () => ({ ...form, labs: labRows }),
+    getFormData: () => ({ ...form, labs: labRows, _hiddenFields: hiddenFields }),
   }))
 
   // Initialize form from saved summary or profile data
@@ -383,8 +399,13 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
     // Initialize labs
     const savedLabs = saved.labs || DEFAULT_LABS.map(name => ({ name, result: '', date: '', pageNumber: '' }))
     setLabRows(savedLabs)
+    setHiddenFields(saved._hiddenFields || [])
     setForm(init)
   }, [surrogate, profileData, clinicData, summary])
+
+  function toggleHidden(fp) {
+    setHiddenFields(prev => prev.includes(fp) ? prev.filter(f => f !== fp) : [...prev, fp])
+  }
 
   function updateField(key, value) {
     setForm(f => ({ ...f, [key]: value }))
@@ -419,10 +440,13 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
   }
 
   function handleSave() {
-    onSave({ ...form, labs: labRows })
+    onSave({ ...form, labs: labRows, _hiddenFields: hiddenFields })
   }
 
+  const hiddenCtx = useMemo(() => ({ hiddenFields, onToggle: toggleHidden }), [hiddenFields])
+
   return (
+    <HiddenToggleContext.Provider value={hiddenCtx}>
     <div className="flex flex-col h-full">
       <div className="p-3 border-b bg-stone-50 flex items-center justify-between">
         <p className="text-xs font-semibold text-stone-600">GC Medical Records Summary</p>
@@ -594,11 +618,14 @@ const SummaryForm = forwardRef(function SummaryForm({ surrogateId, surrogate, pr
         </div>
       </div>
     </div>
+    </HiddenToggleContext.Provider>
   )
 })
 
 // ── Summary Preview / PDF Export ────────────────────────
-function InfoGridRow({ label, value, span }) {
+function InfoGridRow({ label, value, span, fp }) {
+  const hiddenFields = useContext(HiddenFieldsContext)
+  if (fp && hiddenFields.includes(fp)) return null
   return (
     <div style={{ backgroundColor: 'white', padding: '5px 12px', ...(span ? { gridColumn: `span ${span}` } : {}) }}>
       <div style={{ fontSize: 8, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 0 }}>{label}</div>
@@ -646,8 +673,10 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
   if (!data) return null
   const pregnancies = data.pregnancies || []
   const labs = data.labs || []
+  const previewHiddenFields = data._hiddenFields || []
 
   return (
+    <HiddenFieldsContext.Provider value={previewHiddenFields}>
     <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center overflow-y-auto py-8">
       <div className="bg-white rounded-xl shadow-2xl max-w-[816px] w-full mx-4">
         {/* Toolbar */}
@@ -751,10 +780,10 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           <div data-section="medical">
             <SectionLabel>General Medical History</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-              <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} />
-              <InfoGridRow label="Allergies" value={data.allergies} span={2} />
-              <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} />
-              <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} />
+              <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} fp="current_medications" />
+              <InfoGridRow label="Allergies" value={data.allergies} span={2} fp="allergies" />
+              <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} fp="pertinent_medical_history" />
+              <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} fp="surgical_history" />
             </div>
           </div>
 
@@ -762,9 +791,9 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           <div data-section="social">
             <SectionLabel>Social History</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-              <InfoGridRow label="Alcohol" value={data.alcohol} />
-              <InfoGridRow label="Tobacco" value={data.tobacco} />
-              <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} />
+              <InfoGridRow label="Alcohol" value={data.alcohol} fp="alcohol" />
+              <InfoGridRow label="Tobacco" value={data.tobacco} fp="tobacco" />
+              <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} fp="recreational_drugs" />
             </div>
           </div>
 
@@ -772,13 +801,13 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           <div data-section="gyn">
             <SectionLabel>Gynecologic History</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-              <InfoGridRow label="LMP" value={data.lmp} />
-              <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} />
-              <InfoGridRow label="Menarche" value={data.menarche} />
-              <InfoGridRow label="Current Contraception" value={data.contraception} />
-              <InfoGridRow label="History of STD" value={data.stdHistory} />
-              <InfoGridRow label="GYN Problems" value={data.gynProblems} />
-              <InfoGridRow label="Infertility History" value={data.infertilityHistory} span={3} />
+              <InfoGridRow label="LMP" value={data.lmp} fp="lmp" />
+              <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} fp="cycle_length" />
+              <InfoGridRow label="Menarche" value={data.menarche} fp="menarche" />
+              <InfoGridRow label="Current Contraception" value={data.contraception} fp="current_contraception" />
+              <InfoGridRow label="History of STD" value={data.stdHistory} fp="history_of_std" />
+              <InfoGridRow label="GYN Problems" value={data.gynProblems} fp="gyn_problems" />
+              <InfoGridRow label="Infertility History" value={data.infertilityHistory} span={3} fp="infertility_history" />
             </div>
           </div>
 
@@ -806,24 +835,24 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-                  <InfoGridRow label="GBS" value={preg.gbs} />
-                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} />
-                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} />
+                  <InfoGridRow label="GBS" value={preg.gbs} fp="gbs" />
+                  <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp="glucose_screen" />
+                  <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp="gc_cycle" />
                   {(preg.glucoseValues?.fasting || preg.glucoseValues?.oneHr) && (
                     <>
-                      <InfoGridRow label="Fasting" value={preg.glucoseValues?.fasting ? `${preg.glucoseValues.fasting} mg/dl` : ''} />
-                      <InfoGridRow label="1hr" value={preg.glucoseValues?.oneHr ? `${preg.glucoseValues.oneHr} mg/dl` : ''} />
-                      <InfoGridRow label="2hr / 3hr" value={[preg.glucoseValues?.twoHr, preg.glucoseValues?.threeHr].filter(Boolean).join(' / ') + (preg.glucoseValues?.twoHr ? ' mg/dl' : '')} />
+                      <InfoGridRow label="Fasting" value={preg.glucoseValues?.fasting ? `${preg.glucoseValues.fasting} mg/dl` : ''} fp="fasting" />
+                      <InfoGridRow label="1hr" value={preg.glucoseValues?.oneHr ? `${preg.glucoseValues.oneHr} mg/dl` : ''} fp="1hr" />
+                      <InfoGridRow label="2hr / 3hr" value={[preg.glucoseValues?.twoHr, preg.glucoseValues?.threeHr].filter(Boolean).join(' / ') + (preg.glucoseValues?.twoHr ? ' mg/dl' : '')} fp="2hr_3hr" />
                     </>
                   )}
-                  <InfoGridRow label="BP's" value={preg.bps} />
-                  <InfoGridRow label="Anesthesia" value={preg.anesthesia} />
-                  <InfoGridRow label="Weight Gained" value={preg.weightGained} />
-                  <InfoGridRow label="APGAR" value={preg.apgar} />
-                  <InfoGridRow label="Est. Blood Loss" value={preg.ebl} />
-                  <InfoGridRow label="Complications" value={preg.complications} span={3} />
-                  <InfoGridRow label="Delivery Complications" value={preg.deliveryComplications} span={3} />
-                  <InfoGridRow label="Postpartum" value={preg.postpartumComplications} span={3} />
+                  <InfoGridRow label="BP's" value={preg.bps} fp="bp_s" />
+                  <InfoGridRow label="Anesthesia" value={preg.anesthesia} fp="anesthesia" />
+                  <InfoGridRow label="Weight Gained" value={preg.weightGained} fp="weight_gained" />
+                  <InfoGridRow label="APGAR" value={preg.apgar} fp="apgar" />
+                  <InfoGridRow label="Est. Blood Loss" value={preg.ebl} fp="estimated_blood_loss" />
+                  <InfoGridRow label="Complications" value={preg.complications} span={3} fp="complications" />
+                  <InfoGridRow label="Delivery Complications" value={preg.deliveryComplications} span={3} fp="delivery_note_complications" />
+                  <InfoGridRow label="Postpartum" value={preg.postpartumComplications} span={3} fp="postpartum_complications" />
                 </div>
               )}
             </div>
@@ -867,6 +896,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
         </div>
       </div>
     </div>
+    </HiddenFieldsContext.Provider>
   )
 }
 
