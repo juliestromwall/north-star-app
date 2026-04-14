@@ -290,7 +290,7 @@ export default function IPListPage() {
           <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ips.length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
-        {IP_STAGES.map(stage => (
+        {IP_STAGES.filter(s => !s.hidden).map(stage => (
           <button
             key={stage.id}
             onClick={() => setStageFilter(stageFilter === stage.id ? 'all' : stage.id)}
