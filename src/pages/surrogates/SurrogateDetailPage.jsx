@@ -48,6 +48,7 @@ import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
+import QuickNote from '@/components/shared/QuickNote'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera } from 'lucide-react'
@@ -1017,6 +1018,9 @@ export default function SurrogateDetailPage() {
         currentUser={currentUser}
         onSaved={(updated) => setQuizAnswers(updated)}
       />
+
+      {/* Quick Note */}
+      <QuickNote caseId={surrogate.id} caseType="gc" />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">

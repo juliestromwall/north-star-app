@@ -14,6 +14,7 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import QuickNote from '@/components/shared/QuickNote'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
@@ -2424,6 +2425,9 @@ export default function JourneyDetailPage() {
 
         </div>{/* end GC+IP stacked column */}
       </div>
+
+      {/* Quick Note */}
+      <QuickNote caseId={journey.id} caseType="journey" />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">

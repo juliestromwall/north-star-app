@@ -24,6 +24,7 @@ import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, 
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
+import QuickNote from '@/components/shared/QuickNote'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
@@ -447,6 +448,9 @@ export default function IPDetailPage() {
         currentUser={currentUser}
         onSaved={(updated) => setIp(prev => ({ ...prev, answers: updated }))}
       />
+
+      {/* Quick Note */}
+      <QuickNote caseId={ip.id} caseType="ip" />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
