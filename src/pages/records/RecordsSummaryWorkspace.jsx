@@ -780,10 +780,10 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           <div data-section="medical">
             <SectionLabel>General Medical History</SectionLabel>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-              <InfoGridRow label="Current Medications" value={data.currentMedications} span={2} fp="current_medications" />
-              <InfoGridRow label="Allergies" value={data.allergies} span={2} fp="allergies" />
-              <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} span={2} fp="pertinent_medical_history" />
-              <InfoGridRow label="Surgical History" value={data.surgicalHistory} span={2} fp="surgical_history" />
+              <InfoGridRow label="Current Medications" value={data.currentMedications} fp="current_medications" />
+              <InfoGridRow label="Allergies" value={data.allergies} fp="allergies" />
+              <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} fp="pertinent_medical_history" />
+              <InfoGridRow label="Surgical History" value={data.surgicalHistory} fp="surgical_history" />
             </div>
           </div>
 
