@@ -81,17 +81,17 @@ function UpdateDialog({ open, onOpenChange, updates, newUpdate, setNewUpdate, sa
         </DialogHeader>
         <div className="space-y-3 flex-1 overflow-y-auto">
           {/* Add new update */}
-          <div className="space-y-2">
+          <div className="flex gap-2">
             <Textarea
               value={newUpdate}
               onChange={e => setNewUpdate(e.target.value)}
               placeholder="Type a journey update..."
-              rows={2}
-              className="text-sm"
+              rows={1}
+              className="text-sm flex-1 resize-none border-stone-200 focus:border-stone-300 focus:ring-0"
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAdd() } }}
             />
-            <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
-              {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Add Update
+            <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#283693' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
+              {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Add
             </Button>
           </div>
 
