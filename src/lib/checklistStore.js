@@ -320,7 +320,7 @@ export const INFO_ROW_FIELDS = [
   { key: 'monitoringClinic', label: 'Monitoring Clinic', dataPath: 'monitoringClinic', secondaryPath: 'monitoringDoctor' },
   { key: 'ipAttorney', label: 'IP Attorney', dataPath: 'ipAttorneyName', secondaryPath: 'ipAttorneyFirm' },
   { key: 'gcAttorney', label: 'GC Attorney', dataPath: 'gcAttorneyName', secondaryPath: 'gcAttorneyFirm' },
-  { key: 'obgyn', label: 'OBGYN', dataPath: 'obDoctor', secondaryPath: 'obClinic' },
+  { key: 'obClinic', label: 'OB Clinic', dataPath: 'obClinic', secondaryPath: 'obDoctor' },
   { key: 'deliveryHospital', label: 'Delivery Hospital', dataPath: 'deliveryHospital', secondaryPath: 'deliveryHospitalCity' },
 ]
 
