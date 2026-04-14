@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRole } from '@/context/RoleContext'
 import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
@@ -577,14 +578,14 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         </DialogContent>
       </Dialog>
 
-      {/* Attachment Preview */}
-      {previewAtt && (
-        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4"
-          onMouseDown={(e) => { if (e.target === e.currentTarget) { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) } }}>
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+      {/* Attachment Preview — portaled to body to escape Radix Dialog focus trap */}
+      {previewAtt && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <p className="text-sm font-semibold truncate">{previewAtt.filename}</p>
-              <button onMouseDown={(e) => { e.stopPropagation(); URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }} className="text-stone-400 hover:text-stone-600 p-1 rounded hover:bg-stone-100">
+              <button onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }} className="text-stone-400 hover:text-stone-600 p-2 rounded hover:bg-stone-100">
                 <X className="size-5" />
               </button>
             </div>
@@ -602,7 +603,8 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Save Attachment to Case — Folder Picker */}
