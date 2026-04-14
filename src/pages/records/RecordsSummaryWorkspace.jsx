@@ -779,7 +779,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* General Medical History */}
           <div data-section="medical">
             <SectionLabel>General Medical History</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1, backgroundColor: '#f5f5f4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
               <InfoGridRow label="Current Medications" value={data.currentMedications} fp="current_medications" />
               <InfoGridRow label="Allergies" value={data.allergies} fp="allergies" />
               <InfoGridRow label="Pertinent Medical History" value={data.pertinentMedicalHistory} fp="pertinent_medical_history" />
@@ -790,7 +790,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* Social History */}
           <div data-section="social">
             <SectionLabel>Social History</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#f5f5f4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
               <InfoGridRow label="Alcohol" value={data.alcohol} fp="alcohol" />
               <InfoGridRow label="Tobacco" value={data.tobacco} fp="tobacco" />
               <InfoGridRow label="Recreational Drugs" value={data.recreationalDrugs} fp="recreational_drugs" />
@@ -800,7 +800,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
           {/* GYN History */}
           <div data-section="gyn">
             <SectionLabel>Gynecologic History</SectionLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, backgroundColor: '#f5f5f4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
               <InfoGridRow label="LMP" value={data.lmp} fp="lmp" />
               <InfoGridRow label="Cycle Length" value={data.cycleLength ? `${data.cycleLength} days` : ''} fp="cycle_length" />
               <InfoGridRow label="Menarche" value={data.menarche} fp="menarche" />
@@ -825,7 +825,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                   No prenatal care received{preg.notes ? ` — ${preg.notes}` : ''}
                 </div>
               ) : limitedFields ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#f5f5f4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
                   <InfoGridRow label="GBS" value={preg.gbs} fp={`g${i}_gbs`} />
                   <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp={`g${i}_glucose_screen`} />
                   <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp={`g${i}_gc_cycle`} />
@@ -834,7 +834,7 @@ function SummaryPreview({ data, surrogateName, onClose, onExport, exporting }) {
                   <InfoGridRow label="Notes" value={preg.complications} span={3} fp={`g${i}_complications`} />
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#e7e5e4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, backgroundColor: '#f5f5f4', borderRadius: 8, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
                   <InfoGridRow label="GBS" value={preg.gbs} fp={`g${i}_gbs`} />
                   <InfoGridRow label="Glucose Screen" value={preg.glucoseScreen} fp={`g${i}_glucose_screen`} />
                   <InfoGridRow label="GC Cycle" value={preg.gcCycle} fp={`g${i}_gc_cycle`} />
