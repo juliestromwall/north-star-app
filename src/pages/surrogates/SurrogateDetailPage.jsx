@@ -21,7 +21,7 @@ import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { US_STATES as US_STATES_FULL } from '@/components/profile/profileConstants'
+import { US_STATES as US_STATES_FULL, FIELD_LABELS } from '@/components/profile/profileConstants'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import { useDrafts } from '@/context/DraftContext'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
@@ -2932,6 +2932,7 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
 }
 
 function formatFieldLabel(key) {
+  if (FIELD_LABELS[key]) return FIELD_LABELS[key]
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim()
 }
 

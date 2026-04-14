@@ -1015,25 +1015,25 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         {/* Fertility */}
         <PVSection title="Fertility Information" icon={Stethoscope}>
           <div className="space-y-1">
-            <PVYesNo label="Same biological father for all children" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
-            {fertility.sameBioFather === 'no' && <PVField label="Details" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
-            <PVYesNo label="Infertility treatment" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
-            {fertility.infertilityTreatment === 'yes' && <PVField label="Details" value={fertility.infertilityTreatmentDetails} fp="fertility.infertilityTreatmentDetails" />}
-            <PVYesNo label="Gynecological problems" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
-            {fertility.gynecologicalProblems === 'yes' && <PVField label="Details" value={fertility.gynecologicalProblemsDetails} fp="fertility.gynecologicalProblemsDetails" />}
-            <PVYesNo label="Currently breastfeeding" value={fertility.breastfeeding} fp="fertility.breastfeeding" />
+            <PVYesNo label="Is the biological father the same for all of your biological children?" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
+            {fertility.sameBioFather === 'no' && <PVField label="Please explain" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
+            <PVYesNo label="Have you ever been seen by a doctor for infertility treatment?" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
+            {fertility.infertilityTreatment === 'yes' && <PVField label="Please provide details" value={fertility.infertilityTreatmentDetails} fp="fertility.infertilityTreatmentDetails" />}
+            <PVYesNo label="Have you ever been told of any gynecological problems?" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
+            {fertility.gynecologicalProblems === 'yes' && <PVField label="Please provide details" value={fertility.gynecologicalProblemsDetails} fp="fertility.gynecologicalProblemsDetails" />}
+            <PVYesNo label="Are you currently breastfeeding/lactating?" value={fertility.breastfeeding} fp="fertility.breastfeeding" />
             {fertility.breastfeeding === 'yes' && <PVField label="When do you expect to stop?" value={fertility.breastfeedingStopDate} fp="fertility.breastfeedingStopDate" />}
-            <PVYesNo label="Cycles 28–30 days" value={fertility.cycleLength} fp="fertility.cycleLength" />
-            {fertility.cycleLength === 'no' && <PVField label="Typical cycle length" value={fertility.cycleLengthDetails} fp="fertility.cycleLengthDetails" />}
-            <PVYesNo label="Medication during pregnancy (aside from prenatals)" value={fertility.pregnancyMedication} fp="fertility.pregnancyMedication" />
-            {fertility.pregnancyMedication === 'yes' && <PVField label="Medications" value={fertility.pregnancyMedicationList} fp="fertility.pregnancyMedicationList" />}
-            <PVYesNo label="Willing to travel to Level II+ NICU" value={fertility.willingToTravelNICU} fp="fertility.willingToTravelNICU" />
+            <PVYesNo label="Are your cycles typically between 28 to 30 days?" value={fertility.cycleLength} fp="fertility.cycleLength" />
+            {fertility.cycleLength === 'no' && <PVField label="What is your typical cycle length?" value={fertility.cycleLengthDetails} fp="fertility.cycleLengthDetails" />}
+            <PVYesNo label="Did you ever take medication (aside from prenatals) during pregnancy?" value={fertility.pregnancyMedication} fp="fertility.pregnancyMedication" />
+            {fertility.pregnancyMedication === 'yes' && <PVField label="Please list medications" value={fertility.pregnancyMedicationList} fp="fertility.pregnancyMedicationList" />}
+            <PVYesNo label="Are you ok traveling to a hospital with at least a Level II NICU?" value={fertility.willingToTravelNICU} fp="fertility.willingToTravelNICU" />
           </div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 pt-4 border-t border-gray-50">
-            <PVField label="Contraceptive Method" value={fertility.contraceptiveMethod} fp="fertility.contraceptiveMethod" />
-            <PVField label="Last Period" value={fertility.lastPeriod} fp="fertility.lastPeriod" />
-            <PVField label="Nearest NICU" value={fertility.nearestNICU} fp="fertility.nearestNICU" />
-            <PVField label="Time to conceive after stopping contraceptives" value={fertility.timeToConceive} fp="fertility.timeToConceive" className="col-span-2" />
+            <PVField label="Which contraceptive method do you currently use?" value={fertility.contraceptiveMethod} fp="fertility.contraceptiveMethod" />
+            <PVField label="When was the start of your last period?" value={fertility.lastPeriod} fp="fertility.lastPeriod" />
+            <PVField label="What is the nearest hospital with a Level II or III NICU?" value={fertility.nearestNICU} fp="fertility.nearestNICU" />
+            <PVField label="How long after stopping contraceptives did it take to get pregnant?" value={fertility.timeToConceive} fp="fertility.timeToConceive" className="col-span-2" />
           </div>
           {fertility.pregnancyDetails && (
             <div className="mt-4 pt-4 border-t border-gray-50">
