@@ -3791,39 +3791,146 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               </SelectContentUI>
             </SelectUI>
           </div>
-          {item.outcome === 'Live Birth' && (
-            <>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400 uppercase">Sex</span>
-                <SelectUI value={item.sex || ''} onValueChange={v => updateItem('sex', v)}>
-                  <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                  <SelectContentUI>
-                    <SelectItemUI value="Male">Male</SelectItemUI>
-                    <SelectItemUI value="Female">Female</SelectItemUI>
-                  </SelectContentUI>
-                </SelectUI>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400 uppercase">Single/Multiples</span>
-                <SelectUI value={item.singleOrMultiples || ''} onValueChange={v => updateItem('singleOrMultiples', v)}>
-                  <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-                  <SelectContentUI>
-                    <SelectItemUI value="Single">Single</SelectItemUI>
-                    <SelectItemUI value="Twins">Twins</SelectItemUI>
-                    <SelectItemUI value="Triplets+">Triplets+</SelectItemUI>
-                  </SelectContentUI>
-                </SelectUI>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400 uppercase">Birth Weight</span>
-                <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weight || ''} onChange={e => updateItem('weight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] text-gray-400 uppercase">Birth Length</span>
-                <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.length || ''} onChange={e => updateItem('length', e.target.value)} placeholder="inches" />
-              </div>
-            </>
-          )}
+          {item.outcome === 'Live Birth' && (() => {
+            const isMultiples = item.singleOrMultiples === 'Twins' || item.singleOrMultiples === 'Triplets+'
+            const isTriplets = item.singleOrMultiples === 'Triplets+'
+            return (
+              <>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-gray-400 uppercase">Single/Multiples</span>
+                  <SelectUI value={item.singleOrMultiples || ''} onValueChange={v => updateItem('singleOrMultiples', v)}>
+                    <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                    <SelectContentUI>
+                      <SelectItemUI value="Single">Single</SelectItemUI>
+                      <SelectItemUI value="Twins">Twins</SelectItemUI>
+                      <SelectItemUI value="Triplets+">Triplets+</SelectItemUI>
+                    </SelectContentUI>
+                  </SelectUI>
+                </div>
+
+                {/* Baby A */}
+                <div className={`${isMultiples ? 'col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2' : 'contents'}`}>
+                  {isMultiples && <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby A</p>}
+                  <div className={isMultiples ? 'grid grid-cols-2 sm:grid-cols-4 gap-2' : 'contents'}>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase">Name</span>
+                      <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} placeholder="Baby's name" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase">Sex</span>
+                      <SelectUI value={item.sex || ''} onValueChange={v => updateItem('sex', v)}>
+                        <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                        <SelectContentUI>
+                          <SelectItemUI value="Male">Male</SelectItemUI>
+                          <SelectItemUI value="Female">Female</SelectItemUI>
+                        </SelectContentUI>
+                      </SelectUI>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+                      <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
+                        <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                        <SelectContentUI>
+                          <SelectItemUI value="Vaginal">Vaginal</SelectItemUI>
+                          <SelectItemUI value="C-Section">C-Section</SelectItemUI>
+                        </SelectContentUI>
+                      </SelectUI>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase">Weight</span>
+                      <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weight || ''} onChange={e => updateItem('weight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-gray-400 uppercase">Length</span>
+                      <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.length || ''} onChange={e => updateItem('length', e.target.value)} placeholder="inches" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Baby B */}
+                {isMultiples && (
+                  <div className="col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2">
+                    <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby B</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Name</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyBName || ''} onChange={e => updateItem('babyBName', e.target.value)} placeholder="Baby's name" />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Sex</span>
+                        <SelectUI value={item.babyBSex || ''} onValueChange={v => updateItem('babyBSex', v)}>
+                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                          <SelectContentUI>
+                            <SelectItemUI value="Male">Male</SelectItemUI>
+                            <SelectItemUI value="Female">Female</SelectItemUI>
+                          </SelectContentUI>
+                        </SelectUI>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+                        <SelectUI value={item.babyBDeliveryType || ''} onValueChange={v => updateItem('babyBDeliveryType', v)}>
+                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                          <SelectContentUI>
+                            <SelectItemUI value="Vaginal">Vaginal</SelectItemUI>
+                            <SelectItemUI value="C-Section">C-Section</SelectItemUI>
+                          </SelectContentUI>
+                        </SelectUI>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Weight</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyBWeight || ''} onChange={e => updateItem('babyBWeight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Length</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyBLength || ''} onChange={e => updateItem('babyBLength', e.target.value)} placeholder="inches" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Baby C */}
+                {isTriplets && (
+                  <div className="col-span-full rounded-lg border border-gray-200 bg-gray-50/50 p-3 space-y-2">
+                    <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Baby C</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Name</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyCName || ''} onChange={e => updateItem('babyCName', e.target.value)} placeholder="Baby's name" />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Sex</span>
+                        <SelectUI value={item.babyCSex || ''} onValueChange={v => updateItem('babyCSex', v)}>
+                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                          <SelectContentUI>
+                            <SelectItemUI value="Male">Male</SelectItemUI>
+                            <SelectItemUI value="Female">Female</SelectItemUI>
+                          </SelectContentUI>
+                        </SelectUI>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+                        <SelectUI value={item.babyCDeliveryType || ''} onValueChange={v => updateItem('babyCDeliveryType', v)}>
+                          <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                          <SelectContentUI>
+                            <SelectItemUI value="Vaginal">Vaginal</SelectItemUI>
+                            <SelectItemUI value="C-Section">C-Section</SelectItemUI>
+                          </SelectContentUI>
+                        </SelectUI>
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Weight</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyCWeight || ''} onChange={e => updateItem('babyCWeight', e.target.value)} placeholder="e.g. 7 lbs 4 oz" />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase">Length</span>
+                        <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.babyCLength || ''} onChange={e => updateItem('babyCLength', e.target.value)} placeholder="inches" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )
+          })()}
         </div>
         <div className="space-y-1">
           <span className="text-[10px] text-gray-400 uppercase">Complications / Details</span>
