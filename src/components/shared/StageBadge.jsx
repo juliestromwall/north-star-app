@@ -1,7 +1,8 @@
-import { SURROGATE_STAGES } from '@/lib/constants'
+import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
 
-export default function StageBadge({ stage, status, className = '' }) {
-  const stageObj = SURROGATE_STAGES.find(s => s.id === stage || s.label === stage)
+export default function StageBadge({ stage, status, className = '', caseType }) {
+  const stages = caseType === 'ip' ? IP_STAGES : SURROGATE_STAGES
+  const stageObj = stages.find(s => s.id === stage || s.label === stage) || SURROGATE_STAGES.find(s => s.id === stage || s.label === stage)
   const color = stageObj?.color || '#283693'
   const label = stageObj?.label || stage || '—'
 

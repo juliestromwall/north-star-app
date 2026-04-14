@@ -16,7 +16,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
-import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
+import { IP_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getChecklistMilestones } from '@/lib/checklistStore'
 import { getRecordTrackingBatch } from '@/lib/db'
@@ -72,8 +72,6 @@ export function MilestoneProgress({ caseId, stageId, recordTracking }) {
   )
 }
 
-const IP_STAGES = SURROGATE_STAGES.filter(s => !s.hidden).map(s => ({ ...s, label: IP_STAGE_LABELS[s.id] || s.label }))
-
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
   'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
@@ -125,7 +123,7 @@ export function IPTileCard({ ip, stageStatus, recordTracking }) {
                 </div>
               )}
               <div className="flex items-center gap-1.5 mt-1.5">
-                <StageBadge stage={ss.stage} status={ss.status} />
+                <StageBadge stage={ss.stage} status={ss.status} caseType="ip" />
               </div>
             </div>
           </div>
@@ -399,7 +397,7 @@ export default function IPListPage() {
                         </div>
                       )}
                       <div className="flex items-center gap-1.5 mt-1.5">
-                        <StageBadge stage={ss.stage} status={ss.status} />
+                        <StageBadge stage={ss.stage} status={ss.status} caseType="ip" />
                       </div>
                     </div>
                   </div>

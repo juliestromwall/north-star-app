@@ -78,9 +78,18 @@ export const SURROGATE_STAGES = [
   { id: 'journey-oversight', label: 'Matched Journey',    color: '#723bb4', order: 99, hidden: true },
 ]
 
-// IP-specific stage label overrides
+// IP-specific stages — only 4 stages for IPs
+export const IP_STAGES = [
+  { id: 'pre-qualification', label: 'Consultation', color: '#283693', order: 1 },
+  { id: 'matching',          label: 'Matching',     color: '#9b2ea7', order: 2 },
+  { id: 'holding',           label: 'Holding',      color: '#6b7280', order: 3 },
+  { id: 'withdrawn',         label: 'Withdrawn',    color: '#92400e', order: 4 },
+  { id: 'journey-oversight', label: 'Matched Journey', color: '#723bb4', order: 99, hidden: true },
+]
+
+// IP-specific stage label overrides (for backward compat)
 export const IP_STAGE_LABELS = {
-  'pre-qualification': 'Screening',
+  'pre-qualification': 'Consultation',
   'screening': 'Holding',
 }
 

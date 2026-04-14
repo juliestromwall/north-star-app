@@ -19,7 +19,7 @@ import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
-import { SURROGATE_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
+import { IP_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
@@ -148,7 +148,7 @@ export default function IPDetailPage() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
-                <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
+                <StageBadge stage={stageStatus.stage} status={stageStatus.status} caseType="ip" />
                 <AISummaryButton caseId={ip.id} caseName={ip.names || ip.name} caseType="ip" stage={stageStatus.stage} status={stageStatus.status} />
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
@@ -345,8 +345,8 @@ export default function IPDetailPage() {
 
             {/* Stage — clickable selector */}
             {(() => {
-              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
-              const caseStages = SURROGATE_STAGES.filter(s => !s.hidden)
+              const currentStageObj = IP_STAGES.find(s => s.id === stageStatus.stage) || IP_STAGES[0]
+              const caseStages = IP_STAGES.filter(s => !s.hidden)
               return (
                 <div className="relative">
                   <div
@@ -386,7 +386,7 @@ export default function IPDetailPage() {
 
             {/* Status — clickable selector */}
             {(() => {
-              const currentStageObj = SURROGATE_STAGES.find(s => s.id === stageStatus.stage) || SURROGATE_STAGES[0]
+              const currentStageObj = IP_STAGES.find(s => s.id === stageStatus.stage) || IP_STAGES[0]
               const availableStatuses = getStatusesForStage(stageStatus.stage, 'ip')
               return (
                 <div className="relative">
@@ -541,7 +541,7 @@ export default function IPDetailPage() {
         <TabsContent value="checklist" className="mt-4 space-y-6">
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
-            const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
+            const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
             const allSteps = getChecklistSteps('ip', currentStageId)
             return (
               <TrackingTable

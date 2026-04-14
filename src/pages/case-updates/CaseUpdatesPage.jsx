@@ -5,7 +5,7 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesBy
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
-import { SURROGATE_STAGES } from '@/lib/constants'
+import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
 import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -442,9 +442,11 @@ function IPUpdatesSheet({ ips }) {
     return map
   }, [ips])
 
+  const ipStageIds = IP_STAGES.filter(s => !s.hidden).map(s => s.id)
+
   const stageCounts = useMemo(() => {
     const counts = {}
-    for (const stage of SURROGATE_STAGES) counts[stage.id] = 0
+    for (const stage of IP_STAGES) counts[stage.id] = 0
     for (const ip of ips) {
       const stageId = allStageStatuses[ip.id]?.stage || 'pre-qualification'
       if (counts[stageId] !== undefined) counts[stageId]++
@@ -470,8 +472,8 @@ function IPUpdatesSheet({ ips }) {
         <p className="text-sm text-stone-400 mb-4">Click a stage to filter intended parents</p>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          {SCREENING_STAGES.map(stageId => {
-            const stage = SURROGATE_STAGES.find(s => s.id === stageId)
+          {ipStageIds.map(stageId => {
+            const stage = IP_STAGES.find(s => s.id === stageId)
             if (!stage) return null
             const active = stageFilter === stageId
             return (
@@ -499,7 +501,7 @@ function IPUpdatesSheet({ ips }) {
                   </th>
                   {filtered.map(ip => {
                     const ss = allStageStatuses[ip.id] || {}
-                    const stageLabel = SURROGATE_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
+                    const stageLabel = IP_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
                     return (
                       <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
                         <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
