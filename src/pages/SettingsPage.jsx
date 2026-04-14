@@ -4,7 +4,7 @@ import { useRole } from '@/context/RoleContext'
 import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
-import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions } from '@/lib/checklistStore'
+import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions, addInfoRow, INFO_ROW_FIELDS } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -279,13 +279,23 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
 
   const logType = step.logType || 'status'
 
+  const isInfoRow = step.type === 'info_row'
+
   return (
-    <div ref={setNodeRef} style={style} className="rounded-lg border bg-white px-3 py-2.5 group">
+    <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-violet-50/50 border-violet-200' : 'bg-white'}`}>
       <div className="flex items-center gap-2">
         <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
           <GripVertical className="size-4" />
         </button>
-        {editing ? (
+        {isInfoRow ? (
+          <>
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-[9px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded">INFO</span>
+              <span className="text-sm font-medium text-violet-700">{step.label}</span>
+            </div>
+            <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>
+          </>
+        ) : editing ? (
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
               <Input
@@ -502,7 +512,7 @@ function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
 
 // ── Stage Checklist Card ──────────────────────────────────
 
-function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
+function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney }) {
   const steps = stageData?.steps || []
   const milestones = stageData?.milestones || []
   const [newStepLabel, setNewStepLabel] = useState('')
@@ -510,6 +520,18 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
   const [newStepOptions, setNewStepOptions] = useState([])
   const [newMilestoneLabel, setNewMilestoneLabel] = useState('')
   const [confirmReset, setConfirmReset] = useState(false)
+  const [infoRowField, setInfoRowField] = useState('')
+
+  // Which info row fields are already added
+  const usedInfoFields = steps.filter(s => s.type === 'info_row').map(s => s.dataField)
+  const availableInfoFields = INFO_ROW_FIELDS.filter(f => !usedInfoFields.includes(f.key))
+
+  function handleAddInfoRow() {
+    if (!infoRowField) return
+    addInfoRow(userType, stage.id, infoRowField)
+    setInfoRowField('')
+    onUpdate()
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -656,6 +678,23 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate }) {
               </div>
             )}
           </div>
+
+          {/* Info Rows — journey only */}
+          {isJourney && availableInfoFields.length > 0 && (
+            <div className="border-t border-stone-100 pt-3 mt-2">
+              <p className="text-[10px] text-violet-500 uppercase tracking-wider font-semibold mb-2">Provider Info Rows</p>
+              <p className="text-[10px] text-stone-400 mb-2">These show provider data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
+              <div className="flex items-center gap-2">
+                <select value={infoRowField} onChange={e => setInfoRowField(e.target.value)} className="h-8 text-sm border rounded px-2 bg-white text-stone-600 flex-1">
+                  <option value="">Select provider field...</option>
+                  {availableInfoFields.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+                </select>
+                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs border-violet-200 text-violet-600 hover:bg-violet-50" onClick={handleAddInfoRow} disabled={!infoRowField}>
+                  <Plus className="size-3.5" /> Add Info Row
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Milestones */}
@@ -782,7 +821,7 @@ function ChecklistsSection() {
 
             {/* Active stage checklist */}
             <div className="flex-1">
-              <StageChecklistCard key={activeStage} stage={activeStageObj} userType={configKey} stageData={stageData} onUpdate={forceUpdate} />
+              <StageChecklistCard key={activeStage} stage={activeStageObj} userType={configKey} stageData={stageData} onUpdate={forceUpdate} isJourney={userType === 'journey'} />
             </div>
           </div>
         </div>
