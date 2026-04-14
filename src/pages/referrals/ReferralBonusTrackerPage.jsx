@@ -154,9 +154,9 @@ export default function ReferralBonusTrackerPage() {
   const unpaidReferrals = referralRows.filter(r => !r.paid)
   const paidReferrals = referralRows.filter(r => r.paid)
 
-  // ── Sign-on bonus data ──
+  // ── Sign-on bonus data — only surrogates in a matched journey ──
   const bonusRows = useMemo(() => {
-    return surrogates.map(s => {
+    return surrogates.filter(s => findJourneyForSurrogate(s.id, journeys)).map(s => {
       const journey = findJourneyForSurrogate(s.id, journeys)
       const medicalDate = journey ? getChecklistDate(journey.journey_data, 'medical clearance') : null
       const legalDate = journey ? getChecklistDate(journey.journey_data, 'legal clearance') : null
