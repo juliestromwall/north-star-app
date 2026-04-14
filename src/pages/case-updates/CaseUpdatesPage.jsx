@@ -7,12 +7,15 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
 import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2 } from 'lucide-react'
+import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2, CalendarDays, Clock, FileText, CheckCircle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
 import StageBadge from '@/components/shared/StageBadge'
+import { getAppConfig, setAppConfig } from '@/lib/db'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 
 function calcGestationalAge(dueDate) {
@@ -25,6 +28,163 @@ function calcGestationalAge(dueDate) {
   const days = Math.floor((diffMs % (7 * 24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000))
   if (weeks < 0 || weeks > 42) return null
   return `${weeks}w ${days}d`
+}
+
+// ── Appointments Badge + Modal ──
+function AppointmentsBadge({ caseId, caseType, caseName }) {
+  const { currentUser } = useRole()
+  const userId = currentUser?.userId || currentUser?.id
+  const [open, setOpen] = useState(false)
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [apptMeta, setApptMeta] = useState({})
+  const [notesModal, setNotesModal] = useState(null)
+  const [noteText, setNoteText] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [count, setCount] = useState(null)
+
+  // Lightweight count on mount (no full fetch)
+  useEffect(() => {
+    if (!caseId || !userId) return
+    const doCount = async () => {
+      try {
+        const { listCaseEvents, listCalendars } = await import('@/lib/google')
+        const now = new Date()
+        const timeMin = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString()
+        const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString()
+        const cals = await listCalendars(userId).catch(() => [])
+        const apptCal = (cals || []).find(c => c.summary?.toLowerCase() === 'appointments')
+        const calId = apptCal?.id || 'primary'
+        const fetches = [listCaseEvents(userId, caseId, caseType, { calendarId: 'primary', timeMin, timeMax, maxResults: 50 })]
+        if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 50 }))
+        const results = await Promise.all(fetches)
+        const all = results.flatMap(r => r.items || [])
+        const seen = new Set()
+        const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+        setCount(deduped.length)
+        setEvents(deduped.sort((a, b) => (b.start?.dateTime || b.start?.date || '').localeCompare(a.start?.dateTime || a.start?.date || '')))
+      } catch { setCount(0) }
+    }
+    doCount()
+  }, [caseId, userId, caseType])
+
+  async function handleOpen() {
+    setOpen(true)
+    // Load appointment meta
+    try {
+      const data = await getAppConfig(`appt_notes_${caseType}_${caseId}`)
+      if (data) setApptMeta(data)
+    } catch {}
+  }
+
+  async function handleSaveNotes() {
+    if (!notesModal) return
+    setSavingNote(true)
+    try {
+      const meta = { ...apptMeta, [notesModal.id]: { ...(apptMeta[notesModal.id] || {}), notes: noteText, notesBy: currentUser?.name || 'Admin', notesAt: new Date().toISOString() } }
+      setApptMeta(meta)
+      await setAppConfig(`appt_notes_${caseType}_${caseId}`, meta)
+      setNotesModal(null); setNoteText('')
+    } catch {} finally { setSavingNote(false) }
+  }
+
+  if (count === null || count === 0) return null
+
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  return (
+    <>
+      <button onClick={handleOpen} className="inline-flex items-center gap-1 text-[10px] text-stone-400 hover:text-[#283693] transition-colors mt-0.5" title={`${count} appointments`}>
+        <CalendarDays className="size-3" />
+        <span>{count}</span>
+      </button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="size-4 text-[#283693]" />
+              Appointments — {caseName}
+            </DialogTitle>
+          </DialogHeader>
+
+          {events.length === 0 ? (
+            <p className="text-sm text-stone-400 text-center py-8">No appointments found.</p>
+          ) : (
+            <div className="space-y-2">
+              {events.map(event => {
+                const startDt = event.start?.dateTime || event.start?.date || ''
+                const eventDate = startDt.substring(0, 10)
+                const isPast = eventDate < todayStr
+                const isAllDay = !!event.start?.date && !event.start?.dateTime
+                const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+                const meta = apptMeta[event.id] || {}
+                const isFollowedUp = meta.followedUp || title.startsWith('✅')
+                return (
+                  <div key={event.id} className={`rounded-lg border px-3 py-2.5 ${isPast ? 'border-stone-100' : 'border-[#283693]/20 bg-[#283693]/5'}`}>
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${isPast ? 'text-stone-600' : 'text-[#283693]'}`}>{title}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                          <span>{formatDate(startDt)}</span>
+                          {!isAllDay && event.start?.dateTime && (
+                            <span className="flex items-center gap-0.5">
+                              <Clock className="size-2.5" />
+                              {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                          {isPast && <span className="text-stone-300">Past</span>}
+                          {!isPast && eventDate === todayStr && <span className="text-[#283693] font-semibold">Today</span>}
+                          {isFollowedUp && (
+                            <span className="text-emerald-600 font-semibold flex items-center gap-0.5">
+                              <CheckCircle2 className="size-2.5" /> Followed Up
+                              {meta.followedUpBy && <span className="text-stone-400 font-normal">by {meta.followedUpBy}</span>}
+                            </span>
+                          )}
+                        </div>
+                        {meta.notes && (
+                          <div className="mt-1.5 text-xs text-stone-600 bg-stone-50 rounded px-2 py-1.5 border-l-2 border-[#283693]/30">
+                            {meta.notes}
+                            {meta.notesBy && <p className="text-[10px] text-stone-400 mt-1">— {meta.notesBy}, {meta.notesAt ? formatDate(meta.notesAt) : ''}</p>}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => { setNotesModal(event); setNoteText(meta.notes || '') }}
+                        className="text-[9px] text-stone-400 hover:text-[#283693] flex items-center gap-0.5 shrink-0 mt-0.5"
+                      >
+                        <FileText className="size-3" />
+                        {meta.notes ? 'Edit' : 'Note'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Notes sub-modal */}
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="size-4 text-[#283693]" /> Appointment Notes
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm font-medium text-stone-700">{notesModal?.summary?.includes(' — ') ? notesModal.summary.split(' — ')[0] : notesModal?.summary}</p>
+          <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this appointment..." rows={4} />
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveNotes} disabled={savingNote}>
+              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }
 
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
@@ -249,11 +409,14 @@ function SurrogateUpdatesSheet({ surrogates }) {
                           {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
                           {s.age ? ` · ${s.age}y` : ''}
                         </p>
-                        <AISummaryButton
-                          caseId={s.id} caseName={s.name} caseType="surrogate"
-                          stage={stageLabel} status={ss.status}
-                          checklistSteps={sheetRows} tracking={allTracking[s.id]}
-                        />
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <AISummaryButton
+                            caseId={s.id} caseName={s.name} caseType="surrogate"
+                            stage={stageLabel} status={ss.status}
+                            checklistSteps={sheetRows} tracking={allTracking[s.id]}
+                          />
+                          <AppointmentsBadge caseId={s.id} caseType="surrogate" caseName={s.name} />
+                        </div>
                       </th>
                     )
                   })}
@@ -506,11 +669,14 @@ function IPUpdatesSheet({ ips }) {
                       <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
                         <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
                         <p className="text-[9px] text-stone-400 font-normal">{ip.location || ''}</p>
-                        <AISummaryButton
-                          caseId={ip.id} caseName={ip.names} caseType="ip"
-                          stage={stageLabel} status={ss.status}
-                          checklistSteps={sheetRows} tracking={allTracking[ip.id]}
-                        />
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <AISummaryButton
+                            caseId={ip.id} caseName={ip.names} caseType="ip"
+                            stage={stageLabel} status={ss.status}
+                            checklistSteps={sheetRows} tracking={allTracking[ip.id]}
+                          />
+                          <AppointmentsBadge caseId={ip.id} caseType="ip" caseName={ip.names} />
+                        </div>
                       </th>
                     )
                   })}
@@ -689,13 +855,14 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             )}
                           </div>
                         ) : null}
-                        <div className="text-center mt-0.5">
+                        <div className="flex items-center justify-center gap-2 mt-0.5">
                           <AISummaryButton
                             caseId={j.id} caseName={journeyName} caseType="journey"
                             stage={j.stage} status={j.status}
                             checklistSteps={sheetRows} tracking={allTracking[j.id]}
                             journeyData={j.journey_data}
                           />
+                          <AppointmentsBadge caseId={j.id} caseType="journey" caseName={journeyName} />
                         </div>
                       </th>
                     )
