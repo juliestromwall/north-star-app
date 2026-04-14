@@ -48,6 +48,7 @@ export default function AdminDashboard() {
   const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'normal', description: '' })
   const [caseView, setCaseView] = useState('grid')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
+  const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
   const [apptMeta, setApptMeta] = useState({}) // { configKey: { eventId: { followedUp, notes, ... } } }
   const [notesModal, setNotesModal] = useState(null)
@@ -349,13 +350,14 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {/* Past 7 Days */}
+                {/* Past 7 Days — collapsible */}
                 {pastEvents.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1">
-                      <History className="size-3" /> Past 7 Days
-                    </p>
-                    {pastEvents.slice(0, 6).map(event => {
+                    <button onClick={() => setPastApptOpen(o => !o)} className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1 hover:text-stone-600 transition-colors">
+                      {pastApptOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                      <History className="size-3" /> Past 7 Days ({pastEvents.length})
+                    </button>
+                    {pastApptOpen && pastEvents.slice(0, 6).map(event => {
                       const startDt = event.start?.dateTime || event.start?.date || ''
                       const isAllDay = !!event.start?.date && !event.start?.dateTime
                       const { caseName, caseLink } = getEventCaseInfo(event)

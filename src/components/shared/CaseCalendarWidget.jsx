@@ -190,6 +190,8 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   }
 
   const [pastOpen, setPastOpen] = useState(false)
+  const ChevronDown = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m6 9 6 6 6-6"/></svg>
+  const ChevronRight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>
 
   function getEventDate(e) {
     const dt = e.start?.dateTime || e.start?.date || ''
@@ -241,7 +243,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
                 {deleting === event.id ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
               </button>
             </div>
-            {isPast && !isFollowedUp && (
+            {!isFollowedUp && (
               <button
                 onClick={() => handleFollowUp(event)}
                 disabled={followingUp === event.id}
@@ -269,11 +271,6 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-stone-700 flex items-center gap-1.5">
           <CalendarDays className="size-4 text-stone-400" /> Appointments
-          {pastEvents.length > 0 && (
-            <button onClick={() => setPastOpen(true)} className="text-[10px] text-stone-400 hover:text-[#283693] font-medium ml-2 flex items-center gap-1 transition-colors">
-              <History className="size-3" /> {pastEvents.length} past
-            </button>
-          )}
         </h3>
         <Button size="sm" className="gap-1 text-xs h-7" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
           <Plus className="size-3" /> Add Appointment
@@ -308,23 +305,20 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
         </DialogContent>
       </Dialog>
 
-      {/* Past Appointments Modal */}
-      <Dialog open={pastOpen} onOpenChange={setPastOpen}>
-        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <History className="size-4 text-stone-400" /> Past Appointments ({pastEvents.length})
-            </DialogTitle>
-          </DialogHeader>
-          {pastEvents.length === 0 ? (
-            <p className="text-sm text-stone-400 text-center py-6">No past appointments found.</p>
-          ) : (
+      {/* Past Appointments — collapsible inline */}
+      {pastEvents.length > 0 && (
+        <div className="space-y-1.5">
+          <button onClick={() => setPastOpen(o => !o)} className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1 hover:text-stone-600 transition-colors">
+            {pastOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+            <History className="size-3" /> Past Appointments ({pastEvents.length})
+          </button>
+          {pastOpen && (
             <div className="space-y-1.5">
               {pastEvents.map(event => <EventRow key={event.id} event={event} isPast />)}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       {/* Appointment Notes Modal */}
       <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
