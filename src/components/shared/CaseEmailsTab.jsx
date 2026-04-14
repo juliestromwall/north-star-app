@@ -268,7 +268,8 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     if (!selectedEmail || !userId) return
     setDownloading(att.attachmentId)
     try {
-      const data = await getAttachment(userId, selectedEmail.gmail_message_id, att.attachmentId)
+      const msgId = selectedEmail.gmail_message_id || selectedEmail.id
+      const data = await getAttachment(userId, msgId, att.attachmentId)
       const base64 = data.data.replace(/-/g, '+').replace(/_/g, '/')
       const binary = atob(base64)
       const bytes = new Uint8Array(binary.length)
@@ -518,6 +519,20 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                   dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml || '' }}
                 />
               </div>
+              {/* Actions for inbox emails */}
+              {selectedEmail?._fromInbox && (
+                <div className="border-t pt-3 flex items-center gap-2">
+                  <Button size="sm" className="gap-1.5 text-xs" style={{ backgroundColor: '#283693' }}
+                    onClick={() => { handleQuickLog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
+                    <LinkIcon className="size-3" /> Log to Case
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs" asChild>
+                    <a href={`https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="size-3" /> Open in Gmail
+                    </a>
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">
