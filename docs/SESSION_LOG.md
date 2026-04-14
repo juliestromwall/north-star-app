@@ -1,5 +1,76 @@
 # Session Log
 
+## 2026-04-13 (IP Profile, Checklists, Stages, Appointments, Case Updates, Info Rows)
+
+**Worked on:** IP profile preview improvements, GC/IP/Journey checklist consolidation, IP stages, appointment follow-up system, case-updates appointments view, journey info rows, monitoring clinic
+
+**Changes made:**
+
+IP Profile Preview:
+- DOB formatted MM/DD/YYYY, ages in header pills (indigo IP1, pink IP2)
+- "None of the above" health condition → displays as "None", hides dates field
+- Per-person sections in distinct cards (neutral tint, blue names)
+- Section headers pink, IP names blue, age only at top
+- Sections restyled to match GC profile (PVSection cards with gradient headers, warm background, 3-column grid)
+- Heart icon for Surrogacy Info, HeartPulse for Health Info
+- First names only throughout profiles (IP + GC)
+- State abbreviations expanded to full names
+- GC admin profile: photo upload section (Profile Photo, Cover Photo, Photo Gallery with drag/crop/rotate)
+
+IP Stages:
+- New IP_STAGES: Consultation, Matching, Holding, Withdrawn
+- Renamed "Screening" → "Consultation" for IPs
+- Matched Journey stage hidden from IP list/detail pages
+- StageBadge accepts caseType="ip" for correct labels
+
+Checklists:
+- Default statuses updated: Requested, Started, In Progress, Followed Up, Note, Complete, Not Needed
+- Added Started (cyan) and Note (stone) status colors
+- Moved checklist from standalone tab to Overview tab on GC, IP, and Journey cases
+- IP Overview redesigned: Milestones (timeline visual matching GC) → Appointments → Tasks → Checklist
+- Removed Checklist tab from all case type tab bars
+
+Case Updates:
+- Matched GCs and IPs hidden from individual tabs (only in Matched Journeys)
+- Appointment badges: calendar icon + count next to each case name, click opens full appointment log modal with notes, follow-up status, and inline note editing
+
+Appointments:
+- Follow-up tracking: "Follow Up" button on past appointments, adds ✅ to Google Calendar title, logs admin + date
+- Appointment notes: "Add Notes" / "Edit Notes" per appointment, saved in Supabase
+- Edit dialog: Notes field grayed out as read-only "Calendar API Note"
+- Notes preview shown inline in appointment list
+
+AI Summary:
+- All dates MM/DD/YYYY, removed stage from header
+- Appointments split into upcoming vs recent past
+- Checklist logs included (last 3 entries per step)
+- Email snippets included for case activity
+- Birth data: delivery date, type, weight, length, names
+- "None scheduled" when no upcoming appointments
+
+Journey Info Rows:
+- Monitoring Clinic added to journey hero (4-column provider grid)
+- Settings → Checklists → Matched Journeys: "+ Add Info Row" for 6 provider fields
+- Info rows (IVF Clinic, Monitoring Clinic, IP Attorney, GC Attorney, OB Clinic, Delivery Hospital) render as violet-tinted rows in case-updates journey spreadsheet
+- Info rows filtered OUT of actual case checklists — only in case-updates
+- Data pulled from journey_data (hero card fields)
+
+Fixes:
+- Restored useSortable import for document tab drag-reorder
+- Fixed GC profile completion: conditional/partner fields excluded from count
+- Status dropdown always includes current status even if not in stage config
+
+**Next steps:**
+- Test info rows positioning in Settings
+- Consider adding info rows to the actual case checklist (user option)
+- Continue with any remaining IP profile parity items
+
+**Open questions:**
+- Should info rows be editable from the case-updates spreadsheet? (Currently read-only, edit from journey hero)
+- Should monitoring clinic data appear in the AI summary?
+
+---
+
 ## 2026-04-13 — 2026-04-14 (Checklist Subtasks, Records Summary PDF, Profiles, Form Templates)
 
 **Worked on:** Checklist subtasks + auto-derive, custom dropdown colors, case-updates page fixes, text field checklist type, Records Summary PDF redesign, GC profile preview completeness, sticky notes neon colors, team management save fix, form template e-sign system (Background Waivers)

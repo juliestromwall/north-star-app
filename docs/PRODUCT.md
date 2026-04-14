@@ -297,4 +297,5 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 | Turnstile | Cloudflare's bot protection CAPTCHA on intake forms |
 | Application | Combined tab containing intake quiz/answers + multi-section forms (address, references, confidential info, clinic, social media release) |
 | E-Signature | Full e-signature system: Google Docs templates in Drive, edit in-app via iframe, send for signature with role-based validation, public signing page with inline form fields, typed signatures in handwriting font, drawn signature images in PDF, compact audit trail certificate, auto-file signed PDF to case documents. Accessible from E-Signature page and case/journey Documents tabs. Admin signer dropdown, journey auto-populate (GC + Partner + IP1 + IP2). spouseEmail field in GC application. |
-| IP Stage Labels | IP stages use different names: Pre-Qualification→Screening, Screening→Holding, Matching stays same |
+| IP Stage Labels | IPs have 4 stages only: Consultation (pre-qualification), Matching, Holding (portal active), Withdrawn (portal revoked). Matched Journey hidden. |
+| Info Rows | Provider reference rows in case-updates journey checklist: IVF Clinic, Monitoring Clinic, IP Attorney, GC Attorney, OB Clinic, Delivery Hospital. Configurable position in Settings. Read-only, data from journey hero. |
