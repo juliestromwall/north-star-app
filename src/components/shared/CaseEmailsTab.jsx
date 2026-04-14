@@ -266,6 +266,19 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
 
   const [previewAtt, setPreviewAtt] = useState(null) // { url, filename, mimeType }
   const [savingAtt, setSavingAtt] = useState(null)
+  const [saveAttDialog, setSaveAttDialog] = useState(null) // attachment to save
+  const [saveCategory, setSaveCategory] = useState('other')
+
+  const DOC_FOLDERS = [
+    { id: 'agency-documents', label: 'Agency Documents' },
+    { id: 'clinic', label: 'Clinic' },
+    { id: 'medical-records', label: 'Medical Records' },
+    { id: 'insurance', label: 'Insurance' },
+    { id: 'legal', label: 'Legal Documents' },
+    { id: 'escrow', label: 'Escrow' },
+    { id: 'expenses', label: 'Expenses' },
+    { id: 'other', label: 'Other' },
+  ]
 
   async function getAttachmentBlob(att) {
     const msgId = selectedEmail.gmail_message_id || selectedEmail.id
@@ -288,14 +301,15 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setDownloading(null)
   }
 
-  const handleSaveAttToCase = async (att) => {
+  const handleSaveAttToCase = async (att, category) => {
     if (!selectedEmail || !userId || !caseId || !supabase) return
     setSavingAtt(att.attachmentId)
     try {
       const blob = await getAttachmentBlob(att)
       const file = new File([blob], att.filename, { type: att.mimeType })
       const { uploadCaseDocument } = await import('@/lib/db')
-      await uploadCaseDocument({ surrogateId: caseId, category: 'Email Attachments', file, uploadedBy: currentUser?.name || 'Admin' })
+      await uploadCaseDocument({ surrogateId: caseId, category: category || 'other', file, uploadedBy: currentUser?.name || 'Admin' })
+      setSaveAttDialog(null)
     } catch (err) {
       console.error('Save attachment to case failed:', err)
     }
@@ -495,7 +509,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       </Card>}
 
       {/* Full email view dialog */}
-      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open) { setSelectedEmail(null); setFullEmail(null) } }}>
+      <Dialog open={!!selectedEmail} onOpenChange={(open) => { if (!open && !previewAtt) { setSelectedEmail(null); setFullEmail(null) } }}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedEmail?.subject || '(no subject)'}</DialogTitle>
@@ -527,9 +541,9 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                           className="text-[10px] font-semibold text-[#283693] hover:underline shrink-0">
                           {downloading === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : 'Preview'}
                         </button>
-                        <button onClick={() => handleSaveAttToCase(att)} disabled={savingAtt === att.attachmentId}
+                        <button onClick={() => { setSaveAttDialog(att); setSaveCategory('other') }}
                           className="text-[10px] font-semibold text-emerald-600 hover:underline shrink-0">
-                          {savingAtt === att.attachmentId ? <Loader2 className="size-3 animate-spin" /> : 'Save to Case'}
+                          Save to Case
                         </button>
                       </div>
                     ))}
@@ -562,7 +576,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
 
       {/* Attachment Preview */}
       {previewAtt && (
-        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => { URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }}>
+        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4" onClick={(e) => { e.stopPropagation(); URL.revokeObjectURL(previewAtt.url); setPreviewAtt(null) }}>
           <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b">
               <p className="text-sm font-semibold truncate">{previewAtt.filename}</p>
@@ -586,6 +600,34 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           </div>
         </div>
       )}
+
+      {/* Save Attachment to Case — Folder Picker */}
+      <Dialog open={!!saveAttDialog} onOpenChange={(open) => { if (!open) setSaveAttDialog(null) }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Save to Documents</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-stone-500 truncate">{saveAttDialog?.filename}</p>
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase">Select folder</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {DOC_FOLDERS.map(f => (
+                  <button key={f.id} onClick={() => setSaveCategory(f.id)}
+                    className={`text-xs text-left px-3 py-2 rounded-lg border transition-all ${saveCategory === f.id ? 'border-[#283693] bg-[#283693]/5 text-[#283693] font-semibold' : 'border-stone-200 text-stone-600 hover:border-stone-300'}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={savingAtt === saveAttDialog?.attachmentId}
+              onClick={() => saveAttDialog && handleSaveAttToCase(saveAttDialog, saveCategory)}>
+              {savingAtt === saveAttDialog?.attachmentId ? <Loader2 className="size-3 animate-spin" /> : <Download className="size-3" />}
+              {savingAtt ? 'Saving...' : 'Save to Documents'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Template Selection Dialog */}
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
