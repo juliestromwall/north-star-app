@@ -295,23 +295,53 @@ export default function AdminDashboard() {
                       const isAllDay = !!event.start?.date && !event.start?.dateTime
                       const today = new Date().toDateString() === new Date(startDt).toDateString()
                       const { caseName, caseLink } = getEventCaseInfo(event)
+                      const meta = apptMeta[event.id] || {}
+                      const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+                      const isFollowedUp = meta.followedUp || title.startsWith('✅')
                       return (
                         <div key={event.id} className={`rounded-lg border px-3 py-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
-                          <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
-                            {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
-                          </p>
-                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                            <span>{formatDate(startDt)}</span>
-                            {!isAllDay && event.start?.dateTime && (
-                              <span className="flex items-center gap-0.5">
-                                <Clock className="size-2.5" />
-                                {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                              </span>
-                            )}
-                            {today && <span className="text-[#283693] font-semibold">Today</span>}
-                            {caseName && caseLink && (
-                              <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
-                            )}
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
+                                {title.replace(/^✅\s*/, '')}
+                              </p>
+                              <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5 flex-wrap">
+                                <span>{formatDate(startDt)}</span>
+                                {!isAllDay && event.start?.dateTime && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Clock className="size-2.5" />
+                                    {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </span>
+                                )}
+                                {today && <span className="text-[#283693] font-semibold">Today</span>}
+                                {isFollowedUp && <span className="text-emerald-600 font-semibold">✅ Followed Up</span>}
+                                {caseName && caseLink && (
+                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
+                                )}
+                              </div>
+                              {meta.notes && (
+                                <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 100)}{meta.notes.length > 100 ? '...' : ''}</p>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1 shrink-0 items-end">
+                              {!isFollowedUp && (
+                                <button
+                                  onClick={() => handleFollowUp(event)}
+                                  disabled={followingUp === event.id}
+                                  className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
+                                >
+                                  {followingUp === event.id ? <Loader2 className="size-2.5 animate-spin" /> : <CheckCircle2 className="size-2.5" />}
+                                  Follow Up
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
+                                className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
+                              >
+                                <FileText className="size-2.5" />
+                                {meta.notes ? 'Edit Notes' : 'Add Notes'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )
