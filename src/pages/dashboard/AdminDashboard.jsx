@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
+import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -21,7 +22,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
-  ChevronDown, ChevronRight, MapPin,
+  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2,
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -48,6 +49,11 @@ export default function AdminDashboard() {
   const [caseView, setCaseView] = useState('grid')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [tasksOpen, setTasksOpen] = useState(true)
+  const [apptMeta, setApptMeta] = useState({}) // { configKey: { eventId: { followedUp, notes, ... } } }
+  const [notesModal, setNotesModal] = useState(null)
+  const [noteText, setNoteText] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [followingUp, setFollowingUp] = useState(null)
 
 
   useEffect(() => {
@@ -74,16 +80,15 @@ export default function AdminDashboard() {
       }
     }).finally(() => setLoading(false))
 
-    // Fetch upcoming calendar events (may fail if Google not connected)
+    // Fetch calendar events: past 7 days + next 7 days
     try {
       const userId = currentUser?.id
       if (userId) {
         const now = new Date()
-        const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+        const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
         const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        // Search primary + Appointments calendar for app-created events
         getAccessToken(userId).then(async token => {
-          const baseParams = { maxResults: '20', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax, privateExtendedProperty: 'abcCase=true' }
+          const baseParams = { maxResults: '40', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax, privateExtendedProperty: 'abcCase=true' }
           let calIds = ['primary']
           try {
             const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
@@ -98,8 +103,30 @@ export default function AdminDashboard() {
           ))
           const all = results.flat()
           const seen = new Set()
-          setEvents(all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
-            .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
+          const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+            .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''))
+          setEvents(deduped)
+
+          // Load appointment metadata for all unique cases in these events
+          const caseKeys = new Set()
+          for (const e of deduped) {
+            const caseIdProp = e.extendedProperties?.private?.caseId || ''
+            const ct = e.extendedProperties?.private?.caseType || ''
+            if (caseIdProp && ct) {
+              const cid = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
+              caseKeys.add(`appt_notes_${ct}_${cid}`)
+            }
+          }
+          if (caseKeys.size > 0) {
+            const metaResults = await Promise.all([...caseKeys].map(key =>
+              getAppConfig(key).then(data => ({ key, data })).catch(() => ({ key, data: null }))
+            ))
+            const merged = {}
+            for (const { key, data } of metaResults) {
+              if (data) Object.assign(merged, data)
+            }
+            setApptMeta(merged)
+          }
         }).catch(() => {})
       }
     } catch {}
@@ -134,6 +161,66 @@ export default function AdminDashboard() {
       setTasks(prev => prev.filter(t => t.id !== taskId))
     } catch {}
   }
+
+  // Appointment follow-up and notes helpers
+  function getEventCaseInfo(event) {
+    const caseIdProp = event.extendedProperties?.private?.caseId || ''
+    const ct = event.extendedProperties?.private?.caseType || ''
+    const cid = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
+    const configKey = ct && cid ? `appt_notes_${ct}_${cid}` : null
+    const caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
+    const caseLink = ct === 'journey' ? `/journeys/${cid}` : ct === 'ip' ? `/intended-parents/${cid}` : ct === 'surrogate' ? `/surrogates/${cid}` : ''
+    return { caseType: ct, caseId: cid, configKey, caseName, caseLink }
+  }
+
+  async function handleFollowUp(event) {
+    const { caseType: ct, caseId: cid, configKey, caseName } = getEventCaseInfo(event)
+    if (!configKey) return
+    setFollowingUp(event.id)
+    try {
+      const userId = currentUser?.id
+      const currentTitle = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+      const cleanTitle = currentTitle.replace(/^✅\s*/, '')
+      const newSummary = `✅ ${cleanTitle} — ${caseName || ''}`
+      // Try to update on Appointments calendar first, then primary
+      const token = await getAccessToken(userId)
+      const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
+      const calData = await calRes.json()
+      const apptCal = (calData.items || []).find(c => c.summary?.toLowerCase() === 'appointments')
+      const calIds = apptCal ? [apptCal.id, 'primary'] : ['primary']
+      let updated = null
+      for (const calId of calIds) {
+        try { updated = await updateEvent(userId, calId, event.id, { summary: newSummary }); break } catch {}
+      }
+      if (updated) setEvents(prev => prev.map(e => e.id === event.id ? updated : e))
+      // Save metadata
+      const existing = await getAppConfig(configKey).catch(() => null) || {}
+      const meta = { ...existing, [event.id]: { ...(existing[event.id] || {}), followedUp: true, followedUpBy: currentUser?.name || 'Admin', followedUpAt: new Date().toISOString() } }
+      await setAppConfig(configKey, meta).catch(() => {})
+      setApptMeta(prev => ({ ...prev, ...meta }))
+    } catch (err) { console.error('Follow up failed:', err) }
+    finally { setFollowingUp(null) }
+  }
+
+  async function handleSaveApptNotes() {
+    if (!notesModal) return
+    const { configKey } = getEventCaseInfo(notesModal)
+    if (!configKey) return
+    setSavingNote(true)
+    try {
+      const existing = await getAppConfig(configKey).catch(() => null) || {}
+      const meta = { ...existing, [notesModal.id]: { ...(existing[notesModal.id] || {}), notes: noteText, notesBy: currentUser?.name || 'Admin', notesAt: new Date().toISOString() } }
+      await setAppConfig(configKey, meta).catch(() => {})
+      setApptMeta(prev => ({ ...prev, ...meta }))
+      setNotesModal(null)
+      setNoteText('')
+    } catch {} finally { setSavingNote(false) }
+  }
+
+  // Split events into upcoming and past
+  const todayStr = new Date().toISOString().split('T')[0]
+  const upcomingEvents = events.filter(e => (e.start?.dateTime || e.start?.date || '').substring(0, 10) >= todayStr)
+  const pastEvents = [...events.filter(e => (e.start?.dateTime || e.start?.date || '').substring(0, 10) < todayStr)].reverse()
 
   if (loading) return <div className="p-6 text-center text-stone-400">Loading dashboard...</div>
 
@@ -186,48 +273,113 @@ export default function AdminDashboard() {
 
       {/* Appointments + Tasks — two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Appointments */}
+        {/* Appointments (Upcoming + Recent Past) */}
         <Card>
           <CardHeader className="pb-2 cursor-pointer" onClick={() => setAppointmentsOpen(o => !o)}>
             <CardTitle className="text-sm flex items-center gap-2">
               {appointmentsOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-              <Calendar className="size-4 text-stone-400" /> Upcoming Appointments
+              <Calendar className="size-4 text-stone-400" /> Appointments
             </CardTitle>
           </CardHeader>
           {appointmentsOpen && <CardContent>
-            {events.length === 0 ? (
-              <p className="text-xs text-stone-400 text-center py-6">No upcoming appointments this week</p>
+            {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
+              <p className="text-xs text-stone-400 text-center py-6">No appointments this week</p>
             ) : (
-              <div className="space-y-2">
-                {events.slice(0, 8).map(event => {
-                  const startDt = event.start?.dateTime || event.start?.date || ''
-                  const isAllDay = !!event.start?.date && !event.start?.dateTime
-                  const today = new Date().toDateString() === new Date(startDt).toDateString()
-                  const caseIdProp = event.extendedProperties?.private?.caseId || ''
-                  const [caseType, caseIdNum] = caseIdProp.includes('_') ? caseIdProp.split('_') : ['', '']
-                  const caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
-                  const caseLink = caseType === 'journey' ? `/journeys/${caseIdNum}` : caseType === 'ip' ? `/intended-parents/${caseIdNum}` : caseType === 'surrogate' ? `/surrogates/${caseIdNum}` : ''
-                  return (
-                    <div key={event.id} className={`rounded-lg border px-3 py-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
-                      <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
-                        {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
-                      </p>
-                      <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                        <span>{formatDate(startDt)}</span>
-                        {!isAllDay && event.start?.dateTime && (
-                          <span className="flex items-center gap-0.5">
-                            <Clock className="size-2.5" />
-                            {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          </span>
-                        )}
-                        {today && <span className="text-[#283693] font-semibold">Today</span>}
-                        {caseName && caseLink && (
-                          <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="space-y-3">
+                {/* Upcoming */}
+                {upcomingEvents.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Upcoming</p>
+                    {upcomingEvents.slice(0, 6).map(event => {
+                      const startDt = event.start?.dateTime || event.start?.date || ''
+                      const isAllDay = !!event.start?.date && !event.start?.dateTime
+                      const today = new Date().toDateString() === new Date(startDt).toDateString()
+                      const { caseName, caseLink } = getEventCaseInfo(event)
+                      return (
+                        <div key={event.id} className={`rounded-lg border px-3 py-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
+                          <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
+                            {event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary}
+                          </p>
+                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                            <span>{formatDate(startDt)}</span>
+                            {!isAllDay && event.start?.dateTime && (
+                              <span className="flex items-center gap-0.5">
+                                <Clock className="size-2.5" />
+                                {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                              </span>
+                            )}
+                            {today && <span className="text-[#283693] font-semibold">Today</span>}
+                            {caseName && caseLink && (
+                              <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Past 7 Days */}
+                {pastEvents.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <History className="size-3" /> Past 7 Days
+                    </p>
+                    {pastEvents.slice(0, 6).map(event => {
+                      const startDt = event.start?.dateTime || event.start?.date || ''
+                      const isAllDay = !!event.start?.date && !event.start?.dateTime
+                      const { caseName, caseLink } = getEventCaseInfo(event)
+                      const meta = apptMeta[event.id] || {}
+                      const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+                      const isFollowedUp = meta.followedUp || title.startsWith('✅')
+                      return (
+                        <div key={event.id} className="rounded-lg border border-stone-100 px-3 py-2 opacity-80">
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-stone-700">{title.replace(/^✅\s*/, '')}</p>
+                              <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5 flex-wrap">
+                                <span>{formatDate(startDt)}</span>
+                                {!isAllDay && event.start?.dateTime && (
+                                  <span className="flex items-center gap-0.5">
+                                    <Clock className="size-2.5" />
+                                    {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </span>
+                                )}
+                                {isFollowedUp && <span className="text-emerald-600 font-semibold">✅ Followed Up</span>}
+                                {caseName && caseLink && (
+                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
+                                )}
+                              </div>
+                              {meta.notes && (
+                                <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 100)}{meta.notes.length > 100 ? '...' : ''}</p>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1 shrink-0 items-end">
+                              {!isFollowedUp && (
+                                <button
+                                  onClick={() => handleFollowUp(event)}
+                                  disabled={followingUp === event.id}
+                                  className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
+                                >
+                                  {followingUp === event.id ? <Loader2 className="size-2.5 animate-spin" /> : <CheckCircle2 className="size-2.5" />}
+                                  Follow Up
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
+                                className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
+                              >
+                                <FileText className="size-2.5" />
+                                {meta.notes ? 'Edit Notes' : 'Add Notes'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
                 <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-1">View full calendar →</Link>
               </div>
             )}
@@ -420,6 +572,31 @@ export default function AdminDashboard() {
         )}
       </div>
 
+      {/* Appointment Notes Modal */}
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="size-4 text-[#283693]" />
+              Appointment Notes
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600 font-medium">
+            {notesModal?.summary?.includes(' — ') ? notesModal.summary.split(' — ')[0] : notesModal?.summary || ''}
+          </p>
+          <p className="text-xs text-stone-400">{notesModal?.start?.dateTime ? formatDate(notesModal.start.dateTime) : notesModal?.start?.date ? formatDate(notesModal.start.date) : ''}</p>
+          <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this appointment..." rows={4} />
+          {apptMeta[notesModal?.id]?.notesBy && (
+            <p className="text-[10px] text-stone-400">Last edited by {apptMeta[notesModal?.id].notesBy} on {apptMeta[notesModal?.id].notesAt ? formatDate(apptMeta[notesModal.id].notesAt) : ''}</p>
+          )}
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => { setNotesModal(null); setNoteText('') }}>Cancel</Button>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveApptNotes} disabled={savingNote}>
+              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save Notes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
