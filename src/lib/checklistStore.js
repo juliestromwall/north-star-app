@@ -19,8 +19,10 @@ let _loaded = false
 export const CHECKLIST_STEP_STATUSES = [
   { id: 'not_started', label: 'Not Started' },
   { id: 'requested', label: 'Requested' },
+  { id: 'started', label: 'Started' },
   { id: 'in_progress', label: 'In Progress' },
-  { id: 'reviewing', label: 'Reviewing' },
+  { id: 'followed_up', label: 'Followed Up' },
+  { id: 'note', label: 'Note' },
   { id: 'complete', label: 'Complete' },
   { id: 'na', label: 'Not Needed' },
 ]
