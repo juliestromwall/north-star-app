@@ -360,16 +360,24 @@ function getCroppedImg(imageSrc, crop, rotation = 0) {
   })
 }
 
-function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, subfolder = 'headshot', onPhotoChange }) {
+function ProfilePhotoUpload({ label = 'Profile Photo', hint, userId, fallbackId, subfolder = 'headshot', onPhotoChange }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    listProfilePhotos(`${userId}/${subfolder}`).then(photos => {
-      if (photos.length > 0) setPhoto(photos[0])
-    }).catch(() => {})
-  }, [userId, subfolder])
+    async function load() {
+      // Try userId first
+      const photos = await listProfilePhotos(`${userId}/${subfolder}`).catch(() => [])
+      if (photos.length > 0) { setPhoto(photos[0]); return }
+      // Try fallback ID (intake case ID)
+      if (fallbackId && fallbackId !== userId) {
+        const fallbackPhotos = await listProfilePhotos(`${fallbackId}/${subfolder}`).catch(() => [])
+        if (fallbackPhotos.length > 0) setPhoto(fallbackPhotos[0])
+      }
+    }
+    load()
+  }, [userId, fallbackId, subfolder])
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
@@ -1485,6 +1493,12 @@ function FollowUpSection({ v, u, profile }) {
 function PersonalSection({ v, u }) {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [fallbackId, setFallbackId] = useState(null)
+  useEffect(() => {
+    if (!currentUser?.email || !supabase) return
+    supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data?.id) setFallbackId(String(data.id)) }).catch(() => {})
+  }, [currentUser?.email])
   const s = 'personal'
   const heightFt = parseInt(v(s, 'heightFt')) || 0
   const heightIn = parseInt(v(s, 'heightIn')) || 0
@@ -1498,8 +1512,8 @@ function PersonalSection({ v, u }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} subfolder="portrait" onPhotoChange={(url) => { u('personal', 'profilePhotoUrl', url || ''); }} />
-        <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} subfolder="headshot" />
+        <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} fallbackId={fallbackId} subfolder="portrait" onPhotoChange={(url) => { u('personal', 'profilePhotoUrl', url || ''); }} />
+        <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} fallbackId={fallbackId} subfolder="headshot" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="First name (or nickname)" value={v(s, 'firstName')} onChange={u(s, 'firstName')} placeholder="First name ONLY or nickname" />
