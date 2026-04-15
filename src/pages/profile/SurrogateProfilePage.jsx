@@ -1501,18 +1501,6 @@ function PersonalSection({ v, u }) {
         </Field>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <YesNoField label="Are you a U.S. Citizen or Permanent Resident?" value={v(s, 'usCitizen')} onChange={u(s, 'usCitizen')} />
-        <YesNoField label="Do you have a Real ID?" value={v(s, 'realId')} onChange={u(s, 'realId')} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <YesNoField label="Do you have a current/valid passport?" value={v(s, 'validPassport')} onChange={u(s, 'validPassport')} />
-        <YesNoField label="Do you (or anyone in your household) speak a language other than English?" value={v(s, 'otherLanguages')} onChange={u(s, 'otherLanguages')} />
-      </div>
-      {v(s, 'otherLanguages') === 'yes' && (
-        <TextField label="Which language(s)?" value={v(s, 'otherLanguagesDetails')} onChange={u(s, 'otherLanguagesDetails')} />
-      )}
-
       <div className="p-4 rounded-xl bg-[#283693]/5 border border-[#283693]/10">
         <h4 className="font-medium text-[#283693] mb-3">Relationship & Household</h4>
         <div className="space-y-4">
@@ -1840,26 +1828,10 @@ function FertilitySection({ v, u, profile }) {
         <TextAreaField label="Please provide details" value={v(s, 'gynecologicalProblemsDetails')} onChange={u(s, 'gynecologicalProblemsDetails')} rows={2} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <SelectField label="Which contraceptive method do you currently use?" value={v(s, 'contraceptiveMethod')} onChange={u(s, 'contraceptiveMethod')}
-          options={['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other']} />
-        <TextField label="When was the start of your last period?" value={v(s, 'lastPeriod')} onChange={u(s, 'lastPeriod')} type="date" />
-      </div>
-      <YesNoField label="Are your cycles typically between 28 to 30 days?" value={v(s, 'cycleLength')} onChange={u(s, 'cycleLength')} />
-      {v(s, 'cycleLength') === 'no' && (
-        <TextField label="What is your typical cycle length?" value={v(s, 'cycleLengthDetails')} onChange={u(s, 'cycleLengthDetails')} placeholder="e.g. 35 days" />
-      )}
-      <YesNoField label="Are you currently breastfeeding/lactating?" value={v(s, 'breastfeeding')} onChange={u(s, 'breastfeeding')} />
-      {v(s, 'breastfeeding') === 'yes' && (
-        <TextField label="When do you expect to stop?" value={v(s, 'breastfeedingStopDate')} onChange={u(s, 'breastfeedingStopDate')} placeholder="e.g. In 2 months" />
-      )}
-      <TextAreaField label="How long after stopping contraceptives did it take to get pregnant?" value={v(s, 'timeToConceive')} onChange={u(s, 'timeToConceive')} rows={2} />
       <YesNoField label="Did you ever take medication (aside from prenatals) during pregnancy?" value={v(s, 'pregnancyMedication')} onChange={u(s, 'pregnancyMedication')} />
       {v(s, 'pregnancyMedication') === 'yes' && (
         <TextAreaField label="Please list medications" value={v(s, 'pregnancyMedicationList')} onChange={u(s, 'pregnancyMedicationList')} rows={2} />
       )}
-      <TextField label="What is the nearest hospital with a Level II or III NICU?" value={v(s, 'nearestNICU')} onChange={u(s, 'nearestNICU')} placeholder="Hospital name and city" />
-      <YesNoField label="If only a Level I is close, are you ok traveling to a hospital with at least a Level II NICU?" value={v(s, 'willingToTravelNICU')} onChange={u(s, 'willingToTravelNICU')} />
     </div>
   )
 }
@@ -1920,10 +1892,6 @@ function HealthSection({ v, u }) {
 
       <TextAreaField label="Do you currently have any allergies?" value={v(s, 'allergies')} onChange={u(s, 'allergies')} placeholder="List any allergies and details" rows={2} />
       <TextAreaField label="Do you currently have any medical conditions we should be made aware of?" value={v(s, 'medicalConditions')} onChange={u(s, 'medicalConditions')} rows={2} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TextField label="When was your last annual physical?" value={v(s, 'lastPhysical')} onChange={u(s, 'lastPhysical')} placeholder="Date and results" />
-        <TextField label="Most recent Pap and results" value={v(s, 'lastPap')} onChange={u(s, 'lastPap')} />
-      </div>
       <TextAreaField label="Hospitalization/surgery history over past 5 years. Please list surgery and year." value={v(s, 'surgeries')} onChange={u(s, 'surgeries')} rows={2} />
 
       <CheckboxGroupField label="Please indicate whether you have had any of the following conditions or diseases (check all that apply)" options={diseases}
@@ -1931,26 +1899,6 @@ function HealthSection({ v, u }) {
       {(v(s, 'diseaseHistory') || []).some(d => d !== 'None of the Above') && (
         <TextAreaField label="Please explain any checked conditions" value={v(s, 'diseaseHistoryDetails')} onChange={u(s, 'diseaseHistoryDetails')} rows={2} />
       )}
-
-      <YesNoField label="If required for the surrogacy process, are you open to being vaccinated (i.e Hep B, Flu, Varicella etc.)?" value={v(s, 'openToVaccinations')} onChange={u(s, 'openToVaccinations')} />
-      {v(s, 'openToVaccinations') === 'no' && (
-        <TextAreaField label="Please share your reasons" value={v(s, 'vaccinationReasons')} onChange={u(s, 'vaccinationReasons')} rows={2} />
-      )}
-
-      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">COVID-19</h4>
-        <div className="space-y-4">
-          <YesNoField label="Have you received the Covid 19 vaccination?" value={v(s, 'covidVaccine')} onChange={u(s, 'covidVaccine')} />
-          {v(s, 'covidVaccine') === 'no' && (
-            <YesNoField label="Are you willing to receive the vaccination if recommended by the fertility doctor/OB or if your Intended Parents request this?" value={v(s, 'covidVaccineWilling')} onChange={u(s, 'covidVaccineWilling')} />
-          )}
-          <YesNoField label="Have you had Covid-19 before?" value={v(s, 'hadCovid')} onChange={u(s, 'hadCovid')} />
-          <YesNoField label="Have you received the booster?" value={v(s, 'covidBooster')} onChange={u(s, 'covidBooster')} />
-          {v(s, 'covidBooster') === 'no' && (
-            <YesNoField label="Are you comfortable getting this if requested?" value={v(s, 'covidBoosterWilling')} onChange={u(s, 'covidBoosterWilling')} />
-          )}
-        </div>
-      </div>
     </div>
   )
 }
@@ -1971,14 +1919,6 @@ function GeneralSection({ v, u, profile }) {
       <YesNoField label="Do your children live with you full time?" value={v(s, 'childrenFullTime')} onChange={u(s, 'childrenFullTime')} />
       {v(s, 'childrenFullTime') === 'no' && (
         <TextAreaField label="Please explain" value={v(s, 'childrenFullTimeDetails')} onChange={u(s, 'childrenFullTimeDetails')} rows={2} />
-      )}
-      <YesNoField label="Do any of your children have special needs or medical conditions (e.g., autism, developmental delays)?" value={v(s, 'childrenSpecialNeeds')} onChange={u(s, 'childrenSpecialNeeds')} />
-      {v(s, 'childrenSpecialNeeds') === 'yes' && (
-        <TextAreaField label="Please briefly describe" value={v(s, 'childrenSpecialNeedsDetails')} onChange={u(s, 'childrenSpecialNeedsDetails')} rows={2} />
-      )}
-      <YesNoField label="Have you ever placed a child for adoption?" value={v(s, 'placedForAdoption')} onChange={u(s, 'placedForAdoption')} />
-      {v(s, 'placedForAdoption') === 'yes' && (
-        <TextAreaField label="Please provide details" value={v(s, 'placedForAdoptionDetails')} onChange={u(s, 'placedForAdoptionDetails')} rows={2} />
       )}
       <TextAreaField label="If you are divorced or separated from the other parent(s) of your child(ren), please describe this relationship" value={v(s, 'divorcedRelationship')} onChange={u(s, 'divorcedRelationship')} rows={2} />
       <YesNoField label="Do you plan to have any more children of your own?" value={v(s, 'planMoreChildren')} onChange={u(s, 'planMoreChildren')} />
@@ -2016,71 +1956,8 @@ function GeneralSection({ v, u, profile }) {
         </div>
       </div>
 
-      <YesNoField label="Do you own any guns?" value={v(s, 'gunsOwned')} onChange={u(s, 'gunsOwned')} />
-      {v(s, 'gunsOwned') === 'yes' && (
-        <TextField label="How many and where do you keep them?" value={v(s, 'gunsDetails')} onChange={u(s, 'gunsDetails')} />
-      )}
-
-      <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
-        <h4 className="font-medium text-[#283693] mb-3">Piercings & Tattoos</h4>
-        <div className="space-y-4">
-          <YesNoField label="Do you have any piercings or tattoos?" value={v(s, 'piercingsTattoos')} onChange={u(s, 'piercingsTattoos')} />
-          {v(s, 'piercingsTattoos') === 'yes' && (
-            <>
-              <TextAreaField label="Please list location and quantity for both" value={v(s, 'piercingsTattoosDetails')} onChange={u(s, 'piercingsTattoosDetails')} rows={2} />
-              <TextField label="What month/year did you have your last tattoo? Was it a licensed facility?" value={v(s, 'lastTattooDate')} onChange={u(s, 'lastTattooDate')} />
-            </>
-          )}
-          <YesNoField label="Have you been tattooed or had a non-sterile skin piercing in the last 12 months?" value={v(s, 'nonSterilePiercing')} onChange={u(s, 'nonSterilePiercing')} />
-        </div>
-      </div>
-
-      <YesNoField label="Do you have a history of eating disorders?" value={v(s, 'eatingDisorders')} onChange={u(s, 'eatingDisorders')} />
-      {v(s, 'eatingDisorders') === 'yes' && (
-        <TextAreaField label="Please explain" value={v(s, 'eatingDisordersDetails')} onChange={u(s, 'eatingDisordersDetails')} rows={2} />
-      )}
       <TextAreaField label="Please describe your typical diet and eating habits. Do you cook at home? How often do you eat out? Do you have any special dietary restrictions?" value={v(s, 'typicalDiet')} onChange={u(s, 'typicalDiet')} rows={3} />
-
-      {hasPartner && (
-        <YesNoField label="Will your partner submit to the FDA required lab tests (STD and drug testing)?" value={v(s, 'partnerFdaTests')} onChange={u(s, 'partnerFdaTests')} />
-      )}
-      <TextField label="What is your Ethnic Origin/Ancestry?" value={v(s, 'ethnicity')} onChange={u(s, 'ethnicity')} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <TextField label="What is your current religious affiliation, if you have one?" value={v(s, 'religion')} onChange={u(s, 'religion')} />
-        <SelectField label="How important is religion to you?" value={v(s, 'religionImportance')} onChange={u(s, 'religionImportance')}
-          options={['Not Important', 'Somewhat Important', 'Important', 'Very Important']} />
-      </div>
-      <TextAreaField label="If the Intended Parents had a different religious belief system than yours, would this create a problem?" value={v(s, 'differentReligion')} onChange={u(s, 'differentReligion')} rows={2} />
-
-      <YesNoField label="Have you or anyone in your household ever been arrested and/or convicted of a crime/misdemeanor/felony?" value={v(s, 'criminalHistory')} onChange={u(s, 'criminalHistory')} />
-      {v(s, 'criminalHistory') === 'yes' && (
-        <TextAreaField label="Please provide dates and explain" value={v(s, 'criminalHistoryDetails')} onChange={u(s, 'criminalHistoryDetails')} rows={2} />
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <YesNoField label="Have you traveled outside of the U.S. in the last 6 months?" value={v(s, 'recentTravel')} onChange={u(s, 'recentTravel')} />
-        <YesNoField label="Do you plan on traveling within or outside of the U.S. in the next 6-8 months?" value={v(s, 'travelPlans')} onChange={u(s, 'travelPlans')} />
-      </div>
-      {v(s, 'recentTravel') === 'yes' && (
-        <TextField label="When and where?" value={v(s, 'recentTravelDetails')} onChange={u(s, 'recentTravelDetails')} />
-      )}
-      {v(s, 'travelPlans') === 'yes' && (
-        <TextField label="When and where?" value={v(s, 'travelPlansDetails')} onChange={u(s, 'travelPlansDetails')} />
-      )}
-
       <TextAreaField label="List the forms and frequency of regular exercise" value={v(s, 'exerciseFrequency')} onChange={u(s, 'exerciseFrequency')} rows={2} />
-      <YesNoField label="Do you have any issues with sleeping?" value={v(s, 'sleepIssues')} onChange={u(s, 'sleepIssues')} />
-      {v(s, 'sleepIssues') === 'yes' && (
-        <TextAreaField label="Please explain" value={v(s, 'sleepIssuesDetails')} onChange={u(s, 'sleepIssuesDetails')} rows={2} />
-      )}
-      <TextField label="How many hours do you typically sleep each night?" value={v(s, 'sleepHours')} onChange={u(s, 'sleepHours')} type="number" placeholder="e.g. 7" className="max-w-xs" />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <YesNoField label="Do you have a reliable vehicle to drive?" value={v(s, 'reliableVehicle')} onChange={u(s, 'reliableVehicle')} />
-        <YesNoField label="Do you have automobile insurance?" value={v(s, 'autoInsurance')} onChange={u(s, 'autoInsurance')} />
-        <YesNoField label="Do you have a valid driver's license?" value={v(s, 'validLicense')} onChange={u(s, 'validLicense')} />
-      </div>
     </div>
   )
 }
@@ -2117,9 +1994,6 @@ function EmploymentSection({ v, u, profile }) {
         </div>
       )}
 
-      <TextAreaField label="Do you have health insurance coverage? If yes, please provide name of provider" value={v(s, 'healthInsurance')} onChange={u(s, 'healthInsurance')} rows={2} />
-      <SelectField label="Is it a private/personal policy or through you or your spouse's employer?" value={v(s, 'insuranceType')} onChange={u(s, 'insuranceType')}
-        options={['Private/Personal', "Through my employer", "Through spouse's employer", 'No insurance', 'Other']} />
       <YesNoField label="Do you receive any government assistance (WIC, food stamps)?" value={v(s, 'governmentAssistance')} onChange={u(s, 'governmentAssistance')} />
       {v(s, 'governmentAssistance') === 'yes' && (
         <TextAreaField label="Please explain" value={v(s, 'governmentAssistanceDetails')} onChange={u(s, 'governmentAssistanceDetails')} rows={2} />
@@ -2240,11 +2114,9 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                         <TextField label="Weeks when delivered" value={j.weeksDelivered || ''} onChange={val => updateJourney(idx, 'weeksDelivered', val)} placeholder="e.g. 38" />
                       </div>
                       <TextAreaField label="Complications or details" value={j.complications || ''} onChange={val => updateJourney(idx, 'complications', val)} rows={2} placeholder="Describe any complications during this journey" />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <TextField label="How many transfers until pregnant?" value={j.transfers || ''} onChange={val => updateJourney(idx, 'transfers', val)} placeholder="e.g. 1" />
-                        <SelectField label="Embryo source" value={j.embryoSource || ''} onChange={val => updateJourney(idx, 'embryoSource', val)}
-                          options={['IP Sperm', 'IP Egg', 'Donor Egg', 'Donor Sperm', 'Donor Embryo', 'Unknown']} />
-                      </div>
+                      <TextField label="How many transfers until pregnant?" value={j.transfers || ''} onChange={val => updateJourney(idx, 'transfers', val)} placeholder="e.g. 1" />
+                      <CheckboxGroupField label="Embryo source (select all that apply)" value={Array.isArray(j.embryoSource) ? j.embryoSource : j.embryoSource ? [j.embryoSource] : []} onChange={val => updateJourney(idx, 'embryoSource', val)}
+                        options={['IP Sperm', 'IP Egg', 'Donor Egg', 'Donor Sperm', 'Donor Embryo', 'Unknown']} />
                       <TextAreaField label="Any unsuccessful cycles? (lining issues, failed transfers, chemical pregnancies)" value={j.unsuccessfulCycles || ''} onChange={val => updateJourney(idx, 'unsuccessfulCycles', val)} rows={2} />
                     </div>
                   </div>
@@ -2350,7 +2222,6 @@ function HopesWishesSection({ v, u, profile }) {
         <h4 className="font-medium text-[#283693] mb-3">Compensation</h4>
         <div className="space-y-4">
           <CurrencyField label="Surrogate base fee" value={v(s, 'desiredCompensation')} onChange={u(s, 'desiredCompensation')} />
-          <YesNoField label="Is this negotiable?" value={v(s, 'compensationNegotiable')} onChange={u(s, 'compensationNegotiable')} />
         </div>
       </div>
 
