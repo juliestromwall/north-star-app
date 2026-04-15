@@ -259,7 +259,6 @@ function DocumentPanel({ documents, surrogateId }) {
             <p className="text-xs text-stone-400 text-center py-8">No documents found</p>
           )}
           {allDocs.map(doc => {
-            const canMerge = doc.file_type === 'application/pdf' || doc.file_type?.startsWith('image/')
             const isChecked = mergeSelected.has(doc.id)
             return (
             <div key={doc.id} className={`flex items-center gap-2 rounded-lg ${mergeMode && isChecked ? 'bg-[#283693]/5 border border-[#283693]/20' : ''}`}>
@@ -268,14 +267,13 @@ function DocumentPanel({ documents, surrogateId }) {
                   <input
                     type="checkbox"
                     checked={isChecked}
-                    onChange={() => canMerge && toggleMergeDoc(doc.id)}
-                    disabled={!canMerge}
-                    className="size-4 accent-[#283693] cursor-pointer disabled:opacity-30"
+                    onChange={() => toggleMergeDoc(doc.id)}
+                    className="size-4 accent-[#283693] cursor-pointer"
                   />
                 </label>
               )}
-              <button onClick={() => { if (mergeMode && canMerge) { toggleMergeDoc(doc.id) } else if (!mergeMode) { setSelectedDoc(doc) } }}
-                className={`flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2 ${mergeMode && !canMerge ? 'opacity-30' : ''}`}>
+              <button onClick={() => { if (mergeMode) { toggleMergeDoc(doc.id) } else { setSelectedDoc(doc) } }}
+                className="flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2">
                 <FileText className="size-4 text-stone-300 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
