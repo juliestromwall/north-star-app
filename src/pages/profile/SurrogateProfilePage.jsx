@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
 import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
@@ -533,6 +534,7 @@ function calculateBMI(ft, inches, lbs) {
 export default function SurrogateProfilePage() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [intakeCaseId, setIntakeCaseId] = useState(null)
   const [profile, setProfile] = useState(() => loadProfile(userId))
   const [profileApproved, setProfileApproved] = useState(false)
   const [openSections, setOpenSections] = useState(() => {
@@ -581,6 +583,12 @@ export default function SurrogateProfilePage() {
     if (existing?.personal?.firstName) return
     const STATE_ABBR_TO_NAME = {
       AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+    }
+    // Fetch intake case ID for photo loading
+    if (supabase) {
+      supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
+        .then(({ data }) => { if (data?.id) setIntakeCaseId(String(data.id)) })
+        .catch(() => {})
     }
     fetchIntakeByEmail(currentUser.email).then(answers => {
       if (!answers) return
@@ -696,9 +704,20 @@ export default function SurrogateProfilePage() {
       setPreviewOpen(false)
       return
     }
-    const photos = await listProfilePhotos(userId)
-    const headshot = await listProfilePhotos(`${userId}/headshot`)
-    setPreviewPhotos([...headshot, ...photos])
+    const [gallery, headshots] = await Promise.all([
+      listProfilePhotos(userId).catch(() => []),
+      listProfilePhotos(`${userId}/headshot`).catch(() => []),
+    ])
+    let allGallery = gallery, allHeadshots = headshots
+    if (intakeCaseId && intakeCaseId !== userId) {
+      const [g2, h2] = await Promise.all([
+        listProfilePhotos(intakeCaseId).catch(() => []),
+        listProfilePhotos(`${intakeCaseId}/headshot`).catch(() => []),
+      ])
+      allGallery = [...gallery, ...g2]
+      allHeadshots = [...headshots, ...h2]
+    }
+    setPreviewPhotos([...allHeadshots, ...allGallery])
     setPreviewOpen(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -2325,11 +2344,29 @@ function PhotosSection() {
   )
 
   useEffect(() => {
-    listProfilePhotos(userId).then(setPhotos).catch(() => {})
-    listProfilePhotos(`${userId}/headshot`).then(list => {
-      setCoverPhoto(list.length > 0 ? list[0] : null)
-    }).catch(() => {})
-  }, [userId])
+    async function loadPhotos() {
+      // Load from userId (auth UUID)
+      const [gallery, headshots] = await Promise.all([
+        listProfilePhotos(userId).catch(() => []),
+        listProfilePhotos(`${userId}/headshot`).catch(() => []),
+      ])
+      // Also try intakeCaseId if different from userId
+      if (intakeCaseId && intakeCaseId !== userId) {
+        const [gallery2, headshots2] = await Promise.all([
+          listProfilePhotos(intakeCaseId).catch(() => []),
+          listProfilePhotos(`${intakeCaseId}/headshot`).catch(() => []),
+        ])
+        const allGallery = [...gallery, ...gallery2]
+        const allHeadshots = [...headshots, ...headshots2]
+        setPhotos(allGallery)
+        setCoverPhoto(allHeadshots.length > 0 ? allHeadshots[0] : null)
+      } else {
+        setPhotos(gallery)
+        setCoverPhoto(headshots.length > 0 ? headshots[0] : null)
+      }
+    }
+    loadPhotos()
+  }, [userId, intakeCaseId])
 
   // Combine cover + gallery for display
   const allPhotos = useMemo(() => {

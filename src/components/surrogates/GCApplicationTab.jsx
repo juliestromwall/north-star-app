@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
 import { updateIntakeSubmission, uploadCaseDocument } from '@/lib/db'
+import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileConstants'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
 import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
@@ -1235,6 +1236,72 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
 }
 
 // ── Main Export ──────────────────────────────────────────
+// ── Profile Follow Up Questions (read-only from profile data) ──
+function FollowUpQuestionsSection({ surrogate, profileData, search }) {
+  const [open, setOpen] = useState(false)
+  const hasMatch = !search || 'follow up profile screening'.includes(search)
+  if (!hasMatch) return null
+
+  function getVal(key) {
+    // Check followUp section first, then original sections
+    if (profileData?.followUp?.[key] !== undefined && profileData.followUp[key] !== '') return profileData.followUp[key]
+    for (const sec of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'hopesWishes']) {
+      if (profileData?.[sec]?.[key] !== undefined && profileData[sec][key] !== '') return profileData[sec][key]
+    }
+    return ''
+  }
+
+  function fmt(val) {
+    if (val === undefined || val === null || val === '') return '—'
+    if (val === true || val === 'yes') return 'Yes'
+    if (val === false || val === 'no') return 'No'
+    if (Array.isArray(val)) return val.join(', ') || '—'
+    return String(val)
+  }
+
+  const filled = FOLLOW_UP_FIELDS.filter(f => { const v = getVal(f.key); return v !== '' && v !== null && v !== undefined }).length
+
+  return (
+    <Card className="rounded-2xl">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-stone-50/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Shield className="size-4 text-[#283693]" />
+              <div>
+                <CardTitle className="text-base">Profile Follow Up Questions</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">Screening and eligibility details from profile</p>
+              </div>
+            </div>
+            <CardAction>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-stone-400">{filled}/{FOLLOW_UP_FIELDS.length}</span>
+                <ChevronDown className={`size-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </div>
+            </CardAction>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {FOLLOW_UP_FIELDS.map(f => {
+                const val = getVal(f.key)
+                const label = FIELD_LABELS[f.key] || f.key
+                return (
+                  <div key={f.key}>
+                    <p className="text-[10px] text-stone-400 font-medium">{label}</p>
+                    <p className={`text-sm font-medium ${val === '—' ? 'text-stone-300' : val === 'Yes' ? 'text-emerald-600' : val === 'No' ? 'text-red-500' : 'text-stone-800'}`}>{fmt(val)}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  )
+}
+
 export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers, profileData }) {
   const [search, setSearch] = useState('')
   const searchLower = search.toLowerCase().trim()
@@ -1261,6 +1328,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
+      <FollowUpQuestionsSection surrogate={surrogate} profileData={profileData} search={searchLower} />
       <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
 
