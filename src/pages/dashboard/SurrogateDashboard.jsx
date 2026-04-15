@@ -376,7 +376,7 @@ function OnboardingDashboard({ name, currentUser }) {
                   <Sparkles className="w-6 h-6 text-[#283693]" />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#283693] text-lg">You're all caught up!</p>
+                  <p className="font-semibold text-[#283693] text-lg">We're so glad you're here!</p>
                   <p className="text-sm text-stone-600 mt-1 leading-relaxed">
                     Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
                   </p>
