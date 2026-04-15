@@ -52,6 +52,7 @@ export default function MatchingPage() {
   const [avatarUrls, setAvatarUrls] = useState({})
   const [profileMap, setProfileMap] = useState({})
   const [shareHistory, setShareHistory] = useState({}) // { caseId: [shares] }
+  const [questionHistory, setQuestionHistory] = useState({}) // { caseId: [questions] }
 
   const [shareTarget, setShareTarget] = useState(null)
   const [matchNotesTarget, setMatchNotesTarget] = useState(null) // { id, answers }
@@ -91,6 +92,13 @@ export default function MatchingPage() {
           const map = {}
           results.forEach(([id, shares]) => { if (shares.length > 0) map[id] = shares })
           setShareHistory(map)
+        }).catch(() => {})
+        // Load questions for matching GCs
+        const qPromises = matchingGcs.map(g => fetchMatchQuestions({ caseId: g.id }).then(qs => [g.id, qs]))
+        Promise.all(qPromises).then(results => {
+          const map = {}
+          results.forEach(([id, qs]) => { if (qs.length > 0) map[id] = qs })
+          setQuestionHistory(map)
         }).catch(() => {})
       })
       .catch(() => {})
@@ -170,6 +178,7 @@ export default function MatchingPage() {
               const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
               const heightStr = gc.heightFt ? `${gc.heightFt}'${gc.heightIn || 0}"` : null
               const shares = shareHistory[gc.id] || []
+              const questions = questionHistory[gc.id] || []
 
               return (
                 <Card key={gc.id} className="rounded-2xl hover:shadow-md transition-shadow">
@@ -241,12 +250,12 @@ export default function MatchingPage() {
                     </div>
 
                     {/* Match History (expandable) */}
-                    {shares.length > 0 && (
+                    {(shares.length > 0 || questions.length > 0) && (
                       <Collapsible>
                         <CollapsibleTrigger asChild>
                           <button className="w-full flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 pt-1">
                             <Clock className="size-3" />
-                            <span>Match History ({shares.length})</span>
+                            <span>Match History ({shares.length + questions.length})</span>
                             <ChevronDown className="size-3 ml-auto" />
                           </button>
                         </CollapsibleTrigger>
@@ -263,6 +272,19 @@ export default function MatchingPage() {
                                   <span>{new Date(s.created_at).toLocaleDateString()}</span>
                                   {s.viewed_at && <span className="flex items-center gap-0.5 text-emerald-600"><Eye className="size-2.5" /> Viewed</span>}
                                   {new Date(s.expires_at) < new Date() && !s.viewed_at && <span className="text-red-400">Expired</span>}
+                                </div>
+                              </div>
+                            ))}
+                            {questions.map(q => (
+                              <div key={`q-${q.id}`} className="text-[11px] text-stone-500 space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <MessageSquare className="size-2.5 text-violet-400" />
+                                  <span>Question from <span className="font-medium text-stone-700">{q.asker_name || q.asker_email || 'Anonymous'}</span></span>
+                                </div>
+                                <p className="pl-4 text-[10px] text-stone-400 italic truncate">"{q.question}"</p>
+                                <div className="flex items-center gap-3 pl-4 text-stone-400">
+                                  <span>{new Date(q.created_at).toLocaleDateString()}</span>
+                                  {q.answer ? <span className="text-emerald-600">Answered</span> : <span className="text-amber-500">Pending</span>}
                                 </div>
                               </div>
                             ))}

@@ -101,7 +101,7 @@ export default function SharedProfilePage() {
       setAskForm({ name: '', email: '', question: '' })
       setAsked(true)
 
-      // Notify admin via email
+      // Notify admin via email + log case notes
       if (share.shared_by_email) {
         fetch('/api/notify-question', {
           method: 'POST',
@@ -113,6 +113,10 @@ export default function SharedProfilePage() {
             askerEmail,
             question,
             surrogateName: caseData?.name || 'a surrogate',
+            caseId: share.case_id,
+            caseType: share.case_type,
+            sharedToEmail: share.shared_to_email,
+            sharedToName: share.shared_to_name,
           }),
         }).catch(() => {}) // fire-and-forget
       }
