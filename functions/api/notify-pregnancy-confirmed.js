@@ -86,12 +86,19 @@ export async function onRequestPost(context) {
       }),
     })
     const data = await res.json()
-    if (!res.ok) console.error('Resend failed:', data)
+    if (!res.ok) {
+      console.error('Resend failed:', data)
+      return new Response(JSON.stringify({ success: false, error: data }), {
+        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+    return new Response(JSON.stringify({ success: true, id: data.id }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   } catch (err) {
     console.error('Pregnancy notify email failed:', err)
+    return new Response(JSON.stringify({ success: false, error: err.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
   }
-
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json', ...corsHeaders },
-  })
 }

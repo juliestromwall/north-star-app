@@ -801,11 +801,13 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
     await updateBabiesBornCounter('pregnant')
     // Auto-email pregnancy confirmation
     try {
-      await fetch('/api/notify-pregnancy-confirmed', {
+      const emailRes = await fetch('/api/notify-pregnancy-confirmed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ surrogateName: journey.gc_name || 'Surrogate' }),
       })
+      const emailData = await emailRes.json().catch(() => ({}))
+      if (!emailRes.ok) console.error('Pregnancy notify email failed:', emailRes.status, emailData)
     } catch (err) { console.error('Pregnancy notify email failed:', err) }
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1'); setBabySexes([])
     setSaving(false)
