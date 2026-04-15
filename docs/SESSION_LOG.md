@@ -1,5 +1,19 @@
 # Session Log
 
+## 2026-04-14 — 2026-04-15 Session B (Email, Admin Notes, Tasks, Auto-Tasks, Records Summary)
+
+**Worked on:** Email compose improvements, admin notes rich text editing, dashboard task features, auto-task creation for checklists, records summary merge/complete, pregnancy multiples, Terms & Privacy Policy
+
+**Changes made:**
+
+Email: Attach from case documents button, CC always visible, Reply All button. Admin Notes: Rich text editor with images + float alignment, edit existing notes, mark as read (collapse). Dashboard Tasks: Assign to any admin (defaults to self + today), edit tasks, completed tasks dropdown. Auto-Tasks: Connect with Applicant follow-ups (2/7/14/1 day cadence), Medical/Legal Clearance incentive payment tasks for Julie Allgood (referral + screening), works on both surrogate + journey pages. Records Summary: Drag-reorder merge, visible checkboxes with order badges, Complete button files to Medical Records + creates review tasks. Pregnancy: Baby A/B/C for multiples. Case-updates: removed green bg, info row styling, % Profile Complete. Terms & Privacy Policy document + password-set acknowledgment.
+
+**Next steps:**
+- Test email attach from documents end-to-end
+- Consider configurable auto-task rules from Settings
+
+---
+
 ## 2026-04-15 (Cover Photo Fix, Photo Dialogs, Portrait Overlay, Question Auto-Email, Share Email)
 
 **Worked on:** Fixing cover photo display across all previews, in-app photo delete dialogs, portrait overlay on cover photos, question auto-email with case note logging, share profile email restyle, mark-as-answered for match questions.

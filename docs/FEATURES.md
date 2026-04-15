@@ -111,6 +111,8 @@
 | ProfileFollowUpForm | src/pages/portal/PortalApplicationPage.jsx | 35 follow-up questions (lifestyle, health, fertility, education) for surrogate portal application. |
 | PaymentPreferenceForm | src/pages/portal/PortalApplicationPage.jsx | Surrogate portal: Venmo/Zelle payment preference with screenshot upload. |
 | FIELD_LABELS | src/components/profile/profileConstants.js | Single source of truth for 150+ surrogate profile field labels — used by portal, admin, and preview. |
+| ConfirmDialog | src/components/ui/confirm-dialog.jsx | Reusable in-app confirmation dialog replacing browser confirm(). Supports destructive styling, custom title/message/button text. |
+| ProfilePortraitOverlay | src/pages/profile/SurrogateProfilePage.jsx | Portrait photo overlays bottom-left edge of cover photo in ProfilePreview. Works in all contexts including PDF. |
 
 ## Bot Protection
 
@@ -129,7 +131,7 @@
 | /api/ip-welcome-email | functions/api/ip-welcome-email.js | IP welcome email with warm copy + 48hr timeline |
 | /api/notify-new-application | functions/api/notify-new-application.js | GC admin notification (GC_APPLICATION_NOTIFY_EMAIL) |
 | /api/notify-ip-application | functions/api/notify-ip-application.js | IP admin notification with all answers (IP_APPLICATION_NOTIFY_EMAIL) |
-| /api/notify-question | functions/api/notify-question.js | Email admin when question asked on shared profile |
+| /api/notify-question | functions/api/notify-question.js | Email admin when question asked on shared profile. Table layout, HIPAA warning, first-name only. Logs case notes on surrogate + IP cases server-side. |
 | /api/check-portal-access | functions/api/check-portal-access.js | Server-side check if surrogate/IP case is in blocked stage |
 | /api/set-password | functions/api/set-password.js | Sets password for existing auth user (service role) |
 | /api/user-status | functions/api/user-status.js | Check if user has portal account + last login |
@@ -193,6 +195,8 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-04-15 | Email: attach from case docs, CC always visible, Reply All. Admin notes: rich text + images + float alignment, edit notes, mark as read (collapse). Dashboard tasks: assign to admins, edit, completed dropdown. Auto-tasks: Connect with Applicant follow-ups (2/7/14/1d), Medical/Legal Clearance incentive tasks for Julie. Records Summary: drag-reorder merge, Complete files to Medical Records + creates review tasks. Pregnancy: Baby A/B/C for multiples. Terms & Privacy Policy + password-set acknowledgment. |
+| 2026-04-15 | Cover photo fixes (admin/portal/shared all load from auth UUID + intake case ID). Portrait photo overlay on cover photos. In-app confirm dialogs for photo delete. Admin crop/rotate for profile (1:1) and cover (16:9) photos. Question auto-email with table layout, HIPAA warning, server-side case note logging. Match history shows questions with mark-as-answered. Share profile email restyled with logo, gradient button, HIPAA warning, first name only. |
 | 2026-04-14 | Gmail inbox integration on case Emails tab (Logged/Inbox toggle, unread indicators, attachment preview in new tab, Save to Case with folder picker, log dialog with tags). Journey Update log button on all hero cards + case-updates. Provider Info modal on case-updates. Quick Note above tabs on all case pages. FIELD_LABELS map (150+ fields) for consistent labels across portal/admin/preview. AI Summary icon-only on case-updates. |
 | 2026-04-13 | IP profile: GC-style PVSection cards, ages in header pills, first names only, full state names, Heart/HeartPulse icons. GC admin photos: Profile/Cover/Gallery upload with drag-reorder/crop/rotate. IP stages: Consultation/Matching/Holding/Withdrawn only. Checklist statuses: +Started/+Followed Up/+Note. Checklists moved to Overview tab (GC/IP/Journey). Case-updates: matched GCs/IPs hidden from individual tabs, appointment badges with full log modal. Appointments: follow-up tracking (✅ in Calendar title), notes per appointment, read-only Calendar API Note. AI summary: MM/DD/YYYY dates, split appointments, birth data, checklist logs, email snippets. Journey info rows: Monitoring Clinic on hero, Settings config for 6 provider info rows, violet-tinted rendering in case-updates. |
 | 2026-04-13 | Records summary: DOB as MM/DD/YYYY, removed COVID section + occupation/lives with, smart pregnancy fields for miscarriage/termination (prenatal care conditional), OB Clearance moved to labs, PDF page breaks fixed (browser print with break-inside:avoid), line breaks preserved. Email sharing: body_html stored in DB so all admins can view, private email flag for master admins, lock toggle in log dialog. Office Admin role (settings access). Dashboard/list pages default to all cases for super/master admin. IP_STAGES separated from SURROGATE_STAGES. |

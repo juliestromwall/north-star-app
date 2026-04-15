@@ -85,6 +85,17 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 5. Profile tab has GC/IP sub-tabs with full editable profile builders
 6. When a match is broken: journey data snapshot saved to both cases, documents copied as "Previous Match", both cases get a "Previous Match" tab showing history
 
+### Profile Sharing & Questions
+1. Admin shares a surrogate profile from the Matching page → generates 72-hour secure link
+2. Email sent to IP with gradient "View {FirstName}'s Profile" button, HIPAA warning
+3. IP views profile at /share/{token}, can ask questions (name, email, question form)
+4. Question submission triggers:
+   - Auto-email to sharing admin (💬 subject, table layout, HIPAA warning)
+   - Case note logged on surrogate's case
+   - Case note logged on IP's case (found by shared_to_email)
+   - Question appears in Match History on Matching page
+5. Admin can click "Pending — click to mark answered" to toggle question status
+
 ### Case Tasks
 1. Tasks can be created on any case (Surrogate, IP, Journey) from the Overview tab
 2. Tasks can also be created from the admin Dashboard with a searchable case picker
