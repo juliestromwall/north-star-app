@@ -138,7 +138,7 @@ export default function ReferralBonusTrackerPage() {
           name: s.name,
           email: s.email,
           dateApplied: s.submittedAt,
-          referredBy: s.answers?.referralName || '—',
+          referredBy: s.answers?.referralName || s.answers?.hearAboutUsOther || '—',
           amountDue: td.amountDue || 4000,
           medicalClearanceDate: medicalDate,
           halfPaidDate: td.halfPaidDate || null,

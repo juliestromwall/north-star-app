@@ -471,7 +471,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                           if (row.dataField === 'referralSource') {
                             const source = s.answers?.hearAboutUs || s.hearAboutUs || ''
                             if (source.toLowerCase().includes('friend') || source.toLowerCase().includes('family')) {
-                              value = s.answers?.referralName || 'Friend/Family'
+                              value = s.answers?.referralName || s.answers?.hearAboutUsOther || 'Friend/Family'
                               secondary = 'Referral'
                             } else if (source.toLowerCase() === 'other') {
                               value = s.answers?.hearAboutUsOther || 'Other'

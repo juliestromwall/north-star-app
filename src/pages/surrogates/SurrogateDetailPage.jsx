@@ -1144,7 +1144,7 @@ export default function SurrogateDetailPage() {
                     const ans = surrogate.answers || {}
                     const src = ans.hearAboutUs || ''
                     const isRef = src.toLowerCase().includes('friend') || src.toLowerCase().includes('family')
-                    const refName = ans.referralName || 'Referrer'
+                    const refName = ans.referralName || ans.hearAboutUsOther || 'Referrer'
 
                     if (lbl.includes('medical clearance')) {
                       if (isRef) {
@@ -3568,6 +3568,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           [data-pdf="cover"] img { object-fit: contain !important; height: auto !important; max-height: 320px !important; }
           [data-pdf="cover"] > div { display: none !important; } /* hide gradient + badge */
           [data-pdf="thumbs"] { display: none !important; }
+          [data-pdf="portrait"] { position: absolute !important; bottom: -32px !important; left: 16px !important; width: 96px !important; height: 96px !important; border-radius: 16px !important; object-fit: cover !important; border: 4px solid white !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; z-index: 20 !important; }
         </style></head><body>
         <div class="print-bar">
           <div>
