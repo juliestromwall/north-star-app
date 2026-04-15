@@ -206,7 +206,7 @@ const SECTION_META = [
   { key: 'health', title: 'Health Information', icon: HeartPulse, description: 'Medical history, medications, and conditions' },
   { key: 'employment', title: 'Employment Information', icon: Briefcase, description: 'Work, income, and insurance details' },
   { key: 'interests', title: 'Interests', icon: Heart, description: 'Favorites, hobbies, and personality' },
-  { key: 'academic', title: 'Academic Information', icon: Apple, description: 'Education and training' },
+  // Academic fields moved to Follow Up section
   { key: 'experiencedSurrogate', title: 'Experienced Surrogate Information', icon: Stethoscope, description: 'Previous surrogacy journey details' },
   { key: 'hopesWishes', title: 'Journey Hopes & Wishes', icon: Heart, description: 'Your surrogacy goals, preferences, and compensation' },
   { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
