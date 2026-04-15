@@ -1135,6 +1135,31 @@ export default function SurrogateDetailPage() {
                       } catch (err) { console.error('Auto-task creation failed:', err) }
                     }
                   }
+                  // Auto-create incentive payment tasks on Medical Clearance / Legal Clearance complete
+                  if (status === 'complete') {
+                    const julieEmail = 'julie@abcsurrogacy.com'
+                    const sName = surrogate.name || 'Surrogate'
+                    const logDt = date || new Date().toISOString().split('T')[0]
+                    const lbl = stepLabel.toLowerCase()
+                    const ans = surrogate.answers || {}
+                    const src = ans.hearAboutUs || ''
+                    const isRef = src.toLowerCase().includes('friend') || src.toLowerCase().includes('family')
+                    const refName = ans.referralName || 'Referrer'
+
+                    if (lbl.includes('medical clearance')) {
+                      if (isRef) {
+                        try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: surrogate.id, case_type: 'surrogate' }) } catch {}
+                      }
+                      try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: surrogate.id, case_type: 'surrogate' }) } catch {}
+                    }
+
+                    if (lbl.includes('legal clearance')) {
+                      if (isRef) {
+                        try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: surrogate.id, case_type: 'surrogate' }) } catch {}
+                      }
+                      try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: surrogate.id, case_type: 'surrogate' }) } catch {}
+                    }
+                  }
                 }}
               />
             )
