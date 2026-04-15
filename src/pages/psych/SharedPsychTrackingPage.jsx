@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { Search, Brain } from 'lucide-react'
+import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake } from '@/lib/db'
@@ -10,6 +11,14 @@ import { formatDate } from '@/lib/utils'
 
 const TRACKING_KEY = 'psych_tracking'
 const SHARE_KEY = 'psych_tracking_share'
+
+// ── Password hashing (SHA-256) ──
+async function hashPassword(password) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 const CHECKIN_COLS = [
   { key: 'week10', label: '10 Week' },
@@ -50,33 +59,95 @@ async function setAppConfigPublic(key, value) {
 export default function SharedPsychTrackingPage() {
   const { token } = useParams()
   const [valid, setValid] = useState(null) // null = loading, true/false
+  const [authed, setAuthed] = useState(false)
+  const [needsSetup, setNeedsSetup] = useState(false) // true = first time, set password
+  const [shareData, setShareData] = useState(null)
   const [surrogates, setSurrogates] = useState([])
   const [journeys, setJourneys] = useState([])
   const [tracking, setTracking] = useState({})
   const [search, setSearch] = useState('')
 
+  // Password state
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+
+  const SESSION_KEY = `psych_share_session_${token}`
+
   useEffect(() => {
     async function load() {
       // Validate share token
-      const shareData = await getAppConfigPublic(SHARE_KEY)
-      if (!shareData?.token || shareData.token !== token) {
+      const sd = await getAppConfigPublic(SHARE_KEY)
+      if (!sd?.token || sd.token !== token) {
         setValid(false)
         return
       }
-
-      // Load data
-      const [gcs, js, saved] = await Promise.all([
-        fetchSurrogatesFromIntake().catch(() => []),
-        fetchMatchedJourneys().catch(() => []),
-        getAppConfigPublic(TRACKING_KEY),
-      ])
-      setSurrogates(gcs || [])
-      setJourneys(js || [])
-      setTracking(saved || {})
+      setShareData(sd)
       setValid(true)
+
+      // Check if already authenticated this session
+      if (sessionStorage.getItem(SESSION_KEY) === 'true') {
+        setAuthed(true)
+        await loadData()
+        return
+      }
+
+      // Check if password has been set
+      if (!sd.passwordHash) {
+        setNeedsSetup(true)
+      }
     }
     load()
   }, [token])
+
+  async function loadData() {
+    const [gcs, js, saved] = await Promise.all([
+      fetchSurrogatesFromIntake().catch(() => []),
+      fetchMatchedJourneys().catch(() => []),
+      getAppConfigPublic(TRACKING_KEY),
+    ])
+    setSurrogates(gcs || [])
+    setJourneys(js || [])
+    setTracking(saved || {})
+  }
+
+  async function handleSetPassword() {
+    setPasswordError('')
+    if (password.length < 8) { setPasswordError('Password must be at least 8 characters'); return }
+    if (password !== confirmPassword) { setPasswordError('Passwords do not match'); return }
+    setPasswordSaving(true)
+    try {
+      const hash = await hashPassword(password)
+      const updated = { ...shareData, passwordHash: hash, passwordSetAt: new Date().toISOString() }
+      await setAppConfigPublic(SHARE_KEY, updated)
+      setShareData(updated)
+      sessionStorage.setItem(SESSION_KEY, 'true')
+      setAuthed(true)
+      setNeedsSetup(false)
+      await loadData()
+    } catch (err) { setPasswordError('Failed to set password. Please try again.') }
+    finally { setPasswordSaving(false) }
+  }
+
+  async function handleLogin() {
+    setPasswordError('')
+    if (!password) { setPasswordError('Please enter your password'); return }
+    setPasswordSaving(true)
+    try {
+      const hash = await hashPassword(password)
+      if (hash !== shareData.passwordHash) {
+        setPasswordError('Incorrect password')
+        setPasswordSaving(false)
+        return
+      }
+      sessionStorage.setItem(SESSION_KEY, 'true')
+      setAuthed(true)
+      await loadData()
+    } catch (err) { setPasswordError('Something went wrong. Please try again.') }
+    finally { setPasswordSaving(false) }
+  }
 
   const saveTracking = useCallback(async (updated) => {
     setTracking(updated)
@@ -153,6 +224,104 @@ export default function SharedPsychTrackingPage() {
             <Brain className="size-10 mx-auto mb-3 text-stone-300" />
             <h2 className="text-lg font-semibold text-stone-800 mb-1">Invalid Share Link</h2>
             <p className="text-sm text-stone-500">This link is no longer valid or has been revoked.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // ── Set Password (first time) ──
+  if (valid && !authed && needsSetup) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <Card className="max-w-sm w-full mx-4 rounded-2xl">
+          <CardContent className="py-8 px-6 space-y-5">
+            <div className="text-center">
+              <div className="size-14 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="size-7 text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-stone-800">Secure Your Access</h2>
+              <p className="text-sm text-stone-500 mt-1">Create a password to protect this page. You'll use it each time you visit.</p>
+            </div>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs text-stone-500 font-medium">Create Password</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="pr-9"
+                    onKeyDown={e => { if (e.key === 'Enter' && confirmPassword) handleSetPassword() }}
+                  />
+                  <button onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-stone-500 font-medium">Confirm Password</label>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter your password"
+                  onKeyDown={e => { if (e.key === 'Enter') handleSetPassword() }}
+                />
+              </div>
+              {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={handleSetPassword} disabled={passwordSaving}>
+                {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
+                {passwordSaving ? 'Setting up...' : 'Set Password & Continue'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-stone-400 text-center leading-relaxed">
+              This page contains confidential health information protected under HIPAA. Do not share your password or this link with unauthorized individuals.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // ── Enter Password ──
+  if (valid && !authed && !needsSetup) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <Card className="max-w-sm w-full mx-4 rounded-2xl">
+          <CardContent className="py-8 px-6 space-y-5">
+            <div className="text-center">
+              <div className="size-14 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center mx-auto mb-3">
+                <Lock className="size-7 text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-stone-800">Password Required</h2>
+              <p className="text-sm text-stone-500 mt-1">Enter your password to access the Psych Check In sheet.</p>
+            </div>
+            <div className="space-y-3">
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="pr-9"
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleLogin() }}
+                />
+                <button onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+              {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
+              <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={handleLogin} disabled={passwordSaving}>
+                {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
+                {passwordSaving ? 'Verifying...' : 'Unlock'}
+              </Button>
+            </div>
+            <p className="text-[10px] text-stone-400 text-center leading-relaxed">
+              This page contains confidential health information protected under HIPAA. Do not share your password or this link with unauthorized individuals.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -204,7 +204,7 @@ export default function PsychTrackingPage() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-600">
-            Anyone with this link can view and update the psych check-in dates. No login required.
+            This link is password-protected. The recipient will set a password on their first visit.
           </p>
           <div className="flex gap-2">
             <Input value={shareUrl} readOnly className="text-xs" />
@@ -212,6 +212,16 @@ export default function PsychTrackingPage() {
               {copied ? <><Check className="size-3.5 text-emerald-500" /> Copied</> : <><Copy className="size-3.5" /> Copy</>}
             </Button>
           </div>
+          <Button variant="outline" size="sm" className="text-xs gap-1 text-amber-600 hover:bg-amber-50" onClick={async () => {
+            if (!confirm('Reset the shared link password? The recipient will need to set a new password on their next visit.')) return
+            const shareData = await getAppConfig(SHARE_KEY).catch(() => null)
+            if (shareData) {
+              const { passwordHash, passwordSetAt, ...rest } = shareData
+              await setAppConfig(SHARE_KEY, rest).catch(() => {})
+            }
+          }}>
+            Reset Password
+          </Button>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
           </DialogFooter>
