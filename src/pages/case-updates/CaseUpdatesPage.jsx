@@ -7,7 +7,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
 import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ScrollText, ClipboardPlus, X, Sparkles, Loader2, CalendarDays, Clock, FileText, CheckCircle } from 'lucide-react'
+import { CheckCircle2, Circle, ChevronDown, X, Sparkles, Loader2, CalendarDays, Clock, FileText, CheckCircle, Eye } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -185,6 +185,39 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
       </Dialog>
     </>
   )
+}
+
+function cellStatusColor(status) {
+  if (status === 'complete' || status === 'partial_complete') return 'text-green-600 bg-green-50 border-green-200'
+  if (status === 'na' || status === 'deactivated') return 'text-stone-400 bg-stone-50 border-stone-200'
+  if (status === 'not_started') return 'text-stone-400 bg-white border-stone-200'
+  if (status === 'records_received' || status === 'partial_received') return 'text-emerald-600 bg-emerald-50 border-emerald-200'
+  if (status === 'followed_up') return 'text-sky-600 bg-sky-50 border-sky-200'
+  if (status === 'faxed_request' || status === 'refaxed_request' || status === 'requested') return 'text-amber-600 bg-amber-50 border-amber-200'
+  if (status === 'confirmed_fax_received' || status === 'records_sent_mail') return 'text-indigo-600 bg-indigo-50 border-indigo-200'
+  if (status === 'started') return 'text-cyan-600 bg-cyan-50 border-cyan-200'
+  if (status === 'in_progress') return 'text-blue-600 bg-blue-50 border-blue-200'
+  if (status === 'reviewing') return 'text-purple-600 bg-purple-50 border-purple-200'
+  return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
+}
+
+function statusCellBg(status) {
+  if (status === 'complete' || status === 'partial_complete') return '#f0fdf4'
+  if (status === 'na' || status === 'deactivated') return '#fafaf9'
+  if (status === 'records_received' || status === 'partial_received') return '#ecfdf5'
+  if (status === 'followed_up') return '#f0f9ff'
+  if (status === 'faxed_request' || status === 'refaxed_request' || status === 'requested') return '#fffbeb'
+  if (status === 'confirmed_fax_received' || status === 'records_sent_mail') return '#eef2ff'
+  if (status === 'started') return '#ecfeff'
+  if (status === 'in_progress') return '#eff6ff'
+  if (status === 'reviewing') return '#faf5ff'
+  return 'transparent'
+}
+
+function StatusPill({ status, label }) {
+  if (status === 'not_started') return <span className="text-[10px] text-stone-300">—</span>
+  if (status === 'na' || status === 'deactivated') return <span className="text-[10px] text-stone-400 italic line-through">N/A</span>
+  return <span className="text-[11px] font-semibold text-stone-700">{label}</span>
 }
 
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
@@ -394,24 +427,24 @@ function SurrogateUpdatesSheet({ surrogates }) {
         {filtered.length === 0 ? (
           <p className="text-sm text-stone-400 py-8">No surrogates in this stage</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-stone-200">
+            <table className="text-xs border-collapse w-full">
               <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[150px]">
-                    Screening Step
+                <tr className="bg-stone-50/80 border-b border-stone-200">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[160px] border-r border-stone-100">
+                    Checklist Steps
                   </th>
                   {filtered.map(s => {
                     const ss = allStageStatuses[s.id] || {}
                     const stageLabel = SURROGATE_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
                     return (
-                      <th key={s.id} className="text-left px-3 py-2.5 min-w-[180px]">
+                      <th key={s.id} className="text-center px-3 py-3 min-w-[170px] border-r border-stone-100 last:border-r-0">
                         <Link to={`/surrogates/${s.id}`} className="text-[#ed148c] hover:underline font-semibold text-xs">{s.name}</Link>
                         <p className="text-[9px] text-stone-400 font-normal">
-                          {s.location ? `◎ ${s.location.split(', ').pop()}` : ''}
-                          {s.age ? ` · ${s.age}y` : ''}
+                          {s.location ? `${s.location.split(', ').pop()}` : ''}
+                          {s.age ? ` · ${s.age}` : ''}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center justify-center gap-2 mt-1">
                           <AISummaryButton
                             caseId={s.id} caseName={s.name} caseType="surrogate"
                             stage={stageLabel} status={ss.status}
@@ -429,9 +462,9 @@ function SurrogateUpdatesSheet({ surrogates }) {
                   // Surrogate info rows
                   if (row.type === 'info_row' && row.source === 'surrogate') {
                     return (
-                      <tr key={row.id} className="border-b border-stone-100">
-                        <td className="px-3 py-2 font-medium text-stone-700 sticky left-0 bg-white z-10">
-                          <span className="text-xs">{row.label}</span>
+                      <tr key={row.id} className="border-b border-stone-100 bg-stone-50/30">
+                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50/30 z-10 border-r border-stone-100 text-center">
+                          <span className="text-[10px] uppercase tracking-wider">{row.label}</span>
                         </td>
                         {filtered.map(s => {
                           let value = '', secondary = ''
@@ -488,7 +521,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             }
                           }
                           return (
-                            <td key={s.id} className="px-3 py-2">
+                            <td key={s.id} className="px-3 py-2 text-center">
                               {value ? (
                                 <div>
                                   <p className="text-xs font-medium text-[#283693]">{value}</p>
@@ -505,8 +538,8 @@ function SurrogateUpdatesSheet({ surrogates }) {
                   }
 
                   return (
-                  <tr key={row.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
+                  <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/30 transition-colors">
+                    <td className="px-4 py-2.5 font-semibold text-stone-700 text-xs sticky left-0 bg-white z-10 border-r border-stone-100 text-center">{row.label}</td>
                     {filtered.map(s => {
                       const { status, lastEntry, history, activeRecords, isRecordType, doneCount, totalCount } = getCellData(s.id, row.id, row.label)
                       const rt = allTracking[s.id] || {}
@@ -517,35 +550,21 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const isComplete = status === 'complete'
                       const isNotNeeded = status === 'na' || status === 'deactivated'
                       return (
-                        <td key={s.id} className={`px-3 py-2.5 relative ${isComplete ? '' : isNotNeeded ? 'bg-stone-50/60' : ''}`}>
-                          <div className="flex items-center gap-1.5">
-                            {isComplete ? (
-                              <span className="text-xs text-green-600 font-medium">{lastEntry?.date ? formatDate(lastEntry.date) : ''} {textVal || 'Completed'}</span>
-                            ) : isNotNeeded ? (
-                              <span className="text-xs text-stone-400 italic">Not Needed</span>
-                            ) : status === 'not_started' ? (
-                              <span className="text-xs text-stone-300">Not Started</span>
-                            ) : (
-                              <span className={`text-xs ${status === 'in_progress' ? 'text-blue-600' : status === 'reviewing' ? 'text-purple-600' : status === 'requested' ? 'text-amber-600' : 'text-stone-600'} font-medium`}>
-                                {lastEntry?.date ? formatDate(lastEntry.date) : ''}{' '}
-                                <span className="font-medium">{textVal || status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                              </span>
-                            )}
+                        <td key={s.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNotNeeded ? 'opacity-40' : ''}`}
+                          style={{ backgroundColor: statusCellBg(status) }}
+                          onClick={() => { const hasDetails = history.length > 0 || (subtasksByParent[row.id] || []).length > 0 || Object.values(allTracking[s.id] || {}).some(v => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id) || (isRecordType && totalCount > 0); if (hasDetails) { setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id }); setDocPopover(null) } }}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="min-w-0">
+                              <StatusPill status={status} label={textVal || stepData.optionLabel || lastEntry?.optionLabel || status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
+                              {lastEntry?.date && status !== 'not_started' && status !== 'na' && (
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(lastEntry.date)}{lastEntry.note ? ` · ${lastEntry.note}` : ''}</p>
+                              )}
+                            </div>
                             {isRecordType && totalCount > 0 && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
-                            )}
-                            {(history.length > 0 || (subtasksByParent[row.id] || []).length > 0 || Object.values(allTracking[s.id] || {}).some(v => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id)) && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="View checklist log">
-                                <ScrollText className="size-3.5" />
-                              </button>
-                            )}
-                            {isRecordType && totalCount > 0 && (
-                              <button onClick={() => setDocPopover(isDocOpen ? null : { surrogateId: s.id, stepId: row.id })} className="text-stone-300 hover:text-stone-500 transition-colors" title="View medical records">
-                                <ClipboardPlus className="size-3.5" />
-                              </button>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${doneCount === totalCount ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-500'}`}>{doneCount}/{totalCount}</span>
                             )}
                           </div>
-                          {/* Checklist log popover — shows parent step history + subtasks */}
+                          {/* Unified details popover */}
                           {isLogOpen && (() => {
                             const rt = allTracking[s.id] || {}
                             const globalSubs = subtasksByParent[row.id] || []
@@ -553,105 +572,68 @@ function SurrogateUpdatesSheet({ surrogates }) {
                               .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id)
                               .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
                             const subs = [...globalSubs, ...caseSubs]
+                            const manualLogs = [...history].reverse().filter(e => !e.auto)
                             return (
-                            <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5">
-                              <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-semibold text-stone-400 uppercase">Checklist Log</p>
-                                <button onClick={() => setLogPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
+                            <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden">
+                              <div className="flex items-center justify-between px-3 py-2 bg-stone-50 border-b border-stone-100">
+                                <p className="text-[11px] font-semibold text-stone-600">{row.label}</p>
+                                <button onClick={() => setLogPopover(null)} className="p-0.5 text-stone-300 hover:text-stone-500 rounded"><X className="size-3.5" /></button>
                               </div>
-                              {[...history].reverse().filter(e => !e.auto).map((entry, i) => (
-                                <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                                    <span className="text-stone-400">{formatDate(entry.date)}</span>
+                              <div className="max-h-[350px] overflow-y-auto">
+                                {/* Subtasks */}
+                                {subs.length > 0 && (
+                                  <div className="px-3 py-2 space-y-1.5">
+                                    <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">Subtasks</p>
+                                    {subs.map(sub => {
+                                      const subData = rt[sub.id] || {}
+                                      const subStatus = subData.status || 'not_started'
+                                      return (
+                                        <div key={sub.id} className="flex items-center gap-2 text-xs py-0.5">
+                                          {subStatus === 'complete' ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : subStatus === 'na' ? <X className="size-3.5 text-stone-300 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
+                                          <span className={`flex-1 ${subStatus === 'complete' ? 'text-stone-500' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                                          <StatusPill status={subStatus} label={subData.optionLabel || subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
+                                        </div>
+                                      )
+                                    })}
                                   </div>
-                                  {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
-                                  {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
-                                </div>
-                              ))}
-                              {subs.length > 0 && (
-                                <div className="border-t border-stone-100 mt-2 pt-2">
-                                  <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1.5">Subtasks</p>
-                                  {subs.map(sub => {
-                                    const subData = rt[sub.id] || {}
-                                    const subStatus = subData.status || 'not_started'
-                                    const subHistory = (subData.history || []).filter(e => !e.auto)
-                                    return (
-                                      <div key={sub.id} className="mb-2 last:mb-0">
-                                        <div className="flex items-center gap-2 text-xs">
-                                          {subStatus === 'complete' || subStatus === 'na' ? (
-                                            <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
-                                          ) : (
-                                            <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
-                                          )}
-                                          <span className={`flex-1 font-medium ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
-                                          <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
-                                            {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
-                                          </span>
+                                )}
+                                {/* Medical records */}
+                                {isRecordType && totalCount > 0 && (
+                                  <div className={`px-3 py-2 space-y-1.5 ${subs.length > 0 ? 'border-t border-stone-100' : ''}`}>
+                                    <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">Records ({doneCount}/{totalCount})</p>
+                                    {activeRecords.map(rec => (
+                                      <div key={rec.id} className="flex items-center gap-2 text-xs py-0.5">
+                                        {rec.isComplete ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
+                                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                                          {rec.badge && <span className={`text-[8px] font-bold px-1 py-0 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
+                                          <span className="text-stone-700 truncate">{rec.label}</span>
                                         </div>
-                                        {subHistory.length > 0 && (
-                                          <div className="ml-5.5 mt-1 space-y-0.5 border-l-2 border-stone-100 pl-2.5">
-                                            {[...subHistory].reverse().map((entry, i) => (
-                                              <div key={i} className="text-[11px]">
-                                                <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'in_progress' ? 'text-blue-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-500'}`}>
-                                                  {entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                                </span>
-                                                <span className="text-stone-300 ml-1.5">{formatDate(entry.date)}</span>
-                                                {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
-                                                {entry.by && <span className="text-stone-300 text-[9px] ml-1">({entry.by})</span>}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
+                                        <StatusPill status={rec.status} label={rec.isComplete ? 'Done' : rec.status === 'not_started' ? '—' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                                       </div>
-                                    )
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                            )
-                          })()}
-                          {/* Medical records popover — shows each sub-record with full log */}
-                          {isDocOpen && (() => {
-                            const rt = allTracking[s.id] || {}
-                            return (
-                              <div className="absolute z-20 top-full left-0 mt-1 w-96 max-h-[400px] overflow-y-auto bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <p className="text-[10px] font-semibold text-stone-400 uppercase">{row.label} ({doneCount}/{totalCount})</p>
-                                  <button onClick={() => setDocPopover(null)} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
-                                </div>
-                                {activeRecords.map(rec => {
-                                  const recData = rt[rec.id] || {}
-                                  const recHistory = recData.history || []
-                                  return (
-                                    <div key={rec.id} className="border-b border-stone-100 pb-2 last:border-0">
-                                      <div className="flex items-center gap-1.5 mb-1">
-                                        {rec.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
-                                        <span className="font-semibold text-stone-700 text-xs flex-1">{rec.label}</span>
-                                        <span className={`text-[10px] font-medium ${rec.isComplete ? 'text-green-600' : rec.status === 'not_started' ? 'text-stone-300' : 'text-amber-600'}`}>
-                                          {rec.isComplete ? 'Complete' : rec.status === 'not_started' ? 'Not Started' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                        </span>
-                                      </div>
-                                      {recHistory.length > 0 ? (
-                                        <div className="ml-7 space-y-1">
-                                          {[...recHistory].reverse().map((entry, i) => (
-                                            <div key={i} className="text-xs">
-                                              <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'followed_up' ? 'text-blue-600' : entry.status === 'request_received' ? 'text-indigo-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>
-                                                {entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                              </span>
-                                              <span className="text-stone-400 ml-1.5">{formatDate(entry.date)}</span>
-                                              {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
-                                              {entry.by && <span className="text-stone-300 text-[10px] ml-1">({entry.by})</span>}
-                                            </div>
-                                          ))}
+                                    ))}
+                                  </div>
+                                )}
+                                {/* History */}
+                                {manualLogs.length > 0 && (
+                                  <div className={`px-3 py-2 space-y-1 ${(subs.length > 0 || (isRecordType && totalCount > 0)) ? 'border-t border-stone-100' : ''}`}>
+                                    <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">History</p>
+                                    {manualLogs.map((entry, i) => (
+                                      <div key={i} className="text-[11px] py-1 border-b border-stone-50 last:border-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`font-medium shrink-0 ${cellStatusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                                          <span className="text-stone-400 shrink-0">{formatDate(entry.date)}</span>
+                                          <span className="text-stone-300 ml-auto shrink-0 text-[10px]">{entry.by}</span>
                                         </div>
-                                      ) : (
-                                        <p className="text-[10px] text-stone-300 ml-7">No logs yet</p>
-                                      )}
-                                    </div>
-                                  )
-                                })}
+                                        {entry.note && <p className="text-stone-500 mt-0.5 whitespace-pre-wrap break-words">{entry.note}</p>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {manualLogs.length === 0 && subs.length === 0 && !(isRecordType && totalCount > 0) && (
+                                  <div className="px-3 py-4 text-center text-[11px] text-stone-400">No details to show</div>
+                                )}
                               </div>
+                            </div>
                             )
                           })()}
                         </td>
@@ -737,21 +719,21 @@ function IPUpdatesSheet({ ips }) {
         ) : sheetRows.length === 0 ? (
           <p className="text-sm text-stone-400 py-8">No checklist steps configured for this stage. Set them up in Settings → Checklists → Intended Parent (IP).</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-stone-200">
+            <table className="text-xs border-collapse w-full">
               <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[120px]">
-                    Checklist Step
+                <tr className="bg-stone-50/80 border-b border-stone-200">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[140px] border-r border-stone-100">
+                    Checklist Steps
                   </th>
                   {filtered.map(ip => {
                     const ss = allStageStatuses[ip.id] || {}
                     const stageLabel = IP_STAGES.find(st => st.id === ss.stage)?.label || ss.stage
                     return (
-                      <th key={ip.id} className="text-left px-3 py-2.5 min-w-[130px]">
+                      <th key={ip.id} className="text-center px-3 py-3 min-w-[140px] border-r border-stone-100 last:border-r-0">
                         <Link to={`/intended-parents/${ip.id}`} className="text-[#283693] hover:underline font-semibold text-xs">{ip.names}</Link>
                         <p className="text-[9px] text-stone-400 font-normal">{ip.location || ''}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center justify-center gap-2 mt-1">
                           <AISummaryButton
                             caseId={ip.id} caseName={ip.names} caseType="ip"
                             stage={stageLabel} status={ss.status}
@@ -766,8 +748,8 @@ function IPUpdatesSheet({ ips }) {
               </thead>
               <tbody>
                 {sheetRows.map(step => (
-                  <tr key={step.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{step.label}</td>
+                  <tr key={step.id} className="border-b border-stone-100 hover:bg-stone-50/30 transition-colors">
+                    <td className="px-4 py-2.5 font-semibold text-stone-700 text-xs sticky left-0 bg-white z-10 border-r border-stone-100">{step.label}</td>
                     {filtered.map(ip => {
                       const rt = allTracking[ip.id] || {}
                       const d = rt[step.id] || {}
@@ -780,32 +762,25 @@ function IPUpdatesSheet({ ips }) {
                       const hasChildren = subs.length > 0
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
-                      const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
+                      const isNA = effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
                       const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
-                      const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
-                      const displayDate = lastManual?.date || lastAutoDate
+                      const displayDate = lastManual?.date
                       const textValue = d._textValue || lastManual?.textValue
                       const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
-                        <td key={ip.id} className={`px-3 py-2.5 relative ${isComplete ? '' : ''}`}>
-                          <div className="space-y-1">
-                            {displayStatus !== 'not_started' ? (
-                              <div className="text-xs">
-                                <span className="text-stone-400">{displayDate ? formatDate(displayDate) : ''}</span>{' '}
-                                <span className={`font-medium ${displayStatus === 'complete' ? 'text-green-600' : displayStatus === 'in_progress' ? 'text-blue-600' : displayStatus === 'reviewing' ? 'text-purple-600' : displayStatus === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{statusLabel}</span>
-                                {lastManual?.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{lastManual.note}</p>}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-stone-300">Not Started</span>
-                            )}
-                            {(manualHistory.length > 0 || hasChildren) && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
-                                <ScrollText className="size-3.5" />
-                              </button>
-                            )}
+                        <td key={ip.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNA ? 'opacity-40' : ''}`}
+                          style={{ backgroundColor: statusCellBg(displayStatus) }}
+                          onClick={() => { if (manualHistory.length > 0 || hasChildren) setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id }) }}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="min-w-0">
+                              <StatusPill status={displayStatus} label={statusLabel} />
+                              {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
+                              )}
+                            </div>
                           </div>
                           {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
                         </td>
@@ -882,12 +857,12 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
         ) : sheetRows.length === 0 ? (
           <p className="text-sm text-stone-400 py-8">No checklist steps configured for this stage. Set them up in Settings → Checklists → Matched Journeys.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="text-xs border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-stone-200">
+            <table className="text-xs border-collapse w-full">
               <thead>
-                <tr className="border-b border-stone-200">
-                  <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-white z-10 min-w-[150px]">
-                    Checklist Step
+                <tr className="bg-stone-50/80 border-b border-stone-200">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[160px] border-r border-stone-100">
+                    Checklist Steps
                   </th>
                   {filtered.map(j => {
                     const ip = ips.find(i => i.id === j.ip_case_id)
@@ -897,7 +872,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                     const gestAge = calcGestationalAge(jd.dueDate)
                     const isPregnant = jd.pregnant === 'yes'
                     return (
-                      <th key={j.id} className="text-left px-3 py-2.5 min-w-[180px]">
+                      <th key={j.id} className="text-center px-3 py-3 min-w-[180px] border-r border-stone-100 last:border-r-0">
                         <Link to={`/journeys/${j.id}`} className="hover:opacity-80 block text-center">
                           <p className="text-xs font-semibold text-[#283693]">{ip?.names || 'IP'}</p>
                           <p className="text-[10px] text-stone-800 font-normal leading-tight">+</p>
@@ -960,16 +935,16 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
 
                   if (isInfoRow) {
                     return (
-                      <tr key={step.id} className="border-b border-stone-100">
-                        <td className="px-3 py-2 font-medium text-stone-700 sticky left-0 bg-white z-10">
-                          <span className="text-xs">{step.label}</span>
+                      <tr key={step.id} className="border-b border-stone-100 bg-stone-50/30">
+                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50/30 z-10 border-r border-stone-100 text-center">
+                          <span className="text-[10px] uppercase tracking-wider">{step.label}</span>
                         </td>
                         {filtered.map(j => {
                           const jd = j.journey_data || {}
                           const primary = jd[step.dataPath] || ''
                           const secondary = step.secondaryPath ? jd[step.secondaryPath] || '' : ''
                           return (
-                            <td key={j.id} className="px-3 py-2">
+                            <td key={j.id} className="px-3 py-2 text-center">
                               {primary ? (
                                 <div>
                                   <p className="text-xs font-medium text-[#283693]">{primary}</p>
@@ -986,8 +961,8 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                   }
 
                   return (
-                  <tr key={step.id} className="border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{step.label}</td>
+                  <tr key={step.id} className="border-b border-stone-100 hover:bg-stone-50/30 transition-colors">
+                    <td className="px-4 py-2.5 font-semibold text-stone-700 text-xs sticky left-0 bg-white z-10 border-r border-stone-100">{step.label}</td>
                     {filtered.map(j => {
                       const rt = allTracking[j.id] || {}
                       const d = rt[step.id] || {}
@@ -1000,32 +975,25 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                       const hasChildren = subs.length > 0
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
-                      const isComplete = effectiveStatus === 'complete' || effectiveStatus === 'na'
+                      const isNA = effectiveStatus === 'na'
                       const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
                       const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
-                      const lastAutoDate = history.length > 0 ? history[history.length - 1]?.date : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
-                      const displayDate = lastManual?.date || lastAutoDate
+                      const displayDate = lastManual?.date
                       const textValue = d._textValue || lastManual?.textValue
                       const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
-                        <td key={j.id} className={`px-3 py-2.5 relative ${isComplete ? '' : ''}`}>
-                          <div className="space-y-1">
-                            {displayStatus !== 'not_started' ? (
-                              <div className="text-xs">
-                                <span className="text-stone-400">{displayDate ? formatDate(displayDate) : ''}</span>{' '}
-                                <span className={`font-medium ${displayStatus === 'complete' ? 'text-green-600' : displayStatus === 'in_progress' ? 'text-blue-600' : displayStatus === 'reviewing' ? 'text-purple-600' : displayStatus === 'requested' ? 'text-amber-600' : 'text-stone-600'}`}>{statusLabel}</span>
-                                {lastManual?.note && <p className="text-[10px] text-stone-400 truncate max-w-[150px]">{lastManual.note}</p>}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-stone-300">Not Started</span>
-                            )}
-                            {(manualHistory.length > 0 || hasChildren) && (
-                              <button onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })} className="text-stone-300 hover:text-[#283693] transition-colors" title="Full log">
-                                <ScrollText className="size-3.5" />
-                              </button>
-                            )}
+                        <td key={j.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNA ? 'opacity-40' : ''}`}
+                          style={{ backgroundColor: statusCellBg(displayStatus) }}
+                          onClick={() => { if (manualHistory.length > 0 || hasChildren) setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id }) }}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <div className="min-w-0">
+                              <StatusPill status={displayStatus} label={statusLabel} />
+                              {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
+                              )}
+                            </div>
                           </div>
                           {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
                         </td>
@@ -1063,62 +1031,49 @@ function CellStatus({ status, lastEntry }) {
 function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
   const manualHistory = [...history].reverse().filter(e => !e.auto)
   return (
-    <div className="absolute z-20 top-full left-0 mt-1 w-80 max-h-[450px] overflow-y-auto bg-white rounded-xl shadow-xl border border-stone-200 p-3 space-y-1.5" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] font-semibold text-stone-400 uppercase">Full Log History</p>
-        <button onClick={onClose} className="text-stone-300 hover:text-stone-500"><X className="size-3" /></button>
+    <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-3 py-2 bg-stone-50 border-b border-stone-100">
+        <p className="text-[11px] font-semibold text-stone-600">Details</p>
+        <button onClick={onClose} className="p-0.5 text-stone-300 hover:text-stone-500 rounded"><X className="size-3.5" /></button>
       </div>
-      {manualHistory.length > 0 ? manualHistory.map((entry, i) => (
-        <div key={i} className="text-xs border-b border-stone-50 pb-1 last:border-0">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-stone-600">{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-            <span className="text-stone-400">{formatDate(entry.date)}</span>
-          </div>
-          {entry.note && <p className="text-stone-500 mt-0.5">{entry.note}</p>}
-          {entry.by && <p className="text-stone-300 text-[10px]">— {entry.by}</p>}
-        </div>
-      )) : subtasks.length === 0 ? (
-        <p className="text-xs text-stone-300 py-1">No log entries</p>
-      ) : null}
-      {subtasks.length > 0 && (
-        <div className="border-t border-stone-100 mt-2 pt-2">
-          <p className="text-[10px] font-semibold text-stone-400 uppercase mb-1.5">Subtasks</p>
-          {subtasks.map(sub => {
-            const subData = tracking[sub.id] || {}
-            const subStatus = subData.status || 'not_started'
-            const subHistory = (subData.history || []).filter(e => !e.auto)
-            return (
-              <div key={sub.id} className="mb-2 last:mb-0">
-                <div className="flex items-center gap-2 text-xs">
-                  {subStatus === 'complete' || subStatus === 'na' ? (
-                    <CheckCircle2 className={`size-3.5 shrink-0 ${subStatus === 'complete' ? 'text-green-500' : 'text-stone-300'}`} />
-                  ) : (
-                    <Circle className={`size-3.5 shrink-0 ${subStatus === 'in_progress' ? 'text-blue-400' : subStatus === 'requested' ? 'text-amber-400' : 'text-stone-300'}`} />
-                  )}
-                  <span className={`flex-1 font-medium ${subStatus === 'complete' ? 'text-green-700' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
-                  <span className={`text-[10px] font-medium whitespace-nowrap ${subStatus === 'complete' ? 'text-green-500' : subStatus === 'in_progress' ? 'text-blue-500' : subStatus === 'reviewing' ? 'text-purple-500' : subStatus === 'requested' ? 'text-amber-500' : subStatus === 'na' ? 'text-stone-400' : 'text-stone-300'}`}>
-                    {subData.optionLabel || (subStatus === 'not_started' ? '—' : subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
-                  </span>
+      <div className="max-h-[350px] overflow-y-auto">
+        {/* Subtasks */}
+        {subtasks.length > 0 && (
+          <div className="px-3 py-2 space-y-1.5">
+            <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">Subtasks</p>
+            {subtasks.map(sub => {
+              const subData = tracking[sub.id] || {}
+              const subStatus = subData.status || 'not_started'
+              return (
+                <div key={sub.id} className="flex items-center gap-2 text-xs py-0.5">
+                  {subStatus === 'complete' ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : subStatus === 'na' ? <X className="size-3.5 text-stone-300 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
+                  <span className={`flex-1 ${subStatus === 'complete' ? 'text-stone-500' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                  <StatusPill status={subStatus} label={subData.optionLabel || subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                 </div>
-                {subHistory.length > 0 && (
-                  <div className="ml-5.5 mt-1 space-y-0.5 border-l-2 border-stone-100 pl-2.5">
-                    {[...subHistory].reverse().map((entry, i) => (
-                      <div key={i} className="text-[11px]">
-                        <span className={`font-medium ${entry.status === 'complete' ? 'text-green-600' : entry.status === 'in_progress' ? 'text-blue-600' : entry.status === 'requested' ? 'text-amber-600' : 'text-stone-500'}`}>
-                          {entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                        </span>
-                        <span className="text-stone-300 ml-1.5">{formatDate(entry.date)}</span>
-                        {entry.note && <span className="text-stone-400 ml-1">— {entry.note}</span>}
-                        {entry.by && <span className="text-stone-300 text-[9px] ml-1">({entry.by})</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
+              )
+            })}
+          </div>
+        )}
+        {/* History */}
+        {manualHistory.length > 0 && (
+          <div className={`px-3 py-2 space-y-1 ${subtasks.length > 0 ? 'border-t border-stone-100' : ''}`}>
+            <p className="text-[9px] font-semibold text-stone-400 uppercase tracking-wider">History</p>
+            {manualHistory.map((entry, i) => (
+              <div key={i} className="text-[11px] py-1 border-b border-stone-50 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className={`font-medium shrink-0 ${cellStatusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || entry.status?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                  <span className="text-stone-400 shrink-0">{formatDate(entry.date)}</span>
+                  <span className="text-stone-300 ml-auto shrink-0 text-[10px]">{entry.by}</span>
+                </div>
+                {entry.note && <p className="text-stone-500 mt-0.5 whitespace-pre-wrap break-words">{entry.note}</p>}
               </div>
-            )
-          })}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+        {manualHistory.length === 0 && subtasks.length === 0 && (
+          <div className="px-3 py-4 text-center text-[11px] text-stone-400">No details to show</div>
+        )}
+      </div>
     </div>
   )
 }

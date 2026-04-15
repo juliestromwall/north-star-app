@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight, Plus, Trash2 } from 'lucide-react'
+import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight, Plus, Trash2, Circle, Pencil, Calendar, MessageSquare, User, EyeOff, Eye } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { normalizeOptions, deriveParentStatus } from '@/lib/checklistStore'
 
@@ -225,7 +225,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
       setLogStatus('')
     }
     setLogNote('')
-    setLogDate('')
+    setLogDate(new Date().toISOString().split('T')[0])
     setEditingLog(null)
   }
 
@@ -249,260 +249,278 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     return 'text-[#283693] bg-[#283693]/5 border-[#283693]/20'
   }
 
+  const pct = totalActive > 0 ? Math.round((completeCount / totalActive) * 100) : 0
+
   return (
-    <Card className="rounded-2xl">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle>{title}</CardTitle>
-        <span className="text-sm font-bold text-[#283693]">{completeCount}/{totalActive}</span>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="px-6 pb-5">
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${totalActive > 0 ? (completeCount / totalActive) * 100 : 0}%`, background: completeCount === totalActive && totalActive > 0 ? '#22c55e' : 'linear-gradient(90deg, #10b981, #22c55e)' }} />
+    <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
+      {/* Header + progress */}
+      <div className="px-6 pt-5 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-bold text-stone-800">{title}</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-stone-400">{pct}%</span>
+            <span className="text-sm font-bold text-[#283693]">{completeCount}<span className="text-stone-300 font-normal">/{totalActive}</span></span>
           </div>
         </div>
-        <table className="w-full border-t border-stone-200 text-sm">
-          <thead>
-            <tr className="bg-stone-50 border-b border-stone-200">
-              <th className="text-left px-5 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'35%'}}>Step</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'11%'}}>Status</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'10%'}}>Date</th>
-              <th className="text-left px-3 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'28%'}}>Note</th>
-              <th className="text-right px-4 py-2.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider" style={{width:'12%'}}>By</th>
-              <th style={{width:'30px'}} />
-            </tr>
-          </thead>
-          <tbody>
-            {renderableSteps.map((step, stepIdx) => {
-              const isSubtask = step._depth > 0
-              const hasChildren = !isSubtask && step._children && step._children.length > 0
-              const data = tracking[step.id] || {}
-              const history = data.history || []
-              // Parents with children: status is derived from children, not stored.
-              const storedStatus = data.status || 'not_started'
-              const currentStatus = hasChildren
-                ? (deriveParentStatus(step._children, tracking) || 'not_started')
-                : storedStatus
-              const isDeactivated = currentStatus === 'na' || currentStatus === 'deactivated'
-              const isComplete = currentStatus === 'complete' || currentStatus === 'partial_complete'
-              const lastEntry = history.length > 0 ? history[history.length - 1] : null
-              const isExpanded = expandedStep === step.id
-              const isAddingLog = addingLogFor === step.id
-              const rowClickable = !hasChildren // parents-with-children are read-only
+        <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+        </div>
+      </div>
 
-              return (
-                <React.Fragment key={step.id ?? stepIdx}>
-                  <tr
-                    onClick={() => {
-                      if (!rowClickable) return
-                      if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') }
-                      else { openAddLog(step.id) }
-                    }}
-                    className={`border-b border-stone-100 ${rowClickable ? 'cursor-pointer' : 'cursor-default'} ${isDeactivated ? 'bg-stone-50/50 opacity-40' : isComplete ? 'bg-green-50/70 hover:bg-green-50' : isSubtask ? 'bg-stone-50/30 hover:bg-stone-50/60' : 'hover:bg-stone-50/50'} transition-colors`}
-                  >
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-2" style={{ paddingLeft: isSubtask ? 24 : 0 }}>
-                        {isSubtask && <CornerDownRight className="size-3 text-stone-300 shrink-0 -ml-1" />}
-                        {isDeactivated ? (
-                          <div className="size-4 rounded-full bg-stone-200 shrink-0" />
-                        ) : isComplete ? (
-                          <CheckCircle2 className="size-4 text-green-500 shrink-0" />
-                        ) : (
-                          <div className="size-4 rounded-full border-2 border-stone-200 shrink-0" />
-                        )}
-                        {editingLabel === step.id ? (
-                          <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
-                            <input className="flex-1 rounded border border-[#283693]/30 px-2 py-0.5 text-sm font-semibold bg-white focus:border-[#283693] outline-none" value={labelValue} onChange={e => setLabelValue(e.target.value)} autoFocus
-                              onKeyDown={e => { if (e.key === 'Enter') { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) } if (e.key === 'Escape') setEditingLabel(null) }} />
-                            <button onClick={() => { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) }} className="p-0.5 text-emerald-600"><Check className="size-3.5" /></button>
-                            <button onClick={() => setEditingLabel(null)} className="p-0.5 text-stone-400"><X className="size-3.5" /></button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex flex-col">
-                              <span className={`font-semibold cursor-text ${currentStatus === 'na' ? 'text-stone-300 line-through' : isComplete ? 'text-green-700' : 'text-stone-800'}`}
-                                onClick={e => { e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }} title="Click to rename">
-                                {data.customLabel || step.label}
-                              </span>
-                              {step.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded self-start mt-0.5 ${step.badge.color}`}>{step.badge.label}</span>}
-                              {hasChildren && <span className="text-[9px] font-medium text-stone-400 self-start mt-0.5">{step._children.length} subtask{step._children.length !== 1 ? 's' : ''}</span>}
-                            </div>
-                          </>
-                        )}
-                        {/* Add case subtask button — on all top-level rows */}
-                        {!isSubtask && (
+      {/* Steps list */}
+      <div className="divide-y divide-stone-100">
+        {renderableSteps.map((step, stepIdx) => {
+          const isSubtask = step._depth > 0
+          const hasChildren = !isSubtask && step._children && step._children.length > 0
+          const data = tracking[step.id] || {}
+          const history = data.history || []
+          const storedStatus = data.status || 'not_started'
+          const currentStatus = hasChildren ? (deriveParentStatus(step._children, tracking) || 'not_started') : storedStatus
+          const isDeactivated = currentStatus === 'na' || currentStatus === 'deactivated'
+          const isComplete = currentStatus === 'complete' || currentStatus === 'partial_complete'
+          const lastEntry = history.length > 0 ? history[history.length - 1] : null
+          const isExpanded = expandedStep === step.id
+          const isAddingLog = addingLogFor === step.id
+          const rowClickable = !hasChildren
+
+          return (
+            <React.Fragment key={step.id ?? stepIdx}>
+              {/* ── Step Row ── */}
+              <div
+                onClick={() => {
+                  if (!rowClickable) return
+                  if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') }
+                  else { openAddLog(step.id) }
+                }}
+                className={`group relative ${rowClickable ? 'cursor-pointer' : ''} ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#283693]/[0.02]' : ''} transition-colors`}
+              >
+                {/* Left accent bar */}
+                {isComplete && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-green-400 rounded-r" />}
+                {!isComplete && !isDeactivated && currentStatus !== 'not_started' && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#283693] rounded-r" />}
+
+                <div className={`flex items-center gap-3 px-5 py-3 ${isSubtask ? 'pl-12' : 'pl-6'}`}>
+                  {/* Checkbox / icon */}
+                  {isSubtask && <CornerDownRight className="size-3 text-stone-300 shrink-0 -ml-4" />}
+                  {isDeactivated ? (
+                    <div className="size-5 rounded-full bg-stone-200 shrink-0 flex items-center justify-center"><X className="size-3 text-stone-400" /></div>
+                  ) : isComplete ? (
+                    <div className="size-5 rounded-full bg-green-500 shrink-0 flex items-center justify-center shadow-sm shadow-green-200"><Check className="size-3 text-white" /></div>
+                  ) : currentStatus !== 'not_started' ? (
+                    <div className="size-5 rounded-full border-2 border-[#283693] shrink-0 flex items-center justify-center"><div className="size-2 rounded-full bg-[#283693]" /></div>
+                  ) : (
+                    <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 group-hover:border-stone-300 transition-colors" />
+                  )}
+
+                  {/* Label */}
+                  <div className="flex-1 min-w-0">
+                    {editingLabel === step.id ? (
+                      <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <input className="flex-1 rounded-lg border border-[#283693]/30 px-2.5 py-1 text-sm font-semibold bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" value={labelValue} onChange={e => setLabelValue(e.target.value)} autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) } if (e.key === 'Escape') setEditingLabel(null) }} />
+                        <button onClick={() => { if (labelValue.trim()) onUpdate(step.id, { ...data, customLabel: labelValue.trim() }); setEditingLabel(null) }} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"><Check className="size-3.5" /></button>
+                        <button onClick={() => setEditingLabel(null)} className="p-1 text-stone-400 hover:bg-stone-100 rounded"><X className="size-3.5" /></button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm font-semibold ${isDeactivated ? 'text-stone-300 line-through' : isComplete ? 'text-stone-500' : 'text-stone-800'} ${step.logType === 'text' ? 'cursor-text' : ''}`}
+                          onClick={e => { if (step.logType !== 'text') return; e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
+                          title={step.logType === 'text' ? 'Click to rename' : undefined}>
+                          {data.customLabel || step.label}
+                        </span>
+                        {step.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${step.badge.color}`}>{step.badge.label}</span>}
+                        {hasChildren && <span className="text-[10px] text-stone-400">({step._children.length})</span>}
+                        {/* + subtask (next to label) */}
+                        {!isSubtask && !isDeactivated && (
                           <button onClick={(e) => { e.stopPropagation(); setAddingCaseSubtask(addingCaseSubtask === step.id ? null : step.id); setCaseSubtaskLabel('') }}
-                            className="text-stone-200 hover:text-[#283693] transition-colors shrink-0" title="Add subtask for this case">
+                            className="p-0.5 text-stone-200 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Add subtask">
                             <Plus className="size-3.5" />
                           </button>
                         )}
-                        {/* Delete button for case-specific subtasks */}
+                        {/* Deactivate / Reactivate toggle */}
+                        {!hasChildren && (
+                          <button onClick={(e) => {
+                            e.stopPropagation()
+                            if (isDeactivated) {
+                              // Reactivate — restore previous status or not_started, no log entry
+                              const lastReal = [...history].reverse().find(h => h.status !== 'na' && !h._deactivate)
+                              updateStep(step.id, { status: lastReal?.status || 'not_started' })
+                            } else {
+                              // Deactivate — just set status, no log entry
+                              updateStep(step.id, { status: 'na' })
+                            }
+                          }}
+                            className={`p-0.5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100 ${isDeactivated ? 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50' : 'text-stone-200 hover:text-stone-400 hover:bg-stone-100'}`}
+                            title={isDeactivated ? 'Reactivate' : 'Deactivate (N/A)'}>
+                            {isDeactivated ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                          </button>
+                        )}
+                        {/* Delete case subtask */}
                         {isSubtask && step._isCaseSubtask && (
                           <button onClick={(e) => { e.stopPropagation(); deleteCaseSubtask(step.id) }}
-                            className="text-stone-200 hover:text-red-500 transition-colors shrink-0" title="Remove this subtask">
+                            className="p-0.5 text-stone-200 hover:text-red-500 hover:bg-red-50 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Remove subtask">
                             <Trash2 className="size-3" />
                           </button>
                         )}
-                        {!hasChildren && currentStatus !== 'na' && <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />}
                       </div>
-                    </td>
-                    <td className="px-3 py-3.5">
-                      {step.logType === 'date_completed' && currentStatus === 'complete' ? (
-                        <span className="text-xs font-semibold text-emerald-600">Completed {lastEntry?.date ? new Date(lastEntry.date + 'T00:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : ''}</span>
-                      ) : step.logType === 'date_completed' && currentStatus !== 'complete' && currentStatus !== 'na' ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            const today = new Date().toISOString().split('T')[0]
-                            const entry = { status: 'complete', date: today, note: '', by: currentUserName }
-                            const updated = { ...data, status: 'complete', history: [...history, entry] }
-                            updateStep(step.id, updated)
-                          }}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
-                        >
-                          <Check className="size-3.5" /> Complete
-                        </button>
-                      ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
-                        <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
-                      ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-stone-800">{data._textValue || currentStatus}</span>
-                          {currentStatus === 'complete' && <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />}
-                        </div>
-                      ) : (
-                        <span className={`inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3.5 text-stone-500">{formatDate(lastEntry?.date)}</td>
-                    <td className="px-3 py-3.5 text-stone-500 text-xs break-words">{lastEntry?.note || ''}</td>
-                    <td className="px-4 py-3.5 text-stone-400 text-right text-xs">{lastEntry?.by || ''}</td>
-                    <td className="px-3 py-3.5" />
-                  </tr>
+                    )}
+                    {/* Last log preview — only on non-expanded rows */}
+                    {lastEntry && !isExpanded && !hasChildren && (
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-stone-400">
+                        {lastEntry.note && <span className="truncate max-w-[200px]">{lastEntry.note}</span>}
+                        {lastEntry.date && <span>{formatDate(lastEntry.date)}</span>}
+                        {lastEntry.by && <span>· {lastEntry.by}</span>}
+                      </div>
+                    )}
+                  </div>
 
-                  {isExpanded && history.map((entry, i) => {
+                  {/* Status badge */}
+                  <div className="shrink-0 flex items-center gap-2">
+                    {step.logType === 'date_completed' && currentStatus === 'complete' ? (
+                      <span className="text-[11px] font-semibold text-emerald-600">{lastEntry?.date ? formatDate(lastEntry.date) : 'Done'}</span>
+                    ) : step.logType === 'date_completed' && currentStatus !== 'complete' && currentStatus !== 'na' ? (
+                      <button onClick={(e) => { e.stopPropagation(); const today = new Date().toISOString().split('T')[0]; const entry = { status: 'complete', date: today, note: '', by: currentUserName }; updateStep(step.id, { ...data, status: 'complete', history: [...history, entry] }) }}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1 rounded-full transition-colors shadow-sm">
+                        <Check className="size-3" /> Complete
+                      </button>
+                    ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
+                      <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
+                    ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-medium text-stone-600 max-w-[120px] truncate">{data._textValue || currentStatus}</span>
+                        {isComplete && <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />}
+                      </div>
+                    ) : (
+                      <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
+                    )}
+
+                    {!hasChildren && currentStatus !== 'na' && (
+                      <ChevronDown className={`size-4 text-stone-300 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── History entries ── */}
+              {isExpanded && history.length > 0 && (
+                <div className="bg-stone-50/80 border-t border-stone-100">
+                  <div className="px-6 py-2">
+                    <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider mb-1">History</p>
+                  </div>
+                  {history.map((entry, i) => {
                     const isEditing = editingLog?.stepId === step.id && editingLog?.index === i
                     if (isEditing) {
                       return (
-                        <tr key={`h-${i}`} className="bg-white border-b border-stone-100">
-                          <td className="px-6 py-2" />
-                          <td className="px-3 py-2">
-                            <select className="rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white w-full" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
+                        <div key={`h-${i}`} className="px-6 py-2 bg-white border-t border-stone-100">
+                          <div className="flex items-center gap-2">
+                            <select className="rounded-lg border border-stone-200 px-2 py-1.5 text-xs bg-white flex-shrink-0" value={editStatus} onChange={e => setEditStatus(e.target.value)}>
                               {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
                             </select>
-                          </td>
-                          <td className="px-3 py-2">
-                            <input type="date" className="rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white w-[130px]" value={editDate} onChange={e => setEditDate(e.target.value)} />
-                          </td>
-                          <td className="px-3 py-2"><input className="w-full rounded-lg border border-stone-200 px-2 py-1 text-sm bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} /></td>
-                          <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
-                          <td className="px-3 py-2 text-right">
-                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#283693] hover:underline mr-2">Save</button>
+                            <input type="date" className="rounded-lg border border-stone-200 px-2 py-1.5 text-xs bg-white w-[130px]" value={editDate} onChange={e => setEditDate(e.target.value)} />
+                            <input className="flex-1 rounded-lg border border-stone-200 px-2 py-1.5 text-xs bg-white" value={editNote} onChange={e => setEditNote(e.target.value)} placeholder="Note..." />
+                            <button onClick={() => saveEditLog(step.id, i)} className="text-xs font-semibold text-[#283693] hover:underline">Save</button>
                             <button onClick={() => setEditingLog(null)} className="text-xs text-stone-400 hover:underline">Cancel</button>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       )
                     }
                     return (
-                      <tr key={`h-${i}`} className="bg-stone-50/60 border-b border-stone-100/50 group">
-                        <td className="px-6 py-2" />
-                        <td className={`px-3 py-2 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || getStatusLabel(entry.status)}</td>
-                        <td className="px-3 py-2 text-stone-400">{formatDate(entry.date)}</td>
-                        <td className="px-3 py-2 text-stone-500">{entry.note || ''}</td>
-                        <td className="px-3 py-2 text-stone-400">{entry.by || ''}</td>
-                        <td className="px-3 py-2 text-right">
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="text-[10px] text-stone-400 hover:text-[#283693] mr-2">Edit</button>
-                            <button onClick={() => deleteLog(step.id, i)} className="text-[10px] text-stone-400 hover:text-red-500">Delete</button>
-                          </span>
-                        </td>
-                      </tr>
+                      <div key={`h-${i}`} className="group/entry px-6 py-1.5 flex items-center gap-3 text-xs hover:bg-stone-100/50 transition-colors">
+                        <span className={`shrink-0 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || getStatusLabel(entry.status)}</span>
+                        <span className="text-stone-400 shrink-0">{formatDate(entry.date)}</span>
+                        {entry.note && <span className="text-stone-500 truncate">{entry.note}</span>}
+                        <span className="text-stone-300 ml-auto shrink-0">{entry.by}</span>
+                        <span className="opacity-0 group-hover/entry:opacity-100 transition-opacity flex gap-1 shrink-0">
+                          <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="p-0.5 text-stone-300 hover:text-[#283693]"><Pencil className="size-3" /></button>
+                          <button onClick={() => deleteLog(step.id, i)} className="p-0.5 text-stone-300 hover:text-red-500"><Trash2 className="size-3" /></button>
+                        </span>
+                      </div>
                     )
                   })}
+                </div>
+              )}
 
-                  {isAddingLog && (
-                    <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
-                      <td className="px-6 py-3 text-xs font-semibold text-[#283693]">New Log</td>
-                      <td className="px-3 py-3">
-                        {step.logType === 'date_completed' ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => { submitLog(step.id, 'complete') }}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              <Check className="size-3.5" /> Mark Complete
-                            </button>
-                            <button
-                              onClick={() => { submitLog(step.id, 'na') }}
-                              className="text-[10px] text-stone-400 hover:text-red-500"
-                            >
-                              N/A
-                            </button>
-                          </div>
-                        ) : step.logType === 'text' ? (
-                          <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Enter value..." value={logStatus} onChange={e => setLogStatus(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
-                        ) : step.logType === 'dropdown' && step.options?.length > 0 ? (
-                          <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
-                            <option value="">Select...</option>
-                            {normalizeOptions(step.options).map(opt => <option key={opt.label} value={opt.label}>{opt.label}</option>)}
-                            <option value="complete">Complete</option>
-                            <option value="na">N/A (Deactivate)</option>
-                          </select>
-                        ) : (
-                          <select className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)}>
-                            <option value="">Select...</option>
-                            {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
-                          </select>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        <input type="date" className="rounded-lg border border-stone-200 px-2 py-1 text-xs bg-white w-[120px]" value={logDate} onChange={e => setLogDate(e.target.value)} placeholder="Today" />
-                      </td>
-                      <td className="px-3 py-3">
-                        <input className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
-                      </td>
-                      <td className="px-3 py-3 text-stone-400 text-xs">{currentUserName}</td>
-                      <td className="px-3 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => submitLog(step.id)} disabled={!logStatus} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Save</button>
-                          {(step.logType === 'text') && currentStatus !== 'na' && (
-                            <>
-                              {currentStatus !== 'complete' && (
-                                <button onClick={() => { submitLog(step.id, 'complete') }} className="text-[10px] text-green-600 hover:text-green-700 font-medium px-1.5 py-1">Complete</button>
-                              )}
-                              <button onClick={() => { submitLog(step.id, 'na') }} className="text-[10px] text-stone-400 hover:text-red-500 px-1.5 py-1">Deactivate</button>
-                            </>
+              {/* ── Add Log Form ── */}
+              {isAddingLog && (
+                <div className="bg-[#283693]/[0.03] border-t border-[#283693]/10 px-6 py-3" onClick={e => e.stopPropagation()}>
+                  <div className="flex flex-wrap items-end gap-3">
+                    {/* Status input */}
+                    <div className="flex-1 min-w-[140px]">
+                      <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mb-1 block">Status</label>
+                      {step.logType === 'date_completed' ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => submitLog(step.id, 'complete')} className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg transition-colors">
+                            <Check className="size-3.5" /> Mark Complete
+                          </button>
+                          <button onClick={() => submitLog(step.id, 'na')} className="text-[10px] text-stone-400 hover:text-red-500 font-medium">N/A</button>
+                        </div>
+                      ) : step.logType === 'text' ? (
+                        <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" placeholder="Enter value..." value={logStatus} onChange={e => setLogStatus(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} autoFocus />
+                      ) : step.logType === 'dropdown' && step.options?.length > 0 ? (
+                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
+                          <option value="">Select...</option>
+                          {normalizeOptions(step.options).map(opt => <option key={opt.label} value={opt.label}>{opt.label}</option>)}
+                          <option value="complete">Complete</option>
+                          <option value="na">N/A (Deactivate)</option>
+                        </select>
+                      ) : (
+                        <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
+                          <option value="">Select...</option>
+                          {statuses.filter(s => s.id !== 'not_started').map(s => <option key={s.id} value={s.id}>{getStatusLabel(s.id)}</option>)}
+                        </select>
+                      )}
+                    </div>
+                    {/* Date */}
+                    <div className="w-[130px]">
+                      <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mb-1 block">Date</label>
+                      <input type="date" className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                    </div>
+                    {/* Note */}
+                    <div className="flex-1 min-w-[160px]">
+                      <label className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mb-1 block">Note</label>
+                      <input className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" placeholder="Add note..." value={logNote} onChange={e => setLogNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && submitLog(step.id)} />
+                    </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => submitLog(step.id)} disabled={!logStatus}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#283693] hover:bg-[#1e2a6e] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors shadow-sm">
+                        <Check className="size-3" /> Save
+                      </button>
+                      {step.logType === 'text' && currentStatus !== 'na' && (
+                        <>
+                          {currentStatus !== 'complete' && (
+                            <button onClick={() => submitLog(step.id, 'complete')} className="text-[10px] text-green-600 hover:text-green-700 font-semibold px-2 py-1.5 hover:bg-green-50 rounded-lg">Complete</button>
                           )}
-                          <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {/* Inline input for adding a case-specific subtask */}
-                  {!isSubtask && addingCaseSubtask === step.id && (
-                    <tr className="bg-[#283693]/[0.02] border-b border-stone-200" onClick={e => e.stopPropagation()}>
-                      <td className="px-6 py-2.5" colSpan={6}>
-                        <div className="flex items-center gap-2" style={{ paddingLeft: 24 }}>
-                          <CornerDownRight className="size-3 text-stone-300 shrink-0" />
-                          <input
-                            className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none"
-                            placeholder="Subtask name for this case..."
-                            value={caseSubtaskLabel}
-                            onChange={e => setCaseSubtaskLabel(e.target.value)}
-                            autoFocus
-                            onKeyDown={e => { if (e.key === 'Enter') addCaseSubtask(step.id); if (e.key === 'Escape') { setAddingCaseSubtask(null); setCaseSubtaskLabel('') } }}
-                          />
-                          <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#283693]/90 px-2.5 py-1 rounded-lg disabled:opacity-40">Add</button>
-                          <button onClick={() => { setAddingCaseSubtask(null); setCaseSubtaskLabel('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              )
-            })}
-          </tbody>
-        </table>
-      </CardContent>
+                          <button onClick={() => submitLog(step.id, 'na')} className="text-[10px] text-stone-400 hover:text-red-500 font-medium px-2 py-1.5 hover:bg-red-50 rounded-lg">N/A</button>
+                        </>
+                      )}
+                      <button onClick={() => { setAddingLogFor(null); setLogStatus(''); setLogNote('') }} className="text-xs text-stone-400 hover:text-stone-600 px-2 py-1.5">Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Add case subtask ── */}
+              {!isSubtask && addingCaseSubtask === step.id && (
+                <div className="bg-[#283693]/[0.02] border-t border-stone-100 px-6 py-2.5" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-2 pl-6">
+                    <CornerDownRight className="size-3 text-stone-300 shrink-0" />
+                    <input
+                      className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
+                      placeholder="Subtask name..."
+                      value={caseSubtaskLabel}
+                      onChange={e => setCaseSubtaskLabel(e.target.value)}
+                      autoFocus
+                      onKeyDown={e => { if (e.key === 'Enter') addCaseSubtask(step.id); if (e.key === 'Escape') { setAddingCaseSubtask(null); setCaseSubtaskLabel('') } }}
+                    />
+                    <button onClick={() => addCaseSubtask(step.id)} disabled={!caseSubtaskLabel.trim()} className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#1e2a6e] px-3 py-1.5 rounded-lg disabled:opacity-30 transition-colors">Add</button>
+                    <button onClick={() => { setAddingCaseSubtask(null); setCaseSubtaskLabel('') }} className="text-xs text-stone-400 hover:underline">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          )
+        })}
+      </div>
     </Card>
   )
 }

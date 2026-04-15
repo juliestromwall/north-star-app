@@ -152,7 +152,6 @@ export default function AISummaryButton({ caseId, caseName, caseType, stage, sta
         title="Case Summary"
       >
         <Sparkles className="size-3" />
-        {!iconOnly && <span>Summary</span>}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
