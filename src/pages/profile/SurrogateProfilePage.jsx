@@ -5,7 +5,7 @@ import {
   Ruler, Scale, CalendarDays, MapPin, Upload,
   Loader2, X, RotateCw, Crop as CropIcon, Eye,
   Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon,
-  DollarSign, ChevronLeft, ChevronRight
+  DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from '@/components/ui/card'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -972,6 +972,19 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
                 <CalendarDays className="w-5 h-5 text-[#283693] mb-1" />
                 <span className="text-2xl font-bold text-[#283693]">{age}</span>
                 <span className="text-[11px] text-gray-400">Age</span>
+              </div>
+            )}
+            {employment.healthInsurance === 'yes' ? (
+              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-emerald-50">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1" />
+                <span className="text-lg font-bold text-emerald-600">Yes</span>
+                <span className="text-[11px] text-gray-400">Insurance</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-red-50">
+                <ShieldX className="w-5 h-5 text-red-400 mb-1" />
+                <span className="text-lg font-bold text-red-400">No</span>
+                <span className="text-[11px] text-gray-400">Insurance</span>
               </div>
             )}
             <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#ed148c]/5">
