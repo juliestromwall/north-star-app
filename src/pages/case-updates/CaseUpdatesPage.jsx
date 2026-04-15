@@ -473,6 +473,19 @@ function SurrogateUpdatesSheet({ surrogates }) {
                           } else if (row.dataField === 'maritalStatus') {
                             const profile = allProfiles[s.id]
                             value = profile?.personal?.maritalStatus || s.maritalStatus || ''
+                          } else if (row.dataField === 'profileComplete') {
+                            const profile = allProfiles[s.id]
+                            if (profile) {
+                              const REQ = { personal: ['firstName','city','state','heightFt','weight','maritalStatus'], pregnancyHistory: ['numberOfPregnancies'], fertility: ['sameBioFather'], general: ['smokeVape','alcoholDrugs','typicalDiet','exerciseFrequency'], health: ['mentalHealthDiagnosis'], employment: ['currentlyEmployed'], interests: ['personality'], hopesWishes: ['reasonForSurrogacy','whenReadyToBegin','desiredCompensation'] }
+                              let filled = 0, total = 0
+                              for (const [sec, fields] of Object.entries(REQ)) {
+                                for (const f of fields) { total++; const v = profile[sec]?.[f]; if (v !== undefined && v !== '' && v !== null) filled++ }
+                              }
+                              const pct = total > 0 ? Math.round((filled / total) * 100) : 0
+                              value = `${pct}%`
+                              if (pct === 100) secondary = 'Complete'
+                              else if (pct > 0) secondary = `${filled}/${total} fields`
+                            }
                           }
                           return (
                             <td key={s.id} className="px-3 py-2">

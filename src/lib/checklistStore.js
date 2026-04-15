@@ -321,6 +321,7 @@ export const SURROGATE_INFO_ROW_FIELDS = [
   { key: 'experiencedSurrogate', label: 'Experienced Surrogate', source: 'surrogate' },
   { key: 'gtpal', label: 'GTPAL', source: 'surrogate' },
   { key: 'maritalStatus', label: 'Marital Status', source: 'surrogate' },
+  { key: 'profileComplete', label: '% Profile Complete', source: 'surrogate' },
 ]
 
 // Journey info rows — data pulled from journey_data
