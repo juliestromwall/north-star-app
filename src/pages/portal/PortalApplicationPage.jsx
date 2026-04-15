@@ -1158,6 +1158,20 @@ export default function PortalApplicationPage() {
       } catch (err) {
         console.error('Auto-task for app review failed:', err)
       }
+
+      // Notify admin(s) that application was submitted
+      try {
+        fetch('/api/notify-app-submitted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            surrogateName: surName,
+            surrogateEmail: currentUser?.email || '',
+            assignedTo: assignedTo || '',
+            caseId: caseId,
+          }),
+        }).catch(() => {})
+      } catch {}
     } catch (err) {
       console.error('Submit failed:', err)
     } finally {
