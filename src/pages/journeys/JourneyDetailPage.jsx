@@ -810,6 +810,28 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       if (onStatusChange) await onStatusChange('Delivered')
       const numBabies = birthBabies.length || 1
       await updateBabiesBornCounter('delivered', numBabies)
+      // Auto-create testimony task for Jennifer Rose — 1 month after birth
+      try {
+        const bd = new Date(birthForm.date + 'T12:00:00') // noon to avoid timezone issues
+        let dueYear = bd.getFullYear()
+        let dueMonth = bd.getMonth() + 1 // 0-indexed → next month
+        if (dueMonth > 11) { dueMonth = 0; dueYear++ }
+        // Last day of the target month
+        const lastDay = new Date(dueYear, dueMonth + 1, 0).getDate()
+        const dueDay = Math.min(bd.getDate(), lastDay)
+        const dueDate = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}-${String(dueDay).padStart(2, '0')}`
+        const surName = journey.gc_name || 'the Surrogate'
+        await createCaseTask({
+          case_id: journey.id,
+          case_type: 'journey',
+          title: `Reach out to ${surName} about a Testimony`,
+          assigned_to: 'jennifer@abcsurrogacy.com',
+          due_date: dueDate,
+          priority: 'normal',
+          status: 'open',
+          created_by: 'system',
+        })
+      } catch (err) { console.error('Failed to create testimony task:', err) }
     }
     setBirthOpen(false)
     setBirthForm({ date: '', deliveryType: '', notes: '' })
