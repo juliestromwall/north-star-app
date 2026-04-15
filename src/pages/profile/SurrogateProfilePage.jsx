@@ -712,20 +712,24 @@ export default function SurrogateProfilePage() {
       setPreviewOpen(false)
       return
     }
-    const [gallery, headshots] = await Promise.all([
+    const [gallery, headshots, portraits] = await Promise.all([
       listProfilePhotos(userId).catch(() => []),
       listProfilePhotos(`${userId}/headshot`).catch(() => []),
+      listProfilePhotos(`${userId}/portrait`).catch(() => []),
     ])
-    let allGallery = gallery, allHeadshots = headshots
+    let allGallery = gallery, allHeadshots = headshots, allPortraits = portraits
     if (intakeCaseId && intakeCaseId !== userId) {
-      const [g2, h2] = await Promise.all([
+      const [g2, h2, p2] = await Promise.all([
         listProfilePhotos(intakeCaseId).catch(() => []),
         listProfilePhotos(`${intakeCaseId}/headshot`).catch(() => []),
+        listProfilePhotos(`${intakeCaseId}/portrait`).catch(() => []),
       ])
       allGallery = [...gallery, ...g2]
       allHeadshots = [...headshots, ...h2]
+      allPortraits = [...portraits, ...p2]
     }
-    setPreviewPhotos([...allHeadshots, ...allGallery])
+    // Order: cover (headshot) first, then portrait, then gallery
+    setPreviewPhotos([...allHeadshots, ...allPortraits, ...allGallery])
     setPreviewOpen(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

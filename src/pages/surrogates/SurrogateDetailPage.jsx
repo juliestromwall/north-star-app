@@ -3035,11 +3035,12 @@ function toBooleanDisplay(value) {
   return ''
 }
 
-// ── Photo upload slot (profile / cover) ──
+// ── Photo upload slot (profile / cover) with crop/rotate ──
 function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     if (!storagePath) return
@@ -3069,6 +3070,29 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
     catch (err) { setError(err.message || 'Delete failed') }
   }
 
+  async function handleCropSave(oldPhoto, croppedFile) {
+    try {
+      const result = await uploadProfilePhoto(storagePath, croppedFile)
+      if (result) {
+        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
+        setPhoto(result)
+        if (onChange) onChange(result.url)
+      }
+      setEditing(false)
+    } catch (err) { setError(err.message || 'Save failed') }
+  }
+
+  if (editing && photo) {
+    return (
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-semibold text-stone-700">{label}</p>
+        </div>
+        <PhotoEditor photo={photo} onSave={handleCropSave} onClose={() => setEditing(false)} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2">
       <div>
@@ -3079,6 +3103,9 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
         <div className="relative group w-40 h-40">
           <img src={photo.url} alt={label} className="w-40 h-40 rounded-2xl object-cover border border-stone-200" />
           <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <button onClick={() => setEditing(true)} className="p-2 rounded-full bg-white text-stone-700 hover:bg-stone-100" title="Crop / Rotate">
+              <Crop className="w-4 h-4" />
+            </button>
             <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
               <Upload className="w-4 h-4" />
               <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
