@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useMemo, forwardRef, useImperativeHandle, createContext, useContext } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, FileText, ChevronDown, ChevronRight, Save, Loader2, Download, Trash2, Plus, Merge, Eye, EyeOff, X, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, FileText, ChevronDown, ChevronRight, Save, Loader2, Download, Trash2, Plus, Merge, Eye, EyeOff, X, CheckCircle2, GripVertical } from 'lucide-react'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
-import { fetchCaseDocuments, getAppConfig, setAppConfig, fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchCaseDocuments, getAppConfig, setAppConfig, fetchSurrogateProfileByEmail, uploadCaseDocument, createCaseTask } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
 
@@ -56,12 +59,26 @@ function FormField({ label, value, onChange, type = 'text', placeholder, rows, f
 }
 
 // ── Document Viewer Panel ──────────────────────────────
+function MergeOrderItem({ id, label }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 rounded border border-stone-200 bg-white px-2 py-1.5 mb-1 text-xs" {...attributes} {...listeners}>
+      <GripVertical className="size-3 text-stone-400 cursor-grab shrink-0" />
+      <span className="truncate text-stone-700">{label}</span>
+    </div>
+  )
+}
+
 function DocumentPanel({ documents, surrogateId }) {
   const [selectedDoc, setSelectedDoc] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [mergeMode, setMergeMode] = useState(false)
   const [mergeSelected, setMergeSelected] = useState(new Set())
+  const [mergeOrder, setMergeOrder] = useState([]) // ordered list of selected doc IDs
   const [merging, setMerging] = useState(false)
+
+  const mergeSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const [pageRemoveMode, setPageRemoveMode] = useState(false)
   const [pdfPageCount, setPdfPageCount] = useState(0)
   const [removedPages, setRemovedPages] = useState(new Set())
@@ -95,7 +112,9 @@ function DocumentPanel({ documents, surrogateId }) {
     try {
       const { PDFDocument } = await import('pdf-lib')
       const mergedPdf = await PDFDocument.create()
-      const selectedDocs = allDocs.filter(d => mergeSelected.has(d.id))
+      // Use mergeOrder to preserve user's drag-reorder sequence
+      const docMap = Object.fromEntries(allDocs.map(d => [d.id, d]))
+      const selectedDocs = mergeOrder.filter(id => mergeSelected.has(id)).map(id => docMap[id]).filter(Boolean)
 
       for (const doc of selectedDocs) {
         try {
@@ -181,7 +200,12 @@ function DocumentPanel({ documents, surrogateId }) {
   }
 
   function toggleMergeDoc(docId) {
-    setMergeSelected(prev => { const s = new Set(prev); if (s.has(docId)) s.delete(docId); else s.add(docId); return s })
+    setMergeSelected(prev => {
+      const s = new Set(prev)
+      if (s.has(docId)) { s.delete(docId); setMergeOrder(o => o.filter(id => id !== docId)) }
+      else { s.add(docId); setMergeOrder(o => [...o, docId]) }
+      return s
+    })
   }
 
   return (
@@ -204,6 +228,30 @@ function DocumentPanel({ documents, surrogateId }) {
           )}
         </div>
       </div>
+
+      {/* Merge order — drag to reorder */}
+      {mergeMode && mergeOrder.length >= 2 && (
+        <div className="px-3 py-2 border-b bg-[#283693]/5">
+          <p className="text-[10px] font-semibold text-[#283693] uppercase mb-1.5">Merge Order (drag to reorder)</p>
+          <DndContext sensors={mergeSensors} collisionDetection={closestCenter} onDragEnd={e => {
+            const { active, over } = e
+            if (!over || active.id === over.id) return
+            setMergeOrder(prev => {
+              const oldIdx = prev.indexOf(active.id)
+              const newIdx = prev.indexOf(over.id)
+              return arrayMove(prev, oldIdx, newIdx)
+            })
+          }}>
+            <SortableContext items={mergeOrder} strategy={verticalListSortingStrategy}>
+              {mergeOrder.map((docId, i) => {
+                const doc = allDocs.find(d => d.id === docId)
+                if (!doc) return null
+                return <MergeOrderItem key={docId} id={docId} label={`${i + 1}. ${doc.file_name}`} />
+              })}
+            </SortableContext>
+          </DndContext>
+        </div>
+      )}
 
       {!selectedDoc ? (
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -914,6 +962,7 @@ export default function RecordsSummaryWorkspace() {
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const formRef = useRef(null) // ref to get current form data
 
   useEffect(() => {
@@ -978,6 +1027,69 @@ export default function RecordsSummaryWorkspace() {
     setExporting(false)
   }
 
+  async function handleComplete() {
+    setCompleting(true)
+    try {
+      // Generate the summary PDF content
+      const el = document.getElementById('summary-preview-content')
+      if (!el) { alert('Please open Preview first to generate the summary.'); setCompleting(false); return }
+
+      // Use html2canvas approach or just save the HTML as a PDF via print
+      // Simpler: create an HTML file and upload as the summary document
+      const sName = surrogate?.name || 'Surrogate'
+      const firstName = sName.split(' ')[0]
+      const fileName = `Records_Summary_${firstName}_${new Date().toISOString().split('T')[0]}.html`
+
+      // Build standalone HTML for the summary
+      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(s => s.outerHTML).join('\n')
+      const htmlContent = `<!DOCTYPE html><html><head><title>Records Summary — ${sName}</title>${styles}
+        <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } [data-section] { break-inside: avoid; }</style>
+        </head><body>${el.innerHTML}</body></html>`
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const file = new File([blob], fileName, { type: 'text/html' })
+
+      // Upload to Medical Records folder
+      const uploaded = await uploadCaseDocument({
+        surrogateId: id,
+        category: 'Medical Records',
+        file,
+        uploadedBy: currentUser?.name || 'Admin',
+      })
+
+      // Mark summary as complete in app_config
+      const currentSummary = await getAppConfig(`${SUMMARY_KEY_PREFIX}${id}`) || {}
+      await setAppConfig(`${SUMMARY_KEY_PREFIX}${id}`, { ...currentSummary, _completedAt: new Date().toISOString(), _completedBy: currentUser?.name })
+
+      // Create review tasks for Julie, Nicole, and Desiree
+      const reviewers = [
+        { email: 'julie@abcsurrogacy.com', name: 'Julie Allgood' },
+        { email: 'nicole@abcsurrogacy.com', name: 'Nicole Lawson' },
+        { email: 'desiree@abcsurrogacy.com', name: 'Desiree Melchiori' },
+      ]
+      for (const reviewer of reviewers) {
+        try {
+          await createCaseTask({
+            title: `Review Records Summary for ${sName}`,
+            due_date: new Date().toISOString().split('T')[0],
+            priority: 'high',
+            assigned_to: reviewer.email,
+            created_by: currentUser?.email,
+            status: 'open',
+            case_id: id,
+            case_type: 'surrogate',
+          })
+        } catch {}
+      }
+
+      alert(`Records Summary filed to Medical Records and review tasks created for Julie, Nicole & Desiree.`)
+    } catch (err) {
+      console.error('Complete failed:', err)
+      alert('Failed to complete: ' + (err.message || 'Unknown error'))
+    } finally {
+      setCompleting(false)
+    }
+  }
+
   async function handleSave(formData) {
     setSaving(true)
     try {
@@ -1011,8 +1123,9 @@ export default function RecordsSummaryWorkspace() {
           <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => setPreviewOpen(true)}>
             <Eye className="size-3" /> Preview & Export
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs h-7" style={{ backgroundColor: '#16a34a' }}>
-            <CheckCircle2 className="size-3" /> Mark Complete
+          <Button size="sm" className="gap-1.5 text-xs h-7" style={{ backgroundColor: '#16a34a' }} onClick={handleComplete} disabled={completing}>
+            {completing ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+            {completing ? 'Filing...' : 'Mark Complete'}
           </Button>
         </div>
       </div>
