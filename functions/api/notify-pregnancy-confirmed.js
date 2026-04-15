@@ -1,0 +1,97 @@
+// Cloudflare Pages Function — POST /api/notify-pregnancy-confirmed
+// Auto-email when a surrogate has confirmed heartbeat/pregnancy
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export async function onRequestOptions() {
+  return new Response(null, { headers: corsHeaders })
+}
+
+export async function onRequestPost(context) {
+  const { env } = context
+  const resendKey = env.RESEND_API_KEY
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const notifyEmail = env.PREGNANCY_NOTIFY_EMAIL || ''
+  const psychCheckInUrl = env.PSYCH_CHECKIN_URL || 'https://app.abcsurrogacy.com/psych-tracking'
+
+  if (!resendKey || !notifyEmail) {
+    return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY or PREGNANCY_NOTIFY_EMAIL' }), {
+      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
+  const { surrogateName } = await context.request.json()
+
+  if (!surrogateName) {
+    return new Response(JSON.stringify({ error: 'Missing surrogateName' }), {
+      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
+  const notifyEmails = notifyEmail.split(',').map(e => e.trim()).filter(Boolean)
+
+  const htmlBody = `
+    <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="text-align: center; padding: 24px 24px 12px;">
+        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+      </div>
+      <div style="padding: 0 32px 32px;">
+        <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
+          Pregnancy Confirmed! 🎉
+        </h1>
+
+        <div style="background: linear-gradient(135deg, #fdf2f8, #fce7f3); border-radius: 12px; padding: 24px; margin: 20px 0; border: 1px solid #fbcfe8; text-align: center;">
+          <p style="font-size: 16px; color: #1a1a2e; margin: 0 0 8px;">
+            <strong>Fabulous News!</strong>
+          </p>
+          <p style="font-size: 15px; color: #44403c; margin: 0; line-height: 1.6;">
+            Surrogate <strong style="color: #283693;">${surrogateName}</strong> has a confirmed pregnancy. We have added them to our Psych Check In sheet for your visibility.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${psychCheckInUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+            View Psych Check In Sheet
+          </a>
+        </div>
+
+        <p style="font-size: 14px; color: #44403c; line-height: 1.6; margin: 20px 0 0;">
+          Please let Nicole know if you have any questions.
+        </p>
+        <p style="font-size: 14px; color: #44403c; margin: 8px 0 0;">
+          Thank you!
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
+        <p style="color: #a8a29e; font-size: 10px; text-align: center;">
+          Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+        </p>
+      </div>
+    </div>
+  `
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: `ABC Surrogacy <${fromEmail}>`,
+        to: notifyEmails,
+        subject: `Pregnancy confirmed for ${surrogateName} 🎉`,
+        html: htmlBody,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) console.error('Resend failed:', data)
+  } catch (err) {
+    console.error('Pregnancy notify email failed:', err)
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  })
+}
