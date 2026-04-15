@@ -1,5 +1,130 @@
 # Session Log
 
+## 2026-04-15 (Cover Photo Fix, Photo Dialogs, Portrait Overlay, Question Auto-Email, Share Email)
+
+**Worked on:** Fixing cover photo display across all previews, in-app photo delete dialogs, portrait overlay on cover photos, question auto-email with case note logging, share profile email restyle, mark-as-answered for match questions.
+
+**Changes made:**
+
+Cover Photo Fixes:
+- Admin preview loaded photos fresh (AdminGallery was overwriting state with gallery-only)
+- Surrogate portal: intakeCaseId moved to own useEffect (was trapped behind early return)
+- Shared profile page (/share/...): loads from both auth UUID and intake case ID paths
+- Cover photo crop: 16:9 aspect ratio with grid overlay
+
+Profile Portrait Overlay:
+- Portrait photo overlays bottom-left of cover photo, straddling the edge
+- Works in all contexts: surrogate preview, admin preview, shared link, PDF/print
+
+Photo Delete Dialogs:
+- Created ConfirmDialog component, replaced 6 browser confirm() calls
+
+Admin Crop/Rotate for Profile & Cover:
+- AdminPhotoSlot has crop/rotate button, cover at 16:9, profile at 1:1
+
+Question Auto-Email:
+- Emoji subject, table layout, HIPAA warning, first name only
+- Server-side logs case notes on surrogate + IP cases
+- Match History shows questions with "Pending — click to mark answered"
+
+Share Profile Email:
+- Standard template with logo, HIPAA, gradient button "View {Name}'s Profile"
+
+**Next steps:**
+- Remove deleted fields from ProfilePreview
+- Update remaining ProfilePreview labels
+- Add Follow Up Questions to PortalApplicationPage
+- Email improvements: attach from case docs, CC always open, Reply All
+
+**Open questions:**
+- None
+
+## 2026-04-15 (Checklist UI, Case Updates UI, Expenses, Auto Emails, Admin Settings, Pregnancy Tracker, HIPAA)
+
+**Worked on:** Major UI overhauls for checklist and case updates, expense escrow flow, auto emails for pregnancy + records, admin settings, pregnancy tracker enhancements, HIPAA-compliant psych sharing, referrals & incentives, surrogate application updates
+
+**Changes made:**
+
+Dashboard:
+- Past 7 days appointments with follow-up + notes (collapsible)
+- Follow-up and notes on upcoming appointments too
+- List view with proper table layouts matching other pages (avatars, badges, columns)
+- Default view preference loaded from admin settings
+
+Checklist UI Overhaul (TrackingTable):
+- Card-based layout replacing rigid table — accent bars, filled circle indicators
+- Inline log preview below step names, labeled form fields
+- Eye toggle for instant deactivate/reactivate (no log entries created)
+- Default log date to today, rename restricted to text-type fields only
+- + subtask button moved next to step label
+- Progress bar with indigo→pink gradient, percentage display
+
+Case Updates UI Overhaul:
+- Status cells with colored backgrounds (green=complete, blue=in progress, etc.)
+- Clickable cells toggle detail popover (replaced confusing ScrollText/ClipboardPlus icons)
+- Unified popover with Subtasks → Records → History sections
+- Full notes visible in popover (no truncation), truncated in cell preview
+- Everything centered (steps, headers, info rows, case names)
+- "Checklist Steps" header label, AI icon-only (removed "Summary" text)
+- Filtered by assigned admin (super/master see all)
+
+Expense Enhancements:
+- Escrow Opened Y/N toggle — conditional fields based on answer
+- "Who needs to be paid?" dropdown (Surrogate/IP1/IP2/Other)
+- Surrogate payment preference (Venmo/Zelle) pulled from application
+- "Expenses to Pay" tab on Expense Tracker with mark paid + reconcile
+- Auto-task for Julie Allgood when escrow not opened
+- Date defaults to today
+
+Admin Settings:
+- Profile image upload (stored in Supabase, shown across app)
+- Timezone selection (US, defaults to Pacific)
+- Default case view preference (Card/List) — persisted and applied across all pages
+
+Pregnancy Tracker:
+- Cancel Cycle button with optional reason
+- Beta HCG date fields (default today) in log + edit dialogs
+- Delete Birth with confirmation (reverts to Pregnant status)
+- Auto-task: Jennifer Rose testimony reminder 1 month after birth
+- Auto-email on heartbeat confirmation (pregnancy confirmed)
+
+Auto Emails:
+- Pregnancy confirmed email (surrogate name, psych check-in link, HIPAA notice)
+- Records Summary requested email (surrogate name, direct link, HIPAA notice)
+- Both use branded ABC template via Resend API + Cloudflare Functions
+
+HIPAA-Compliant Psych Sharing:
+- Password-protected shared psych tracking page
+- First visit: set password (SHA-256 hashed, min 8 chars)
+- Return visits: enter password to unlock
+- Session persists via sessionStorage
+- Admin can reset password from Share dialog
+
+Referrals & Incentives:
+- Renamed from "Referral & Bonus" throughout (nav, header, tabs)
+- ALL surrogates now appear on Incentive Payment tab (not just matched)
+- Pay Via column with Venmo/Zelle info + screenshot preview (eye icon)
+
+Surrogate Application:
+- Profile Follow Up Questions section (between Personal Info and Confidential)
+- Screening Incentive Payment Preference section (Venmo/Zelle + screenshot)
+- Both visible to surrogates in portal with save/complete tracking
+
+Other Fixes:
+- Journey card shows surrogate DOB on /journeys
+- Escrow minimum defaults to $10,000
+- Storage upload path sanitization (spaces → underscores)
+- RichTextEditor syncs content on prop change (fixes edit admin notes)
+- Screenshot auto-saves immediately on upload
+
+**Next steps:**
+- Match-Centric Case Architecture (plan exists, not started)
+- GC Background Waiver form field cleanup (user feedback pending)
+- Profile Follow Up Questions field review with agency
+
+**Open questions:**
+- Jennifer Rose's email — using jennifer@abcsurrogacy.com (confirm correct)
+
 ## 2026-04-14 (Gmail Inbox Integration, Journey Updates, Provider Info, Profile Label Alignment, Quick Notes)
 
 **Worked on:** Gmail inbox on case Emails tab, Journey Update logging, Provider Info modal, profile field label alignment, Quick Notes, attachment preview/save, email log dialog with tags

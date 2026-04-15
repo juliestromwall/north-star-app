@@ -24,12 +24,12 @@
 | profileConstants | src/components/profile/profileConstants.js | Shared profile constants (SECTION_META, REQUIRED_FIELDS, US_STATES) and helpers (isPregnancyComplete, countCompleted) |
 | HouseholdMembers | src/components/profile/ProfileFields.jsx | Structured table for entering household members with name + relationship dropdown |
 | CurrencyField | src/components/profile/ProfileFields.jsx | Auto-formatting currency input ($xx,xxx) for compensation fields |
-| TrackingTable | src/pages/surrogates/SurrogateDetailPage.jsx | Reusable table for step/status tracking with log history, edit/delete, admin attribution, progress bar |
+| TrackingTable | src/components/shared/TrackingTable.jsx | Card-based checklist with accent bars, circle indicators, inline log preview, eye toggle deactivate, auto-date, subtask management |
 | MatchedJourneysPage | src/pages/journeys/MatchedJourneysPage.jsx | Dashboard for matched surrogacy journeys with tile/list views, stage filters, search |
 | ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Live stats (Surrogates, Intended Parents, Matches in Progress, Matched Journeys), clickable Surrogates tile → Screening Overview with card-style stage filters (Pre-Qualification/Screening/Matching), spreadsheet table, match pipeline, quick actions |
 | SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card, application CTA (3 states: not reviewed/reviewed/app released), tasks |
-| PortalApplicationPage | src/pages/portal/PortalApplicationPage.jsx | 5-section application form (Personal Info, Confidential, References, Clinic/Hospital, Social Media Release) with validation, accordion, submit flow, read-only after submission |
+| PortalApplicationPage | src/pages/portal/PortalApplicationPage.jsx | 7-section application form (Personal Info, Profile Follow Up, Confidential, References, Clinic/Hospital, Payment Preference, Social Media Release) with validation, accordion, submit flow, read-only after submission |
 | PortalDocumentsPage | src/pages/portal/PortalDocumentsPage.jsx | Surrogate portal documents: signed e-sign docs + user uploads |
 | SignReleaseBatchPage | src/pages/esign/SignReleaseBatchPage.jsx | Batch signing page for medical records releases — one link, verify once, sign all, PDF generation per form |
 | ReleaseFormGenerator | src/lib/releaseFormGenerator.js | HIPAA-compliant HTML release form generator per provider (OB, Hospital, MFM, IVF) |
@@ -87,7 +87,7 @@
 | IPProfilePage | src/pages/profile/IPProfilePage.jsx | Full IP profile builder mirroring GC profile pattern. Basic Information section (profile + cover photo), 5 collapsible sections (Fertility, Surrogacy, Personal, Health, History). Per-person IP1/IP2 tabs for personal sections. Always-editable inline fields with 2s debounce auto-save. Pre-fills from intake quiz answers. Stored in answers._ipProfile. |
 | IPDashboard (redesigned) | src/pages/dashboard/IPDashboard.jsx | Welcome banner, pending tasks badge, "My Intake Answers" card with dialog (matches surrogate "Quiz Results" pattern), To Do + Completed task sections, coordinator card, contact card |
 | Pregnancy Birth Logging | src/pages/journeys/JourneyDetailPage.jsx | "Log Birth" dialog on pregnancy banner. Fields: delivery date, type, per-baby name/sex/weight/length, notes. Auto-updates status to "Delivered", swaps 🤰 emoji for baby-boy.png/baby-girl.png based on first baby's sex. New "Delivered" timeline step. Edit Birth Details opens full form pre-filled. Auto-updates babies_born counter. |
-| ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referral & sign-on bonus tracking: 4 tabs (Referrals, Sign-On Bonuses, Paid Referrals, Paid Bonuses). Auto-detects referrals from quiz "Friend or family" source, pulls Legal/Medical Clearance dates from journey checklists, mark half/fully paid with confirmation dialogs, expense-tracker table styling |
+| ReferralBonusTrackerPage | src/pages/referrals/ReferralBonusTrackerPage.jsx | Referrals & Incentives: 4 tabs (Referrals, Incentive Payment, Paid Referrals, Paid Incentives). All surrogates eligible for incentives. Pay Via column with Venmo/Zelle + screenshot preview. Auto-detects referrals from "Friend or family" source. |
 
 | FloatingStickyNotes | src/components/shared/FloatingStickyNotes.jsx | Draggable persistent post-it notes with neon colors, drag-to-resize height, minimize to TopBar pills (via React portal), per-user Supabase storage. Admin-only. |
 | SignFormPage | src/pages/esign/SignFormPage.jsx | E-sign page for form templates (Background Waivers). Email verification, labeled form fields, 3 signature pads, live document preview, PDF generation with audit trail. Route: /e-signature/form/:formToken |
@@ -102,6 +102,14 @@
 | JourneyUpdateButton | src/components/shared/JourneyUpdateButton.jsx | Timestamped journey update log — button on hero cards, compact icon on case-updates. Modal with add/view/delete updates. Per-case in app_config. |
 | ProviderInfoButton | src/components/shared/ProviderInfoButton.jsx | Provider info modal — IVF/Monitoring Clinic, IP/GC Attorney, Escrow, Insurance, OB/MFM/Delivery Hospital. Reads from journey_data. |
 | QuickNote | src/components/shared/QuickNote.jsx | Collapsible auto-saving text area above tabs on all case pages. Yellow-tinted, per-case in app_config. |
+| AdminProfileSection | src/pages/SettingsPage.jsx | Admin Settings: profile image upload, timezone (US), default case view (Card/List). Per-user prefs in app_config. |
+| SharedPsychTrackingPage | src/pages/psych/SharedPsychTrackingPage.jsx | Password-protected shared psych tracking. First visit: set password (SHA-256). Return visits: enter password. HIPAA compliant. |
+| ExpensesToPayTable | src/pages/expenses/ExpensesPage.jsx | "Expenses to Pay" tab for non-escrow expenses. Mark paid + reconcile workflow. |
+| notify-pregnancy-confirmed | functions/api/notify-pregnancy-confirmed.js | Auto-email on heartbeat confirmation. Branded template via Resend API. |
+| notify-records-summary | functions/api/notify-records-summary.js | Auto-email when Records Summary is requested. Direct link to surrogate's records page. |
+| PaymentPreferenceSection | src/components/surrogates/GCApplicationTab.jsx | Screening Incentive Payment Preference (Venmo/Zelle + screenshot upload). Admin-editable. |
+| ProfileFollowUpForm | src/pages/portal/PortalApplicationPage.jsx | 35 follow-up questions (lifestyle, health, fertility, education) for surrogate portal application. |
+| PaymentPreferenceForm | src/pages/portal/PortalApplicationPage.jsx | Surrogate portal: Venmo/Zelle payment preference with screenshot upload. |
 | FIELD_LABELS | src/components/profile/profileConstants.js | Single source of truth for 150+ surrogate profile field labels — used by portal, admin, and preview. |
 
 ## Bot Protection
