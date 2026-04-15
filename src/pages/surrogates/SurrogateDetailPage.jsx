@@ -1074,6 +1074,20 @@ export default function SurrogateDetailPage() {
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
+                onStatusLog={async ({ stepLabel, status }) => {
+                  // Auto-email when Records Summary is requested
+                  if (status === 'requested' && stepLabel.toLowerCase().includes('records summary')) {
+                    try {
+                      const gtp = getGTPAL(profileData)
+                      const gtpalStr = gtp ? `G${gtp.g}P${gtp.t}${gtp.p}${gtp.a}${gtp.l}` : null
+                      await fetch('/api/notify-records-summary', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ surrogateName: surrogate.name, surrogateId: surrogate.id, gtpal: gtpalStr }),
+                      })
+                    } catch (err) { console.error('Records summary notify failed:', err) }
+                  }
+                }}
               />
             )
           })()}
