@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
-import { FileText, Download, Eye, Loader2, Upload } from 'lucide-react'
+import { FileText, Download, Eye, Loader2, Upload, Pencil, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { findCaseByEmail } from '@/lib/db'
@@ -13,6 +13,8 @@ export default function PortalDocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [caseId, setCaseId] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState('')
   const fileRef = useRef(null)
 
   useEffect(() => {
@@ -123,6 +125,19 @@ export default function PortalDocumentsPage() {
     }
   }
 
+  async function handleRename(doc) {
+    const trimmed = editName.trim()
+    if (!trimmed || trimmed === doc.title) { setEditingId(null); return }
+    try {
+      const dbId = doc.id.replace(/^cd_/, '')
+      await supabase.from('case_documents').update({ file_name: trimmed }).eq('id', dbId)
+      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, title: trimmed } : d))
+    } catch (err) {
+      console.error('Rename failed:', err)
+    }
+    setEditingId(null)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -164,12 +179,35 @@ export default function PortalDocumentsPage() {
                   <FileText className="size-4 text-red-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-stone-800 truncate">{doc.title}</p>
+                  {editingId === doc.id ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleRename(doc); if (e.key === 'Escape') setEditingId(null) }}
+                        className="text-sm font-medium text-stone-800 border border-stone-300 rounded px-2 py-0.5 w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 flex-shrink-0" onClick={() => handleRename(doc)}>
+                        <Check className="size-3.5 text-green-600" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 flex-shrink-0" onClick={() => setEditingId(null)}>
+                        <X className="size-3.5 text-stone-400" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-medium text-stone-800 truncate">{doc.title}</p>
+                  )}
                   <p className="text-xs text-stone-400">
                     {new Date(doc.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
+                  {doc.source === 'case' && doc.category !== 'e-signature' && editingId !== doc.id && (
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setEditingId(doc.id); setEditName(doc.title) }}>
+                      <Pencil className="size-3.5 text-stone-400" />
+                    </Button>
+                  )}
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => window.open(doc.url, '_blank')}>
                     <Eye className="size-4 text-stone-500" />
                   </Button>
