@@ -13,6 +13,7 @@ import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@d
 import { CSS } from '@dnd-kit/utilities'
 import Cropper from 'react-easy-crop'
 import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 // ── Field definitions ──
 
@@ -232,7 +233,7 @@ export function SortablePhoto({ photo, onEdit, onDelete }) {
 }
 
 // ── Photo Editor (crop + rotate) ──
-export function PhotoEditor({ photo, onSave, onClose }) {
+export function PhotoEditor({ photo, onSave, onClose, aspect = 1 }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [rotation, setRotation] = useState(0)
@@ -252,7 +253,7 @@ export function PhotoEditor({ photo, onSave, onClose }) {
   return (
     <div className="space-y-4">
       <div className="relative w-full h-80 sm:h-96 bg-stone-900 rounded-xl overflow-hidden">
-        <Cropper image={photo.url} crop={crop} zoom={zoom} rotation={rotation} aspect={1}
+        <Cropper image={photo.url} crop={crop} zoom={zoom} rotation={rotation} aspect={aspect} showGrid
           onCropChange={setCrop} onZoomChange={setZoom} onCropComplete={(_, area) => setCroppedArea(area)} />
       </div>
       <div className="flex items-center gap-4">
@@ -279,6 +280,7 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -330,7 +332,6 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
   }
 
   async function handleDelete(photo) {
-    if (!confirm('Delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
       setPhotos(prev => {
@@ -379,7 +380,7 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
         <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {photos.map(photo => (
-              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
             ))}
             <label className={`flex items-center justify-center aspect-square rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
@@ -393,6 +394,7 @@ function PhotoGallery({ storagePath, order, onOrderChange }) {
         </SortableContext>
       </DndContext>
       {error && <p className="text-xs text-red-500">{error}</p>}
+      <ConfirmDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }} title="Delete photo?" message="This photo will be permanently deleted." onConfirm={() => { handleDelete(deleteTarget); setDeleteTarget(null) }} />
     </div>
   )
 }

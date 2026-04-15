@@ -17,6 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 
 // ─────────────────────────────────────────────────────────
 // Field Components
@@ -516,6 +517,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (!storagePath) return
@@ -543,7 +545,6 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
 
   async function handleDelete() {
     if (!photo) return
-    if (!confirm('Delete this photo?')) return
     try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
     catch (err) { setError(err.message || 'Delete failed') }
   }
@@ -562,7 +563,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
               <Upload className="w-4 h-4" />
               <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
             </label>
-            <button onClick={handleDelete} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -578,6 +579,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
         </label>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
+      <ConfirmDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm} title="Delete photo?" message="This photo will be permanently deleted." onConfirm={handleDelete} />
     </div>
   )
 }
@@ -638,6 +640,7 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -684,7 +687,6 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
   }
 
   async function handleDelete(photo) {
-    if (!confirm('Delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
       setPhotos(prev => { const next = prev.filter(p => p.path !== photo.path); persistOrder(next); return next })
@@ -724,7 +726,7 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
         <SortableContext items={photos.map(p => p.path)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {photos.map(photo => (
-              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
             ))}
             <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
@@ -738,6 +740,7 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
         </SortableContext>
       </DndContext>
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      <ConfirmDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }} title="Delete photo?" message="This photo will be permanently deleted." onConfirm={() => { handleDelete(deleteTarget); setDeleteTarget(null) }} />
     </>
   )
 }

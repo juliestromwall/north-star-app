@@ -35,6 +35,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto } from '@/lib/db'
 import { SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { sendSMS, fetchSMSMessages } from '@/lib/sms'
@@ -426,11 +427,27 @@ export default function SurrogateDetailPage() {
       }
 
       function loadPhotos(uid) {
-        Promise.all([
+        const caseId = String(found?.id || '')
+        const paths = [
           listProfilePhotos(uid).catch(() => []),
           listProfilePhotos(`${uid}/headshot`).catch(() => []),
           listProfilePhotos(`${uid}/portrait`).catch(() => []),
-        ]).then(([gallery, headshots, portraits]) => {
+        ]
+        // Also check intake case ID path if different from auth UUID
+        if (caseId && caseId !== uid) {
+          paths.push(
+            listProfilePhotos(caseId).catch(() => []),
+            listProfilePhotos(`${caseId}/headshot`).catch(() => []),
+            listProfilePhotos(`${caseId}/portrait`).catch(() => []),
+          )
+        }
+        Promise.all(paths).then(results => {
+          let gallery = results[0], headshots = results[1], portraits = results[2]
+          if (results.length > 3) {
+            gallery = [...gallery, ...results[3]]
+            headshots = [...headshots, ...results[4]]
+            portraits = [...portraits, ...results[5]]
+          }
           // Order: headshot (cover) first, then portrait, then gallery
           const all = [...headshots, ...portraits, ...gallery]
           setPhotos(all)
@@ -438,6 +455,11 @@ export default function SurrogateDetailPage() {
         getPortraitPhotoUrl(uid).then(url => {
           if (url) setPortraitUrl(url)
         }).catch(() => {})
+        if (caseId && caseId !== uid) {
+          getPortraitPhotoUrl(caseId).then(url => {
+            if (url) setPortraitUrl(prev => prev || url)
+          }).catch(() => {})
+        }
       }
     }).catch(() => {})
       .finally(() => setLoading(false))
@@ -3036,11 +3058,12 @@ function toBooleanDisplay(value) {
 }
 
 // ── Photo upload slot (profile / cover) with crop/rotate ──
-function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
+function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     if (!storagePath) return
@@ -3065,7 +3088,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
   }
 
   async function handleDelete() {
-    if (!photo || !confirm('Delete this photo?')) return
+    if (!photo) return
     try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
     catch (err) { setError(err.message || 'Delete failed') }
   }
@@ -3088,7 +3111,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
         <div>
           <p className="text-sm font-semibold text-stone-700">{label}</p>
         </div>
-        <PhotoEditor photo={photo} onSave={handleCropSave} onClose={() => setEditing(false)} />
+        <PhotoEditor photo={photo} onSave={handleCropSave} onClose={() => setEditing(false)} aspect={cropAspect} />
       </div>
     )
   }
@@ -3110,7 +3133,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
               <Upload className="w-4 h-4" />
               <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
             </label>
-            <button onClick={handleDelete} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
+            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
@@ -3126,6 +3149,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
         </label>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
+      <ConfirmDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm} title="Delete photo?" message="This photo will be permanently deleted." onConfirm={handleDelete} />
     </div>
   )
 }
@@ -3136,6 +3160,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -3166,7 +3191,6 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   }
 
   async function handleDelete(photo) {
-    if (!confirm('Delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
       setGalleryPhotos(prev => { const next = prev.filter(p => p.path !== photo.path); if (onPhotosChange) onPhotosChange(next); return next })
@@ -3204,7 +3228,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
         <SortableContext items={galleryPhotos.map(p => p.path)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {galleryPhotos.map(photo => (
-              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={handleDelete} />
+              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
             ))}
             <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
               <div className="text-center">
@@ -3218,6 +3242,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
         </SortableContext>
       </DndContext>
       {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+      <ConfirmDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null) }} title="Delete photo?" message="This photo will be permanently deleted." onConfirm={() => { handleDelete(deleteTarget); setDeleteTarget(null) }} />
     </>
   )
 }
@@ -3234,6 +3259,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   const imgRef = useRef(null)
   const hiddenPhotos = profileData?._hiddenPhotos || []
   const baseId = surrogate?.userId || surrogate?.id
+  const [deletePhotoTarget, setDeletePhotoTarget] = useState(null)
 
   async function togglePhotoInactive(photoPath) {
     const current = profileData?._hiddenPhotos || []
@@ -3248,7 +3274,6 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   }
 
   async function handleDeletePhoto(photo) {
-    if (!confirm('Permanently delete this photo?')) return
     try {
       await deleteProfilePhoto(photo.path)
       setPhotos(prev => prev.filter(p => p.path !== photo.path))
@@ -3374,6 +3399,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
             label="Cover Photo"
             hint="A favorite picture with family or doing something they love"
             storagePath={`${baseId}/headshot`}
+            cropAspect={16 / 9}
           />
         </div>
         {/* Gallery */}
