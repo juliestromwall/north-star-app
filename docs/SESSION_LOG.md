@@ -1,5 +1,65 @@
 # Session Log
 
+## 2026-04-14 (Gmail Inbox Integration, Journey Updates, Provider Info, Profile Label Alignment, Quick Notes)
+
+**Worked on:** Gmail inbox on case Emails tab, Journey Update logging, Provider Info modal, profile field label alignment, Quick Notes, attachment preview/save, email log dialog with tags
+
+**Changes made:**
+
+Gmail Inbox Integration:
+- Emails tab now has Logged/Inbox toggle
+- Inbox searches Gmail for emails from/to case contacts (surrogate, IP1, IP2, journey parties)
+- Unread emails highlighted with "New" badge + flashing pink dot on Emails tab
+- Click to view full email with HTML body + attachments
+- Attachments: Preview (opens in new tab), Save to Case (folder picker dialog)
+- Log dialog with tag selector + private option when logging inbox emails
+- Marks emails as read in Gmail when opened
+- Already-logged emails filtered out of inbox view
+
+Journey Update Log:
+- JourneyUpdateButton on hero cards (surrogates, IPs, journeys)
+- Compact icon on case-updates title row (megaphone)
+- Modal with timestamped update entries, author attribution, delete
+- Stored per-case in app_config
+
+Provider Info Modal:
+- ProviderInfoButton on case-updates title row (building icon)
+- Shows IVF Clinic, Monitoring Clinic, IP/GC Attorney, Escrow (default SeedTrust), Insurance, OB Clinic, MFM Clinic, Delivery Hospital
+- Data pulled from journey_data + insurance records
+
+Quick Note:
+- Collapsible text area above tabs on every case page (surrogates, IPs, journeys)
+- Auto-saves after 1 second, persists in app_config per case
+- Yellow-tinted background, shows preview when collapsed
+
+Profile Field Labels:
+- Created FIELD_LABELS map (150+ fields) in profileConstants.js
+- Admin formatFieldLabel() now uses map — shows full question text
+- ProfilePreview fertility section labels updated to match portal
+- Generated surrogate-profile-fields.csv for review
+
+Case Updates Title Row:
+- AI Summary now icon-only (sparkles, no "Summary" text)
+- Added Journey Update megaphone icon
+- Added Provider Info building icon
+- More room for all icons
+
+Other:
+- Email body storage fix for cross-admin viewing
+- Attachment filename sanitization for Supabase storage
+- Cleared stale sticky note data
+
+**Next steps:**
+- Build "Profile Follow Up Questions" form (new section after Personal Info)
+- DELETE 10 fields from profile (religion, ethnicity, covid questions, RE location)
+- MOVE 48 fields to Profile Follow Up Questions form
+- UPDATE 7 fields (reDates→Year, embryoSource→multiselect, lifestyleChanges→textarea, pumpBreastmilk→3 options, ipsAtAppointments→3 options, postBirthRelationship→textarea, partnerAgreesTermination→new wording)
+- Build admin review window (editable table with notes per answer, opens in new window)
+- Continue updating ProfilePreview labels for remaining sections
+
+**Open questions:**
+- None
+
 ## 2026-04-13 (IP Profile, Checklists, Stages, Appointments, Case Updates, Info Rows)
 
 **Worked on:** IP profile preview improvements, GC/IP/Journey checklist consolidation, IP stages, appointment follow-up system, case-updates appointments view, journey info rows, monitoring clinic

@@ -99,6 +99,10 @@
 | IPProfilePage | src/pages/profile/IPProfilePage.jsx | Read-only IP profile view: personal, partner, location, fertility info |
 | ProfileRouter | src/pages/profile/ProfileRouter.jsx | Routes /my-profile to IPProfilePage or SurrogateProfilePage based on role |
 | findCaseByEmail | src/lib/db.js | Helper that finds intake case by primary email OR partner ip2Email (supports IP couple logins) |
+| JourneyUpdateButton | src/components/shared/JourneyUpdateButton.jsx | Timestamped journey update log — button on hero cards, compact icon on case-updates. Modal with add/view/delete updates. Per-case in app_config. |
+| ProviderInfoButton | src/components/shared/ProviderInfoButton.jsx | Provider info modal — IVF/Monitoring Clinic, IP/GC Attorney, Escrow, Insurance, OB/MFM/Delivery Hospital. Reads from journey_data. |
+| QuickNote | src/components/shared/QuickNote.jsx | Collapsible auto-saving text area above tabs on all case pages. Yellow-tinted, per-case in app_config. |
+| FIELD_LABELS | src/components/profile/profileConstants.js | Single source of truth for 150+ surrogate profile field labels — used by portal, admin, and preview. |
 
 ## Bot Protection
 
@@ -181,6 +185,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-04-14 | Gmail inbox integration on case Emails tab (Logged/Inbox toggle, unread indicators, attachment preview in new tab, Save to Case with folder picker, log dialog with tags). Journey Update log button on all hero cards + case-updates. Provider Info modal on case-updates. Quick Note above tabs on all case pages. FIELD_LABELS map (150+ fields) for consistent labels across portal/admin/preview. AI Summary icon-only on case-updates. |
 | 2026-04-13 | IP profile: GC-style PVSection cards, ages in header pills, first names only, full state names, Heart/HeartPulse icons. GC admin photos: Profile/Cover/Gallery upload with drag-reorder/crop/rotate. IP stages: Consultation/Matching/Holding/Withdrawn only. Checklist statuses: +Started/+Followed Up/+Note. Checklists moved to Overview tab (GC/IP/Journey). Case-updates: matched GCs/IPs hidden from individual tabs, appointment badges with full log modal. Appointments: follow-up tracking (✅ in Calendar title), notes per appointment, read-only Calendar API Note. AI summary: MM/DD/YYYY dates, split appointments, birth data, checklist logs, email snippets. Journey info rows: Monitoring Clinic on hero, Settings config for 6 provider info rows, violet-tinted rendering in case-updates. |
 | 2026-04-13 | Records summary: DOB as MM/DD/YYYY, removed COVID section + occupation/lives with, smart pregnancy fields for miscarriage/termination (prenatal care conditional), OB Clearance moved to labs, PDF page breaks fixed (browser print with break-inside:avoid), line breaks preserved. Email sharing: body_html stored in DB so all admins can view, private email flag for master admins, lock toggle in log dialog. Office Admin role (settings access). Dashboard/list pages default to all cases for super/master admin. IP_STAGES separated from SURROGATE_STAGES. |
 | 2026-04-10 | Floating draggable sticky notes (per-user, all pages, minimize to TopBar). Removed dashboard calculator + sticky notes. Removed Couple/Single badge from IP cards/details. Bot protection: disabled rapid-fill (Safari mobile false positive), only time check active. Surrogate admin notification email now includes "How They Heard" with referral name or other text. |
