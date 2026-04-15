@@ -919,31 +919,32 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   return (
     <HiddenFieldsContext.Provider value={hiddenFields}>
     <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
-      {/* ── Cover Photo (static) ── */}
-      {heroPhoto ? (
-        <div data-pdf="cover" className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
-          <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
-          {portraitPhoto && (
-            <div className="absolute bottom-4 left-6 sm:left-8 z-10 print:left-4">
-              <img src={portraitPhoto.url} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-lg print:w-20 print:h-20" />
-            </div>
-          )}
-          {photos.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full print:hidden">
-              {photos.length} photos
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="w-full h-48 bg-gradient-to-br from-[#ed148c]/20 via-[#283693]/10 to-[#ed148c]/10 flex items-center justify-center">
-          <Camera className="w-10 h-10 text-gray-300" />
-        </div>
-      )}
+      {/* ── Cover Photo + Portrait ── */}
+      <div className="relative" style={{ marginBottom: portraitPhoto ? '2rem' : 0 }}>
+        {heroPhoto ? (
+          <div data-pdf="cover" className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
+            <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
+            {photos.length > 1 && (
+              <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full print:hidden">
+                {photos.length} photos
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-48 bg-gradient-to-br from-[#ed148c]/20 via-[#283693]/10 to-[#ed148c]/10 flex items-center justify-center">
+            <Camera className="w-10 h-10 text-gray-300" />
+          </div>
+        )}
+        {portraitPhoto && (
+          <img data-pdf="portrait" src={portraitPhoto.url} alt=""
+            className="absolute -bottom-10 left-6 sm:left-8 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg z-20 print:w-24 print:h-24 print:left-4 print:-bottom-8" />
+        )}
+      </div>
 
       {/* ── Thumbnail Strip (opens lightbox, hidden in print) ── */}
       {photos?.length > 1 && (
-        <div data-pdf="thumbs" className="flex gap-2 px-8 -mt-6 relative z-10 overflow-x-auto pb-1 print:hidden">
+        <div data-pdf="thumbs" className="flex gap-2 px-8 -mt-4 relative z-10 overflow-x-auto pb-1 print:hidden" style={{ marginLeft: portraitPhoto ? '10rem' : 0 }}>
           {photos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
               className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
