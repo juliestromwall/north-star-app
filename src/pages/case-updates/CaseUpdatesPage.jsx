@@ -425,7 +425,73 @@ function SurrogateUpdatesSheet({ surrogates }) {
                 </tr>
               </thead>
               <tbody>
-                {sheetRows.map(row => (
+                {sheetRows.map(row => {
+                  // Surrogate info rows
+                  if (row.type === 'info_row' && row.source === 'surrogate') {
+                    return (
+                      <tr key={row.id} className="border-b border-stone-100">
+                        <td className="px-3 py-2 font-medium text-stone-700 sticky left-0 bg-white z-10">
+                          <span className="text-xs">{row.label}</span>
+                        </td>
+                        {filtered.map(s => {
+                          let value = '', secondary = ''
+                          if (row.dataField === 'referralSource') {
+                            const source = s.answers?.hearAboutUs || s.hearAboutUs || ''
+                            if (source.toLowerCase().includes('friend') || source.toLowerCase().includes('family')) {
+                              value = s.answers?.referralName || 'Friend/Family'
+                              secondary = 'Referral'
+                            } else if (source.toLowerCase() === 'other') {
+                              value = s.answers?.hearAboutUsOther || 'Other'
+                            } else {
+                              value = source || ''
+                            }
+                          } else if (row.dataField === 'experiencedSurrogate') {
+                            const profile = allProfiles[s.id]
+                            const prev = profile?.preferences?.previousSurrogate
+                            if (prev === 'yes' || prev === true) {
+                              const times = profile?.preferences?.surrogacyTimes || ''
+                              value = `Yes${times ? ` (${times})` : ''}`
+                            } else {
+                              value = prev === 'no' || prev === false ? 'No' : ''
+                            }
+                          } else if (row.dataField === 'gtpal') {
+                            // GTPAL from pregnancy history
+                            const profile = allProfiles[s.id]
+                            const pregs = profile?.pregnancyHistory?.pregnancies || []
+                            if (pregs.length > 0) {
+                              const g = pregs.length
+                              let t = 0, p = 0, a = 0, l = 0
+                              for (const pr of pregs) {
+                                const weeks = parseInt(pr.gestationWeeks) || 0
+                                if (pr.outcome === 'Live Birth') { if (weeks >= 37) t++; else p++; l++ }
+                                else if (pr.outcome === 'Miscarriage' || pr.outcome === 'Ectopic Pregnancy' || pr.outcome === 'Termination' || pr.outcome === 'Stillborn') a++
+                                if (pr.singleOrMultiples === 'Twins') l++
+                                if (pr.singleOrMultiples === 'Triplets+') l += 2
+                              }
+                              value = `G${g}P${t}${p}${a}${l}`
+                            }
+                          } else if (row.dataField === 'maritalStatus') {
+                            const profile = allProfiles[s.id]
+                            value = profile?.personal?.maritalStatus || s.maritalStatus || ''
+                          }
+                          return (
+                            <td key={s.id} className="px-3 py-2">
+                              {value ? (
+                                <div>
+                                  <p className="text-xs font-medium text-[#283693]">{value}</p>
+                                  {secondary && <p className="text-[10px] text-stone-400">{secondary}</p>}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-stone-300 italic">—</span>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  }
+
+                  return (
                   <tr key={row.id} className="border-b border-stone-50 hover:bg-stone-50/50">
                     <td className="px-3 py-2.5 font-medium text-stone-700 sticky left-0 bg-white z-10">{row.label}</td>
                     {filtered.map(s => {
@@ -579,7 +645,8 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       )
                     })}
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

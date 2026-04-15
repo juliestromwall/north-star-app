@@ -315,6 +315,15 @@ export function setChecklistSteps(userType, stageId, steps) {
 }
 
 /** Add a step to a user type + stage */
+// Surrogate info rows — data pulled from intake answers + profile
+export const SURROGATE_INFO_ROW_FIELDS = [
+  { key: 'referralSource', label: 'Referral Source', source: 'surrogate' },
+  { key: 'experiencedSurrogate', label: 'Experienced Surrogate', source: 'surrogate' },
+  { key: 'gtpal', label: 'GTPAL', source: 'surrogate' },
+  { key: 'maritalStatus', label: 'Marital Status', source: 'surrogate' },
+]
+
+// Journey info rows — data pulled from journey_data
 export const INFO_ROW_FIELDS = [
   { key: 'ivfClinic', label: 'IVF Clinic', dataPath: 'ivfClinic', secondaryPath: 'ivfDoctor' },
   { key: 'monitoringClinic', label: 'Monitoring Clinic', dataPath: 'monitoringClinic', secondaryPath: 'monitoringDoctor' },
@@ -325,15 +334,18 @@ export const INFO_ROW_FIELDS = [
 ]
 
 export function addInfoRow(userType, stageId, fieldKey) {
-  const field = INFO_ROW_FIELDS.find(f => f.key === fieldKey)
+  const allFields = [...INFO_ROW_FIELDS, ...SURROGATE_INFO_ROW_FIELDS]
+  const field = allFields.find(f => f.key === fieldKey)
   if (!field) return
   const config = getChecklistConfig()
   if (!config[userType]) config[userType] = {}
   if (!config[userType][stageId]) config[userType][stageId] = { steps: [], milestones: [] }
   const id = `info_${fieldKey}_${Date.now()}`
-  config[userType][stageId].steps.push({
-    id, label: field.label, type: 'info_row', dataField: field.key, dataPath: field.dataPath, secondaryPath: field.secondaryPath,
-  })
+  const step = { id, label: field.label, type: 'info_row', dataField: field.key }
+  if (field.dataPath) step.dataPath = field.dataPath
+  if (field.secondaryPath) step.secondaryPath = field.secondaryPath
+  if (field.source) step.source = field.source
+  config[userType][stageId].steps.push(step)
   save(config)
   return config[userType][stageId].steps
 }

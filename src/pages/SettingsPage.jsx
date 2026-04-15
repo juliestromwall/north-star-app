@@ -4,7 +4,7 @@ import { useRole } from '@/context/RoleContext'
 import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
-import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions, addInfoRow, INFO_ROW_FIELDS } from '@/lib/checklistStore'
+import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions, addInfoRow, INFO_ROW_FIELDS, SURROGATE_INFO_ROW_FIELDS } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -661,7 +661,10 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
 
   // Which info row fields are already added
   const usedInfoFields = steps.filter(s => s.type === 'info_row').map(s => s.dataField)
-  const availableInfoFields = INFO_ROW_FIELDS.filter(f => !usedInfoFields.includes(f.key))
+  const isGcChecklist = userType === 'gc' && !isJourney
+  const allInfoFields = isJourney ? INFO_ROW_FIELDS : isGcChecklist ? SURROGATE_INFO_ROW_FIELDS : []
+  const availableInfoFields = allInfoFields.filter(f => !usedInfoFields.includes(f.key))
+  const showInfoRows = (isJourney || isGcChecklist) && availableInfoFields.length > 0
 
   function handleAddInfoRow() {
     if (!infoRowField) return
@@ -817,10 +820,10 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
           </div>
 
           {/* Info Rows — journey only */}
-          {isJourney && availableInfoFields.length > 0 && (
+          {showInfoRows && (
             <div className="border-t border-stone-100 pt-3 mt-2">
-              <p className="text-[10px] text-[#283693] uppercase tracking-wider font-semibold mb-2">Provider Info Rows</p>
-              <p className="text-[10px] text-stone-400 mb-2">These show provider data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
+              <p className="text-[10px] text-[#283693] uppercase tracking-wider font-semibold mb-2">{isJourney ? 'Provider Info Rows' : 'Screening Surrogate Info'}</p>
+              <p className="text-[10px] text-stone-400 mb-2">These show data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
               <div className="flex items-center gap-2">
                 <select value={infoRowField} onChange={e => setInfoRowField(e.target.value)} className="h-8 text-sm border rounded px-2 bg-white text-stone-600 flex-1">
                   <option value="">Select provider field...</option>
