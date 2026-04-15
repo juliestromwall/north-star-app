@@ -1,14 +1,26 @@
 import { useState, useEffect } from 'react'
-import { FileSignature, Loader2, CheckCircle2, Clock } from 'lucide-react'
+import { FileSignature, Loader2, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
 
+async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken }) {
+  const formUrl = `${window.location.origin}/e-signature/form/${formToken}`
+  try {
+    await fetch('/api/send-esign-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signerName, signerEmail, formTitle, formUrl }),
+    })
+  } catch (err) { console.error('E-sign email failed:', err) }
+}
+
 export default function SendFormTemplateButton({ templateId, surrogate, partnerName, partnerEmail }) {
   const [sending, setSending] = useState(false)
+  const [resending, setResending] = useState(false)
   const [result, setResult] = useState(null)
-  const [existingDoc, setExistingDoc] = useState(null) // { status: 'pending' | 'signed' }
+  const [existingDoc, setExistingDoc] = useState(null) // { status, formToken }
   const [checking, setChecking] = useState(true)
   const { currentUser } = useRole()
 
@@ -27,7 +39,14 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
             return meta.templateId === templateId
           } catch { return false }
         })
-        if (match) setExistingDoc({ status: match.status })
+        if (match) {
+          try {
+            const meta = JSON.parse(match.document_hash || '{}')
+            setExistingDoc({ status: match.status, formToken: meta.formToken })
+          } catch {
+            setExistingDoc({ status: match.status })
+          }
+        }
       })
       .finally(() => setChecking(false))
   }, [surrogate?.id, templateId])
@@ -48,12 +67,28 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
     )
   }
 
-  // Already sent, pending
+  // Already sent, pending — show resend button
   if (existingDoc?.status === 'pending') {
     return (
       <div className="flex items-center gap-2 text-xs py-1">
         <Clock className="size-4 text-amber-500 shrink-0" />
-        <span className="text-amber-700 font-medium">{template.title} — Pending signature</span>
+        <span className="text-amber-700 font-medium">{template.title} — Pending</span>
+        <button
+          onClick={async () => {
+            if (!existingDoc.formToken || !signerEmail) return
+            setResending(true)
+            await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken: existingDoc.formToken })
+            setResending(false)
+            setResult({ resent: true })
+            setTimeout(() => setResult(null), 3000)
+          }}
+          disabled={resending}
+          className="inline-flex items-center gap-1 text-[10px] font-medium text-[#283693] hover:underline ml-1"
+        >
+          {resending ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
+          {resending ? 'Sending...' : 'Resend'}
+        </button>
+        {result?.resent && <span className="text-[10px] text-green-600 font-medium">Sent!</span>}
       </div>
     )
   }
@@ -90,7 +125,10 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       await sendDocument(doc.id)
 
-      setExistingDoc({ status: 'pending' })
+      // Send the actual email
+      await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken })
+
+      setExistingDoc({ status: 'pending', formToken })
       setResult({ success: true })
     } catch (err) {
       setResult({ error: err.message })
