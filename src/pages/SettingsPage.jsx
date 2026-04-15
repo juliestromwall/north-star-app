@@ -240,53 +240,70 @@ function AdminNotesSection() {
         {notes.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No notes published yet.</p>
         ) : (
-          <div className="space-y-2">
+          <>
+          <style>{`
+            .admin-note-preview ul { list-style-type: disc; padding-left: 1.5em; margin: 0.25em 0; }
+            .admin-note-preview ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.25em 0; }
+            .admin-note-preview li { margin: 0.15em 0; }
+            .admin-note-preview li p { margin: 0; }
+            .admin-note-preview p { margin: 0.15em 0; }
+            .admin-note-preview mark { border-radius: 2px; padding: 1px 2px; }
+            .admin-note-preview img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+          `}</style>
+          <div className="space-y-3">
             {notes.map((note) => (
               <div
                 key={note.id}
-                className={`rounded-lg border px-4 py-3 flex items-start gap-3 ${
-                  note.is_active ? 'bg-abc-indigo/5 border-abc-indigo/20' : 'bg-muted/50 border-border opacity-60'
+                className={`relative rounded-2xl overflow-hidden border-2 ${
+                  note.is_active ? 'border-[#ed148c]/20' : 'border-stone-200 opacity-50'
                 }`}
+                style={note.is_active ? { background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' } : { background: '#f5f5f4' }}
               >
-                <Megaphone className={`size-4 shrink-0 mt-0.5 ${note.is_active ? 'text-abc-indigo' : 'text-muted-foreground'}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {note.title && <span className="font-semibold text-sm">{note.title}</span>}
-                    {!note.is_active && <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">Inactive</span>}
+                {note.is_active && <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />}
+                <div className="flex items-start gap-3 px-5 py-4 pl-6">
+                  <div className={`flex items-center justify-center size-9 rounded-full shrink-0 mt-0.5 ${note.is_active ? 'bg-[#ed148c]/10' : 'bg-stone-200'}`}>
+                    <Megaphone className={`size-4 ${note.is_active ? 'text-[#ed148c]' : 'text-stone-400'}`} />
                   </div>
-                  <p className="text-sm text-muted-foreground">{note.message}</p>
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                    <span>{formatDate(note.created_at)}</span>
-                    <span>{getTargetLabel(note)}</span>
-                    <span>{getDismissalCount(note)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {note.title && <span className="font-bold text-[#283693] text-base">{note.title}</span>}
+                      {!note.is_active && <span className="text-xs bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded">Inactive</span>}
+                    </div>
+                    <div className="text-sm text-stone-600 mt-0.5 leading-relaxed admin-note-preview" dangerouslySetInnerHTML={{ __html: note.message }} />
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-stone-400">
+                      <span>{formatDate(note.created_at)}</span>
+                      <span>{getTargetLabel(note)}</span>
+                      <span>{getDismissalCount(note)}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={async () => {
-                    try {
-                      await updateAdminNote(note.id, { is_active: !note.is_active })
-                      setNotes(prev => prev.map(n => n.id === note.id ? { ...n, is_active: !n.is_active } : n))
-                    } catch {}
-                  }} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title={note.is_active ? 'Deactivate' : 'Activate'}>
-                    {note.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                  <button onClick={async () => {
-                    try {
-                      await deleteAdminNote(note.id)
-                      setNotes(prev => prev.filter(n => n.id !== note.id))
-                    } catch {}
-                  }} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors" title="Delete">
-                    <Trash2 className="size-4" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={async () => {
+                      try {
+                        await updateAdminNote(note.id, { is_active: !note.is_active })
+                        setNotes(prev => prev.map(n => n.id === note.id ? { ...n, is_active: !n.is_active } : n))
+                      } catch {}
+                    }} className="p-1.5 rounded hover:bg-white/50 text-stone-400 hover:text-stone-600 transition-colors" title={note.is_active ? 'Deactivate' : 'Activate'}>
+                      {note.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                    </button>
+                    <button onClick={async () => {
+                      try {
+                        await deleteAdminNote(note.id)
+                        setNotes(prev => prev.filter(n => n.id !== note.id))
+                      } catch {}
+                    }} className="p-1.5 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 transition-colors" title="Delete">
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Publish Note</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -295,7 +312,7 @@ function AdminNotesSection() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Message *</label>
-              <RichTextEditor content={noteMessage} onChange={setNoteMessage} placeholder="Write your note..." minHeight="100px" />
+              <RichTextEditor content={noteMessage} onChange={setNoteMessage} placeholder="Write your note..." minHeight="200px" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Target</label>
