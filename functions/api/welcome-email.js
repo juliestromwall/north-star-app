@@ -27,8 +27,21 @@ export async function onRequestPost(context) {
 
   const name = `${firstName} ${lastName || ''}`.trim()
 
-  // Account creation is handled on the confirmation page (signUp).
-  // This endpoint only sends the welcome email.
+  // Generate a password reset link so they can set up their account
+  let passwordLink = 'https://app.abcsurrogacy.com/login'
+  if (supabaseUrl && serviceKey) {
+    try {
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+        body: JSON.stringify({ type: 'recovery', email, options: { redirectTo: 'https://app.abcsurrogacy.com/reset-password' } }),
+      })
+      const data = await res.json()
+      if (data?.properties?.action_link) {
+        passwordLink = data.properties.action_link
+      }
+    } catch (err) { console.error('Failed to generate password link:', err) }
+  }
 
   const htmlBody = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
@@ -48,9 +61,16 @@ export async function onRequestPost(context) {
             What happens next?
           </p>
           <ol style="margin: 0; padding-left: 20px; color: #44403c; font-size: 14px; line-height: 2;">
-            <li>If you haven't already, set up your portal password on the confirmation page to get started on your profile.</li>
+            <li>Set up your portal password by clicking the button below.</li>
+            <li>Complete your matching profile so intended parents can get to know you!</li>
             <li>Our intake coordinator, Jennifer, will be reaching out about next steps!</li>
           </ol>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${passwordLink}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px;">
+            Set Up Your Portal Password
+          </a>
         </div>
 
         <p style="text-align: center; font-size: 15px; color: #283693; font-weight: 600; margin: 24px 0 8px;">
