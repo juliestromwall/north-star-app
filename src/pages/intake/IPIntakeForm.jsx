@@ -111,7 +111,7 @@ export default function IPIntakeForm() {
     country: 'United States', street: '', street2: '', city: '', stateProv: '', zipCode: '',
     hasPartner: null,
     ip2FirstName: '', ip2LastName: '', ip2Dob: '', ip2Email: '', ip2Phone: '', ip2PhoneCountry: '+1',
-    hasRE: null, reDoctorName: '',
+    hasRE: null, reDoctorName: '', reClinicName: '',
     hasFrozenEmbryos: null, frozenEmbryoDetails: '',
     usingEggDonor: null, usingSpermDonor: null,
     wantsConsultation: null, hearAboutUs: '',
@@ -139,7 +139,7 @@ export default function IPIntakeForm() {
   const step3Valid = form.hasPartner !== null && (
     !isCouple || (form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone && partnerEmailValid && partnerPhoneValid)
   )
-  const step4Valid = form.hasRE !== null && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
+  const step4Valid = form.hasRE !== null && (form.hasRE !== true || (form.reDoctorName.trim() && form.reClinicName.trim())) && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
   const step5Valid = form.wantsConsultation !== null && form.hearAboutUs.trim().length > 0
   const stepValid  = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
   const [emailError, setEmailError] = useState(null)
@@ -404,10 +404,16 @@ export default function IPIntakeForm() {
         <YesNoGrid value={form.hasRE} onChange={v => set('hasRE', v)} yesLabel="Yes" noLabel="Not yet" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       {form.hasRE === true && (
+        <>
         <div className="space-y-1.5">
-          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">What is your doctor's name?</Label>
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">What is your doctor's name? *</Label>
           <Input value={form.reDoctorName} onChange={e => set('reDoctorName', e.target.value)} placeholder="Dr. Smith" className="rounded-xl h-11" />
         </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Clinic Name *</Label>
+          <Input value={form.reClinicName} onChange={e => set('reClinicName', e.target.value)} placeholder="e.g. Pacific Fertility Center" className="rounded-xl h-11" />
+        </div>
+        </>
       )}
       <div>
         <p className="text-sm font-medium text-stone-800 mb-2">Do you have frozen embryos?</p>
