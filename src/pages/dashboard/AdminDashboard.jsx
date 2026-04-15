@@ -30,10 +30,15 @@ export default function AdminDashboard() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
   const showAllCases = isSuperAdmin || isMasterAdmin
   const [adminNotes, setAdminNotes] = useState([])
-  const visibleNotes = (adminNotes || []).filter(n => {
-    if (!n.is_active) return false
+  const [expandedReadNotes, setExpandedReadNotes] = useState({})
+  const activeNotes = (adminNotes || []).filter(n => n.is_active)
+  const unreadNotes = activeNotes.filter(n => {
     const dismissals = n.admin_note_dismissals || []
     return !dismissals.some(d => d.user_id === currentUser?.id)
+  })
+  const readNotes = activeNotes.filter(n => {
+    const dismissals = n.admin_note_dismissals || []
+    return dismissals.some(d => d.user_id === currentUser?.id)
   })
 
   const [surrogates, setSurrogates] = useState([])
@@ -280,7 +285,8 @@ export default function AdminDashboard() {
         .admin-note-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
         .admin-note-content::after { content: ''; display: table; clear: both; }
       `}</style>
-      {visibleNotes.map((note) => (
+      {/* Unread notes — full display */}
+      {unreadNotes.map((note) => (
         <div key={note.id} className="relative rounded-2xl overflow-hidden border-2 border-[#ed148c]/20" style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />
           <div className="flex items-start gap-3 px-5 py-4 pl-6">
@@ -295,16 +301,45 @@ export default function AdminDashboard() {
               </p>
             </div>
             <button onClick={async () => {
-              setAdminNotes(prev => prev.filter(n => n.id !== note.id))
               if (supabase && currentUser?.id) {
-                try { await supabase.from('admin_note_dismissals').insert({ note_id: note.id, user_id: currentUser.id }) } catch {}
+                try {
+                  await supabase.from('admin_note_dismissals').insert({ note_id: note.id, user_id: currentUser.id })
+                  setAdminNotes(prev => prev.map(n => n.id === note.id ? { ...n, admin_note_dismissals: [...(n.admin_note_dismissals || []), { user_id: currentUser.id }] } : n))
+                } catch {}
               }
-            }} className="p-1.5 rounded-full hover:bg-stone-200/60 text-stone-400 hover:text-stone-600 transition-colors shrink-0">
-              <X className="size-4" />
+            }} className="text-[10px] text-stone-400 hover:text-[#283693] font-medium px-2 py-1 rounded-lg hover:bg-white/50 transition-colors shrink-0">
+              Mark as Read
             </button>
           </div>
         </div>
       ))}
+
+      {/* Read notes — collapsed */}
+      {readNotes.length > 0 && (
+        <div className="space-y-1.5">
+          {readNotes.map((note) => {
+            const isExpanded = expandedReadNotes[note.id]
+            return (
+              <div key={note.id} className="rounded-xl border border-stone-200 overflow-hidden">
+                <button onClick={() => setExpandedReadNotes(prev => ({ ...prev, [note.id]: !prev[note.id] }))}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-stone-50 transition-colors">
+                  <Megaphone className="size-3.5 text-stone-400 shrink-0" />
+                  <span className="text-sm font-medium text-stone-500 truncate flex-1">{note.title || 'Note'}</span>
+                  <span className="text-[10px] text-stone-300">{new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
+                  <ChevronDown className={`size-3.5 text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-3 pt-1 border-t border-stone-100">
+                    <div className="text-sm text-stone-600 leading-relaxed admin-note-content" dangerouslySetInnerHTML={{ __html: note.message }} />
+                    <p className="text-[10px] text-stone-400 mt-1.5">{note.created_by || 'Admin'}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Quote of the Day */}
       {quote && (

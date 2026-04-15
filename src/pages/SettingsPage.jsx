@@ -179,6 +179,7 @@ function AdminNotesSection() {
   const { currentUser } = useRole()
   const [notes, setNotes] = useState([])
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingNote, setEditingNote] = useState(null)
   const [noteTitle, setNoteTitle] = useState('')
   const [noteMessage, setNoteMessage] = useState('')
   const [noteTarget, setNoteTarget] = useState('all')
@@ -188,23 +189,49 @@ function AdminNotesSection() {
     fetchAllAdminNotes().then(data => setNotes(data || [])).catch(() => {})
   }, [])
 
+  function openEditDialog(note) {
+    setEditingNote(note)
+    setNoteTitle(note.title || '')
+    setNoteMessage(note.message || '')
+    setNoteTarget(note.target_user_ids ? 'specific' : 'all')
+    setSelectedUserIds(note.target_user_ids || [])
+    setDialogOpen(true)
+  }
+
+  function openNewDialog() {
+    setEditingNote(null)
+    setNoteTitle('')
+    setNoteMessage('')
+    setNoteTarget('all')
+    setSelectedUserIds([])
+    setDialogOpen(true)
+  }
+
   const handlePublish = async () => {
     if (!noteMessage.trim()) return
     try {
-      const insertData = {
-        title: noteTitle.trim() || null,
-        message: noteMessage.trim(),
-        is_active: true,
-        created_by: currentUser?.name || '',
+      if (editingNote) {
+        // Update existing note
+        const updates = { title: noteTitle.trim() || null, message: noteMessage.trim() }
+        if (noteTarget === 'specific' && selectedUserIds.length > 0) updates.target_user_ids = selectedUserIds
+        else updates.target_user_ids = null
+        await updateAdminNote(editingNote.id, updates)
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, ...updates } : n))
+      } else {
+        // Create new note
+        const insertData = {
+          title: noteTitle.trim() || null,
+          message: noteMessage.trim(),
+          is_active: true,
+          created_by: currentUser?.name || '',
+        }
+        if (noteTarget === 'specific' && selectedUserIds.length > 0) insertData.target_user_ids = selectedUserIds
+        const note = await insertAdminNote(insertData)
+        if (note) setNotes(prev => [note, ...prev])
       }
-      // Only include target_user_ids if targeting specific users (and column is text-compatible)
-      if (noteTarget === 'specific' && selectedUserIds.length > 0) {
-        insertData.target_user_ids = selectedUserIds
-      }
-      const note = await insertAdminNote(insertData)
-      if (note) setNotes(prev => [note, ...prev])
-    } catch (err) { console.error('Failed to publish note:', err) }
+    } catch (err) { console.error('Failed to save note:', err) }
     setDialogOpen(false)
+    setEditingNote(null)
     setNoteTitle('')
     setNoteMessage('')
     setNoteTarget('all')
@@ -231,7 +258,7 @@ function AdminNotesSection() {
             <Megaphone className="size-5" />
             Admin Notes
           </h2>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Button size="sm" onClick={openNewDialog}>
             <Plus className="size-4" />
             Publish Note
           </Button>
@@ -278,6 +305,9 @@ function AdminNotesSection() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditDialog(note)} className="p-1.5 rounded hover:bg-white/50 text-stone-400 hover:text-[#283693] transition-colors" title="Edit">
+                      <Pencil className="size-4" />
+                    </button>
                     <button onClick={async () => {
                       try {
                         await updateAdminNote(note.id, { is_active: !note.is_active })
@@ -305,7 +335,7 @@ function AdminNotesSection() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Publish Note</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingNote ? 'Edit Note' : 'Publish Note'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Title (optional)</label>
@@ -339,7 +369,7 @@ function AdminNotesSection() {
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-            <Button onClick={handlePublish} disabled={!noteMessage.trim() || (noteTarget === 'specific' && selectedUserIds.length === 0)}>Publish</Button>
+            <Button onClick={handlePublish} disabled={!noteMessage.trim() || (noteTarget === 'specific' && selectedUserIds.length === 0)}>{editingNote ? 'Save Changes' : 'Publish'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
