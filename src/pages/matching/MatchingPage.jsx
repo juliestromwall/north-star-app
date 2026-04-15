@@ -17,7 +17,7 @@ import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNo
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
-import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions } from '@/lib/matching'
+import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion } from '@/lib/matching'
 
 function getGTPAL(profileData) {
   if (!profileData?.pregnancyHistory) return null
@@ -284,7 +284,24 @@ export default function MatchingPage() {
                                 <p className="pl-4 text-[10px] text-stone-400 italic truncate">"{q.question}"</p>
                                 <div className="flex items-center gap-3 pl-4 text-stone-400">
                                   <span>{new Date(q.created_at).toLocaleDateString()}</span>
-                                  {q.answer ? <span className="text-emerald-600">Answered</span> : <span className="text-amber-500">Pending</span>}
+                                  {q.answer ? (
+                                    <span className="text-emerald-600 flex items-center gap-0.5"><Eye className="size-2.5" /> Answered</span>
+                                  ) : (
+                                    <button
+                                      className="text-amber-500 hover:text-emerald-600 hover:underline cursor-pointer"
+                                      onClick={async () => {
+                                        try {
+                                          await answerMatchQuestion(q.id, 'Responded', currentUser.name)
+                                          setQuestionHistory(prev => ({
+                                            ...prev,
+                                            [gc.id]: (prev[gc.id] || []).map(qq => qq.id === q.id ? { ...qq, answer: 'Responded', answered_by: currentUser.name } : qq)
+                                          }))
+                                        } catch {}
+                                      }}
+                                    >
+                                      Pending — click to mark answered
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             ))}

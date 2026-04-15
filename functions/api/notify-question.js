@@ -40,7 +40,7 @@ export async function onRequestPost(context) {
   const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   const displayName = askerName || 'Someone'
-  const profileName = surrogateName || 'a surrogate'
+  const profileName = (surrogateName || 'a surrogate').split(' ')[0]
 
   const htmlBody = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">

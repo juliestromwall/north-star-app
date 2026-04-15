@@ -32,23 +32,39 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
 
       // Send email via Gmail API
       try {
-        const subject = `${currentUser.name} shared a ${caseType === 'gc' ? 'surrogate' : 'intended parent'} profile with you`
+        const firstName = (caseName || '').split(' ')[0] || 'a surrogate'
+        const profileType = caseType === 'gc' ? 'surrogate' : 'intended parent'
+        const subject = `${currentUser.name} shared a ${profileType} profile with you`
         const body = `
-          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #283693; color: white; padding: 20px 24px; border-radius: 12px 12px 0 0;">
-              <h2 style="margin: 0; font-size: 18px;">Abundant Beginnings Co.</h2>
-              <p style="margin: 4px 0 0; font-size: 13px; opacity: 0.8;">Profile Shared With You</p>
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+            <div style="text-align: center; padding: 32px 24px 16px;">
+              <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 180px;" />
             </div>
-            <div style="background: white; padding: 24px; border: 1px solid #e5e5e5; border-top: 0; border-radius: 0 0 12px 12px;">
-              <p style="font-size: 15px; color: #333;">Hi${form.name ? ` ${form.name}` : ''},</p>
-              <p style="font-size: 14px; color: #555; line-height: 1.6;">
-                ${currentUser.name} has shared a ${caseType === 'gc' ? 'surrogate' : 'intended parent'} profile with you for your review.
+            <div style="padding: 0 32px 32px;">
+              <h2 style="color: #283693; font-size: 20px; margin: 0 0 8px;">A Profile Has Been Shared With You</h2>
+              <p style="color: #78716c; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
+                Hi${form.name ? ` ${form.name.split(' ')[0]}` : ''},
               </p>
-              ${form.message ? `<p style="font-size: 14px; color: #555; font-style: italic; background: #f9f9f9; padding: 12px; border-radius: 8px;">"${form.message}"</p>` : ''}
+              <p style="color: #78716c; font-size: 14px; margin: 0 0 20px; line-height: 1.6;">
+                <strong style="color: #1c1917;">${currentUser.name}</strong> has shared a ${profileType} profile with you for your review.
+              </p>
+              ${form.message ? `
+              <div style="background: #f0f1fa; border-radius: 12px; padding: 16px 20px; margin: 0 0 20px;">
+                <p style="margin: 0; font-size: 14px; color: #1c1917; line-height: 1.6; font-style: italic;">"${form.message}"</p>
+              </div>` : ''}
               <div style="text-align: center; margin: 24px 0;">
-                <a href="${shareUrl}" style="display: inline-block; background: #283693; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">View Profile</a>
+                <a href="${shareUrl}" style="display: inline-block; background: #283693; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Profile</a>
               </div>
-              <p style="font-size: 12px; color: #999; text-align: center;">This link expires in 72 hours. Please do not forward this email.</p>
+              <p style="font-size: 12px; color: #a8a29e; text-align: center; margin: 0 0 20px;">This link expires in 72 hours.</p>
+              <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
+              <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 14px 16px; margin: 0 0 20px;">
+                <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
+                  <strong>HIPAA Notice:</strong> This email may contain Protected Health Information (PHI). It is intended solely for the recipient named above. If you received this in error, please delete it immediately and notify the sender. Do not forward, copy, or distribute this message.
+                </p>
+              </div>
+              <p style="color: #a8a29e; font-size: 11px; text-align: center;">
+                Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+              </p>
             </div>
           </div>
         `
