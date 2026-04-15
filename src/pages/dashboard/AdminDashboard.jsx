@@ -11,6 +11,7 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCase
 import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
+import { getAdminStaff } from '@/data/mock/users'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge from '@/components/shared/StageBadge'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -572,27 +573,44 @@ export default function AdminDashboard() {
                     })}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    {myJourneys.map(j => {
-                      const gc = surrogates.find(s => s.id === j.gc_case_id)
-                      const ip = ips.find(i => i.id === j.ip_case_id)
-                      const gcName = gc?.name || j.gc_name || 'GC'
-                      const ipName = ip?.names || j.ip_name || 'IP'
-                      return (
-                        <Link key={j.id} to={`/journeys/${j.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
-                          <Route className="size-4 text-[#283693] shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-stone-800 truncate">{ipName} + {gcName}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                              <span className="font-medium" style={{ color: j.stage ? '#283693' : undefined }}>{j.status || j.stage || '—'}</span>
-                              {j.journey_data?.dueDate && <span>Due {formatDate(j.journey_data.dueDate)}</span>}
-                              {j.assigned_to && <span>{j.assigned_to.split('@')[0]}</span>}
-                            </div>
-                          </div>
-                        </Link>
-                      )
-                    })}
-                  </div>
+                  <Card className="rounded-2xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-stone-50/50">
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Intended Parent</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Surrogate</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Stage</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Status</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Manager</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {myJourneys.map(j => {
+                          const gc = surrogates.find(s => s.id === j.gc_case_id)
+                          const ip = ips.find(i => i.id === j.ip_case_id)
+                          return (
+                            <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <ProfileAvatar name={ip?.names || '?'} size="sm" />
+                                  <span className="font-medium text-stone-800">{ip?.names || '—'}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <ProfileAvatar name={gc?.name || '?'} size="sm" />
+                                  <span className="font-medium text-stone-800">{gc?.name || '—'}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3"><StageBadge stage={j.stage} status={j.status} /></td>
+                              <td className="px-4 py-3 font-medium text-stone-600">{j.status || '—'}</td>
+                              <td className="px-4 py-3 text-stone-500 text-xs">{getAdminStaff().find(a => a.email === j.assigned_to)?.name || '—'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </Card>
                 )}
               </div>
             )}
@@ -610,21 +628,52 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    {mySurrogates.map(s => (
-                      <Link key={s.id} to={`/surrogates/${s.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
-                        <Heart className="size-4 text-pink-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-800 truncate">{s.name}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                            <span>{s.state || '—'}</span>
-                            {s.stage && <span className="font-medium">{s.stage}</span>}
-                            {s.assignedTo && <span>{s.assignedTo.split('@')[0]}</span>}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                  <Card className="rounded-2xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-stone-50/50">
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Name</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Location</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Age</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Stage</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Status</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Assigned To</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mySurrogates.map(s => {
+                          const ss = getSurrogateStageStatus(s.id) || { stage: 'pre-qualification', status: 'New' }
+                          const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
+                          return (
+                            <tr key={s.id} className={`border-b last:border-0 cursor-pointer ${isNew ? 'bg-pink-50/40 hover:bg-pink-50/70' : 'hover:bg-stone-50/50'}`} onClick={() => window.location.href = `/surrogates/${s.id}`}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <ProfileAvatar name={s.name} size="sm" />
+                                  <span className="font-semibold text-stone-800">{s.name}</span>
+                                  {isNew && (
+                                    <span className="relative flex size-2.5 shrink-0">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
+                                      <span className="relative inline-flex rounded-full size-2.5 bg-pink-500" />
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-stone-500">
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="size-3" />
+                                  {s.location || s.state || '—'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 font-medium">{s.age || '—'}</td>
+                              <td className="px-4 py-3"><StageBadge stage={ss.stage} /></td>
+                              <td className="px-4 py-3 text-stone-600">{ss.status}</td>
+                              <td className="px-4 py-3 text-stone-500 text-xs">{s.assignedTo ? (getAdminStaff().find(a => a.email === s.assignedTo)?.name || s.assignedTo.split('@')[0]) : '—'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </Card>
                 )}
               </div>
             )}
@@ -642,21 +691,36 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    {myIPs.map(ip => (
-                      <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
-                        <HeartHandshake className="size-4 text-[#283693] shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-stone-800 truncate">{ip.names || ip.name}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                            <span>{ip.state || '—'}</span>
-                            {ip.stage && <span className="font-medium">{ip.stage}</span>}
-                            {ip.assignedTo && <span>{ip.assignedTo.split('@')[0]}</span>}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
+                  <Card className="rounded-2xl overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-stone-50/50">
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Name</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Location</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Status</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Submitted</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {myIPs.map(ip => (
+                          <tr key={ip.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/intended-parents/${ip.id}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <ProfileAvatar name={ip.names || ip.name} size="sm" />
+                                <div>
+                                  <span className="font-medium text-stone-800">{ip.names || ip.name}</span>
+                                  {ip.email && <p className="text-xs text-stone-400">{ip.email}</p>}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-stone-500">{ip.location || ip.state || '—'}</td>
+                            <td className="px-4 py-3"><StageBadge stage={ip.stage || 'new'} caseType="ip" /></td>
+                            <td className="px-4 py-3 text-stone-400 text-xs">{ip.submittedAt ? new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </Card>
                 )}
               </div>
             )}
