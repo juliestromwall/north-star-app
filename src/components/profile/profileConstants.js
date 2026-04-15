@@ -214,27 +214,88 @@ const SECTION_META = [
 
 // Required fields per section for completion tracking
 const REQUIRED_FIELDS = {
-  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
-  followUp: ['usCitizen', 'contraceptiveMethod'],
+  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus', 'sexualPartners'],
+  followUp: ['usCitizen', 'realId', 'validPassport', 'otherLanguages', 'breastfeeding', 'cycleLength',
+    'contraceptiveMethod', 'lastPeriod', 'nearestNICU', 'willingToTravelNICU', 'timeToConceive',
+    'childrenSpecialNeeds', 'placedForAdoption', 'gunsOwned', 'piercingsTattoos', 'nonSterilePiercing',
+    'eatingDisorders', 'criminalHistory', 'recentTravel', 'travelPlans', 'sleepIssues', 'sleepHours',
+    'reliableVehicle', 'autoInsurance', 'validLicense',
+    'openToVaccinations', 'lastPhysical', 'lastPap',
+    'healthInsurance', 'educationLevel', 'currentlyInSchool', 'compensationNegotiable'],
   pregnancyHistory: ['numberOfPregnancies'],
   fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication'],
-  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency'],
-  health: ['mentalHealthDiagnosis'],
-  employment: ['currentlyEmployed'],
-  interests: ['personality'],
+  general: ['homeOwnership', 'homeDuration', 'childrenFullTime', 'planMoreChildren',
+    'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
+    'householdControlledSubstances', 'typicalDiet', 'exerciseFrequency'],
+  health: ['mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
+    'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
+    'allergies', 'medicalConditions', 'surgeries', 'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds'],
+  employment: ['currentlyEmployed', 'governmentAssistance'],
+  interests: ['favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
+    'favoriteColor', 'favoriteFlower', 'pets', 'hobbies', 'dreamTravel', 'personality'],
   academic: ['educationLevel'],
   experiencedSurrogate: [],
-  hopesWishes: ['reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
+  hopesWishes: ['reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
+    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'pumpBreastmilk',
+    'idealIPs', 'preferredCommunication', 'ipInvolvement', 'ipsAtAppointments',
+    'deliveryRoomOthers', 'ipsCantAttend',
+    'ipsWithChildren', 'openLGBTQ', 'openSingleIP', 'transferAnotherState', 'ipsOutsideUS',
+    'childCareTraveling', 'whenReadyToBegin', 'postBirthRelationship',
+    'cvsAmnio', 'willingnessToTerminate', 'conditionsWontTerminate',
+    'embryosToTransfer', 'carryTwins', 'desiredCompensation'],
   photos: [],
 }
 
 // Conditional required fields — only required if parent field has a specific value
 const CONDITIONAL_REQUIRED = {
+  personal: {
+    monogamous: { parent: 'maritalStatus', showWhen: v => !['Single', 'Divorced', 'Widowed', ''].includes(v || '') },
+    relationshipLength: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
+    partnerName: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
+    partnerDob: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
+    partnerUsCitizen: { parent: 'maritalStatus', showWhen: v => ['In a Relationship', 'Married', 'Domestic Partnership'].includes(v || '') },
+  },
+  followUp: {
+    otherLanguagesDetails: { parent: 'otherLanguages', showWhen: 'yes' },
+    breastfeedingStopDate: { parent: 'breastfeeding', showWhen: 'yes' },
+    cycleLengthDetails: { parent: 'cycleLength', showWhen: 'no' },
+    lastTattooDate: { parent: 'piercingsTattoos', showWhen: 'yes' },
+    insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
+    currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
+  },
   fertility: {
     sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
     infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
     gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
     pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
+  },
+  general: {
+    childrenFullTimeDetails: { parent: 'childrenFullTime', showWhen: 'no' },
+    planMoreChildrenDetails: { parent: 'planMoreChildren', showWhen: 'yes' },
+    smokingHistoryDetails: { parent: 'smokingHistory', showWhen: 'yes' },
+    householdSmokerDetails: { parent: 'householdSmoker', showWhen: 'yes' },
+    alcoholDrugsDetails: { parent: 'alcoholDrugs', showWhen: 'yes' },
+    advisedLimitDetails: { parent: 'advisedLimitSubstances', showWhen: 'yes' },
+    householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
+  },
+  health: {
+    mentalHealthDetails: { parent: 'mentalHealthDiagnosis', showWhen: 'yes' },
+    mentalHealthHospDetails: { parent: 'mentalHealthHospitalization', showWhen: 'yes' },
+    mentalHealthMedDetails: { parent: 'mentalHealthMedication', showWhen: 'yes' },
+    counselingDetails: { parent: 'counselingTherapy', showWhen: 'yes' },
+    familyMentalHealthDetails: { parent: 'familyMentalHealth', showWhen: 'yes' },
+    domesticViolenceDetails: { parent: 'domesticViolence', showWhen: 'yes' },
+  },
+  employment: {
+    employmentIndustry: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    workHours: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    occupation: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    lengthAtEmployer: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
+  },
+  hopesWishes: {
+    cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
+    ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
   },
 }
 
@@ -266,7 +327,8 @@ function countCompleted(data, sectionKey) {
   // Add conditional fields only when their parent triggers them
   for (const [field, rule] of Object.entries(conditionals)) {
     const parentVal = sectionData[rule.parent]
-    if (parentVal === rule.showWhen) activeFields.push(field)
+    const matches = typeof rule.showWhen === 'function' ? rule.showWhen(parentVal) : parentVal === rule.showWhen
+    if (matches) activeFields.push(field)
   }
 
   let filled = 0
