@@ -38,7 +38,7 @@ import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } fr
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
@@ -1412,15 +1412,16 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
 }
 
 // ── Expenses Tab ────────────────────────────────────────
-function JourneyExpensesTab({ journeyId, gcCaseId }) {
+function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
-  const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
   const [tabExpenseFile, setTabExpenseFile] = useState(null)
   const [saving, setSaving] = useState(false)
   const { currentUser } = useRole()
+  const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
 
   useEffect(() => {
     fetchJourneyExpenses(journeyId).then(data => {
@@ -1438,19 +1439,59 @@ function JourneyExpensesTab({ journeyId, gcCaseId }) {
         const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: tabExpenseFile, uploadedBy: currentUser?.name || 'Admin' })
         attachmentUrl = doc?.public_url || null
       }
+      // Resolve paid_to based on escrow/type
+      let resolvedPaidTo = newExpense.paid_to || null
+      let payVia = null
+      let payViaInfo = null
+      let needsPayment = false
+      if (!newExpense.escrow_opened) {
+        needsPayment = true
+        if (newExpense.pay_to_type === 'surrogate') {
+          resolvedPaidTo = gcCase?.name || 'Surrogate'
+          payVia = gcPaymentPref.method?.toLowerCase() || null
+          payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+        } else if (newExpense.pay_to_type === 'ip1') {
+          resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+        } else if (newExpense.pay_to_type === 'ip2') {
+          resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+        } else if (newExpense.pay_to_type === 'other') {
+          resolvedPaidTo = newExpense.pay_to_other || 'Other'
+        }
+      }
       const created = await insertExpense({
         journey_id: journeyId,
         expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
         amount: parseFloat(newExpense.amount) || 0,
-        paid_to: newExpense.paid_to || null,
-        cc_last4: newExpense.cc_last4 || null,
-        submitted_to_escrow: newExpense.submitted_to_escrow || false,
+        paid_to: resolvedPaidTo,
+        cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
+        submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
+        escrow_opened: newExpense.escrow_opened,
+        pay_to_type: !newExpense.escrow_opened ? newExpense.pay_to_type : null,
+        pay_via: payVia,
+        pay_via_info: payViaInfo,
+        needs_payment: needsPayment,
         notes: newExpense.notes || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
       if (created) setExpenses(prev => [created, ...prev])
-      setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false })
+      // If escrow not opened, create task for Julie Allgood
+      if (needsPayment && created) {
+        try {
+          await createCaseTask({
+            case_id: journeyId,
+            case_type: 'journey',
+            title: `Pay Expense for ${journeyLabel || 'Journey'} — ${resolvedPaidTo} $${parseFloat(newExpense.amount).toFixed(2)}`,
+            assigned_to: 'julie@abcsurrogacy.com',
+            due_date: new Date().toISOString().split('T')[0],
+            priority: 'high',
+            status: 'open',
+            description: payVia ? `Pay via ${payVia}: ${payViaInfo || ''}` : null,
+            created_by: currentUser?.email || '',
+          })
+        } catch (err) { console.error('Failed to create task:', err) }
+      }
+      setNewExpense({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
       setTabExpenseFile(null)
       setAddOpen(false)
     } catch (err) {
@@ -1506,23 +1547,75 @@ function JourneyExpensesTab({ journeyId, gcCaseId }) {
                 <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
-                <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
-                <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
-              </div>
-            </div>
+            {/* Escrow Opened */}
             <div className="flex items-center gap-3">
-              <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
-              <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
-                {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
-              </button>
+              <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
+              <div className="flex gap-1">
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: true }))}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.escrow_opened ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: false }))}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!newExpense.escrow_opened ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>No</button>
+              </div>
             </div>
+            {newExpense.escrow_opened ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                    <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                    <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+                  <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                    {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                  <select value={newExpense.pay_to_type} onChange={e => setNewExpense(p => ({ ...p, pay_to_type: e.target.value }))}
+                    className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                    <option value="">Select...</option>
+                    <option value="surrogate">{gcCase?.name || 'Surrogate'}</option>
+                    <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
+                    {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                {newExpense.pay_to_type === 'other' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                    <Input value={newExpense.pay_to_other || ''} onChange={e => setNewExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'surrogate' && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
+                    <p className="text-[11px] text-blue-700 font-semibold">Pay via</p>
+                    {gcPaymentPref.method ? (
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium">{gcPaymentPref.method}</p>
+                        <p className="text-xs text-blue-600">
+                          {gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername || 'No username on file' : gcPaymentPref.zelleInfo || 'No info on file'}
+                        </p>
+                        {gcPaymentPref.screenshotUrl && (
+                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline mt-1 inline-block">View screenshot →</a>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-blue-600">No payment preference on file — update in GC Application tab</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
               <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
@@ -1793,9 +1886,10 @@ export default function JourneyDetailPage() {
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
-  const [newExpense, setNewExpense] = useState({ expense_date: '', amount: '', paid_to: '', notes: '' })
+  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
   const [expenseFile, setExpenseFile] = useState(null)
   const [savingExpense, setSavingExpense] = useState(false)
+  const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
   const [gcFlip, setGcFlip] = useState({})
   const [gcInsurance, setGcInsurance] = useState(null)
   const [insuranceOpen, setInsuranceOpen] = useState(false)
@@ -2014,23 +2108,75 @@ export default function JourneyDetailPage() {
                 <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
-                <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
-                <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
-              </div>
-            </div>
+            {/* Escrow Opened */}
             <div className="flex items-center gap-3">
-              <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
-              <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
-                {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
-              </button>
+              <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
+              <div className="flex gap-1">
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: true }))}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.escrow_opened ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: false }))}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!newExpense.escrow_opened ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>No</button>
+              </div>
             </div>
+            {newExpense.escrow_opened ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                    <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                    <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+                  <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                    {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                  <select value={newExpense.pay_to_type} onChange={e => setNewExpense(p => ({ ...p, pay_to_type: e.target.value }))}
+                    className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                    <option value="">Select...</option>
+                    <option value="surrogate">{gcCase?.name || 'Surrogate'}</option>
+                    <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
+                    {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                {newExpense.pay_to_type === 'other' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                    <Input value={newExpense.pay_to_other || ''} onChange={e => setNewExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'surrogate' && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
+                    <p className="text-[11px] text-blue-700 font-semibold">Pay via</p>
+                    {gcPaymentPref.method ? (
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium">{gcPaymentPref.method}</p>
+                        <p className="text-xs text-blue-600">
+                          {gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername || 'No username on file' : gcPaymentPref.zelleInfo || 'No info on file'}
+                        </p>
+                        {gcPaymentPref.screenshotUrl && (
+                          <a href={gcPaymentPref.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline mt-1 inline-block">View screenshot →</a>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-blue-600">No payment preference on file — update in GC Application tab</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Notes</label>
               <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
@@ -2050,18 +2196,59 @@ export default function JourneyDetailPage() {
                     const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: expenseFile, uploadedBy: currentUser?.name || 'Admin' })
                     attachmentUrl = doc?.public_url || null
                   }
-                  await insertExpense({
+                  // Resolve paid_to based on escrow/type
+                  let resolvedPaidTo = newExpense.paid_to || null
+                  let payVia = null
+                  let payViaInfo = null
+                  let needsPayment = false
+                  if (!newExpense.escrow_opened) {
+                    needsPayment = true
+                    if (newExpense.pay_to_type === 'surrogate') {
+                      resolvedPaidTo = gcCase?.name || 'Surrogate'
+                      payVia = gcPaymentPref.method?.toLowerCase() || null
+                      payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+                    } else if (newExpense.pay_to_type === 'ip1') {
+                      resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+                    } else if (newExpense.pay_to_type === 'ip2') {
+                      resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+                    } else if (newExpense.pay_to_type === 'other') {
+                      resolvedPaidTo = newExpense.pay_to_other || 'Other'
+                    }
+                  }
+                  const journeyLabel = `${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`
+                  const created = await insertExpense({
                     journey_id: journey.id,
                     expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
                     amount: parseFloat(newExpense.amount) || 0,
-                    paid_to: newExpense.paid_to || null,
-                    cc_last4: newExpense.cc_last4 || null,
-                    submitted_to_escrow: newExpense.submitted_to_escrow || false,
+                    paid_to: resolvedPaidTo,
+                    cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
+                    submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
+                    escrow_opened: newExpense.escrow_opened,
+                    pay_to_type: !newExpense.escrow_opened ? newExpense.pay_to_type : null,
+                    pay_via: payVia,
+                    pay_via_info: payViaInfo,
+                    needs_payment: needsPayment,
                     notes: newExpense.notes || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
-                  setNewExpense({ expense_date: '', amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false })
+                  // If escrow not opened, create task for Julie Allgood
+                  if (needsPayment && created) {
+                    try {
+                      await createCaseTask({
+                        case_id: journey.id,
+                        case_type: 'journey',
+                        title: `Pay Expense for ${journeyLabel} — ${resolvedPaidTo} $${parseFloat(newExpense.amount).toFixed(2)}`,
+                        assigned_to: 'julie@abcsurrogacy.com',
+                        due_date: new Date().toISOString().split('T')[0],
+                        priority: 'high',
+                        status: 'open',
+                        description: payVia ? `Pay via ${payVia}: ${payViaInfo || ''}` : null,
+                        created_by: currentUser?.email || '',
+                      })
+                    } catch (err) { console.error('Failed to create task:', err) }
+                  }
+                  setNewExpense({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
                   setExpenseFile(null)
                   setExpenseOpen(false)
                 } catch (err) {
@@ -2526,7 +2713,7 @@ export default function JourneyDetailPage() {
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
-          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} />
+          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">

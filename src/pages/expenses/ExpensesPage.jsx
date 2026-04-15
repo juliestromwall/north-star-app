@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus, Mail } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus, Mail, DollarSign } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -306,6 +306,90 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
   )
 }
 
+function ExpensesToPayTable({ expenses, journeyMap, onMarkPaid, onReconcile, currentUser }) {
+  if (expenses.length === 0) {
+    return (
+      <div className="px-6 py-16 text-center text-stone-400">
+        <p className="text-sm">No expenses awaiting payment.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-stone-50 border-b border-stone-200">
+            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[200px] border-r border-stone-200">Case</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Date</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Amount</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Pay To</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Pay Via</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Notes</th>
+            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Paid</th>
+            <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {expenses.map(exp => {
+            const j = journeyMap[exp.journey_id] || {}
+            const caseName = j.caseName || 'Unknown Journey'
+            const isPaid = !!exp.paid_at
+            return (
+              <tr key={exp.id} className={`border-b border-stone-100 hover:bg-stone-50/50 ${isPaid ? 'bg-green-50/30' : ''}`}>
+                <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
+                  <Link to={`/journeys/${exp.journey_id}`} className="font-semibold text-[#283693] hover:underline text-sm">{caseName}</Link>
+                  <p className="text-[10px] text-stone-400 mt-0.5">{j.caseManager || '—'}</p>
+                </td>
+                <td className="px-4 py-3 border-r border-stone-100">{formatDate(exp.expense_date)}</td>
+                <td className="px-4 py-3 border-r border-stone-100 font-semibold">{formatCurrency(exp.amount)}</td>
+                <td className="px-4 py-3 border-r border-stone-100">{exp.paid_to || '—'}</td>
+                <td className="px-4 py-3 border-r border-stone-100">
+                  {exp.pay_via ? (
+                    <div>
+                      <span className="font-medium capitalize">{exp.pay_via}</span>
+                      {exp.pay_via_info && <p className="text-[10px] text-stone-400">{exp.pay_via_info}</p>}
+                    </div>
+                  ) : '—'}
+                </td>
+                <td className="px-4 py-3 border-r border-stone-100">{exp.notes || '—'}</td>
+                <td className="px-4 py-3 border-r border-stone-100">
+                  {isPaid ? (
+                    <div>
+                      <span className="text-green-600 font-semibold">Paid</span>
+                      <p className="text-[10px] text-stone-400">{formatDate(exp.paid_at)}</p>
+                      {exp.paid_by && <p className="text-[10px] text-stone-400">{getAdminName(exp.paid_by)}</p>}
+                    </div>
+                  ) : <span className="text-amber-600 font-medium">Pending</span>}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {!isPaid ? (
+                    <button
+                      onClick={() => onMarkPaid(exp.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                    >
+                      <CheckCircle2 className="size-3" /> Mark Paid
+                    </button>
+                  ) : !exp.reconciled ? (
+                    <button
+                      onClick={() => onReconcile(exp.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                    >
+                      <CheckCircle2 className="size-3" /> Reconcile
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-green-600 font-medium">Done</span>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function ExpensesPage() {
   const { currentUser } = useRole()
   const [expenses, setExpenses] = useState([])
@@ -393,10 +477,23 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleMarkPaid(expenseId) {
+    try {
+      const updated = await updateExpense(expenseId, { paid_at: new Date().toISOString(), paid_by: currentUser?.email || '' })
+      if (updated) {
+        setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, ...updated } : e))
+      }
+    } catch (err) {
+      console.error('Failed to mark paid:', err)
+    }
+  }
+
   // Filter and sort
   let filtered = expenses
   if (activeTab === 'expenses') {
-    filtered = filtered.filter(e => !e.reconciled)
+    filtered = filtered.filter(e => !e.reconciled && !e.needs_payment)
+  } else if (activeTab === 'to_pay') {
+    filtered = filtered.filter(e => e.needs_payment && !e.reconciled)
   } else {
     filtered = filtered.filter(e => e.reconciled)
   }
@@ -484,8 +581,16 @@ export default function ExpensesPage() {
           <TabsTrigger value="expenses" className="gap-1">
             Expenses
             <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">
-              {expenses.filter(e => !e.reconciled).length}
+              {expenses.filter(e => !e.reconciled && !e.needs_payment).length}
             </span>
+          </TabsTrigger>
+          <TabsTrigger value="to_pay" className="gap-1">
+            Expenses to Pay
+            {expenses.filter(e => e.needs_payment && !e.reconciled).length > 0 && (
+              <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full ml-1">
+                {expenses.filter(e => e.needs_payment && !e.reconciled).length}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="reconciled" className="gap-1">
             Reconciled
@@ -507,6 +612,20 @@ export default function ExpensesPage() {
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
                 onViewEmail={handleViewEmail}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="to_pay" className="mt-4">
+          <Card>
+            <CardContent className="p-0">
+              <ExpensesToPayTable
+                expenses={filtered}
+                journeyMap={journeyMap}
+                onMarkPaid={handleMarkPaid}
+                onReconcile={handleReconcile}
+                currentUser={currentUser}
               />
             </CardContent>
           </Card>

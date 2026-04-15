@@ -6,8 +6,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
-import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield } from 'lucide-react'
-import { updateIntakeSubmission } from '@/lib/db'
+import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
+import { updateIntakeSubmission, uploadCaseDocument } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
 import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
@@ -1148,6 +1148,92 @@ By signing this form I acknowledge that I have completely read and fully underst
   )
 }
 
+// ── Payment Preference ─────────────────────────────────
+function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
+  const stored = answers?._paymentPreference || {}
+  const hasMatch = search ? ['payment', 'screening', 'incentive', 'venmo', 'zelle'].some(k => search.includes(k)) : true
+
+  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
+    surrogate.id, answers, '_paymentPreference',
+    (saved) => ({
+      method: saved.method || '',
+      venmoUsername: saved.venmoUsername || '',
+      zelleInfo: saved.zelleInfo || '',
+      screenshotUrl: saved.screenshotUrl || '',
+    })
+  )
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+  const [uploading, setUploading] = useState(false)
+
+  if (!hasMatch) return null
+
+  async function handleScreenshot(file) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const doc = await uploadCaseDocument({ surrogateId: surrogate.id, category: 'Payment Info', file, uploadedBy: 'Admin' })
+      if (doc?.public_url) set('screenshotUrl', doc.public_url)
+    } catch (err) { console.error('Upload failed:', err) }
+    finally { setUploading(false) }
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <EditHeader title="Payment Preference" description="How would you prefer to receive your screening incentive payment?" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <CardContent className="space-y-4">
+        {editing ? (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <FieldLabel>Payment Method</FieldLabel>
+              <SelectField value={form.method} onValueChange={v => set('method', v)} options={['Venmo', 'Zelle']} placeholder="Select payment method..." />
+            </div>
+            {form.method === 'Venmo' && (
+              <div className="space-y-1">
+                <FieldLabel>Venmo Username</FieldLabel>
+                <Input value={form.venmoUsername} onChange={e => set('venmoUsername', e.target.value)} placeholder="@username" />
+              </div>
+            )}
+            {form.method === 'Zelle' && (
+              <div className="space-y-1">
+                <FieldLabel>Zelle Email or Phone</FieldLabel>
+                <Input value={form.zelleInfo} onChange={e => set('zelleInfo', e.target.value)} placeholder="email@example.com or (555) 123-4567" />
+              </div>
+            )}
+            {(form.method === 'Venmo' || form.method === 'Zelle') && (
+              <div className="space-y-1">
+                <FieldLabel>Screenshot of {form.method} Name (optional)</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <Input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={e => handleScreenshot(e.target.files?.[0])} className="h-9 text-xs" disabled={uploading} />
+                  {uploading && <Loader2 className="size-4 animate-spin text-stone-400" />}
+                </div>
+                {form.screenshotUrl && (
+                  <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline flex items-center gap-1">
+                    <FileText className="size-3" /> View uploaded screenshot
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <ReadField label="Payment Method" value={stored.method || '—'} />
+            {stored.method === 'Venmo' && <ReadField label="Venmo Username" value={stored.venmoUsername} />}
+            {stored.method === 'Zelle' && <ReadField label="Zelle Info" value={stored.zelleInfo} />}
+            {stored.screenshotUrl && (
+              <div>
+                <p className="text-xs text-stone-400 uppercase tracking-wide font-semibold">Screenshot</p>
+                <a href={stored.screenshotUrl} target="_blank" rel="noreferrer" className="text-sm text-[#283693] hover:underline font-medium flex items-center gap-1 mt-0.5">
+                  <FileText className="size-3" /> View
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Main Export ──────────────────────────────────────────
 export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers, profileData }) {
   const [search, setSearch] = useState('')
@@ -1176,6 +1262,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
       <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
+      <PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
 
       {/* Background Waivers */}
       {(!searchLower || 'background waiver'.includes(searchLower)) && (
