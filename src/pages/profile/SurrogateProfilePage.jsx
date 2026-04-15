@@ -484,7 +484,6 @@ const SECTION_META = SHARED_SECTION_META
 const REQUIRED_FIELDS = SHARED_REQUIRED_FIELDS
 const CONDITIONAL_REQUIRED = SHARED_CONDITIONAL_REQUIRED
 const countCompleted = sharedCountCompleted
-]
 
 // ─────────────────────────────────────────────────────────
 // Main Page Component
