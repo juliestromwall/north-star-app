@@ -1377,6 +1377,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
 function SectionBody({ sectionKey, v, u, profile, setProfile }) {
   switch (sectionKey) {
     case 'personal': return <PersonalSection v={v} u={u} />
+    case 'followUp': return <FollowUpSection v={v} u={u} profile={profile} />
     case 'pregnancyHistory': return <PregnancyHistorySection v={v} u={u} profile={profile} setProfile={setProfile} />
     case 'fertility': return <FertilitySection v={v} u={u} profile={profile} />
     case 'general': return <GeneralSection v={v} u={u} profile={profile} />
@@ -1394,6 +1395,74 @@ function SectionBody({ sectionKey, v, u, profile, setProfile }) {
 // ─────────────────────────────────────────────────────────
 // 1. Personal Information (merged About Me + Family)
 // ─────────────────────────────────────────────────────────
+function FollowUpSection({ v, u, profile }) {
+  const s = 'followUp'
+  // Pre-fill from original sections if followUp data is empty
+  const val = (key) => {
+    const followUpVal = v(s, key)
+    if (followUpVal !== undefined && followUpVal !== '' && followUpVal !== null) return followUpVal
+    // Check original sections for migration
+    for (const origSection of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'hopesWishes']) {
+      const origVal = profile?.[origSection]?.[key]
+      if (origVal !== undefined && origVal !== '' && origVal !== null) return origVal
+    }
+    return ''
+  }
+  const set = (key) => u(s, key)
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-stone-400 italic">These questions help us complete your screening. Please answer honestly.</p>
+
+      <YesNoField label="Are you a U.S. Citizen or Permanent Resident?" value={val('usCitizen')} onChange={set('usCitizen')} />
+      <YesNoField label="Do you have a Real ID?" value={val('realId')} onChange={set('realId')} />
+      <YesNoField label="Do you have a current/valid passport?" value={val('validPassport')} onChange={set('validPassport')} />
+      <YesNoField label="Do you (or anyone in your household) speak a language other than English?" value={val('otherLanguages')} onChange={set('otherLanguages')} />
+      {val('otherLanguages') === 'yes' && <TextField label="Which language(s)?" value={val('otherLanguagesDetails')} onChange={set('otherLanguagesDetails')} />}
+
+      <YesNoField label="Are you currently breastfeeding/lactating?" value={val('breastfeeding')} onChange={set('breastfeeding')} />
+      {val('breastfeeding') === 'yes' && <TextField label="When do you expect to stop?" value={val('breastfeedingStopDate')} onChange={set('breastfeedingStopDate')} />}
+      <YesNoField label="Are your cycles typically between 28 to 30 days?" value={val('cycleLength')} onChange={set('cycleLength')} />
+      {val('cycleLength') === 'no' && <TextField label="What is your typical cycle length?" value={val('cycleLengthDetails')} onChange={set('cycleLengthDetails')} />}
+      <TextField label="Which contraceptive method do you currently use?" value={val('contraceptiveMethod')} onChange={set('contraceptiveMethod')} />
+      <TextField label="When was the start of your last period?" value={val('lastPeriod')} onChange={set('lastPeriod')} />
+      <TextField label="What is the nearest hospital with a Level II or III NICU?" value={val('nearestNICU')} onChange={set('nearestNICU')} />
+      <YesNoField label="Are you ok traveling to a hospital with at least a Level II NICU?" value={val('willingToTravelNICU')} onChange={set('willingToTravelNICU')} />
+      <TextField label="How long after stopping contraceptives did it take to get pregnant?" value={val('timeToConceive')} onChange={set('timeToConceive')} />
+
+      <YesNoField label="Do any of your children have special needs or medical conditions?" value={val('childrenSpecialNeeds')} onChange={set('childrenSpecialNeeds')} />
+      <YesNoField label="Have you ever placed a child for adoption?" value={val('placedForAdoption')} onChange={set('placedForAdoption')} />
+      <YesNoField label="Do you own any guns?" value={val('gunsOwned')} onChange={set('gunsOwned')} />
+      <YesNoField label="Do you have any piercings or tattoos?" value={val('piercingsTattoos')} onChange={set('piercingsTattoos')} />
+      {val('piercingsTattoos') === 'yes' && <TextField label="When did you have your last tattoo?" value={val('lastTattooDate')} onChange={set('lastTattooDate')} />}
+      <YesNoField label="Have you been tattooed or had a non-sterile skin piercing in the last 12 months?" value={val('nonSterilePiercing')} onChange={set('nonSterilePiercing')} />
+      <YesNoField label="Do you have a history of eating disorders?" value={val('eatingDisorders')} onChange={set('eatingDisorders')} />
+      <YesNoField label="Have you or anyone in your household ever been arrested or convicted?" value={val('criminalHistory')} onChange={set('criminalHistory')} />
+      <YesNoField label="Have you traveled outside of the U.S. in the last 6 months?" value={val('recentTravel')} onChange={set('recentTravel')} />
+      <YesNoField label="Do you plan on traveling within or outside of the U.S.?" value={val('travelPlans')} onChange={set('travelPlans')} />
+      <YesNoField label="Do you have any issues with sleeping?" value={val('sleepIssues')} onChange={set('sleepIssues')} />
+      <TextField label="How many hours do you typically sleep each night?" value={val('sleepHours')} onChange={set('sleepHours')} />
+      <YesNoField label="Do you have a reliable vehicle to drive?" value={val('reliableVehicle')} onChange={set('reliableVehicle')} />
+      <YesNoField label="Do you have automobile insurance?" value={val('autoInsurance')} onChange={set('autoInsurance')} />
+      <YesNoField label="Do you have a valid driver's license?" value={val('validLicense')} onChange={set('validLicense')} />
+      <YesNoField label="Will your partner submit to the FDA required lab tests?" value={val('partnerFdaTests')} onChange={set('partnerFdaTests')} />
+
+      <YesNoField label="Are you open to being vaccinated if required for the surrogacy process?" value={val('openToVaccinations')} onChange={set('openToVaccinations')} />
+      <TextField label="When was your last annual physical?" value={val('lastPhysical')} onChange={set('lastPhysical')} />
+      <TextField label="Most recent Pap and results" value={val('lastPap')} onChange={set('lastPap')} />
+
+      <YesNoField label="Do you have health insurance coverage?" value={val('healthInsurance')} onChange={set('healthInsurance')} />
+      {val('healthInsurance') === 'yes' && <TextField label="Is it a private/personal policy or through an employer?" value={val('insuranceType')} onChange={set('insuranceType')} />}
+
+      <TextField label="Highest level of education" value={val('educationLevel')} onChange={set('educationLevel')} />
+      <YesNoField label="Are you currently in school?" value={val('currentlyInSchool')} onChange={set('currentlyInSchool')} />
+      {val('currentlyInSchool') === 'yes' && <TextField label="Please provide details" value={val('currentlyInSchoolDetails')} onChange={set('currentlyInSchoolDetails')} />}
+
+      <YesNoField label="Is your Surrogate Base Fee negotiable?" value={val('compensationNegotiable')} onChange={set('compensationNegotiable')} />
+    </div>
+  )
+}
+
 function PersonalSection({ v, u }) {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
@@ -2163,8 +2232,7 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                     <div className="p-4 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <TextField label="RE Doctor Name" value={j.reName || ''} onChange={val => updateJourney(idx, 'reName', val)} placeholder="Dr. Smith" />
-                        <TextField label="RE Location" value={j.reLocation || ''} onChange={val => updateJourney(idx, 'reLocation', val)} placeholder="City, State" />
-                        <TextField label="RE Dates" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. Jan–Sep 2023" />
+                        <TextField label="Year" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2023" />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <SelectField label="Pregnancy outcome" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
@@ -2175,7 +2243,7 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <TextField label="How many transfers until pregnant?" value={j.transfers || ''} onChange={val => updateJourney(idx, 'transfers', val)} placeholder="e.g. 1" />
                         <SelectField label="Embryo source" value={j.embryoSource || ''} onChange={val => updateJourney(idx, 'embryoSource', val)}
-                          options={['Donor eggs', "IM's eggs", 'Unknown']} />
+                          options={['IP Sperm', 'IP Egg', 'Donor Egg', 'Donor Sperm', 'Donor Embryo', 'Unknown']} />
                       </div>
                       <TextAreaField label="Any unsuccessful cycles? (lining issues, failed transfers, chemical pregnancies)" value={j.unsuccessfulCycles || ''} onChange={val => updateJourney(idx, 'unsuccessfulCycles', val)} rows={2} />
                     </div>
@@ -2218,11 +2286,12 @@ function HopesWishesSection({ v, u, profile }) {
         <h4 className="font-medium text-[#283693]">Willingness</h4>
         <YesNoField label="Are you willing to have 3 transfer attempts with the same IP if that is what it takes to achieve a pregnancy?" value={v(s, 'threeTransferAttempts')} onChange={u(s, 'threeTransferAttempts')} />
         <YesNoField label="Are you willing to reduce the amount of caffeine and soda you consume during the pregnancy?" value={v(s, 'reduceCaffeine')} onChange={u(s, 'reduceCaffeine')} />
-        <YesNoField label="Are you open to making other lifestyle changes at the request of the Intended Parents?" value={v(s, 'lifestyleChanges')} onChange={u(s, 'lifestyleChanges')} />
-        {v(s, 'lifestyleChanges') === 'yes' && (
+        <TextAreaField label="Are you open to making other lifestyle changes at the request of the Intended Parents?" value={v(s, 'lifestyleChanges')} onChange={u(s, 'lifestyleChanges')} rows={2} placeholder="Please explain..." />
+        {false && (
           <TextAreaField label="Please explain" value={v(s, 'lifestyleChangesDetails')} onChange={u(s, 'lifestyleChangesDetails')} rows={2} />
         )}
-        <YesNoField label="Are you open to pumping colostrum and breast milk for your IP if they were to request this?" value={v(s, 'pumpBreastmilk')} onChange={u(s, 'pumpBreastmilk')} />
+        <SelectField label="Are you open to pumping colostrum and breast milk for your IP if they were to request this?" value={v(s, 'pumpBreastmilk')} onChange={u(s, 'pumpBreastmilk')}
+          options={['Yes', 'No', 'Willing to try', 'Undecided']} />
       </div>
 
       <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
@@ -2233,8 +2302,9 @@ function HopesWishesSection({ v, u, profile }) {
             options={['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything']} />
           <SelectField label="How much involvement from the Intended Parents do you want during the pregnancy?" value={v(s, 'ipInvolvement')} onChange={u(s, 'ipInvolvement')}
             options={['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal']} />
-          <YesNoField label="Would you be willing to have the Intended Parents at doctor appointments and in delivery room?" value={v(s, 'ipsAtAppointments')} onChange={u(s, 'ipsAtAppointments')} />
-          {v(s, 'ipsAtAppointments') === 'no' && (
+          <SelectField label="Would you be willing to have the Intended Parents at doctor appointments and in delivery room?" value={v(s, 'ipsAtAppointments')} onChange={u(s, 'ipsAtAppointments')}
+            options={['Yes', 'No', 'Undecided']} />
+          {v(s, 'ipsAtAppointments') === 'No' && (
             <TextAreaField label="Please explain" value={v(s, 'ipsAtAppointmentsDetails')} onChange={u(s, 'ipsAtAppointmentsDetails')} rows={2} />
           )}
           <TextAreaField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={v(s, 'deliveryRoomOthers')} onChange={u(s, 'deliveryRoomOthers')} rows={2} />
@@ -2255,8 +2325,7 @@ function HopesWishesSection({ v, u, profile }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <SelectField label="When are you ready to begin?" value={v(s, 'whenReadyToBegin')} onChange={u(s, 'whenReadyToBegin')}
           options={['Immediately', 'Within 1-3 months', 'Within 3-6 months', 'Within 6-12 months', '1+ year']} />
-        <SelectField label="Ideal relationship with Intended Parent(s) post birth" value={v(s, 'postBirthRelationship')} onChange={u(s, 'postBirthRelationship')}
-          options={['Close / Ongoing', 'Occasional Updates', 'Holiday Cards / Photos', 'Clean Break', 'Open to Whatever Develops']} />
+        <TextAreaField label="Ideal relationship with Intended Parent(s) post birth" value={v(s, 'postBirthRelationship')} onChange={u(s, 'postBirthRelationship')} rows={2} placeholder="Describe your ideal post-birth relationship..." />
       </div>
 
       <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
@@ -2268,7 +2337,7 @@ function HopesWishesSection({ v, u, profile }) {
           )}
           <TextAreaField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={v(s, 'willingnessToTerminate')} onChange={u(s, 'willingnessToTerminate')} rows={2} />
           {hasPartner && (
-            <YesNoField label="Would your partner agree and support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
+            <YesNoField label="Would your spouse or support person support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
           )}
           <TextAreaField label="Are there any specific conditions where you would not terminate a pregnancy? Please explain." value={v(s, 'conditionsWontTerminate')} onChange={u(s, 'conditionsWontTerminate')} rows={2} />
           <SelectField label="How many embryos are you in agreement to transfer at a time?" value={v(s, 'embryosToTransfer')} onChange={u(s, 'embryosToTransfer')}

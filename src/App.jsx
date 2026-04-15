@@ -7,6 +7,7 @@ import FormSubmissionPage from './pages/forms/FormSubmissionPage'
 import FormResponsesPage from './pages/forms/FormResponsesPage'
 import SurrogateListPage from './pages/surrogates/SurrogateListPage'
 import SurrogateDetailPage from './pages/surrogates/SurrogateDetailPage'
+import FollowUpReviewPage from './pages/surrogates/FollowUpReviewPage'
 import IPListPage from './pages/intended-parents/IPListPage'
 import IPDetailPage from './pages/intended-parents/IPDetailPage'
 import SurrogateSharePage from './pages/surrogates/SurrogateSharePage'
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/forms/:formId/responses" element={<FormResponsesPage />} />
         <Route path="/surrogates" element={<SurrogateListPage />} />
         <Route path="/surrogates/:id" element={<SurrogateDetailPage />} />
+        <Route path="/surrogates/:id/follow-up-review" element={<FollowUpReviewPage />} />
         <Route path="/intended-parents" element={<IPListPage />} />
         <Route path="/intended-parents/:id" element={<IPDetailPage />} />
         <Route path="/matching" element={<MatchingPage />} />

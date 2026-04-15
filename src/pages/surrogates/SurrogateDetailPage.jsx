@@ -4098,6 +4098,12 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Profile Completion</CardTitle>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => {
+              const win = window.open(`/surrogates/${surrogate.id}/follow-up-review`, '_blank', 'width=900,height=700,scrollbars=yes')
+              if (!win) alert('Please allow popups for this site')
+            }}>
+              <ClipboardList className="size-3.5" /> Follow Up Review
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { setPreviewOpen(!previewOpen); if (!previewOpen) window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
               <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
             </Button>

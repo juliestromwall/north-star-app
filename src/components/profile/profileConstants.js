@@ -140,10 +140,15 @@ export const FIELD_LABELS = {
   dreamTravel: 'Where would you most like to travel and why?',
   personality: 'How would you describe yourself and your personality?',
 
-  // Academic
+  // Academic (moved to Follow Up)
   educationLevel: 'Highest level of education',
   currentlyInSchool: 'Are you currently in school?',
   currentlyInSchoolDetails: 'Please provide details',
+
+  // Updated fields
+  reDates: 'Year',
+  partnerAgreesTermination: 'Would your spouse or support person support the decision for termination?',
+  compensationNegotiable: 'Is your Surrogate Base Fee negotiable?',
 
   // Experienced Surrogate
   previousSurrogate: 'Have you ever been a surrogate before?',
@@ -194,6 +199,7 @@ export const FIELD_LABELS = {
 
 const SECTION_META = [
   { key: 'personal', title: 'Personal Information', icon: User, description: 'Basic info, relationships, and household' },
+  { key: 'followUp', title: 'Profile Follow Up Questions', icon: Stethoscope, description: 'Additional screening and eligibility questions' },
   { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
   { key: 'fertility', title: 'Fertility Information', icon: Stethoscope, description: 'Reproductive health and fertility details' },
   { key: 'general', title: 'General Information', icon: Home, description: 'Housing, lifestyle, habits, and background' },
@@ -209,11 +215,12 @@ const SECTION_META = [
 // Required fields per section for completion tracking
 const REQUIRED_FIELDS = {
   personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
+  followUp: ['usCitizen', 'contraceptiveMethod'],
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
-  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
-  health: ['mentalHealthDiagnosis', 'openToVaccinations'],
-  employment: ['currentlyEmployed', 'healthInsurance'],
+  fertility: ['sameBioFather'],
+  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency'],
+  health: ['mentalHealthDiagnosis'],
+  employment: ['currentlyEmployed'],
   interests: ['personality'],
   academic: ['educationLevel'],
   experiencedSurrogate: [],
@@ -258,10 +265,69 @@ const US_STATES = [
   'Virginia','Washington','West Virginia','Wisconsin','Wyoming'
 ]
 
+// Fields deleted from profile entirely
+const DELETED_FIELDS = [
+  'religion', 'religionImportance', 'ethnicity', 'differenReligion',
+  'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling',
+  'reLocation', // from experienced surrogate journeys
+]
+
+// Fields moved from their original sections to the Follow Up Questions form
+const FOLLOW_UP_FIELDS = [
+  // From Personal
+  { key: 'usCitizen', type: 'yesno', section: 'personal' },
+  { key: 'realId', type: 'yesno', section: 'personal' },
+  { key: 'validPassport', type: 'yesno', section: 'personal' },
+  { key: 'otherLanguages', type: 'yesno', section: 'personal' },
+  { key: 'otherLanguagesDetails', type: 'text', section: 'personal', conditional: d => d.otherLanguages === 'yes' },
+  // From Fertility
+  { key: 'breastfeeding', type: 'yesno', section: 'fertility' },
+  { key: 'breastfeedingStopDate', type: 'text', section: 'fertility', conditional: d => d.breastfeeding === 'yes' },
+  { key: 'cycleLength', type: 'yesno', section: 'fertility' },
+  { key: 'cycleLengthDetails', type: 'text', section: 'fertility', conditional: d => d.cycleLength === 'no' },
+  { key: 'willingToTravelNICU', type: 'yesno', section: 'fertility' },
+  { key: 'contraceptiveMethod', type: 'text', section: 'fertility' },
+  { key: 'lastPeriod', type: 'text', section: 'fertility' },
+  { key: 'nearestNICU', type: 'text', section: 'fertility' },
+  { key: 'timeToConceive', type: 'text', section: 'fertility' },
+  // From General
+  { key: 'childrenSpecialNeeds', type: 'yesno', section: 'general' },
+  { key: 'placedForAdoption', type: 'yesno', section: 'general' },
+  { key: 'gunsOwned', type: 'yesno', section: 'general' },
+  { key: 'piercingsTattoos', type: 'yesno', section: 'general' },
+  { key: 'lastTattooDate', type: 'text', section: 'general', conditional: d => d.piercingsTattoos === 'yes' },
+  { key: 'nonSterilePiercing', type: 'yesno', section: 'general' },
+  { key: 'eatingDisorders', type: 'yesno', section: 'general' },
+  { key: 'criminalHistory', type: 'yesno', section: 'general' },
+  { key: 'recentTravel', type: 'yesno', section: 'general' },
+  { key: 'travelPlans', type: 'yesno', section: 'general' },
+  { key: 'sleepIssues', type: 'yesno', section: 'general' },
+  { key: 'sleepHours', type: 'text', section: 'general' },
+  { key: 'reliableVehicle', type: 'yesno', section: 'general' },
+  { key: 'autoInsurance', type: 'yesno', section: 'general' },
+  { key: 'validLicense', type: 'yesno', section: 'general' },
+  { key: 'partnerFdaTests', type: 'yesno', section: 'general' },
+  // From Health
+  { key: 'openToVaccinations', type: 'yesno', section: 'health' },
+  { key: 'lastPhysical', type: 'text', section: 'health' },
+  { key: 'lastPap', type: 'text', section: 'health' },
+  // From Employment
+  { key: 'healthInsurance', type: 'yesno', section: 'employment' },
+  { key: 'insuranceType', type: 'text', section: 'employment', conditional: d => d.healthInsurance === 'yes' },
+  // From Academic (entire section moves)
+  { key: 'educationLevel', type: 'text', section: 'academic' },
+  { key: 'currentlyInSchool', type: 'yesno', section: 'academic' },
+  { key: 'currentlyInSchoolDetails', type: 'text', section: 'academic', conditional: d => d.currentlyInSchool === 'yes' },
+  // From Hopes & Wishes
+  { key: 'compensationNegotiable', type: 'yesno', section: 'hopesWishes' },
+]
+
 export {
   SECTION_META,
   REQUIRED_FIELDS,
   isPregnancyComplete,
   countCompleted,
   US_STATES,
+  DELETED_FIELDS,
+  FOLLOW_UP_FIELDS,
 }
