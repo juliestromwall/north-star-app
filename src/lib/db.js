@@ -1038,6 +1038,19 @@ export async function fetchMyTasks(assignedTo) {
   return data || []
 }
 
+export async function fetchMyCompletedTasks(assignedTo, limit = 20) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('case_tasks')
+    .select('*')
+    .eq('assigned_to', assignedTo)
+    .eq('status', 'complete')
+    .order('completed_at', { ascending: false })
+    .limit(limit)
+  if (error) return []
+  return data || []
+}
+
 export async function fetchAllOpenTasks() {
   if (!supabase) return []
   const { data, error } = await supabase

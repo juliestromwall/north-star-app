@@ -172,8 +172,31 @@ export default function AdminDashboard() {
 
   async function completeTask(taskId) {
     try {
-      await updateCaseTask(taskId, { status: 'complete', completed_at: new Date().toISOString(), completed_by: currentUser?.email })
+      const updated = await updateCaseTask(taskId, { status: 'complete', completed_at: new Date().toISOString(), completed_by: currentUser?.email })
       setTasks(prev => prev.filter(t => t.id !== taskId))
+      if (updated) setCompletedTasks(prev => [updated, ...prev])
+    } catch {}
+  }
+
+  async function saveEditTask() {
+    if (!editingTask) return
+    try {
+      const updated = await updateCaseTask(editingTask.id, {
+        title: editingTask.title,
+        due_date: editingTask.due_date || null,
+        priority: editingTask.priority,
+        description: editingTask.description || null,
+        assigned_to: editingTask.assigned_to,
+      })
+      if (updated) {
+        // If reassigned to someone else, remove from my list
+        if (updated.assigned_to !== currentUser?.email) {
+          setTasks(prev => prev.filter(t => t.id !== updated.id))
+        } else {
+          setTasks(prev => prev.map(t => t.id === updated.id ? updated : t))
+        }
+      }
+      setEditingTask(null)
     } catch {}
   }
 
@@ -445,7 +468,7 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </CardHeader>
-          {tasksOpen && <CardContent>
+          {tasksOpen && <CardContent className="space-y-3">
             {tasks.length === 0 ? (
               <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
             ) : (
@@ -488,9 +511,37 @@ export default function AdminDashboard() {
                         )}
                       </div>
                     </div>
+                    <button onClick={() => setEditingTask({ ...task })} className="text-stone-300 hover:text-[#283693] shrink-0" title="Edit">
+                      <Pencil className="size-3" />
+                    </button>
                   </div>
                   )
                 })}
+              </div>
+            )}
+            {/* Completed Tasks */}
+            {completedTasks.length > 0 && (
+              <div>
+                <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
+                  {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                  <CheckCircle2 className="size-3 text-emerald-500" />
+                  Completed ({completedTasks.length})
+                </button>
+                {completedOpen && (
+                  <div className="space-y-1.5 mt-2">
+                    {completedTasks.map(task => (
+                      <div key={task.id} className="rounded-lg border border-stone-100 px-3 py-2 flex items-center gap-2 opacity-60">
+                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-stone-500 line-through truncate">{task.title}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                            {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>}
@@ -498,13 +549,22 @@ export default function AdminDashboard() {
       </div>
 
       {/* Add Task Dialog */}
-      <Dialog open={addTaskOpen} onOpenChange={setAddTaskOpen}>
+      {/* Add Task Dialog */}
+      <Dialog open={addTaskOpen} onOpenChange={v => { if (!v) setAddTaskOpen(false); else { setNewTask({ title: '', due_date: new Date().toISOString().split('T')[0], priority: 'normal', description: '', assigned_to: currentUser?.email || '' }); setAddTaskOpen(true) } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Title *</label>
               <Input value={newTask.title} onChange={e => setNewTask(t => ({ ...t, title: e.target.value }))} placeholder="What needs to be done?" className="h-9" autoFocus />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
+              <select value={newTask.assigned_to} onChange={e => setNewTask(t => ({ ...t, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                {getAdminStaff().map(a => (
+                  <option key={a.email} value={a.email}>{a.name}{a.email === currentUser?.email ? ' (me)' : ''}</option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -529,18 +589,19 @@ export default function AdminDashboard() {
               <Button variant="outline" size="sm" onClick={() => setAddTaskOpen(false)}>Cancel</Button>
               <Button size="sm" disabled={!newTask.title.trim()} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
                 try {
+                  const assignTo = newTask.assigned_to || currentUser?.email
                   const created = await createCaseTask({
                     title: newTask.title.trim(),
                     due_date: newTask.due_date || null,
                     priority: newTask.priority,
                     description: newTask.description || null,
-                    assigned_to: currentUser?.email,
+                    assigned_to: assignTo,
                     created_by: currentUser?.email,
                     status: 'open',
                     case_type: 'personal',
                   })
-                  if (created) setTasks(prev => [created, ...prev])
-                  setNewTask({ title: '', due_date: '', priority: 'normal', description: '' })
+                  if (created && assignTo === currentUser?.email) setTasks(prev => [created, ...prev])
+                  setNewTask({ title: '', due_date: new Date().toISOString().split('T')[0], priority: 'normal', description: '', assigned_to: currentUser?.email || '' })
                   setAddTaskOpen(false)
                 } catch (err) {
                   console.error('Failed to create task:', err)
@@ -550,6 +611,54 @@ export default function AdminDashboard() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={!!editingTask} onOpenChange={v => { if (!v) setEditingTask(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit Task</DialogTitle></DialogHeader>
+          {editingTask && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Title *</label>
+                <Input value={editingTask.title} onChange={e => setEditingTask(t => ({ ...t, title: e.target.value }))} className="h-9" autoFocus />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
+                <select value={editingTask.assigned_to || ''} onChange={e => setEditingTask(t => ({ ...t, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                  {getAdminStaff().map(a => (
+                    <option key={a.email} value={a.email}>{a.name}{a.email === currentUser?.email ? ' (me)' : ''}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Due Date</label>
+                  <Input type="date" value={editingTask.due_date || ''} onChange={e => setEditingTask(t => ({ ...t, due_date: e.target.value }))} className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Priority</label>
+                  <select value={editingTask.priority || 'normal'} onChange={e => setEditingTask(t => ({ ...t, priority: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Notes</label>
+                <Input value={editingTask.description || ''} onChange={e => setEditingTask(t => ({ ...t, description: e.target.value }))} placeholder="Optional details..." className="h-9" />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => setEditingTask(null)}>Cancel</Button>
+                <Button size="sm" disabled={!editingTask.title?.trim()} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={saveEditTask}>
+                  <Check className="size-3" /> Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
