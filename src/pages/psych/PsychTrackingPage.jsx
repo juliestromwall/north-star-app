@@ -140,7 +140,7 @@ export default function PsychTrackingPage() {
       shareData = { token, createdAt: new Date().toISOString() }
       await setAppConfig(SHARE_KEY, shareData).catch(() => {})
     }
-    const url = `${window.location.origin}/psych-tracking/share/${shareData.token}`
+    const url = `${window.location.origin}/therapist-tracking/share/${shareData.token}`
     setShareUrl(url)
     setShareOpen(true)
     setCopied(false)
@@ -174,7 +174,7 @@ export default function PsychTrackingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Psych Tracking"
+        title="Therapist Check-Ins"
         subtitle={`${rows.length} pregnant surrogates tracked`}
         actions={<>
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setManualForm({ name: '', email: '', phone: '' }); setAddOpen(true) }}>
@@ -200,7 +200,7 @@ export default function PsychTrackingPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Share2 className="size-4 text-violet-500" /> Share Psych Tracking
+              <Share2 className="size-4 text-violet-500" /> Share Therapist Check-Ins
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-600">
@@ -232,7 +232,7 @@ export default function PsychTrackingPage() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Surrogate to Psych Tracking</DialogTitle>
+            <DialogTitle>Add Surrogate to Therapist Check-Ins</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

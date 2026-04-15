@@ -296,7 +296,7 @@ export default function SharedPsychTrackingPage() {
                 <Lock className="size-7 text-white" />
               </div>
               <h2 className="text-lg font-bold text-stone-800">Password Required</h2>
-              <p className="text-sm text-stone-500 mt-1">Enter your password to access the Psych Check In sheet.</p>
+              <p className="text-sm text-stone-500 mt-1">Enter your password to access the Therapist Check-In sheet.</p>
             </div>
             <div className="space-y-3">
               <div className="relative">
@@ -337,7 +337,7 @@ export default function SharedPsychTrackingPage() {
             <Brain className="size-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-stone-800">Psych Tracking</h1>
+            <h1 className="text-xl font-bold text-stone-800">Therapist Check-Ins</h1>
             <p className="text-sm text-stone-500">ABC Surrogacy · {rows.length} surrogates</p>
           </div>
         </div>

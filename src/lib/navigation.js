@@ -112,9 +112,9 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Psych Tracking',
+        label: 'Therapist Tracking',
         icon: Brain,
-        path: '/psych-tracking',
+        path: '/therapist-tracking',
         roles: ADMIN_ROLES,
       },
       {

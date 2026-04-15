@@ -81,7 +81,7 @@ export default function App() {
       <Route path="/intendedparentapply" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
       <Route path="/share/:token" element={<SharedProfilePage />} />
-      <Route path="/psych-tracking/share/:token" element={<SharedPsychTrackingPage />} />
+      <Route path="/therapist-tracking/share/:token" element={<SharedPsychTrackingPage />} />
       <Route path="/e-signature/:id" element={<SignDocumentPage />} />
       <Route path="/e-signature/sign/:token" element={<SignDocumentPage />} />
       <Route path="/e-signature/release/:batchToken" element={<SignReleaseBatchPage />} />
@@ -123,7 +123,7 @@ export default function App() {
         <Route path="/referral-bonus-tracker" element={<ReferralBonusTrackerPage />} />
         <Route path="/records-summary" element={<RecordsSummaryPage />} />
         <Route path="/records-summary/:id" element={<RecordsSummaryWorkspace />} />
-        <Route path="/psych-tracking" element={<PsychTrackingPage />} />
+        <Route path="/therapist-tracking" element={<PsychTrackingPage />} />
         <Route path="/case-import" element={<CaseImportPage />} />
         {stubs.map(s => (
           <Route

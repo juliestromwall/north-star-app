@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
   const notifyEmail = env.PREGNANCY_NOTIFY_EMAIL || ''
-  const psychCheckInUrl = env.PSYCH_CHECKIN_URL || 'https://app.abcsurrogacy.com/psych-tracking'
+  const psychCheckInUrl = env.PSYCH_CHECKIN_URL || 'https://app.abcsurrogacy.com/therapist-tracking'
 
   if (!resendKey || !notifyEmail) {
     return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY or PREGNANCY_NOTIFY_EMAIL' }), {
@@ -49,13 +49,13 @@ export async function onRequestPost(context) {
             <strong>Fabulous News!</strong>
           </p>
           <p style="font-size: 15px; color: #44403c; margin: 0; line-height: 1.6;">
-            <strong style="color: #283693;">${surrogateName}</strong> has a confirmed pregnancy. We have added them to our Psych Check In sheet for your visibility.
+            <strong style="color: #283693;">${surrogateName}</strong> has a confirmed pregnancy. We have added them to our Therapist Check-In sheet for your visibility.
           </p>
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
           <a href="${psychCheckInUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
-            View Psych Check In Sheet
+            View Therapist Check-In Sheet
           </a>
         </div>
 
@@ -68,7 +68,7 @@ export async function onRequestPost(context) {
 
         <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
           <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
-            <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or the linked Psych Check In sheet with anyone outside of authorized ABC Surrogacy staff.
+            <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or the linked Therapist Check-In sheet with anyone outside of authorized ABC Surrogacy staff.
           </p>
         </div>
 
