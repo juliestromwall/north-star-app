@@ -1738,7 +1738,9 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField label={pregnancies[expandedIdx]?.outcome === 'Live Birth' ? "Child's Name" : "Notes (optional)"} value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. how far along' : ''} />
+                {pregnancies[expandedIdx]?.outcome !== 'Live Birth' && (
+                  <TextField label="Notes (optional)" value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. how far along' : ''} />
+                )}
                 <TextField label="Date (DOB or date of event)" value={pregnancies[expandedIdx]?.dob || ''} onChange={val => updatePregnancy(expandedIdx, 'dob', val)} type="date" />
               </div>
 
