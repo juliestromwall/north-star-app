@@ -14,7 +14,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
-import { fetchIPsFromIntake, adminAddIP } from '@/lib/db'
+import { fetchIPsFromIntake, adminAddIP, getAppConfig } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { IP_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -184,6 +184,14 @@ export default function IPListPage() {
   const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
+
+  // Load user's default view preference
+  useEffect(() => {
+    if (!currentUser?.id) return
+    getAppConfig(`user_prefs_${currentUser.id}`).then(data => {
+      if (data?.defaultView === 'list') setView('list')
+    }).catch(() => {})
+  }, [currentUser?.id])
 
   // Add IP dialog state
   const [addOpen, setAddOpen] = useState(false)

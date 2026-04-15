@@ -20,7 +20,7 @@ import { getChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
 import { getProfilePhotoUrls } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
-import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles } from '@/lib/db'
+import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles, getAppConfig } from '@/lib/db'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -326,6 +326,14 @@ export default function SurrogateListPage() {
 
   const [avatarUrls, setAvatarUrls] = useState({})
   const [lastLogins, setLastLogins] = useState({}) // email → lastSignIn
+
+  // Load user's default view preference
+  useEffect(() => {
+    if (!currentUser?.id) return
+    getAppConfig(`user_prefs_${currentUser.id}`).then(data => {
+      if (data?.defaultView === 'list') setView('list')
+    }).catch(() => {})
+  }, [currentUser?.id])
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])

@@ -13,7 +13,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getChecklistMilestones } from '@/lib/checklistStore'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
@@ -116,6 +116,14 @@ export default function MatchedJourneysPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
+
+  // Load user's default view preference
+  useEffect(() => {
+    if (!currentUser?.id) return
+    getAppConfig(`user_prefs_${currentUser.id}`).then(data => {
+      if (data?.defaultView === 'list') setView('list')
+    }).catch(() => {})
+  }, [currentUser?.id])
 
   useEffect(() => {
     Promise.all([fetchMatchedJourneys(), fetchSurrogatesFromIntake(), fetchIPsFromIntake()])

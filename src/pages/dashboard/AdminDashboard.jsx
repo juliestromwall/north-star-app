@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
 import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
-  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2,
+  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil,
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -46,7 +46,10 @@ export default function AdminDashboard() {
   const [quote, setQuote] = useState(null)
   const [loading, setLoading] = useState(true)
   const [addTaskOpen, setAddTaskOpen] = useState(false)
-  const [newTask, setNewTask] = useState({ title: '', due_date: '', priority: 'normal', description: '' })
+  const [newTask, setNewTask] = useState({ title: '', due_date: new Date().toISOString().split('T')[0], priority: 'normal', description: '', assigned_to: '' })
+  const [editingTask, setEditingTask] = useState(null)
+  const [completedTasks, setCompletedTasks] = useState([])
+  const [completedOpen, setCompletedOpen] = useState(false)
   const [caseView, setCaseView] = useState('grid')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
@@ -72,11 +75,13 @@ export default function AdminDashboard() {
       fetchIPsFromIntake(),
       fetchMatchedJourneys(),
       fetchMyTasks(currentUser?.email).catch(() => []),
-    ]).then(([gcs, allIps, js, myTasks]) => {
+      fetchMyCompletedTasks(currentUser?.email).catch(() => []),
+    ]).then(([gcs, allIps, js, myTasks, myCompleted]) => {
       setSurrogates(gcs || [])
       setIps(allIps || [])
       setJourneys(js || [])
       setTasks(myTasks || [])
+      setCompletedTasks(myCompleted || [])
       // Load profile data for surrogate cards
       const emails = (gcs || []).map(s => s.email).filter(Boolean)
       if (emails.length) {

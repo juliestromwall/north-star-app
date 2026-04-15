@@ -41,7 +41,7 @@ const US_TIMEZONES = [
 // ── Admin Profile Section ──────────────────────────────────
 function AdminProfileSection() {
   const { currentUser } = useRole()
-  const [prefs, setPrefs] = useState({ timezone: '', defaultView: 'grid', avatarUrl: '' })
+  const [prefs, setPrefs] = useState({ timezone: 'America/Los_Angeles', defaultView: 'grid', avatarUrl: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
