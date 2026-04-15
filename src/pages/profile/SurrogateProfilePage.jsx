@@ -2332,11 +2332,20 @@ function PhotoEditor({ photo, onSave, onClose }) {
 function PhotosSection() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
+  const [caseId, setCaseId] = useState(null)
   const [photos, setPhotos] = useState([])
   const [coverPhoto, setCoverPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null)
+
+  // Fetch intake case ID for photos uploaded by admin
+  useEffect(() => {
+    if (!currentUser?.email || !supabase) return
+    supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data?.id) setCaseId(String(data.id)) })
+      .catch(() => {})
+  }, [currentUser?.email])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -2350,11 +2359,11 @@ function PhotosSection() {
         listProfilePhotos(userId).catch(() => []),
         listProfilePhotos(`${userId}/headshot`).catch(() => []),
       ])
-      // Also try intakeCaseId if different from userId
-      if (intakeCaseId && intakeCaseId !== userId) {
+      // Also try caseId (intake submission ID) if different from userId
+      if (caseId && caseId !== userId) {
         const [gallery2, headshots2] = await Promise.all([
-          listProfilePhotos(intakeCaseId).catch(() => []),
-          listProfilePhotos(`${intakeCaseId}/headshot`).catch(() => []),
+          listProfilePhotos(caseId).catch(() => []),
+          listProfilePhotos(`${caseId}/headshot`).catch(() => []),
         ])
         const allGallery = [...gallery, ...gallery2]
         const allHeadshots = [...headshots, ...headshots2]
@@ -2366,7 +2375,7 @@ function PhotosSection() {
       }
     }
     loadPhotos()
-  }, [userId, intakeCaseId])
+  }, [userId, caseId])
 
   // Combine cover + gallery for display
   const allPhotos = useMemo(() => {
