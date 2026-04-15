@@ -1096,7 +1096,7 @@ export default function SurrogateDetailPage() {
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
-                onStatusLog={async ({ stepLabel, status }) => {
+                onStatusLog={async ({ stepLabel, status, optionLabel, by, date }) => {
                   // Auto-email when Records Summary is requested
                   if (status === 'requested' && stepLabel.toLowerCase().includes('records summary')) {
                     try {
@@ -1108,6 +1108,32 @@ export default function SurrogateDetailPage() {
                         body: JSON.stringify({ surrogateName: surrogate.name, surrogateId: surrogate.id, gtpal: gtpalStr, gtpalData: gtp }),
                       })
                     } catch (err) { console.error('Records summary notify failed:', err) }
+                  }
+                  // Auto-create follow-up tasks for "Connect with Applicant" attempts
+                  if (stepLabel.toLowerCase().includes('connect with applicant') && optionLabel) {
+                    const name = surrogate.name || 'Surrogate'
+                    const logDate = date || new Date().toISOString().split('T')[0]
+                    const addDays = (d, n) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + n); return dt.toISOString().split('T')[0] }
+                    let taskTitle = null, daysOut = 0
+                    const attempt = optionLabel.toLowerCase()
+                    if (attempt.includes('1st')) { taskTitle = `Reach out to ${name} - 2nd Attempt`; daysOut = 2 }
+                    else if (attempt.includes('2nd')) { taskTitle = `Reach out to ${name} - 3rd Attempt`; daysOut = 7 }
+                    else if (attempt.includes('3rd')) { taskTitle = `Reach out to ${name} - 4th Attempt`; daysOut = 14 }
+                    else if (attempt.includes('4th')) { taskTitle = `Mark ${name} as Withdrawn - Ghosted`; daysOut = 1 }
+                    if (taskTitle) {
+                      try {
+                        await createCaseTask({
+                          title: taskTitle,
+                          due_date: addDays(logDate, daysOut),
+                          priority: attempt.includes('4th') ? 'high' : 'normal',
+                          assigned_to: currentUser?.email,
+                          created_by: currentUser?.email,
+                          status: 'open',
+                          case_id: surrogate.id,
+                          case_type: 'surrogate',
+                        })
+                      } catch (err) { console.error('Auto-task creation failed:', err) }
+                    }
                   }
                 }}
               />

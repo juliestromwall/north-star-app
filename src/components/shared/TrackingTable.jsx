@@ -190,7 +190,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
       history: [...history, entry],
     })
     console.log('[TrackingTable] submitLog:', { stepId, status: entryStatus, optionLabel: entryOptionLabel, textValue, hasOnStatusLog: !!onStatusLog })
-    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: entryStatus, by: currentUserName })
+    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: entryStatus, optionLabel: entryOptionLabel, by: currentUserName, date: logDate || new Date().toISOString().split('T')[0] })
     setLogStatus('')
     setLogNote('')
     setAddingLogFor(null)
