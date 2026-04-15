@@ -610,23 +610,40 @@ export async function updateSurrogateProfileStatus(email, status) {
 export async function adminUpdateSurrogateProfile(email, profileData) {
   if (!supabase) return null
   const cleanEmail = email.trim().toLowerCase()
-  // Try update first
-  const { data: updated, error: updateErr } = await supabase
+  // Find existing record — prefer the one with user_id
+  const { data: existing } = await supabase
     .from('surrogate_profiles')
-    .update({ profile_data: profileData, updated_at: new Date().toISOString() })
+    .select('id, user_id')
     .eq('email', cleanEmail)
-    .select()
-  // If no rows matched, insert a new row
-  if (!updateErr && (!updated || updated.length === 0)) {
+    .order('user_id', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .single()
+  if (existing) {
+    // Update the existing record by ID (avoids duplicates)
+    const { data: updated, error: updateErr } = await supabase
+      .from('surrogate_profiles')
+      .update({ profile_data: profileData, updated_at: new Date().toISOString() })
+      .eq('id', existing.id)
+      .select()
+    if (updateErr) throw updateErr
+    return updated?.[0] || null
+  }
+  // No record exists — insert with user_id from intake if available
+  let userId = null
+  try {
+    const { data: intake } = await supabase.from('intake_submissions')
+      .select('user_id').eq('applicant_email', cleanEmail).not('user_id', 'is', null).limit(1).single()
+    if (intake?.user_id) userId = intake.user_id
+  } catch {}
+  {
     const { data: inserted, error: insertErr } = await supabase
       .from('surrogate_profiles')
-      .insert({ email: cleanEmail, profile_data: profileData, updated_at: new Date().toISOString() })
+      .insert({ email: cleanEmail, user_id: userId, profile_data: profileData, updated_at: new Date().toISOString() })
       .select()
       .single()
     if (insertErr) throw insertErr
     return inserted
   }
-  if (updateErr) throw updateErr
   return updated?.[0] || null
 }
 
