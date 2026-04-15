@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Check, Gift, DollarSign, ArrowUpDown, Plus } from 'lucide-react'
+import { Search, Check, Gift, DollarSign, ArrowUpDown, Plus, Eye } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -597,6 +597,8 @@ function ReferralTable({ rows, onMarkHalfPaid, onMarkPaid, onDateChange, showPai
 
 // ── Bonus Table ──
 function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showPaidCol }) {
+  const [previewUrl, setPreviewUrl] = useState(null)
+
   if (rows.length === 0) {
     return (
       <Card>
@@ -611,6 +613,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
   }
 
   return (
+    <>
     <Card>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
@@ -643,11 +646,15 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.dateApplied ? formatDate(row.dateApplied) : '—'}</td>
                   <td className="px-4 py-3 border-r border-stone-100">
                     {row.paymentMethod ? (
-                      <div>
-                        <span className="font-semibold text-stone-800">{row.paymentMethod}</span>
-                        {row.paymentInfo && <p className="text-[10px] text-stone-500">{row.paymentInfo}</p>}
+                      <div className="flex items-center gap-1.5">
+                        <div>
+                          <span className="font-semibold text-stone-800">{row.paymentMethod}</span>
+                          {row.paymentInfo && <p className="text-[10px] text-stone-500">{row.paymentInfo}</p>}
+                        </div>
                         {row.paymentScreenshot && (
-                          <a href={row.paymentScreenshot} target="_blank" rel="noreferrer" className="text-[10px] text-[#283693] hover:underline">View screenshot</a>
+                          <button onClick={() => setPreviewUrl(row.paymentScreenshot)} className="p-1 text-stone-300 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0" title="View screenshot">
+                            <Eye className="size-3.5" />
+                          </button>
                         )}
                       </div>
                     ) : (
@@ -696,5 +703,14 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
         </div>
       </CardContent>
     </Card>
+
+    {/* Screenshot Preview */}
+    <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Payment Screenshot</DialogTitle></DialogHeader>
+        {previewUrl && <img src={previewUrl} alt="Payment screenshot" className="w-full rounded-lg" />}
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
