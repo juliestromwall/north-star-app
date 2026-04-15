@@ -686,8 +686,8 @@ export default function SurrogateProfilePage() {
   async function handleSubmitForReview() {
     setSubmitting(true)
     try {
-      const firstName = profile?.personal?.firstName || 'Surrogate'
-      const lastName = profile?.personal?.lastName || ''
+      const firstName = profile?.personal?.firstName || currentUser?.name?.split(' ')[0] || 'Surrogate'
+      const lastName = profile?.personal?.lastName || currentUser?.name?.split(' ').slice(1).join(' ') || ''
       const surrogateName = `${firstName} ${lastName}`.trim()
 
       // 1. Update profile status to "pending_review"
@@ -730,8 +730,8 @@ export default function SurrogateProfilePage() {
             const today = new Date().toISOString().split('T')[0]
             const stepData = tracking[profileStep.id] || {}
             const history = stepData.history || []
-            history.push({ status: 'started', date: today, note: 'Profile submitted for review by surrogate', by: surrogateName })
-            tracking[profileStep.id] = { ...stepData, status: 'started', history }
+            history.push({ status: 'submitted', date: today, note: 'Profile submitted for review by surrogate', by: surrogateName })
+            tracking[profileStep.id] = { ...stepData, status: 'submitted', history }
             await setRecordTrackingDB(intakeCaseId, tracking)
           }
         } catch (err) { console.error('Checklist log failed:', err) }
@@ -806,6 +806,19 @@ export default function SurrogateProfilePage() {
           </Button>
         </div>
 
+        {/* Submitted banner */}
+        {profileSubmitted && !profileApproved && (
+          <div className="flex items-center gap-3 p-5 rounded-xl bg-blue-50 border-2 border-blue-200 shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+              <Send className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-bold text-blue-800">Profile Submitted for Review</p>
+              <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions. If you need to make edits, please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="font-semibold underline">jenn@abcsurrogacy.com</a>.</p>
+            </div>
+          </div>
+        )}
+
         {/* Approved banner */}
         {profileApproved && (
           <div className="flex items-center gap-3 p-5 rounded-xl bg-green-50 border-2 border-green-300 shadow-sm">
@@ -814,7 +827,7 @@ export default function SurrogateProfilePage() {
             </div>
             <div>
               <p className="font-bold text-green-800">Profile Approved</p>
-              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. It is now visible to intended parents. If you need to make changes, please contact the agency.</p>
+              <p className="text-sm text-green-600 mt-0.5">Your profile has been reviewed and approved by the ABC Surrogacy team. It is now visible to intended parents. If you need to make changes, please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="font-semibold underline">jenn@abcsurrogacy.com</a>.</p>
             </div>
           </div>
         )}
@@ -832,11 +845,12 @@ export default function SurrogateProfilePage() {
               const Icon = sec.icon
               const isOpen = !!openSections[sec.key]
 
+              const isLocked = profileApproved || profileSubmitted
               return (
-                <Collapsible key={sec.key} open={profileApproved ? false : isOpen} onOpenChange={() => !profileApproved && toggleSection(sec.key)}>
-                  <Card id={`section-${sec.key}`} className={`rounded-2xl shadow-sm border-gray-100 overflow-hidden ${profileApproved ? 'opacity-60' : ''}`}>
+                <Collapsible key={sec.key} open={isLocked ? false : isOpen} onOpenChange={() => !isLocked && toggleSection(sec.key)}>
+                  <Card id={`section-${sec.key}`} className={`rounded-2xl shadow-sm border-gray-100 overflow-hidden ${isLocked ? 'opacity-60' : ''}`}>
                     <CollapsibleTrigger asChild>
-                      <CardHeader className={`${profileApproved ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50/50'} transition-colors`}>
+                      <CardHeader className={`${isLocked ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50/50'} transition-colors`}>
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             complete ? 'bg-green-100' : 'bg-[#283693]/10'
@@ -864,7 +878,7 @@ export default function SurrogateProfilePage() {
                       </CardHeader>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className={profileApproved ? 'pointer-events-none opacity-60' : ''}>
+                      <CardContent className={isLocked ? 'pointer-events-none opacity-60' : ''}>
                         <SectionBody sectionKey={sec.key} v={v} u={u} profile={profile} setProfile={setProfile} />
                       </CardContent>
                     </CollapsibleContent>
@@ -891,18 +905,6 @@ export default function SurrogateProfilePage() {
               </div>
             )}
 
-            {/* Submitted banner */}
-            {profileSubmitted && !profileApproved && (
-              <div className="flex items-center gap-3 p-5 rounded-xl bg-blue-50 border-2 border-blue-200 shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                  <Send className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-bold text-blue-800">Profile Submitted for Review</p>
-                  <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions.</p>
-                </div>
-              </div>
-            )}
           </>
         )}
 

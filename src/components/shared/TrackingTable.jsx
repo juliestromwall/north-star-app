@@ -243,6 +243,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     if (statusId === 'faxed_request' || statusId === 'refaxed_request' || statusId === 'requested') return 'text-amber-600 bg-amber-50 border-amber-200'
     if (statusId === 'confirmed_fax_received' || statusId === 'records_sent_mail') return 'text-indigo-600 bg-indigo-50 border-indigo-200'
     if (statusId === 'started') return 'text-cyan-600 bg-cyan-50 border-cyan-200'
+    if (statusId === 'submitted') return 'text-violet-600 bg-violet-50 border-violet-200'
     if (statusId === 'in_progress') return 'text-blue-600 bg-blue-50 border-blue-200'
     if (statusId === 'note') return 'text-stone-600 bg-stone-50 border-stone-200'
     if (statusId === 'reviewing') return 'text-purple-600 bg-purple-50 border-purple-200'
