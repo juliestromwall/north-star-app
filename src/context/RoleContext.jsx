@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { ROLES } from '@/lib/constants'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogateProfileByEmail, findCaseByEmail } from '@/lib/db'
+import { fetchSurrogateProfileByEmail, findCaseByEmail, getAppConfig } from '@/lib/db'
 
 const MOCK_USERS = {
   [ROLES.SUPER_ADMIN]: {
@@ -100,6 +100,13 @@ export function RoleProvider({ children }) {
               if (profile?.profile_data?.personal?.profilePhotoUrl) {
                 avatar = profile.profile_data.personal.profilePhotoUrl
               }
+            }
+            // For admins: load avatar from user preferences
+            if (!avatar && [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN, ROLES.OFFICE_ADMIN].includes(role)) {
+              try {
+                const prefs = await getAppConfig(`user_prefs_${user.id}`)
+                if (prefs?.avatarUrl) avatar = prefs.avatarUrl
+              } catch {}
             }
           }
         } catch {}

@@ -25,6 +25,143 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight } from 'lucide-react'
 import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
+import { getAppConfig, setAppConfig, uploadProfilePhoto } from '@/lib/db'
+import ProfileAvatar from '@/components/shared/ProfileAvatar'
+
+const US_TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Chicago', label: 'Central Time (CT)' },
+  { value: 'America/Denver', label: 'Mountain Time (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' },
+  { value: 'America/Phoenix', label: 'Arizona (no DST)' },
+]
+
+// ── Admin Profile Section ──────────────────────────────────
+function AdminProfileSection() {
+  const { currentUser } = useRole()
+  const [prefs, setPrefs] = useState({ timezone: '', defaultView: 'grid', avatarUrl: '' })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const prefsKey = `user_prefs_${currentUser?.id}`
+
+  useEffect(() => {
+    if (!currentUser?.id) return
+    getAppConfig(prefsKey).then(data => {
+      if (data) setPrefs(p => ({ ...p, ...data }))
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [currentUser?.id])
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await setAppConfig(prefsKey, prefs)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) { console.error('Failed to save preferences:', err) }
+    finally { setSaving(false) }
+  }
+
+  async function handleAvatarUpload(file) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const result = await uploadProfilePhoto(currentUser.id, file)
+      if (result?.url) {
+        const updated = { ...prefs, avatarUrl: result.url }
+        setPrefs(updated)
+        await setAppConfig(prefsKey, updated)
+      }
+    } catch (err) { console.error('Upload failed:', err) }
+    finally { setUploading(false) }
+  }
+
+  if (loading) return null
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-stone-800 flex items-center gap-2">
+          <UserCog className="size-5 text-[#283693]" /> Admin Settings
+        </h3>
+        <p className="text-sm text-stone-400 mt-0.5">Your personal profile and preferences</p>
+      </div>
+
+      <Card className="rounded-2xl">
+        <CardContent className="p-6 space-y-6">
+          {/* Profile Image */}
+          <div className="space-y-2">
+            <label className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Profile Image</label>
+            <div className="flex items-center gap-4">
+              <ProfileAvatar name={currentUser?.name || ''} avatar={prefs.avatarUrl || currentUser?.avatar} size="xl" />
+              <div className="space-y-2">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-[#283693] text-white hover:bg-[#1e2a6e] transition-colors">
+                  {uploading ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                  {uploading ? 'Uploading...' : 'Upload Photo'}
+                  <input type="file" accept="image/*" className="hidden" onChange={e => handleAvatarUpload(e.target.files?.[0])} disabled={uploading} />
+                </label>
+                {prefs.avatarUrl && (
+                  <button onClick={() => setPrefs(p => ({ ...p, avatarUrl: '' }))} className="block text-[10px] text-stone-400 hover:text-red-500 transition-colors">
+                    Remove photo
+                  </button>
+                )}
+                <p className="text-[10px] text-stone-400">JPG, PNG, or GIF. Max 5MB.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timezone */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Timezone</label>
+            <select
+              value={prefs.timezone}
+              onChange={e => setPrefs(p => ({ ...p, timezone: e.target.value }))}
+              className="w-full max-w-sm h-9 text-sm border border-stone-200 rounded-md px-2 bg-white"
+            >
+              <option value="">Auto-detect</option>
+              {US_TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Default View */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-stone-500 font-semibold uppercase tracking-wider">Default Case View</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPrefs(p => ({ ...p, defaultView: 'grid' }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'grid' ? 'border-[#283693] bg-[#283693]/5 text-[#283693]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                Card View
+              </button>
+              <button
+                onClick={() => setPrefs(p => ({ ...p, defaultView: 'list' }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${prefs.defaultView === 'list' ? 'border-[#283693] bg-[#283693]/5 text-[#283693]' : 'border-stone-200 text-stone-500 hover:bg-stone-50'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+                List View
+              </button>
+            </div>
+          </div>
+
+          {/* Save */}
+          <div className="flex items-center gap-3 pt-2">
+            <Button size="sm" style={{ backgroundColor: '#283693' }} className="gap-1.5" onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="size-3 animate-spin" /> : saved ? <CheckCircle2 className="size-3" /> : <Check className="size-3" />}
+              {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Preferences'}
+            </Button>
+            {saved && <span className="text-xs text-green-600 font-medium">Preferences saved successfully</span>}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 // ── Admin Notes Section (unchanged) ──────────────────────────
 
@@ -1404,6 +1541,8 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Manage team, statuses, checklists, and app configuration"
       />
+      <AdminProfileSection />
+      <div className="border-t border-stone-200" />
       <GoogleIntegrationSection />
       <div className="border-t border-stone-200" />
       <AdminNotesSection />

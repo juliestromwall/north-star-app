@@ -57,6 +57,14 @@ export default function AdminDashboard() {
   const [savingNote, setSavingNote] = useState(false)
   const [followingUp, setFollowingUp] = useState(null)
 
+  // Load user preferences (default view)
+  useEffect(() => {
+    if (!currentUser?.id) return
+    getAppConfig(`user_prefs_${currentUser.id}`).then(data => {
+      if (data?.defaultView) setCaseView(data.defaultView)
+      else setCaseView('grid')
+    }).catch(() => setCaseView('grid'))
+  }, [currentUser?.id])
 
   useEffect(() => {
     Promise.all([
