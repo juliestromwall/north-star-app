@@ -2569,6 +2569,60 @@ const SECTION_DESCRIPTIONS = {
   hopesWishes: 'Surrogacy goals, preferences, and compensation',
 }
 
+// Conditional fields: only show when parent field has a specific value
+const CONDITIONAL_FIELDS = {
+  otherLanguagesDetails: { parent: 'otherLanguages', showWhen: 'yes' },
+  sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
+  infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
+  gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
+  breastfeedingStopDate: { parent: 'breastfeeding', showWhen: 'yes' },
+  cycleLengthDetails: { parent: 'cycleLength', showWhen: 'no' },
+  pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
+  childrenFullTimeDetails: { parent: 'childrenFullTime', showWhen: 'no' },
+  childrenSpecialNeedsDetails: { parent: 'childrenSpecialNeeds', showWhen: 'yes' },
+  placedForAdoptionDetails: { parent: 'placedForAdoption', showWhen: 'yes' },
+  planMoreChildrenDetails: { parent: 'planMoreChildren', showWhen: 'yes' },
+  smokingHistoryDetails: { parent: 'smokingHistory', showWhen: 'yes' },
+  householdSmokerDetails: { parent: 'householdSmoker', showWhen: 'yes' },
+  alcoholDrugsDetails: { parent: 'alcoholDrugs', showWhen: 'yes' },
+  advisedLimitDetails: { parent: 'advisedLimitSubstances', showWhen: 'yes' },
+  householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
+  householdSubstancesPurpose: { parent: 'householdControlledSubstances', showWhen: 'yes' },
+  gunsDetails: { parent: 'gunsOwned', showWhen: 'yes' },
+  piercingsTattoosDetails: { parent: 'piercingsTattoos', showWhen: 'yes' },
+  lastTattooDate: { parent: 'piercingsTattoos', showWhen: 'yes' },
+  eatingDisordersDetails: { parent: 'eatingDisorders', showWhen: 'yes' },
+  criminalHistoryDetails: { parent: 'criminalHistory', showWhen: 'yes' },
+  recentTravelDetails: { parent: 'recentTravel', showWhen: 'yes' },
+  travelPlansDetails: { parent: 'travelPlans', showWhen: 'yes' },
+  sleepIssuesDetails: { parent: 'sleepIssues', showWhen: 'yes' },
+  mentalHealthDetails: { parent: 'mentalHealthDiagnosis', showWhen: 'yes' },
+  mentalHealthHospDetails: { parent: 'mentalHealthHospitalization', showWhen: 'yes' },
+  mentalHealthMedDetails: { parent: 'mentalHealthMedication', showWhen: 'yes' },
+  counselingDetails: { parent: 'counselingTherapy', showWhen: 'yes' },
+  familyMentalHealthDetails: { parent: 'familyMentalHealth', showWhen: 'yes' },
+  domesticViolenceDetails: { parent: 'domesticViolence', showWhen: 'yes' },
+  vaccinationReasons: { parent: 'openToVaccinations', showWhen: 'no' },
+  governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
+  insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
+  currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
+  lifestyleChangesDetails: { parent: 'lifestyleChanges', showWhen: 'yes' },
+  ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
+  cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'yes' },
+  conditionsWontTerminate: { parent: 'willingnessToTerminate', showWhen: 'yes' },
+  diseaseHistoryDetails: { parent: 'diseaseHistory', showWhen: '_array_has_value' },
+}
+
+function isConditionalVisible(fieldKey, sectionData) {
+  const cond = CONDITIONAL_FIELDS[fieldKey]
+  if (!cond) return true
+  const parentVal = sectionData?.[cond.parent]
+  if (cond.showWhen === '_array_has_value') {
+    return Array.isArray(parentVal) && parentVal.some(d => d !== 'None of the Above')
+  }
+  return parentVal === cond.showWhen || parentVal === true
+}
+
 const PROFILE_SECTIONS = [
   { key: 'personal', title: 'Personal Information', fields: [
     'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
@@ -4174,6 +4228,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               const isEditing = editingSection?.key === sec.key
               const isOpen = openAdminSections[sec.key]
               const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && k !== '_hiddenFields' && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
+                .filter(f => isConditionalVisible(f, sectionData))
 
               const scalarFields = allFields.filter(f => {
                 const val = isEditing && editData ? editData[f] : sectionData[f]
