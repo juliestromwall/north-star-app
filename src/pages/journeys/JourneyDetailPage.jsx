@@ -411,7 +411,7 @@ function JourneyMilestoneTimeline({ journey }) {
 }
 
 // ── Checklist Tab (uses shared TrackingTable) ─
-function JourneyChecklistTab({ journey, onUpdate }) {
+function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
   const steps = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
@@ -443,6 +443,32 @@ function JourneyChecklistTab({ journey, onUpdate }) {
         tracking={tracking}
         onUpdate={handleUpdate}
         currentUserName={currentUser.name}
+        onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
+          if (status === 'complete') {
+            const julieEmail = 'julie@abcsurrogacy.com'
+            const sName = gcCase?.name || journey.gc_name || 'Surrogate'
+            const logDt = date || new Date().toISOString().split('T')[0]
+            const lbl = stepLabel.toLowerCase()
+            const ans = gcCase?.answers || {}
+            const src = ans.hearAboutUs || ''
+            const isRef = src.toLowerCase().includes('friend') || src.toLowerCase().includes('family')
+            const refName = ans.referralName || ans.hearAboutUsOther || 'Referrer'
+
+            if (lbl.includes('medical clearance')) {
+              if (isRef) {
+                try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              }
+              try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+            }
+
+            if (lbl.includes('legal clearance')) {
+              if (isRef) {
+                try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              }
+              try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+            }
+          }
+        }}
       />
       <ChecklistHistory history={journey.journey_data?._checklistHistory} />
     </div>
@@ -2778,7 +2804,7 @@ export default function JourneyDetailPage() {
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
           {/* Checklist */}
-          <JourneyChecklistTab journey={journey} onUpdate={async (updates) => {
+          <JourneyChecklistTab journey={journey} gcCase={gcCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
