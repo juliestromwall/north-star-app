@@ -304,6 +304,8 @@ export default function SurrogateDetailPage() {
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [stageOpen, setStageOpen] = useState(false)
   const [stageConfirm, setStageConfirm] = useState(null) // { stageId } for blocked-stage confirmation
+  const [releaseConfirm, setReleaseConfirm] = useState(false) // release application dialog
+  const [releasing, setReleasing] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const toggleFlip = (key) => setFlipped(prev => ({ ...prev, [key]: !prev[key] }))
@@ -801,23 +803,7 @@ export default function SurrogateDetailPage() {
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7 px-2"
-                    onClick={async () => {
-                      try {
-                        const { supabase: sb } = await import('@/lib/supabase')
-                        if (!sb) return
-                        const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
-                        if (row) {
-                          const updated = {
-                            ...(row.answers || {}),
-                            _applicationAvailable: true,
-                            _applicationReleasedAt: new Date().toISOString(),
-                            _applicationReleasedBy: currentUser.name,
-                          }
-                          await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
-                          setQuizAnswers(prev => ({ ...prev, _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString() }))
-                        }
-                      } catch (err) { console.error('Failed to release application:', err) }
-                    }}>
+                    onClick={() => setReleaseConfirm(true)}>
                     <ClipboardList className="size-3" /> Release Application
                   </Button>
                 )}
@@ -848,6 +834,78 @@ export default function SurrogateDetailPage() {
                     <AlertTriangle className="size-3.5" /> Confirm
                   </Button>
                 </DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Release Application confirmation */}
+          <Dialog open={releaseConfirm} onOpenChange={setReleaseConfirm}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <ClipboardList className="size-5 text-[#283693]" />
+                  Release Application
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-stone-500">
+                This will open the application for <strong>{surrogate?.name}</strong> to complete. Would you also like to send them an email notification?
+              </p>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  disabled={releasing}
+                  style={{ backgroundColor: '#283693' }}
+                  onClick={async () => {
+                    setReleasing(true)
+                    try {
+                      const { supabase: sb } = await import('@/lib/supabase')
+                      if (!sb) return
+                      const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                      if (row) {
+                        const updated = { ...(row.answers || {}), _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString(), _applicationReleasedBy: currentUser.name }
+                        await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+                        setQuizAnswers(prev => ({ ...prev, _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString() }))
+                      }
+                      // Send email
+                      fetch('/api/notify-app-released', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          surrogateEmail: surrogate.email,
+                          surrogateName: surrogate.name,
+                          adminName: currentUser.name,
+                        }),
+                      }).catch(() => {})
+                    } catch (err) { console.error('Failed to release:', err) }
+                    setReleasing(false)
+                    setReleaseConfirm(false)
+                  }}
+                >
+                  {releasing ? 'Releasing...' : 'Release & Send Email'}
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={releasing}
+                  onClick={async () => {
+                    setReleasing(true)
+                    try {
+                      const { supabase: sb } = await import('@/lib/supabase')
+                      if (!sb) return
+                      const { data: row } = await sb.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
+                      if (row) {
+                        const updated = { ...(row.answers || {}), _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString(), _applicationReleasedBy: currentUser.name }
+                        await sb.from('intake_submissions').update({ answers: updated }).eq('id', surrogate.id)
+                        setQuizAnswers(prev => ({ ...prev, _applicationAvailable: true, _applicationReleasedAt: new Date().toISOString() }))
+                      }
+                    } catch (err) { console.error('Failed to release:', err) }
+                    setReleasing(false)
+                    setReleaseConfirm(false)
+                  }}
+                >
+                  Just Release
+                </Button>
+                <Button variant="ghost" onClick={() => setReleaseConfirm(false)} className="text-stone-400">
+                  Cancel
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
