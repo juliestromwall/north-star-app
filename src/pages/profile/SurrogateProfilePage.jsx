@@ -902,6 +902,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
   const bmi = about.bmi || (about.heightFt && about.weight ? ((parseFloat(about.weight) / ((parseInt(about.heightFt)*12 + parseInt(about.heightIn||0)) ** 2)) * 703).toFixed(1) : '')
   const [lightboxIdx, setLightboxIdx] = useState(null)
   const heroPhoto = photos?.[0]
+  const portraitPhoto = photos?.find(p => p.path?.includes('/portrait/'))
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
 
@@ -923,6 +924,11 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
         <div data-pdf="cover" className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
           <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
+          {portraitPhoto && (
+            <div className="absolute bottom-4 left-6 sm:left-8 z-10 print:left-4">
+              <img src={portraitPhoto.url} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-white shadow-lg print:w-20 print:h-20" />
+            </div>
+          )}
           {photos.length > 1 && (
             <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full print:hidden">
               {photos.length} photos

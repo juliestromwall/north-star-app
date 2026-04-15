@@ -51,16 +51,21 @@ export default function SharedProfilePage() {
             if (profile?.profile_data) setProfileData(profile.profile_data)
             // Use user_id from profile record (most reliable) or from intake
             const uid = profile?.user_id || gc.userId || gc.user_id
-            if (uid) {
-              const ps = await Promise.all([
-                listProfilePhotos(uid).catch(() => []),
-                listProfilePhotos(`${uid}/headshot`).catch(() => []),
-                listProfilePhotos(`${uid}/portrait`).catch(() => []),
+            const caseId = String(gc.id || '')
+            const ids = [uid, caseId].filter(Boolean)
+            const uniqueIds = [...new Set(ids)]
+            let allHeadshots = [], allPortraits = [], allGallery = []
+            for (const id of uniqueIds) {
+              const [gallery, headshots, portraits] = await Promise.all([
+                listProfilePhotos(id).catch(() => []),
+                listProfilePhotos(`${id}/headshot`).catch(() => []),
+                listProfilePhotos(`${id}/portrait`).catch(() => []),
               ])
-              // Order: headshot (cover) first, then portrait, then gallery
-              const allPhotos = [...ps[1], ...ps[2], ...ps[0]]
-              setPhotos(allPhotos)
+              allHeadshots.push(...headshots)
+              allPortraits.push(...portraits)
+              allGallery.push(...gallery)
             }
+            setPhotos([...allHeadshots, ...allPortraits, ...allGallery])
           }
         } else {
           const all = await fetchIPsFromIntake()
