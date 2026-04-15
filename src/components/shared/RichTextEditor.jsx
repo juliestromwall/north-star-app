@@ -10,7 +10,7 @@ import {
   List, ListOrdered, Palette, Undo2, Redo2, ImageIcon,
   AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const TEXT_COLORS = [
   { color: '#000000', label: 'Black' },
@@ -110,6 +110,13 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
       },
     },
   })
+
+  // Sync editor content when prop changes (e.g. opening edit dialog)
+  useEffect(() => {
+    if (editor && content !== undefined && editor.getHTML() !== content) {
+      editor.commands.setContent(content || '')
+    }
+  }, [editor, content])
 
   if (!editor) return null
 
