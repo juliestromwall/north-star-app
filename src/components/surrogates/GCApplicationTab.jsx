@@ -1173,7 +1173,14 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
     setUploading(true)
     try {
       const doc = await uploadCaseDocument({ surrogateId: surrogate.id, category: 'Payment Info', file, uploadedBy: 'Admin' })
-      if (doc?.public_url) set('screenshotUrl', doc.public_url)
+      if (doc?.public_url) {
+        set('screenshotUrl', doc.public_url)
+        // Auto-save immediately so the URL persists
+        const updatedForm = { ...form, screenshotUrl: doc.public_url }
+        const updatedAnswers = { ...answers, _paymentPreference: updatedForm }
+        await updateIntakeSubmission(surrogate.id, { answers: updatedAnswers }).catch(() => {})
+        if (onSaved) onSaved(updatedAnswers)
+      }
     } catch (err) { console.error('Upload failed:', err) }
     finally { setUploading(false) }
   }

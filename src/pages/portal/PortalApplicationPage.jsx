@@ -240,7 +240,12 @@ function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggl
     setUploading(true)
     try {
       const doc = await uploadCaseDocument({ surrogateId: caseId, category: 'Payment Info', file, uploadedBy: 'Surrogate' })
-      if (doc?.public_url) setForm(f => ({ ...f, screenshotUrl: doc.public_url }))
+      if (doc?.public_url) {
+        const updatedForm = { ...form, screenshotUrl: doc.public_url }
+        setForm(updatedForm)
+        // Auto-save immediately so the URL persists
+        if (onSave) onSave('_paymentPreference', updatedForm)
+      }
     } catch (err) { console.error('Upload failed:', err) }
     finally { setUploading(false) }
   }
