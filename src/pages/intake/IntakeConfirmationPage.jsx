@@ -152,16 +152,24 @@ export default function IntakeConfirmationPage() {
             Thank You{name ? `, ${name}` : ''}!
           </h1>
 
-          <p className="text-stone-600 mb-8 leading-relaxed">
-            Please be sure to check your spam folder, to not miss any emails from us. Congratulations on taking the first step in this process. A member of our team will reach out to you within 48 hours.
+          <p className="text-stone-600 mb-4 leading-relaxed">
+            Please be sure to check your spam folder, to not miss any emails from us.
           </p>
+
+          <p className="text-stone-600 mb-8 leading-relaxed">
+            We are currently reviewing your information, and we will be in touch within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
+          </p>
+
+          <div className="rounded-xl overflow-hidden mb-8">
+            <img src="/abc-team.jpg" alt="The ABC Surrogacy Team" className="w-full" />
+          </div>
 
           <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
             <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
             <p className="text-sm text-stone-500">
               You can reach our team any time at{' '}
-              <a href="mailto:intake@abcsurrogacy.com" className="text-[#464DA0] underline">
-                intake@abcsurrogacy.com
+              <a href="mailto:info@abcsurrogacy.com" className="text-[#464DA0] underline font-medium">
+                info@abcsurrogacy.com
               </a>
             </p>
           </div>

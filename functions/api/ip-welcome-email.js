@@ -33,12 +33,12 @@ export async function onRequestPost(context) {
           Hello, <span style="color: #ed148c;">${firstName}</span>! 👋
         </h1>
 
-        <div style="text-align: center; margin: 16px 0 24px;">
+        <div style="margin: 20px 0 24px;">
           <p style="font-size: 14px; color: #44403c; line-height: 1.7;">
-            We understand how deeply meaningful this journey is to you, and we're truly honored that you've chosen Abundant Beginnings to be part of it. Building a family is one of life's most beautiful experiences, and we want you to know that our team is here to support you with care, compassion, and expertise every step of the way.
+            Thank you for reaching out to Abundant Beginnings Co (ABC Surrogacy). We're truly honored that you've considered us to be a part of your journey.
           </p>
           <p style="font-size: 14px; color: #44403c; line-height: 1.7; margin-top: 12px;">
-            We can't wait to connect with you and learn more about your story.
+            Building a family is one of life's most beautiful experiences, and our team is here to support you with care, compassion, and expertise every step of the way. We look forward to learning more about your story.
           </p>
         </div>
 
@@ -47,8 +47,12 @@ export async function onRequestPost(context) {
             What happens next?
           </p>
           <p style="margin: 0; color: #44403c; font-size: 14px; line-height: 1.8;">
-            Our team is reviewing your information and we will reach out to you within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
+            We are currently reviewing your information, and we will be in touch within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
           </p>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <img src="https://app.abcsurrogacy.com/abc-team.jpg" alt="The ABC Surrogacy Team" style="max-width: 100%; border-radius: 12px;" />
         </div>
 
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
