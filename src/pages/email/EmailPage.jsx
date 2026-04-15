@@ -494,7 +494,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
 
 // ── Email Detail View ───────────────────────────────────
 
-function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onArchive, onTrash }) {
+function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onForward, onArchive, onTrash }) {
   const { isMasterAdmin } = useRole()
   const [logOpen, setLogOpen] = useState(false)
   const [downloading, setDownloading] = useState(null)
@@ -540,6 +540,9 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onForward, onAr
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={onReply} className="gap-1.5">
             <Reply className="size-4" /> Reply
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onReplyAll} className="gap-1.5">
+            <Reply className="size-4" /> Reply All
           </Button>
           <Button variant="ghost" size="sm" onClick={onForward} className="gap-1.5">
             <Forward className="size-4" /> Forward
@@ -1017,6 +1020,7 @@ export default function EmailPage() {
   // Compose actions — all use DraftContext now
   const handleCompose = () => openDraft({ userId })
   const handleReply = () => openDraft({ replyTo: selectedEmail, userId })
+  const handleReplyAll = () => openDraft({ replyTo: { ...selectedEmail, _replyAll: true, _myEmail: currentUser?.email }, userId })
   const handleForward = () => openDraft({ forwardMsg: selectedEmail, userId })
 
   const handleArchive = async () => {
@@ -1106,6 +1110,7 @@ export default function EmailPage() {
             userName={currentUser?.name}
             onBack={() => setSelectedEmail(null)}
             onReply={handleReply}
+            onReplyAll={handleReplyAll}
             onForward={handleForward}
             onArchive={handleArchive}
             onTrash={handleTrash}

@@ -40,6 +40,17 @@ export function DraftProvider({ children }) {
       initialTo = fromEmail || ''
       initialSubject = replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject || ''}`
       initialBody = `<p></p><br/><div style="border-left:2px solid #ccc;padding-left:12px;margin-top:12px;color:#666">On ${replyTo.date}, ${replyTo.from} wrote:<br/>${replyTo.bodyHtml || ''}</div>`
+      // Reply All: include all To + CC recipients (minus self)
+      if (replyTo._replyAll && userId) {
+        const myEmail = replyTo._myEmail || ''
+        const allTo = (replyTo.to || '').split(',').map(e => e.trim()).filter(Boolean)
+        const allCc = (replyTo.cc || '').split(',').map(e => e.trim()).filter(Boolean)
+        const everyone = [...allTo, ...allCc, fromEmail].filter(Boolean)
+        const unique = [...new Set(everyone.map(e => (e.match(/<([^>]+)>/)?.[1] || e).toLowerCase()))]
+        const withoutMe = unique.filter(e => e !== myEmail.toLowerCase())
+        initialTo = fromEmail || ''
+        cc = withoutMe.filter(e => e !== (fromEmail?.match(/<([^>]+)>/)?.[1] || fromEmail)?.toLowerCase()).join(', ')
+      }
     } else if (forwardMsg) {
       initialTo = ''
       initialSubject = `Fwd: ${forwardMsg.subject || ''}`
@@ -59,7 +70,7 @@ export function DraftProvider({ children }) {
       caseId: caseId ? String(caseId) : '',
       caseType: caseType || '',
       minimized: false,
-      showCcBcc: false,
+      showCcBcc: true,
     }
 
     setDrafts(prev => [...prev, draft])

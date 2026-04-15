@@ -11,7 +11,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { useRole } from '@/context/RoleContext'
 import { sendEmail, createGmailDraft } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +21,7 @@ import {
   Send, Paperclip, X, Loader2, Minus, Maximize2, Minimize2, Trash2,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
+  FolderOpen, Search, FileText,
 } from 'lucide-react'
 
 function fileSizeLabel(bytes) {
@@ -174,6 +175,36 @@ function ComposeWindow({ draft, index }) {
   const [cases, setCases] = useState(null)
   const [compact, setCompact] = useState(false) // false = big, true = small
   const fileRef = useRef(null)
+  const [docPickerOpen, setDocPickerOpen] = useState(false)
+  const [caseDocs, setCaseDocs] = useState([])
+  const [docSearch, setDocSearch] = useState('')
+  const [docsLoading, setDocsLoading] = useState(false)
+
+  async function openDocPicker() {
+    if (!draft.caseId) { alert('Select a case first to attach documents.'); return }
+    setDocPickerOpen(true)
+    setDocsLoading(true)
+    setDocSearch('')
+    try {
+      const docs = await fetchCaseDocuments(draft.caseId)
+      setCaseDocs(docs || [])
+    } catch { setCaseDocs([]) }
+    finally { setDocsLoading(false) }
+  }
+
+  async function attachDoc(doc) {
+    try {
+      const res = await fetch(doc.public_url)
+      const blob = await res.blob()
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1]
+        const existing = draft.attachments || []
+        updateDraft(draft.id, { attachments: [...existing, { filename: doc.file_name, mimeType: doc.file_type || 'application/octet-stream', base64Data: base64, size: doc.file_size || blob.size }] })
+      }
+      reader.readAsDataURL(blob)
+    } catch { alert('Failed to attach document') }
+  }
 
   const editor = useEditor({
     extensions: [
@@ -500,9 +531,14 @@ function ComposeWindow({ draft, index }) {
           </Button>
 
           <input type="file" ref={fileRef} onChange={handleFileAdd} multiple hidden />
-          <Button variant="ghost" size="icon-sm" onClick={() => fileRef.current?.click()} className="size-7" title="Attach">
+          <Button variant="ghost" size="icon-sm" onClick={() => fileRef.current?.click()} className="size-7" title="Attach file">
             <Paperclip className="size-3.5" />
           </Button>
+          {draft.caseId && (
+            <Button variant="ghost" size="sm" onClick={openDocPicker} className="h-7 gap-1 text-[10px] text-stone-500 hover:text-[#283693]" title="Attach from case documents">
+              <FolderOpen className="size-3.5" /> Docs
+            </Button>
+          )}
 
           <div className="ml-auto flex items-center gap-1.5">
             <Select
@@ -580,6 +616,56 @@ function ComposeWindow({ draft, index }) {
           </div>
         </div>
       </div>
+
+      {/* Attach from Case Documents Modal */}
+      {docPickerOpen && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center" onClick={() => setDocPickerOpen(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[60vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-stone-800 flex items-center gap-2">
+                <FolderOpen className="size-4 text-[#283693]" /> Attach from Case Documents
+              </h3>
+              <button onClick={() => setDocPickerOpen(false)} className="text-stone-400 hover:text-stone-600"><X className="size-4" /></button>
+            </div>
+            <div className="px-4 py-2 border-b">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-stone-400" />
+                <input value={docSearch} onChange={e => setDocSearch(e.target.value)} placeholder="Search documents..." className="w-full h-8 text-sm border border-stone-200 rounded-lg pl-8 pr-3 bg-white" autoFocus />
+              </div>
+            </div>
+            <div className="overflow-y-auto max-h-[40vh] p-2">
+              {docsLoading ? (
+                <div className="flex items-center justify-center py-8"><Loader2 className="size-5 animate-spin text-stone-400" /></div>
+              ) : caseDocs.length === 0 ? (
+                <p className="text-sm text-stone-400 text-center py-8">No documents found for this case.</p>
+              ) : (
+                <div className="space-y-1">
+                  {caseDocs
+                    .filter(d => !docSearch || d.file_name?.toLowerCase().includes(docSearch.toLowerCase()) || d.category?.toLowerCase().includes(docSearch.toLowerCase()))
+                    .map(doc => {
+                      const alreadyAttached = (draft.attachments || []).some(a => a.filename === doc.file_name)
+                      return (
+                        <button
+                          key={doc.id}
+                          disabled={alreadyAttached}
+                          onClick={() => { attachDoc(doc); setDocPickerOpen(false) }}
+                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5 cursor-pointer'}`}
+                        >
+                          <FileText className="size-4 text-stone-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+                            <p className="text-[10px] text-stone-400">{doc.category?.replace(/_/g, ' ')} {doc.file_size ? `· ${fileSizeLabel(doc.file_size)}` : ''}</p>
+                          </div>
+                          {alreadyAttached && <span className="text-[9px] text-stone-400">Attached</span>}
+                        </button>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
