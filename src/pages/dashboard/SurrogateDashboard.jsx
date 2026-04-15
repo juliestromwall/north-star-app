@@ -11,17 +11,8 @@ import { Link } from 'react-router-dom'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { fetchUserTasks, updateTaskStatus, fetchIntakeByEmail } from '@/lib/db'
 
-// ─── Profile completion (mirrors SurrogateProfilePage logic) ───
-const PROFILE_REQUIRED = {
-  about: ['firstName', 'city', 'state', 'heightFt', 'weight', 'personality'],
-  family: ['maritalStatus', 'whoLivesWithYou', 'planMoreChildren'],
-  pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
-  health: ['mentalHealthDiagnosis', 'bloodType', 'rhFactor', 'openToVaccinations'],
-  lifestyle: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
-  employment: ['currentlyEmployed', 'healthInsurance'],
-  preferences: ['previousSurrogate', 'reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
-}
+// ─── Profile completion — uses shared profileConstants ───
+import { REQUIRED_FIELDS, countCompleted } from '@/components/profile/profileConstants'
 
 function getProfileData(userId) {
   try {
@@ -34,25 +25,23 @@ function getProfileCompletion(userId) {
   const data = getProfileData(userId)
   if (!data) return 0
   let total = 0, filled = 0
-  for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
-    total += fields.length
-    for (const f of fields) {
-      const val = data?.[section]?.[f]
-      if (val !== undefined && val !== '' && val !== null) filled++
-    }
+  for (const sectionKey of Object.keys(REQUIRED_FIELDS)) {
+    const { filled: f, total: t } = countCompleted(data, sectionKey)
+    total += t
+    filled += f
   }
   return total > 0 ? Math.round((filled / total) * 100) : 0
 }
 
 function getFirstIncompleteSection(userId) {
   const data = getProfileData(userId)
-  for (const [section, fields] of Object.entries(PROFILE_REQUIRED)) {
-    for (const f of fields) {
-      const val = data?.[section]?.[f]
-      if (val === undefined || val === '' || val === null) return section
-    }
+  for (const sectionKey of Object.keys(REQUIRED_FIELDS)) {
+    const fields = REQUIRED_FIELDS[sectionKey] || []
+    if (fields.length === 0) continue
+    const { complete } = countCompleted(data, sectionKey)
+    if (!complete) return sectionKey
   }
-  return 'about'
+  return 'personal'
 }
 
 function ProgressRing({ percent, size = 56 }) {
