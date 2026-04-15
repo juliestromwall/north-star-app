@@ -40,7 +40,7 @@ export function JourneyTileCard({ j }) {
             <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
-              <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}</p>
+              <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}{j.gc?.answers?.dob ? ` · DOB ${new Date(j.gc.answers.dob + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : ''}</p>
             </div>
           </div>
         </div>

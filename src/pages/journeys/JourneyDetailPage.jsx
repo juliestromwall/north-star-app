@@ -2489,7 +2489,7 @@ export default function JourneyDetailPage() {
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                <span className="text-stone-500">Min: <EditableTileInline value={jd.escrowMin} onSave={v => updateField('escrowMin', v)} type="currency" className="text-stone-800" /></span>
+                <span className="text-stone-500">Min: <EditableTileInline value={jd.escrowMin || '$10,000.00'} onSave={v => updateField('escrowMin', v)} type="currency" className="text-stone-800" /></span>
                 <span className="text-stone-500">
                   Balance: <EditableTileInline value={jd.escrowBalance} onSave={v => updateFields({ escrowBalance: v, escrowBalanceUpdatedAt: new Date().toISOString() })} type="currency"
                   className={jd.escrowBalance && jd.escrowMin ? (parseCurrency(jd.escrowBalance) >= parseCurrency(jd.escrowMin) ? 'text-emerald-600' : 'text-red-600') : 'text-stone-800'} />
