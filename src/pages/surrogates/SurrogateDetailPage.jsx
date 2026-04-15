@@ -1186,6 +1186,7 @@ export default function SurrogateDetailPage() {
             heightStr={heightStr}
             quizAnswers={quizAnswers}
             setQuizAnswers={setQuizAnswers}
+            insuranceStatus={insuranceStatus}
           />
         </TabsContent>
 
@@ -3464,7 +3465,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   )
 }
 
-export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers }) {
+export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers, insuranceStatus }) {
   const [editingSection, setEditingSection] = useState(null)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -4351,7 +4352,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
       {previewOpen ? (
         <div className="max-w-[850px] mx-auto" ref={previewRef}>
-          <ProfilePreview profile={data} photos={previewPhotos} />
+          <ProfilePreview profile={data} photos={previewPhotos} insuranceStatus={insuranceStatus?.insurance_status} />
         </div>
       ) : (
         <>

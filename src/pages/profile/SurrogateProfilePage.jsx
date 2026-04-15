@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -543,6 +543,7 @@ export default function SurrogateProfilePage() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
   const [intakeCaseId, setIntakeCaseId] = useState(null)
+  const [insuranceStatus, setInsuranceStatus] = useState(null)
   const [profile, setProfile] = useState(() => loadProfile(userId))
   const [profileApproved, setProfileApproved] = useState(false)
   const [openSections, setOpenSections] = useState(() => {
@@ -587,7 +588,14 @@ export default function SurrogateProfilePage() {
   useEffect(() => {
     if (!currentUser?.email || !supabase) return
     supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
-      .then(({ data }) => { if (data?.id) setIntakeCaseId(String(data.id)) })
+      .then(({ data }) => {
+        if (data?.id) {
+          setIntakeCaseId(String(data.id))
+          fetchInsurance(data.id, 'surrogate').then(ins => {
+            if (ins) setInsuranceStatus(ins.insurance_status)
+          }).catch(() => {})
+        }
+      })
       .catch(() => {})
   }, [currentUser?.email])
 
@@ -779,7 +787,7 @@ export default function SurrogateProfilePage() {
         {previewOpen ? (
           /* ── Inline Preview ── */
           <div className="max-w-[850px] mx-auto">
-            <ProfilePreview profile={profile} photos={previewPhotos} />
+            <ProfilePreview profile={profile} photos={previewPhotos} insuranceStatus={insuranceStatus} />
           </div>
         ) : (
           /* ── Section Cards ── */
@@ -881,7 +889,7 @@ function PVYesNo({ label, value, fp }) {
   )
 }
 
-export function ProfilePreview({ profile, photos, hideFooter = false }) {
+export function ProfilePreview({ profile, photos, hideFooter = false, insuranceStatus }) {
   const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
   const p = profile?.personal || profile?.about || {}
   const family = profile?.family || {}
@@ -974,19 +982,31 @@ export function ProfilePreview({ profile, photos, hideFooter = false }) {
                 <span className="text-[11px] text-gray-400">Age</span>
               </div>
             )}
-            {employment.healthInsurance === 'yes' ? (
-              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-emerald-50">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1" />
-                <span className="text-lg font-bold text-emerald-600">Yes</span>
-                <span className="text-[11px] text-gray-400">Insurance</span>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-red-50">
-                <ShieldX className="w-5 h-5 text-red-400 mb-1" />
-                <span className="text-lg font-bold text-red-400">No</span>
-                <span className="text-[11px] text-gray-400">Insurance</span>
-              </div>
-            )}
+            {(() => {
+              const isVerified = insuranceStatus === 'active_policy' || insuranceStatus === 'verified_open_enrollment' || insuranceStatus === 'complete'
+              const isVerifying = insuranceStatus === 'policy_check'
+              if (isVerified) return (
+                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-emerald-50">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1" />
+                  <span className="text-xs font-bold text-emerald-600 text-center leading-tight">Verified</span>
+                  <span className="text-[11px] text-gray-400">Insurance</span>
+                </div>
+              )
+              if (isVerifying) return (
+                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-amber-50">
+                  <ShieldIcon className="w-5 h-5 text-amber-500 mb-1" />
+                  <span className="text-xs font-bold text-amber-500 text-center leading-tight">Verifying</span>
+                  <span className="text-[11px] text-gray-400">Insurance</span>
+                </div>
+              )
+              return (
+                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-red-50">
+                  <ShieldX className="w-5 h-5 text-red-400 mb-1" />
+                  <span className="text-xs font-bold text-red-400 text-center leading-tight">Needs Policy</span>
+                  <span className="text-[11px] text-gray-400">Insurance</span>
+                </div>
+              )
+            })()}
             <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#ed148c]/5">
               <DollarSign className="w-5 h-5 text-[#ed148c] mb-1" />
               <span className="text-2xl font-bold text-[#ed148c]">{hopes.desiredCompensation || '—'}</span>

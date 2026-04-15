@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import { getProfileShare, markShareViewed, createMatchQuestion, fetchMatchQuestions } from '@/lib/matching'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfileByEmail } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfileByEmail, fetchInsurance } from '@/lib/db'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
 import { listProfilePhotos } from '@/lib/db'
 
@@ -22,6 +22,7 @@ export default function SharedProfilePage() {
   const [questions, setQuestions] = useState([])
   const [askForm, setAskForm] = useState({ name: '', email: '', question: '' })
   const [asking, setAsking] = useState(false)
+  const [insuranceStatus, setInsuranceStatus] = useState(null)
   const [asked, setAsked] = useState(false)
 
   useEffect(() => {
@@ -67,6 +68,10 @@ export default function SharedProfilePage() {
             }
             setPhotos([...allHeadshots, ...allPortraits, ...allGallery])
           }
+          // Load insurance status
+          fetchInsurance(gc.id, 'surrogate').then(ins => {
+            if (ins) setInsuranceStatus(ins.insurance_status)
+          }).catch(() => {})
         } else {
           const all = await fetchIPsFromIntake()
           const ip = all.find(i => i.id === shareData.case_id)
@@ -201,7 +206,7 @@ export default function SharedProfilePage() {
             <div className="flex items-center justify-center py-4 border-b bg-white">
               <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 w-auto" />
             </div>
-            <ProfilePreview profile={profileData} photos={photos.filter(p => !(profileData?._hiddenPhotos || []).includes(p.path))} hideFooter />
+            <ProfilePreview profile={profileData} photos={photos.filter(p => !(profileData?._hiddenPhotos || []).includes(p.path))} hideFooter insuranceStatus={insuranceStatus} />
           </div>
         ) : caseData ? (
           <Card className="rounded-2xl">
