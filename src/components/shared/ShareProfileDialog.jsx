@@ -53,7 +53,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 <p style="margin: 0; font-size: 14px; color: #1c1917; line-height: 1.6; font-style: italic;">"${form.message}"</p>
               </div>` : ''}
               <div style="text-align: center; margin: 24px 0;">
-                <a href="${shareUrl}" style="display: inline-block; background: #283693; color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Profile</a>
+                <a href="${shareUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View ${firstName}'s Profile</a>
               </div>
               <p style="font-size: 12px; color: #a8a29e; text-align: center; margin: 0 0 20px;">This link expires in 72 hours.</p>
               <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
