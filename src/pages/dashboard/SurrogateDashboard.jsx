@@ -21,12 +21,14 @@ function getProfileData(userId) {
   } catch { return null }
 }
 
+// Sections visible on the portal profile page (excludes followUp which is application-only)
+const PROFILE_SECTIONS = SECTION_META.filter(s => s.key !== 'followUp')
+
 function getProfileCompletion(userId) {
   const data = getProfileData(userId)
   if (!data) return 0
   let total = 0, filled = 0
-  // Use SECTION_META (same as profile page) so percentages match exactly
-  for (const s of SECTION_META) {
+  for (const s of PROFILE_SECTIONS) {
     const { filled: f, total: t } = countCompleted(data, s.key)
     total += t
     filled += f
@@ -36,7 +38,7 @@ function getProfileCompletion(userId) {
 
 function getFirstIncompleteSection(userId) {
   const data = getProfileData(userId)
-  for (const s of SECTION_META) {
+  for (const s of PROFILE_SECTIONS) {
     const fields = REQUIRED_FIELDS[s.key] || []
     if (fields.length === 0) continue
     const { complete } = countCompleted(data, s.key)

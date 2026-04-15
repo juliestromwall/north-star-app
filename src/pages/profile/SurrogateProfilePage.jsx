@@ -480,7 +480,8 @@ import {
   countCompleted as sharedCountCompleted,
 } from '@/components/profile/profileConstants'
 
-const SECTION_META = SHARED_SECTION_META
+// Filter out followUp — those are application/admin questions, not portal profile sections
+const SECTION_META = SHARED_SECTION_META.filter(s => s.key !== 'followUp')
 const REQUIRED_FIELDS = SHARED_REQUIRED_FIELDS
 const CONDITIONAL_REQUIRED = SHARED_CONDITIONAL_REQUIRED
 const countCompleted = sharedCountCompleted
