@@ -249,6 +249,7 @@ function AdminNotesSection() {
             .admin-note-preview p { margin: 0.15em 0; }
             .admin-note-preview mark { border-radius: 2px; padding: 1px 2px; }
             .admin-note-preview img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+            .admin-note-preview::after { content: ''; display: table; clear: both; }
           `}</style>
           <div className="space-y-3">
             {notes.map((note) => (

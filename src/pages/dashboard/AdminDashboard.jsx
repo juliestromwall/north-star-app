@@ -278,6 +278,7 @@ export default function AdminDashboard() {
         .admin-note-content p { margin: 0.15em 0; }
         .admin-note-content mark { border-radius: 2px; padding: 1px 2px; }
         .admin-note-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+        .admin-note-content::after { content: ''; display: table; clear: both; }
       `}</style>
       {visibleNotes.map((note) => (
         <div key={note.id} className="relative rounded-2xl overflow-hidden border-2 border-[#ed148c]/20" style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' }}>

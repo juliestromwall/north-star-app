@@ -8,6 +8,7 @@ import TiptapImage from '@tiptap/extension-image'
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   List, ListOrdered, Palette, Undo2, Redo2, ImageIcon,
+  AlignLeft, AlignCenter, AlignRight,
 } from 'lucide-react'
 import { useState, useRef } from 'react'
 
@@ -89,7 +90,14 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
       Color,
       TextStyle,
       Underline,
-      TiptapImage.configure({ inline: true, allowBase64: true }),
+      TiptapImage.configure({ inline: true, allowBase64: true, HTMLAttributes: { class: '' } }).extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            style: { default: null, parseHTML: el => el.getAttribute('style'), renderHTML: attrs => attrs.style ? { style: attrs.style } : {} },
+          }
+        },
+      }),
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
@@ -115,7 +123,9 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
         .tiptap li p { margin: 0; }
         .tiptap p { margin: 0.25em 0; }
         .tiptap mark { border-radius: 2px; padding: 1px 2px; }
-        .tiptap img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+        .tiptap img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; cursor: pointer; }
+        .tiptap img.ProseMirror-selectednode { outline: 2px solid #283693; outline-offset: 2px; }
+        .tiptap::after { content: ''; display: table; clear: both; }
       `}</style>
 
       {/* Toolbar */}
@@ -190,6 +200,43 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
         <ToolbarButton onClick={() => imageRef.current?.click()} title="Insert image">
           <ImageIcon className="size-3.5" />
         </ToolbarButton>
+
+        {/* Image alignment — updates the selected image's style */}
+        {editor.isActive('image') && (
+          <>
+            <div className="w-px h-4 bg-stone-200 mx-1" />
+            <ToolbarButton onClick={() => {
+              const { state } = editor
+              const { from } = state.selection
+              const node = state.doc.nodeAt(from)
+              if (node?.type.name === 'image') {
+                editor.chain().focus().updateAttributes('image', { style: 'float: left; margin: 0 12px 8px 0; max-width: 40%;' }).run()
+              }
+            }} title="Float left">
+              <AlignLeft className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => {
+              const { state } = editor
+              const { from } = state.selection
+              const node = state.doc.nodeAt(from)
+              if (node?.type.name === 'image') {
+                editor.chain().focus().updateAttributes('image', { style: 'display: block; margin: 8px auto; max-width: 80%;' }).run()
+              }
+            }} title="Center">
+              <AlignCenter className="size-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => {
+              const { state } = editor
+              const { from } = state.selection
+              const node = state.doc.nodeAt(from)
+              if (node?.type.name === 'image') {
+                editor.chain().focus().updateAttributes('image', { style: 'float: right; margin: 0 0 8px 12px; max-width: 40%;' }).run()
+              }
+            }} title="Float right">
+              <AlignRight className="size-3.5" />
+            </ToolbarButton>
+          </>
+        )}
       </div>
 
       {/* Editor */}
@@ -210,6 +257,7 @@ export function RichTextDisplay({ content }) {
         .note-display p { margin: 0.15em 0; }
         .note-display mark { border-radius: 2px; padding: 1px 2px; }
         .note-display img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+        .note-display::after { content: ''; display: table; clear: both; }
       `}</style>
       <div
         className="note-display text-sm text-stone-700"
