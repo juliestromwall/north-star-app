@@ -3,7 +3,7 @@ import {
   User, Home, Baby, Stethoscope, HeartPulse, Apple, Briefcase,
   Heart, Camera, ChevronDown, CheckCircle2, Circle, Plus, Trash2,
   Ruler, Scale, CalendarDays, MapPin, Upload,
-  Loader2, X, RotateCw, Crop as CropIcon, Eye,
+  Loader2, X, RotateCw, Crop as CropIcon, Eye, Send, AlertTriangle,
   Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon,
   DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX
 } from 'lucide-react'
@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -473,79 +473,18 @@ function ProgressRing({ percent, size = 80, strokeWidth = 6 }) {
 // Section definitions
 // ─────────────────────────────────────────────────────────
 
-const SECTION_META = [
-  { key: 'personal', title: 'Personal Information', icon: User, description: 'Basic info, relationships, and household' },
-  { key: 'pregnancyHistory', title: 'Pregnancy History', icon: Baby, description: 'Previous pregnancies and deliveries' },
-  { key: 'fertility', title: 'Fertility Information', icon: Stethoscope, description: 'Reproductive health and fertility details' },
-  { key: 'general', title: 'General Information', icon: Home, description: 'Housing, lifestyle, habits, and background' },
-  { key: 'health', title: 'Health Information', icon: HeartPulse, description: 'Medical history, medications, and conditions' },
-  { key: 'employment', title: 'Employment Information', icon: Briefcase, description: 'Work, income, and insurance details' },
-  { key: 'interests', title: 'Interests', icon: Heart, description: 'Favorites, hobbies, and personality' },
-  { key: 'academic', title: 'Academic Information', icon: Apple, description: 'Education and training' },
-  { key: 'experiencedSurrogate', title: 'Experienced Surrogate Information', icon: Stethoscope, description: 'Previous surrogacy journey details' },
-  { key: 'hopesWishes', title: 'Journey Hopes & Wishes', icon: Heart, description: 'Your surrogacy goals, preferences, and compensation' },
-  { key: 'photos', title: 'Photos', icon: Camera, description: 'Share photos for your matching profile' },
+import {
+  SECTION_META as SHARED_SECTION_META,
+  REQUIRED_FIELDS as SHARED_REQUIRED_FIELDS,
+  CONDITIONAL_REQUIRED as SHARED_CONDITIONAL_REQUIRED,
+  countCompleted as sharedCountCompleted,
+} from '@/components/profile/profileConstants'
+
+const SECTION_META = SHARED_SECTION_META
+const REQUIRED_FIELDS = SHARED_REQUIRED_FIELDS
+const CONDITIONAL_REQUIRED = SHARED_CONDITIONAL_REQUIRED
+const countCompleted = sharedCountCompleted
 ]
-
-// Required fields per section for completion tracking
-function isPregnancyComplete(p) {
-  if (!p.outcome || !p.dob || !p.gestationWeeks || !p.deliveryType) return false
-  if (p.outcome === 'Live Birth' && !p.weight) return false
-  return true
-}
-
-const REQUIRED_FIELDS = {
-  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
-  followUp: ['usCitizen', 'contraceptiveMethod'],
-  pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication'],
-  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency'],
-  health: ['mentalHealthDiagnosis'],
-  employment: ['currentlyEmployed'],
-  interests: ['personality'],
-  academic: ['educationLevel'],
-  experiencedSurrogate: [],
-  hopesWishes: ['reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
-  photos: [],
-}
-
-// Conditional fields — only required when parent answer triggers them
-const CONDITIONAL_REQUIRED = {
-  fertility: {
-    sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
-    infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
-    gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
-    pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
-  },
-}
-
-function countCompleted(data, sectionKey) {
-  const fields = REQUIRED_FIELDS[sectionKey] || []
-  if (fields.length === 0) return { filled: 0, total: 0, complete: false }
-
-  if (sectionKey === 'pregnancyHistory') {
-    const numPreg = parseInt(data?.pregnancyHistory?.numberOfPregnancies) || 0
-    const pregnancies = data?.pregnancyHistory?.pregnancies || []
-    if (numPreg < 1) return { filled: 0, total: 1, complete: false }
-    const completedPregs = pregnancies.filter(p => isPregnancyComplete(p)).length
-    const allPregsComplete = completedPregs >= numPreg
-    return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
-  }
-
-  const conditionals = CONDITIONAL_REQUIRED[sectionKey] || {}
-  const sectionData = data?.[sectionKey] || {}
-  const activeFields = [...fields]
-  for (const [field, rule] of Object.entries(conditionals)) {
-    if (sectionData[rule.parent] === rule.showWhen) activeFields.push(field)
-  }
-
-  let filled = 0
-  for (const f of activeFields) {
-    const val = sectionData[f]
-    if (val !== undefined && val !== '' && val !== null) filled++
-  }
-  return { filled, total: activeFields.length, complete: filled === activeFields.length }
-}
 
 // ─────────────────────────────────────────────────────────
 // Main Page Component
@@ -565,6 +504,11 @@ export default function SurrogateProfilePage() {
   const [insuranceStatus, setInsuranceStatus] = useState(null)
   const [profile, setProfile] = useState(() => loadProfile(userId))
   const [profileApproved, setProfileApproved] = useState(false)
+  const [profileSubmitted, setProfileSubmitted] = useState(false)
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [hasShownAutoPopup, setHasShownAutoPopup] = useState(false)
   const [openSections, setOpenSections] = useState(() => {
     // If URL has a hash like #family, open that section instead of about
     const hash = window.location.hash.replace('#', '')
@@ -672,6 +616,7 @@ export default function SurrogateProfilePage() {
     if (!currentUser?.id || !currentUser?.email) return
     fetchSurrogateProfile(currentUser.id).then(result => {
       if (result?.status === 'approved') setProfileApproved(true)
+      if (result?.status === 'pending_review') setProfileSubmitted(true)
       if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
         // Supabase has data — merge with localStorage, migrating old keys
         setProfile(prev => {
@@ -728,6 +673,77 @@ export default function SurrogateProfilePage() {
     }
     return totalFields === 0 ? 0 : Math.round((totalFilled / totalFields) * 100)
   }, [profile])
+
+  // Auto-popup when profile reaches 100% and hasn't been submitted/approved
+  useEffect(() => {
+    if (overallCompletion === 100 && !profileApproved && !profileSubmitted && !hasShownAutoPopup && !previewOpen) {
+      setHasShownAutoPopup(true)
+      setShowSubmitModal(true)
+    }
+  }, [overallCompletion, profileApproved, profileSubmitted, hasShownAutoPopup])
+
+  // Submit profile for review
+  async function handleSubmitForReview() {
+    setSubmitting(true)
+    try {
+      const firstName = profile?.personal?.firstName || 'Surrogate'
+      const lastName = profile?.personal?.lastName || ''
+      const surrogateName = `${firstName} ${lastName}`.trim()
+
+      // 1. Update profile status to "pending_review"
+      if (currentUser?.email) {
+        await updateSurrogateProfileStatus(currentUser.email, 'pending_review').catch(() => {})
+      }
+      setProfileSubmitted(true)
+
+      // 2. Send notification email
+      try {
+        await fetch('/api/notify-profile-submitted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ surrogateName, surrogateEmail: currentUser?.email }),
+        })
+      } catch (err) { console.error('Profile notify email failed:', err) }
+
+      // 3. Create task for intake to review
+      if (intakeCaseId) {
+        const today = new Date().toISOString().split('T')[0]
+        await createCaseTask({
+          case_id: intakeCaseId,
+          case_type: 'surrogate',
+          title: `Review ${surrogateName}'s Profile`,
+          assigned_to: 'intake@abcsurrogacy.com',
+          due_date: today,
+          status: 'pending',
+        }).catch(err => console.error('Task creation failed:', err))
+      }
+
+      // 4. Auto-log on checklist that profile is being reviewed
+      if (intakeCaseId) {
+        try {
+          const tracking = await getRecordTracking(intakeCaseId) || {}
+          // Find "Profile Complete" step — search all checklist steps
+          const { getAllChecklistSteps } = await import('@/lib/checklistStore')
+          const allSteps = getAllChecklistSteps('surrogate')
+          const profileStep = allSteps.find(s => s.label?.toLowerCase().includes('profile complete') || s.label?.toLowerCase().includes('profile'))
+          if (profileStep) {
+            const today = new Date().toISOString().split('T')[0]
+            const stepData = tracking[profileStep.id] || {}
+            const history = stepData.history || []
+            history.push({ status: 'started', date: today, note: 'Profile submitted for review by surrogate', by: surrogateName })
+            tracking[profileStep.id] = { ...stepData, status: 'started', history }
+            await setRecordTrackingDB(intakeCaseId, tracking)
+          }
+        } catch (err) { console.error('Checklist log failed:', err) }
+      }
+
+      setShowSubmitModal(false)
+    } catch (err) {
+      console.error('Submit for review failed:', err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
@@ -856,8 +872,97 @@ export default function SurrogateProfilePage() {
                 </Collapsible>
               )
             })}
+            {/* Submit Profile button */}
+            {!profileApproved && !profileSubmitted && (
+              <div className="text-center pt-4">
+                <Button
+                  onClick={() => {
+                    if (overallCompletion < 100) {
+                      setShowIncompleteWarning(true)
+                    } else {
+                      setShowSubmitModal(true)
+                    }
+                  }}
+                  className="gap-2 px-8 py-3 text-base rounded-xl"
+                  style={{ backgroundColor: '#283693', color: '#fff' }}
+                >
+                  <Send className="w-4 h-4" /> Submit Profile for Review
+                </Button>
+              </div>
+            )}
+
+            {/* Submitted banner */}
+            {profileSubmitted && !profileApproved && (
+              <div className="flex items-center gap-3 p-5 rounded-xl bg-blue-50 border-2 border-blue-200 shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                  <Send className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-blue-800">Profile Submitted for Review</p>
+                  <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted! Our team will review it and reach out with any questions.</p>
+                </div>
+              </div>
+            )}
           </>
         )}
+
+        {/* ── 100% Complete Submit Modal ── */}
+        <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+          <DialogContent className="max-w-md">
+            <div className="text-center space-y-4 py-2">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-100 to-blue-100 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8 text-green-500" />
+              </div>
+              <h2 className="text-xl font-bold text-[#283693]">This is great! Your profile is 100% Complete!</h2>
+              <p className="text-stone-600">Please submit your profile for review so our team can start matching you with intended parents.</p>
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <Button variant="outline" onClick={() => setShowSubmitModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="outline" className="border-[#283693] text-[#283693]" onClick={() => { setShowSubmitModal(false); openPreview() }}>
+                  <Eye className="w-4 h-4 mr-1.5" /> Preview
+                </Button>
+                <Button
+                  onClick={handleSubmitForReview}
+                  disabled={submitting}
+                  style={{ backgroundColor: '#ed148c', color: '#fff' }}
+                  className="gap-1.5"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Submit for Review
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Incomplete Warning Modal ── */}
+        <Dialog open={showIncompleteWarning} onOpenChange={setShowIncompleteWarning}>
+          <DialogContent className="max-w-md">
+            <div className="text-center space-y-4 py-2">
+              <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h2 className="text-lg font-bold text-stone-800">Profile Not Complete</h2>
+              <p className="text-stone-600">Your profile is <strong>{overallCompletion}%</strong> complete. Please answer all the sections so your profile is fully complete before submitting.</p>
+              <div className="space-y-1.5 text-left max-h-40 overflow-y-auto">
+                {SECTION_META.map(sec => {
+                  const { complete, filled, total } = countCompleted(profile, sec.key)
+                  if (total === 0 || complete) return null
+                  return (
+                    <div key={sec.key} className="flex items-center justify-between text-sm px-3 py-1.5 rounded-lg bg-red-50">
+                      <span className="text-stone-700">{sec.title}</span>
+                      <span className="text-red-500 font-medium">{filled}/{total}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                Got it — I'll complete my profile
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </div>

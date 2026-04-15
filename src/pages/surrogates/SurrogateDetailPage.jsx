@@ -410,12 +410,27 @@ export default function SurrogateDetailPage() {
       }
       if (found?.email) {
         fetchIntakeByEmail(found.email).then(setQuizAnswers).catch(() => {})
-        fetchSurrogateProfileByEmail(found.email).then(result => {
-          if (result?.profile_data) setProfileData(result.profile_data)
-          if (result?.status) setProfileStatus(result.status)
-          // Use user_id from profile record (most reliable) or from intake
-          const uid = result?.user_id || found.userId || found.user_id
-          if (uid) loadPhotos(uid)
+        fetchSurrogateProfileByEmail(found.email).then(async result => {
+          if (result?.profile_data) {
+            setProfileData(result.profile_data)
+            if (result?.status) setProfileStatus(result.status)
+            const uid = result?.user_id || found.userId || found.user_id
+            if (uid) loadPhotos(uid)
+          } else {
+            // Fallback: email might have changed — try looking up by user_id
+            const uid = found.userId || found.user_id
+            if (uid) {
+              try {
+                const { fetchSurrogateProfile } = await import('@/lib/db')
+                const byId = await fetchSurrogateProfile(uid)
+                if (byId?.profile_data) {
+                  setProfileData(byId.profile_data)
+                  if (byId?.status) setProfileStatus(byId.status)
+                }
+              } catch {}
+              loadPhotos(uid)
+            }
+          }
         }).catch(() => {
           // Fallback: try userId from intake
           const uid = found.userId || found.user_id

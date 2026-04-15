@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MATCH_STAGES } from '@/lib/constants'
-import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles, AlertCircle, Clock, ChevronDown, Loader2 } from 'lucide-react'
+import { Heart, Calendar, FileText, MessageSquare, CheckCircle2, Circle, ArrowRight, UserCircle, ClipboardList, Upload, Sparkles, AlertCircle, Clock, ChevronDown, Loader2, Send } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
-import { fetchUserTasks, updateTaskStatus, fetchIntakeByEmail } from '@/lib/db'
+import { fetchUserTasks, updateTaskStatus, fetchIntakeByEmail, fetchSurrogateProfile } from '@/lib/db'
 
 // ─── Profile completion — uses shared profileConstants ───
-import { REQUIRED_FIELDS, countCompleted } from '@/components/profile/profileConstants'
+import { REQUIRED_FIELDS, SECTION_META, countCompleted } from '@/components/profile/profileConstants'
 
 function getProfileData(userId) {
   try {
@@ -25,8 +25,9 @@ function getProfileCompletion(userId) {
   const data = getProfileData(userId)
   if (!data) return 0
   let total = 0, filled = 0
-  for (const sectionKey of Object.keys(REQUIRED_FIELDS)) {
-    const { filled: f, total: t } = countCompleted(data, sectionKey)
+  // Use SECTION_META (same as profile page) so percentages match exactly
+  for (const s of SECTION_META) {
+    const { filled: f, total: t } = countCompleted(data, s.key)
     total += t
     filled += f
   }
@@ -35,11 +36,11 @@ function getProfileCompletion(userId) {
 
 function getFirstIncompleteSection(userId) {
   const data = getProfileData(userId)
-  for (const sectionKey of Object.keys(REQUIRED_FIELDS)) {
-    const fields = REQUIRED_FIELDS[sectionKey] || []
+  for (const s of SECTION_META) {
+    const fields = REQUIRED_FIELDS[s.key] || []
     if (fields.length === 0) continue
-    const { complete } = countCompleted(data, sectionKey)
-    if (!complete) return sectionKey
+    const { complete } = countCompleted(data, s.key)
+    if (!complete) return s.key
   }
   return 'personal'
 }
@@ -79,15 +80,23 @@ export default function SurrogateDashboard() {
   return <DemoJourneyDashboard name={firstName} />
 }
 
-function ProfileProgressCard({ userId }) {
+function ProfileProgressCard({ userId, currentUser }) {
   const [percent, setPercent] = useState(0)
   const [nextSection, setNextSection] = useState('about')
+  const [profileStatus, setProfileStatus] = useState(null) // null, 'pending_review', 'approved'
   useEffect(() => {
     setPercent(getProfileCompletion(userId))
     setNextSection(getFirstIncompleteSection(userId))
-  }, [userId])
+    if (currentUser?.id) {
+      fetchSurrogateProfile(currentUser.id).then(result => {
+        if (result?.status) setProfileStatus(result.status)
+      }).catch(() => {})
+    }
+  }, [userId, currentUser?.id])
 
-  const ctaLabel = percent === 0 ? 'Get Started' : 'Continue'
+  const isSubmitted = profileStatus === 'pending_review'
+  const isApproved = profileStatus === 'approved'
+  const ctaLabel = isApproved ? 'View Profile' : isSubmitted ? 'View Profile' : percent === 0 ? 'Get Started' : 'Continue'
   const profileLink = percent === 100 ? '/my-profile' : `/my-profile#${nextSection}`
 
   return (
@@ -97,19 +106,29 @@ function ProfileProgressCard({ userId }) {
           <ProgressRing percent={percent} size={72} />
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <p className="font-semibold text-stone-800 text-lg">My Profile</p>
-            <p className="text-sm text-stone-500 mt-1">
-              Complete your matching profile so intended parents can find you. It takes about 20–30 minutes — you can save your progress at any time.
-            </p>
+            {isApproved ? (
+              <p className="text-sm text-green-600 mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
+                <CheckCircle2 className="w-4 h-4" /> Your profile has been approved and is visible to intended parents!
+              </p>
+            ) : isSubmitted ? (
+              <p className="text-sm text-blue-600 mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
+                <Send className="w-4 h-4" /> Your profile has been submitted and is under review.
+              </p>
+            ) : (
+              <p className="text-sm text-stone-500 mt-1">
+                Complete your matching profile so intended parents can find you. It takes about 20–30 minutes — you can save your progress at any time.
+              </p>
+            )}
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
               </div>
               <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
             </div>
           </div>
           <Link to={profileLink}>
-            <Button className="rounded-lg gap-1.5 shrink-0 w-full sm:w-auto" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+            <Button className="rounded-lg gap-1.5 shrink-0 w-full sm:w-auto" style={{ backgroundColor: isApproved ? '#16a34a' : '#ed148c', color: '#fff' }}>
               {ctaLabel} <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
@@ -389,7 +408,7 @@ function OnboardingDashboard({ name, currentUser }) {
       )}
 
       {/* Profile card — full width, prominent */}
-      <ProfileProgressCard userId={userId || currentUser?.email} />
+      <ProfileProgressCard userId={userId || currentUser?.email} currentUser={currentUser} />
 
       {/* Quiz Results card — hide once application is released OR quiz is reviewed */}
       {!appAvailable && !appAnswers?._reviewedAt && <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
