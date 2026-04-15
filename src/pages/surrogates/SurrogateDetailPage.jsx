@@ -2400,13 +2400,31 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
       }
       const referralVal = form.beReferral ? 'be_surrogacy' : null
       const newName = `${form.firstName} ${form.lastName}`.trim()
+      const oldEmail = (surrogate.email || '').trim().toLowerCase()
+      const newEmail = form.email.trim().toLowerCase()
       await updateIntakeSubmission(surrogate.id, {
         applicant_name: newName,
-        applicant_email: form.email.trim().toLowerCase(),
+        applicant_email: newEmail,
         applicant_phone: form.phone.trim(),
         answers: updatedAnswers,
         referral_partner: referralVal,
       })
+      // If email changed, update surrogate_profiles and auth user too
+      if (oldEmail && newEmail && oldEmail !== newEmail) {
+        try {
+          // Update surrogate_profiles email
+          const { supabase: sb } = await import('@/lib/supabase')
+          if (sb) {
+            await sb.from('surrogate_profiles').update({ email: newEmail, updated_at: new Date().toISOString() }).eq('email', oldEmail)
+          }
+          // Update Supabase Auth user email via API
+          await fetch('/api/update-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: newEmail, oldEmail, name: newName, role: 'surrogate' }),
+          }).catch(() => {})
+        } catch (err) { console.error('Failed to sync email change:', err) }
+      }
       setSurrogate(prev => ({
         ...prev,
         name: newName,

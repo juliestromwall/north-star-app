@@ -22,10 +22,24 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { userId, name, email, role } = await context.request.json()
+  const { userId, oldEmail, name, email, role } = await context.request.json()
 
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'userId is required' }), {
+  let targetUserId = userId
+
+  // If no userId but oldEmail provided, look up user by email
+  if (!targetUserId && oldEmail) {
+    try {
+      const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
+        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
+      })
+      const listData = await listRes.json()
+      const found = (listData.users || []).find(u => u.email?.toLowerCase() === oldEmail.toLowerCase())
+      if (found) targetUserId = found.id
+    } catch {}
+  }
+
+  if (!targetUserId) {
+    return new Response(JSON.stringify({ error: 'userId is required (or user not found by oldEmail)' }), {
       status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
@@ -43,7 +57,7 @@ export async function onRequestPost(context) {
       updates.email = email
     }
 
-    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${targetUserId}`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${serviceKey}`,
