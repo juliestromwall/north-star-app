@@ -419,7 +419,7 @@ function NewChatDialog({ open, onClose, onCreate, adminPhones, currentUserId }) 
   }
 
   const handleCreate = async () => {
-    if (!name.trim() || selectedIds.size < 2) return
+    if (!name.trim() || selectedIds.size < 1) return
     setCreating(true)
     await onCreate(name.trim(), Array.from(selectedIds))
     setCreating(false)
@@ -482,7 +482,7 @@ function NewChatDialog({ open, onClose, onCreate, adminPhones, currentUserId }) 
           <Button variant="outline" onClick={onClose} className="rounded-xl">Cancel</Button>
           <Button
             onClick={handleCreate}
-            disabled={!name.trim() || selectedIds.size < 2 || creating}
+            disabled={!name.trim() || selectedIds.size < 1 || creating}
             className="rounded-xl bg-[#283693] hover:bg-[#283693]/90"
           >
             {creating ? 'Creating...' : 'Create Chat'}
