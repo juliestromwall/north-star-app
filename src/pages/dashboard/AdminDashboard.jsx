@@ -563,13 +563,37 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <Route className="size-3" /> Matched Journeys ({myJourneys.length})
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myJourneys.map(j => {
-                    const gc = surrogates.find(s => s.id === j.gc_case_id)
-                    const ip = ips.find(i => i.id === j.ip_case_id)
-                    return <JourneyTileCard key={j.id} j={{ ...j, gc, ip }} />
-                  })}
-                </div>
+                {caseView === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {myJourneys.map(j => {
+                      const gc = surrogates.find(s => s.id === j.gc_case_id)
+                      const ip = ips.find(i => i.id === j.ip_case_id)
+                      return <JourneyTileCard key={j.id} j={{ ...j, gc, ip }} />
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {myJourneys.map(j => {
+                      const gc = surrogates.find(s => s.id === j.gc_case_id)
+                      const ip = ips.find(i => i.id === j.ip_case_id)
+                      const gcName = gc?.name || j.gc_name || 'GC'
+                      const ipName = ip?.names || j.ip_name || 'IP'
+                      return (
+                        <Link key={j.id} to={`/journeys/${j.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
+                          <Route className="size-4 text-[#283693] shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-stone-800 truncate">{ipName} + {gcName}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                              <span className="font-medium" style={{ color: j.stage ? '#283693' : undefined }}>{j.status || j.stage || '—'}</span>
+                              {j.journey_data?.dueDate && <span>Due {formatDate(j.journey_data.dueDate)}</span>}
+                              {j.assigned_to && <span>{j.assigned_to.split('@')[0]}</span>}
+                            </div>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -579,11 +603,29 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <Heart className="size-3" /> Surrogates ({mySurrogates.length})
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {mySurrogates.map(s => (
-                    <SurrogateCard key={s.id} surrogate={s} profileData={profileMap[s.id]} stageStatus={getSurrogateStageStatus(s.id)} onAssign={() => {}} />
-                  ))}
-                </div>
+                {caseView === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {mySurrogates.map(s => (
+                      <SurrogateCard key={s.id} surrogate={s} profileData={profileMap[s.id]} stageStatus={getSurrogateStageStatus(s.id)} onAssign={() => {}} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {mySurrogates.map(s => (
+                      <Link key={s.id} to={`/surrogates/${s.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
+                        <Heart className="size-4 text-pink-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-stone-800 truncate">{s.name}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                            <span>{s.state || '—'}</span>
+                            {s.stage && <span className="font-medium">{s.stage}</span>}
+                            {s.assignedTo && <span>{s.assignedTo.split('@')[0]}</span>}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -593,11 +635,29 @@ export default function AdminDashboard() {
                 <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold mb-2 flex items-center gap-1.5">
                   <HeartHandshake className="size-3" /> Intended Parents ({myIPs.length})
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myIPs.map(ip => (
-                    <IPTileCard key={ip.id} ip={ip} stageStatus={getSurrogateStageStatus(ip.id)} />
-                  ))}
-                </div>
+                {caseView === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {myIPs.map(ip => (
+                      <IPTileCard key={ip.id} ip={ip} stageStatus={getSurrogateStageStatus(ip.id)} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {myIPs.map(ip => (
+                      <Link key={ip.id} to={`/intended-parents/${ip.id}`} className="flex items-center gap-3 rounded-lg border border-stone-100 px-4 py-2.5 hover:bg-stone-50 transition-colors">
+                        <HeartHandshake className="size-4 text-[#283693] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-stone-800 truncate">{ip.names || ip.name}</p>
+                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                            <span>{ip.state || '—'}</span>
+                            {ip.stage && <span className="font-medium">{ip.stage}</span>}
+                            {ip.assignedTo && <span>{ip.assignedTo.split('@')[0]}</span>}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
