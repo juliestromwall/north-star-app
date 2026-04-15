@@ -3418,10 +3418,33 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewPhotos, setPreviewPhotos] = useState([])
   const [downloading, setDownloading] = useState(false)
   const [openAdminSections, setOpenAdminSections] = useState({})
   const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
+
+  // Load photos fresh for preview (headshot first, then portrait, then gallery)
+  async function loadPreviewPhotos() {
+    const uid = surrogate?.userId || surrogate?.user_id
+    const caseId = String(surrogate?.id || '')
+    const ids = [uid, caseId].filter(Boolean)
+    const uniqueIds = [...new Set(ids)]
+    let allHeadshots = [], allPortraits = [], allGallery = []
+    for (const id of uniqueIds) {
+      const [gallery, headshots, portraits] = await Promise.all([
+        listProfilePhotos(id).catch(() => []),
+        listProfilePhotos(`${id}/headshot`).catch(() => []),
+        listProfilePhotos(`${id}/portrait`).catch(() => []),
+      ])
+      allHeadshots.push(...headshots)
+      allPortraits.push(...portraits)
+      allGallery.push(...gallery)
+    }
+    const ordered = [...allHeadshots, ...allPortraits, ...allGallery]
+    setPreviewPhotos(ordered)
+    return ordered
+  }
 
   // Auto-save a section's data with debounce
   function autoSaveSection(sectionKey, sectionData) {
@@ -3456,7 +3479,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   function downloadPDF() {
-    if (!previewOpen) setPreviewOpen(true)
+    if (!previewOpen) { loadPreviewPhotos(); setPreviewOpen(true) }
     setTimeout(() => {
       if (!previewRef.current) return
       const firstName = (data?.personal?.firstName || data?.about?.firstName || surrogate.name?.split(' ')[0] || 'Surrogate').replace(/[^a-zA-Z0-9]/g, '')
@@ -3465,13 +3488,13 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
         .map(el => el.outerHTML).join('\n')
       // Build photo grid HTML for bottom of PDF
-      const photoGridHtml = photos.length > 1 ? `
+      const photoGridHtml = previewPhotos.length > 1 ? `
         <div class="pdf-photo-grid">
           <div style="padding:12px 24px;border-bottom:1px solid #e5e7eb;background:linear-gradient(to right,rgba(40,54,147,0.05),transparent)">
             <h3 style="font-size:13px;font-weight:700;color:#283693;text-transform:uppercase;letter-spacing:0.05em;margin:0">Photos</h3>
           </div>
           <div style="padding:16px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-            ${photos.slice(0, 10).map(ph => `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden"><img src="${ph.url}" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
+            ${previewPhotos.slice(0, 10).map(ph => `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden"><img src="${ph.url}" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
           </div>
         </div>` : ''
 
@@ -4225,7 +4248,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             }}>
               <ClipboardList className="size-3.5" /> Follow Up Review
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { setPreviewOpen(!previewOpen); if (!previewOpen) window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => { if (!previewOpen) { loadPreviewPhotos(); window.scrollTo({ top: 0, behavior: 'smooth' }) }; setPreviewOpen(!previewOpen) }}>
               <Eye className="size-3.5" /> {previewOpen ? 'Edit View' : 'Preview'}
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF}>
@@ -4276,7 +4299,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
       {previewOpen ? (
         <div className="max-w-[850px] mx-auto" ref={previewRef}>
-          <ProfilePreview profile={data} photos={photos} />
+          <ProfilePreview profile={data} photos={previewPhotos} />
         </div>
       ) : (
         <>

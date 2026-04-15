@@ -583,6 +583,14 @@ export default function SurrogateProfilePage() {
     }
   }, [userId])
 
+  // Fetch intake case ID for photo loading (always runs)
+  useEffect(() => {
+    if (!currentUser?.email || !supabase) return
+    supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data?.id) setIntakeCaseId(String(data.id)) })
+      .catch(() => {})
+  }, [currentUser?.email])
+
   // Pre-fill from intake quiz answers
   useEffect(() => {
     if (!currentUser?.email) return
@@ -591,12 +599,6 @@ export default function SurrogateProfilePage() {
     if (existing?.personal?.firstName) return
     const STATE_ABBR_TO_NAME = {
       AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
-    }
-    // Fetch intake case ID for photo loading
-    if (supabase) {
-      supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
-        .then(({ data }) => { if (data?.id) setIntakeCaseId(String(data.id)) })
-        .catch(() => {})
     }
     fetchIntakeByEmail(currentUser.email).then(answers => {
       if (!answers) return
