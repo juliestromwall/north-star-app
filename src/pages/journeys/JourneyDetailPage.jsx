@@ -608,7 +608,7 @@ function JourneyCaseNote({ journeyId, caseKey }) {
 // Ferring wheel: 5-day embryo transfer + 261 days = 40 weeks gestation
 const TRANSFER_CALC_DAYS = 261
 
-function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusChange }) {
+function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onStatusChange }) {
   const jd = journey.journey_data || {}
   const transfers = jd._transfers || []
   const [addOpen, setAddOpen] = useState(false)
@@ -804,7 +804,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
       const emailRes = await fetch('/api/notify-pregnancy-confirmed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ surrogateName: journey.gc_name || 'Surrogate' }),
+        body: JSON.stringify({ surrogateName: gcName || journey.gc_name || 'Surrogate' }),
       })
       const emailData = await emailRes.json().catch(() => ({}))
       if (!emailRes.ok) console.error('Pregnancy notify email failed:', emailRes.status, emailData)
@@ -867,7 +867,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
         const lastDay = new Date(dueYear, dueMonth + 1, 0).getDate()
         const dueDay = Math.min(bd.getDate(), lastDay)
         const dueDate = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}-${String(dueDay).padStart(2, '0')}`
-        const surName = journey.gc_name || 'the Surrogate'
+        const surName = gcName || journey.gc_name || 'the Surrogate'
         await createCaseTask({
           case_id: journey.id,
           case_type: 'journey',
@@ -2512,6 +2512,7 @@ export default function JourneyDetailPage() {
             {/* ── Pregnancy Tracker ── */}
             <PregnancyTracker
               journey={journey}
+              gcName={gcCase?.name}
               onUpdate={async (fields) => { await updateFields(fields) }}
               onStatusChange={async (status) => {
                 const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)

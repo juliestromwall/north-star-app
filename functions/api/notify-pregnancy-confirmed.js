@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
             <strong>Fabulous News!</strong>
           </p>
           <p style="font-size: 15px; color: #44403c; margin: 0; line-height: 1.6;">
-            Surrogate <strong style="color: #283693;">${surrogateName}</strong> has a confirmed pregnancy. We have added them to our Psych Check In sheet for your visibility.
+            <strong style="color: #283693;">${surrogateName}</strong> has a confirmed pregnancy. We have added them to our Psych Check In sheet for your visibility.
           </p>
         </div>
 
@@ -66,6 +66,12 @@ export async function onRequestPost(context) {
           Thank you!
         </p>
 
+        <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
+          <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
+            <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or the linked Psych Check In sheet with anyone outside of authorized ABC Surrogacy staff.
+          </p>
+        </div>
+
         <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
         <p style="color: #a8a29e; font-size: 10px; text-align: center;">
           Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
@@ -81,7 +87,7 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         from: `ABC Surrogacy <${fromEmail}>`,
         to: notifyEmails,
-        subject: `Pregnancy confirmed for ${surrogateName} 🎉`,
+        subject: `Pregnancy confirmed for Surrogate ${surrogateName} 🎉`,
         html: htmlBody,
       }),
     })
