@@ -229,6 +229,10 @@ import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import ProviderInfoButton from '@/components/shared/ProviderInfoButton'
 
 export default function CaseUpdatesPage() {
+  const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
+  const showAll = isSuperAdmin || isMasterAdmin
+  const myEmail = currentUser?.email
+
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
   const [journeys, setJourneys] = useState([])
@@ -248,8 +252,9 @@ export default function CaseUpdatesPage() {
   // Exclude surrogates and IPs that are in a matched journey
   const matchedGcIds = useMemo(() => new Set(journeys.map(j => j.gc_case_id).filter(Boolean)), [journeys])
   const matchedIpIds = useMemo(() => new Set(journeys.map(j => j.ip_case_id).filter(Boolean)), [journeys])
-  const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id)), [surrogates, matchedGcIds])
-  const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id)), [ips, matchedIpIds])
+  // Filter by assigned admin (unless super/master admin)
+  const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id) && (showAll || s.assignedTo === myEmail)), [surrogates, matchedGcIds, showAll, myEmail])
+  const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id) && (showAll || ip.assignedTo === myEmail)), [ips, matchedIpIds, showAll, myEmail])
 
   if (loading) return <div className="p-6 text-center text-stone-400">Loading...</div>
 
@@ -273,7 +278,7 @@ export default function CaseUpdatesPage() {
         </TabsContent>
 
         <TabsContent value="journeys" className="mt-4">
-          <JourneyUpdatesSheet journeys={journeys} surrogates={surrogates} ips={ips} />
+          <JourneyUpdatesSheet journeys={showAll ? journeys : journeys.filter(j => j.assigned_to === myEmail)} surrogates={surrogates} ips={ips} />
         </TabsContent>
       </Tabs>
     </div>
