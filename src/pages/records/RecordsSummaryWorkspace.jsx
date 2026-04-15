@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
-import { fetchCaseDocuments, getAppConfig, setAppConfig, fetchSurrogateProfileByEmail, uploadCaseDocument, createCaseTask } from '@/lib/db'
+import { fetchCaseDocuments, getAppConfig, setAppConfig, fetchSurrogateProfileByEmail, uploadCaseDocument, updateCaseDocument, createCaseTask } from '@/lib/db'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
 import { formatDate } from '@/lib/utils'
 
@@ -84,8 +85,10 @@ function DocumentPanel({ documents, surrogateId }) {
   const [removedPages, setRemovedPages] = useState(new Set())
   const [removingPages, setRemovingPages] = useState(false)
 
-  const pdfDocs = documents.filter(d => d.file_type === 'application/pdf')
-  const allDocs = documents
+  const allDocs = documents.filter(d => (d.category || '').toLowerCase().replace(/[\s_-]/g, '').includes('medicalrecord'))
+  const pdfDocs = allDocs.filter(d => d.file_type === 'application/pdf')
+  const [renamingDoc, setRenamingDoc] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
 
   useEffect(() => {
     if (selectedDoc?.public_url) setPreviewUrl(selectedDoc.public_url)
@@ -208,6 +211,19 @@ function DocumentPanel({ documents, surrogateId }) {
     })
   }
 
+  async function handleRename() {
+    if (!renamingDoc || !renameValue.trim()) return
+    try {
+      await updateCaseDocument(renamingDoc.id, { file_name: renameValue.trim() })
+      // Update local state — parent documents won't auto-refresh, so update allDocs via a trick
+      // Since allDocs is derived from documents prop, we need to mutate the source
+      const idx = documents.findIndex(d => d.id === renamingDoc.id)
+      if (idx >= 0) documents[idx].file_name = renameValue.trim()
+      setRenamingDoc(null)
+      setRenameValue('')
+    } catch (err) { console.error('Rename failed:', err) }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Doc list header */}
@@ -273,13 +289,19 @@ function DocumentPanel({ documents, surrogateId }) {
                 </label>
               )}
               <button onClick={() => { if (mergeMode) { toggleMergeDoc(doc.id) } else { setSelectedDoc(doc) } }}
-                className="flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2">
+                className="flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2 group">
                 <FileText className="size-4 text-stone-300 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
-                  <p className="text-[10px] text-stone-400">{doc.category} · {formatDate(doc.created_at)}</p>
+                  <p className="text-[10px] text-stone-400">{formatDate(doc.created_at)}</p>
                 </div>
                 {mergeMode && isChecked && <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded shrink-0">#{mergeOrder.indexOf(doc.id) + 1}</span>}
+                {!mergeMode && (
+                  <span onClick={(e) => { e.stopPropagation(); setRenamingDoc(doc); setRenameValue(doc.file_name) }}
+                    className="text-[9px] text-stone-400 hover:text-[#283693] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Rename">
+                    Rename
+                  </span>
+                )}
               </button>
             </div>
             )
@@ -341,6 +363,21 @@ function DocumentPanel({ documents, surrogateId }) {
                 <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-[#283693] hover:underline">Open in new tab</a>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Rename Dialog */}
+      {renamingDoc && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setRenamingDoc(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-5 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-stone-800">Rename Document</h3>
+            <input value={renameValue} onChange={e => setRenameValue(e.target.value)} className="w-full h-9 text-sm border border-stone-200 rounded-lg px-3" autoFocus
+              onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenamingDoc(null) }} />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setRenamingDoc(null)} className="px-3 py-1.5 text-sm border border-stone-200 rounded-lg hover:bg-stone-50">Cancel</button>
+              <button onClick={handleRename} disabled={!renameValue.trim()} className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-40" style={{ backgroundColor: '#283693' }}>Rename</button>
+            </div>
           </div>
         </div>
       )}
@@ -974,6 +1011,7 @@ export default function RecordsSummaryWorkspace() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [completeConfirm, setCompleteConfirm] = useState(false)
   const formRef = useRef(null) // ref to get current form data
 
   useEffect(() => {
@@ -1092,7 +1130,7 @@ export default function RecordsSummaryWorkspace() {
         } catch {}
       }
 
-      alert(`Records Summary filed to Medical Records and review tasks created for Julie, Nicole & Desiree.`)
+      setCompleteConfirm(false)
     } catch (err) {
       console.error('Complete failed:', err)
       alert('Failed to complete: ' + (err.message || 'Unknown error'))
@@ -1134,7 +1172,7 @@ export default function RecordsSummaryWorkspace() {
           <Button size="sm" variant="outline" className="gap-1.5 text-xs h-7" onClick={() => setPreviewOpen(true)}>
             <Eye className="size-3" /> Preview & Export
           </Button>
-          <Button size="sm" className="gap-1.5 text-xs h-7" style={{ backgroundColor: '#16a34a' }} onClick={handleComplete} disabled={completing}>
+          <Button size="sm" className="gap-1.5 text-xs h-7" style={{ backgroundColor: '#16a34a' }} onClick={() => setCompleteConfirm(true)} disabled={completing}>
             {completing ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
             {completing ? 'Filing...' : 'Mark Complete'}
           </Button>
@@ -1173,6 +1211,27 @@ export default function RecordsSummaryWorkspace() {
           exporting={exporting}
         />
       )}
+
+      {/* Complete Confirmation Dialog */}
+      <Dialog open={completeConfirm} onOpenChange={setCompleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-700">
+              <CheckCircle2 className="size-5" /> Submit Records Summary?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            This will file the Records Summary to the <strong>Medical Records</strong> folder and create review tasks for Julie Allgood, Nicole Lawson, and Desiree Melchiori.
+          </p>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#16a34a' }} onClick={handleComplete} disabled={completing}>
+              {completing ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+              {completing ? 'Filing...' : 'Submit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
