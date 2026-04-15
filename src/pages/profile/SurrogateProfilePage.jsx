@@ -2073,7 +2073,7 @@ function EmploymentSection({ v, u, profile }) {
       <YesNoField label="Are you currently employed?" value={v(s, 'currentlyEmployed')} onChange={u(s, 'currentlyEmployed')} />
       {v(s, 'currentlyEmployed') === 'yes' && (
         <>
-          <TextAreaField label="Please share details on the industry you work in" value={v(s, 'employmentIndustry')} onChange={u(s, 'employmentIndustry')} rows={2} />
+          <TextAreaField label="Please share details on the industry you work in." value={v(s, 'employmentIndustry')} onChange={u(s, 'employmentIndustry')} rows={2} />
           <TextField label="How many hours a week do you work, and what are your typical hours?" value={v(s, 'workHours')} onChange={u(s, 'workHours')} />
           <TextField label="What specifically is your occupation/position?" value={v(s, 'occupation')} onChange={u(s, 'occupation')} />
           <TextField label="How long have you worked for your current employer?" value={v(s, 'lengthAtEmployer')} onChange={u(s, 'lengthAtEmployer')} placeholder="e.g. 2 years" />
