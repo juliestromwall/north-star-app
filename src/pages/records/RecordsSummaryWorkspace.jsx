@@ -258,21 +258,34 @@ function DocumentPanel({ documents, surrogateId }) {
           {allDocs.length === 0 && (
             <p className="text-xs text-stone-400 text-center py-8">No documents found</p>
           )}
-          {allDocs.map(doc => (
-            <div key={doc.id} className="flex items-center gap-2">
-              {mergeMode && doc.file_type === 'application/pdf' && (
-                <input type="checkbox" checked={mergeSelected.has(doc.id)} onChange={() => toggleMergeDoc(doc.id)} className="size-3.5 accent-[#283693] shrink-0 ml-1" />
+          {allDocs.map(doc => {
+            const canMerge = doc.file_type === 'application/pdf' || doc.file_type?.startsWith('image/')
+            const isChecked = mergeSelected.has(doc.id)
+            return (
+            <div key={doc.id} className={`flex items-center gap-2 rounded-lg ${mergeMode && isChecked ? 'bg-[#283693]/5 border border-[#283693]/20' : ''}`}>
+              {mergeMode && (
+                <label className="flex items-center shrink-0 ml-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => canMerge && toggleMergeDoc(doc.id)}
+                    disabled={!canMerge}
+                    className="size-4 accent-[#283693] cursor-pointer disabled:opacity-30"
+                  />
+                </label>
               )}
-              <button onClick={() => { if (!mergeMode) setSelectedDoc(doc) }}
-                className={`flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2 ${mergeMode && !doc.file_type?.includes('pdf') ? 'opacity-30' : ''}`}>
+              <button onClick={() => { if (mergeMode && canMerge) { toggleMergeDoc(doc.id) } else if (!mergeMode) { setSelectedDoc(doc) } }}
+                className={`flex-1 text-left p-2.5 rounded-lg hover:bg-stone-100 transition-colors flex items-center gap-2 ${mergeMode && !canMerge ? 'opacity-30' : ''}`}>
                 <FileText className="size-4 text-stone-300 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
                   <p className="text-[10px] text-stone-400">{doc.category} · {formatDate(doc.created_at)}</p>
                 </div>
+                {mergeMode && isChecked && <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded shrink-0">#{mergeOrder.indexOf(doc.id) + 1}</span>}
               </button>
             </div>
-          ))}
+            )
+          })}
         </div>
       ) : (
         <div className="flex-1 flex flex-col">
