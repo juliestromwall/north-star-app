@@ -896,7 +896,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
           <HeartPulse className="size-3" /> Pregnancy Tracker
         </p>
         {(!latestTransfer || isLatestClosed) && !isPregnant && (
-          <Button size="sm" variant="outline" className="text-xs gap-1 h-7" onClick={() => { setEditIdx(null); setTransferForm({ date: '', embryoCount: '1', notes: '' }); setAddOpen(true) }}>
+          <Button size="sm" variant="outline" className="text-xs gap-1 h-7" onClick={() => { setEditIdx(null); setTransferForm({ date: new Date().toISOString().split('T')[0], embryoCount: '1', notes: '' }); setAddOpen(true) }}>
             <Plus className="size-3" /> Log Embryo Transfer
           </Button>
         )}
@@ -959,7 +959,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                     weight: jd.babyWeights?.[i] || '',
                     length: jd.babyLengths?.[i] || '',
                   })))
-                  setBirthForm({ date: '', deliveryType: '', notes: '' })
+                  setBirthForm({ date: new Date().toISOString().split('T')[0], deliveryType: '', notes: '' })
                   setBirthOpen(true)
                 }} className="text-[10px] text-emerald-600 hover:underline font-medium">
                   Log Birth
@@ -1133,7 +1133,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBeta2Open(i); setBeta2Value(''); setBeta2Date(new Date().toISOString().split('T')[0]) }}>Log Beta #2 Results</Button>
                     )}
                     {betaComplete && !t.heartbeatConfirmed && (
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => setHeartbeatOpen(true)}>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => { setHeartbeatDate(new Date().toISOString().split('T')[0]); setHeartbeatOpen(true) }}>
                         <HeartPulse className="size-3" /> Confirm Heartbeat
                       </Button>
                     )}
@@ -1147,7 +1147,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
 
       {/* Add/Edit Transfer Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className={editIdx !== null ? 'max-w-md' : 'max-w-sm'}>
           <DialogHeader><DialogTitle>{editIdx !== null ? 'Edit Transfer' : 'Log Embryo Transfer'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -1177,7 +1177,7 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                 </div>
                 {!transferForm.droppedCycle && (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="space-y-1">
                         <label className="text-[11px] text-stone-400 font-medium">Beta Result</label>
                         <select value={transferForm.betaResult || ''} onChange={e => setTransferForm(f => ({ ...f, betaResult: e.target.value || null }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
@@ -1190,10 +1190,14 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                         <label className="text-[11px] text-stone-400 font-medium">Beta Value</label>
                         <Input value={transferForm.betaValue} onChange={e => setTransferForm(f => ({ ...f, betaValue: e.target.value }))} placeholder="e.g. 250" className="h-9" />
                       </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-stone-400 font-medium">Beta Date</label>
+                        <Input type="date" value={transferForm.betaDate} onChange={e => setTransferForm(f => ({ ...f, betaDate: e.target.value }))} className="h-9" />
+                      </div>
                     </div>
                     {transferForm.betaResult === 'positive' && (
                       <>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
                             <label className="text-[11px] text-stone-400 font-medium">Beta #2 Result</label>
                             <select value={transferForm.beta2Result || ''} onChange={e => setTransferForm(f => ({ ...f, beta2Result: e.target.value || null }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
@@ -1205,6 +1209,10 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                           <div className="space-y-1">
                             <label className="text-[11px] text-stone-400 font-medium">Beta #2 Value</label>
                             <Input value={transferForm.beta2Value} onChange={e => setTransferForm(f => ({ ...f, beta2Value: e.target.value }))} placeholder="e.g. 580" className="h-9" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[11px] text-stone-400 font-medium">Beta #2 Date</label>
+                            <Input type="date" value={transferForm.beta2Date} onChange={e => setTransferForm(f => ({ ...f, beta2Date: e.target.value }))} className="h-9" />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
