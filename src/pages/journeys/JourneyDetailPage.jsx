@@ -616,9 +616,14 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   const [transferForm, setTransferForm] = useState({ date: '', embryoCount: '1', notes: '' })
   const [betaOpen, setBetaOpen] = useState(null)
   const [betaValue, setBetaValue] = useState('')
+  const [betaDate, setBetaDate] = useState('')
   const [needsSecondBeta, setNeedsSecondBeta] = useState(null) // null = not selected yet
   const [beta2Open, setBeta2Open] = useState(null)
   const [beta2Value, setBeta2Value] = useState('')
+  const [beta2Date, setBeta2Date] = useState('')
+  const [cancelCycleOpen, setCancelCycleOpen] = useState(null)
+  const [cancelCycleReason, setCancelCycleReason] = useState('')
+  const [deleteBirthOpen, setDeleteBirthOpen] = useState(false)
   const [heartbeatOpen, setHeartbeatOpen] = useState(false)
   const [heartbeatDate, setHeartbeatDate] = useState('')
   const [heartbeatDueDate, setHeartbeatDueDate] = useState('')
@@ -704,19 +709,51 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
   async function handleBetaResult(idx, result) {
     setSaving(true)
     const updated = [...transfers]
-    updated[idx] = { ...updated[idx], betaResult: result, betaDate: new Date().toISOString().split('T')[0], betaValue: betaValue || null, needsSecondBeta: result === 'positive' ? needsSecondBeta : false }
+    updated[idx] = { ...updated[idx], betaResult: result, betaDate: betaDate || new Date().toISOString().split('T')[0], betaValue: betaValue || null, needsSecondBeta: result === 'positive' ? needsSecondBeta : false }
     await onUpdate({ _transfers: updated })
-    setBetaOpen(null); setBetaValue(''); setNeedsSecondBeta(null)
+    setBetaOpen(null); setBetaValue(''); setBetaDate(''); setNeedsSecondBeta(null)
     setSaving(false)
   }
 
   async function handleBeta2Result(idx, result) {
     setSaving(true)
     const updated = [...transfers]
-    updated[idx] = { ...updated[idx], beta2Result: result, beta2Date: new Date().toISOString().split('T')[0], beta2Value: beta2Value || null }
+    updated[idx] = { ...updated[idx], beta2Result: result, beta2Date: beta2Date || new Date().toISOString().split('T')[0], beta2Value: beta2Value || null }
     if (result === 'negative') updated[idx].betaResult = 'negative' // fail the whole thing
     await onUpdate({ _transfers: updated })
-    setBeta2Open(null); setBeta2Value('')
+    setBeta2Open(null); setBeta2Value(''); setBeta2Date('')
+    setSaving(false)
+  }
+
+  async function handleCancelCycle(idx) {
+    setSaving(true)
+    const updated = [...transfers]
+    updated[idx] = { ...updated[idx], droppedCycle: true, cancelReason: cancelCycleReason || null, cancelDate: new Date().toISOString().split('T')[0] }
+    await onUpdate({ _transfers: updated })
+    setCancelCycleOpen(null); setCancelCycleReason('')
+    setSaving(false)
+  }
+
+  async function handleDeleteBirth() {
+    setSaving(true)
+    const updated = [...transfers]
+    const idx = updated.length - 1
+    if (idx >= 0) {
+      updated[idx] = { ...updated[idx], delivered: false }
+    }
+    await onUpdate({
+      _transfers: updated,
+      delivered: false,
+      deliveryDate: null,
+      deliveryType: null,
+      deliveryNotes: null,
+      babyNames: null,
+      babySexes: null,
+      babyWeights: null,
+      babyLengths: null,
+    })
+    if (onStatusChange) await onStatusChange('Pregnant')
+    setDeleteBirthOpen(false)
     setSaving(false)
   }
 
@@ -952,6 +989,11 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               }} className="text-[10px] text-[#283693] hover:underline">
                 {jd.delivered ? 'Edit Birth Details' : jd.babySexes?.some(s => s !== 'unknown') ? 'Edit Baby Details' : '+ Add Baby Sex'}
               </button>
+              {jd.delivered && (
+                <button onClick={() => setDeleteBirthOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
+                  Delete Birth
+                </button>
+              )}
               {!jd.delivered && (
                 <button onClick={() => setLossOpen(true)} className="text-[10px] text-stone-400 hover:text-red-500 transition-colors">
                   Record Loss
@@ -1060,8 +1102,8 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                     <span className="text-[10px] text-stone-400">{t.embryoCount} embryo{t.embryoCount !== 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {t.betaResult === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Beta + {t.betaValue ? `(${t.betaValue})` : ''}</span>}
-                    {t.beta2Result === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Beta #2 + {t.beta2Value ? `(${t.beta2Value})` : ''}</span>}
+                    {t.betaResult === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full" title={t.betaDate ? formatDate(t.betaDate) : ''}>Beta + {t.betaValue ? `(${t.betaValue})` : ''}{t.betaDate ? ` · ${formatDate(t.betaDate)}` : ''}</span>}
+                    {t.beta2Result === 'positive' && <span className="text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full" title={t.beta2Date ? formatDate(t.beta2Date) : ''}>Beta #2 + {t.beta2Value ? `(${t.beta2Value})` : ''}{t.beta2Date ? ` · ${formatDate(t.beta2Date)}` : ''}</span>}
                     {t.betaResult === 'negative' && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Beta −</span>}
                     {t.heartbeatConfirmed && <span className="text-[10px] font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full flex items-center gap-0.5"><HeartPulse className="size-2.5" /> {t.babies > 1 ? `${t.babies} babies` : 'Heartbeat'}</span>}
                     {t.unsuccessful && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">Unsuccessful</span>}
@@ -1075,19 +1117,20 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
                 {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
                 {t.lossType && <p className="text-xs text-red-400 mt-1">Transfer resulted in {t.lossType === 'miscarriage' ? 'a miscarriage' : t.lossType === 'ectopic' ? 'an ectopic pregnancy' : t.lossType === 'chemical' ? 'a chemical pregnancy' : 'a loss'} ({formatDate(t.lossDate)})</p>}
                 {t.unsuccessful && <p className="text-xs text-red-400 mt-1">Transfer was unsuccessful</p>}
-                {t.droppedCycle && <p className="text-xs text-amber-500 mt-1">Cycle was dropped</p>}
+                {t.droppedCycle && <p className="text-xs text-amber-500 mt-1">Cycle was canceled{t.cancelReason ? ` — ${t.cancelReason}` : ''}{t.cancelDate ? ` (${formatDate(t.cancelDate)})` : ''}</p>}
 
                 {/* Actions for latest active transfer */}
                 {isLatest && !isClosed && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {!t.betaResult && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-600 hover:bg-amber-50" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
                         <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-500 hover:bg-red-50" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
                       </>
                     )}
                     {t.betaResult === 'positive' && t.needsSecondBeta && !t.beta2Result && (
-                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBeta2Open(i); setBeta2Value('') }}>Log Beta #2 Results</Button>
+                      <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBeta2Open(i); setBeta2Value(''); setBeta2Date(new Date().toISOString().split('T')[0]) }}>Log Beta #2 Results</Button>
                     )}
                     {betaComplete && !t.heartbeatConfirmed && (
                       <Button size="sm" variant="outline" className="text-xs h-7 gap-1 border-pink-200 text-pink-600 hover:bg-pink-50" onClick={() => setHeartbeatOpen(true)}>
@@ -1198,9 +1241,15 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Beta HCG Results</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Beta Value</label>
-              <Input value={betaValue} onChange={e => setBetaValue(e.target.value)} placeholder="e.g. 250" className="h-9" type="number" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Beta Date</label>
+                <Input type="date" value={betaDate} onChange={e => setBetaDate(e.target.value)} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Beta Value</label>
+                <Input value={betaValue} onChange={e => setBetaValue(e.target.value)} placeholder="e.g. 250" className="h-9" type="number" />
+              </div>
             </div>
             <div className="space-y-1">
               <label className="text-[11px] text-stone-400 font-medium">Will there be a second beta test? *</label>
@@ -1232,9 +1281,15 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Beta HCG #2 Results</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Beta #2 Value</label>
-              <Input value={beta2Value} onChange={e => setBeta2Value(e.target.value)} placeholder="e.g. 580" className="h-9" type="number" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Beta #2 Date</label>
+                <Input type="date" value={beta2Date} onChange={e => setBeta2Date(e.target.value)} className="h-9" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Beta #2 Value</label>
+                <Input value={beta2Value} onChange={e => setBeta2Value(e.target.value)} placeholder="e.g. 580" className="h-9" type="number" />
+              </div>
             </div>
             <div className="flex gap-3 pt-2">
               <Button className="flex-1 gap-1 bg-green-600 hover:bg-green-700 text-white" size="sm" disabled={saving} onClick={() => handleBeta2Result(beta2Open, 'positive')}>
@@ -1424,6 +1479,48 @@ function PregnancyTracker({ journey, onUpdate, onPregnancyConfirmed, onStatusCha
               <Button size="sm" variant="destructive" className="gap-1" disabled={saving} onClick={async () => { await handleDeleteTransfer(deleteConfirmIdx); setDeleteConfirmIdx(null) }}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
                 Delete Transfer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel Cycle Dialog */}
+      <Dialog open={cancelCycleOpen !== null} onOpenChange={() => setCancelCycleOpen(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-amber-600">Cancel Cycle</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+              <p>This will mark Transfer #{cancelCycleOpen !== null ? cancelCycleOpen + 1 : ''} as a canceled cycle.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Reason (optional)</label>
+              <Input value={cancelCycleReason} onChange={e => setCancelCycleReason(e.target.value)} placeholder="e.g. Lining not ready, meds adjusted..." className="h-9" />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setCancelCycleOpen(null)}>Back</Button>
+              <Button size="sm" className="gap-1 bg-amber-600 hover:bg-amber-700 text-white" disabled={saving} onClick={() => handleCancelCycle(cancelCycleOpen)}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                Cancel Cycle
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Birth Confirmation */}
+      <Dialog open={deleteBirthOpen} onOpenChange={setDeleteBirthOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="text-red-600">Delete Birth Record</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-800">
+              <p>Are you sure you want to delete this birth record? The journey will revert to <strong>Pregnant</strong> status.</p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteBirthOpen(false)}>Cancel</Button>
+              <Button size="sm" variant="destructive" className="gap-1" disabled={saving} onClick={handleDeleteBirth}>
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+                Delete Birth
               </Button>
             </div>
           </div>
