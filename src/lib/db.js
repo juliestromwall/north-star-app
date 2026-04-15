@@ -730,7 +730,9 @@ export async function fetchCaseDocuments(surrogateId) {
 export async function uploadCaseDocument({ surrogateId, category, file, uploadedBy }) {
   if (!supabase) return null
   const ext = file.name.split('.').pop()
-  const path = `${surrogateId}/${category}/${Date.now()}-${file.name}`
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const safeCategory = category.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const path = `${surrogateId}/${safeCategory}/${Date.now()}-${safeName}`
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from(DOC_BUCKET)
     .upload(path, file, { cacheControl: '3600', upsert: false })
