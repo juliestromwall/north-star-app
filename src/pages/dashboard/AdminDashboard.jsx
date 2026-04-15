@@ -270,6 +270,15 @@ export default function AdminDashboard() {
       />
 
       {/* Admin Notes — announcement style */}
+      <style>{`
+        .admin-note-content ul { list-style-type: disc; padding-left: 1.5em; margin: 0.25em 0; }
+        .admin-note-content ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.25em 0; }
+        .admin-note-content li { margin: 0.15em 0; }
+        .admin-note-content li p { margin: 0; }
+        .admin-note-content p { margin: 0.15em 0; }
+        .admin-note-content mark { border-radius: 2px; padding: 1px 2px; }
+        .admin-note-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
+      `}</style>
       {visibleNotes.map((note) => (
         <div key={note.id} className="relative rounded-2xl overflow-hidden border-2 border-[#ed148c]/20" style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />
@@ -279,7 +288,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex-1 min-w-0">
               {note.title && <p className="font-bold text-[#283693] text-base">{note.title}</p>}
-              <p className="text-sm text-stone-600 mt-0.5 leading-relaxed">{note.message}</p>
+              <div className="text-sm text-stone-600 mt-0.5 leading-relaxed admin-note-content" dangerouslySetInnerHTML={{ __html: note.message }} />
               <p className="text-[10px] text-stone-400 mt-1.5">
                 {note.created_by || 'Admin'} · {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </p>

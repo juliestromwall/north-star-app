@@ -6,6 +6,7 @@ import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STA
 import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
 import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions, addInfoRow, INFO_ROW_FIELDS, SURROGATE_INFO_ROW_FIELDS } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
+import RichTextEditor from '@/components/shared/RichTextEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
@@ -294,7 +295,7 @@ function AdminNotesSection() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Message *</label>
-              <textarea value={noteMessage} onChange={(e) => setNoteMessage(e.target.value)} placeholder="Write your note..." rows={3} className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
+              <RichTextEditor content={noteMessage} onChange={setNoteMessage} placeholder="Write your note..." minHeight="100px" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Target</label>

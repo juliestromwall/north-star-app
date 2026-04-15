@@ -4,11 +4,12 @@ import { Highlight } from '@tiptap/extension-highlight'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Underline } from '@tiptap/extension-underline'
+import TiptapImage from '@tiptap/extension-image'
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
-  List, ListOrdered, Palette, Undo2, Redo2,
+  List, ListOrdered, Palette, Undo2, Redo2, ImageIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 const TEXT_COLORS = [
   { color: '#000000', label: 'Black' },
@@ -79,6 +80,7 @@ function ColorPicker({ open, onToggle, onClose, colors, onSelect, onClear, icon:
 export default function RichTextEditor({ content, onChange, placeholder = 'Write something...', minHeight = '120px' }) {
   const [colorOpen, setColorOpen] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
+  const imageRef = useRef(null)
 
   const editor = useEditor({
     extensions: [
@@ -87,6 +89,7 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
       Color,
       TextStyle,
       Underline,
+      TiptapImage.configure({ inline: true, allowBase64: true }),
     ],
     content: content || '',
     onUpdate: ({ editor }) => {
@@ -112,6 +115,7 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
         .tiptap li p { margin: 0; }
         .tiptap p { margin: 0.25em 0; }
         .tiptap mark { border-radius: 2px; padding: 1px 2px; }
+        .tiptap img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
       `}</style>
 
       {/* Toolbar */}
@@ -172,6 +176,20 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Write
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo">
           <Redo2 className="size-3.5" />
         </ToolbarButton>
+
+        <div className="w-px h-4 bg-stone-200 mx-1" />
+
+        <input type="file" ref={imageRef} accept="image/*" className="hidden" onChange={e => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const reader = new FileReader()
+          reader.onload = () => { editor.chain().focus().setImage({ src: reader.result }).run() }
+          reader.readAsDataURL(file)
+          e.target.value = ''
+        }} />
+        <ToolbarButton onClick={() => imageRef.current?.click()} title="Insert image">
+          <ImageIcon className="size-3.5" />
+        </ToolbarButton>
       </div>
 
       {/* Editor */}
@@ -191,6 +209,7 @@ export function RichTextDisplay({ content }) {
         .note-display li p { margin: 0; }
         .note-display p { margin: 0.15em 0; }
         .note-display mark { border-radius: 2px; padding: 1px 2px; }
+        .note-display img { max-width: 100%; height: auto; border-radius: 8px; margin: 0.5em 0; }
       `}</style>
       <div
         className="note-display text-sm text-stone-700"
