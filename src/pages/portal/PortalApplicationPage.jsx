@@ -1086,6 +1086,7 @@ export default function PortalApplicationPage() {
       const nextKey = sectionOrder[currentIdx + 1]
       if (nextKey) {
         setActiveSection(nextKey)
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100)
       } else {
         setActiveSection(null)
         // All saved — check if all complete and show submit
