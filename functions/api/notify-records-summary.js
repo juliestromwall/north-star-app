@@ -23,7 +23,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { surrogateName, surrogateId, gtpal } = await context.request.json()
+  const { surrogateName, surrogateId, gtpal, gtpalData } = await context.request.json()
 
   if (!surrogateName || !surrogateId) {
     return new Response(JSON.stringify({ error: 'Missing surrogateName or surrogateId' }), {
@@ -41,7 +41,7 @@ export async function onRequestPost(context) {
       </div>
       <div style="padding: 0 32px 32px;">
         <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
-          Records Summary Ready! 🏥
+          Records Received! 🥳 Please Review
         </h1>
 
         <div style="padding: 24px 0;">
@@ -51,11 +51,17 @@ export async function onRequestPost(context) {
           <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
             I wanted to let you know that we have collected all available records for <strong style="color: #283693;">${surrogateName}</strong>.
           </p>
-          ${gtpal ? `
-          <div style="text-align: center; margin: 16px 0;">
-            <span style="display: inline-block; background: #283693; color: white; font-family: monospace; font-size: 16px; font-weight: 700; padding: 8px 20px; border-radius: 8px; letter-spacing: 1px;">
-              ${gtpal}
-            </span>
+          ${gtpalData ? `
+          <div style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border-radius: 12px; padding: 16px 20px; margin: 16px auto; max-width: 420px; border: 1px solid #ddd6fe;">
+            <p style="margin: 0 0 8px; font-size: 10px; color: #7c3aed; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Pregnancy History</p>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-family: monospace; font-size: 16px; font-weight: 800; color: #1e1b4b; margin-right: 8px;">${gtpal}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #22c55e; color: white; font-size: 11px; font-weight: 700; text-align: center; line-height: 20px;">${gtpalData.g}</span><span style="font-size: 12px; color: #44403c;">Pregnancies</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; color: white; font-size: 11px; font-weight: 700; text-align: center; line-height: 20px;">${gtpalData.t}</span><span style="font-size: 12px; color: #44403c;">Term</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; color: white; font-size: 11px; font-weight: 700; text-align: center; line-height: 20px;">${gtpalData.p}</span><span style="font-size: 12px; color: #44403c;">Preterm</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #ef4444; color: white; font-size: 11px; font-weight: 700; text-align: center; line-height: 20px;">${gtpalData.a}</span><span style="font-size: 12px; color: #44403c;">Losses</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 4px;"><span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background: #8b5cf6; color: white; font-size: 11px; font-weight: 700; text-align: center; line-height: 20px;">${gtpalData.l}</span><span style="font-size: 12px; color: #44403c;">Living</span></span>
+            </div>
           </div>
           ` : ''}
         </div>
@@ -94,7 +100,7 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         from: `ABC Surrogacy <${fromEmail}>`,
         to: notifyEmails,
-        subject: `Surrogate ${surrogateName} is Ready for Records Summary! 🏥`,
+        subject: `Surrogate ${surrogateName} — Records Received! 🥳 Please Review`,
         html: htmlBody,
       }),
     })

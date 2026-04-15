@@ -1083,7 +1083,7 @@ export default function SurrogateDetailPage() {
                       await fetch('/api/notify-records-summary', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ surrogateName: surrogate.name, surrogateId: surrogate.id, gtpal: gtpalStr }),
+                        body: JSON.stringify({ surrogateName: surrogate.name, surrogateId: surrogate.id, gtpal: gtpalStr, gtpalData: gtp }),
                       })
                     } catch (err) { console.error('Records summary notify failed:', err) }
                   }
