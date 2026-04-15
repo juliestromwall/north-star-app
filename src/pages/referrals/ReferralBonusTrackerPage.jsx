@@ -154,13 +154,14 @@ export default function ReferralBonusTrackerPage() {
   const unpaidReferrals = referralRows.filter(r => !r.paid)
   const paidReferrals = referralRows.filter(r => r.paid)
 
-  // ── Sign-on bonus data — only surrogates in a matched journey ──
+  // ── Incentive payment data — ALL surrogates are eligible ──
   const bonusRows = useMemo(() => {
-    return surrogates.filter(s => findJourneyForSurrogate(s.id, journeys)).map(s => {
+    return surrogates.map(s => {
       const journey = findJourneyForSurrogate(s.id, journeys)
       const medicalDate = journey ? getChecklistDate(journey.journey_data, 'medical clearance') : null
       const legalDate = journey ? getChecklistDate(journey.journey_data, 'legal clearance') : null
       const td = trackerData[`bonus_${s.id}`] || {}
+      const payPref = s.answers?._paymentPreference || {}
       return {
         id: s.id,
         key: `bonus_${s.id}`,
@@ -175,6 +176,9 @@ export default function ReferralBonusTrackerPage() {
         fullyPaidDate: td.fullyPaidDate || null,
         journeyId: journey?.id,
         journeyPath: journey ? `/journeys/${journey.id}` : `/surrogates/${s.id}`,
+        paymentMethod: payPref.method || null,
+        paymentInfo: payPref.method === 'Venmo' ? payPref.venmoUsername : payPref.method === 'Zelle' ? payPref.zelleInfo : null,
+        paymentScreenshot: payPref.screenshotUrl || null,
       }
     })
   }, [surrogates, journeys, trackerData])
@@ -345,8 +349,8 @@ export default function ReferralBonusTrackerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Referral & Bonus Tracker"
-        subtitle={`${allUnpaidReferrals.length} unpaid referrals · ${allUnpaidBonuses.length} unpaid bonuses`}
+        title="Referrals & Incentives"
+        subtitle={`${allUnpaidReferrals.length} unpaid referrals · ${allUnpaidBonuses.length} unpaid incentives`}
       />
 
       {/* Search */}
@@ -364,7 +368,7 @@ export default function ReferralBonusTrackerPage() {
             <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{allUnpaidReferrals.length}</span>
           </TabsTrigger>
           <TabsTrigger value="bonuses" className="gap-1">
-            Sign-On Bonuses
+            Incentive Payment
             <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">{allUnpaidBonuses.length}</span>
           </TabsTrigger>
           <TabsTrigger value="paid-referrals" className="gap-1">
@@ -372,7 +376,7 @@ export default function ReferralBonusTrackerPage() {
             <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{allPaidReferrals.length}</span>
           </TabsTrigger>
           <TabsTrigger value="paid-bonuses" className="gap-1">
-            Paid Bonuses
+            Paid Incentives
             <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">{allPaidBonuses.length}</span>
           </TabsTrigger>
         </TabsList>
@@ -389,7 +393,7 @@ export default function ReferralBonusTrackerPage() {
         <TabsContent value="bonuses" className="mt-4">
           <div className="flex justify-end mb-3">
             <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { resetManualForm(); setAddBonusOpen(true) }}>
-              <Plus className="size-3.5" /> Add Sign-On Bonus
+              <Plus className="size-3.5" /> Add Incentive
             </Button>
           </div>
           <BonusTable rows={filterRows(allUnpaidBonuses)} onMarkHalfPaid={markHalfPaid} onMarkFullyPaid={markFullyPaid} onDateChange={saveDate} showPaidCol={false} />
@@ -617,6 +621,7 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                   Surrogate
                 </th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Date Applied</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Pay Via</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Amount Due</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Medical Clearance</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">$1,000 Paid</th>
@@ -636,6 +641,19 @@ function BonusTable({ rows, onMarkHalfPaid, onMarkFullyPaid, onDateChange, showP
                     <p className="text-[10px] text-stone-400">{row.email}{row.manual ? <span className="ml-1 text-violet-400">(manual)</span> : ''}</p>
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">{row.dateApplied ? formatDate(row.dateApplied) : '—'}</td>
+                  <td className="px-4 py-3 border-r border-stone-100">
+                    {row.paymentMethod ? (
+                      <div>
+                        <span className="font-semibold text-stone-800">{row.paymentMethod}</span>
+                        {row.paymentInfo && <p className="text-[10px] text-stone-500">{row.paymentInfo}</p>}
+                        {row.paymentScreenshot && (
+                          <a href={row.paymentScreenshot} target="_blank" rel="noreferrer" className="text-[10px] text-[#283693] hover:underline">View screenshot</a>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-stone-300 text-[10px]">Not set</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 border-r border-stone-100 font-semibold text-stone-800">${row.amountDue.toLocaleString()}</td>
                   <td className="px-4 py-3 border-r border-stone-100">
                     <EditableDateCell

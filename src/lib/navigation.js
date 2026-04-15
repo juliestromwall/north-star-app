@@ -124,7 +124,7 @@ const nav = [
         roles: ADMIN_ROLES,
       },
       {
-        label: 'Referral & Bonus',
+        label: 'Referrals & Incentives',
         icon: Gift,
         path: '/referral-bonus-tracker',
         roles: ADMIN_ROLES,
