@@ -10,7 +10,8 @@ The ABC Surrogacy Portal ("Portal") is a private, secure platform designed to fa
 
 ## 2. Account Registration & Security
 
-- **Invitation Only:** Accounts are created by Agency staff. You will receive an email invitation with instructions to set your password.
+- **Surrogate Access:** Surrogates who complete the intake qualification quiz and meet the Agency's preliminary screening criteria will automatically receive portal access with instructions to set their password.
+- **Intended Parent & Partner Access:** Intended parents and their partners receive portal access by invitation from Agency staff. You will receive an email invitation with instructions to set your password.
 - **Accurate Information:** You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate.
 - **Password Security:** You are responsible for safeguarding your password and for all activities that occur under your account. You must notify the Agency immediately of any unauthorized use of your account.
 - **One Account Per Person:** Each account is for a single individual. Do not share your login credentials with anyone, including family members or partners (partners will receive their own invitation if applicable).
