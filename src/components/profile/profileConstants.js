@@ -217,7 +217,7 @@ const REQUIRED_FIELDS = {
   personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
   followUp: ['usCitizen', 'contraceptiveMethod'],
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather'],
+  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication'],
   general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency'],
   health: ['mentalHealthDiagnosis'],
   employment: ['currentlyEmployed'],
@@ -226,6 +226,16 @@ const REQUIRED_FIELDS = {
   experiencedSurrogate: [],
   hopesWishes: ['reasonForSurrogacy', 'whenReadyToBegin', 'desiredCompensation'],
   photos: [],
+}
+
+// Conditional required fields — only required if parent field has a specific value
+const CONDITIONAL_REQUIRED = {
+  fertility: {
+    sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
+    infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
+    gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
+    pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
+  },
 }
 
 function isPregnancyComplete(p) {
@@ -237,11 +247,7 @@ function isPregnancyComplete(p) {
 function countCompleted(data, sectionKey) {
   const fields = REQUIRED_FIELDS[sectionKey] || []
   if (fields.length === 0) return { filled: 0, total: 0, complete: false }
-  let filled = 0
-  for (const f of fields) {
-    const val = data?.[sectionKey]?.[f]
-    if (val !== undefined && val !== '' && val !== null) filled++
-  }
+
   // Special: pregnancy section requires all pregnancy details filled
   if (sectionKey === 'pregnancyHistory') {
     const numPreg = parseInt(data?.pregnancyHistory?.numberOfPregnancies) || 0
@@ -251,7 +257,24 @@ function countCompleted(data, sectionKey) {
     const allPregsComplete = completedPregs >= numPreg
     return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
   }
-  return { filled, total: fields.length, complete: filled === fields.length }
+
+  // Build list of active required fields (base + visible conditionals)
+  const conditionals = CONDITIONAL_REQUIRED[sectionKey] || {}
+  const sectionData = data?.[sectionKey] || {}
+  const activeFields = [...fields]
+
+  // Add conditional fields only when their parent triggers them
+  for (const [field, rule] of Object.entries(conditionals)) {
+    const parentVal = sectionData[rule.parent]
+    if (parentVal === rule.showWhen) activeFields.push(field)
+  }
+
+  let filled = 0
+  for (const f of activeFields) {
+    const val = sectionData[f]
+    if (val !== undefined && val !== '' && val !== null) filled++
+  }
+  return { filled, total: activeFields.length, complete: filled === activeFields.length }
 }
 
 const US_STATES = [
@@ -325,6 +348,7 @@ const FOLLOW_UP_FIELDS = [
 export {
   SECTION_META,
   REQUIRED_FIELDS,
+  CONDITIONAL_REQUIRED,
   isPregnancyComplete,
   countCompleted,
   US_STATES,

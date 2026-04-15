@@ -496,11 +496,12 @@ function isPregnancyComplete(p) {
 
 const REQUIRED_FIELDS = {
   personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus'],
+  followUp: ['usCitizen', 'contraceptiveMethod'],
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'contraceptiveMethod', 'cycleLength'],
-  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency', 'sleepHours', 'reliableVehicle'],
-  health: ['mentalHealthDiagnosis', 'openToVaccinations'],
-  employment: ['currentlyEmployed', 'healthInsurance'],
+  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication'],
+  general: ['smokeVape', 'alcoholDrugs', 'typicalDiet', 'exerciseFrequency'],
+  health: ['mentalHealthDiagnosis'],
+  employment: ['currentlyEmployed'],
   interests: ['personality'],
   academic: ['educationLevel'],
   experiencedSurrogate: [],
@@ -508,15 +509,20 @@ const REQUIRED_FIELDS = {
   photos: [],
 }
 
+// Conditional fields — only required when parent answer triggers them
+const CONDITIONAL_REQUIRED = {
+  fertility: {
+    sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
+    infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
+    gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
+    pregnancyMedicationList: { parent: 'pregnancyMedication', showWhen: 'yes' },
+  },
+}
+
 function countCompleted(data, sectionKey) {
   const fields = REQUIRED_FIELDS[sectionKey] || []
   if (fields.length === 0) return { filled: 0, total: 0, complete: false }
-  let filled = 0
-  for (const f of fields) {
-    const val = data?.[sectionKey]?.[f]
-    if (val !== undefined && val !== '' && val !== null) filled++
-  }
-  // Special: pregnancy section requires all pregnancy details filled
+
   if (sectionKey === 'pregnancyHistory') {
     const numPreg = parseInt(data?.pregnancyHistory?.numberOfPregnancies) || 0
     const pregnancies = data?.pregnancyHistory?.pregnancies || []
@@ -525,7 +531,20 @@ function countCompleted(data, sectionKey) {
     const allPregsComplete = completedPregs >= numPreg
     return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
   }
-  return { filled, total: fields.length, complete: filled === fields.length }
+
+  const conditionals = CONDITIONAL_REQUIRED[sectionKey] || {}
+  const sectionData = data?.[sectionKey] || {}
+  const activeFields = [...fields]
+  for (const [field, rule] of Object.entries(conditionals)) {
+    if (sectionData[rule.parent] === rule.showWhen) activeFields.push(field)
+  }
+
+  let filled = 0
+  for (const f of activeFields) {
+    const val = sectionData[f]
+    if (val !== undefined && val !== '' && val !== null) filled++
+  }
+  return { filled, total: activeFields.length, complete: filled === activeFields.length }
 }
 
 // ─────────────────────────────────────────────────────────
