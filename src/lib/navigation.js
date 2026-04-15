@@ -7,6 +7,7 @@ import {
   Route,
   PenLine,
   MessagesSquare,
+  MessageCircle,
   Mail,
   Calendar,
   Settings,
@@ -49,6 +50,12 @@ const nav = [
         label: 'Text Message',
         icon: MessagesSquare,
         path: '/text-messages',
+        roles: ADMIN_ROLES,
+      },
+      {
+        label: 'Team Chats',
+        icon: MessageCircle,
+        path: '/team-chats',
         roles: ADMIN_ROLES,
       },
       {

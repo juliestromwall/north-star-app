@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight, Phone } from 'lucide-react'
 import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 import { getAppConfig, setAppConfig, uploadProfilePhoto } from '@/lib/db'
@@ -42,7 +42,7 @@ const US_TIMEZONES = [
 // ── Admin Profile Section ──────────────────────────────────
 function AdminProfileSection() {
   const { currentUser } = useRole()
-  const [prefs, setPrefs] = useState({ timezone: 'America/Los_Angeles', defaultView: 'grid', avatarUrl: '' })
+  const [prefs, setPrefs] = useState({ timezone: 'America/Los_Angeles', defaultView: 'grid', avatarUrl: '', twilioPhone: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -148,6 +148,20 @@ function AdminProfileSection() {
                 List View
               </button>
             </div>
+          </div>
+
+          {/* Twilio Phone Number */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-stone-500 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Phone className="size-3.5" /> Twilio Phone Number
+            </label>
+            <Input
+              value={prefs.twilioPhone || ''}
+              onChange={e => setPrefs(p => ({ ...p, twilioPhone: e.target.value }))}
+              placeholder="+1XXXXXXXXXX"
+              className="max-w-sm"
+            />
+            <p className="text-[10px] text-stone-400">Your personal Twilio number for sending texts from the app</p>
           </div>
 
           {/* Save */}

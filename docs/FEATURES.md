@@ -58,6 +58,7 @@
 | GCApplicationTab | src/components/surrogates/GCApplicationTab.jsx | 6 collapsible form sections (Quiz, Application, References, Confidential, Clinic, Social Media) with search |
 | IPApplicationTab | src/components/intended-parents/IPApplicationTab.jsx | 4 collapsible form sections (Intake, Contact Info, Clinic, References) with search |
 | EmailPage | src/pages/email/EmailPage.jsx | Gmail integration: inbox, read, compose/send with attachments, search, log to case |
+| TeamChatsPage | src/pages/messages/TeamChatsPage.jsx | Placeholder for team group messaging (Phase 9) |
 | FaxPage | src/pages/fax/FaxPage.jsx | SRFax integration: hero stats (Received/Unread/Filed/Sent filters), table layout with TrackingTable-style headers, send fax (upload or from case docs), near-fullscreen PDF preview with prev/next nav, inline file-to-case with rename + medical records log update, auto-advance to next unread, mark read/unread, filed case tracking (case link, date, admin, log updated Y/N), "Send Fax" on Surrogate/IP/Journey Documents tabs, sidebar unread badge |
 | faxState | src/lib/faxState.js | localStorage-backed fax read/unread tracking + filing info (case, document name, admin, log updated) |
 | CaseEmailsTab | src/components/shared/CaseEmailsTab.jsx | Reusable tab showing logged emails for a case (used in surrogate & IP detail pages) |

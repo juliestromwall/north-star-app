@@ -1,11 +1,13 @@
 // ── SMS Helper ──────────────────────────────────────────
 // Frontend helpers for the /api/sms/ Cloudflare Pages Functions
 
-export async function sendSMS(to, message) {
+export async function sendSMS(to, message, from = null) {
+  const body = { to, message }
+  if (from) body.from = from
   const res = await fetch('/api/sms/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, message }),
+    body: JSON.stringify(body),
   })
   const data = await res.json()
   if (!res.ok) {
@@ -16,12 +18,22 @@ export async function sendSMS(to, message) {
   return data
 }
 
-/** Fetch all messages. Optionally filter by a contact phone number. */
-export async function fetchSMSMessages(contactNumber) {
+/** Fetch all messages. Optionally filter by a contact phone number.
+ *  Pass `numbers` array of E.164 admin phone numbers to query multiple lines. */
+export async function fetchSMSMessages(contactNumber, numbers = []) {
   const params = new URLSearchParams()
   if (contactNumber) params.set('contact', contactNumber)
+  if (numbers.length > 0) params.set('numbers', numbers.join(','))
   const res = await fetch(`/api/sms/list?${params}`)
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Failed to fetch messages')
+  return data
+}
+
+/** Fetch admin phone numbers from the admin-phones API. */
+export async function fetchAdminPhones() {
+  const res = await fetch('/api/admin-phones')
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Failed to fetch admin phones')
   return data
 }

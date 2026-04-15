@@ -30,6 +30,7 @@ import ComingSoonPage from './pages/ComingSoonPage'
 import SurrogateProfilePage from './pages/profile/SurrogateProfilePage'
 import ProfileRouter from './pages/profile/ProfileRouter'
 import TextMessagesPage from './pages/messages/TextMessagesPage'
+import TeamChatsPage from './pages/messages/TeamChatsPage'
 import BabiesBornPage from './pages/babies/BabiesBornPage'
 import ESignaturePage from './pages/esign/ESignaturePage'
 import SignDocumentPage from './pages/esign/SignDocumentPage'
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/my-documents" element={<PortalDocumentsPage />} />
         <Route path="/my-application" element={<PortalApplicationPage />} />
         <Route path="/text-messages" element={<TextMessagesPage />} />
+        <Route path="/team-chats" element={<TeamChatsPage />} />
         <Route path="/babies-born" element={<BabiesBornPage />} />
         <Route path="/email" element={<EmailPage />} />
         <Route path="/fax" element={<FaxPage />} />

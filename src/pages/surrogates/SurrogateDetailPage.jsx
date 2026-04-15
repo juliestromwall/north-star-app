@@ -38,7 +38,7 @@ import { SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
-import { sendSMS, fetchSMSMessages } from '@/lib/sms'
+import { sendSMS, fetchSMSMessages, fetchAdminPhones } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
 import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer, RotateCw, ZoomIn, Crop, ChevronLeft, ChevronRight } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
@@ -2896,43 +2896,73 @@ function countSectionFilled(data, section) {
   return { filled, total }
 }
 
-// ── Case Texts Tab ────────────────────────────────────────
+// ── Case Texts Tab (multi-admin) ──────────────────────────
 function CaseTextsTab({ phone, caseName }) {
+  const { currentUser } = useRole()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
   const [smsText, setSmsText] = useState('')
   const [sending, setSending] = useState(false)
   const [sendResult, setSendResult] = useState(null)
+  const [adminPhones, setAdminPhones] = useState([]) // [{ id, name, phone }]
+  const [sendFrom, setSendFrom] = useState('') // selected "Send as" phone
 
-  function cleanDigits(num) {
+  // Load admin phone numbers
+  useEffect(() => {
+    fetchAdminPhones().then(list => {
+      setAdminPhones(list || [])
+      // Default to current user's number
+      const mine = (list || []).find(a => a.id === currentUser?.id)
+      if (mine) setSendFrom(mine.phone)
+      else if (list?.length > 0) setSendFrom(list[0].phone)
+    }).catch(() => {})
+  }, [currentUser?.id])
+
+  function cleanPhone(num) {
     if (!num) return ''
-    const d = num.replace(/[^\d]/g, '')
-    return d.length === 11 && d.startsWith('1') ? d.slice(1) : d
+    let clean = num.replace(/[^\d+]/g, '')
+    if (!clean.startsWith('+')) clean = '+1' + clean.replace(/^1/, '')
+    return clean
   }
 
-  useEffect(() => {
+  // Build phone→admin name map
+  const phoneToAdmin = useMemo(() => {
+    const map = {}
+    for (const a of adminPhones) {
+      if (a.phone) {
+        map[a.phone] = a.name
+        // Also map without +1 prefix for flexible matching
+        const digits = a.phone.replace(/[^\d]/g, '')
+        map['+1' + digits.replace(/^1/, '')] = a.name
+      }
+    }
+    return map
+  }, [adminPhones])
+
+  // Load messages from all admin numbers
+  function loadMessages() {
     if (!phone) { setLoading(false); return }
-    // Clean the phone for Twilio E.164
-    let cleanTo = phone.replace(/[^\d+]/g, '')
-    if (!cleanTo.startsWith('+')) cleanTo = '+1' + cleanTo.replace(/^1/, '')
-    fetchSMSMessages(cleanTo)
+    const cleanTo = cleanPhone(phone)
+    const numbers = adminPhones.map(a => a.phone).filter(Boolean)
+    fetchSMSMessages(cleanTo, numbers)
       .then(data => setMessages(data.messages || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [phone])
+  }
+
+  useEffect(() => {
+    if (adminPhones.length > 0 || !phone) loadMessages()
+  }, [phone, adminPhones]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSend = async () => {
     if (!smsText.trim() || !phone) return
     setSending(true)
     setSendResult(null)
     try {
-      await sendSMS(phone, smsText.trim())
+      await sendSMS(phone, smsText.trim(), sendFrom || null)
       setSendResult('sent')
       setSmsText('')
-      // Refresh messages
-      let cleanTo = phone.replace(/[^\d+]/g, '')
-      if (!cleanTo.startsWith('+')) cleanTo = '+1' + cleanTo.replace(/^1/, '')
-      fetchSMSMessages(cleanTo).then(data => setMessages(data.messages || [])).catch(() => {})
+      setTimeout(loadMessages, 500) // refresh after short delay
     } catch (err) {
       setSendResult(err.message || 'Failed to send')
     }
@@ -2948,6 +2978,31 @@ function CaseTextsTab({ phone, caseName }) {
         <span className="text-xs text-stone-400">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Send As selector */}
+        {adminPhones.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-stone-400 shrink-0">Send as:</span>
+            <select
+              value={sendFrom}
+              onChange={e => setSendFrom(e.target.value)}
+              className="text-xs border border-stone-200 rounded-lg px-2 py-1.5 bg-white text-stone-700 flex-1 max-w-xs"
+            >
+              {adminPhones.map(a => (
+                <option key={a.id} value={a.phone}>
+                  {a.name} ({a.phone})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* No phone configured warning */}
+        {adminPhones.length === 0 && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+            No Twilio numbers configured. Go to <a href="/settings" className="underline font-medium">Settings</a> to add your phone number.
+          </div>
+        )}
+
         {/* Compose */}
         <div className="flex gap-2">
           <Textarea
@@ -2960,7 +3015,7 @@ function CaseTextsTab({ phone, caseName }) {
           />
           <Button
             onClick={handleSend}
-            disabled={!smsText.trim() || sending}
+            disabled={!smsText.trim() || sending || !sendFrom}
             className="self-end"
             style={{ backgroundColor: '#283693' }}
           >
@@ -2979,11 +3034,14 @@ function CaseTextsTab({ phone, caseName }) {
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {messages.map(m => {
               const isOutbound = m.direction === 'outbound'
-              // Mark inbound as read when viewing
+              const senderName = isOutbound ? (phoneToAdmin[m.from] || '') : ''
               if (!isOutbound && !isMessageRead(m.sid)) markSMSRead(m.sid)
               return (
                 <div key={m.sid} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isOutbound ? 'bg-[#283693] text-white rounded-br-md' : 'bg-stone-100 text-stone-800 rounded-bl-md'}`}>
+                    {isOutbound && senderName && (
+                      <p className="text-[10px] text-white/50 font-medium mb-0.5">{senderName}</p>
+                    )}
                     <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
                     <p className={`text-[10px] mt-1 ${isOutbound ? 'text-white/60' : 'text-stone-400'}`}>
                       {new Date(m.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}

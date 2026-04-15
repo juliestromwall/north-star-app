@@ -12,7 +12,7 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const { to, message } = await context.request.json()
+    const { to, message, from } = await context.request.json()
 
     if (!to || !message) {
       return new Response(JSON.stringify({ error: 'Missing "to" or "message"' }), {
@@ -23,7 +23,7 @@ export async function onRequestPost(context) {
 
     const accountSid = env.TWILIO_ACCOUNT_SID
     const authToken = env.TWILIO_AUTH_TOKEN
-    const fromNumber = env.TWILIO_PHONE_NUMBER
+    const fromNumber = from || env.TWILIO_PHONE_NUMBER
 
     if (!accountSid || !authToken || !fromNumber) {
       return new Response(JSON.stringify({ error: 'Twilio not configured' }), {
