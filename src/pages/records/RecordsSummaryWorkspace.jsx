@@ -1079,21 +1079,41 @@ export default function RecordsSummaryWorkspace() {
   async function handleComplete() {
     setCompleting(true)
     try {
-      // Generate the summary PDF content
-      const el = document.getElementById('summary-preview-content')
-      if (!el) { alert('Please open Preview first to generate the summary.'); setCompleting(false); return }
-
-      // Use html2canvas approach or just save the HTML as a PDF via print
-      // Simpler: create an HTML file and upload as the summary document
       const sName = surrogate?.name || 'Surrogate'
       const firstName = sName.split(' ')[0]
-      const fileName = `Records_Summary_${firstName}_${new Date().toISOString().split('T')[0]}.html`
 
-      // Build standalone HTML for the summary
-      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(s => s.outerHTML).join('\n')
-      const htmlContent = `<!DOCTYPE html><html><head><title>Records Summary — ${sName}</title>${styles}
-        <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } [data-section] { break-inside: avoid; }</style>
-        </head><body>${el.innerHTML}</body></html>`
+      // Save form data first
+      const formData = formRef.current?.getFormData() || summary
+      if (formData) {
+        await setAppConfig(`${SUMMARY_KEY_PREFIX}${id}`, formData)
+      }
+
+      // Try to get rendered preview HTML, or generate a simple version
+      let htmlContent
+      const el = document.getElementById('summary-preview-content')
+      if (el) {
+        const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(s => s.outerHTML).join('\n')
+        htmlContent = `<!DOCTYPE html><html><head><title>Records Summary — ${sName}</title>${styles}
+          <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } [data-section] { break-inside: avoid; }</style>
+          </head><body>${el.innerHTML}</body></html>`
+      } else {
+        // Generate simple HTML from form data
+        const data = formData || {}
+        const sections = []
+        sections.push(`<h1 style="color:#283693">GC Medical Records Summary — ${sName}</h1>`)
+        sections.push(`<p><strong>Date:</strong> ${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</p>`)
+        if (data.name) sections.push(`<p><strong>Name:</strong> ${data.name}</p>`)
+        if (data.dob) sections.push(`<p><strong>DOB:</strong> ${data.dob}</p>`)
+        if (data.currentMeds) sections.push(`<h3>Current Medications</h3><p>${data.currentMeds}</p>`)
+        if (data.allergies) sections.push(`<h3>Allergies</h3><p>${data.allergies}</p>`)
+        if (data.pertinentHistory) sections.push(`<h3>Pertinent Medical History</h3><p>${data.pertinentHistory}</p>`)
+        if (data.surgicalHistory) sections.push(`<h3>Surgical History</h3><p>${data.surgicalHistory}</p>`)
+        htmlContent = `<!DOCTYPE html><html><head><title>Records Summary — ${sName}</title>
+          <style>body { background: white; margin: 0; padding: 20px; font-family: system-ui, sans-serif; } h1 { color: #283693; } h3 { color: #283693; margin-top: 16px; }</style>
+          </head><body>${sections.join('\n')}</body></html>`
+      }
+
+      const fileName = `Records_Summary_${firstName}_${new Date().toISOString().split('T')[0]}.html`
       const blob = new Blob([htmlContent], { type: 'text/html' })
       const file = new File([blob], fileName, { type: 'text/html' })
 
