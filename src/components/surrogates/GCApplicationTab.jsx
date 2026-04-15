@@ -1180,7 +1180,7 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
 
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Payment Preference" description="How would you prefer to receive your screening incentive payment?" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <EditHeader title="Screening Incentive Payment Preference" description="How would you prefer to receive your screening incentive payment?" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
       <CardContent className="space-y-4">
         {editing ? (
           <div className="space-y-4">

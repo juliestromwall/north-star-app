@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronDown, Loader2, Save, CheckCircle2, Circle, FileText, Send, Upload, X, Image } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { supabase } from '@/lib/supabase'
-import { createCaseTask, findCaseByEmail } from '@/lib/db'
+import { createCaseTask, findCaseByEmail, uploadCaseDocument } from '@/lib/db'
+import { DollarSign } from 'lucide-react'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -26,9 +27,11 @@ const US_STATES = [
 
 const FORM_SECTIONS = [
   { key: '_application', label: 'Personal Information', description: 'Address, identification, and NICU information' },
+  { key: '_profileFollowUp', label: 'Profile Follow Up Questions', description: 'Additional details about your lifestyle, health, and preferences' },
   { key: '_confidential', label: 'Confidential Information', description: 'Personal details, insurance, and emergency contact' },
   { key: '_references', label: 'References', description: 'Three references required' },
   { key: '_clinicHospital', label: 'Clinic & Hospital Form', description: 'Provider information for each pregnancy' },
+  { key: '_paymentPreference', label: 'Screening Incentive Payment Preference', description: 'How you prefer to receive your screening incentive' },
   { key: '_socialMediaRelease', label: 'Social Media Release', description: 'Photo and video consent' },
 ]
 
@@ -132,6 +135,161 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle }) 
           </div>
           {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
           {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ── Profile Follow Up Questions ──────────────────────────
+function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
+  const FIELDS = [
+    { key: 'usCitizen', label: 'Are you a U.S. Citizen or Permanent Resident?', type: 'yesno' },
+    { key: 'otherLanguages', label: 'Do you (or anyone in your household) speak a language other than English?', type: 'yesno' },
+    { key: 'otherLanguagesDetails', label: 'Which language(s)?', type: 'text', conditional: d => d.otherLanguages === 'yes' },
+    { key: 'breastfeeding', label: 'Are you currently breastfeeding/lactating?', type: 'yesno' },
+    { key: 'breastfeedingStopDate', label: 'When do you expect to stop?', type: 'text', conditional: d => d.breastfeeding === 'yes' },
+    { key: 'cycleLength', label: 'Are your cycles typically between 28 to 30 days?', type: 'yesno' },
+    { key: 'cycleLengthDetails', label: 'What is your typical cycle length?', type: 'text', conditional: d => d.cycleLength === 'no' },
+    { key: 'contraceptiveMethod', label: 'Which contraceptive method do you currently use?', type: 'text' },
+    { key: 'lastPeriod', label: 'When was the start of your last period?', type: 'text' },
+    { key: 'timeToConceive', label: 'How long after stopping contraceptives did it take to get pregnant?', type: 'text' },
+    { key: 'childrenSpecialNeeds', label: 'Do any of your children have special needs or medical conditions?', type: 'yesno' },
+    { key: 'placedForAdoption', label: 'Have you ever placed a child for adoption?', type: 'yesno' },
+    { key: 'gunsOwned', label: 'Do you own any guns?', type: 'yesno' },
+    { key: 'piercingsTattoos', label: 'Do you have any piercings or tattoos?', type: 'yesno' },
+    { key: 'lastTattooDate', label: 'When did you have your last tattoo?', type: 'text', conditional: d => d.piercingsTattoos === 'yes' },
+    { key: 'nonSterilePiercing', label: 'Have you been tattooed or had a non-sterile skin piercing in the last 12 months?', type: 'yesno' },
+    { key: 'eatingDisorders', label: 'Do you have a history of eating disorders?', type: 'yesno' },
+    { key: 'criminalHistory', label: 'Have you or anyone in your household ever been arrested or convicted?', type: 'yesno' },
+    { key: 'recentTravel', label: 'Have you traveled outside of the U.S. in the last 6 months?', type: 'yesno' },
+    { key: 'travelPlans', label: 'Do you plan on traveling within or outside of the U.S.?', type: 'yesno' },
+    { key: 'sleepIssues', label: 'Do you have any issues with sleeping?', type: 'yesno' },
+    { key: 'sleepHours', label: 'How many hours do you typically sleep each night?', type: 'text' },
+    { key: 'reliableVehicle', label: 'Do you have a reliable vehicle to drive?', type: 'yesno' },
+    { key: 'autoInsurance', label: 'Do you have automobile insurance?', type: 'yesno' },
+    { key: 'validLicense', label: 'Do you have a valid driver\'s license?', type: 'yesno' },
+    { key: 'partnerFdaTests', label: 'Will your partner submit to the FDA required lab tests?', type: 'yesno' },
+    { key: 'openToVaccinations', label: 'Are you open to vaccinations if recommended by the clinic?', type: 'yesno' },
+    { key: 'lastPhysical', label: 'When was your last physical exam?', type: 'text' },
+    { key: 'lastPap', label: 'When was your last pap smear?', type: 'text' },
+    { key: 'healthInsurance', label: 'Do you currently have health insurance?', type: 'yesno' },
+    { key: 'insuranceType', label: 'What type of health insurance?', type: 'text', conditional: d => d.healthInsurance === 'yes' },
+    { key: 'educationLevel', label: 'Highest level of education', type: 'text' },
+    { key: 'currentlyInSchool', label: 'Are you currently enrolled in school?', type: 'yesno' },
+    { key: 'currentlyInSchoolDetails', label: 'Please provide details', type: 'text', conditional: d => d.currentlyInSchool === 'yes' },
+    { key: 'compensationNegotiable', label: 'Is your desired compensation negotiable?', type: 'yesno' },
+  ]
+
+  const [form, setForm] = useState({})
+  useEffect(() => { if (data) setForm({ ...data }) }, [data])
+
+  const visibleFields = FIELDS.filter(f => !f.conditional || f.conditional(form))
+  const requiredKeys = FIELDS.filter(f => f.type === 'yesno' && (!f.conditional || f.conditional(form))).map(f => f.key)
+  const allFilled = requiredKeys.every(k => form[k] === 'yes' || form[k] === 'no' || form[k] === true || form[k] === false)
+  const isComplete = data && requiredKeys.every(k => data[k] === 'yes' || data[k] === 'no' || data[k] === true || data[k] === false)
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2">
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Profile Follow Up Questions</CardTitle>
+            <CardDescription>Additional details about your lifestyle, health, and preferences</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {isOpen && (
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {visibleFields.map(f => (
+              <div key={f.key} className={`space-y-1 ${f.type === 'text' && !f.conditional ? '' : ''}`}>
+                <FieldLabel>{f.label}</FieldLabel>
+                {f.type === 'yesno' ? (
+                  <YesNoButtons value={form[f.key]} onChange={v => setForm(prev => ({ ...prev, [f.key]: v }))} />
+                ) : (
+                  <Input value={form[f.key] || ''} onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))} />
+                )}
+              </div>
+            ))}
+          </div>
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_profileFollowUp', form)} disabled={saving || !allFilled}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ── Screening Incentive Payment Preference ────────────────
+function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggle, caseId }) {
+  const [form, setForm] = useState({ method: '', venmoUsername: '', zelleInfo: '', screenshotUrl: '' })
+  const [uploading, setUploading] = useState(false)
+  useEffect(() => { if (data) setForm({ method: data.method || '', venmoUsername: data.venmoUsername || '', zelleInfo: data.zelleInfo || '', screenshotUrl: data.screenshotUrl || '' }) }, [data])
+
+  const isComplete = data && data.method && (data.method === 'Venmo' ? data.venmoUsername : data.zelleInfo)
+  const allFilled = form.method && (form.method === 'Venmo' ? form.venmoUsername : form.zelleInfo)
+
+  async function handleScreenshot(file) {
+    if (!file || !caseId) return
+    setUploading(true)
+    try {
+      const doc = await uploadCaseDocument({ surrogateId: caseId, category: 'Payment Info', file, uploadedBy: 'Surrogate' })
+      if (doc?.public_url) setForm(f => ({ ...f, screenshotUrl: doc.public_url }))
+    } catch (err) { console.error('Upload failed:', err) }
+    finally { setUploading(false) }
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2">
+          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Screening Incentive Payment Preference</CardTitle>
+            <CardDescription>How would you prefer to receive your screening incentive payment?</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {isOpen && (
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          <div className="space-y-1">
+            <FieldLabel>Payment Method <Req /></FieldLabel>
+            <Select value={form.method} onValueChange={v => setForm(f => ({ ...f, method: v }))}>
+              <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Venmo">Venmo</SelectItem>
+                <SelectItem value="Zelle">Zelle</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.method === 'Venmo' && (
+            <div className="space-y-1">
+              <FieldLabel>Venmo Username <Req /></FieldLabel>
+              <Input value={form.venmoUsername} onChange={e => setForm(f => ({ ...f, venmoUsername: e.target.value }))} placeholder="@username" />
+            </div>
+          )}
+          {form.method === 'Zelle' && (
+            <div className="space-y-1">
+              <FieldLabel>Zelle Email or Phone <Req /></FieldLabel>
+              <Input value={form.zelleInfo} onChange={e => setForm(f => ({ ...f, zelleInfo: e.target.value }))} placeholder="email@example.com or (555) 123-4567" />
+            </div>
+          )}
+          {(form.method === 'Venmo' || form.method === 'Zelle') && (
+            <div className="space-y-1">
+              <FieldLabel>Screenshot of {form.method} Name (optional)</FieldLabel>
+              <Input type="file" accept="image/*" onChange={e => handleScreenshot(e.target.files?.[0])} className="text-xs" disabled={uploading} />
+              {uploading && <p className="text-xs text-stone-400 flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Uploading...</p>}
+              {form.screenshotUrl && <a href={form.screenshotUrl} target="_blank" rel="noreferrer" className="text-xs text-[#283693] hover:underline">View uploaded screenshot →</a>}
+            </div>
+          )}
+          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_paymentPreference', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1061,6 +1219,14 @@ export default function PortalApplicationPage() {
         return true
       })
     }
+    if (key === '_profileFollowUp') {
+      // Check that all yes/no fields have a value
+      const ynKeys = ['usCitizen', 'breastfeeding', 'cycleLength', 'childrenSpecialNeeds', 'placedForAdoption', 'gunsOwned', 'piercingsTattoos', 'eatingDisorders', 'criminalHistory', 'recentTravel', 'travelPlans', 'sleepIssues', 'reliableVehicle', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'openToVaccinations', 'healthInsurance', 'currentlyInSchool', 'compensationNegotiable', 'otherLanguages', 'nonSterilePiercing']
+      return ynKeys.every(k => d[k] === 'yes' || d[k] === 'no' || d[k] === true || d[k] === false)
+    }
+    if (key === '_paymentPreference') {
+      return !!(d.method && (d.method === 'Venmo' ? d.venmoUsername : d.zelleInfo))
+    }
     if (key === '_socialMediaRelease') {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
@@ -1098,12 +1264,16 @@ export default function PortalApplicationPage() {
 
       <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
+      <ProfileFollowUpForm data={answers._profileFollowUp} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+        isOpen={activeSection === '_profileFollowUp'} onToggle={() => setActiveSection(activeSection === '_profileFollowUp' ? null : '_profileFollowUp')} />
       <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted} caseId={caseId}
         isOpen={activeSection === '_confidential'} onToggle={() => setActiveSection(activeSection === '_confidential' ? null : '_confidential')} />
       <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
       <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
         isOpen={activeSection === '_clinicHospital'} onToggle={() => setActiveSection(activeSection === '_clinicHospital' ? null : '_clinicHospital')} />
+      <PaymentPreferenceForm data={answers._paymentPreference} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} caseId={caseId}
+        isOpen={activeSection === '_paymentPreference'} onToggle={() => setActiveSection(activeSection === '_paymentPreference' ? null : '_paymentPreference')} />
       <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted}
         isOpen={activeSection === '_socialMediaRelease'} onToggle={() => setActiveSection(activeSection === '_socialMediaRelease' ? null : '_socialMediaRelease')} />
 
