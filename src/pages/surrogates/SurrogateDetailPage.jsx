@@ -53,7 +53,7 @@ import QuickNote from '@/components/shared/QuickNote'
 import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import { CSS } from '@dnd-kit/utilities'
-import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera } from 'lucide-react'
+import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera, Send } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
@@ -3679,6 +3679,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
   const [statusLoading, setStatusLoading] = useState(false)
   const isApproved = profileStatus === 'approved'
+  const isSubmitted = profileStatus === 'pending_review'
   const data = profileData || {}
 
   const hiddenFields = Array.isArray(data._hiddenFields) ? data._hiddenFields : []
@@ -4375,6 +4376,31 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   return (
     <div className="space-y-6">
+      {isSubmitted && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-xl bg-violet-50 border border-violet-200">
+          <div className="flex items-center gap-3">
+            <Send className="w-5 h-5 text-violet-600 shrink-0" />
+            <p className="text-sm font-medium text-violet-800">This surrogate has submitted their profile for review.</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 rounded-full border-violet-300 text-violet-700 hover:bg-violet-100 shrink-0"
+            disabled={statusLoading}
+            onClick={async () => {
+              setStatusLoading(true)
+              try {
+                await updateSurrogateProfileStatus(surrogate.email, 'draft')
+                setProfileStatus('draft')
+              } catch (err) { console.error('Failed to send back:', err) }
+              setStatusLoading(false)
+            }}
+          >
+            {statusLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Pencil className="size-3.5" />}
+            Send Back for Editing
+          </Button>
+        </div>
+      )}
       {isApproved && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
           <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
