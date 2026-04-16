@@ -3919,7 +3919,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     preferredCommunication: ['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything'],
     ipInvolvement: ['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal'],
     whenReadyToBegin: ['Immediately', 'Within 1-3 months', 'Within 3-6 months', 'Within 6-12 months', '1+ year'],
-    postBirthRelationship: ['Close / Ongoing', 'Occasional Updates', 'Holiday Cards / Photos', 'Clean Break', 'Open to Whatever Develops'],
     embryosToTransfer: ['1', '2', 'Doctor recommendation', 'Open to discussion'],
   }
 
