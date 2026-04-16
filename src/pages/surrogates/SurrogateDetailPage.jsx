@@ -3959,7 +3959,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     contraceptiveMethod: ['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other'],
     homeOwnership: ['Own', 'Rent', 'Other'],
     religionImportance: ['Not Important', 'Somewhat Important', 'Important', 'Very Important'],
-    insuranceType: ['Private/Personal', 'Through my employer', "Through spouse's employer", 'No insurance', 'Other'],
+    insuranceType: ['Employer-sponsored insurance (my own employer)', 'Employer-sponsored insurance (spouse / partner)', 'Employer-sponsored insurance (through parent)', 'Individual / private plan', 'ACA Policy', 'Military / VA coverage', 'Other'],
     educationLevel: ['Some High School', 'High School Diploma / GED', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Vocational / Trade School', 'Other'],
     preferredCommunication: ['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything'],
     ipInvolvement: ['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal'],

@@ -121,8 +121,6 @@ export const FIELD_LABELS = {
   weeklyIncome: 'What is your approximate weekly income?',
   partnerOccupation: "Spouse/partner's occupation",
   partnerWeeklyIncome: "Spouse/partner's approximate weekly income",
-  healthInsurance: 'Do you have health insurance coverage?',
-  insuranceType: 'Is it a private/personal policy or through an employer?',
   governmentAssistance: 'Do you receive any government assistance (WIC, food stamps)?',
   governmentAssistanceDetails: 'Please explain',
 
@@ -172,7 +170,7 @@ export const FIELD_LABELS = {
   openToVaccinations: 'Are you open to vaccinations if recommended by the clinic?',
   lastPap: 'When was your last pap smear?',
   healthInsurance: 'Do you currently have health insurance?',
-  insuranceType: 'What type of health insurance?',
+  insuranceType: 'What type of insurance do you have?',
   educationLevel: 'Highest level of education',
   currentlyInSchool: 'Are you currently enrolled in school?',
   currentlyInSchoolDetails: 'Please provide details',
