@@ -2344,7 +2344,16 @@ function EmploymentSection({ v, u, profile }) {
 
       <YesNoField label="Do you currently have health insurance?" value={v(s, 'healthInsurance')} onChange={u(s, 'healthInsurance')} />
       {v(s, 'healthInsurance') === 'yes' && (
-        <TextField label="What type of health insurance?" value={v(s, 'insuranceType')} onChange={u(s, 'insuranceType')} placeholder="e.g. Private through employer, Medicaid, etc." />
+        <SelectField label="What type of insurance do you have?" value={v(s, 'insuranceType')} onChange={u(s, 'insuranceType')}
+          options={[
+            'Employer-sponsored insurance (my own employer)',
+            'Employer-sponsored insurance (spouse / partner)',
+            'Employer-sponsored insurance (through parent)',
+            'Individual / private plan',
+            'ACA Policy',
+            'Military / VA coverage',
+            'Other',
+          ]} />
       )}
     </div>
   )

@@ -232,20 +232,22 @@ const SECTION_META = [
 
 // Required fields per section for completion tracking
 const REQUIRED_FIELDS = {
-  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus', 'sexualPartners'],
+  personal: ['firstName', 'city', 'state', 'heightFt', 'weight', 'maritalStatus', 'sexualPartners', 'usCitizen'],
   followUp: [], // FollowUp questions are application-only, not part of profile completion
   pregnancyHistory: ['numberOfPregnancies'],
-  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication'],
+  fertility: ['sameBioFather', 'pregnancyDetails', 'infertilityTreatment', 'gynecologicalProblems', 'pregnancyMedication', 'contraceptiveMethod'],
   general: ['homeOwnership', 'homeDuration', 'childrenFullTime', 'planMoreChildren',
     'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
-    'householdControlledSubstances', 'typicalDiet', 'exerciseFrequency'],
+    'householdControlledSubstances', 'typicalDiet', 'exerciseFrequency',
+    'childrenSpecialNeeds', 'piercingsTattoos', 'criminalHistory', 'travelPlans', 'reliableVehicle'],
   health: ['mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
     'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
-    'allergies', 'medicalConditions', 'surgeries', 'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds'],
-  employment: ['currentlyEmployed', 'governmentAssistance'],
+    'allergies', 'medicalConditions', 'surgeries', 'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
+    'openToVaccinations', 'lastPap'],
+  employment: ['currentlyEmployed', 'governmentAssistance', 'healthInsurance'],
   interests: ['favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
     'favoriteColor', 'favoriteFlower', 'pets', 'catLitter', 'hobbies', 'dreamTravel', 'personality'],
-  academic: ['educationLevel'],
+  academic: ['educationLevel', 'currentlyInSchool'],
   experiencedSurrogate: ['previousSurrogate'],
   hopesWishes: ['reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
     'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'pumpBreastmilk',
@@ -282,6 +284,9 @@ const CONDITIONAL_REQUIRED = {
     alcoholDrugsDetails: { parent: 'alcoholDrugs', showWhen: 'yes' },
     advisedLimitDetails: { parent: 'advisedLimitSubstances', showWhen: 'yes' },
     householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
+    childrenSpecialNeedsDetails: { parent: 'childrenSpecialNeeds', showWhen: 'yes' },
+    criminalHistoryDetails: { parent: 'criminalHistory', showWhen: 'yes' },
+    travelPlansDetails: { parent: 'travelPlans', showWhen: 'yes' },
   },
   health: {
     mentalHealthDetails: { parent: 'mentalHealthDiagnosis', showWhen: 'yes' },
@@ -296,11 +301,17 @@ const CONDITIONAL_REQUIRED = {
     workHours: { parent: 'currentlyEmployed', showWhen: 'yes' },
     occupation: { parent: 'currentlyEmployed', showWhen: 'yes' },
     lengthAtEmployer: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    hourlyRate: { parent: 'currentlyEmployed', showWhen: 'yes' },
+    weeklyIncome: { parent: 'currentlyEmployed', showWhen: 'yes' },
     governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
+    insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
   },
   hopesWishes: {
     cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
     ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
+  },
+  academic: {
+    currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
   },
 }
 
