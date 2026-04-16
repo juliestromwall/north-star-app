@@ -26,7 +26,6 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Cropper from 'react-easy-crop'
-import { EMBRYO_SOURCE_OPTIONS, formatEmbryoSourceSelection, normalizeEmbryoSourceSelection } from '@/lib/embryoSource'
 
 // ─── Helper: load / save (per-user) ───
 function getStorageKey(userId) {
@@ -1552,7 +1551,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                     <PVField label="What City/State was the IVF clinic located in?" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
                     <PVField label="What years were you seen there?" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
                     <PVField label="What was the outcome of this surrogacy journey?" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
-                    <PVField label="Embryo source" value={formatEmbryoSourceSelection(j.embryoSource)} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
+                    <PVField label="Embryo source" value={Array.isArray(j.embryoSourceList) && j.embryoSourceList.length > 0 ? j.embryoSourceList.join(', ') : null} fp={`experiencedSurrogate.journeys.${i}.embryoSourceList`} />
                   </div>
                 </div>
               ))}
@@ -2395,7 +2394,7 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
     const current = [...journeys]
     if (n > current.length) {
       for (let i = current.length; i < n; i++) {
-        current.push({ reName: '', reLocation: '', reDates: '', outcome: '', weeksDelivered: '', transfers: '', embryoSource: [] })
+        current.push({ reName: '', reLocation: '', reDates: '', outcome: '', embryoSourceList: [] })
       }
     }
     setProfile(prev => ({
@@ -2441,8 +2440,12 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                       <TextField label="What years were you seen there?" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2022-2023" />
                       <SelectField label="What was the outcome of this surrogacy journey?" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
                         options={['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other']} />
-                      <CheckboxGroupField label="Embryo source (select all that apply)" value={normalizeEmbryoSourceSelection(j.embryoSource)} onChange={val => updateJourney(idx, 'embryoSource', val)}
-                        options={EMBRYO_SOURCE_OPTIONS} />
+                      <CheckboxGroupField
+                        label="Embryo source (select all that apply)"
+                        value={Array.isArray(j.embryoSourceList) ? j.embryoSourceList : []}
+                        onChange={val => updateJourney(idx, 'embryoSourceList', val)}
+                        options={["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown']}
+                      />
                     </div>
                   </div>
                 )

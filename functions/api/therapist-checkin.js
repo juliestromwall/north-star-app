@@ -78,7 +78,7 @@ export async function onRequestOptions() {
 
 export async function onRequestPost(context) {
   const { env } = context
-  const supabaseUrl = env.SUPABASE_URL
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
   const BUCKET = 'case-documents'
 

@@ -155,7 +155,7 @@ export const FIELD_LABELS = {
   outcome: 'What was the outcome of this surrogacy journey?',
   weeksDelivered: 'Weeks when delivered',
   transfers: 'How many transfers until pregnant?',
-  embryoSource: 'Embryo source (select all that apply)',
+  embryoSourceList: 'Embryo source (select all that apply)',
   overallExperience: 'Please describe the overall experience. What did you like and what would you like to avoid in your next journey?',
 
   // Hopes & Wishes

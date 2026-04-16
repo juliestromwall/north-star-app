@@ -57,7 +57,6 @@ import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera, Send } 
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
-import { EMBRYO_SOURCE_OPTIONS, normalizeEmbryoSourceSelection } from '@/lib/embryoSource'
 
 // ── GTPAL ──────────────────────────────────────────────────
 function getGTPAL(profileData) {
@@ -3896,7 +3895,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     } else if (field === 'householdMembers') {
       newItem = { id: Date.now(), name: '', relationship: '' }
     } else if (field === 'journeys') {
-      newItem = { id: Date.now(), reName: '', reLocation: '', reDates: '', outcome: '', embryoSource: [] }
+      newItem = { id: Date.now(), reName: '', reLocation: '', reDates: '', outcome: '', embryoSourceList: [] }
     } else {
       newItem = { id: Date.now() }
     }
@@ -4462,14 +4461,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <div className="space-y-1">
           <span className="text-[10px] text-gray-400 uppercase">Embryo source (select all that apply)</span>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-white rounded border border-gray-200">
-            {EMBRYO_SOURCE_OPTIONS.map(opt => {
-              const list = normalizeEmbryoSourceSelection(item.embryoSource)
+            {["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown'].map(opt => {
+              const list = Array.isArray(item.embryoSourceList) ? item.embryoSourceList : []
               const checked = list.includes(opt)
               return (
                 <label key={opt} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
                   <input type="checkbox" checked={checked} onChange={() => {
                     const next = checked ? list.filter(x => x !== opt) : [...list, opt]
-                    updateItem('embryoSource', next)
+                    updateItem('embryoSourceList', next)
                   }} />
                   <span className="text-stone-600">{opt}</span>
                 </label>

@@ -78,7 +78,7 @@ async function verifySession(secret, sessionToken, expectedShareToken) {
 }
 
 async function sbFetch(env, path, options = {}) {
-  const url = env.SUPABASE_URL
+  const url = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const key = env.SUPABASE_SERVICE_ROLE_KEY
   const headers = {
     apikey: key,
@@ -207,7 +207,7 @@ async function requireSession(env, sessionToken) {
 
 export async function onRequestPost(context) {
   const { env } = context
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!(env.SUPABASE_URL || env.VITE_SUPABASE_URL) || !env.SUPABASE_SERVICE_ROLE_KEY) {
     return json({ error: 'Supabase not configured' }, 500)
   }
 

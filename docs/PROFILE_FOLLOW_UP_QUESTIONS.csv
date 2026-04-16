@@ -1,0 +1,36 @@
+Order,Field Key,Question,Type,Required,Conditional On
+1,usCitizen,Are you a U.S. Citizen or Permanent Resident?,Yes/No,Yes,
+2,otherLanguages,Do you (or anyone in your household) speak a language other than English?,Yes/No,Yes,
+3,otherLanguagesDetails,Which language(s)?,Text,No,otherLanguages = yes
+4,breastfeeding,Are you currently breastfeeding/lactating?,Yes/No,Yes,
+5,breastfeedingStopDate,When do you expect to stop?,Text,No,breastfeeding = yes
+6,cycleLength,Are your cycles typically between 28 to 30 days?,Yes/No,Yes,
+7,cycleLengthDetails,What is your typical cycle length?,Text,No,cycleLength = no
+8,contraceptiveMethod,Which contraceptive method do you currently use?,Text,No,
+9,lastPeriod,When was the start of your last period?,Text,No,
+10,timeToConceive,How long after stopping contraceptives did it take to get pregnant?,Text,No,
+11,childrenSpecialNeeds,Do any of your children have special needs or medical conditions?,Yes/No,Yes,
+12,placedForAdoption,Have you ever placed a child for adoption?,Yes/No,Yes,
+13,gunsOwned,Do you own any guns?,Yes/No,Yes,
+14,piercingsTattoos,Do you have any piercings or tattoos?,Yes/No,Yes,
+15,lastTattooDate,When did you have your last tattoo?,Text,No,piercingsTattoos = yes
+16,nonSterilePiercing,Have you been tattooed or had a non-sterile skin piercing in the last 12 months?,Yes/No,Yes,
+17,eatingDisorders,Do you have a history of eating disorders?,Yes/No,Yes,
+18,criminalHistory,Have you or anyone in your household ever been arrested or convicted?,Yes/No,Yes,
+19,recentTravel,Have you traveled outside of the U.S. in the last 6 months?,Yes/No,Yes,
+20,travelPlans,Do you plan on traveling within or outside of the U.S.?,Yes/No,Yes,
+21,sleepIssues,Do you have any issues with sleeping?,Yes/No,Yes,
+22,sleepHours,How many hours do you typically sleep each night?,Text,No,
+23,reliableVehicle,Do you have a reliable vehicle to drive?,Yes/No,Yes,
+24,autoInsurance,Do you have automobile insurance?,Yes/No,Yes,
+25,validLicense,Do you have a valid driver's license?,Yes/No,Yes,
+26,partnerFdaTests,Will your partner submit to the FDA required lab tests?,Yes/No,Yes,
+27,openToVaccinations,Are you open to vaccinations if recommended by the clinic?,Yes/No,Yes,
+28,lastPhysical,When was your last physical exam?,Text,No,
+29,lastPap,When was your last pap smear?,Text,No,
+30,healthInsurance,Do you currently have health insurance?,Yes/No,Yes,
+31,insuranceType,What type of health insurance?,Text,No,healthInsurance = yes
+32,educationLevel,Highest level of education,Text,No,
+33,currentlyInSchool,Are you currently enrolled in school?,Yes/No,Yes,
+34,currentlyInSchoolDetails,Please provide details,Text,No,currentlyInSchool = yes
+35,compensationNegotiable,Is your desired compensation negotiable?,Yes/No,Yes,
