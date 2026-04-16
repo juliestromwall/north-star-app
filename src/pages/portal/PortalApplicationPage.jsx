@@ -26,9 +26,8 @@ const US_STATES = [
 ]
 
 const FORM_SECTIONS = [
-  { key: '_application', label: 'Personal Information', description: 'Address, identification, and NICU information' },
+  { key: '_application', label: 'Personal Information', description: 'Address, identification, insurance, and emergency contact' },
   { key: '_profileFollowUp', label: 'Profile Follow Up Questions', description: 'Additional details about your lifestyle, health, and preferences' },
-  { key: '_confidential', label: 'Confidential Information', description: 'Personal details, insurance, and emergency contact' },
   { key: '_references', label: 'References', description: 'Three references required' },
   { key: '_clinicHospital', label: 'Clinic & Hospital Form', description: 'Provider information for each pregnancy' },
   { key: '_paymentPreference', label: 'Screening Incentive Payment Preference', description: 'How you prefer to receive your screening incentive' },
@@ -84,57 +83,229 @@ function ReadField({ label, value }) {
   )
 }
 
-// ── Personal Information ───────────────────────────────
-function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
-  const [form, setForm] = useState({
-    street: '', city: '', state: '', zipCode: '',
-    realId: '', validPassport: '',
-    nearestNICU: '', willingToTravelNICU: '',
-  })
+// ── Personal Information (combined with Confidential) ───────
+function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, quizData, caseId, userId }) {
+  const [form, setForm] = useState({})
   const editing = isOpen
+  const [insFrontUrl, setInsFrontUrl] = useState(null)
+  const [insBackUrl, setInsBackUrl] = useState(null)
+  const [uploading, setUploading] = useState(null)
+  const insFrontRef = useRef(null)
+  const insBackRef = useRef(null)
 
+  // Load existing insurance card photos
   useEffect(() => {
-    if (data) setForm({
-      street: data.street || '', city: data.city || '', state: data.state || '', zipCode: data.zipCode || '',
-      realId: data.realId || '', validPassport: data.validPassport || '',
-      nearestNICU: data.nearestNICU || '', willingToTravelNICU: data.willingToTravelNICU || '',
+    if (!caseId || !supabase) return
+    supabase.from('case_documents').select('*').eq('surrogate_id', caseId).eq('category', 'insurance-card').then(({ data: docs }) => {
+      if (docs) {
+        const front = docs.find(d => d.doc_label === 'insurance-front')
+        const back = docs.find(d => d.doc_label === 'insurance-back')
+        if (front?.public_url) setInsFrontUrl(front.public_url)
+        if (back?.public_url) setInsBackUrl(back.public_url)
+      }
     })
-  }, [data])
+  }, [caseId])
 
-  const allFilled = form.street && form.city && form.state && form.zipCode && form.realId && form.validPassport && form.nearestNICU && form.willingToTravelNICU
-  const isComplete = data && data.street && data.city && data.state && data.zipCode && data.realId && data.validPassport && data.nearestNICU && data.willingToTravelNICU
+  async function handleInsUpload(file, label) {
+    if (!file || !caseId || !supabase) return
+    setUploading(label)
+    try {
+      const path = `${caseId}/insurance-card/${label}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('case-documents').upload(path, file, { cacheControl: '3600', upsert: false })
+      if (uploadError) throw uploadError
+      const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+      const { data: existing } = await supabase.from('case_documents').select('id').eq('surrogate_id', caseId).eq('category', 'insurance-card').eq('doc_label', label)
+      if (existing?.length > 0) for (const old of existing) await supabase.from('case_documents').delete().eq('id', old.id)
+      await supabase.from('case_documents').insert({
+        surrogate_id: caseId, category: 'insurance-card', doc_label: label,
+        file_name: `Insurance Card ${label === 'insurance-front' ? 'Front' : 'Back'} - ${file.name}`,
+        file_type: file.type, file_size: file.size,
+        storage_path: uploadData.path, public_url: urlData.publicUrl,
+        uploaded_by: 'Portal Upload',
+      })
+      if (label === 'insurance-front') setInsFrontUrl(urlData.publicUrl)
+      else setInsBackUrl(urlData.publicUrl)
+    } catch (err) { console.error('Insurance card upload failed:', err); alert('Upload failed.') }
+    finally { setUploading(null) }
+  }
+
+  // Load profile data for pre-fill
+  useEffect(() => {
+    let profileData = {}
+    try {
+      const raw = localStorage.getItem(`abc-surrogate-profile-${userId || 'anonymous'}`)
+      if (raw) profileData = JSON.parse(raw)
+    } catch {}
+    const personal = profileData?.personal || {}
+    const q = quizData || {}
+    const fullName = [q.firstName, q.lastName].filter(Boolean).join(' ')
+    const profileEmployment = profileData?.employment || {}
+    const hasInsFromProfile = profileEmployment.healthInsurance === 'yes' || profileEmployment.healthInsurance === true
+    const prefills = {
+      fullLegalName: fullName,
+      dob: q.dob || '',
+      city: personal.city || q.city || '',
+      state: personal.state || q.state || '',
+      hasSpouse: q.maritalStatus === 'Married' || q.maritalStatus === 'Domestic Partnership' ? 'yes' : '',
+      spouseFirstName: personal.partnerName || '',
+      spouseDob: personal.partnerDob || '',
+      hasInsurance: hasInsFromProfile ? 'yes' : '',
+    }
+    const KEYS = [
+      'fullLegalName','maidenName','dob','ssn4','religion',
+      'street','city','state','zipCode','realId','validPassport',
+      'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
+      'hasSpouse','spouseFirstName','spouseDob','spouseEmail','spousePhone',
+      'emergencyName','emergencyPhone','emergencyRelationship',
+    ]
+    const init = {}
+    for (const k of KEYS) init[k] = data?.[k] || prefills[k] || ''
+    setForm(init)
+  }, [data, quizData, userId])
+
+  const hasSpouse = form.hasSpouse === 'yes' || form.hasSpouse === true
+  const hasInsurance = form.hasInsurance === 'yes' || form.hasInsurance === true
+  const SPOUSE_KEYS = ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone']
+  const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
+
+  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','realId','validPassport','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+  if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS)
+  if (hasInsurance) requiredKeys.push(...INSURANCE_KEYS)
+  const allFilled = requiredKeys.every(k => {
+    const v = form[k]
+    if (k === 'realId' || k === 'validPassport' || k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+    if (k === 'emergencyPhone' || k === 'spousePhone' || k === 'insurancePhone') return isValidPhone(v)
+    if (k === 'spouseEmail') return isValidEmail(v)
+    return v?.toString().trim()
+  })
+
+  function checkComplete(d) {
+    if (!d) return false
+    const hs = d.hasSpouse === 'yes'
+    const hi = d.hasInsurance === 'yes'
+    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','realId','validPassport','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+    if (hs) rk.push(...SPOUSE_KEYS)
+    if (hi) rk.push(...INSURANCE_KEYS)
+    return rk.every(k => {
+      const v = d[k]
+      if (k === 'realId' || k === 'validPassport' || k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+      if (k.includes('Phone')) return isValidPhone(v)
+      if (k.includes('Email')) return isValidEmail(v)
+      return v?.toString().trim()
+    })
+  }
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-center gap-2">
-          {isComplete ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
           <div>
             <CardTitle className="text-base">Personal Information</CardTitle>
-            <CardDescription>Address, identification, and NICU information</CardDescription>
+            <CardDescription>Address, identification, insurance, and emergency contact</CardDescription>
           </div>
         </div>
         <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${editing ? 'rotate-180' : ''}`} /></CardAction>
       </CardHeader>
       {editing && (
         <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          {/* Identity */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-1">Identity</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Full Legal Name <Req /></FieldLabel><Input value={form.fullLegalName || ''} onChange={e => setForm(f => ({ ...f, fullLegalName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Maiden Name</FieldLabel><Input value={form.maidenName || ''} onChange={e => setForm(f => ({ ...f, maidenName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Date of Birth <Req /></FieldLabel><Input type="date" value={form.dob || ''} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Last 4 of SSN <Req /></FieldLabel><Input value={form.ssn4 || ''} onChange={e => setForm(f => ({ ...f, ssn4: e.target.value }))} maxLength={4} /></div>
+            <div className="space-y-1"><FieldLabel>Religion</FieldLabel><Input value={form.religion || ''} onChange={e => setForm(f => ({ ...f, religion: e.target.value }))} /></div>
+          </div>
+
+          {/* Address */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Address</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street || ''} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city || ''} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>State <Req /></FieldLabel>
-              <Select value={form.state} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
+              <Select value={form.state || ''} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Do you have a Real ID? <Req /></FieldLabel><YesNoButtons value={form.realId} onChange={v => setForm(f => ({ ...f, realId: v }))} /></div>
             <div className="space-y-1"><FieldLabel>Do you have a valid passport? <Req /></FieldLabel><YesNoButtons value={form.validPassport} onChange={v => setForm(f => ({ ...f, validPassport: v }))} /></div>
-            <div className="space-y-1 sm:col-span-2"><FieldLabel>What is the nearest hospital with a Level 2 or Level 3 NICU? <Req /></FieldLabel><Input value={form.nearestNICU} onChange={e => setForm(f => ({ ...f, nearestNICU: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Would you be willing to travel to deliver at a Level 2 or Level 3 NICU hospital? <Req /></FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => setForm(f => ({ ...f, willingToTravelNICU: v }))} /></div>
           </div>
-          {!readOnly && !allFilled && <p className="text-xs text-red-400">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
+
+          {/* Insurance */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Health Insurance</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Do you have health insurance? <Req /></FieldLabel><YesNoButtons value={form.hasInsurance} onChange={v => setForm(f => ({ ...f, hasInsurance: v }))} /></div>
+            {hasInsurance && <>
+              <div className="space-y-1"><FieldLabel>Insurance Provider <Req /></FieldLabel><Input value={form.insuranceProvider || ''} onChange={e => setForm(f => ({ ...f, insuranceProvider: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Policy Number <Req /></FieldLabel><Input value={form.insurancePolicyNumber || ''} onChange={e => setForm(f => ({ ...f, insurancePolicyNumber: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Group Number <Req /></FieldLabel><Input value={form.insuranceGroupNumber || ''} onChange={e => setForm(f => ({ ...f, insuranceGroupNumber: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Insurance Phone <Req /></FieldLabel><Input type="tel" value={form.insurancePhone || ''} onChange={e => setForm(f => ({ ...f, insurancePhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            </>}
+          </div>
+          {/* Insurance Card Uploads */}
+          {hasInsurance && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="space-y-2">
+                <FieldLabel>Insurance Card — Front</FieldLabel>
+                {insFrontUrl ? (
+                  <div className="flex items-center gap-3">
+                    <a href={insFrontUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Front</a>
+                    {!readOnly && <button onClick={() => insFrontRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
+                  </div>
+                ) : !readOnly && (
+                  <button onClick={() => insFrontRef.current?.click()} disabled={uploading === 'insurance-front'}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                    {uploading === 'insurance-front' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    Upload Front of Card
+                  </button>
+                )}
+                <input ref={insFrontRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleInsUpload(e.target.files[0], 'insurance-front'); e.target.value = '' }} />
+              </div>
+              <div className="space-y-2">
+                <FieldLabel>Insurance Card — Back</FieldLabel>
+                {insBackUrl ? (
+                  <div className="flex items-center gap-3">
+                    <a href={insBackUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Back</a>
+                    {!readOnly && <button onClick={() => insBackRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
+                  </div>
+                ) : !readOnly && (
+                  <button onClick={() => insBackRef.current?.click()} disabled={uploading === 'insurance-back'}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                    {uploading === 'insurance-back' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    Upload Back of Card
+                  </button>
+                )}
+                <input ref={insBackRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleInsUpload(e.target.files[0], 'insurance-back'); e.target.value = '' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Spouse/Partner */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Spouse / Partner</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Do you have a spouse/partner? <Req /></FieldLabel><YesNoButtons value={form.hasSpouse} onChange={v => setForm(f => ({ ...f, hasSpouse: v }))} /></div>
+            {hasSpouse && <>
+              <div className="space-y-1"><FieldLabel>Spouse/Partner First Name <Req /></FieldLabel><Input value={form.spouseFirstName || ''} onChange={e => setForm(f => ({ ...f, spouseFirstName: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Spouse/Partner DOB <Req /></FieldLabel><Input type="date" value={form.spouseDob || ''} onChange={e => setForm(f => ({ ...f, spouseDob: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Spouse/Partner Email <Req /></FieldLabel><Input type="email" value={form.spouseEmail || ''} onChange={e => setForm(f => ({ ...f, spouseEmail: e.target.value }))} placeholder="name@example.com" /></div>
+              <div className="space-y-1"><FieldLabel>Spouse/Partner Phone <Req /></FieldLabel><Input type="tel" value={form.spousePhone || ''} onChange={e => setForm(f => ({ ...f, spousePhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            </>}
+          </div>
+
+          {/* Emergency Contact */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Emergency Contact</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Name <Req /></FieldLabel><Input value={form.emergencyName || ''} onChange={e => setForm(f => ({ ...f, emergencyName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.emergencyPhone || ''} onChange={e => setForm(f => ({ ...f, emergencyPhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            <div className="space-y-1"><FieldLabel>Relationship <Req /></FieldLabel><Input value={form.emergencyRelationship || ''} onChange={e => setForm(f => ({ ...f, emergencyRelationship: e.target.value }))} /></div>
+          </div>
+
+          {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_application', form)} disabled={saving || !allFilled}>
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
           </Button>}
         </CardContent>
@@ -1284,11 +1455,10 @@ export default function PortalApplicationPage() {
       )}
 
       <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+        quizData={answers} caseId={caseId} userId={currentUser?.id || currentUser?.email}
         isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
       <ProfileFollowUpForm data={answers._profileFollowUp} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_profileFollowUp'} onToggle={() => setActiveSection(activeSection === '_profileFollowUp' ? null : '_profileFollowUp')} />
-      <ConfidentialForm data={answers._confidential} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted} caseId={caseId}
-        isOpen={activeSection === '_confidential'} onToggle={() => setActiveSection(activeSection === '_confidential' ? null : '_confidential')} />
       <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
         isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
       <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
