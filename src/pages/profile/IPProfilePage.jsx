@@ -43,7 +43,6 @@ const SURROGACY_FIELDS = [
   { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
   { key: 'tandemSurrogacy', label: 'Would you consider pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
   { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
-  { key: 'messageToGC', label: 'Is there anything you\'d like to say to a potential gestational carrier?', type: 'textarea' },
 ]
 
 const PERSONAL_FIELDS = [
@@ -642,7 +641,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
         {/* Per-person sections */}
         {(['personal', 'health', 'history']).map((secKey, idx) => {
-          const fieldDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
+          const rawDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
+          // Exclude messageToSurrogate — it renders as a special letter card below
+          const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate')
           const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
           const sectionNum = 3 + idx
@@ -670,6 +671,33 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
             </NewSection>
           )
         })}
+
+        {/* ── Letter to Surrogate (Dear Surrogate) ── */}
+        {(() => {
+          const ip1Msg = ip1?.history?.messageToSurrogate
+          const ip2Msg = hasPartner ? ip2?.history?.messageToSurrogate : null
+          const messages = []
+          if (ip1Msg) messages.push({ name: hasPartner ? ip1Name : primaryName, text: ip1Msg })
+          if (ip2Msg) messages.push({ name: ip2Name, text: ip2Msg })
+          if (messages.length === 0) return null
+          return (
+            <div className="mt-8 print:break-inside-avoid">
+              <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#ed148c]/20 shadow-sm print:shadow-none">
+                <div className="px-7 pt-6 pb-4">
+                  <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Surrogate,</p>
+                </div>
+                <div className="px-7 pb-7 space-y-5">
+                  {messages.map((m, i) => (
+                    <div key={i}>
+                      <p className="text-[15px] text-stone-700 leading-[1.75] whitespace-pre-wrap font-serif italic">{m.text}</p>
+                      <p className="text-right text-base font-heading font-bold mt-3" style={{ color: '#c2185b' }}>— {m.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
 

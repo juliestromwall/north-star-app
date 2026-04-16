@@ -200,7 +200,6 @@ const SURROGACY_FIELDS = [
   { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
   { key: 'tandemSurrogacy', label: 'Would you consider pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
   { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
-  { key: 'messageToGC', label: 'Is there anything you\'d like to say to a potential gestational carrier?', type: 'textarea' },
 ]
 
 const PERSONAL_FIELDS = [
