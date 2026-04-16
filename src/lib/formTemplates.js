@@ -4,65 +4,48 @@
  * Rendered as clean HTML forms (no Google Docs needed).
  */
 
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC',
+]
+
+// Shared fields used for all background waivers — single source of truth, populates both sections
+const BACKGROUND_WAIVER_FIELDS = [
+  { id: 'firstName', label: 'First Name', type: 'text', required: true },
+  { id: 'middleName', label: 'Middle Name', type: 'text', required: true },
+  { id: 'lastName', label: 'Last Name', type: 'text', required: true },
+  { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
+  { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
+  { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
+  { id: 'dlNumber', label: "Driver's License #", type: 'text', required: true },
+  { id: 'dlState', label: 'License Issuing State', type: 'select', options: US_STATES, required: true },
+  { id: 'dlExpiration', label: 'License Expiration Date', type: 'date', required: true },
+  { id: 'wantCopy', label: 'Receive copy of report', type: 'radio', options: ['yes', 'no'], required: true },
+]
+
+const BACKGROUND_WAIVER_SIGNATURES = [
+  { id: 'sig1', label: "Applicant's Signature (Section 1)" },
+  { id: 'sig2', label: "Applicant's Signature (Section 2)" },
+  { id: 'sig3', label: 'Signature (Driving Record Consent)' },
+]
+
 export const FORM_TEMPLATES = {
   gc_background_waiver: {
     id: 'gc_background_waiver',
     title: 'GC Background Waiver',
     description: 'Disclosure Authorization and Release — Background Investigation',
     signerRole: 'gc',
-    fields: [
-      // Section 1
-      { id: 'fullName', label: 'Full Legal Name (First, Middle, Last)', type: 'text', required: true },
-      { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
-      { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
-      { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'dlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'dlState', label: 'State', type: 'text', required: true },
-      { id: 'dlExpiration', label: 'Expiration Date', type: 'text', required: true },
-      // Section 2
-      { id: 'wantCopy', label: 'Receive copy of report', type: 'radio', options: ['yes', 'no'], required: true },
-      // Section 3 (driving record)
-      { id: 'drFirstName', label: 'First Name', type: 'text', required: true },
-      { id: 'drMiddleName', label: 'Middle Name', type: 'text', required: false },
-      { id: 'drLastName', label: 'Last Name', type: 'text', required: true },
-      { id: 'drDob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'drDlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'drDlState', label: 'State', type: 'text', required: true },
-      { id: 'drDlExpiration', label: 'Expiration Date', type: 'text', required: true },
-    ],
-    signatures: [
-      { id: 'sig1', label: "Applicant's Signature (Section 1)" },
-      { id: 'sig2', label: "Applicant's Signature (Section 2)" },
-      { id: 'sig3', label: 'Signature (Driving Record Consent)' },
-    ],
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
   partner_background_waiver: {
     id: 'partner_background_waiver',
     title: 'Partner Background Waiver',
     description: 'Disclosure Authorization and Release — Partner Background Investigation',
     signerRole: 'partner',
-    fields: [
-      { id: 'fullName', label: 'Full Legal Name (First, Middle, Last)', type: 'text', required: true },
-      { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
-      { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
-      { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'dlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'dlState', label: 'State', type: 'text', required: true },
-      { id: 'dlExpiration', label: 'Expiration Date', type: 'text', required: true },
-      { id: 'wantCopy', label: 'Receive copy of report', type: 'radio', options: ['yes', 'no'], required: true },
-      { id: 'drFirstName', label: 'First Name', type: 'text', required: true },
-      { id: 'drMiddleName', label: 'Middle Name', type: 'text', required: false },
-      { id: 'drLastName', label: 'Last Name', type: 'text', required: true },
-      { id: 'drDob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'drDlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'drDlState', label: 'State', type: 'text', required: true },
-      { id: 'drDlExpiration', label: 'Expiration Date', type: 'text', required: true },
-    ],
-    signatures: [
-      { id: 'sig1', label: "Applicant's Signature (Section 1)" },
-      { id: 'sig2', label: "Applicant's Signature (Section 2)" },
-      { id: 'sig3', label: 'Signature (Driving Record Consent)' },
-    ],
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
   ip_background_waiver: {
     id: 'ip_background_waiver',
@@ -70,28 +53,8 @@ export const FORM_TEMPLATES = {
     description: 'Disclosure Authorization and Release — IP Background Investigation',
     signerRole: 'ip1',
     formType: 'ip_background',
-    fields: [
-      { id: 'fullName', label: 'Full Legal Name (First, Middle, Last)', type: 'text', required: true },
-      { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
-      { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
-      { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'dlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'dlState', label: 'State', type: 'text', required: true },
-      { id: 'dlExpiration', label: 'Expiration Date', type: 'text', required: true },
-      { id: 'wantCopy', label: 'Receive copy of report', type: 'radio', options: ['yes', 'no'], required: true },
-      { id: 'drFirstName', label: 'First Name', type: 'text', required: true },
-      { id: 'drMiddleName', label: 'Middle Name', type: 'text', required: false },
-      { id: 'drLastName', label: 'Last Name', type: 'text', required: true },
-      { id: 'drDob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'drDlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'drDlState', label: 'State', type: 'text', required: true },
-      { id: 'drDlExpiration', label: 'Expiration Date', type: 'text', required: true },
-    ],
-    signatures: [
-      { id: 'sig1', label: "Applicant's Signature (Section 1)" },
-      { id: 'sig2', label: "Applicant's Signature (Section 2)" },
-      { id: 'sig3', label: 'Signature (Driving Record Consent)' },
-    ],
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
   ip2_background_waiver: {
     id: 'ip2_background_waiver',
@@ -99,28 +62,8 @@ export const FORM_TEMPLATES = {
     description: 'Disclosure Authorization and Release — IP2 Background Investigation',
     signerRole: 'ip2',
     formType: 'ip_background',
-    fields: [
-      { id: 'fullName', label: 'Full Legal Name (First, Middle, Last)', type: 'text', required: true },
-      { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
-      { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
-      { id: 'dob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'dlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'dlState', label: 'State', type: 'text', required: true },
-      { id: 'dlExpiration', label: 'Expiration Date', type: 'text', required: true },
-      { id: 'wantCopy', label: 'Receive copy of report', type: 'radio', options: ['yes', 'no'], required: true },
-      { id: 'drFirstName', label: 'First Name', type: 'text', required: true },
-      { id: 'drMiddleName', label: 'Middle Name', type: 'text', required: false },
-      { id: 'drLastName', label: 'Last Name', type: 'text', required: true },
-      { id: 'drDob', label: 'Date of Birth', type: 'date', required: true },
-      { id: 'drDlNumber', label: "Driver's License #", type: 'text', required: true },
-      { id: 'drDlState', label: 'State', type: 'text', required: true },
-      { id: 'drDlExpiration', label: 'Expiration Date', type: 'text', required: true },
-    ],
-    signatures: [
-      { id: 'sig1', label: "Applicant's Signature (Section 1)" },
-      { id: 'sig2', label: "Applicant's Signature (Section 2)" },
-      { id: 'sig3', label: 'Signature (Driving Record Consent)' },
-    ],
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
 }
 
@@ -133,8 +76,12 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
   const { signerName = '', signerEmail = '', forPdf = false } = options
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
+  // Derive full name from parts
+  const fullName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ')
+
   function field(id, width = '200px') {
-    const val = values[id] || ''
+    let val = values[id] || ''
+    if (id === 'fullName') val = fullName
     if (forPdf) {
       return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
     }
@@ -217,7 +164,7 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
   <!-- SECTION 2: Authorization -->
   <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${values.fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
     <p>I hereby authorize Abundant Beginnings Co. to procure an investigative consumer report regarding me for surrogacy purposes. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
@@ -244,17 +191,17 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 
     <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:10px;">
       <tr>
-        <td style="padding:6px 0;"><strong>First:</strong> ${field('drFirstName', '150px')}</td>
-        <td style="padding:6px 0;"><strong>Middle:</strong> ${field('drMiddleName', '120px')}</td>
-        <td style="padding:6px 0;"><strong>Last:</strong> ${field('drLastName', '150px')}</td>
+        <td style="padding:6px 0;"><strong>First:</strong> ${field('firstName', '150px')}</td>
+        <td style="padding:6px 0;"><strong>Middle:</strong> ${field('middleName', '120px')}</td>
+        <td style="padding:6px 0;"><strong>Last:</strong> ${field('lastName', '150px')}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;"><strong>Date of Birth:</strong> ${field('drDob', '120px')}</td>
-        <td style="padding:6px 0;"><strong>DL #:</strong> ${field('drDlNumber', '150px')}</td>
-        <td style="padding:6px 0;"><strong>State:</strong> ${field('drDlState', '60px')}</td>
+        <td style="padding:6px 0;"><strong>Date of Birth:</strong> ${field('dob', '120px')}</td>
+        <td style="padding:6px 0;"><strong>DL #:</strong> ${field('dlNumber', '150px')}</td>
+        <td style="padding:6px 0;"><strong>State:</strong> ${field('dlState', '60px')}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;" colspan="3"><strong>Expiration:</strong> ${field('drDlExpiration', '120px')}</td>
+        <td style="padding:6px 0;" colspan="3"><strong>Expiration:</strong> ${field('dlExpiration', '120px')}</td>
       </tr>
     </table>
 
@@ -275,8 +222,12 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
   const { signerName = '', forPdf = false } = options
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
+  // Derive full name from parts
+  const fullName = [values.firstName, values.middleName, values.lastName].filter(Boolean).join(' ')
+
   function field(id, width = '200px') {
-    const val = values[id] || ''
+    let val = values[id] || ''
+    if (id === 'fullName') val = fullName
     if (forPdf) return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
     return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;cursor:text;">${val || '(click to fill)'}</span>`
   }
@@ -350,7 +301,7 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
   <!-- SECTION 2 -->
   <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
-    <p>I, <strong>${values.fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
+    <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
     <p>I hereby authorize Abundant Beginnings Co. to procure an investigative consumer report regarding me. I am aware that said report may include information regarding my character, general reputation, personal characteristics, and mode of living as well as a medical, criminal or civil history.</p>
 
     <div style="margin:12px 0;padding:10px;background:#f8f8f8;border-radius:6px;">
@@ -376,17 +327,17 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
 
     <table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:10px;">
       <tr>
-        <td style="padding:6px 0;"><strong>First:</strong> ${field('drFirstName', '150px')}</td>
-        <td style="padding:6px 0;"><strong>Middle:</strong> ${field('drMiddleName', '120px')}</td>
-        <td style="padding:6px 0;"><strong>Last:</strong> ${field('drLastName', '150px')}</td>
+        <td style="padding:6px 0;"><strong>First:</strong> ${field('firstName', '150px')}</td>
+        <td style="padding:6px 0;"><strong>Middle:</strong> ${field('middleName', '120px')}</td>
+        <td style="padding:6px 0;"><strong>Last:</strong> ${field('lastName', '150px')}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;"><strong>Date of Birth:</strong> ${field('drDob', '120px')}</td>
-        <td style="padding:6px 0;"><strong>DL #:</strong> ${field('drDlNumber', '150px')}</td>
-        <td style="padding:6px 0;"><strong>State:</strong> ${field('drDlState', '60px')}</td>
+        <td style="padding:6px 0;"><strong>Date of Birth:</strong> ${field('dob', '120px')}</td>
+        <td style="padding:6px 0;"><strong>DL #:</strong> ${field('dlNumber', '150px')}</td>
+        <td style="padding:6px 0;"><strong>State:</strong> ${field('dlState', '60px')}</td>
       </tr>
       <tr>
-        <td style="padding:6px 0;" colspan="3"><strong>Expiration:</strong> ${field('drDlExpiration', '120px')}</td>
+        <td style="padding:6px 0;" colspan="3"><strong>Expiration:</strong> ${field('dlExpiration', '120px')}</td>
       </tr>
     </table>
 

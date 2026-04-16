@@ -109,8 +109,56 @@ export default function SignFormPage() {
       setMySigner(found)
       setVerified(true)
       logAuditEvent(doc.id, 'viewed', found.name, email, {}).catch(() => {})
+      // Prefill from case data (intake/profile)
+      prefillFromCase(found, email).catch(() => {})
     } else {
       alert('This email is not listed as a signer on this document.')
+    }
+  }
+
+  async function prefillFromCase(signer, email) {
+    if (!doc?.case_id) return
+    try {
+      const { data: intake } = await supabase
+        .from('intake_submissions')
+        .select('answers')
+        .eq('id', doc.case_id)
+        .single()
+      const a = intake?.answers || {}
+      const role = signer.role
+      const prefill = {}
+      // Determine which person we're filling for
+      let firstName = '', lastName = '', phone = '', dob = ''
+      if (role === 'gc') {
+        firstName = a.firstName || ''
+        lastName = a.lastName || ''
+        phone = a.phone || ''
+        dob = a.dob || ''
+      } else if (role === 'partner') {
+        firstName = a.partnerFirstName || ''
+        lastName = a.partnerLastName || ''
+        phone = a.partnerPhone || ''
+        dob = a.partnerDob || ''
+      } else if (role === 'ip1') {
+        firstName = a.primaryFirstName || ''
+        lastName = a.primaryLastName || ''
+        phone = a.primaryPhone || a.phone || ''
+        dob = a.primaryDob || ''
+      } else if (role === 'ip2') {
+        firstName = a.ip2FirstName || ''
+        lastName = a.ip2LastName || ''
+        phone = a.ip2Phone || ''
+        dob = a.ip2Dob || ''
+      }
+      if (firstName) prefill.firstName = firstName
+      if (lastName) prefill.lastName = lastName
+      if (phone) prefill.phone = phone
+      if (dob) prefill.dob = dob
+      if (Object.keys(prefill).length) {
+        setFieldValues(prev => ({ ...prefill, ...prev }))
+      }
+    } catch (err) {
+      console.error('Prefill failed:', err)
     }
   }
 
@@ -332,7 +380,7 @@ export default function SignFormPage() {
                 if (f.type === 'radio') {
                   return (
                     <div key={f.id} className="col-span-2 space-y-1">
-                      <label className="text-xs font-medium text-stone-500">{f.label}</label>
+                      <label className="text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
                       <div className="flex gap-4">
                         {f.options.map(opt => (
                           <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
@@ -343,6 +391,21 @@ export default function SignFormPage() {
                           </label>
                         ))}
                       </div>
+                    </div>
+                  )
+                }
+                if (f.type === 'select') {
+                  return (
+                    <div key={f.id} className="space-y-1">
+                      <label className="text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+                      <select
+                        value={fieldValues[f.id] || ''}
+                        onChange={e => updateField(f.id, e.target.value)}
+                        className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white"
+                      >
+                        <option value="">Select…</option>
+                        {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
                     </div>
                   )
                 }
