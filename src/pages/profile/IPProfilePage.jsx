@@ -21,39 +21,39 @@ const FERTILITY_FIELDS = [
   { key: 'reasonForSurrogacy', label: 'What led to your decision to pursue surrogacy?', type: 'textarea' },
   { key: 'fertilityProcedures', label: 'What fertility procedures have you tried?', type: 'textarea' },
   { key: 'hasFrozenEmbryos', label: 'Do you have frozen embryos?', type: 'yesno' },
-  { key: 'frozenEmbryoCount', label: 'How many frozen embryos?', type: 'text', conditional: d => d.hasFrozenEmbryos === 'yes' },
+  { key: 'frozenEmbryoCount', label: 'How many frozen embryos do you have?', type: 'text', conditional: d => d.hasFrozenEmbryos === 'yes' },
   { key: 'embryosGeneticallyTested', label: 'Have the embryos been genetically tested?', type: 'textarea' },
-  { key: 'usingEggDonor', label: 'Using an egg donor?', type: 'yesno' },
-  { key: 'usingSpermDonor', label: 'Using a sperm donor?', type: 'yesno' },
-  { key: 'embryoTransferCount', label: 'Transfer one embryo or two?', type: 'select', options: ['1', '2', 'Undecided'] },
+  { key: 'usingEggDonor', label: 'Are you using an egg donor?', type: 'yesno' },
+  { key: 'usingSpermDonor', label: 'Are you using a sperm donor?', type: 'yesno' },
+  { key: 'embryoTransferCount', label: 'Would you like to transfer one embryo or two?', type: 'select', options: ['1', '2', 'Undecided'] },
   { key: 'anticipatedTransferDate', label: 'When do you anticipate having the embryo transfer?', type: 'text' },
   { key: 'hasOtherChildren', label: 'Do you have other children?', type: 'yesno' },
-  { key: 'otherChildrenDetails', label: 'How many and what age(s)?', type: 'text', conditional: d => d.hasOtherChildren === 'yes' },
+  { key: 'otherChildrenDetails', label: 'How many children do you have and what are their ages?', type: 'text', conditional: d => d.hasOtherChildren === 'yes' },
 ]
 
 const SURROGACY_FIELDS = [
-  { key: 'clinicName', label: 'Name and location of your clinic and RE?', type: 'text' },
-  { key: 'surrogatePreference', label: 'Prefer single, married, or no preference for surrogate?', type: 'select', options: ['Single', 'Married', 'No Preference'] },
-  { key: 'locationPreference', label: 'Preference on where surrogate resides?', type: 'yesno' },
-  { key: 'locationPreferenceStates', label: 'Which state(s)?', type: 'text', conditional: d => d.locationPreference === 'yes' },
-  { key: 'firstTimeOrRepeat', label: 'First time or repeat surrogate?', type: 'textarea' },
-  { key: 'attendAppointments', label: 'Attend milestone OB appointments?', type: 'yesno' },
-  { key: 'terminationForAbnormalities', label: 'If abnormalities, would you terminate?', type: 'textarea' },
-  { key: 'relationshipWithSurrogate', label: 'What kind of relationship during pregnancy?', type: 'textarea' },
-  { key: 'inDeliveryRoom', label: 'Want to be in the delivery room?', type: 'yesno' },
-  { key: 'tandemSurrogacy', label: 'Pursue tandem surrogacy?', type: 'yesno' },
-  { key: 'whatTellChild', label: 'What will you tell your child about the birth process?', type: 'textarea' },
-  { key: 'messageToGC', label: 'Anything you\'d like to say to a potential GC?', type: 'textarea' },
+  { key: 'clinicName', label: 'What is the name and location of your fertility clinic and Reproductive Endocrinologist (RE)?', type: 'text' },
+  { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married', 'No Preference'] },
+  { key: 'locationPreference', label: 'Do you have a preference on where your surrogate resides?', type: 'yesno' },
+  { key: 'locationPreferenceStates', label: 'Which state(s) would you prefer?', type: 'text', conditional: d => d.locationPreference === 'yes' },
+  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or repeat surrogate?', type: 'textarea' },
+  { key: 'attendAppointments', label: 'Would you like to attend milestone OB appointments with your surrogate?', type: 'yesno' },
+  { key: 'terminationForAbnormalities', label: 'If a serious abnormality were detected during pregnancy, would you consider termination? Please share your thoughts.', type: 'textarea' },
+  { key: 'relationshipWithSurrogate', label: 'What kind of relationship would you like to have with your surrogate during the pregnancy?', type: 'textarea' },
+  { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
+  { key: 'tandemSurrogacy', label: 'Would you consider pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
+  { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
+  { key: 'messageToGC', label: 'Is there anything you\'d like to say to a potential gestational carrier?', type: 'textarea' },
 ]
 
 const PERSONAL_FIELDS = [
   { key: 'dob', label: 'Date of Birth', type: 'date' },
-  { key: 'birthplace', label: 'Birthplace', type: 'text' },
-  { key: 'ethnicity', label: 'Ethnicity', type: 'text' },
-  { key: 'languages', label: 'Languages', type: 'text' },
-  { key: 'usCitizen', label: 'US Citizen?', type: 'yesno' },
-  { key: 'citizenshipCountry', label: 'Citizenship Country', type: 'text', conditional: d => d.usCitizen === 'no' },
-  { key: 'criminalHistory', label: 'Ever been arrested or convicted?', type: 'textarea' },
+  { key: 'birthplace', label: 'Where were you born?', type: 'text' },
+  { key: 'ethnicity', label: 'What is your ethnicity?', type: 'text' },
+  { key: 'languages', label: 'What languages do you speak?', type: 'text' },
+  { key: 'usCitizen', label: 'Are you a U.S. Citizen?', type: 'yesno' },
+  { key: 'citizenshipCountry', label: 'What is your country of citizenship?', type: 'text', conditional: d => d.usCitizen === 'no' },
+  { key: 'criminalHistory', label: 'Have you ever been arrested or convicted of a crime? If yes, please explain.', type: 'textarea' },
 ]
 
 const HEALTH_CONDITIONS = [
@@ -64,36 +64,36 @@ const HEALTH_CONDITIONS = [
 ]
 
 const HEALTH_FIELDS = [
-  { key: 'generalHealth', label: 'General health condition', type: 'textarea' },
-  { key: 'medicalConditions', label: 'Any medical conditions?', type: 'textarea' },
-  { key: 'hepatitisBC', label: 'Tested positive for Hep B or C?', type: 'textarea' },
-  { key: 'hivAids', label: 'HIV/AIDS?', type: 'yesno' },
-  { key: 'mentalHealthDiagnosis', label: 'Mental health diagnosis?', type: 'yesno' },
-  { key: 'mentalHealthDiagnosisDetails', label: 'Diagnosis details', type: 'textarea', conditional: d => d.mentalHealthDiagnosis === 'yes' },
-  { key: 'mentalHealthMedication', label: 'Mental health medication?', type: 'yesno' },
-  { key: 'mentalHealthMedicationDetails', label: 'Medication details', type: 'textarea', conditional: d => d.mentalHealthMedication === 'yes' },
-  { key: 'mentalHealthHospitalization', label: 'Mental health hospitalization?', type: 'yesno' },
-  { key: 'mentalHealthHospitalizationDetails', label: 'Hospitalization details', type: 'textarea', conditional: d => d.mentalHealthHospitalization === 'yes' },
-  { key: 'healthConditionsList', label: 'Health conditions (check all that apply)', type: 'checkboxGroup', options: HEALTH_CONDITIONS },
-  { key: 'healthConditionsDetails', label: 'Dates for any of the above', type: 'textarea', conditional: d => {
+  { key: 'generalHealth', label: 'How would you describe your general health?', type: 'textarea' },
+  { key: 'medicalConditions', label: 'Do you have any medical conditions we should be aware of?', type: 'textarea' },
+  { key: 'hepatitisBC', label: 'Have you ever tested positive for Hepatitis B or C?', type: 'textarea' },
+  { key: 'hivAids', label: 'Have you ever tested positive for HIV/AIDS?', type: 'yesno' },
+  { key: 'mentalHealthDiagnosis', label: 'Have you ever been diagnosed with a mental health condition?', type: 'yesno' },
+  { key: 'mentalHealthDiagnosisDetails', label: 'Please provide details about your diagnosis', type: 'textarea', conditional: d => d.mentalHealthDiagnosis === 'yes' },
+  { key: 'mentalHealthMedication', label: 'Have you ever taken medication for a mental health condition?', type: 'yesno' },
+  { key: 'mentalHealthMedicationDetails', label: 'Please provide details about your medication', type: 'textarea', conditional: d => d.mentalHealthMedication === 'yes' },
+  { key: 'mentalHealthHospitalization', label: 'Have you ever been hospitalized for a mental health condition?', type: 'yesno' },
+  { key: 'mentalHealthHospitalizationDetails', label: 'Please provide details about your hospitalization', type: 'textarea', conditional: d => d.mentalHealthHospitalization === 'yes' },
+  { key: 'healthConditionsList', label: 'Please indicate any of the following conditions or diseases you have had (check all that apply)', type: 'checkboxGroup', options: HEALTH_CONDITIONS },
+  { key: 'healthConditionsDetails', label: 'Please provide dates for any of the above checked conditions', type: 'textarea', conditional: d => {
     const list = d.healthConditionsList
     return Array.isArray(list) && list.length > 0 && !list.every(v => v === 'None of the above')
   }},
 ]
 
 const HISTORY_FIELDS = [
-  { key: 'favoriteMusic', label: 'Favorite Music', type: 'text' },
-  { key: 'favoriteMovie', label: 'Favorite Movie', type: 'text' },
-  { key: 'favoriteBook', label: 'Favorite Book', type: 'text' },
-  { key: 'favoriteFoods', label: 'Favorite Foods', type: 'text' },
-  { key: 'favoriteColor', label: 'Favorite Color', type: 'text' },
-  { key: 'favoriteFlower', label: 'Favorite Flower', type: 'text' },
-  { key: 'pets', label: 'Pets', type: 'textarea' },
-  { key: 'freeTime', label: 'What do you do in your free time?', type: 'textarea' },
-  { key: 'collections', label: 'Collections', type: 'text' },
-  { key: 'travelDestination', label: 'Favorite travel destination', type: 'textarea' },
-  { key: 'personality', label: 'Describe yourself and personality', type: 'textarea' },
-  { key: 'messageToSurrogate', label: 'What else would you like to tell the prospective surrogate?', type: 'textarea' },
+  { key: 'favoriteMusic', label: 'Favorite music', type: 'text' },
+  { key: 'favoriteMovie', label: 'Favorite movie', type: 'text' },
+  { key: 'favoriteBook', label: 'Favorite book', type: 'text' },
+  { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
+  { key: 'favoriteColor', label: 'Favorite color', type: 'text' },
+  { key: 'favoriteFlower', label: 'Favorite flower', type: 'text' },
+  { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
+  { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
+  { key: 'collections', label: 'Do you collect anything special?', type: 'text' },
+  { key: 'travelDestination', label: 'Where would you most like to travel and why?', type: 'textarea' },
+  { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
+  { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
 ]
 
 // ── Photo helpers ──

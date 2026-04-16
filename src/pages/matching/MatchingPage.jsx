@@ -380,20 +380,20 @@ export default function MatchingPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Create Match</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Surrogate (GC)</Label>
-              <SelectUI value={createForm.gcId ? String(createForm.gcId) : ''} onValueChange={v => setCreateForm(f => ({ ...f, gcId: v }))}>
-                <SelectTriggerUI><SelectValueUI placeholder="Select surrogate..." /></SelectTriggerUI>
-                <SelectContentUI>{surrogates.filter(s => !matchedGcIds.has(s.id)).map(s => <SelectItemUI key={s.id} value={String(s.id)}>{s.name}</SelectItemUI>)}</SelectContentUI>
-              </SelectUI>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Intended Parent (IP)</Label>
-              <SelectUI value={createForm.ipId ? String(createForm.ipId) : ''} onValueChange={v => setCreateForm(f => ({ ...f, ipId: v }))}>
-                <SelectTriggerUI><SelectValueUI placeholder="Select intended parent..." /></SelectTriggerUI>
-                <SelectContentUI>{ips.filter(i => !matchedIpIds.has(i.id)).map(i => <SelectItemUI key={i.id} value={String(i.id)}>{i.names}</SelectItemUI>)}</SelectContentUI>
-              </SelectUI>
-            </div>
+            <SearchablePicker
+              label="Surrogate (GC)"
+              placeholder="Search surrogates..."
+              value={createForm.gcId}
+              options={surrogates.filter(s => !matchedGcIds.has(s.id)).map(s => ({ id: s.id, label: s.name, sub: s.location || '' }))}
+              onSelect={(id) => setCreateForm(f => ({ ...f, gcId: id }))}
+            />
+            <SearchablePicker
+              label="Intended Parent (IP)"
+              placeholder="Search intended parents..."
+              value={createForm.ipId}
+              options={ips.filter(i => !matchedIpIds.has(i.id)).map(i => ({ id: i.id, label: i.names, sub: i.location || '' }))}
+              onSelect={(id) => setCreateForm(f => ({ ...f, ipId: id }))}
+            />
             <Button onClick={handleCreateMatch} disabled={creating || !createForm.gcId || !createForm.ipId}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {creating ? 'Creating...' : 'Create Match'}
