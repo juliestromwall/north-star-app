@@ -26,6 +26,7 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Cropper from 'react-easy-crop'
+import { EMBRYO_SOURCE_OPTIONS, formatEmbryoSourceSelection, normalizeEmbryoSourceSelection } from '@/lib/embryoSource'
 
 // ─── Helper: load / save (per-user) ───
 function getStorageKey(userId) {
@@ -1551,22 +1552,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                     <PVField label="What City/State was the IVF clinic located in?" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
                     <PVField label="What years were you seen there?" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
                     <PVField label="What was the outcome of this surrogacy journey?" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
-                    <PVField label="Embryo source" value={(() => {
-                      const v = j.embryoSource
-                      if (!v) return null
-                      // Migrate old labels to new ones
-                      const labelMigration = {
-                        'IP Egg': "IM's Egg",
-                        "IM's eggs": "IM's Egg",
-                        'IP Sperm': "IF's Sperm",
-                        'Donor eggs': 'Donor Egg',
-                        'Donor Embryo': 'Embryo Adoption',
-                      }
-                      const arr = Array.isArray(v) ? v : [v]
-                      const migrated = arr.map(x => labelMigration[x] || x).filter(x => x && x.trim())
-                      // Dedupe
-                      return [...new Set(migrated)].join(', ') || null
-                    })()} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
+                    <PVField label="Embryo source" value={formatEmbryoSourceSelection(j.embryoSource)} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
                   </div>
                 </div>
               ))}
@@ -2455,14 +2441,8 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                       <TextField label="What years were you seen there?" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2022-2023" />
                       <SelectField label="What was the outcome of this surrogacy journey?" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
                         options={['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other']} />
-                      <CheckboxGroupField label="Embryo source (select all that apply)" value={(() => {
-                        const v = j.embryoSource
-                        if (!v) return []
-                        const arr = Array.isArray(v) ? v : [v]
-                        const labelMigration = { 'IP Egg': "IM's Egg", "IM's eggs": "IM's Egg", 'IP Sperm': "IF's Sperm", 'Donor eggs': 'Donor Egg', 'Donor Embryo': 'Embryo Adoption' }
-                        return [...new Set(arr.map(x => labelMigration[x] || x))]
-                      })()} onChange={val => updateJourney(idx, 'embryoSource', val)}
-                        options={["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown']} />
+                      <CheckboxGroupField label="Embryo source (select all that apply)" value={normalizeEmbryoSourceSelection(j.embryoSource)} onChange={val => updateJourney(idx, 'embryoSource', val)}
+                        options={EMBRYO_SOURCE_OPTIONS} />
                     </div>
                   </div>
                 )
