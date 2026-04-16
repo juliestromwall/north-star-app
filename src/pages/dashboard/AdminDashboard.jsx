@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, deleteCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
 import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
-  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil,
+  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw,
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const [completedTasks, setCompletedTasks] = useState([])
   const [completedOpen, setCompletedOpen] = useState(false)
   const [futureOpen, setFutureOpen] = useState(false)
+  const [expandedTaskId, setExpandedTaskId] = useState(null)
   const [caseView, setCaseView] = useState('grid')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
@@ -181,6 +182,23 @@ export default function AdminDashboard() {
       const updated = await updateCaseTask(taskId, { status: 'complete', completed_at: new Date().toISOString(), completed_by: currentUser?.email })
       setTasks(prev => prev.filter(t => t.id !== taskId))
       if (updated) setCompletedTasks(prev => [updated, ...prev])
+    } catch {}
+  }
+
+  async function uncompleteTask(taskId) {
+    try {
+      const updated = await updateCaseTask(taskId, { status: 'open', completed_at: null, completed_by: null })
+      setCompletedTasks(prev => prev.filter(t => t.id !== taskId))
+      if (updated) setTasks(prev => [updated, ...prev])
+    } catch {}
+  }
+
+  async function removeTask(taskId) {
+    if (!confirm('Delete this task?')) return
+    try {
+      await deleteCaseTask(taskId)
+      setTasks(prev => prev.filter(t => t.id !== taskId))
+      setCompletedTasks(prev => prev.filter(t => t.id !== taskId))
     } catch {}
   }
 
@@ -544,31 +562,56 @@ export default function AdminDashboard() {
                     if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
                   }
                 }
+                const isExpanded = expandedTaskId === task.id
+                const isComplete = task.status === 'complete'
                 return (
-                  <div key={task.id} className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
-                    <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Complete">
-                      <Circle className="size-4" />
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-stone-800 truncate">{task.title}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                        {task.due_date && <span>{formatDate(task.due_date)}</span>}
-                        {task.priority === 'high' && <span className="text-red-500 font-semibold">High</span>}
-                        {task.priority === 'urgent' && <span className="text-red-600 font-semibold">Urgent</span>}
-                        {caseName ? (
-                          <Link to={caseLink} className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors truncate max-w-[140px]">
-                            {caseName}
-                          </Link>
-                        ) : (task.case_type === 'personal' || !task.case_id) ? (
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
-                        ) : (
-                          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">Case</span>
-                        )}
-                      </div>
+                  <div key={task.id} className={`rounded-lg border ${isComplete ? 'border-stone-100 opacity-60' : task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
+                    <div className="px-3 py-2 flex items-center gap-2">
+                      {isComplete ? (
+                        <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
+                          <CheckCircle2 className="size-4" />
+                        </button>
+                      ) : (
+                        <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Complete">
+                          <Circle className="size-4" />
+                        </button>
+                      )}
+                      <button onClick={() => setExpandedTaskId(isExpanded ? null : task.id)} className="flex-1 min-w-0 text-left">
+                        <p className={`text-sm truncate ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>{task.title}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                          {task.due_date && <span>{formatDate(task.due_date)}</span>}
+                          {isComplete && task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
+                          {task.priority === 'high' && !isComplete && <span className="text-red-500 font-semibold">High</span>}
+                          {task.priority === 'urgent' && !isComplete && <span className="text-red-600 font-semibold">Urgent</span>}
+                          {caseName ? (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 truncate max-w-[140px]">
+                              {caseName}
+                            </span>
+                          ) : (task.case_type === 'personal' || !task.case_id) ? (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
+                          ) : null}
+                        </div>
+                      </button>
+                      {!isComplete && (
+                        <button onClick={() => setEditingTask({ ...task })} className="text-stone-300 hover:text-[#283693] shrink-0" title="Edit">
+                          <Pencil className="size-3" />
+                        </button>
+                      )}
+                      <button onClick={() => removeTask(task.id)} className="text-stone-300 hover:text-red-500 shrink-0" title="Delete">
+                        <Trash2 className="size-3" />
+                      </button>
                     </div>
-                    <button onClick={() => setEditingTask({ ...task })} className="text-stone-300 hover:text-[#283693] shrink-0" title="Edit">
-                      <Pencil className="size-3" />
-                    </button>
+                    {isExpanded && (
+                      <div className="px-3 pb-2 pl-9 space-y-1 text-[11px] border-t border-stone-100 pt-2">
+                        {caseName && caseLink && (
+                          <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
+                        )}
+                        {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{task.assigned_to.includes(',') ? task.assigned_to.split(',').map(e => e.trim().split('@')[0]).join(' & ') : task.assigned_to.split('@')[0]}</span></p>}
+                        {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
+                        {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
+                        {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
+                      </div>
+                    )}
                   </div>
                 )
               }
@@ -601,30 +644,72 @@ export default function AdminDashboard() {
               )
             })()}
             {/* Completed Tasks */}
-            {completedTasks.length > 0 && (
-              <div>
-                <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
-                  {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                  <CheckCircle2 className="size-3 text-emerald-500" />
-                  Completed ({completedTasks.length})
-                </button>
-                {completedOpen && (
-                  <div className="space-y-1.5 mt-2">
-                    {completedTasks.map(task => (
-                      <div key={task.id} className="rounded-lg border border-stone-100 px-3 py-2 flex items-center gap-2 opacity-60">
-                        <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-stone-500 line-through truncate">{task.title}</p>
-                          <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                            {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
-                          </div>
+            {completedTasks.length > 0 && (() => {
+              // Build same renderer with case lookup
+              const renderCompleted = (task) => {
+                let caseName = null, caseLink = null
+                if (task.case_id && task.case_type && task.case_type !== 'personal') {
+                  const cid = Number(task.case_id)
+                  if (task.case_type === 'surrogate' || task.case_type === 'gc') {
+                    const gc = surrogates.find(s => Number(s.id) === cid)
+                    if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
+                  } else if (task.case_type === 'ip') {
+                    const ip = ips.find(i => Number(i.id) === cid)
+                    if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
+                  } else if (task.case_type === 'journey') {
+                    const j = journeys.find(j => Number(j.id) === cid)
+                    if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
+                  }
+                }
+                const isExpanded = expandedTaskId === task.id
+                return (
+                  <div key={task.id} className="rounded-lg border border-stone-100 opacity-70 hover:opacity-100 transition-opacity">
+                    <div className="px-3 py-2 flex items-center gap-2">
+                      <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
+                        <CheckCircle2 className="size-4" />
+                      </button>
+                      <button onClick={() => setExpandedTaskId(isExpanded ? null : task.id)} className="flex-1 min-w-0 text-left">
+                        <p className="text-sm text-stone-500 line-through truncate">{task.title}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
+                          {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
+                          {caseName && (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 truncate max-w-[140px]">{caseName}</span>
+                          )}
                         </div>
+                      </button>
+                      <button onClick={() => removeTask(task.id)} className="text-stone-300 hover:text-red-500 shrink-0" title="Delete">
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-3 pb-2 pl-9 space-y-1 text-[11px] border-t border-stone-100 pt-2">
+                        {caseName && caseLink && (
+                          <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
+                        )}
+                        {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{task.assigned_to.includes(',') ? task.assigned_to.split(',').map(e => e.trim().split('@')[0]).join(' & ') : task.assigned_to.split('@')[0]}</span></p>}
+                        {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
+                        {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
+                        {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                )
+              }
+              return (
+                <div>
+                  <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
+                    {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                    <CheckCircle2 className="size-3 text-emerald-500" />
+                    Completed ({completedTasks.length})
+                  </button>
+                  {completedOpen && (
+                    <div className="space-y-1.5 mt-2">
+                      {completedTasks.map(renderCompleted)}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </CardContent>}
         </Card>
       </div>
