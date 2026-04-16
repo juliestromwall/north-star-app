@@ -21,7 +21,7 @@ import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
 import { IP_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
-import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin } from '@/lib/db'
+import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin, getPortraitPhotoUrl } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import QuickNote from '@/components/shared/QuickNote'
@@ -50,6 +50,7 @@ export default function IPDetailPage() {
   const { currentUser } = useRole()
   const { openDraft } = useDrafts()
   const [ip, setIp] = useState(null)
+  const [ipPortraitUrl, setIpPortraitUrl] = useState(null)
   const [loading, setLoading] = useState(true)
   const [emailMenuOpen, setEmailMenuOpen] = useState(false)
   const [inviting, setInviting] = useState(false)
@@ -79,7 +80,11 @@ export default function IPDetailPage() {
     fetchIPsFromIntake().then(all => {
       const found = all.find(item => String(item.id) === String(id))
       setIp(found || null)
-      if (found) setStageStatus(getSurrogateStageStatus(found.id))
+      if (found) {
+        setStageStatus(getSurrogateStageStatus(found.id))
+        // Load portrait photo (stored at ip-{caseId}/portrait/)
+        getPortraitPhotoUrl(`ip-${found.id}`).then(url => { if (url) setIpPortraitUrl(url) }).catch(() => {})
+      }
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [id])
@@ -147,7 +152,7 @@ export default function IPDetailPage() {
         <div className="p-6 space-y-6">
           {/* Name row */}
           <div className="flex flex-col sm:flex-row items-start gap-5">
-            <ProfileAvatar name={ip.names} size="xl" className="ring-4 ring-white shadow-lg" />
+            <ProfileAvatar name={ip.names} avatar={ipPortraitUrl} size="xl" className="ring-4 ring-white shadow-lg" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>

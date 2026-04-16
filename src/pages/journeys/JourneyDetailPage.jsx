@@ -2094,6 +2094,7 @@ export default function JourneyDetailPage() {
   const [gcProfileStatus, setGcProfileStatus] = useState('draft')
   const [gcPhotos, setGcPhotos] = useState([])
   const [gcPortraitUrl, setGcPortraitUrl] = useState(null)
+  const [ipPortraitUrl, setIpPortraitUrl] = useState(null)
   const [appView, setAppView] = useState('gc') // gc | ip
   const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
   const [providerForm, setProviderForm] = useState({})
@@ -2175,6 +2176,10 @@ export default function JourneyDetailPage() {
             listProfilePhotos(`${gc.userId}/portrait`).catch(() => []),
           ]).then(([gallery, portraits]) => setGcPhotos([...portraits, ...gallery]))
           getPortraitPhotoUrl(gc.userId).then(url => { if (url) setGcPortraitUrl(url) }).catch(() => {})
+        }
+        // Load IP portrait (stored at ip-{caseId}/portrait/)
+        if (j.ip_case_id) {
+          getPortraitPhotoUrl(`ip-${j.ip_case_id}`).then(url => { if (url) setIpPortraitUrl(url) }).catch(() => {})
         }
       } catch {} finally { setLoading(false) }
     }
@@ -2710,7 +2715,7 @@ export default function JourneyDetailPage() {
                 )}
                 {/* Name + info */}
                 <div className="flex items-center gap-3">
-                  <ProfileAvatar name={gcCase.name} size="md" className="ring-2 ring-white shadow" />
+                  <ProfileAvatar name={gcCase.name} avatar={gcPortraitUrl} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
                     <span className="text-base font-heading font-bold text-stone-900 block truncate">{gcCase.name}</span>
                     <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">
@@ -2781,7 +2786,7 @@ export default function JourneyDetailPage() {
                 )}
                 {/* Name + info */}
                 <div className="flex items-center gap-3">
-                  <ProfileAvatar name={ipCase.names} size="md" className="ring-2 ring-white shadow" />
+                  <ProfileAvatar name={ipCase.names} avatar={ipPortraitUrl} size="md" className="ring-2 ring-white shadow" />
                   <div className="min-w-0">
                     <span className="text-base font-heading font-bold text-stone-900 block truncate">{ipCase.names}</span>
                     <div className="flex flex-wrap gap-2.5 text-xs text-stone-500 mt-0.5">

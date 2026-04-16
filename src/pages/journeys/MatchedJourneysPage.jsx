@@ -13,12 +13,12 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { getChecklistMilestones } from '@/lib/checklistStore'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig, getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
-export function JourneyTileCard({ j }) {
+export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
   return (
     <Link to={`/journeys/${j.id}`}>
       <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
@@ -26,7 +26,7 @@ export function JourneyTileCard({ j }) {
         <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
           <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
           <div className="flex items-center gap-2">
-            <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+            <ProfileAvatar name={j.ip?.names || '?'} avatar={ipAvatar} size="sm" />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold truncate block">{j.ip?.names || '—'}</span>
               <p className="text-[10px] text-stone-400">{j.ip?.location || ''}</p>
@@ -37,7 +37,7 @@ export function JourneyTileCard({ j }) {
         <div className="px-4 pt-2.5 pb-2 border-t border-stone-100" style={{ backgroundColor: '#ed148c08' }}>
           <p className="text-[9px] font-semibold text-pink-400 uppercase tracking-widest mb-1.5">Surrogate</p>
           <div className="flex items-center gap-2">
-            <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+            <ProfileAvatar name={j.gc?.name || '?'} avatar={gcAvatar} size="sm" />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold truncate block">{j.gc?.name || '—'}</span>
               <p className="text-[10px] text-stone-400">{j.gc?.location || ''} {j.gc?.age ? `· Age ${j.gc.age}` : ''}{j.gc?.answers?.dob ? ` · DOB ${new Date(j.gc.answers.dob + 'T12:00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}` : ''}</p>
@@ -116,6 +116,8 @@ export default function MatchedJourneysPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
+  const [gcAvatars, setGcAvatars] = useState({}) // gc_case_id → url
+  const [ipAvatars, setIpAvatars] = useState({}) // ip_case_id → url
 
   // Load user's default view preference
   useEffect(() => {
@@ -127,7 +129,31 @@ export default function MatchedJourneysPage() {
 
   useEffect(() => {
     Promise.all([fetchMatchedJourneys(), fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-      .then(([js, gcs, allIps]) => { setJourneys(js); setSurrogates(gcs); setIps(allIps) })
+      .then(([js, gcs, allIps]) => {
+        setJourneys(js); setSurrogates(gcs); setIps(allIps)
+        // Load surrogate avatars
+        const userIds = gcs.filter(g => g.userId).map(g => g.userId)
+        if (userIds.length > 0) {
+          getProfilePhotoUrls(userIds).then(urlMap => {
+            // Map user_id → gc_case_id
+            const byCase = {}
+            for (const g of gcs) {
+              if (g.userId && urlMap[g.userId]) byCase[g.id] = urlMap[g.userId]
+            }
+            setGcAvatars(byCase)
+          })
+        }
+        // Load IP avatars from storage (path: ip-{caseId}/portrait/)
+        const ipIds = allIps.map(ip => ip.id)
+        if (ipIds.length > 0) {
+          Promise.all(ipIds.map(id => getPortraitPhotoUrl(`ip-${id}`).catch(() => null)))
+            .then(urls => {
+              const map = {}
+              ipIds.forEach((id, i) => { if (urls[i]) map[id] = urls[i] })
+              setIpAvatars(map)
+            })
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -256,7 +282,7 @@ export default function MatchedJourneysPage() {
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(j => (
-            <JourneyTileCard key={j.id} j={j} />
+            <JourneyTileCard key={j.id} j={j} ipAvatar={ipAvatars[j.ip_case_id]} gcAvatar={gcAvatars[j.gc_case_id]} />
           ))}
         </div>
       ) : (
@@ -278,13 +304,13 @@ export default function MatchedJourneysPage() {
                   <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <ProfileAvatar name={j.ip?.names || '?'} size="sm" />
+                        <ProfileAvatar name={j.ip?.names || '?'} avatar={ipAvatars[j.ip_case_id]} size="sm" />
                         <span className="font-medium">{j.ip?.names || '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <ProfileAvatar name={j.gc?.name || '?'} size="sm" />
+                        <ProfileAvatar name={j.gc?.name || '?'} avatar={gcAvatars[j.gc_case_id]} size="sm" />
                         <span className="font-medium">{j.gc?.name || '—'}</span>
                       </div>
                     </td>

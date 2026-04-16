@@ -14,7 +14,7 @@ import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
-import { fetchIPsFromIntake, adminAddIP, getAppConfig } from '@/lib/db'
+import { fetchIPsFromIntake, adminAddIP, getAppConfig, getPortraitPhotoUrl } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { IP_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -114,7 +114,7 @@ export function IPTileCard({ ip, stageStatus, recordTracking }) {
         )}
         <CardContent className="space-y-4">
           <div className="flex items-start gap-3">
-            <ProfileAvatar name={ip.names} size="lg" />
+            <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="lg" />
             <div className="flex-1 min-w-0">
               <h3 className="font-heading font-semibold truncate">{ip.names}</h3>
               {ip.location && (
@@ -177,6 +177,7 @@ export default function IPListPage() {
   const [ips, setIps] = useState([])
   const [allStageStatuses, setAllStageStatuses] = useState({})
   const [recordTrackingMap, setRecordTrackingMap] = useState({})
+  const [ipAvatars, setIpAvatars] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
@@ -227,6 +228,15 @@ export default function IPListPage() {
         // Load record tracking for milestones
         const ids = ipList.map(ip => ip.id)
         if (ids.length > 0) getRecordTrackingBatch(ids).then(setRecordTrackingMap).catch(() => {})
+        // Load portrait photos for each IP (stored at ip-{caseId}/portrait/)
+        if (ids.length > 0) {
+          Promise.all(ids.map(id => getPortraitPhotoUrl(`ip-${id}`).catch(() => null)))
+            .then(urls => {
+              const map = {}
+              ids.forEach((id, i) => { if (urls[i]) map[id] = urls[i] })
+              setIpAvatars(map)
+            })
+        }
       })
       .catch(() => setIps([]))
       .finally(() => setLoading(false))
@@ -396,7 +406,7 @@ export default function IPListPage() {
                 )}
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3">
-                    <ProfileAvatar name={ip.names} size="lg" />
+                    <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="lg" />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-heading font-semibold truncate">{ip.names}</h3>
                       {ip.location && (
@@ -462,7 +472,7 @@ export default function IPListPage() {
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <ProfileAvatar name={ip.names} size="sm" />
+                      <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="sm" />
                       <div>
                         <span className="font-medium">{ip.names}</span>
                         <p className="text-xs text-stone-400">{ip.email}</p>

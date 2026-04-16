@@ -15,7 +15,7 @@ import EmptyState from '@/components/shared/EmptyState'
 import ShareProfileDialog from '@/components/shared/ShareProfileDialog'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { useRole } from '@/context/RoleContext'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails, getPortraitPhotoUrl } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion } from '@/lib/matching'
 
@@ -98,6 +98,7 @@ export default function MatchingPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [avatarUrls, setAvatarUrls] = useState({})
+  const [ipAvatars, setIpAvatars] = useState({})
   const [profileMap, setProfileMap] = useState({})
   const [shareHistory, setShareHistory] = useState({}) // { caseId: [shares] }
   const [questionHistory, setQuestionHistory] = useState({}) // { caseId: [questions] }
@@ -119,6 +120,17 @@ export default function MatchingPage() {
         const userIds = gcs.filter(g => g.userId).map(g => g.userId)
         if (userIds.length > 0) {
           getProfilePhotoUrls(userIds).then(setAvatarUrls).catch(() => {})
+        }
+
+        // Load IP avatars
+        const ipIds = allIps.map(ip => ip.id)
+        if (ipIds.length > 0) {
+          Promise.all(ipIds.map(id => getPortraitPhotoUrl(`ip-${id}`).catch(() => null)))
+            .then(urls => {
+              const map = {}
+              ipIds.forEach((id, i) => { if (urls[i]) map[id] = urls[i] })
+              setIpAvatars(map)
+            })
         }
 
         // Load profile data for GCs (for GTPAL/BMI)
@@ -378,7 +390,7 @@ export default function MatchingPage() {
               <Card key={ip.id} className="rounded-2xl hover:shadow-md transition-shadow">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <ProfileAvatar name={ip.names} size="md" />
+                    <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="md" />
                     <div className="flex-1 min-w-0">
                       <Link to={`/intended-parents/${ip.id}`} className="text-sm font-semibold hover:text-[#283693] truncate block">{ip.names}</Link>
                       <p className="text-xs text-stone-500">{ip.type}{ip.location ? ` · ${ip.location}` : ''}</p>
