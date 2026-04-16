@@ -1114,7 +1114,20 @@ function PregnancyCard({ pregnancy: pr, index }) {
             {pr.outcome && <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${outcomeColor}`}>{pr.outcome}</span>}
             {pr.wasSurrogacy === 'yes' && <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#ed148c]/10 text-[#ed148c]">Surrogacy</span>}
             {gestation && <span className="text-xs font-semibold text-[#283693]">{gestation}</span>}
-            {pr.dob && <span className="text-xs text-stone-400">· {new Date(pr.dob + 'T00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
+            {pr.dob && (() => {
+              const dob = new Date(pr.dob + 'T00:00')
+              const dateStr = dob.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+              // Calculate child's age (only for non-surrogacy live births)
+              let ageStr = ''
+              if (isLive && pr.wasSurrogacy !== 'yes') {
+                const today = new Date()
+                let age = today.getFullYear() - dob.getFullYear()
+                const m = today.getMonth() - dob.getMonth()
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+                if (age >= 0) ageStr = ` · ${age} ${age === 1 ? 'yr' : 'yrs'} old`
+              }
+              return <span className="text-xs text-stone-400">· {dateStr}{ageStr}</span>
+            })()}
           </div>
         </div>
       </div>
