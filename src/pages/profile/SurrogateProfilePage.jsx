@@ -1043,8 +1043,8 @@ function PVField({ label, value, className = '', fp }) {
   if (!value && value !== 0) return null
   return (
     <div className={`bg-white rounded-lg border border-stone-200 px-4 py-3 print:break-inside-avoid ${className}`}>
-      <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-[14px] text-stone-800 leading-relaxed">{value}</p>
+      <p className="text-[13px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5">{label}</p>
+      <p className="text-[15px] text-stone-800 leading-relaxed">{value}</p>
     </div>
   )
 }
