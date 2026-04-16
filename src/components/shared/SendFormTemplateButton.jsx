@@ -106,11 +106,13 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       const formToken = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
 
+      const docTitle = `Background Check Release Form - ${signerName}`
+
       const doc = await createDocument({
         templateId: null,
         caseId: surrogate.id,
         caseType: 'surrogate',
-        title: template.title,
+        title: docTitle,
         signers: [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }],
         filePath: null,
         createdBy: currentUser?.name || 'Admin',
@@ -126,7 +128,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       await sendDocument(doc.id)
 
       // Send the actual email
-      await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken })
+      await sendEsignEmail({ signerName, signerEmail, formTitle: docTitle, formToken })
 
       setExistingDoc({ status: 'pending', formToken })
       setResult({ success: true })
