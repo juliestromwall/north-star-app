@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import RichTextEditor from '@/components/shared/RichTextEditor'
 import { supabase } from '@/lib/supabase'
-import { fetchSurrogatesFromIntake } from '@/lib/db'
+import { fetchSurrogatesFromIntake, uploadCaseDocument, createCaseTask } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { formatDate } from '@/lib/utils'
 
@@ -501,26 +501,33 @@ export default function SharedPsychTrackingPage() {
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
           }).from(tempDiv).output('blob')
           document.body.removeChild(tempDiv)
-          const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
-          const path = `${checkinRow.id}/psych/${Date.now()}-${safeName}`
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('case-documents')
-            .upload(path, pdfBlob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
-          if (!uploadError) {
-            const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
-            await supabase.from('case_documents').insert({
-              surrogate_id: checkinRow.id,
-              category: 'psych',
-              file_name: fileName,
-              file_type: 'application/pdf',
-              file_size: pdfBlob.size,
-              storage_path: uploadData.path,
-              public_url: urlData.publicUrl,
-              uploaded_by: report.therapistName || 'Therapist',
-            })
-          }
+          const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+          await uploadCaseDocument({
+            surrogateId: checkinRow.id,
+            category: 'psych',
+            file: pdfFile,
+            uploadedBy: report.therapistName || 'Therapist',
+          })
         }
       } catch (e) { console.error('PDF upload failed:', e) }
+
+      // 4. Create task for case manager (Needs Review)
+      try {
+        const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
+        const assignedTo = checkinForm.caseManagerEmail || ''
+        if (!checkinRow.id.startsWith('manual_')) {
+          await createCaseTask({
+            case_id: Number(checkinRow.id),
+            case_type: 'surrogate',
+            title: taskTitle,
+            priority: 'normal',
+            status: 'open',
+            assigned_to: assignedTo,
+            created_by: report.therapistName || 'Therapist',
+            description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.`,
+          })
+        }
+      } catch (e) { console.error('Task creation failed:', e) }
 
       // 4. Open PDF for download
       openPdfWindow(report, checkinMilestone, checkinRow.name)

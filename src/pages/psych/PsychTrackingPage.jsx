@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import RichTextEditor from '@/components/shared/RichTextEditor'
-import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig, createCaseTask, uploadBase64ToCaseDocuments } from '@/lib/db'
+import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig, createCaseTask, uploadCaseDocument } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchAdminUsers } from '@/lib/adminUsers'
 import { formatDate } from '@/lib/utils'
@@ -480,23 +480,14 @@ export default function PsychTrackingPage() {
       // 4. Upload PDF to surrogate's case (psych folder)
       if (pdfBlob && supabase && !checkinRow.id.startsWith('manual_')) {
         try {
-          const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
-          const path = `${checkinRow.id}/psych/${Date.now()}-${safeName}`
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('case-documents')
-            .upload(path, pdfBlob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
-          if (uploadError) throw uploadError
-          const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
-          await supabase.from('case_documents').insert({
-            surrogate_id: checkinRow.id,
+          const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
+          const result = await uploadCaseDocument({
+            surrogateId: checkinRow.id,
             category: 'psych',
-            file_name: fileName,
-            file_type: 'application/pdf',
-            file_size: pdfBlob.size,
-            storage_path: uploadData.path,
-            public_url: urlData.publicUrl,
-            uploaded_by: report.therapistName || 'Therapist',
+            file: pdfFile,
+            uploadedBy: report.therapistName || 'Therapist',
           })
+          console.log('PDF uploaded to case docs:', result)
         } catch (e) { console.error('Failed to upload PDF to case:', e) }
       }
 
@@ -508,26 +499,17 @@ export default function PsychTrackingPage() {
         const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
         const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
         const assignedTo = checkinForm.caseManagerEmail || journey?.assigned_to || journey?.journey_data?.assigned_to || ''
-        if (journey) {
-          await createCaseTask({
-            journey_id: journey.id,
-            title: taskTitle,
-            priority: 'normal',
-            status: 'pending',
-            assigned_to: assignedTo,
-            created_at: now,
-          }).catch(() => {})
-        } else if (!checkinRow.id.startsWith('manual_')) {
-          // No journey, create task on the surrogate case
-          await createCaseTask({
-            case_id: Number(checkinRow.id),
-            case_type: 'surrogate',
-            title: taskTitle,
-            priority: 'normal',
-            status: 'pending',
-            assigned_to: assignedTo,
-            created_at: now,
-          }).catch(() => {})
+        const taskPayload = journey
+          ? { case_id: journey.id, case_type: 'journey', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
+          : (!checkinRow.id.startsWith('manual_')
+            ? { case_id: Number(checkinRow.id), case_type: 'surrogate', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
+            : null)
+        if (taskPayload) {
+          try {
+            await createCaseTask(taskPayload)
+          } catch (taskErr) {
+            console.error('Task creation error:', taskErr)
+          }
         }
       } catch (e) { console.error('Failed to create task:', e) }
 
