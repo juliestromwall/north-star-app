@@ -279,8 +279,27 @@ function ComposeWindow({ draft, index }) {
     setDocsLoading(true)
     setDocSearch('')
     try {
-      const docs = await fetchCaseDocuments(draft.caseId)
-      setCaseDocs(docs || [])
+      // For journey cases, fetch documents from the journey itself + the linked GC and IP cases
+      if (draft.caseType === 'journey') {
+        const { fetchMatchedJourney } = await import('@/lib/matching')
+        const journey = await fetchMatchedJourney(draft.caseId)
+        const ids = [draft.caseId]
+        if (journey?.gc_case_id) ids.push(journey.gc_case_id)
+        if (journey?.ip_case_id) ids.push(journey.ip_case_id)
+        const docArrays = await Promise.all(ids.map(id => fetchCaseDocuments(id).catch(() => [])))
+        // Tag each doc with its source so the user can tell which case it's from
+        const labeled = docArrays.flatMap((docs, i) => {
+          const sourceLabel = i === 0 ? 'Journey' : i === 1 ? 'GC' : 'IP'
+          return (docs || []).map(d => ({ ...d, _source: sourceLabel }))
+        })
+        // De-duplicate by id (in case the journey id matches a case id somewhere)
+        const seen = new Set()
+        const unique = labeled.filter(d => { if (seen.has(d.id)) return false; seen.add(d.id); return true })
+        setCaseDocs(unique)
+      } else {
+        const docs = await fetchCaseDocuments(draft.caseId)
+        setCaseDocs(docs || [])
+      }
     } catch { setCaseDocs([]) }
     finally { setDocsLoading(false) }
   }
@@ -750,7 +769,10 @@ function ComposeWindow({ draft, index }) {
                           <FileText className="size-4 text-stone-400 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
-                            <p className="text-[10px] text-stone-400">{doc.category?.replace(/_/g, ' ')} {doc.file_size ? `· ${fileSizeLabel(doc.file_size)}` : ''}</p>
+                            <p className="text-[10px] text-stone-400">
+                              {doc._source && <span className={`inline-block mr-1.5 px-1 py-0 rounded text-white text-[9px] font-bold ${doc._source === 'GC' ? 'bg-pink-500' : doc._source === 'IP' ? 'bg-[#283693]' : 'bg-purple-500'}`}>{doc._source}</span>}
+                              {doc.category?.replace(/_/g, ' ')} {doc.file_size ? `· ${fileSizeLabel(doc.file_size)}` : ''}
+                            </p>
                           </div>
                           {alreadyAttached && <span className="text-[9px] text-stone-400">Attached</span>}
                         </button>
