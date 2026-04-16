@@ -125,6 +125,7 @@ export default function SignFormPage() {
         .eq('id', doc.case_id)
         .single()
       const a = intake?.answers || {}
+      const app = a._application || {}
       const role = signer.role
       const prefill = {}
       // Determine which person we're filling for
@@ -135,10 +136,10 @@ export default function SignFormPage() {
         phone = a.phone || ''
         dob = a.dob || ''
       } else if (role === 'partner') {
-        firstName = a.partnerFirstName || ''
-        lastName = a.partnerLastName || ''
-        phone = a.partnerPhone || ''
-        dob = a.partnerDob || ''
+        firstName = app.spouseFirstName || ''
+        lastName = app.spouseLastName || ''
+        phone = app.spousePhone || ''
+        dob = app.spouseDob || ''
       } else if (role === 'ip1') {
         firstName = a.primaryFirstName || ''
         lastName = a.primaryLastName || ''
