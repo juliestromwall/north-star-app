@@ -317,40 +317,25 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
 // ── Profile Follow Up Questions ──────────────────────────
 function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
   const FIELDS = [
-    { key: 'usCitizen', label: 'Are you a U.S. Citizen or Permanent Resident?', type: 'yesno' },
     { key: 'otherLanguages', label: 'Do you (or anyone in your household) speak a language other than English?', type: 'yesno' },
     { key: 'otherLanguagesDetails', label: 'Which language(s)?', type: 'text', conditional: d => d.otherLanguages === 'yes' },
     { key: 'breastfeeding', label: 'Are you currently breastfeeding/lactating?', type: 'yesno' },
     { key: 'breastfeedingStopDate', label: 'When do you expect to stop?', type: 'text', conditional: d => d.breastfeeding === 'yes' },
     { key: 'cycleLength', label: 'Are your cycles typically between 28 to 30 days?', type: 'yesno' },
     { key: 'cycleLengthDetails', label: 'What is your typical cycle length?', type: 'text', conditional: d => d.cycleLength === 'no' },
-    { key: 'contraceptiveMethod', label: 'Which contraceptive method do you currently use?', type: 'text' },
     { key: 'lastPeriod', label: 'When was the start of your last period?', type: 'text' },
     { key: 'timeToConceive', label: 'How long after stopping contraceptives did it take to get pregnant?', type: 'text' },
-    { key: 'childrenSpecialNeeds', label: 'Do any of your children have special needs or medical conditions?', type: 'yesno' },
     { key: 'placedForAdoption', label: 'Have you ever placed a child for adoption?', type: 'yesno' },
     { key: 'gunsOwned', label: 'Do you own any guns?', type: 'yesno' },
-    { key: 'piercingsTattoos', label: 'Do you have any piercings or tattoos?', type: 'yesno' },
-    { key: 'lastTattooDate', label: 'When did you have your last tattoo?', type: 'text', conditional: d => d.piercingsTattoos === 'yes' },
     { key: 'nonSterilePiercing', label: 'Have you been tattooed or had a non-sterile skin piercing in the last 12 months?', type: 'yesno' },
     { key: 'eatingDisorders', label: 'Do you have a history of eating disorders?', type: 'yesno' },
-    { key: 'criminalHistory', label: 'Have you or anyone in your household ever been arrested or convicted?', type: 'yesno' },
     { key: 'recentTravel', label: 'Have you traveled outside of the U.S. in the last 6 months?', type: 'yesno' },
-    { key: 'travelPlans', label: 'Do you plan on traveling within or outside of the U.S.?', type: 'yesno' },
     { key: 'sleepIssues', label: 'Do you have any issues with sleeping?', type: 'yesno' },
     { key: 'sleepHours', label: 'How many hours do you typically sleep each night?', type: 'text' },
-    { key: 'reliableVehicle', label: 'Do you have a reliable vehicle to drive?', type: 'yesno' },
     { key: 'autoInsurance', label: 'Do you have automobile insurance?', type: 'yesno' },
     { key: 'validLicense', label: 'Do you have a valid driver\'s license?', type: 'yesno' },
     { key: 'partnerFdaTests', label: 'Will your partner submit to the FDA required lab tests?', type: 'yesno' },
-    { key: 'openToVaccinations', label: 'Are you open to vaccinations if recommended by the clinic?', type: 'yesno' },
     { key: 'lastPhysical', label: 'When was your last physical exam?', type: 'text' },
-    { key: 'lastPap', label: 'When was your last pap smear?', type: 'text' },
-    { key: 'healthInsurance', label: 'Do you currently have health insurance?', type: 'yesno' },
-    { key: 'insuranceType', label: 'What type of health insurance?', type: 'text', conditional: d => d.healthInsurance === 'yes' },
-    { key: 'educationLevel', label: 'Highest level of education', type: 'text' },
-    { key: 'currentlyInSchool', label: 'Are you currently enrolled in school?', type: 'yesno' },
-    { key: 'currentlyInSchoolDetails', label: 'Please provide details', type: 'text', conditional: d => d.currentlyInSchool === 'yes' },
     { key: 'compensationNegotiable', label: 'Is your desired compensation negotiable?', type: 'yesno' },
   ]
 
@@ -1378,7 +1363,23 @@ export default function PortalApplicationPage() {
     const d = (overrideAnswers || answers)[key]
     if (!d) return false
     if (key === '_application') {
-      return !!(d.street && d.city && d.state && d.zipCode && d.realId && d.validPassport && d.nearestNICU && d.willingToTravelNICU)
+      const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
+      const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
+      const required = [
+        'fullLegalName', 'dob', 'ssn4', 'street', 'city', 'state', 'zipCode',
+        'realId', 'validPassport', 'hasInsurance',
+        ...(hi ? ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone'] : []),
+        'hasSpouse',
+        ...(hs ? ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone'] : []),
+        'emergencyName', 'emergencyPhone', 'emergencyRelationship',
+      ]
+      return required.every(k => {
+        const v = d[k]
+        if (['realId', 'validPassport', 'hasInsurance', 'hasSpouse'].includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
+        if (['insurancePhone', 'spousePhone', 'emergencyPhone'].includes(k)) return isValidPhone(v)
+        if (k === 'spouseEmail') return isValidEmail(v)
+        return v?.toString().trim()
+      })
     }
     if (key === '_confidential') {
       const PHONE_KEYS = ['insurancePhone', 'spousePhone', 'emergencyPhone']
@@ -1413,7 +1414,7 @@ export default function PortalApplicationPage() {
     }
     if (key === '_profileFollowUp') {
       // Check that all yes/no fields have a value
-      const ynKeys = ['usCitizen', 'breastfeeding', 'cycleLength', 'childrenSpecialNeeds', 'placedForAdoption', 'gunsOwned', 'piercingsTattoos', 'eatingDisorders', 'criminalHistory', 'recentTravel', 'travelPlans', 'sleepIssues', 'reliableVehicle', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'openToVaccinations', 'healthInsurance', 'currentlyInSchool', 'compensationNegotiable', 'otherLanguages', 'nonSterilePiercing']
+      const ynKeys = ['breastfeeding', 'cycleLength', 'placedForAdoption', 'gunsOwned', 'eatingDisorders', 'recentTravel', 'sleepIssues', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'compensationNegotiable', 'otherLanguages', 'nonSterilePiercing']
       return ynKeys.every(k => d[k] === 'yes' || d[k] === 'no' || d[k] === true || d[k] === false)
     }
     if (key === '_paymentPreference') {

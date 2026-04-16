@@ -374,7 +374,6 @@ const DELETED_FIELDS = [
 // Fields moved from their original sections to the Follow Up Questions form
 const FOLLOW_UP_FIELDS = [
   // From Personal
-  { key: 'usCitizen', type: 'yesno', section: 'personal' },
   { key: 'realId', type: 'yesno', section: 'personal' },
   { key: 'validPassport', type: 'yesno', section: 'personal' },
   { key: 'otherLanguages', type: 'yesno', section: 'personal' },
@@ -385,38 +384,22 @@ const FOLLOW_UP_FIELDS = [
   { key: 'cycleLength', type: 'yesno', section: 'fertility' },
   { key: 'cycleLengthDetails', type: 'text', section: 'fertility', conditional: d => d.cycleLength === 'no' },
   { key: 'willingToTravelNICU', type: 'yesno', section: 'fertility' },
-  { key: 'contraceptiveMethod', type: 'text', section: 'fertility' },
   { key: 'lastPeriod', type: 'text', section: 'fertility' },
   { key: 'nearestNICU', type: 'text', section: 'fertility' },
   { key: 'timeToConceive', type: 'text', section: 'fertility' },
   // From General
-  { key: 'childrenSpecialNeeds', type: 'yesno', section: 'general' },
   { key: 'placedForAdoption', type: 'yesno', section: 'general' },
   { key: 'gunsOwned', type: 'yesno', section: 'general' },
-  { key: 'piercingsTattoos', type: 'yesno', section: 'general' },
-  { key: 'lastTattooDate', type: 'text', section: 'general', conditional: d => d.piercingsTattoos === 'yes' },
   { key: 'nonSterilePiercing', type: 'yesno', section: 'general' },
   { key: 'eatingDisorders', type: 'yesno', section: 'general' },
-  { key: 'criminalHistory', type: 'yesno', section: 'general' },
   { key: 'recentTravel', type: 'yesno', section: 'general' },
-  { key: 'travelPlans', type: 'yesno', section: 'general' },
   { key: 'sleepIssues', type: 'yesno', section: 'general' },
   { key: 'sleepHours', type: 'text', section: 'general' },
-  { key: 'reliableVehicle', type: 'yesno', section: 'general' },
   { key: 'autoInsurance', type: 'yesno', section: 'general' },
   { key: 'validLicense', type: 'yesno', section: 'general' },
   { key: 'partnerFdaTests', type: 'yesno', section: 'general' },
   // From Health
-  { key: 'openToVaccinations', type: 'yesno', section: 'health' },
   { key: 'lastPhysical', type: 'text', section: 'health' },
-  { key: 'lastPap', type: 'text', section: 'health' },
-  // From Employment
-  { key: 'healthInsurance', type: 'yesno', section: 'employment' },
-  { key: 'insuranceType', type: 'text', section: 'employment', conditional: d => d.healthInsurance === 'yes' },
-  // From Academic (entire section moves)
-  { key: 'educationLevel', type: 'text', section: 'academic' },
-  { key: 'currentlyInSchool', type: 'yesno', section: 'academic' },
-  { key: 'currentlyInSchoolDetails', type: 'text', section: 'academic', conditional: d => d.currentlyInSchool === 'yes' },
   // From Hopes & Wishes
   { key: 'compensationNegotiable', type: 'yesno', section: 'hopesWishes' },
 ]
