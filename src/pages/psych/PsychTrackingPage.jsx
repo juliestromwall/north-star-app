@@ -478,7 +478,7 @@ export default function PsychTrackingPage() {
       } catch (e) { console.error('PDF generation failed:', e) }
 
       // 4. Upload PDF to surrogate's case (psych folder)
-      if (pdfBlob && supabase && !checkinRow.id.startsWith('manual_')) {
+      if (pdfBlob && supabase && !String(checkinRow.id).startsWith('manual_')) {
         try {
           const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
           const result = await uploadCaseDocument({
@@ -501,7 +501,7 @@ export default function PsychTrackingPage() {
         const assignedTo = checkinForm.caseManagerEmail || journey?.assigned_to || journey?.journey_data?.assigned_to || ''
         const taskPayload = journey
           ? { case_id: journey.id, case_type: 'journey', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
-          : (!checkinRow.id.startsWith('manual_')
+          : (!String(checkinRow.id).startsWith('manual_')
             ? { case_id: Number(checkinRow.id), case_type: 'surrogate', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
             : null)
         if (taskPayload) {

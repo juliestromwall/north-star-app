@@ -486,7 +486,7 @@ export default function SharedPsychTrackingPage() {
       // 3. Generate real PDF and upload to surrogate's psych folder
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
       try {
-        if (supabase && !checkinRow.id.startsWith('manual_')) {
+        if (supabase && !String(checkinRow.id).startsWith('manual_')) {
           const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
           const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
           const html2pdf = (await import('html2pdf.js')).default
@@ -515,7 +515,7 @@ export default function SharedPsychTrackingPage() {
       try {
         const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
         const assignedTo = checkinForm.caseManagerEmail || ''
-        if (!checkinRow.id.startsWith('manual_')) {
+        if (!String(checkinRow.id).startsWith('manual_')) {
           await createCaseTask({
             case_id: Number(checkinRow.id),
             case_type: 'surrogate',
