@@ -25,3 +25,4 @@ Heartbeat Confirmed (Journey Pregnancy Tracker),Confirmation of Heartbeat - Coll
 Birth Logged (Journey Pregnancy Tracker),Reach out to {GC Name} about a Testimony,intake@abcsurrogacy.com,Normal,+1 month from birth,Journey,src/pages/journeys/JourneyDetailPage.jsx
 Expense Added with Escrow Not Opened (Journey),Pay Expense for {Journey} — {Paid To} ${Amount},julie@abcsurrogacy.com,High,Today,Journey,src/pages/journeys/JourneyDetailPage.jsx
 Expense Reconcile — Request Receipt,Upload receipt — ${Amount} to {Vendor},Journey assignee,High,Today,Journey,src/pages/expenses/ExpensesPage.jsx
+Background Check Release Form Signed,Request Background Check - {Signer Name},Case manager (intake assigned_to),High,Today (sign date),Surrogate,src/pages/esign/SignFormPage.jsx
