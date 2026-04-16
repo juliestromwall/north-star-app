@@ -458,7 +458,11 @@ export default function SignFormPage() {
                   ) : signatures[s.id] ? (
                     <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
                       <CheckCircle2 className="size-4 text-green-500 shrink-0" />
-                      <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
+                      {signatures[s.id].type === 'drawn' && signatures[s.id].image ? (
+                        <img src={signatures[s.id].image} alt="signature" style={{ height: 32 }} />
+                      ) : (
+                        <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
+                      )}
                       <button onClick={() => setActiveSigId(s.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                     </div>
                   ) : (

@@ -112,7 +112,6 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">
 
   <div style="text-align:center;margin-bottom:20px;">
-    <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style="height:50px;margin-bottom:8px;" crossorigin="anonymous" />
     <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>
@@ -250,7 +249,6 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">
 
   <div style="text-align:center;margin-bottom:20px;">
-    <img src="/abc-logo-horz.png" alt="Abundant Beginnings Co." style="height:50px;margin-bottom:8px;" crossorigin="anonymous" />
     <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
   </div>

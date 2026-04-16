@@ -104,8 +104,8 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <p style="margin: 10px 0 6px 0;">I authorize the release of <strong>healthcare information</strong> and <strong>reproductive health records</strong> of the patient named above for the purpose of <u>continuation of medical care</u> and evaluation for a gestational surrogacy arrangement to:</p>
 
   <div style="text-align: center; margin: 6px 0; padding: 8px; border: 2px solid #283693;">
-    <p style="font-weight: 700; color: #283693; font-size: 13px; margin: 0;">Abundant Beginnings Co.</p>
-    <p style="margin: 2px 0; font-size: 10px;">5627 Kanan Road #229, Agoura Hills, CA 91301 | Ph: 323-207-5762 | Fax: 323-843-9433 | records@abcsurrogacy.com</p>
+    <p style="font-weight: 700; color: #283693; font-size: 13px; margin: 0;">Abundant Beginnings Co. C/O Desiree Melchiori</p>
+    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 323-207-5762 | Fax: 323-843-9433 | records@abcsurrogacy.com</p>
   </div>
 
   <!-- Provider -->
@@ -180,7 +180,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Footer -->
   <div style="margin-top: 16px; text-align: center; padding-top: 8px; border-top: 1px solid #000;">
-    <p style="font-size: 8px; color: #333; margin: 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 323-207-5762 | F: 323-843-9433 | abcsurrogacy.com</p>
+    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 323-207-5762 | F: 323-843-9433 | abcsurrogacy.com</p>
     <p style="font-size: 7px; color: #555; margin: 2px 0 0 0;">Compliant with HIPAA (45 CFR 164.508), ESIGN Act, UETA, 42 CFR Part 2, and Cal. Civil Code 56.11.</p>
   </div>
 
