@@ -176,14 +176,17 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
   )
 }
 
+const JULIE_EMAIL = 'julie@abcsurrogacy.com'
+const NICOLE_EMAIL = 'nicole@abcsurrogacy.com'
+
 function buildAssignOptions() {
   const staff = getAdminStaff()
   const options = staff.map(a => ({ value: a.email, label: a.name }))
-  // Add "Julie & Nicole" combo if both exist
-  const julie = staff.find(a => a.name?.toLowerCase().includes('julie'))
-  const nicole = staff.find(a => a.name?.toLowerCase().includes('nicole'))
+  // Add "Julie & Nicole" combo option
+  const julie = staff.find(a => a.email === JULIE_EMAIL)
+  const nicole = staff.find(a => a.email === NICOLE_EMAIL)
   if (julie && nicole) {
-    options.push({ value: `${julie.email},${nicole.email}`, label: 'Julie & Nicole' })
+    options.push({ value: `${JULIE_EMAIL},${NICOLE_EMAIL}`, label: `${julie.name} & ${nicole.name}` })
   }
   return options
 }
