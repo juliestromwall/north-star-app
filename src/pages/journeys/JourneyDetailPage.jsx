@@ -835,6 +835,24 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       const emailData = await emailRes.json().catch(() => ({}))
       if (!emailRes.ok) console.error('Pregnancy notify email failed:', emailRes.status, emailData)
     } catch (err) { console.error('Pregnancy notify email failed:', err) }
+    // Auto-create 20-week check-in task for Julie & Nicole
+    try {
+      const transferDate = new Date(updated[idx].date + 'T12:00:00')
+      // 5-day embryo: GA at transfer = 2w5d = 19 days. 20w0d = 140 days GA → 140 - 19 = 121 days after transfer
+      const twentyWeekDate = new Date(transferDate.getTime() + 121 * 24 * 60 * 60 * 1000)
+      const twentyWeekStr = twentyWeekDate.toISOString().split('T')[0]
+      const surName = gcName || journey.gc_name || 'Surrogate'
+      await createCaseTask({
+        case_id: journey.id,
+        case_type: 'journey',
+        title: `${surName} - 20 weeks! Check in with IP(s)`,
+        assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com',
+        due_date: twentyWeekStr,
+        priority: 'normal',
+        status: 'open',
+        created_by: 'system',
+      })
+    } catch (err) { console.error('Failed to create 20-week task:', err) }
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1'); setBabySexes([])
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
