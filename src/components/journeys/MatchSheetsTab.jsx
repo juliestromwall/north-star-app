@@ -736,8 +736,10 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         setPendingPdf(attachment)
         setAttorneyPickerOpen(true)
       } else if (activeSheet === 'escrow') {
-        // Escrow: To = SeedTrust, CC = IPs
-        const ipEmails = [ipCase?.email, ipCase?.ip2Email].filter(Boolean).join(', ')
+        // Escrow: To = SeedTrust, CC = IP1 + IP2 (if applicable)
+        const ip1Email = ipCase?.email || ipAnswers.email || ipAnswers.primaryEmail || ''
+        const ip2Email = hasPartner ? (ipCase?.ip2Email || ipAnswers.ip2Email || '') : ''
+        const ipEmails = [ip1Email, ip2Email].filter(Boolean).join(', ')
         const body = `<p>Hi ${ip1First}${ip2First ? ' & ' + ip2First : ''},</p><p>Now that you have started with legal contracts, we can begin escrow and get your account funded.</p><p>SeedTrust is very easy to use for all involved, and they keep great records and give you access to your escrow portal so that you are able to view your account and keep close track of the account.</p><p>Your escrow management team will be reaching out to get you all set up.</p><p>Please let me know if you have any questions.</p>`
         openDraft({
           to: 'info@seedtrustescrow.com',
