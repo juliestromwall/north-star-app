@@ -116,29 +116,51 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   return `<!DOCTYPE html><html><head>
     <title>${surrogateName} - ${milestoneName} Check-In</title>
     <style>
-      @page { size: letter; margin: 1in; }
+      @page { size: letter; margin: 0.5in; }
       @media print {
         body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         .print-bar { display: none !important; }
+        .content { padding: 0 !important; }
       }
-      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.6; font-size: 14px; }
-      .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
-      .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
-      .content { max-width: 700px; margin: 0 auto; padding: 40px; }
-      h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px 0; color: #283693; }
-      .divider { border: none; border-top: 2px solid #283693; margin: 12px 0 24px 0; }
-      .header-line { font-size: 13px; color: #57534e; margin: 2px 0; }
-      .section-title { font-size: 13px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 6px 0; }
-      .section-value { font-size: 14px; margin: 0 0 4px 0; }
-      .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 6px; padding: 16px; font-size: 13px; line-height: 1.7; margin: 6px 0; }
-      .details-box ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
-      .details-box ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
-      .details-box li { margin: 0.25em 0; }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.5; font-size: 12px; background: white; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+      .print-bar button { background: white; color: #283693; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .content { max-width: 760px; margin: 0 auto; padding: 28px 32px; }
+      .title { font-size: 22px; font-weight: 700; color: #283693; margin: 0 0 4px 0; text-align: center; }
+      .subtitle { font-size: 11px; color: #78716c; text-align: center; margin: 0 0 14px 0; letter-spacing: 0.04em; text-transform: uppercase; }
+      .top-divider { border: none; border-top: 2px solid #283693; margin: 0 0 18px 0; }
+      .header-card { background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 10px; padding: 12px 16px; margin: 0 0 14px 0; }
+      .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; font-size: 12px; }
+      .header-grid .item { display: flex; flex-direction: column; }
+      .header-grid .label { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+      .header-grid .value { font-size: 12px; color: #1c1917; font-weight: 500; margin-top: 1px; }
+      .section-title { font-size: 11px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.07em; margin: 14px 0 6px 0; }
+      .info-card { border: 1px solid #e7e5e4; border-radius: 8px; overflow: hidden; margin: 0 0 10px 0; }
+      .info-row { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+      .info-row > div { padding: 8px 12px; border-right: 1px solid #f5f4f3; }
+      .info-row > div:last-child { border-right: none; }
+      .info-row .lbl { font-size: 8.5px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 1px; }
+      .info-row .val { font-size: 12px; color: #1c1917; font-weight: 500; }
+      .info-row-2 { display: grid; grid-template-columns: 1fr 1fr; }
+      .info-row-2 > div { padding: 8px 12px; border-right: 1px solid #f5f4f3; }
+      .info-row-2 > div:last-child { border-right: none; }
+      .info-row-2 .lbl { font-size: 8.5px; color: #a8a29e; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-bottom: 1px; }
+      .info-row-2 .val { font-size: 12px; color: #1c1917; font-weight: 500; }
+      .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 14px 16px; font-size: 12px; line-height: 1.65; margin: 4px 0 0 0; }
+      .details-box > *:first-child { margin-top: 0; }
+      .details-box > *:last-child { margin-bottom: 0; }
+      .details-box ul { list-style-type: disc; padding-left: 1.4em; margin: 0.4em 0; }
+      .details-box ol { list-style-type: decimal; padding-left: 1.4em; margin: 0.4em 0; }
+      .details-box li { margin: 0.2em 0; }
       .details-box li p { margin: 0; }
-      .details-box p { margin: 0.25em 0; }
-      .details-box mark { border-radius: 2px; padding: 1px 2px; }
+      .details-box p { margin: 0.4em 0; }
+      .details-box strong { font-weight: 600; }
+      .details-box em { font-style: italic; }
+      .details-box mark { border-radius: 2px; padding: 1px 3px; }
       .details-box img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
-      .signature { margin-top: 36px; padding-top: 16px; border-top: 1px solid #d6d3d1; font-size: 13px; color: #57534e; line-height: 1.8; }
+      .signature { margin-top: 18px; padding: 12px 16px; background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 8px; font-size: 11px; color: #57534e; line-height: 1.6; }
+      .signature strong { color: #283693; }
     </style>
   </head><body>
     <div class="print-bar">
@@ -146,34 +168,58 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       <button onclick="window.print()">Save as PDF</button>
     </div>
     <div class="content">
-      <h1>${surrogateName} - ${milestoneName} Check-In</h1>
-      <hr class="divider" />
-      <p class="header-line"><strong>${report.therapistName || ''}${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}</strong></p>
-      <p class="header-line">Date and Time: ${dateStr} ${timeStr} (Pacific Time)</p>
-      <p class="header-line">Note Completed By: ${report.therapistName || ''}</p>
-      <p class="header-line">Patient: ${report.patientName || surrogateName}</p>
+      <h1 class="title">${surrogateName} — ${milestoneName} Check-In</h1>
+      <p class="subtitle">Contact Note</p>
+      <hr class="top-divider" />
+
+      <div class="header-card">
+        <div class="header-grid">
+          <div class="item">
+            <span class="label">Note Completed By</span>
+            <span class="value">${report.therapistName || ''}</span>
+          </div>
+          <div class="item">
+            <span class="label">Date &amp; Time</span>
+            <span class="value">${dateStr} ${timeStr} <span style="color:#a8a29e;font-weight:400;">(PT)</span></span>
+          </div>
+          <div class="item">
+            <span class="label">Patient</span>
+            <span class="value">${report.patientName || surrogateName}</span>
+          </div>
+          <div class="item">
+            <span class="label">Reason</span>
+            <span class="value">${report.reason || milestoneName + ' Check-In'}</span>
+          </div>
+        </div>
+      </div>
 
       <p class="section-title">Contacted Party</p>
-      <p class="section-value">Name: ${report.contactedPartyName || surrogateName}</p>
-      ${contactedEmail ? `<p class="section-value">Email: ${contactedEmail}</p>` : ''}
-      ${contactedPhone ? `<p class="section-value">Phone: ${contactedPhone}</p>` : ''}
-      <p class="section-value">Relationship to Patient: ${report.relationship || 'Self'}</p>
-
-      <p class="section-title">Method of Communication</p>
-      <p class="section-value">${report.communicationMethod || ''}</p>
-
-      <p class="section-title">Reason for Communication</p>
-      <p class="section-value">${report.reason || milestoneName + ' Check-In'}</p>
+      <div class="info-card">
+        <div class="info-row">
+          <div><div class="lbl">Name</div><div class="val">${report.contactedPartyName || surrogateName}</div></div>
+          <div><div class="lbl">Relationship</div><div class="val">${report.relationship || 'Self'}</div></div>
+          <div><div class="lbl">Method</div><div class="val">${report.communicationMethod || '—'}</div></div>
+        </div>
+        ${(contactedEmail || contactedPhone) ? `
+        <div class="info-row-2" style="border-top: 1px solid #f5f4f3;">
+          <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${contactedEmail || '—'}</div></div>
+          <div><div class="lbl">Phone</div><div class="val">${contactedPhone || '—'}</div></div>
+        </div>` : ''}
+      </div>
 
       <p class="section-title">Billing Information</p>
-      <p class="section-value">Time spent: ${report.timeSpent || ''}</p>
-      <p class="section-value">The patient will not be billed for this communication.</p>
+      <div class="info-card">
+        <div class="info-row-2">
+          <div><div class="lbl">Time Spent</div><div class="val">${report.timeSpent || '—'}</div></div>
+          <div><div class="lbl">Billing</div><div class="val">Patient will not be billed for this communication</div></div>
+        </div>
+      </div>
 
       <p class="section-title">Communication Details</p>
       <div class="details-box">${detailsHtml}</div>
 
       <div class="signature">
-        <p><strong>${report.signatureName || report.therapistName || ''}</strong>${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}${licenseStr ? ', ' + licenseStr : ''}, signed this note and declared this information to be accurate and complete on ${completedDateStr} at ${completedTimeStr} (Pacific Time).</p>
+        <strong>${report.signatureName || report.therapistName || ''}</strong>${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}${licenseStr ? ', ' + licenseStr : ''}, signed this note and declared this information to be accurate and complete on ${completedDateStr} at ${completedTimeStr} (Pacific Time).
       </div>
     </div>
   </body></html>`
