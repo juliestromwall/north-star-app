@@ -246,6 +246,7 @@ export default function SharedPsychTrackingPage() {
   const [checkinForm, setCheckinForm] = useState({})
   const [checkinSaving, setCheckinSaving] = useState(false)
   const [checkinReadOnly, setCheckinReadOnly] = useState(false)
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false)
 
   const SESSION_KEY = `psych_share_session_${token}`
 
@@ -460,11 +461,13 @@ export default function SharedPsychTrackingPage() {
 
   async function handleSubmitReport() {
     if (!checkinRow || !checkinMilestone) return
+    setSubmitConfirmOpen(false)
     setCheckinSaving(true)
     try {
       const now = new Date().toISOString()
       const today = new Date().toISOString().split('T')[0]
       const report = { ...checkinForm, status: 'complete', completedAt: now, savedAt: now }
+      const milestoneName = MILESTONE_LABELS[checkinMilestone]
 
       // 1. Save report
       const updatedCheckins = {
@@ -480,7 +483,46 @@ export default function SharedPsychTrackingPage() {
       const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
       await saveTracking(updatedTracking)
 
-      // 3. Open PDF
+      // 3. Generate real PDF and upload to surrogate's psych folder
+      const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
+      try {
+        if (supabase && !checkinRow.id.startsWith('manual_')) {
+          const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
+          const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
+          const html2pdf = (await import('html2pdf.js')).default
+          const tempDiv = document.createElement('div')
+          tempDiv.innerHTML = cleanHtml
+          document.body.appendChild(tempDiv)
+          const pdfBlob = await html2pdf().set({
+            margin: 0.5,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          }).from(tempDiv).output('blob')
+          document.body.removeChild(tempDiv)
+          const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const path = `${checkinRow.id}/psych/${Date.now()}-${safeName}`
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('case-documents')
+            .upload(path, pdfBlob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+            await supabase.from('case_documents').insert({
+              surrogate_id: checkinRow.id,
+              category: 'psych',
+              file_name: fileName,
+              file_type: 'application/pdf',
+              file_size: pdfBlob.size,
+              storage_path: uploadData.path,
+              public_url: urlData.publicUrl,
+              uploaded_by: report.therapistName || 'Therapist',
+            })
+          }
+        }
+      } catch (e) { console.error('PDF upload failed:', e) }
+
+      // 4. Open PDF for download
       openPdfWindow(report, checkinMilestone, checkinRow.name)
 
       setCheckinOpen(false)
@@ -833,13 +875,44 @@ export default function SharedPsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
               </>
             )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ClipboardCheck className="size-5 text-[#283693]" />
+              Submit Check-In Report?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-stone-600">
+            <p>You're about to submit this check-in for <strong className="text-stone-800">{checkinRow?.name}</strong> ({MILESTONE_LABELS[checkinMilestone] || ''} Check-In).</p>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">Once submitted:</p>
+              <ul className="list-disc list-inside space-y-0.5 ml-1">
+                <li>The report will be saved as a PDF in the surrogate's Psych folder</li>
+                <li>The case manager will be notified to review</li>
+                <li>The report will be marked as complete and locked</li>
+              </ul>
+            </div>
+            <p className="text-xs text-stone-500">Are you sure you're ready to submit?</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
+            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+              {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
+              Yes, Submit Report
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

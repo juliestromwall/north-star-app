@@ -263,6 +263,7 @@ export default function PsychTrackingPage() {
   const [checkinSaving, setCheckinSaving] = useState(false)
   const [checkinReadOnly, setCheckinReadOnly] = useState(false)
   const [adminUsers, setAdminUsers] = useState([])
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -432,6 +433,7 @@ export default function PsychTrackingPage() {
 
   async function handleSubmitReport() {
     if (!checkinRow || !checkinMilestone) return
+    setSubmitConfirmOpen(false)
     setCheckinSaving(true)
     try {
       const now = new Date().toISOString()
@@ -453,57 +455,81 @@ export default function PsychTrackingPage() {
       const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
       await saveTracking(updatedTracking)
 
-      // 3. Open PDF in new window
+      // 3. Generate real PDF using html2pdf.js and upload to case documents
+      const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
+      let pdfBlob = null
+      try {
+        const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
+        // Strip the print bar from saved version
+        const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
+        const html2pdf = (await import('html2pdf.js')).default
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = cleanHtml
+        document.body.appendChild(tempDiv)
+        const pdfWorker = html2pdf().set({
+          margin: 0.5,
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        }).from(tempDiv)
+        pdfBlob = await pdfWorker.output('blob')
+        document.body.removeChild(tempDiv)
+      } catch (e) { console.error('PDF generation failed:', e) }
+
+      // 4. Upload PDF to surrogate's case (psych folder)
+      if (pdfBlob && supabase && !checkinRow.id.startsWith('manual_')) {
+        try {
+          const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+          const path = `${checkinRow.id}/psych/${Date.now()}-${safeName}`
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('case-documents')
+            .upload(path, pdfBlob, { cacheControl: '3600', upsert: false, contentType: 'application/pdf' })
+          if (uploadError) throw uploadError
+          const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+          await supabase.from('case_documents').insert({
+            surrogate_id: checkinRow.id,
+            category: 'psych',
+            file_name: fileName,
+            file_type: 'application/pdf',
+            file_size: pdfBlob.size,
+            storage_path: uploadData.path,
+            public_url: urlData.publicUrl,
+            uploaded_by: report.therapistName || 'Therapist',
+          })
+        } catch (e) { console.error('Failed to upload PDF to case:', e) }
+      }
+
+      // 5. Open PDF in new window for therapist to download
       openPdfWindow(report, checkinMilestone, checkinRow.name)
 
-      // 4. Create auto-tasks for case/journey managers
+      // 6. Create task for case manager: "{GC Name} {Check In Event} Complete - Needs Review"
       try {
         const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
+        const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
+        const assignedTo = checkinForm.caseManagerEmail || journey?.assigned_to || journey?.journey_data?.assigned_to || ''
         if (journey) {
-          const taskTitle = `${milestoneName} Therapist Check In Complete for ${checkinRow.name}`
-          // Create tasks for assigned team members
-          const assignees = new Set()
-          if (journey.journey_data?.assigned_to) assignees.add(journey.journey_data.assigned_to)
-          if (journey.assigned_to) assignees.add(journey.assigned_to)
-          for (const assignee of assignees) {
-            await createCaseTask({
-              journey_id: journey.id,
-              title: taskTitle,
-              priority: 'normal',
-              status: 'pending',
-              assigned_to: assignee,
-              created_at: now,
-            }).catch(() => {})
-          }
-          // If no specific assignees found, create unassigned task
-          if (assignees.size === 0) {
-            await createCaseTask({
-              journey_id: journey.id,
-              title: taskTitle,
-              priority: 'normal',
-              status: 'pending',
-              created_at: now,
-            }).catch(() => {})
-          }
-        }
-      } catch (e) { console.error('Failed to create tasks:', e) }
-
-      // 5. Save PDF as case document
-      try {
-        if (supabase && !checkinRow.id.startsWith('manual_')) {
-          const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
-          const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
-          // We store as HTML doc reference since we can't generate a real PDF blob in browser easily
-          // The PDF is available via the "Download PDF" / print flow
-          await uploadBase64ToCaseDocuments({
-            surrogateId: checkinRow.id,
-            category: 'psych',
-            fileName,
-            base64Data: btoa(unescape(encodeURIComponent(html))),
-            uploadedBy: report.therapistName || 'Therapist',
+          await createCaseTask({
+            journey_id: journey.id,
+            title: taskTitle,
+            priority: 'normal',
+            status: 'pending',
+            assigned_to: assignedTo,
+            created_at: now,
+          }).catch(() => {})
+        } else if (!checkinRow.id.startsWith('manual_')) {
+          // No journey, create task on the surrogate case
+          await createCaseTask({
+            case_id: Number(checkinRow.id),
+            case_type: 'surrogate',
+            title: taskTitle,
+            priority: 'normal',
+            status: 'pending',
+            assigned_to: assignedTo,
+            created_at: now,
           }).catch(() => {})
         }
-      } catch (e) { console.error('Failed to save document:', e) }
+      } catch (e) { console.error('Failed to create task:', e) }
 
       setCheckinOpen(false)
     } catch (e) { console.error('Failed to submit report:', e) }
@@ -769,13 +795,44 @@ export default function PsychTrackingPage() {
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
                 </Button>
-                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={() => setSubmitConfirmOpen(true)} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
                   Submit Report
                 </Button>
               </>
             )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={submitConfirmOpen} onOpenChange={setSubmitConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ClipboardCheck className="size-5 text-[#283693]" />
+              Submit Check-In Report?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-stone-600">
+            <p>You're about to submit this check-in for <strong className="text-stone-800">{checkinRow?.name}</strong> ({MILESTONE_LABELS[checkinMilestone] || ''} Check-In).</p>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
+              <p className="font-semibold">Once submitted:</p>
+              <ul className="list-disc list-inside space-y-0.5 ml-1">
+                <li>The report will be saved as a PDF in the surrogate's Psych folder</li>
+                <li>A task will be created for the case manager to review</li>
+                <li>The report will be marked as complete and locked</li>
+              </ul>
+            </div>
+            <p className="text-xs text-stone-500">Are you sure you're ready to submit?</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSubmitConfirmOpen(false)}>Cancel</Button>
+            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+              {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
+              Yes, Submit Report
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
