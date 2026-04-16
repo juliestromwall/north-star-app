@@ -1099,11 +1099,6 @@ function PregnancyCard({ pregnancy: pr, index }) {
     : isLoss ? 'bg-amber-100 text-amber-700'
     : 'bg-stone-100 text-stone-600'
 
-  // Build the "infection" question label based on outcome (matches portal)
-  const infectionLabel = isLoss
-    ? (pr.outcome === 'Termination' ? 'Did you have an infection, fever or bleeding following the termination?' : 'Did you have an infection, fever or bleeding following the miscarriage?')
-    : 'Did you have an infection, fever or bleeding following this delivery?'
-
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden print:break-inside-avoid">
       {/* Header strip */}
@@ -1157,7 +1152,6 @@ function PregnancyCard({ pregnancy: pr, index }) {
         {pr.wasSurrogacy === 'yes' && pr.transfersUntilPregnant && <PCRow label="How many embryo transfers did it take until pregnancy was achieved?" value={pr.transfersUntilPregnant} />}
         {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={`${pr.cyclesToConceive} months`} />}
         {(isLoss || isStillborn) && pr.deliveryType && <PCRow label="Delivery / Procedure Type" value={pr.deliveryType} />}
-        {pr.infectionAfter && <PCRow label={infectionLabel} value={pr.infectionAfter === 'yes' ? (pr.infectionAfterDetails || 'Yes') : 'No'} />}
         {pr.birthDefect && <PCRow label="Did this pregnancy result in a baby with a birth defect or genetic abnormality?" value={pr.birthDefect === 'yes' ? (pr.birthDefectDetails || 'Yes') : 'No'} />}
 
         {/* Complications */}
@@ -1370,6 +1364,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
         {/* Personal Information */}
         <PVSection title="Personal" icon={User} number={1}>
+          <PVYesNo label="Are you a U.S. Citizen or Permanent Resident?" value={about.usCitizen} fp="personal.usCitizen" />
           <PVGrid cols={2}>
             <PVField label="Current Marital/Relationship Status" value={about.maritalStatus} fp="personal.maritalStatus" />
             <PVField label="How many sexual partners in past 6 months" value={about.sexualPartners} fp="personal.sexualPartners" />
@@ -1417,10 +1412,11 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             {fertility.sameBioFather === 'no' && <PVField label="Please explain" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
             <PVYesNo label="Have you ever been seen by a doctor for infertility treatment?" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
             {fertility.infertilityTreatment === 'yes' && <PVField label="Please provide details" value={fertility.infertilityTreatmentDetails} fp="fertility.infertilityTreatmentDetails" />}
-            <PVYesNo label="Have you ever been told of any gynecological problems (endometriosis, ovarian cysts, fibroids, abnormal pap smears, etc.)?" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
+            <PVYesNo label="Have you ever been diagnosed with any gynecological issues (such as endometriosis, ovarian cysts, fibroids, abnormal pap smears, etc.)?" value={fertility.gynecologicalProblems} fp="fertility.gynecologicalProblems" />
             {fertility.gynecologicalProblems === 'yes' && <PVField label="Please provide details" value={fertility.gynecologicalProblemsDetails} fp="fertility.gynecologicalProblemsDetails" />}
             <PVYesNo label="Did you ever take medication (aside from prenatals) during pregnancy?" value={fertility.pregnancyMedication} fp="fertility.pregnancyMedication" />
             {fertility.pregnancyMedication === 'yes' && <PVField label="Please list medications" value={fertility.pregnancyMedicationList} fp="fertility.pregnancyMedicationList" />}
+            <PVField label="Which contraceptive method do you currently use?" value={fertility.contraceptiveMethod} fp="fertility.contraceptiveMethod" />
           </div>
           <div className="mt-4 pt-4 border-t border-gray-50">
             <PVField label="We want to hear all the details about your pregnancy(s). Be sure to describe in detail about any complications you experienced. Please share the ups and downs." value={fertility.pregnancyDetails} fp="fertility.pregnancyDetails" />
@@ -1437,8 +1433,16 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVYesNo label="Do your children live with you full time?" value={general.childrenFullTime} fp="general.childrenFullTime" />
             {general.childrenFullTime === 'no' && general.childrenFullTimeDetails && <PVField label="Please explain" value={general.childrenFullTimeDetails} fp="general.childrenFullTimeDetails" />}
             <PVField label="If you are divorced or separated from the other parent(s) of your child(ren), please describe this relationship" value={general.divorcedRelationship} fp="general.divorcedRelationship" />
+            <PVYesNo label="Do any of your children have special needs or medical conditions?" value={general.childrenSpecialNeeds} fp="general.childrenSpecialNeeds" />
+            {general.childrenSpecialNeeds === 'yes' && general.childrenSpecialNeedsDetails && <PVField label="Please explain" value={general.childrenSpecialNeedsDetails} fp="general.childrenSpecialNeedsDetails" />}
             <PVYesNo label="Do you plan to have any more children of your own?" value={general.planMoreChildren} fp="general.planMoreChildren" />
             {general.planMoreChildren === 'yes' && general.planMoreChildrenDetails && <PVField label="Please share your thoughts" value={general.planMoreChildrenDetails} fp="general.planMoreChildrenDetails" />}
+            <PVYesNo label="Do you have any piercings or tattoos?" value={general.piercingsTattoos} fp="general.piercingsTattoos" />
+            <PVYesNo label="Have you or anyone in your household ever been arrested or convicted?" value={general.criminalHistory} fp="general.criminalHistory" />
+            {general.criminalHistory === 'yes' && general.criminalHistoryDetails && <PVField label="Please explain" value={general.criminalHistoryDetails} fp="general.criminalHistoryDetails" />}
+            <PVYesNo label="Do you plan on traveling within or outside of the U.S. in the next 6 months?" value={general.travelPlans} fp="general.travelPlans" />
+            {general.travelPlans === 'yes' && general.travelPlansDetails && <PVField label="Please explain" value={general.travelPlansDetails} fp="general.travelPlansDetails" />}
+            <PVYesNo label="Do you have a reliable vehicle to drive?" value={general.reliableVehicle} fp="general.reliableVehicle" />
             <PVYesNo label="Do you currently smoke or vape?" value={general.smokeVape} fp="general.smokeVape" />
             <PVYesNo label="Do you have a history of smoking in the past?" value={general.smokingHistory} fp="general.smokingHistory" />
             {general.smokingHistory === 'yes' && general.smokingHistoryDetails && <PVField label="For how long and when did you quit?" value={general.smokingHistoryDetails} fp="general.smokingHistoryDetails" />}
@@ -1489,6 +1493,10 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVField label="Prescription medications taken in the past 5 years, their purpose and dates of use" value={health.prescriptionMeds} fp="health.prescriptionMeds" />
             <PVField label="Current medications and supplements" value={health.currentMeds} fp="health.currentMeds" />
           </div>
+          <div className="mt-4 pt-4 border-t border-gray-50 space-y-2">
+            <PVYesNo label="Are you open to vaccinations if recommended by the clinic?" value={health.openToVaccinations} fp="health.openToVaccinations" />
+            <PVField label="When was your last pap smear?" value={health.lastPap} fp="health.lastPap" />
+          </div>
         </PVSection>
 
         {/* Employment */}
@@ -1514,10 +1522,19 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           )}
           <PVYesNo label="Do you receive any government assistance (WIC, food stamps)?" value={employment.governmentAssistance} fp="employment.governmentAssistance" />
           {employment.governmentAssistance === 'yes' && employment.governmentAssistanceDetails && <PVField label="Please explain" value={employment.governmentAssistanceDetails} fp="employment.governmentAssistanceDetails" />}
+          <PVYesNo label="Do you currently have health insurance?" value={employment.healthInsurance} fp="employment.healthInsurance" />
+          {employment.healthInsurance === 'yes' && employment.insuranceType && <PVField label="What type of health insurance?" value={employment.insuranceType} fp="employment.insuranceType" />}
+        </PVSection>
+
+        {/* Education */}
+        <PVSection title="Education" icon={Apple} number={7}>
+          <PVField label="Highest level of education" value={academic.educationLevel} fp="academic.educationLevel" />
+          <PVYesNo label="Are you currently enrolled in school?" value={academic.currentlyInSchool} fp="academic.currentlyInSchool" />
+          {academic.currentlyInSchool === 'yes' && academic.currentlyInSchoolDetails && <PVField label="Please provide details" value={academic.currentlyInSchoolDetails} fp="academic.currentlyInSchoolDetails" />}
         </PVSection>
 
         {/* Interests */}
-        <PVSection title="Interests & Personality" icon={Heart} number={7}>
+        <PVSection title="Interests & Personality" icon={Heart} number={8}>
           <PVGrid cols={3}>
             <PVField label="Favorite music" value={interests.favoriteMusic} fp="interests.favoriteMusic" />
             <PVField label="Favorite movie" value={interests.favoriteMovie} fp="interests.favoriteMovie" />
@@ -1538,7 +1555,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
         {/* Experienced Surrogate — only show if they've been a surrogate before */}
         {expSurr.previousSurrogate === 'yes' && (
-          <PVSection title="Surrogacy Experience" icon={Stethoscope} number={8}>
+          <PVSection title="Surrogacy Experience" icon={Stethoscope} number={9}>
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#ed148c]/10 text-[#ed148c] text-sm font-semibold px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Experienced Surrogate — {expSurr.surrogacyTimes || '?'} time(s)
@@ -1561,7 +1578,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         )}
 
         {/* Journey Hopes & Wishes */}
-        <PVSection title="Journey Hopes & Wishes" icon={Heart} number={9}>
+        <PVSection title="Journey Hopes & Wishes" icon={Heart} number={10}>
           <div className="space-y-4">
             <PVField label="Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?" value={hopes.reasonForSurrogacy} fp="hopesWishes.reasonForSurrogacy" />
             <PVField label="How do you plan to use the money that you make from being a surrogate?" value={hopes.compensationUse} fp="hopesWishes.compensationUse" />
@@ -1732,7 +1749,6 @@ function FollowUpSection({ v, u, profile }) {
     <div className="space-y-4">
       <p className="text-xs text-stone-400 italic">These questions help us complete your screening. Please answer honestly.</p>
 
-      <YesNoField label="Are you a U.S. Citizen or Permanent Resident?" value={val('usCitizen')} onChange={set('usCitizen')} />
       <YesNoField label="Do you have a Real ID?" value={val('realId')} onChange={set('realId')} />
       <YesNoField label="Do you have a current/valid passport?" value={val('validPassport')} onChange={set('validPassport')} />
       <YesNoField label="Do you (or anyone in your household) speak a language other than English?" value={val('otherLanguages')} onChange={set('otherLanguages')} />
@@ -1742,39 +1758,24 @@ function FollowUpSection({ v, u, profile }) {
       {val('breastfeeding') === 'yes' && <TextField label="When do you expect to stop?" value={val('breastfeedingStopDate')} onChange={set('breastfeedingStopDate')} />}
       <YesNoField label="Are your cycles typically between 28 to 30 days?" value={val('cycleLength')} onChange={set('cycleLength')} />
       {val('cycleLength') === 'no' && <TextField label="What is your typical cycle length?" value={val('cycleLengthDetails')} onChange={set('cycleLengthDetails')} />}
-      <TextField label="Which contraceptive method do you currently use?" value={val('contraceptiveMethod')} onChange={set('contraceptiveMethod')} />
       <TextField label="When was the start of your last period?" value={val('lastPeriod')} onChange={set('lastPeriod')} />
       <TextField label="What is the nearest hospital with a Level II or III NICU?" value={val('nearestNICU')} onChange={set('nearestNICU')} />
       <YesNoField label="Are you ok traveling to a hospital with at least a Level II NICU?" value={val('willingToTravelNICU')} onChange={set('willingToTravelNICU')} />
       <TextField label="How long after stopping contraceptives did it take to get pregnant?" value={val('timeToConceive')} onChange={set('timeToConceive')} />
 
-      <YesNoField label="Do any of your children have special needs or medical conditions?" value={val('childrenSpecialNeeds')} onChange={set('childrenSpecialNeeds')} />
       <YesNoField label="Have you ever placed a child for adoption?" value={val('placedForAdoption')} onChange={set('placedForAdoption')} />
       <YesNoField label="Do you own any guns?" value={val('gunsOwned')} onChange={set('gunsOwned')} />
-      <YesNoField label="Do you have any piercings or tattoos?" value={val('piercingsTattoos')} onChange={set('piercingsTattoos')} />
       {val('piercingsTattoos') === 'yes' && <TextField label="When did you have your last tattoo?" value={val('lastTattooDate')} onChange={set('lastTattooDate')} />}
       <YesNoField label="Have you been tattooed or had a non-sterile skin piercing in the last 12 months?" value={val('nonSterilePiercing')} onChange={set('nonSterilePiercing')} />
       <YesNoField label="Do you have a history of eating disorders?" value={val('eatingDisorders')} onChange={set('eatingDisorders')} />
-      <YesNoField label="Have you or anyone in your household ever been arrested or convicted?" value={val('criminalHistory')} onChange={set('criminalHistory')} />
       <YesNoField label="Have you traveled outside of the U.S. in the last 6 months?" value={val('recentTravel')} onChange={set('recentTravel')} />
-      <YesNoField label="Do you plan on traveling within or outside of the U.S.?" value={val('travelPlans')} onChange={set('travelPlans')} />
       <YesNoField label="Do you have any issues with sleeping?" value={val('sleepIssues')} onChange={set('sleepIssues')} />
       <TextField label="How many hours do you typically sleep each night?" value={val('sleepHours')} onChange={set('sleepHours')} />
-      <YesNoField label="Do you have a reliable vehicle to drive?" value={val('reliableVehicle')} onChange={set('reliableVehicle')} />
       <YesNoField label="Do you have automobile insurance?" value={val('autoInsurance')} onChange={set('autoInsurance')} />
       <YesNoField label="Do you have a valid driver's license?" value={val('validLicense')} onChange={set('validLicense')} />
       <YesNoField label="Will your partner submit to the FDA required lab tests?" value={val('partnerFdaTests')} onChange={set('partnerFdaTests')} />
 
-      <YesNoField label="Are you open to being vaccinated if required for the surrogacy process?" value={val('openToVaccinations')} onChange={set('openToVaccinations')} />
       <TextField label="When was your last annual physical?" value={val('lastPhysical')} onChange={set('lastPhysical')} />
-      <TextField label="Most recent Pap and results" value={val('lastPap')} onChange={set('lastPap')} />
-
-      <YesNoField label="Do you have health insurance coverage?" value={val('healthInsurance')} onChange={set('healthInsurance')} />
-      {val('healthInsurance') === 'yes' && <TextField label="Is it a private/personal policy or through an employer?" value={val('insuranceType')} onChange={set('insuranceType')} />}
-
-      <TextField label="Highest level of education" value={val('educationLevel')} onChange={set('educationLevel')} />
-      <YesNoField label="Are you currently in school?" value={val('currentlyInSchool')} onChange={set('currentlyInSchool')} />
-      {val('currentlyInSchool') === 'yes' && <TextField label="Please provide details" value={val('currentlyInSchoolDetails')} onChange={set('currentlyInSchoolDetails')} />}
 
       <YesNoField label="Is your Surrogate Base Fee negotiable?" value={val('compensationNegotiable')} onChange={set('compensationNegotiable')} />
     </div>
@@ -1806,6 +1807,7 @@ function PersonalSection({ v, u }) {
         <ProfilePhotoUpload label="Profile Photo" hint="Upload a favorite recent photo of just you!" userId={userId} fallbackId={fallbackId} subfolder="portrait" onPhotoChange={(url) => { u('personal', 'profilePhotoUrl', url || ''); }} />
         <ProfilePhotoUpload label="Cover Photo" hint="Upload a favorite picture of you with your family or kids!" userId={userId} fallbackId={fallbackId} subfolder="headshot" />
       </div>
+      <YesNoField label="Are you a U.S. Citizen or Permanent Resident?" value={v(s, 'usCitizen')} onChange={u(s, 'usCitizen')} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <TextField label="First name (or nickname)" value={v(s, 'firstName')} onChange={u(s, 'firstName')} placeholder="First name ONLY or nickname" />
         <TextField label="Date of Birth" value={v(s, 'dob')} onChange={u(s, 'dob')} type="date" disabled placeholder="From signup" />
@@ -2091,16 +2093,6 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                   options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
               )}
 
-              <YesNoField label={`Did you have an infection, fever or bleeding following ${
-                pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy'
-                  ? 'the natural miscarriage or procedure'
-                  : pregnancies[expandedIdx]?.outcome === 'Termination'
-                  ? 'the termination'
-                  : 'this delivery'
-              }?`} value={pregnancies[expandedIdx]?.infectionAfter || ''} onChange={val => updatePregnancy(expandedIdx, 'infectionAfter', val)} />
-              {pregnancies[expandedIdx]?.infectionAfter === 'yes' && (
-                <TextAreaField label="Please provide details" value={pregnancies[expandedIdx]?.infectionAfterDetails || ''} onChange={val => updatePregnancy(expandedIdx, 'infectionAfterDetails', val)} rows={2} />
-              )}
               <YesNoField label="Did this pregnancy result in a baby with a birth defect or genetic abnormality?" value={pregnancies[expandedIdx]?.birthDefect || ''} onChange={val => updatePregnancy(expandedIdx, 'birthDefect', val)} />
               {pregnancies[expandedIdx]?.birthDefect === 'yes' && (
                 <TextAreaField label="Please provide details" value={pregnancies[expandedIdx]?.birthDefectDetails || ''} onChange={val => updatePregnancy(expandedIdx, 'birthDefectDetails', val)} rows={2} />
@@ -2150,7 +2142,7 @@ function FertilitySection({ v, u, profile }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <YesNoField label="Have you ever been seen by a doctor for infertility treatment?" value={v(s, 'infertilityTreatment')} onChange={u(s, 'infertilityTreatment')} />
-        <YesNoField label="Have you ever been told of any gynecological problems (endometriosis, ovarian cysts, fibroids, abnormal pap smears, etc.)?" value={v(s, 'gynecologicalProblems')} onChange={u(s, 'gynecologicalProblems')} />
+        <YesNoField label="Have you ever been diagnosed with any gynecological issues (such as endometriosis, ovarian cysts, fibroids, abnormal pap smears, etc.)?" value={v(s, 'gynecologicalProblems')} onChange={u(s, 'gynecologicalProblems')} />
       </div>
       {v(s, 'infertilityTreatment') === 'yes' && (
         <TextAreaField label="Please provide details" value={v(s, 'infertilityTreatmentDetails')} onChange={u(s, 'infertilityTreatmentDetails')} rows={2} />
@@ -2163,6 +2155,9 @@ function FertilitySection({ v, u, profile }) {
       {v(s, 'pregnancyMedication') === 'yes' && (
         <TextAreaField label="Please list medications" value={v(s, 'pregnancyMedicationList')} onChange={u(s, 'pregnancyMedicationList')} rows={2} />
       )}
+
+      <SelectField label="Which contraceptive method do you currently use?" value={v(s, 'contraceptiveMethod')} onChange={u(s, 'contraceptiveMethod')}
+        options={['Oral contraceptive pill', 'IUD', 'Implant', 'Injection', 'Vaginal ring', 'Patch', 'Condoms', 'Natural family planning / cycle tracking', 'Permanent sterilization', 'Vasectomy', 'Same sex partner', 'Abstinence', 'No current birth control', 'Other']} />
     </div>
   )
 }
@@ -2230,6 +2225,9 @@ function HealthSection({ v, u }) {
       {(v(s, 'diseaseHistory') || []).some(d => d !== 'None of the Above') && (
         <TextAreaField label="Please explain any checked conditions" value={v(s, 'diseaseHistoryDetails')} onChange={u(s, 'diseaseHistoryDetails')} rows={2} />
       )}
+
+      <YesNoField label="Are you open to vaccinations if recommended by the clinic?" value={v(s, 'openToVaccinations')} onChange={u(s, 'openToVaccinations')} />
+      <TextAreaField label="When was your last pap smear?" value={v(s, 'lastPap')} onChange={u(s, 'lastPap')} rows={2} placeholder="Date and any relevant results" />
     </div>
   )
 }
@@ -2252,10 +2250,24 @@ function GeneralSection({ v, u, profile }) {
         <TextAreaField label="Please explain" value={v(s, 'childrenFullTimeDetails')} onChange={u(s, 'childrenFullTimeDetails')} rows={2} />
       )}
       <TextAreaField label="If you are divorced or separated from the other parent(s) of your child(ren), please describe this relationship" value={v(s, 'divorcedRelationship')} onChange={u(s, 'divorcedRelationship')} rows={2} />
+      <YesNoField label="Do any of your children have special needs or medical conditions?" value={v(s, 'childrenSpecialNeeds')} onChange={u(s, 'childrenSpecialNeeds')} />
+      {v(s, 'childrenSpecialNeeds') === 'yes' && (
+        <TextAreaField label="Please explain" value={v(s, 'childrenSpecialNeedsDetails')} onChange={u(s, 'childrenSpecialNeedsDetails')} rows={2} />
+      )}
       <YesNoField label="Do you plan to have any more children of your own?" value={v(s, 'planMoreChildren')} onChange={u(s, 'planMoreChildren')} />
       {v(s, 'planMoreChildren') === 'yes' && (
         <TextAreaField label="Please share your thoughts" value={v(s, 'planMoreChildrenDetails')} onChange={u(s, 'planMoreChildrenDetails')} rows={2} />
       )}
+      <YesNoField label="Do you have any piercings or tattoos?" value={v(s, 'piercingsTattoos')} onChange={u(s, 'piercingsTattoos')} />
+      <YesNoField label="Have you or anyone in your household ever been arrested or convicted?" value={v(s, 'criminalHistory')} onChange={u(s, 'criminalHistory')} />
+      {v(s, 'criminalHistory') === 'yes' && (
+        <TextAreaField label="Please explain" value={v(s, 'criminalHistoryDetails')} onChange={u(s, 'criminalHistoryDetails')} rows={2} />
+      )}
+      <YesNoField label="Do you plan on traveling within or outside of the U.S. in the next 6 months?" value={v(s, 'travelPlans')} onChange={u(s, 'travelPlans')} />
+      {v(s, 'travelPlans') === 'yes' && (
+        <TextAreaField label="Please explain" value={v(s, 'travelPlansDetails')} onChange={u(s, 'travelPlansDetails')} rows={2} />
+      )}
+      <YesNoField label="Do you have a reliable vehicle to drive?" value={v(s, 'reliableVehicle')} onChange={u(s, 'reliableVehicle')} />
 
       <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
         <h4 className="font-medium text-[#283693] mb-3">Smoking, Alcohol & Substances</h4>
@@ -2329,6 +2341,11 @@ function EmploymentSection({ v, u, profile }) {
       {v(s, 'governmentAssistance') === 'yes' && (
         <TextAreaField label="Please explain" value={v(s, 'governmentAssistanceDetails')} onChange={u(s, 'governmentAssistanceDetails')} rows={2} />
       )}
+
+      <YesNoField label="Do you currently have health insurance?" value={v(s, 'healthInsurance')} onChange={u(s, 'healthInsurance')} />
+      {v(s, 'healthInsurance') === 'yes' && (
+        <TextField label="What type of health insurance?" value={v(s, 'insuranceType')} onChange={u(s, 'insuranceType')} placeholder="e.g. Private through employer, Medicaid, etc." />
+      )}
     </div>
   )
 }
@@ -2370,11 +2387,11 @@ function AcademicSection({ v, u }) {
   const s = 'academic'
   return (
     <div className="space-y-6">
-      <SelectField label="Highest level of education and/or type of vocational training" value={v(s, 'educationLevel')} onChange={u(s, 'educationLevel')}
-        options={['Some High School', 'High School Diploma / GED', 'Some College', 'Associate Degree', 'Bachelor\'s Degree', 'Master\'s Degree', 'Doctorate', 'Vocational / Trade School', 'Other']} />
-      <YesNoField label="Are you currently in school?" value={v(s, 'currentlyInSchool')} onChange={u(s, 'currentlyInSchool')} />
+      <SelectField label="Highest level of education" value={v(s, 'educationLevel')} onChange={u(s, 'educationLevel')}
+        options={['Some High School', 'High School Diploma / GED', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Vocational / Trade School', 'Other']} />
+      <YesNoField label="Are you currently enrolled in school?" value={v(s, 'currentlyInSchool')} onChange={u(s, 'currentlyInSchool')} />
       {v(s, 'currentlyInSchool') === 'yes' && (
-        <TextAreaField label="Please explain" value={v(s, 'currentlyInSchoolDetails')} onChange={u(s, 'currentlyInSchoolDetails')} rows={2} />
+        <TextAreaField label="Please provide details" value={v(s, 'currentlyInSchoolDetails')} onChange={u(s, 'currentlyInSchoolDetails')} rows={2} />
       )}
     </div>
   )

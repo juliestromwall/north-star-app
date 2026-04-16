@@ -2830,6 +2830,7 @@ function isConditionalVisible(fieldKey, sectionData) {
 const PROFILE_SECTIONS = [
   { key: 'personal', title: 'Personal Information', fields: [
     'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
+    'usCitizen',
     'maritalStatus', 'monogamous', 'sexualPartners', 'relationshipLength', 'partnerName',
     'partnerDob', 'partnerUsCitizen', 'householdMembers'
   ] },
@@ -2840,18 +2841,24 @@ const PROFILE_SECTIONS = [
     'sameBioFather', 'sameBioFatherDetails', 'pregnancyDetails',
     'infertilityTreatment', 'infertilityTreatmentDetails',
     'gynecologicalProblems', 'gynecologicalProblemsDetails',
-    'pregnancyMedication', 'pregnancyMedicationList'
+    'pregnancyMedication', 'pregnancyMedicationList',
+    'contraceptiveMethod'
   ] },
   { key: 'general', title: 'General Information', fields: [
     'homeOwnership', 'homeDuration', 'childrenFullTime', 'childrenFullTimeDetails',
     'divorcedRelationship',
+    'childrenSpecialNeeds', 'childrenSpecialNeedsDetails',
     'planMoreChildren', 'planMoreChildrenDetails',
     'smokeVape', 'smokingHistory', 'smokingHistoryDetails',
     'householdSmoker', 'householdSmokerDetails',
     'alcoholDrugs', 'alcoholDrugsDetails',
     'advisedLimitSubstances', 'advisedLimitDetails',
     'householdControlledSubstances', 'householdSubstancesDetails', 'householdSubstancesPurpose',
-    'typicalDiet', 'exerciseFrequency'
+    'typicalDiet', 'exerciseFrequency',
+    'piercingsTattoos',
+    'criminalHistory', 'criminalHistoryDetails',
+    'travelPlans', 'travelPlansDetails',
+    'reliableVehicle'
   ] },
   { key: 'health', title: 'Health Information', fields: [
     'mentalHealthDiagnosis', 'mentalHealthDetails',
@@ -2862,13 +2869,18 @@ const PROFILE_SECTIONS = [
     'domesticViolence', 'domesticViolenceDetails',
     'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
     'allergies', 'medicalConditions',
-    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails'
+    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails',
+    'openToVaccinations', 'lastPap'
   ] },
   { key: 'employment', title: 'Employment Information', fields: [
     'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
     'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
     'partnerOccupation', 'partnerWeeklyIncome',
-    'governmentAssistance', 'governmentAssistanceDetails'
+    'governmentAssistance', 'governmentAssistanceDetails',
+    'healthInsurance', 'insuranceType'
+  ] },
+  { key: 'academic', title: 'Education', fields: [
+    'educationLevel', 'currentlyInSchool', 'currentlyInSchoolDetails'
   ] },
   { key: 'interests', title: 'Interests', fields: [
     'favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
@@ -4319,22 +4331,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               onChange={e => updateItem(item.wasSurrogacy === 'yes' ? 'transfersUntilPregnant' : 'cyclesToConceive', e.target.value)}
               placeholder={item.wasSurrogacy === 'yes' ? 'e.g. 2' : 'e.g. 3'} />
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Infection/fever/bleeding after?</span>
-            <SelectUI value={item.infectionAfter || ''} onValueChange={v => updateItem('infectionAfter', v)}>
-              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-              <SelectContentUI>
-                <SelectItemUI value="yes">Yes</SelectItemUI>
-                <SelectItemUI value="no">No</SelectItemUI>
-              </SelectContentUI>
-            </SelectUI>
-          </div>
-          {item.infectionAfter === 'yes' && (
-            <div className="col-span-2 space-y-1">
-              <span className="text-[10px] text-gray-400 uppercase">Infection details</span>
-              <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.infectionAfterDetails || ''} onChange={e => updateItem('infectionAfterDetails', e.target.value)} />
-            </div>
-          )}
           <div className="col-span-2 space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Birth defect or genetic abnormality?</span>
             <SelectUI value={item.birthDefect || ''} onValueChange={v => updateItem('birthDefect', v)}>
