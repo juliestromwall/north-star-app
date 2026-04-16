@@ -2442,6 +2442,7 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
     heightIn: qa.heightIn || surrogate.heightIn || '',
     weightLbs: qa.weightLbs || surrogate.weightLbs || '',
     healthyPregnancy: qa.healthyPregnancy,
+    experiencedSurrogate: qa.experiencedSurrogate,
     hearAboutUs: qa.hearAboutUs || '',
     hearAboutUsOther: qa.hearAboutUsOther || '',
   }
@@ -2465,6 +2466,7 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
         maritalStatus: form.maritalStatus, preferredContact: form.preferredContact,
         heightFt: form.heightFt, heightIn: form.heightIn, weightLbs: form.weightLbs,
         healthyPregnancy: form.healthyPregnancy,
+        experiencedSurrogate: form.experiencedSurrogate,
         hearAboutUs: form.hearAboutUs, hearAboutUsOther: form.hearAboutUsOther,
       }
       const referralVal = form.beReferral ? 'be_surrogacy' : null
@@ -2587,6 +2589,13 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
                     <Button size="sm" variant={form.healthyPregnancy === false ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, healthyPregnancy: false }))}>No</Button>
                   </div>
                 </div>
+                <div className="mt-3 space-y-1">
+                  <Label className="text-xs text-muted-foreground">Experienced Surrogate</Label>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant={form.experiencedSurrogate === true ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, experiencedSurrogate: true }))}>Yes</Button>
+                    <Button size="sm" variant={form.experiencedSurrogate === false ? 'default' : 'outline'} onClick={() => setForm(f => ({ ...f, experiencedSurrogate: false }))}>No</Button>
+                  </div>
+                </div>
               </div>
 
               <div className="border-t pt-4 mt-2">
@@ -2620,6 +2629,7 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
               <div><span className="text-muted-foreground">Height</span><p className="font-medium">{displayData.heightFt ? `${displayData.heightFt}'${displayData.heightIn || 0}"` : '—'}</p></div>
               <div><span className="text-muted-foreground">Weight</span><p className="font-medium">{displayData.weightLbs ? `${displayData.weightLbs} lbs` : '—'}</p></div>
               <div><span className="text-muted-foreground">Healthy Pregnancy</span><p className="font-medium">{displayData.healthyPregnancy === true ? 'Yes' : displayData.healthyPregnancy === false ? 'No' : '—'}</p></div>
+              <div><span className="text-muted-foreground">Experienced Surrogate</span><p className="font-medium">{displayData.experiencedSurrogate === true ? 'Yes' : displayData.experiencedSurrogate === false ? 'No' : '—'}</p></div>
               <div><span className="text-muted-foreground">Heard About Us</span><p className="font-medium">{displayData.hearAboutUs || '—'}{displayData.hearAboutUsOther ? ` — ${displayData.hearAboutUsOther}` : ''}</p></div>
               <div className="sm:col-span-2 flex items-center justify-between pt-2 border-t">
                 <div className="flex items-center gap-2">
@@ -3433,7 +3443,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   )
 }
 
-function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate }) {
+function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate, profileUserId }) {
   const [editingPhoto, setEditingPhoto] = useState(null) // photo object being edited
   const [rotation, setRotation] = useState(0)
   const [scale, setScale] = useState(1)
@@ -3444,7 +3454,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   const canvasRef = useRef(null)
   const imgRef = useRef(null)
   const hiddenPhotos = profileData?._hiddenPhotos || []
-  const baseId = surrogate?.userId || surrogate?.id
+  const baseId = profileUserId || surrogate?.userId || surrogate?.id
   const [deletePhotoTarget, setDeletePhotoTarget] = useState(null)
 
   async function togglePhotoInactive(photoPath) {
@@ -3607,8 +3617,17 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const [previewPhotos, setPreviewPhotos] = useState([])
   const [downloading, setDownloading] = useState(false)
   const [openAdminSections, setOpenAdminSections] = useState({})
+  const [profileUserId, setProfileUserId] = useState(null)
   const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
+
+  // Fetch the profile record's user_id (auth UUID used for photo storage)
+  useEffect(() => {
+    if (!surrogate?.email) return
+    fetchSurrogateProfileByEmail(surrogate.email).then(result => {
+      if (result?.user_id) setProfileUserId(result.user_id)
+    }).catch(() => {})
+  }, [surrogate?.email])
 
   // Load photos fresh for preview (headshot first, then portrait, then gallery)
   // Check multiple paths: auth UUID, case ID, and profile record's user_id
@@ -4538,6 +4557,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             setProfileData={setProfileData}
             portraitUrl={portraitUrl}
             surrogate={surrogate}
+            profileUserId={profileUserId}
           />
 
           <div className="space-y-4">
