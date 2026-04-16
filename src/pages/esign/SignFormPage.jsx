@@ -275,6 +275,31 @@ export default function SignFormPage() {
         console.error('PDF failed:', pdfErr)
       }
 
+      // Auto-create task for the assigned case manager to request the background check
+      try {
+        if (doc.case_id) {
+          const { data: caseRow } = await supabase
+            .from('intake_submissions')
+            .select('assigned_to')
+            .eq('id', doc.case_id)
+            .single()
+          const assignee = caseRow?.assigned_to
+          if (assignee) {
+            const { createCaseTask } = await import('@/lib/db')
+            await createCaseTask({
+              case_id: doc.case_id,
+              case_type: 'surrogate',
+              title: `Request Background Check - ${mySigner.name}`,
+              assigned_to: assignee,
+              due_date: new Date().toISOString().split('T')[0],
+              priority: 'high',
+              status: 'open',
+              created_by: 'system',
+            })
+          }
+        }
+      } catch (taskErr) { console.error('Auto-task creation failed:', taskErr) }
+
       setDone(true)
     } catch (err) {
       alert('Failed to submit: ' + err.message)
