@@ -55,6 +55,7 @@ export default function AdminDashboard() {
   const [editingTask, setEditingTask] = useState(null)
   const [completedTasks, setCompletedTasks] = useState([])
   const [completedOpen, setCompletedOpen] = useState(false)
+  const [futureOpen, setFutureOpen] = useState(false)
   const [caseView, setCaseView] = useState('grid')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
@@ -514,27 +515,36 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           {tasksOpen && <CardContent className="space-y-3">
-            {tasks.length === 0 ? (
-              <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
-            ) : (
-              <div className="space-y-2">
-                {tasks.slice(0, 8).map(task => {
-                  // Resolve case name and link
-                  let caseName = null, caseLink = null
-                  if (task.case_id && task.case_type && task.case_type !== 'personal') {
-                    const cid = Number(task.case_id)
-                    if (task.case_type === 'surrogate' || task.case_type === 'gc') {
-                      const gc = surrogates.find(s => Number(s.id) === cid)
-                      if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
-                    } else if (task.case_type === 'ip') {
-                      const ip = ips.find(i => Number(i.id) === cid)
-                      if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
-                    } else if (task.case_type === 'journey') {
-                      const j = journeys.find(j => Number(j.id) === cid)
-                      if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
-                    }
+            {(() => {
+              // Split tasks into current (≤7 days or no due date) and future (>7 days)
+              const now = new Date()
+              now.setHours(0, 0, 0, 0)
+              const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+              const currentTasks = []
+              const futureTasks = []
+              for (const task of tasks) {
+                if (task.due_date) {
+                  const due = new Date(task.due_date + 'T12:00:00')
+                  if (due > sevenDaysFromNow) { futureTasks.push(task); continue }
+                }
+                currentTasks.push(task)
+              }
+              const renderTask = (task) => {
+                let caseName = null, caseLink = null
+                if (task.case_id && task.case_type && task.case_type !== 'personal') {
+                  const cid = Number(task.case_id)
+                  if (task.case_type === 'surrogate' || task.case_type === 'gc') {
+                    const gc = surrogates.find(s => Number(s.id) === cid)
+                    if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
+                  } else if (task.case_type === 'ip') {
+                    const ip = ips.find(i => Number(i.id) === cid)
+                    if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
+                  } else if (task.case_type === 'journey') {
+                    const j = journeys.find(j => Number(j.id) === cid)
+                    if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
                   }
-                  return (
+                }
+                return (
                   <div key={task.id} className={`rounded-lg border px-3 py-2 flex items-center gap-2 ${task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
                     <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Complete">
                       <Circle className="size-4" />
@@ -560,10 +570,36 @@ export default function AdminDashboard() {
                       <Pencil className="size-3" />
                     </button>
                   </div>
-                  )
-                })}
-              </div>
-            )}
+                )
+              }
+              return (
+                <>
+                  {currentTasks.length === 0 && futureTasks.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
+                  ) : currentTasks.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-3">No tasks due in the next 7 days</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {currentTasks.slice(0, 8).map(renderTask)}
+                    </div>
+                  )}
+                  {futureTasks.length > 0 && (
+                    <div>
+                      <button onClick={() => setFutureOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
+                        {futureOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                        <Calendar className="size-3 text-blue-500" />
+                        Future Tasks ({futureTasks.length})
+                      </button>
+                      {futureOpen && (
+                        <div className="space-y-2 mt-2">
+                          {futureTasks.map(renderTask)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )
+            })()}
             {/* Completed Tasks */}
             {completedTasks.length > 0 && (
               <div>

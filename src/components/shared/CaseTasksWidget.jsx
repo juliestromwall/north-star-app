@@ -40,6 +40,7 @@ export default function CaseTasksWidget({ caseId, caseType, caseName }) {
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [showFuture, setShowFuture] = useState(false)
 
   useEffect(() => {
     if (!caseId) return
@@ -68,7 +69,25 @@ export default function CaseTasksWidget({ caseId, caseType, caseName }) {
   const openTasks = tasks.filter(t => t.status !== 'complete')
   const completedTasks = tasks.filter(t => t.status === 'complete')
 
+  // Split open tasks into current (≤7 days or no due date) and future (>7 days)
+  const now = new Date(); now.setHours(0, 0, 0, 0)
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const currentTasks = []
+  const futureTasks = []
+  for (const task of openTasks) {
+    if (task.due_date) {
+      const due = new Date(task.due_date + 'T12:00:00')
+      if (due > sevenDaysFromNow) { futureTasks.push(task); continue }
+    }
+    currentTasks.push(task)
+  }
+
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading tasks...</div>
+
+  const updateRow = async (id, updates) => {
+    const updated = await updateCaseTask(id, updates)
+    setTasks(prev => prev.map(t => t.id === id ? updated : t))
+  }
 
   return (
     <div className="space-y-3">
@@ -82,13 +101,27 @@ export default function CaseTasksWidget({ caseId, caseType, caseName }) {
       {openTasks.length === 0 && <p className="text-xs text-stone-400 py-4 text-center">No open tasks</p>}
 
       <div className="space-y-1.5">
-        {openTasks.map(task => (
-          <TaskRow key={task.id} task={task} onStatusChange={handleStatusChange} onDelete={handleDelete} onUpdate={async (id, updates) => {
-            const updated = await updateCaseTask(id, updates)
-            setTasks(prev => prev.map(t => t.id === id ? updated : t))
-          }} />
+        {currentTasks.map(task => (
+          <TaskRow key={task.id} task={task} onStatusChange={handleStatusChange} onDelete={handleDelete} onUpdate={updateRow} />
         ))}
       </div>
+
+      {futureTasks.length > 0 && (
+        <div>
+          <button onClick={() => setShowFuture(!showFuture)} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600">
+            <ChevronDown className={`size-3 transition-transform ${showFuture ? 'rotate-180' : ''}`} />
+            <CalendarDays className="size-3 text-blue-500" />
+            Future Tasks ({futureTasks.length})
+          </button>
+          {showFuture && (
+            <div className="space-y-1.5 mt-2">
+              {futureTasks.map(task => (
+                <TaskRow key={task.id} task={task} onStatusChange={handleStatusChange} onDelete={handleDelete} onUpdate={updateRow} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {completedTasks.length > 0 && (
         <button onClick={() => setShowCompleted(!showCompleted)} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600">
@@ -269,6 +302,7 @@ export function DashboardTasksWidget({ userEmail }) {
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [cases, setCases] = useState([])
+  const [showFuture, setShowFuture] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -318,6 +352,42 @@ export function DashboardTasksWidget({ userEmail }) {
 
   const openTasks = tasks.filter(t => t.status !== 'complete')
 
+  // Split into current (≤7 days) and future (>7 days)
+  const now = new Date(); now.setHours(0, 0, 0, 0)
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const currentTasks = []
+  const futureTasks = []
+  for (const task of openTasks) {
+    if (task.due_date) {
+      const due = new Date(task.due_date + 'T12:00:00')
+      if (due > sevenDaysFromNow) { futureTasks.push(task); continue }
+    }
+    currentTasks.push(task)
+  }
+
+  const renderTaskRow = (task) => {
+    const statusObj = STATUSES.find(s => s.value === task.status) || STATUSES[0]
+    const StatusIcon = statusObj.icon
+    const overdue = isOverdue(task.due_date)
+    return (
+      <div key={task.id} className={`rounded-lg border ${overdue ? 'border-red-200 bg-red-50/50' : 'border-stone-100'} px-3 py-2 flex items-center gap-2`}>
+        <button onClick={() => handleStatusChange(task.id, task.status === 'open' ? 'in_progress' : 'complete')} className={`shrink-0 ${statusObj.color}`}>
+          <StatusIcon className="size-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-stone-800 truncate">{task.title}</p>
+          <a href={getCaseLink(task)} className="text-[10px] text-[#283693] hover:underline">{getCaseName(task)}</a>
+        </div>
+        {priorityBadge(task.priority)}
+        {task.due_date && (
+          <span className={`text-[10px] ${overdue ? 'text-red-600 font-medium' : 'text-stone-400'}`}>
+            {formatDate(task.due_date)}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   return (
     <Card className="rounded-2xl">
       <CardHeader className="pb-2">
@@ -328,33 +398,28 @@ export function DashboardTasksWidget({ userEmail }) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {openTasks.length === 0 ? (
           <p className="text-sm text-stone-400 text-center py-4">No open tasks</p>
+        ) : currentTasks.length === 0 ? (
+          <p className="text-sm text-stone-400 text-center py-2">No tasks due in the next 7 days</p>
         ) : (
           <div className="space-y-1.5">
-            {openTasks.map(task => {
-              const statusObj = STATUSES.find(s => s.value === task.status) || STATUSES[0]
-              const StatusIcon = statusObj.icon
-              const overdue = isOverdue(task.due_date)
-              return (
-                <div key={task.id} className={`rounded-lg border ${overdue ? 'border-red-200 bg-red-50/50' : 'border-stone-100'} px-3 py-2 flex items-center gap-2`}>
-                  <button onClick={() => handleStatusChange(task.id, task.status === 'open' ? 'in_progress' : 'complete')} className={`shrink-0 ${statusObj.color}`}>
-                    <StatusIcon className="size-4" />
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-stone-800 truncate">{task.title}</p>
-                    <a href={getCaseLink(task)} className="text-[10px] text-[#283693] hover:underline">{getCaseName(task)}</a>
-                  </div>
-                  {priorityBadge(task.priority)}
-                  {task.due_date && (
-                    <span className={`text-[10px] ${overdue ? 'text-red-600 font-medium' : 'text-stone-400'}`}>
-                      {formatDate(task.due_date)}
-                    </span>
-                  )}
-                </div>
-              )
-            })}
+            {currentTasks.map(renderTaskRow)}
+          </div>
+        )}
+        {futureTasks.length > 0 && (
+          <div>
+            <button onClick={() => setShowFuture(!showFuture)} className="flex items-center gap-1 text-xs text-stone-400 hover:text-stone-600">
+              <ChevronDown className={`size-3 transition-transform ${showFuture ? 'rotate-180' : ''}`} />
+              <CalendarDays className="size-3 text-blue-500" />
+              Future Tasks ({futureTasks.length})
+            </button>
+            {showFuture && (
+              <div className="space-y-1.5 mt-2">
+                {futureTasks.map(renderTaskRow)}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
