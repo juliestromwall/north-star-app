@@ -3895,7 +3895,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     } else if (field === 'householdMembers') {
       newItem = { id: Date.now(), name: '', relationship: '' }
     } else if (field === 'journeys') {
-      newItem = { id: Date.now(), reName: '', reLocation: '', reDates: '', outcome: '', complications: '', weeksDelivered: '', transfers: '', embryoSource: '', unsuccessfulCycles: '' }
+      newItem = { id: Date.now(), reName: '', reLocation: '', reDates: '', outcome: '', embryoSource: [] }
     } else {
       newItem = { id: Date.now() }
     }

@@ -1551,7 +1551,12 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                     <PVField label="What City/State was the IVF clinic located in?" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
                     <PVField label="What years were you seen there?" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
                     <PVField label="What was the outcome of this surrogacy journey?" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
-                    <PVField label="Embryo source" value={Array.isArray(j.embryoSource) ? j.embryoSource.join(', ') : j.embryoSource} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
+                    <PVField label="Embryo source" value={(() => {
+                      const v = j.embryoSource
+                      if (!v) return null
+                      if (Array.isArray(v)) return v.filter(x => x && x.trim()).join(', ') || null
+                      return String(v).trim() || null
+                    })()} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
                   </div>
                 </div>
               ))}
