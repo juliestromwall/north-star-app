@@ -490,104 +490,184 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
     history: BookOpen,
   }
 
+  // New magazine-style sub-components matching GC profile
+  const NewPVField = ({ label, value }) => {
+    if (!value && value !== 0) return null
+    return (
+      <div className="bg-white rounded-lg border border-stone-200 px-4 py-3 print:break-inside-avoid">
+        <p className="text-[13px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5">{label}</p>
+        <p className="text-[15px] text-stone-800 leading-relaxed">{value}</p>
+      </div>
+    )
+  }
+  const NewPVYesNo = ({ label, value }) => {
+    const display = value === 'yes' || value === 'Yes' ? 'Yes' : value === 'no' || value === 'No' ? 'No' : value || '—'
+    const isYes = display === 'Yes'
+    const isNo = display === 'No'
+    const bg = isYes ? 'bg-emerald-50/60 border-emerald-200/70'
+      : isNo ? 'bg-rose-50/60 border-rose-200/70'
+      : 'bg-white border-stone-200'
+    return (
+      <div className={`flex items-center gap-3 rounded-lg border px-4 py-2.5 print:break-inside-avoid ${bg}`}>
+        <span className="text-[13px] text-stone-700 flex-1 leading-snug">{label}</span>
+        <span className={`text-[12px] font-bold shrink-0 ${isYes ? 'text-emerald-600' : isNo ? 'text-rose-500' : 'text-stone-400'}`}>{display}</span>
+      </div>
+    )
+  }
+  const NewSection = ({ title, icon: Icon, number, children }) => (
+    <div>
+      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#ed148c]/20 print:break-after-avoid">
+        {number && (
+          <span className="text-4xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums">
+            {String(number).padStart(2, '0')}
+          </span>
+        )}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {Icon && <Icon className="w-4 h-4 text-[#ed148c] shrink-0" />}
+          <h3 className="text-xl font-heading font-black text-[#283693] tracking-tight leading-tight">{title}</h3>
+        </div>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  )
+
+  // Render a section of fields with proper Y/N styling
+  const renderFields = (data, fieldDefs) => {
+    return fieldDefs.map(f => {
+      if (f.conditional && !f.conditional(data)) return null
+      const val = data[f.key]
+      if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) return null
+      if (f.type === 'yesno') return <NewPVYesNo key={f.key} label={f.label} value={val} />
+      const display = fmtFieldValue(f, data)
+      return <NewPVField key={f.key} label={f.label} value={display} />
+    })
+  }
+
+  // Title - "Hi there, We're {ip1} & {ip2}." or "Hi there, I'm {ip1}."
+  const greetingTitle = hasPartner
+    ? `We're ${primaryName} & ${ip2FullName}.`
+    : `${primaryName}.`
+  const greetingPrefix = hasPartner ? "Hi there, we're" : "Hi there, I'm"
+
   return (
     <>
-    <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
-      {/* Cover photo — full image, no crop */}
-      {coverPhoto ? (
-        <div className="w-full bg-stone-100 relative">
-          <img src={coverPhoto.url} alt="Cover" className="w-full h-auto max-h-[500px] object-contain" />
+    <div className="bg-[#fdf8f3] min-h-full print:bg-white">
+      {/* Hero: cover + overlapping portrait + name card */}
+      <div className="relative print:break-inside-avoid">
+        <div data-pdf="cover" className="relative overflow-hidden">
+          {coverPhoto ? (
+            <img src={coverPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover" />
+          ) : (
+            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#ed148c]/20 via-[#fce7f0] to-[#283693]/10 flex items-center justify-center">
+              <Camera className="w-12 h-12 text-white/70" />
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#fdf8f3] to-transparent" />
           {lightboxPhotos.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#283693] text-xs font-bold px-3 py-1 rounded-full print:hidden">
               {lightboxPhotos.length} photos
             </div>
           )}
         </div>
-      ) : (
-        <div className="w-full h-32 bg-gradient-to-br from-[#283693]/20 via-[#4a4fbf]/10 to-[#283693]/10" />
-      )}
 
-      {/* Thumbnail strip — peeks under the cover, opens lightbox */}
+        {/* Overlapping portrait + name card */}
+        <div className="relative -mt-20 sm:-mt-24 px-8 sm:px-12 print:px-10 print:-mt-16">
+          <div className="flex flex-col sm:flex-row items-end gap-5">
+            {profilePhoto ? (
+              <img data-pdf="portrait" src={profilePhoto.url} alt=""
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#283693]/15 shrink-0 print:shadow-none"
+              />
+            ) : (
+              <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">
+                <Camera className="w-10 h-10 text-stone-300" />
+              </div>
+            )}
+
+            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#283693]/10 border border-stone-100 px-6 py-5 print:shadow-none">
+              <p className="text-xs font-bold text-[#ed148c] uppercase tracking-[0.25em] mb-1">{greetingPrefix}</p>
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-[#283693] leading-tight tracking-tight">
+                {greetingTitle}
+              </h1>
+              {location && (
+                <p className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#ed148c]" />
+                  {location}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats byline — ages */}
+        <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
+            {ip1Age && (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">{hasPartner ? ip1Name : 'yrs'}</span>
+              </div>
+            )}
+            {ip2Age && (
+              <><span className="h-6 w-px bg-stone-300" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{ip2Age}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">{ip2Name}</span>
+              </div></>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Thumbnail strip */}
       {lightboxPhotos.length > 1 && (
-        <div className="flex gap-2 px-6 -mt-6 relative z-10 overflow-x-auto pb-1">
+        <div data-pdf="thumbs" className="flex gap-2 px-8 sm:px-12 pt-4 pb-2 overflow-x-auto print:hidden">
           {lightboxPhotos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
-              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
+              className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
               <img src={ph.url} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
       )}
 
-      {/* Summary Header — matches GC profile pattern */}
-      <div className="mx-6 mt-6 bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-5">
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h2 className="text-3xl font-heading font-bold text-[#283693]">
-              {hasPartner ? `${primaryName} & ${ip2FullName}` : primaryName}
-            </h2>
-            {location && (
-              <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-stone-500 mt-1.5">
-                <MapPin className="w-4 h-4" /> {location}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {ip1Age && (
-              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#283693]/5">
-                <CalendarDays className="w-5 h-5 text-[#283693] mb-1" />
-                <span className="text-2xl font-bold text-[#283693]">{ip1Age}</span>
-                <span className="text-[11px] text-stone-400">{hasPartner ? ip1Name : 'Age'}</span>
-              </div>
-            )}
-            {ip2Age && (
-              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#ed148c]/5">
-                <CalendarDays className="w-5 h-5 text-[#ed148c] mb-1" />
-                <span className="text-2xl font-bold text-[#ed148c]">{ip2Age}</span>
-                <span className="text-[11px] text-stone-400">{ip2Name}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Sections */}
-      <div className="px-6 sm:px-8 py-6 space-y-5">
-        <IPSection title="Fertility Information" icon={Baby}>
-          {renderSectionContent(fertility, FERTILITY_FIELDS)}
-        </IPSection>
+      <div className="px-8 sm:px-12 py-6 space-y-6 print:px-10">
+        <NewSection title="Fertility Information" icon={Baby} number={1}>
+          {renderFields(fertility, FERTILITY_FIELDS)}
+        </NewSection>
 
-        <IPSection title="Surrogacy Information" icon={Heart}>
-          {renderSectionContent(surrogacy, SURROGACY_FIELDS)}
-        </IPSection>
+        <NewSection title="Surrogacy Information" icon={Heart} number={2}>
+          {renderFields(surrogacy, SURROGACY_FIELDS)}
+        </NewSection>
 
         {/* Per-person sections */}
-        {(['personal', 'health', 'history']).map(secKey => {
+        {(['personal', 'health', 'history']).map((secKey, idx) => {
           const fieldDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
           const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
+          const sectionNum = 3 + idx
 
           if (!hasPartner) {
             return (
-              <IPSection key={secKey} title={sectionLabel} icon={Icon}>
-                {renderSectionContent(ip1[secKey] || {}, fieldDefs)}
-              </IPSection>
+              <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
+                {renderFields(ip1[secKey] || {}, fieldDefs)}
+              </NewSection>
             )
           }
 
           return (
-            <IPSection key={secKey} title={sectionLabel} icon={Icon}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <p className="text-xs font-bold text-[#283693] uppercase tracking-wider border-b border-gray-100 pb-2">{ip1Name}</p>
-                  {renderSectionContent(ip1[secKey] || {}, fieldDefs)}
+            <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
+                  {renderFields(ip1[secKey] || {}, fieldDefs)}
                 </div>
-                <div className="space-y-4 lg:border-l lg:border-gray-100 lg:pl-6">
-                  <p className="text-xs font-bold text-[#283693] uppercase tracking-wider border-b border-gray-100 pb-2">{ip2Name}</p>
-                  {renderSectionContent(ip2[secKey] || {}, fieldDefs)}
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
+                  {renderFields(ip2[secKey] || {}, fieldDefs)}
                 </div>
               </div>
-            </IPSection>
+            </NewSection>
           )
         })}
       </div>
