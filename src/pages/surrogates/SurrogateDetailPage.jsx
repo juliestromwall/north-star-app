@@ -3898,8 +3898,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
     'openToVaccinations', 'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling',
     'currentlyEmployed', 'governmentAssistance', 'currentlyInSchool', 'previousSurrogate',
-    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'pumpBreastmilk',
-    'ipsAtAppointments', 'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
+    'threeTransferAttempts', 'reduceCaffeine',
+    'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
     'transferAnotherState', 'ipsOutsideUS', 'cvsAmnio', 'partnerAgreesTermination',
     'carryTwins', 'compensationNegotiable',
   ])
@@ -3919,6 +3919,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     preferredCommunication: ['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything'],
     ipInvolvement: ['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal'],
     whenReadyToBegin: ['Immediately', 'Within 1-3 months', 'Within 3-6 months', 'Within 6-12 months', '1+ year'],
+    pumpBreastmilk: ['Yes', 'No', 'Willing to try', 'Undecided'],
+    ipsAtAppointments: ['Yes', 'No', 'Undecided'],
     embryosToTransfer: ['1', '2', 'Doctor recommendation', 'Open to discussion'],
   }
 
@@ -3949,7 +3951,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'employmentIndustry', 'healthInsurance', 'governmentAssistanceDetails',
     'hobbies', 'dreamTravel', 'personality', 'currentlyInSchoolDetails', 'overallExperience',
     'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
-    'lifestyleChangesDetails', 'idealIPs', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers',
+    'lifestyleChanges', 'lifestyleChangesDetails', 'idealIPs', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers',
+    'postBirthRelationship',
     'ipsCantAttend', 'childCareTraveling', 'cvsAmnioDetails', 'willingnessToTerminate',
     'conditionsWontTerminate', 'additionalComments',
   ])
@@ -4033,6 +4036,17 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       )
     }
 
+    // Textarea fields (check before yes/no to avoid isBooleanField false positives)
+    if (TEXTAREA_FIELDS.has(field)) {
+      return (
+        <div key={field} className={`space-y-1 col-span-full ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <Textarea className="bg-white text-sm min-h-[60px]" rows={2} value={val || ''}
+            onChange={e => updateEditField(field, e.target.value)} />
+        </div>
+      )
+    }
+
     // Yes/No toggle fields
     if (YES_NO_FIELDS.has(field) || isBooleanField(val)) {
       const display = typeof val === 'boolean' ? (val ? 'yes' : 'no') : (val === true || val === 'true' ? 'yes' : val === false || val === 'false' ? 'no' : val || '')
@@ -4049,17 +4063,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               No
             </button>
           </div>
-        </div>
-      )
-    }
-
-    // Textarea fields
-    if (TEXTAREA_FIELDS.has(field)) {
-      return (
-        <div key={field} className={`space-y-1 col-span-full ${hidden ? 'opacity-50' : ''}`}>
-          {labelRow}
-          <Textarea className="bg-white text-sm min-h-[60px]" rows={2} value={val || ''}
-            onChange={e => updateEditField(field, e.target.value)} />
         </div>
       )
     }
