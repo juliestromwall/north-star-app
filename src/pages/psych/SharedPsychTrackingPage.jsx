@@ -6,9 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import RichTextEditor from '@/components/shared/RichTextEditor'
-import { supabase } from '@/lib/supabase'
-import { fetchSurrogatesFromIntake, uploadCaseDocument, createCaseTask } from '@/lib/db'
-import { fetchMatchedJourneys } from '@/lib/matching'
 import { formatDate } from '@/lib/utils'
 
 // Therapist defaults (pre-filled but editable)
@@ -52,10 +49,6 @@ function ptLocalInputToIso(local) {
   return new Date(asUtc + diff).toISOString()
 }
 
-const TRACKING_KEY = 'psych_tracking'
-const CHECKINS_KEY = 'psych_checkins'
-const SHARE_KEY = 'psych_tracking_share'
-
 const MILESTONE_LABELS = {
   week10: '10 Week',
   week20: '20 Week',
@@ -64,40 +57,14 @@ const MILESTONE_LABELS = {
   postDelivery: 'Post Delivery',
 }
 
-// ── Password hashing (SHA-256) ──
-async function hashPassword(password) {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-function calcMilestoneDates(dueDate) {
-  if (!dueDate) return {}
-  const due = new Date(dueDate + 'T00:00:00')
-  const conceptionMs = due.getTime() - 280 * 24 * 60 * 60 * 1000
-  const fmt = (ms) => new Date(ms).toISOString().split('T')[0]
-  return {
-    week10Date: fmt(conceptionMs + 70 * 24 * 60 * 60 * 1000),
-    week20Date: fmt(conceptionMs + 140 * 24 * 60 * 60 * 1000),
-    week30Date: fmt(conceptionMs + 210 * 24 * 60 * 60 * 1000),
-  }
-}
-
-async function getAppConfigPublic(key) {
-  if (!supabase) return null
-  const { data, error } = await supabase.from('app_config').select('config_value').eq('config_key', key).single()
-  if (error) return null
-  return data?.config_value ?? null
-}
-
-async function setAppConfigPublic(key, value) {
-  if (!supabase) return null
-  const { data, error } = await supabase.from('app_config').upsert(
-    { config_key: key, config_value: value, updated_at: new Date().toISOString() },
-    { onConflict: 'config_key' }
-  ).select().single()
-  if (error) return null
+async function therapistTrackingApi(payload) {
+  const res = await fetch('/api/therapist-tracking', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || 'Therapist tracking request failed')
   return data
 }
 
@@ -109,8 +76,6 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   const completedDateStr = formatPTDate(completedDt)
   const completedTimeStr = formatPTTime(completedDt)
   const detailsHtml = report.details || ''
-  const contactedEmail = report.contactedPartyEmail || ''
-  const contactedPhone = report.contactedPartyPhone || ''
   const licenseStr = report.signatureLicense ? (/^license/i.test(report.signatureLicense) ? report.signatureLicense : 'License ' + report.signatureLicense) : ''
 
   return `<!DOCTYPE html><html><head>
@@ -225,9 +190,8 @@ export default function SharedPsychTrackingPage() {
   const [valid, setValid] = useState(null) // null = loading, true/false
   const [authed, setAuthed] = useState(false)
   const [needsSetup, setNeedsSetup] = useState(false) // true = first time, set password
-  const [shareData, setShareData] = useState(null)
-  const [surrogates, setSurrogates] = useState([])
-  const [journeys, setJourneys] = useState([])
+  const [sessionToken, setSessionToken] = useState('')
+  const [rows, setRows] = useState([])
   const [tracking, setTracking] = useState({})
   const [checkins, setCheckins] = useState({})
   const [search, setSearch] = useState('')
@@ -248,46 +212,45 @@ export default function SharedPsychTrackingPage() {
   const [checkinReadOnly, setCheckinReadOnly] = useState(false)
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false)
 
-  const SESSION_KEY = `psych_share_session_${token}`
+  const SESSION_KEY = useMemo(() => `psych_share_session_${token}`, [token])
+
+  const loadData = useCallback(async (authToken = sessionToken) => {
+    const data = await therapistTrackingApi({ action: 'load', sessionToken: authToken })
+    setRows(data.rows || [])
+    setCheckins(data.checkins || {})
+  }, [sessionToken])
 
   useEffect(() => {
     async function load() {
-      // Validate share token
-      const sd = await getAppConfigPublic(SHARE_KEY)
-      if (!sd?.token || sd.token !== token) {
+      try {
+        const status = await therapistTrackingApi({ action: 'status', token })
+        if (!status.valid) {
+          setValid(false)
+          return
+        }
+        setValid(true)
+        setNeedsSetup(status.needsSetup)
+      } catch {
         setValid(false)
         return
       }
-      setShareData(sd)
-      setValid(true)
 
       // Check if already authenticated this session
-      if (sessionStorage.getItem(SESSION_KEY) === 'true') {
-        setAuthed(true)
-        await loadData()
-        return
-      }
-
-      // Check if password has been set
-      if (!sd.passwordHash) {
-        setNeedsSetup(true)
+      const savedSession = sessionStorage.getItem(SESSION_KEY)
+      if (savedSession) {
+        try {
+          await loadData(savedSession)
+          setSessionToken(savedSession)
+          setAuthed(true)
+        } catch {
+          sessionStorage.removeItem(SESSION_KEY)
+          setSessionToken('')
+          setAuthed(false)
+        }
       }
     }
     load()
-  }, [token])
-
-  async function loadData() {
-    const [gcs, js, saved, savedCheckins] = await Promise.all([
-      fetchSurrogatesFromIntake().catch(() => []),
-      fetchMatchedJourneys().catch(() => []),
-      getAppConfigPublic(TRACKING_KEY),
-      getAppConfigPublic(CHECKINS_KEY),
-    ])
-    setSurrogates(gcs || [])
-    setJourneys(js || [])
-    setTracking(saved || {})
-    setCheckins(savedCheckins || {})
-  }
+  }, [SESSION_KEY, loadData, token])
 
   async function handleSetPassword() {
     setPasswordError('')
@@ -295,15 +258,13 @@ export default function SharedPsychTrackingPage() {
     if (password !== confirmPassword) { setPasswordError('Passwords do not match'); return }
     setPasswordSaving(true)
     try {
-      const hash = await hashPassword(password)
-      const updated = { ...shareData, passwordHash: hash, passwordSetAt: new Date().toISOString() }
-      await setAppConfigPublic(SHARE_KEY, updated)
-      setShareData(updated)
-      sessionStorage.setItem(SESSION_KEY, 'true')
+      const result = await therapistTrackingApi({ action: 'set-password', token, password })
+      sessionStorage.setItem(SESSION_KEY, result.sessionToken)
+      setSessionToken(result.sessionToken)
       setAuthed(true)
       setNeedsSetup(false)
-      await loadData()
-    } catch (err) { setPasswordError('Failed to set password. Please try again.') }
+      await loadData(result.sessionToken)
+    } catch { setPasswordError('Failed to set password. Please try again.') }
     finally { setPasswordSaving(false) }
   }
 
@@ -312,82 +273,22 @@ export default function SharedPsychTrackingPage() {
     if (!password) { setPasswordError('Please enter your password'); return }
     setPasswordSaving(true)
     try {
-      const hash = await hashPassword(password)
-      if (hash !== shareData.passwordHash) {
-        setPasswordError('Incorrect password')
-        setPasswordSaving(false)
-        return
-      }
-      sessionStorage.setItem(SESSION_KEY, 'true')
+      const result = await therapistTrackingApi({ action: 'login', token, password })
+      sessionStorage.setItem(SESSION_KEY, result.sessionToken)
+      setSessionToken(result.sessionToken)
       setAuthed(true)
-      await loadData()
-    } catch (err) { setPasswordError('Something went wrong. Please try again.') }
+      await loadData(result.sessionToken)
+    } catch (err) { setPasswordError(err.message === 'Incorrect password' ? 'Incorrect password' : 'Something went wrong. Please try again.') }
     finally { setPasswordSaving(false) }
   }
 
   const saveTracking = useCallback(async (updated) => {
     setTracking(updated)
-    await setAppConfigPublic(TRACKING_KEY, updated)
   }, [])
 
   const saveCheckins = useCallback(async (updated) => {
     setCheckins(updated)
-    await setAppConfigPublic(CHECKINS_KEY, updated)
   }, [])
-
-  const rows = useMemo(() => {
-    const pregnantRows = journeys
-      .filter(j => j.journey_data?.pregnant === 'yes')
-      .map(j => {
-        const gc = surrogates.find(s => s.id === j.gc_case_id)
-        if (!gc) return null
-        const t = tracking[gc.id] || {}
-        const jd = j.journey_data || {}
-        const milestones = calcMilestoneDates(jd.dueDate)
-        const assignedEmail = j.assigned_to || jd.assigned_to || gc.assignedTo || ''
-        let cmName = ''
-        if (assignedEmail) {
-          const prefix = assignedEmail.split('@')[0]
-          cmName = prefix.split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
-        }
-        return {
-          id: gc.id,
-          name: gc.name,
-          email: gc.email || '',
-          phone: gc.phone || '',
-          assignedTo: assignedEmail,
-          caseManagerName: cmName,
-          caseManagerEmail: assignedEmail,
-          dueDate: jd.dueDate || null,
-          deliveryDate: jd.deliveryDate || null,
-          ...milestones,
-          week10: t.week10 || null,
-          week20: t.week20 || null,
-          week30: t.week30 || null,
-          birthGuidelines: t.birthGuidelines || null,
-          postDelivery: t.postDelivery || null,
-        }
-      }).filter(Boolean)
-
-    const manualRows = Object.entries(tracking)
-      .filter(([key, val]) => key.startsWith('manual_') && val._manual)
-      .map(([key, val]) => ({
-        id: key,
-        name: val.name || 'Unknown',
-        email: val.email || '',
-        phone: val.phone || '',
-        dueDate: val.dueDate || null,
-        deliveryDate: val.deliveryDate || null,
-        ...calcMilestoneDates(val.dueDate),
-        week10: val.week10 || null,
-        week20: val.week20 || null,
-        week30: val.week30 || null,
-        birthGuidelines: val.birthGuidelines || null,
-        postDelivery: val.postDelivery || null,
-      }))
-
-    return [...pregnantRows, ...manualRows]
-  }, [surrogates, journeys, tracking])
 
   const filtered = useMemo(() => {
     if (!search) return rows
@@ -453,9 +354,19 @@ export default function SharedPsychTrackingPage() {
           [checkinMilestone]: report,
         },
       }
+      await therapistTrackingApi({
+        action: 'save-draft',
+        sessionToken,
+        surrogateId: checkinRow.id,
+        milestone: checkinMilestone,
+        report,
+      })
       await saveCheckins(updatedCheckins)
       setCheckinOpen(false)
-    } catch (e) { console.error('Failed to save draft:', e) }
+    } catch (e) {
+      console.error('Failed to save draft:', e)
+      alert('Draft could not be saved. Please try again.')
+    }
     finally { setCheckinSaving(false) }
   }
 
@@ -469,21 +380,7 @@ export default function SharedPsychTrackingPage() {
       const report = { ...checkinForm, status: 'complete', completedAt: now, savedAt: now }
       const milestoneName = MILESTONE_LABELS[checkinMilestone]
 
-      // 1. Save report
-      const updatedCheckins = {
-        ...checkins,
-        [checkinRow.id]: {
-          ...(checkins[checkinRow.id] || {}),
-          [checkinMilestone]: report,
-        },
-      }
-      await saveCheckins(updatedCheckins)
-
-      // 2. Mark milestone date
-      const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
-      await saveTracking(updatedTracking)
-
-      // 3. Generate PDF and submit via server-side API (handles RLS bypass)
+      // 1. Generate PDF and submit via server-side API (handles RLS bypass)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
       try {
         if (!String(checkinRow.id).startsWith('manual_')) {
@@ -510,7 +407,7 @@ export default function SharedPsychTrackingPage() {
           // Submit to server endpoint
           const submitRes = await fetch('/api/therapist-checkin', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-Therapist-Session': sessionToken },
             body: JSON.stringify({
               surrogateId: checkinRow.id,
               surrogateName: checkinRow.name,
@@ -525,14 +422,45 @@ export default function SharedPsychTrackingPage() {
           })
           const result = await submitRes.json()
           console.log('Check-in submission result:', result)
+          if (!submitRes.ok || !result.success || !result.documentUploaded || !result.taskCreated) {
+            throw new Error(result.error || 'PDF upload or task creation failed')
+          }
         }
-      } catch (e) { console.error('Check-in submission failed:', e) }
+      } catch (e) {
+        console.error('Check-in submission failed:', e)
+        alert('The report was not submitted because the PDF or review task could not be saved. Please try again.')
+        return
+      }
 
-      // 4. Open PDF for download
+      // 2. Mark report complete only after upload/task creation succeeds.
+      await therapistTrackingApi({
+        action: 'complete',
+        sessionToken,
+        surrogateId: checkinRow.id,
+        milestone: checkinMilestone,
+        report,
+      })
+
+      const updatedCheckins = {
+        ...checkins,
+        [checkinRow.id]: {
+          ...(checkins[checkinRow.id] || {}),
+          [checkinMilestone]: report,
+        },
+      }
+      await saveCheckins(updatedCheckins)
+      const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
+      await saveTracking(updatedTracking)
+      setRows(currentRows => currentRows.map(row => row.id === checkinRow.id ? { ...row, [checkinMilestone]: today } : row))
+
+      // 3. Open PDF for download
       openPdfWindow(report, checkinMilestone, checkinRow.name)
 
       setCheckinOpen(false)
-    } catch (e) { console.error('Failed to submit report:', e) }
+    } catch (e) {
+      console.error('Failed to submit report:', e)
+      alert('The report could not be submitted. Please try again.')
+    }
     finally { setCheckinSaving(false) }
   }
 
@@ -997,7 +925,7 @@ function EditableDateCell({ value, onSave }) {
 }
 
 // ── Shared Table (no case links) ──
-function SharedPsychTable({ rows, checkins = {}, onDateChange, onCheckin, onViewReport, onDownloadPdf }) {
+function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport }) {
   if (rows.length === 0) {
     return (
       <Card>

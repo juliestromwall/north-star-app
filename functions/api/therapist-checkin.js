@@ -5,7 +5,71 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Therapist-Session',
+}
+
+const SHARE_KEY = 'psych_tracking_share'
+
+function b64url(bytes) {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function fromB64url(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((value.length + 3) % 4)
+  const binary = atob(padded)
+  return Uint8Array.from(binary, c => c.charCodeAt(0))
+}
+
+async function hmac(secret, value) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value))
+  return b64url(new Uint8Array(sig))
+}
+
+async function verifySession(secret, sessionToken, expectedShareToken) {
+  if (!sessionToken || typeof sessionToken !== 'string') return false
+  const [payload, sig] = sessionToken.split('.')
+  if (!payload || !sig) return false
+  const expectedSig = await hmac(secret, payload)
+  if (sig !== expectedSig) return false
+  try {
+    const data = JSON.parse(new TextDecoder().decode(fromB64url(payload)))
+    return data.token === expectedShareToken && Number(data.exp) > Date.now()
+  } catch {
+    return false
+  }
+}
+
+async function getShareData(supabaseUrl, supabaseKey) {
+  const res = await fetch(`${supabaseUrl}/rest/v1/app_config?config_key=eq.${SHARE_KEY}&select=config_value`, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+  })
+  if (!res.ok) return null
+  const rows = await res.json()
+  return rows?.[0]?.config_value || null
+}
+
+async function isAuthorized(request, supabaseUrl, supabaseKey) {
+  const therapistSession = request.headers.get('X-Therapist-Session')
+  if (therapistSession) {
+    const shareData = await getShareData(supabaseUrl, supabaseKey)
+    return Boolean(shareData?.token && await verifySession(supabaseKey, therapistSession, shareData.token))
+  }
+
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader) return false
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: { apikey: supabaseKey, Authorization: authHeader },
+  })
+  return userRes.ok
 }
 
 export async function onRequestOptions() {
@@ -24,12 +88,16 @@ export async function onRequestPost(context) {
     })
   }
 
+  if (!await isAuthorized(context.request, supabaseUrl, supabaseKey)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
   try {
     const body = await context.request.json()
     const {
       surrogateId,
-      surrogateName,
-      milestoneName,
       pdfBase64, // base64 string of PDF
       fileName,
       uploadedBy, // therapist name
@@ -141,7 +209,9 @@ export async function onRequestPost(context) {
       results.errors.task_exception = e.message
     }
 
-    return new Response(JSON.stringify({ success: true, ...results }), {
+    const complete = results.documentUploaded && results.taskCreated
+    return new Response(JSON.stringify({ success: complete, ...results }), {
+      status: complete ? 200 : 500,
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   } catch (err) {

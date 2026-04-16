@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import RichTextEditor from '@/components/shared/RichTextEditor'
-import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig, createCaseTask, uploadCaseDocument } from '@/lib/db'
+import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchAdminUsers } from '@/lib/adminUsers'
 import { formatDate } from '@/lib/utils'
@@ -103,12 +103,6 @@ function generateShareToken() {
   return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('')
 }
 
-function formatDateTime(isoStr) {
-  if (!isoStr) return ''
-  const d = new Date(isoStr)
-  return d.toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-}
-
 function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   const dt = report.dateTime ? new Date(report.dateTime) : new Date()
   const dateStr = formatPTDate(dt)
@@ -117,8 +111,6 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   const completedDateStr = formatPTDate(completedDt)
   const completedTimeStr = formatPTTime(completedDt)
   const detailsHtml = report.details || ''
-  const contactedEmail = report.contactedPartyEmail || ''
-  const contactedPhone = report.contactedPartyPhone || ''
   const licenseStr = report.signatureLicense ? (/^license/i.test(report.signatureLicense) ? report.signatureLicense : 'License ' + report.signatureLicense) : ''
 
   return `<!DOCTYPE html><html><head>
@@ -441,21 +433,7 @@ export default function PsychTrackingPage() {
       const report = { ...checkinForm, status: 'complete', completedAt: now, savedAt: now }
       const milestoneName = MILESTONE_LABELS[checkinMilestone]
 
-      // 1. Save report to psych_checkins
-      const updatedCheckins = {
-        ...checkins,
-        [checkinRow.id]: {
-          ...(checkins[checkinRow.id] || {}),
-          [checkinMilestone]: report,
-        },
-      }
-      await saveCheckins(updatedCheckins)
-
-      // 2. Mark the milestone date as today in psych_tracking
-      const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
-      await saveTracking(updatedTracking)
-
-      // 3. Generate PDF and submit via server-side API (handles RLS + uploads + task)
+      // 1. Generate PDF and submit via server-side API (handles RLS + uploads + task)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
       try {
         if (!String(checkinRow.id).startsWith('manual_')) {
@@ -480,9 +458,13 @@ export default function PsychTrackingPage() {
           for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
           const pdfBase64 = btoa(binary)
           const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
+          const { data: authData } = supabase ? await supabase.auth.getSession() : { data: null }
+          const authHeaders = authData?.session?.access_token
+            ? { Authorization: `Bearer ${authData.session.access_token}` }
+            : {}
           const submitRes = await fetch('/api/therapist-checkin', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...authHeaders },
             body: JSON.stringify({
               surrogateId: checkinRow.id,
               surrogateName: checkinRow.name,
@@ -498,8 +480,29 @@ export default function PsychTrackingPage() {
           })
           const result = await submitRes.json()
           console.log('Check-in submission result:', result)
+          if (!submitRes.ok || !result.success || !result.documentUploaded || !result.taskCreated) {
+            throw new Error(result.error || 'PDF upload or task creation failed')
+          }
         }
-      } catch (e) { console.error('Check-in submission failed:', e) }
+      } catch (e) {
+        console.error('Check-in submission failed:', e)
+        alert('The report was not submitted because the PDF or review task could not be saved. Please try again.')
+        return
+      }
+
+      // 2. Save report to psych_checkins only after upload/task creation succeeds.
+      const updatedCheckins = {
+        ...checkins,
+        [checkinRow.id]: {
+          ...(checkins[checkinRow.id] || {}),
+          [checkinMilestone]: report,
+        },
+      }
+      await saveCheckins(updatedCheckins)
+
+      // 3. Mark the milestone date as today in psych_tracking
+      const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
+      await saveTracking(updatedTracking)
 
       // Open PDF in new window for therapist to download
       openPdfWindow(report, checkinMilestone, checkinRow.name)
@@ -830,7 +833,9 @@ export default function PsychTrackingPage() {
             if (!confirm('Reset the shared link password? The recipient will need to set a new password on their next visit.')) return
             const shareData = await getAppConfig(SHARE_KEY).catch(() => null)
             if (shareData) {
-              const { passwordHash, passwordSetAt, ...rest } = shareData
+              const rest = { ...shareData }
+              delete rest.passwordHash
+              delete rest.passwordSetAt
               await setAppConfig(SHARE_KEY, rest).catch(() => {})
             }
           }}>
@@ -875,7 +880,7 @@ export default function PsychTrackingPage() {
 }
 
 // ── Check-In Cell (replaces EditableDateCell for milestone columns) ──
-function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport, onDownloadPdf }) {
+function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport }) {
   const report = checkins[row.id]?.[milestoneKey]
   const isDraft = report?.status === 'draft'
   const isComplete = report?.status === 'complete'
