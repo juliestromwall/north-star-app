@@ -118,7 +118,7 @@ export const DEFAULT_STATUSES_BY_STAGE = {
     'Legal Review', 'Medical Clearance', 'Transfer Prep',
     'Pregnant', 'Monitoring',
     'Delivery Scheduled', 'Delivered', 'Post-Partum',
-    'Final Payments', 'Wrap-Up',
+    'Final Payments', 'Wrap-Up', 'Complete',
     'Closed — Complete', 'Closed — Withdrawn', 'Closed — Disqualified',
   ],
 }

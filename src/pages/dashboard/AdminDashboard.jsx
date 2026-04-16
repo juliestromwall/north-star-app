@@ -173,9 +173,28 @@ export default function AdminDashboard() {
   const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
   const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
 
-  const myJourneys = showAllCases ? journeys : journeys.filter(j => j.assigned_to === myEmail)
-  const mySurrogates = surrogates.filter(s => (showAllCases || s.assignedTo === myEmail) && !matchedGcIds.has(s.id))
-  const myIPs = ips.filter(ip => (showAllCases || ip.assignedTo === myEmail) && !matchedIpIds.has(ip.id))
+  // Hide inactive cases from the dashboard:
+  //   Surrogates: holding, withdrawn, not-qualified
+  //   IPs: holding, withdrawn
+  //   Journeys: status === 'Complete'
+  const HIDDEN_GC_STAGES = new Set(['holding', 'withdrawn', 'not-qualified'])
+  const HIDDEN_IP_STAGES = new Set(['holding', 'withdrawn'])
+  const HIDDEN_JOURNEY_STATUSES = new Set(['Complete'])
+
+  const visibleJourneys = journeys.filter(j => !HIDDEN_JOURNEY_STATUSES.has(j.status))
+  const myJourneys = showAllCases ? visibleJourneys : visibleJourneys.filter(j => j.assigned_to === myEmail)
+  const mySurrogates = surrogates.filter(s => {
+    if (!(showAllCases || s.assignedTo === myEmail)) return false
+    if (matchedGcIds.has(s.id)) return false
+    const ss = getSurrogateStageStatus(s.id)
+    return !HIDDEN_GC_STAGES.has(ss?.stage)
+  })
+  const myIPs = ips.filter(ip => {
+    if (!(showAllCases || ip.assignedTo === myEmail)) return false
+    if (matchedIpIds.has(ip.id)) return false
+    const ss = getSurrogateStageStatus(ip.id)
+    return !HIDDEN_IP_STAGES.has(ss?.stage)
+  })
 
   async function completeTask(taskId) {
     try {
