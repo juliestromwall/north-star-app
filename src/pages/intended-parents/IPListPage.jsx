@@ -97,7 +97,7 @@ export const TYPE_STYLES = {
   'Single parent': 'bg-amber-100 text-amber-800 border-amber-200',
 }
 
-export function IPTileCard({ ip, stageStatus, recordTracking }) {
+export function IPTileCard({ ip, stageStatus, recordTracking, avatarUrl }) {
   const ss = stageStatus || { stage: 'pre-qualification', status: 'New' }
   const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
   const assignedAdmin = ip.assignedTo ? getAdminStaff().find(a => a.email === ip.assignedTo)?.name : null
@@ -114,7 +114,7 @@ export function IPTileCard({ ip, stageStatus, recordTracking }) {
         )}
         <CardContent className="space-y-4">
           <div className="flex items-start gap-3">
-            <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="lg" />
+            <ProfileAvatar name={ip.names} avatar={avatarUrl} size="lg" />
             <div className="flex-1 min-w-0">
               <h3 className="font-heading font-semibold truncate">{ip.names}</h3>
               {ip.location && (
