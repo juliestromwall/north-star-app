@@ -19,6 +19,54 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fet
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion } from '@/lib/matching'
 
+// ── Searchable Picker (used for Create Match dialog) ──
+function SearchablePicker({ label, placeholder, value, options, onSelect }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const selected = options.find(o => String(o.id) === String(value))
+  const filtered = query.trim()
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()) || (o.sub || '').toLowerCase().includes(query.toLowerCase()))
+    : options
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{label}</Label>
+      {selected ? (
+        <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+          <div className="text-sm">
+            <span className="font-medium text-stone-800">{selected.label}</span>
+            {selected.sub && <span className="text-xs text-stone-400 ml-2">{selected.sub}</span>}
+          </div>
+          <button type="button" onClick={() => { onSelect(''); setQuery(''); setOpen(false) }} className="text-xs text-stone-400 hover:text-red-500">Change</button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Input
+            value={query}
+            onChange={e => { setQuery(e.target.value); setOpen(true) }}
+            onFocus={() => setOpen(true)}
+            placeholder={placeholder}
+          />
+          {open && (
+            <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-stone-200 bg-white shadow-lg">
+              {filtered.length === 0 ? (
+                <p className="text-xs text-stone-400 px-3 py-2">No matches</p>
+              ) : (
+                filtered.map(o => (
+                  <button key={o.id} type="button" onClick={() => { onSelect(o.id); setQuery(''); setOpen(false) }}
+                    className="w-full text-left px-3 py-2 hover:bg-stone-50 border-b border-stone-100 last:border-0">
+                    <div className="text-sm font-medium text-stone-800">{o.label}</div>
+                    {o.sub && <div className="text-xs text-stone-400">{o.sub}</div>}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function getGTPAL(profileData) {
   if (!profileData?.pregnancyHistory) return null
   const pregs = profileData.pregnancyHistory.pregnancies || []
