@@ -3705,20 +3705,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       if (!printWin) { alert('Please allow popups to save as PDF'); return }
       const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
         .map(el => el.outerHTML).join('\n')
-      // Build photo grid HTML for bottom of PDF
-      const photoGridHtml = previewPhotos.length > 1 ? `
-        <div class="pdf-photo-grid">
-          <div style="padding:12px 24px;border-bottom:1px solid #e5e7eb;background:linear-gradient(to right,rgba(40,54,147,0.05),transparent)">
-            <h3 style="font-size:13px;font-weight:700;color:#283693;text-transform:uppercase;letter-spacing:0.05em;margin:0">Photos</h3>
-          </div>
-          <div style="padding:16px 24px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
-            ${previewPhotos.slice(0, 10).map(ph => `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden"><img src="${ph.url}" style="width:100%;height:100%;object-fit:cover" /></div>`).join('')}
-          </div>
-        </div>` : ''
+      // Photos render inline via the print-only gallery inside ProfilePreview (no duplicate needed)
 
       const html = `<!DOCTYPE html><html><head><title>${firstName} - Surrogate Profile</title>${styles}
         <style>
-          @page { size: letter; margin: 0; }
+          @page { size: letter; margin: 0.25in 0; }
           @media print {
             body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; margin: 0 !important; padding: 0 !important; }
             .print-bar { display: none !important; }
@@ -3730,12 +3721,12 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
           .print-bar button:hover { opacity: 0.9; }
           .print-bar .hint { font-size: 12px; opacity: 0.7; margin-left: 12px; }
-          /* PDF-specific: fix cover image and hide interactive elements */
-          [data-pdf="cover"] { height: auto !important; max-height: 320px !important; }
-          [data-pdf="cover"] img { object-fit: contain !important; height: auto !important; max-height: 320px !important; }
-          [data-pdf="cover"] > div { display: none !important; } /* hide gradient + badge */
+          /* PDF-specific: cover photo shown at tight height, portrait overlapping */
+          [data-pdf="cover"] > div { height: auto !important; }
+          [data-pdf="cover"] img { height: 220px !important; object-fit: cover !important; width: 100% !important; }
+          [data-pdf="cover"] .bg-white\\/90 { display: none !important; } /* hide photo count badge */
           [data-pdf="thumbs"] { display: none !important; }
-          [data-pdf="portrait"] { position: absolute !important; bottom: -32px !important; left: 16px !important; width: 96px !important; height: 96px !important; border-radius: 16px !important; object-fit: cover !important; border: 4px solid white !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; z-index: 20 !important; }
+          [data-pdf="portrait"] { width: 140px !important; height: 140px !important; border-radius: 20px !important; object-fit: cover !important; box-shadow: none !important; border: 3px solid white !important; }
         </style></head><body>
         <div class="print-bar">
           <div>
@@ -3745,7 +3736,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           <button onclick="window.print()">Save as PDF</button>
         </div>
         <div class="print-container">${previewRef.current.innerHTML}</div>
-        ${photoGridHtml}
         <script>setTimeout(function() {}, 500);</script>
         </body></html>`
       printWin.document.write(html)
@@ -4305,9 +4295,75 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             )
           })()}
         </div>
-        <div className="space-y-1">
-          <span className="text-[10px] text-gray-400 uppercase">Complications / Details</span>
-          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
+        {/* Pregnancy-level detail fields (apply to all outcomes) */}
+        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">{item.wasSurrogacy === 'yes' ? 'Embryo transfers until pregnant' : 'Time to conceive (months)'}</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8"
+              value={(item.wasSurrogacy === 'yes' ? item.transfersUntilPregnant : item.cyclesToConceive) || ''}
+              onChange={e => updateItem(item.wasSurrogacy === 'yes' ? 'transfersUntilPregnant' : 'cyclesToConceive', e.target.value)}
+              placeholder={item.wasSurrogacy === 'yes' ? 'e.g. 2' : 'e.g. 3'} />
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Infection/fever/bleeding after?</span>
+            <SelectUI value={item.infectionAfter || ''} onValueChange={v => updateItem('infectionAfter', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                <SelectItemUI value="yes">Yes</SelectItemUI>
+                <SelectItemUI value="no">No</SelectItemUI>
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          {item.infectionAfter === 'yes' && (
+            <div className="col-span-2 space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Infection details</span>
+              <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.infectionAfterDetails || ''} onChange={e => updateItem('infectionAfterDetails', e.target.value)} />
+            </div>
+          )}
+          <div className="col-span-2 space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Birth defect or genetic abnormality?</span>
+            <SelectUI value={item.birthDefect || ''} onValueChange={v => updateItem('birthDefect', v)}>
+              <SelectTriggerUI className="h-8 text-xs bg-white w-48"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+              <SelectContentUI>
+                <SelectItemUI value="yes">Yes</SelectItemUI>
+                <SelectItemUI value="no">No</SelectItemUI>
+              </SelectContentUI>
+            </SelectUI>
+          </div>
+          {item.birthDefect === 'yes' && (
+            <div className="col-span-2 space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Birth defect details</span>
+              <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.birthDefectDetails || ''} onChange={e => updateItem('birthDefectDetails', e.target.value)} />
+            </div>
+          )}
+          <div className="col-span-2 space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Complications (check all that apply)</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-white rounded border border-gray-200">
+              {['C-Section', 'Gestational Diabetes', 'High Blood Pressure', 'IUGR (Intrauterine Growth Restriction)', 'Physician Ordered Bed Rest', 'Placenta Previa', 'Postpartum Depression', 'Premature Birth', 'Retained Placenta', 'Toxemia', 'Other', 'None of the above'].map(opt => {
+                const list = item.complicationsList || []
+                const checked = list.includes(opt)
+                return (
+                  <label key={opt} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      const next = checked ? list.filter(x => x !== opt) : [...list, opt]
+                      updateItem('complicationsList', next)
+                    }} />
+                    <span className="text-stone-600">{opt}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+          {(item.complicationsList || []).some(c => c !== 'None of the above') && (
+            <div className="col-span-2 space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Explain checked complications</span>
+              <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.complicationsExplanation || ''} onChange={e => updateItem('complicationsExplanation', e.target.value)} />
+            </div>
+          )}
+          <div className="col-span-2 space-y-1">
+            <span className="text-[10px] text-gray-400 uppercase">Additional details about this pregnancy</span>
+            <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} placeholder="Any other details about pregnancy, delivery, or recovery" />
+          </div>
         </div>
       </div>
     )

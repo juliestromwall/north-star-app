@@ -243,7 +243,7 @@ export default function SharedProfilePage() {
         <Card className="rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="size-5" /> Questions About This Match
+              <MessageSquare className="size-5" /> Questions About This Surrogate
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

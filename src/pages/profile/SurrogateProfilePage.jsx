@@ -1014,40 +1014,175 @@ export default function SurrogateProfilePage() {
 // Context for hidden fields in profile preview
 const HiddenFieldsContext = createContext([])
 
-function PVSection({ title, icon: Icon, children }) {
+// Editorial section with big pink serif number + title in a pink-tinted strip
+function PVSection({ title, icon: Icon, number, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden print:rounded-none print:shadow-none print:border-x-0 print:break-inside-avoid">
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-[#283693]/5 to-transparent">
-        <div className="flex items-center gap-2.5">
-          {Icon && <Icon className="w-4.5 h-4.5 text-[#283693]" />}
-          <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wide">{title}</h3>
+    <div>
+      {/* Magazine-style header: big pink number + serif title. Keep header + first card together. */}
+      <div className="flex items-baseline gap-4 mb-4 pb-3 border-b-2 border-[#ed148c]/20 print:break-after-avoid">
+        {number && (
+          <span className="text-4xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums">
+            {String(number).padStart(2, '0')}
+          </span>
+        )}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {Icon && <Icon className="w-4 h-4 text-[#ed148c] shrink-0" />}
+          <h3 className="text-xl font-heading font-black text-[#283693] tracking-tight leading-tight">{title}</h3>
         </div>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      {/* Content area — sections CAN split across pages, but individual cards (below) cannot */}
+      <div className="space-y-2">{children}</div>
     </div>
   )
 }
 
+// Bordered Q&A card with warm stone background
 function PVField({ label, value, className = '', fp }) {
   const hiddenFields = useContext(HiddenFieldsContext)
   if (fp && hiddenFields.includes(fp)) return null
+  if (!value && value !== 0) return null
   return (
-    <div className={className}>
-      <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-      <p className="text-sm text-gray-800">{value || <span className="italic text-gray-300">Not provided</span>}</p>
+    <div className={`bg-white rounded-lg border border-stone-200 px-4 py-3 print:break-inside-avoid ${className}`}>
+      <p className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-[14px] text-stone-800 leading-relaxed">{value}</p>
     </div>
   )
 }
 
+// Yes/No with subtle tinted background + bold colored answer (no dot)
 function PVYesNo({ label, value, fp }) {
   const hiddenFields = useContext(HiddenFieldsContext)
   if (fp && hiddenFields.includes(fp)) return null
+  const displayVal = value === 'yes' || value === 'Yes' ? 'Yes' : value === 'no' || value === 'No' ? 'No' : value || '—'
+  const isYes = displayVal === 'Yes'
+  const isNo = displayVal === 'No'
+  const bg = isYes ? 'bg-emerald-50/60 border-emerald-200/70'
+    : isNo ? 'bg-rose-50/60 border-rose-200/70'
+    : 'bg-white border-stone-200'
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-      <span className="text-sm text-gray-700">{label}</span>
-      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-        value === 'yes' ? 'bg-green-50 text-green-700' : value === 'no' ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'
-      }`}>{value === 'yes' ? 'Yes' : value === 'no' ? 'No' : '—'}</span>
+    <div className={`flex items-center gap-3 rounded-lg border px-4 py-2.5 print:break-inside-avoid ${bg}`}>
+      <span className="text-[13px] text-stone-700 flex-1 leading-snug">{label}</span>
+      <span className={`text-[12px] font-bold shrink-0 ${isYes ? 'text-emerald-600' : isNo ? 'text-rose-500' : 'text-stone-400'}`}>{displayVal}</span>
+    </div>
+  )
+}
+
+// 2-column grid wrapper for mixed-width layouts
+function PVGrid({ children, cols = 2 }) {
+  const colsClass = cols === 2 ? 'sm:grid-cols-2' : cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+  return <div className={`grid grid-cols-1 ${colsClass} gap-2`}>{children}</div>
+}
+
+// Beautiful pregnancy card — shows ALL captured details with the surrogate's exact question labels
+function PregnancyCard({ pregnancy: pr, index }) {
+  if (!pr) return null
+  const num = index + 1
+  const isLive = pr.outcome === 'Live Birth'
+  const isLoss = pr.outcome === 'Miscarriage' || pr.outcome === 'Termination' || pr.outcome === 'Ectopic Pregnancy'
+  const isStillborn = pr.outcome === 'Stillborn'
+
+  // Build baby summary for Live Birth
+  const babies = []
+  if (isLive) {
+    const isMultiples = pr.singleOrMultiples === 'Twins' || pr.singleOrMultiples === 'Triplets+'
+    if (pr.name || pr.sex || pr.weight) babies.push({ label: isMultiples ? 'Baby A' : '', name: pr.name, sex: pr.sex, weight: pr.weight, length: pr.length, deliveryType: pr.deliveryType })
+    if (pr.babyBName || pr.babyBSex || pr.babyBWeight) babies.push({ label: 'Baby B', name: pr.babyBName, sex: pr.babyBSex, weight: pr.babyBWeight, length: pr.babyBLength, deliveryType: pr.babyBDeliveryType })
+    if (pr.babyCName || pr.babyCSex || pr.babyCWeight) babies.push({ label: 'Baby C', name: pr.babyCName, sex: pr.babyCSex, weight: pr.babyCWeight, length: pr.babyCLength, deliveryType: pr.babyCDeliveryType })
+  }
+
+  const complications = (pr.complicationsList || []).filter(c => c !== 'None of the above')
+  const hasNoneSelected = (pr.complicationsList || []).includes('None of the above')
+  const gestation = pr.gestationWeeks ? `${pr.gestationWeeks}w${pr.gestationDays ? ' ' + pr.gestationDays + 'd' : ''}` : null
+
+  const outcomeColor = isLive ? 'bg-emerald-100 text-emerald-700'
+    : isStillborn ? 'bg-stone-200 text-stone-700'
+    : isLoss ? 'bg-amber-100 text-amber-700'
+    : 'bg-stone-100 text-stone-600'
+
+  // Build the "infection" question label based on outcome (matches portal)
+  const infectionLabel = isLoss
+    ? (pr.outcome === 'Termination' ? 'Did you have an infection, fever or bleeding following the termination?' : 'Did you have an infection, fever or bleeding following the miscarriage?')
+    : 'Did you have an infection, fever or bleeding following this delivery?'
+
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 overflow-hidden print:break-inside-avoid">
+      {/* Header strip */}
+      <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-[#283693]/5 to-transparent border-b border-stone-100">
+        <div className="w-9 h-9 rounded-full bg-[#283693] text-white flex items-center justify-center font-heading font-black text-sm">P{num}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {pr.outcome && <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${outcomeColor}`}>{pr.outcome}</span>}
+            {pr.wasSurrogacy === 'yes' && <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#ed148c]/10 text-[#ed148c]">Surrogacy</span>}
+            {gestation && <span className="text-xs font-semibold text-[#283693]">{gestation}</span>}
+            {pr.dob && <span className="text-xs text-stone-400">· {new Date(pr.dob).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Live Birth: Baby cards */}
+      {isLive && babies.length > 0 && (
+        <div className={`grid ${babies.length > 1 ? 'sm:grid-cols-2' : ''} gap-0 border-b border-stone-100`}>
+          {babies.map((baby, bi) => (
+            <div key={bi} className={`p-4 ${bi > 0 ? 'sm:border-l border-stone-100' : ''}`}>
+              {baby.label && <p className="text-[10px] font-bold text-[#ed148c] uppercase tracking-widest mb-1">{baby.label}</p>}
+              <div className="flex items-baseline gap-2 flex-wrap">
+                {baby.name && <p className="text-base font-heading font-bold text-[#283693]">{baby.name}</p>}
+                {baby.sex && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${baby.sex === 'Male' || baby.sex === 'Boy' ? 'bg-blue-50 text-blue-600' : baby.sex === 'Female' || baby.sex === 'Girl' ? 'bg-pink-50 text-pink-600' : 'bg-stone-50 text-stone-500'}`}>{baby.sex}</span>}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs text-stone-500">
+                {baby.weight && <span className="font-semibold text-stone-700">{baby.weight}</span>}
+                {baby.length && <span><span className="font-semibold text-stone-700">{baby.length}"</span> long</span>}
+                {baby.deliveryType && <span>{baby.deliveryType}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Detail rows using FULL question labels */}
+      <div className="divide-y divide-stone-100">
+        {pr.wasSurrogacy === 'yes' && pr.transfersUntilPregnant && <PCRow label="How many embryo transfers did it take until pregnancy was achieved?" value={pr.transfersUntilPregnant} />}
+        {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={`${pr.cyclesToConceive} months`} />}
+        {(isLoss || isStillborn) && pr.deliveryType && <PCRow label="Delivery / Procedure Type" value={pr.deliveryType} />}
+        {pr.infectionAfter && <PCRow label={infectionLabel} value={pr.infectionAfter === 'yes' ? (pr.infectionAfterDetails || 'Yes') : 'No'} />}
+        {pr.birthDefect && <PCRow label="Did this pregnancy result in a baby with a birth defect or genetic abnormality?" value={pr.birthDefect === 'yes' ? (pr.birthDefectDetails || 'Yes') : 'No'} />}
+
+        {/* Complications */}
+        {(complications.length > 0 || hasNoneSelected) && (
+          <div className="px-5 py-3">
+            <p className="text-[11px] font-semibold text-stone-500 mb-2">Pregnancy complications</p>
+            {complications.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {complications.map(c => (
+                  <span key={c} className="text-[11px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md">{c}</span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-[12px] text-emerald-600 font-semibold">None reported</span>
+            )}
+            {pr.complicationsExplanation && (
+              <p className="text-[13px] text-stone-700 mt-2 leading-relaxed">{pr.complicationsExplanation}</p>
+            )}
+          </div>
+        )}
+
+        {/* Additional details */}
+        {pr.complications && (
+          <div className="px-5 py-3">
+            <p className="text-[11px] font-semibold text-stone-500 mb-1">Additional details about this pregnancy</p>
+            <p className="text-[13px] text-stone-700 leading-relaxed">{pr.complications}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PCRow({ label, value }) {
+  return (
+    <div className="flex items-baseline gap-3 px-5 py-2.5">
+      <span className="text-[12px] text-stone-500 flex-1 leading-snug">{label}</span>
+      <span className="text-[13px] font-semibold text-stone-800 shrink-0 max-w-[50%] text-right">{value}</span>
     </div>
   )
 }
@@ -1089,126 +1224,152 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
   return (
     <HiddenFieldsContext.Provider value={hiddenFields}>
-    <div className="bg-gradient-to-b from-[#fdf8f3] to-[#f5f0eb] min-h-full print:from-white print:to-white">
-      {/* ── Cover Photo + Portrait ── */}
-      <div className="relative" style={{ marginBottom: portraitPhoto ? '2rem' : 0 }}>
-        {heroPhoto ? (
-          <div data-pdf="cover" className="w-full h-72 sm:h-96 overflow-hidden relative print:h-auto print:max-h-80">
-            <img src={heroPhoto.url} alt="" className="w-full h-full object-cover print:object-contain print:h-auto print:max-h-80" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent print:hidden" />
-            {photos.length > 1 && (
-              <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-medium px-2.5 py-1 rounded-full print:hidden">
-                {photos.length} photos
+    <div className="bg-[#fdf8f3] min-h-full print:bg-white">
+      {/* ── Hero Section — cover photo + overlapping portrait + overlapping name card ── */}
+      <div className="relative print:break-inside-avoid">
+        {/* Cover photo (hidden on print to give more space to content) */}
+        <div data-pdf="cover" className="relative overflow-hidden">
+          {heroPhoto ? (
+            <img src={heroPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover" />
+          ) : (
+            <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#ed148c]/20 via-[#fce7f0] to-[#283693]/10 flex items-center justify-center">
+              <Camera className="w-12 h-12 text-white/70" />
+            </div>
+          )}
+          {/* Subtle bottom gradient for name card legibility */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#fdf8f3] to-transparent" />
+          {photos.length > 1 && (
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#283693] text-xs font-bold px-3 py-1 rounded-full print:hidden">
+              {photos.length} photos
+            </div>
+          )}
+        </div>
+
+        {/* Overlapping portrait + name card row — pulled up into the cover */}
+        <div className="relative -mt-20 sm:-mt-24 px-8 sm:px-12 print:px-10 print:-mt-16">
+          <div className="flex flex-col sm:flex-row items-end gap-5">
+            {/* Portrait — square rounded, white border, shadow */}
+            {portraitPhoto ? (
+              <img data-pdf="portrait" src={portraitPhoto.url} alt=""
+                className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl object-cover border-4 border-white shadow-xl shadow-[#283693]/15 shrink-0 print:shadow-none"
+              />
+            ) : (
+              <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-3xl bg-white border-4 border-white shadow-xl flex items-center justify-center shrink-0">
+                <Camera className="w-10 h-10 text-stone-300" />
               </div>
             )}
+
+            {/* Name card — overlaps cover image from bottom */}
+            <div className="flex-1 bg-white rounded-2xl shadow-lg shadow-[#283693]/10 border border-stone-100 px-6 py-5 print:shadow-none">
+              <p className="text-xs font-bold text-[#ed148c] uppercase tracking-[0.25em] mb-1">Hi there, I'm</p>
+              <h1 className="text-3xl sm:text-4xl font-heading font-black text-[#283693] leading-tight tracking-tight">
+                {firstName}.
+              </h1>
+              {(about.city || about.state) && (
+                <p className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#ed148c]" />
+                  {[about.city, about.state].filter(Boolean).join(', ')}
+                </p>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-[#ed148c]/20 via-[#283693]/10 to-[#ed148c]/10 flex items-center justify-center">
-            <Camera className="w-10 h-10 text-gray-300" />
+        </div>
+
+        {/* Stats byline + compensation row — below name card */}
+        <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
+            {age && (
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{age}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">yrs</span>
+              </div>
+            )}
+            {heightStr && (
+              <><span className="h-6 w-px bg-stone-300" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{heightStr}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">ht</span>
+              </div></>
+            )}
+            {about.weight && (
+              <><span className="h-6 w-px bg-stone-300" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{about.weight}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">lbs</span>
+              </div></>
+            )}
+            {bmi && (
+              <><span className="h-6 w-px bg-stone-300" />
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-heading font-black leading-none">{bmi}</span>
+                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">bmi</span>
+              </div></>
+            )}
+            {about.maritalStatus && (
+              <><span className="h-6 w-px bg-stone-300" />
+              <div className="flex items-center gap-1.5">
+                <Heart className="w-4 h-4 text-[#ed148c]" fill="currentColor" />
+                <span className="text-base font-heading font-bold">{about.maritalStatus}</span>
+              </div></>
+            )}
           </div>
-        )}
-        {portraitPhoto && (
-          <img data-pdf="portrait" src={portraitPhoto.url} alt=""
-            className="absolute -bottom-10 left-6 sm:left-8 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-white shadow-lg z-20 print:w-24 print:h-24 print:left-4 print:-bottom-8" />
-        )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#ed148c] font-bold">Base Fee</span>
+              <span className="text-2xl font-heading font-black text-[#283693] leading-none">{hopes.desiredCompensation || '—'}</span>
+            </div>
+            {(() => {
+              const isVerified = insuranceStatus === 'active_policy' || insuranceStatus === 'verified_open_enrollment' || insuranceStatus === 'complete'
+              const isVerifying = insuranceStatus === 'policy_check'
+              const config = isVerified
+                ? { Icon: ShieldCheck, color: 'text-emerald-600', label: 'Verified' }
+                : isVerifying
+                ? { Icon: ShieldIcon, color: 'text-amber-500', label: 'Verifying' }
+                : { Icon: ShieldX, color: 'text-rose-500', label: 'Needs Policy' }
+              const { Icon, color, label } = config
+              return (
+                <div className="flex items-center gap-1.5">
+                  <Icon className={`w-4 h-4 ${color}`} />
+                  <span className={`text-sm font-bold ${color}`}>{label}</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-semibold ml-1">Insurance</span>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
       </div>
 
-      {/* ── Thumbnail Strip (opens lightbox, hidden in print) ── */}
+      {/* ── Thumbnail Strip (hidden in print) ── */}
       {photos?.length > 1 && (
-        <div data-pdf="thumbs" className="flex gap-2 px-8 -mt-4 relative z-10 overflow-x-auto pb-1 print:hidden" style={{ marginLeft: portraitPhoto ? '10rem' : 0 }}>
+        <div data-pdf="thumbs" className="flex gap-2 px-8 sm:px-12 pt-4 pb-2 overflow-x-auto print:hidden">
           {photos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
-              className="w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all">
+              className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
               <img src={ph.url} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
       )}
 
-      {/* ── Summary Header ── */}
-      <div className="mx-6 sm:mx-8 mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 print:mx-0 print:rounded-none print:shadow-none print:border-0">
-        <div className="flex flex-col sm:flex-row items-center gap-5">
-          <div className="flex-1 min-w-0 text-center sm:text-left">
-            <h2 className="text-3xl font-heading font-bold text-[#283693]">{firstName}</h2>
-            {(about.city || about.state) && (
-              <p className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-gray-500 mt-1.5">
-                <MapPin className="w-4 h-4" />
-                {[about.city, about.state].filter(Boolean).join(', ')}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {age && (
-              <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#283693]/5">
-                <CalendarDays className="w-5 h-5 text-[#283693] mb-1" />
-                <span className="text-2xl font-bold text-[#283693]">{age}</span>
-                <span className="text-[11px] text-gray-400">Age</span>
-              </div>
-            )}
-            {(() => {
-              const isVerified = insuranceStatus === 'active_policy' || insuranceStatus === 'verified_open_enrollment' || insuranceStatus === 'complete'
-              const isVerifying = insuranceStatus === 'policy_check'
-              if (isVerified) return (
-                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-emerald-50">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 mb-1" />
-                  <span className="text-xs font-bold text-emerald-600 text-center leading-tight">Verified</span>
-                  <span className="text-[11px] text-gray-400">Insurance</span>
-                </div>
-              )
-              if (isVerifying) return (
-                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-amber-50">
-                  <ShieldIcon className="w-5 h-5 text-amber-500 mb-1" />
-                  <span className="text-xs font-bold text-amber-500 text-center leading-tight">Verifying</span>
-                  <span className="text-[11px] text-gray-400">Insurance</span>
-                </div>
-              )
-              return (
-                <div className="flex flex-col items-center px-4 py-3 rounded-2xl bg-red-50">
-                  <ShieldX className="w-5 h-5 text-red-400 mb-1" />
-                  <span className="text-xs font-bold text-red-400 text-center leading-tight">Needs Policy</span>
-                  <span className="text-[11px] text-gray-400">Insurance</span>
-                </div>
-              )
-            })()}
-            <div className="flex flex-col items-center px-5 py-3 rounded-2xl bg-[#ed148c]/5">
-              <DollarSign className="w-5 h-5 text-[#ed148c] mb-1" />
-              <span className="text-2xl font-bold text-[#ed148c]">{hopes.desiredCompensation || '—'}</span>
-              <span className="text-[11px] text-gray-400">Base Fee</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* ── All Sections ── */}
-      <div className="px-6 sm:px-8 py-6 space-y-5 print:px-0">
-
-        {/* Quick Stats Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:grid-cols-4 print:px-6">
-          {[
-            { icon: Ruler, label: 'Height', value: heightStr },
-            { icon: Scale, label: 'Weight', value: about.weight ? `${about.weight} lbs` : '' },
-            { icon: Activity, label: 'BMI', value: bmi },
-            { icon: Heart, label: 'Status', value: about.maritalStatus },
-          ].map(s => (
-            <div key={s.label} className="flex flex-col items-center text-center p-3 rounded-xl bg-white border border-gray-100 shadow-sm">
-              <s.icon className="w-4 h-4 text-[#283693] mb-1.5" />
-              <span className="text-sm font-bold text-[#283693]">{s.value || '—'}</span>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider">{s.label}</span>
-            </div>
-          ))}
-        </div>
+      <div className="px-8 sm:px-12 py-6 space-y-6 print:px-10">
 
         {/* Personal Information */}
-        <PVSection title="Personal Information" icon={User}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
+        <PVSection title="Personal" icon={User} number={1}>
+          <PVGrid cols={2}>
             <PVField label="Current Marital/Relationship Status" value={about.maritalStatus} fp="personal.maritalStatus" />
-            {hasPartner && <PVYesNo label="Are you currently in a monogamous relationship?" value={about.monogamous} fp="personal.monogamous" />}
-            <PVField label="How many sexual partners have you had in the past 6 months?" value={about.sexualPartners} fp="personal.sexualPartners" />
-            {hasPartner && <PVField label="How long have you been together?" value={about.relationshipLength} fp="personal.relationshipLength" />}
-            {hasPartner && <PVField label="First name of your spouse or partner" value={about.partnerName} fp="personal.partnerName" />}
-            {hasPartner && <PVField label="Spouse/Partner's Date of Birth" value={about.partnerDob} fp="personal.partnerDob" />}
-            {hasPartner && <PVYesNo label="Is your Spouse/Partner a U.S. Citizen or Permanent Resident?" value={about.partnerUsCitizen} fp="personal.partnerUsCitizen" />}
-          </div>
+            <PVField label="How many sexual partners in past 6 months" value={about.sexualPartners} fp="personal.sexualPartners" />
+          </PVGrid>
+          {hasPartner && <PVYesNo label="Are you currently in a monogamous relationship?" value={about.monogamous} fp="personal.monogamous" />}
+          {hasPartner && (
+            <PVGrid cols={2}>
+              <PVField label="How long have you been together?" value={about.relationshipLength} fp="personal.relationshipLength" />
+              <PVField label="First name of your spouse or partner" value={about.partnerName} fp="personal.partnerName" />
+              <PVField label="Spouse/Partner's Date of Birth" value={about.partnerDob} fp="personal.partnerDob" />
+            </PVGrid>
+          )}
+          {hasPartner && <PVYesNo label="Is your Spouse/Partner a U.S. Citizen or Permanent Resident?" value={about.partnerUsCitizen} fp="personal.partnerUsCitizen" />}
           {householdMembers.length > 0 && (
             <div className="mt-5 pt-4 border-t border-gray-100">
               <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Household</p>
@@ -1225,32 +1386,19 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         </PVSection>
 
         {/* Pregnancy History */}
-        <PVSection title="Pregnancy History" icon={Baby}>
+        <PVSection title="Pregnancy History" icon={Baby} number={2}>
           <PVField label="Total Pregnancies" value={pregHistory.numberOfPregnancies} fp="pregnancyHistory.numberOfPregnancies" />
           {pregnancies.length > 0 && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               {pregnancies.map((pr, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-[#fdf8f3]">
-                  <div className="w-8 h-8 rounded-full bg-[#283693]/10 flex items-center justify-center text-xs font-bold text-[#283693] shrink-0">{i + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800">{pr.outcome || 'Not specified'}{pr.name ? ` — ${pr.name}` : ''}</p>
-                    <p className="text-xs text-gray-400">
-                      {[
-                        pr.gestationWeeks && `${pr.gestationWeeks}w${pr.gestationDays || ''}`,
-                        pr.deliveryType,
-                        pr.weight,
-                        pr.wasSurrogacy === 'yes' && 'Surrogacy'
-                      ].filter(Boolean).join(' · ') || 'Details not yet entered'}
-                    </p>
-                  </div>
-                </div>
+                <PregnancyCard key={i} pregnancy={pr} index={i} />
               ))}
             </div>
           )}
         </PVSection>
 
         {/* Fertility */}
-        <PVSection title="Fertility Information" icon={Stethoscope}>
+        <PVSection title="Fertility Information" icon={Stethoscope} number={3}>
           <div className="space-y-1">
             <PVYesNo label="Is the biological father the same for all of your biological children?" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
             {fertility.sameBioFather === 'no' && <PVField label="Please explain" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
@@ -1267,12 +1415,12 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         </PVSection>
 
         {/* General Information */}
-        <PVSection title="General Information" icon={Home}>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+        <PVSection title="General Information" icon={Home} number={4}>
+          <PVGrid cols={2}>
             <PVField label="Do you own or rent your home?" value={general.homeOwnership} fp="general.homeOwnership" />
             <PVField label="How long have you lived in your current home?" value={general.homeDuration} fp="general.homeDuration" />
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-50 space-y-1">
+          </PVGrid>
+          <div className="space-y-2">
             <PVYesNo label="Do your children live with you full time?" value={general.childrenFullTime} fp="general.childrenFullTime" />
             {general.childrenFullTime === 'no' && general.childrenFullTimeDetails && <PVField label="Please explain" value={general.childrenFullTimeDetails} fp="general.childrenFullTimeDetails" />}
             <PVField label="If you are divorced or separated from the other parent(s) of your child(ren), please describe this relationship" value={general.divorcedRelationship} fp="general.divorcedRelationship" />
@@ -1297,7 +1445,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         </PVSection>
 
         {/* Health */}
-        <PVSection title="Health Information" icon={HeartPulse}>
+        <PVSection title="Health Information" icon={HeartPulse} number={5}>
           <div className="space-y-1">
             <PVYesNo label="Have you ever been formally or informally diagnosed with any mental health challenge (e.g. depression, anxiety, bipolar disorder, postpartum depression)?" value={health.mentalHealthDiagnosis} fp="health.mentalHealthDiagnosis" />
             {health.mentalHealthDiagnosis === 'yes' && health.mentalHealthDetails && <PVField label="Please provide details" value={health.mentalHealthDetails} fp="health.mentalHealthDetails" />}
@@ -1331,55 +1479,53 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         </PVSection>
 
         {/* Employment */}
-        <PVSection title="Employment Information" icon={Briefcase}>
-          <div className="space-y-1">
-            <PVYesNo label="Are you currently employed?" value={employment.currentlyEmployed} fp="employment.currentlyEmployed" />
-          </div>
+        <PVSection title="Employment" icon={Briefcase} number={6}>
+          <PVYesNo label="Are you currently employed?" value={employment.currentlyEmployed} fp="employment.currentlyEmployed" />
           {employment.currentlyEmployed === 'yes' && (
-            <div className="space-y-3 mt-3">
+            <>
               <PVField label="Please share details on the industry you work in." value={employment.employmentIndustry} fp="employment.employmentIndustry" />
-              <PVField label="What specifically is your occupation/position?" value={employment.occupation} fp="employment.occupation" />
-              <PVField label="How many hours a week do you work, and what are your typical hours?" value={employment.workHours} fp="employment.workHours" />
-              <PVField label="How long have you worked for your current employer?" value={employment.lengthAtEmployer} fp="employment.lengthAtEmployer" />
-              <PVField label="What is your earned hourly rate?" value={employment.hourlyRate} fp="employment.hourlyRate" />
-              <PVField label="What is your approximate weekly income?" value={employment.weeklyIncome} fp="employment.weeklyIncome" />
-            </div>
+              <PVGrid cols={2}>
+                <PVField label="Occupation / position" value={employment.occupation} fp="employment.occupation" />
+                <PVField label="Hours per week" value={employment.workHours} fp="employment.workHours" />
+                <PVField label="Length at current employer" value={employment.lengthAtEmployer} fp="employment.lengthAtEmployer" />
+                <PVField label="Hourly rate" value={employment.hourlyRate} fp="employment.hourlyRate" />
+                <PVField label="Weekly income" value={employment.weeklyIncome} fp="employment.weeklyIncome" />
+              </PVGrid>
+            </>
           )}
           {hasPartner && (
-            <div className="space-y-3 mt-3">
+            <PVGrid cols={2}>
               <PVField label="Spouse/partner's occupation" value={employment.partnerOccupation} fp="employment.partnerOccupation" />
-              <PVField label="Spouse/partner's approximate weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
-            </div>
+              <PVField label="Spouse/partner's weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
+            </PVGrid>
           )}
-          <div className="mt-3 space-y-1">
-            <PVYesNo label="Do you receive any government assistance (WIC, food stamps)?" value={employment.governmentAssistance} fp="employment.governmentAssistance" />
-            {employment.governmentAssistance === 'yes' && employment.governmentAssistanceDetails && <PVField label="Please explain" value={employment.governmentAssistanceDetails} fp="employment.governmentAssistanceDetails" />}
-          </div>
+          <PVYesNo label="Do you receive any government assistance (WIC, food stamps)?" value={employment.governmentAssistance} fp="employment.governmentAssistance" />
+          {employment.governmentAssistance === 'yes' && employment.governmentAssistanceDetails && <PVField label="Please explain" value={employment.governmentAssistanceDetails} fp="employment.governmentAssistanceDetails" />}
         </PVSection>
 
         {/* Interests */}
-        <PVSection title="Interests & Personality" icon={Heart}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+        <PVSection title="Interests & Personality" icon={Heart} number={7}>
+          <PVGrid cols={3}>
             <PVField label="Favorite music" value={interests.favoriteMusic} fp="interests.favoriteMusic" />
             <PVField label="Favorite movie" value={interests.favoriteMovie} fp="interests.favoriteMovie" />
             <PVField label="Favorite book" value={interests.favoriteBook} fp="interests.favoriteBook" />
             <PVField label="Favorite foods" value={interests.favoriteFoods} fp="interests.favoriteFoods" />
             <PVField label="Favorite color" value={interests.favoriteColor} fp="interests.favoriteColor" />
             <PVField label="Favorite flower" value={interests.favoriteFlower} fp="interests.favoriteFlower" />
-          </div>
-          <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
+          </PVGrid>
+          <PVGrid cols={2}>
             <PVField label="Do you have any pets, including chickens and livestock?" value={interests.pets} fp="interests.pets" />
             <PVField label="If you have cats, who changes the litter box?" value={interests.catLitter} fp="interests.catLitter" />
-            <PVField label="What do you like to do in your free time?" value={interests.hobbies} fp="interests.hobbies" />
             <PVField label="Do you collect anything special?" value={interests.collections} fp="interests.collections" />
             <PVField label="Where would you most like to travel and why?" value={interests.dreamTravel} fp="interests.dreamTravel" />
-            <PVField label="How would you describe yourself? Please include a description of your personality and temperament." value={interests.personality} fp="interests.personality" />
-          </div>
+          </PVGrid>
+          <PVField label="What do you like to do in your free time?" value={interests.hobbies} fp="interests.hobbies" />
+          <PVField label="How would you describe yourself? Please include a description of your personality and temperament." value={interests.personality} fp="interests.personality" />
         </PVSection>
 
         {/* Experienced Surrogate — only show if they've been a surrogate before */}
         {expSurr.previousSurrogate === 'yes' && (
-          <PVSection title="Surrogacy Experience" icon={Stethoscope}>
+          <PVSection title="Surrogacy Experience" icon={Stethoscope} number={8}>
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#ed148c]/10 text-[#ed148c] text-sm font-semibold px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Experienced Surrogate — {expSurr.surrogacyTimes || '?'} time(s)
@@ -1406,7 +1552,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         )}
 
         {/* Journey Hopes & Wishes */}
-        <PVSection title="Journey Hopes & Wishes" icon={Heart}>
+        <PVSection title="Journey Hopes & Wishes" icon={Heart} number={9}>
           <div className="space-y-4">
             <PVField label="Why do you want to become a surrogate (or be a repeat surrogate), and how long have you been thinking about it?" value={hopes.reasonForSurrogacy} fp="hopesWishes.reasonForSurrogacy" />
             <PVField label="How do you plan to use the money that you make from being a surrogate?" value={hopes.compensationUse} fp="hopesWishes.compensationUse" />
@@ -1444,13 +1590,22 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={hopes.willingnessToTerminate} fp="hopesWishes.willingnessToTerminate" />
             <PVField label="Are there any specific conditions where you would not terminate a pregnancy? Please explain." value={hopes.conditionsWontTerminate} fp="hopesWishes.conditionsWontTerminate" />
           </div>
-          {hopes.additionalComments && (
-            <div className="mt-4 p-4 rounded-xl bg-[#fdf8f3] border border-gray-100">
-              <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mb-2">Message to Intended Parent(s)</p>
-              <p className="text-sm text-gray-700 leading-relaxed">{hopes.additionalComments}</p>
-            </div>
-          )}
         </PVSection>
+
+        {/* ── Letter to Intended Parents (full-width standout card) ── */}
+        {hopes.additionalComments && (
+          <div className="mt-8 print:break-inside-avoid">
+            <div className="bg-[#fce7f0] rounded-2xl overflow-hidden border border-[#ed148c]/20 shadow-sm print:shadow-none">
+              <div className="px-7 pt-6 pb-4">
+                <p className="font-heading font-black text-2xl tracking-tight" style={{ color: '#c2185b' }}>Dear Intended Parent(s),</p>
+              </div>
+              <div className="px-7 pb-7">
+                <p className="text-[15px] text-stone-700 leading-[1.75] whitespace-pre-wrap font-serif italic">{hopes.additionalComments}</p>
+                <p className="text-right text-base font-heading font-bold mt-5" style={{ color: '#c2185b' }}>— {firstName}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Print-only photo gallery at bottom */}
         {photos?.length > 1 && (
@@ -1818,6 +1973,9 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
 
               {pregnancies[expandedIdx]?.wasSurrogacy !== 'yes' && (
                 <TextField label="About how many months did it take you to get pregnant?" value={pregnancies[expandedIdx]?.cyclesToConceive || ''} onChange={val => updatePregnancy(expandedIdx, 'cyclesToConceive', val)} required className="max-w-xs" />
+              )}
+              {pregnancies[expandedIdx]?.wasSurrogacy === 'yes' && (
+                <TextField label="How many embryo transfers did it take until pregnancy was achieved?" value={pregnancies[expandedIdx]?.transfersUntilPregnant || ''} onChange={val => updatePregnancy(expandedIdx, 'transfersUntilPregnant', val)} type="number" className="max-w-xs" />
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
