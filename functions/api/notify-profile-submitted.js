@@ -24,7 +24,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const notifyEmails = ['intake@abcsurrogacy.com', 'julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com']
+  const notifyEmails = ['intake@abcsurrogacy.com', 'julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com', 'juliestromwall@gmail.com']
 
   const htmlBody = `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
