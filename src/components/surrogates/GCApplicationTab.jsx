@@ -1504,7 +1504,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
           <CardContent className="space-y-2">
             <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
             <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate}
-              partnerName={answers?._application?.spouseFirstName}
+              partnerName={[answers?._application?.spouseFirstName, answers?._application?.spouseLastName].filter(Boolean).join(' ')}
               partnerEmail={answers?._application?.spouseEmail}
             />
           </CardContent>

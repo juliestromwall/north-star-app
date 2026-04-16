@@ -8,19 +8,28 @@ import { supabase } from '@/lib/supabase'
 async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken }) {
   const formUrl = `${window.location.origin}/e-signature/form/${formToken}`
   try {
-    await fetch('/api/send-esign-email', {
+    const res = await fetch('/api/send-esign-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ signerName, signerEmail, formTitle, formUrl }),
     })
-  } catch (err) { console.error('E-sign email failed:', err) }
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || data.success === false) {
+      console.error('E-sign email failed:', data)
+      return { success: false, error: data.error || data.message || `HTTP ${res.status}` }
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('E-sign email failed:', err)
+    return { success: false, error: err.message }
+  }
 }
 
 export default function SendFormTemplateButton({ templateId, surrogate, partnerName, partnerEmail }) {
   const [sending, setSending] = useState(false)
   const [resending, setResending] = useState(false)
   const [result, setResult] = useState(null)
-  const [existingDoc, setExistingDoc] = useState(null) // { status, formToken }
+  const [existingDoc, setExistingDoc] = useState(null) // { status, formToken, signedAt }
   const [checking, setChecking] = useState(true)
   const { currentUser } = useRole()
 
@@ -30,7 +39,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
   useEffect(() => {
     if (!template || !surrogate?.id || !supabase) { setChecking(false); return }
     supabase.from('esign_documents')
-      .select('id, status, document_hash')
+      .select('id, status, document_hash, signers, completed_at')
       .eq('case_id', surrogate.id)
       .then(({ data }) => {
         const match = (data || []).find(d => {
@@ -42,7 +51,12 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
         if (match) {
           try {
             const meta = JSON.parse(match.document_hash || '{}')
-            setExistingDoc({ status: match.status, formToken: meta.formToken })
+            const signer = (match.signers || [])[0]
+            setExistingDoc({
+              status: match.status,
+              formToken: meta.formToken,
+              signedAt: signer?.signedAt || match.completed_at || null,
+            })
           } catch {
             setExistingDoc({ status: match.status })
           }
@@ -57,12 +71,18 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
   const signerName = isPartner ? (partnerName || 'Partner') : (surrogate?.name || '')
   const signerEmail = isPartner ? (partnerEmail || '') : (surrogate?.email || '')
 
-  // Already signed
-  if (existingDoc?.status === 'signed') {
+  // Already signed (status can be 'signed', 'completed', or 'partially_signed' if multi-signer)
+  const signedStatuses = ['signed', 'completed', 'partially_signed']
+  if (existingDoc && signedStatuses.includes(existingDoc.status)) {
+    const signedDate = existingDoc.signedAt
+      ? new Date(existingDoc.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : null
     return (
       <div className="flex items-center gap-2 text-xs py-1">
         <CheckCircle2 className="size-4 text-green-500 shrink-0" />
-        <span className="text-green-700 font-medium">{template.title} — Signed</span>
+        <span className="text-green-700 font-medium">
+          {template.title} — Signed{signedDate ? ` on ${signedDate}` : ''}
+        </span>
       </div>
     )
   }
@@ -77,10 +97,14 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
           onClick={async () => {
             if (!existingDoc.formToken || !signerEmail) return
             setResending(true)
-            await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken: existingDoc.formToken })
+            const emailRes = await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken: existingDoc.formToken })
             setResending(false)
-            setResult({ resent: true })
-            setTimeout(() => setResult(null), 3000)
+            if (emailRes.success) {
+              setResult({ resent: true })
+              setTimeout(() => setResult(null), 3000)
+            } else {
+              alert(`Resend failed: ${emailRes.error}`)
+            }
           }}
           disabled={resending}
           className="inline-flex items-center gap-1 text-[10px] font-medium text-[#283693] hover:underline ml-1"
@@ -128,7 +152,12 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       await sendDocument(doc.id)
 
       // Send the actual email
-      await sendEsignEmail({ signerName, signerEmail, formTitle: docTitle, formToken })
+      const emailRes = await sendEsignEmail({ signerName, signerEmail, formTitle: docTitle, formToken })
+      if (!emailRes.success) {
+        setExistingDoc({ status: 'pending', formToken })
+        setResult({ error: `Document created but email failed: ${emailRes.error}` })
+        return
+      }
 
       setExistingDoc({ status: 'pending', formToken })
       setResult({ success: true })
@@ -144,6 +173,15 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       <div className="flex items-center gap-2 text-xs py-1">
         <Clock className="size-4 text-amber-500 shrink-0" />
         <span className="text-amber-700 font-medium">{template.title} — Sent, pending signature</span>
+      </div>
+    )
+  }
+
+  if (result?.error) {
+    return (
+      <div className="flex flex-col gap-1 text-xs py-1">
+        <span className="text-red-600 font-medium">⚠ {result.error}</span>
+        <button onClick={() => setResult(null)} className="text-[#283693] hover:underline text-[10px] self-start">Try again</button>
       </div>
     )
   }
