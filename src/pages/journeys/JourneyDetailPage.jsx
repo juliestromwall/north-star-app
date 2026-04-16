@@ -845,7 +845,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       await createCaseTask({
         case_id: journey.id,
         case_type: 'journey',
-        title: `${surName} - 20 weeks! Check in with IP(s)`,
+        title: `🤰 ${surName} - 20wks Check in with IP(s)`,
         assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com',
         due_date: twentyWeekStr,
         priority: 'normal',
