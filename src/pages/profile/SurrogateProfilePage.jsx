@@ -717,7 +717,7 @@ export default function SurrogateProfilePage() {
         })
       } catch (err) { console.error('Profile notify email failed:', err) }
 
-      // 3. Create task for intake to review
+      // 3. Create task for intake to review (high priority)
       if (intakeCaseId) {
         const today = new Date().toISOString().split('T')[0]
         await createCaseTask({
@@ -726,25 +726,37 @@ export default function SurrogateProfilePage() {
           title: `Review ${surrogateName}'s Profile`,
           assigned_to: 'intake@abcsurrogacy.com',
           due_date: today,
+          priority: 'high',
           status: 'pending',
         }).catch(err => console.error('Task creation failed:', err))
       }
 
-      // 4. Auto-log on checklist that profile is being reviewed
-      if (intakeCaseId) {
+      // 4. Auto-log "Profile Complete" on checklist as reviewing (same pattern as app submit)
+      if (intakeCaseId && supabase) {
         try {
-          const tracking = await getRecordTracking(intakeCaseId) || {}
-          // Find "Profile Complete" step — search all checklist steps
-          const { getAllChecklistSteps } = await import('@/lib/checklistStore')
-          const allSteps = getAllChecklistSteps('surrogate')
-          const profileStep = allSteps.find(s => s.label?.toLowerCase().includes('profile complete') || s.label?.toLowerCase().includes('profile'))
-          if (profileStep) {
+          const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', intakeCaseId).single()
+          if (fresh) {
+            const currentAnswers = fresh.answers || {}
+            const existingTracking = currentAnswers._recordTracking || {}
             const today = new Date().toISOString().split('T')[0]
-            const stepData = tracking[profileStep.id] || {}
-            const history = stepData.history || []
-            history.push({ status: 'submitted', date: today, note: 'Profile submitted for review by surrogate', by: surrogateName })
-            tracking[profileStep.id] = { ...stepData, status: 'submitted', history }
-            await setRecordTrackingDB(intakeCaseId, tracking)
+            const stepData = existingTracking.profileComplete || { history: [] }
+            const trackingEntry = {
+              status: 'reviewing',
+              date: today,
+              note: 'Submitted by Applicant',
+              by: 'System',
+            }
+            const updatedTracking = {
+              ...existingTracking,
+              profileComplete: {
+                ...stepData,
+                status: 'reviewing',
+                history: [...(stepData.history || []), trackingEntry],
+              },
+            }
+            await supabase.from('intake_submissions').update({
+              answers: { ...currentAnswers, _recordTracking: updatedTracking },
+            }).eq('id', intakeCaseId)
           }
         } catch (err) { console.error('Checklist log failed:', err) }
       }
