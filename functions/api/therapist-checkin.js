@@ -50,7 +50,7 @@ export async function onRequestPost(context) {
       Authorization: `Bearer ${supabaseKey}`,
     }
 
-    const results = { documentUploaded: false, taskCreated: false }
+    const results = { documentUploaded: false, taskCreated: false, errors: {} }
 
     // 1. Convert base64 to bytes
     const binary = atob(pdfBase64)
@@ -69,6 +69,7 @@ export async function onRequestPost(context) {
       if (!uploadRes.ok) {
         const errText = await uploadRes.text()
         console.error('Storage upload failed:', uploadRes.status, errText)
+        results.errors.storage = `${uploadRes.status}: ${errText}`
       } else {
         const publicUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${storagePath}`
         // 3. Insert into case_documents
@@ -91,9 +92,13 @@ export async function onRequestPost(context) {
         } else {
           const docErr = await docRes.text()
           console.error('case_documents insert failed:', docRes.status, docErr)
+          results.errors.case_documents = `${docRes.status}: ${docErr}`
         }
       }
-    } catch (e) { console.error('PDF upload exception:', e) }
+    } catch (e) {
+      console.error('PDF upload exception:', e)
+      results.errors.upload_exception = e.message
+    }
 
     // 4. Create task
     try {
@@ -110,8 +115,12 @@ export async function onRequestPost(context) {
       } else {
         const taskErr = await taskRes.text()
         console.error('case_tasks insert failed:', taskRes.status, taskErr)
+        results.errors.case_tasks = `${taskRes.status}: ${taskErr}`
       }
-    } catch (e) { console.error('Task creation exception:', e) }
+    } catch (e) {
+      console.error('Task creation exception:', e)
+      results.errors.task_exception = e.message
+    }
 
     return new Response(JSON.stringify({ success: true, ...results }), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
