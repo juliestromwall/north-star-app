@@ -1178,6 +1178,21 @@ export default function SurrogateDetailPage() {
                       })
                     } catch (err) { console.error('Records summary notify failed:', err) }
                   }
+                  // Auto-create task for Jennifer Rose when Reference Check is Requested
+                  if (status === 'requested' && stepLabel.toLowerCase().includes('reference check')) {
+                    try {
+                      await createCaseTask({
+                        title: `Complete Reference Checks for ${surrogate.name || 'Surrogate'}`,
+                        due_date: date || new Date().toISOString().split('T')[0],
+                        priority: 'normal',
+                        assigned_to: 'jennifer@abcsurrogacy.com',
+                        created_by: currentUser?.email,
+                        status: 'open',
+                        case_id: surrogate.id,
+                        case_type: 'surrogate',
+                      })
+                    } catch (err) { console.error('Reference check task creation failed:', err) }
+                  }
                   // Auto-create follow-up tasks for "Connect with Applicant" attempts
                   if (stepLabel.toLowerCase().includes('connect with applicant') && optionLabel) {
                     const name = surrogate.name || 'Surrogate'
