@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Send, Copy, Check, Link2, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Send, Copy, Check, Link2, Clock, Eye, ChevronLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -7,12 +7,60 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { createProfileShare } from '@/lib/matching'
 import { sendEmail } from '@/lib/google'
+import { fetchSurrogatesFromIntake, fetchSurrogateProfileByEmail, fetchInsurance, listProfilePhotos } from '@/lib/db'
+import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
 
 export default function ShareProfileDialog({ open, onOpenChange, caseId, caseType, caseName, currentUser }) {
+  const [step, setStep] = useState(1) // 1 = form, 2 = preview, 3 = sent
   const [form, setForm] = useState({ email: '', name: '', message: '' })
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState(null) // { shareUrl, sent }
   const [copied, setCopied] = useState(false)
+  const [confirmReviewed, setConfirmReviewed] = useState(false)
+
+  // Preview data
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewProfile, setPreviewProfile] = useState(null)
+  const [previewPhotos, setPreviewPhotos] = useState([])
+  const [previewInsurance, setPreviewInsurance] = useState(null)
+
+  // Load preview data when entering step 2
+  useEffect(() => {
+    if (step !== 2 || caseType !== 'gc' || !caseId) return
+    let cancelled = false
+    setPreviewLoading(true)
+    ;(async () => {
+      try {
+        const all = await fetchSurrogatesFromIntake()
+        const gc = all.find(s => s.id === caseId)
+        if (!gc?.email) return
+        const profile = await fetchSurrogateProfileByEmail(gc.email).catch(() => null)
+        if (cancelled) return
+        if (profile?.profile_data) setPreviewProfile(profile.profile_data)
+        const uid = profile?.user_id || gc.userId || gc.user_id
+        const ids = [uid, String(gc.id)].filter(Boolean)
+        const uniqueIds = [...new Set(ids)]
+        let allHeadshots = [], allPortraits = [], allGallery = []
+        for (const id of uniqueIds) {
+          const [gallery, headshots, portraits] = await Promise.all([
+            listProfilePhotos(id).catch(() => []),
+            listProfilePhotos(`${id}/headshot`).catch(() => []),
+            listProfilePhotos(`${id}/portrait`).catch(() => []),
+          ])
+          allHeadshots.push(...headshots)
+          allPortraits.push(...portraits)
+          allGallery.push(...gallery)
+        }
+        if (cancelled) return
+        setPreviewPhotos([...allHeadshots, ...allPortraits, ...allGallery])
+        const ins = await fetchInsurance(gc.id, 'surrogate').catch(() => null)
+        if (cancelled) return
+        if (ins) setPreviewInsurance(ins.insurance_status)
+      } catch (err) { console.error('Preview load failed:', err) }
+      finally { if (!cancelled) setPreviewLoading(false) }
+    })()
+    return () => { cancelled = true }
+  }, [step, caseId, caseType])
 
   async function handleShare() {
     if (!form.email) return
@@ -30,7 +78,6 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
 
       const shareUrl = `${window.location.origin}/share/${share.token}`
 
-      // Send email via Gmail API
       try {
         const firstName = (caseName || '').split(' ')[0] || 'a surrogate'
         const profileType = caseType === 'gc' ? 'surrogate' : 'intended parent'
@@ -74,6 +121,7 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
       }
 
       setResult({ shareUrl, sent: true })
+      setStep(3)
     } catch (err) {
       alert('Failed to create share link: ' + (err.message || 'Unknown error'))
     } finally { setSending(false) }
@@ -93,24 +141,30 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
       setForm({ email: '', name: '', message: '' })
       setResult(null)
       setCopied(false)
+      setStep(1)
+      setConfirmReviewed(false)
+      setPreviewProfile(null)
+      setPreviewPhotos([])
+      setPreviewInsurance(null)
     }, 200)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className={step === 2 ? '!max-w-[95vw] sm:!max-w-[1100px] !w-[95vw] max-h-[90vh] overflow-y-auto' : 'max-w-md'}>
         <DialogHeader>
-          <DialogTitle>Share Profile — {caseName}</DialogTitle>
+          <DialogTitle>
+            {step === 3 ? 'Profile Shared' : `Share Profile — ${caseName}`}
+          </DialogTitle>
         </DialogHeader>
 
-        {result ? (
+        {step === 3 && result ? (
           <div className="space-y-4">
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center space-y-2">
               <Check className="size-8 text-emerald-500 mx-auto" />
               <p className="font-semibold text-emerald-700">Profile Shared!</p>
               <p className="text-xs text-emerald-600">An email has been sent to {form.email}</p>
             </div>
-
             <div className="space-y-1">
               <Label className="text-xs">Share Link (expires in 72 hours)</Label>
               <div className="flex gap-2">
@@ -120,13 +174,57 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
                 </Button>
               </div>
             </div>
-
             <div className="flex items-center gap-1.5 text-xs text-stone-400">
               <Clock className="size-3.5" />
               <span>Link expires in 72 hours</span>
             </div>
-
             <Button variant="outline" className="w-full" onClick={handleClose}>Done</Button>
+          </div>
+        ) : step === 2 ? (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+              Review the profile below to confirm this is the correct one to share with <strong>{form.email}</strong>.
+            </div>
+
+            {/* Preview */}
+            <div className="rounded-xl border border-stone-200 overflow-hidden bg-[#fdf8f3] max-h-[60vh] overflow-y-auto">
+              {previewLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="size-6 animate-spin text-stone-400" />
+                </div>
+              ) : previewProfile ? (
+                <ProfilePreview
+                  profile={previewProfile}
+                  photos={previewPhotos.filter(p => !(previewProfile?._hiddenPhotos || []).includes(p.path))}
+                  insuranceStatus={previewInsurance}
+                  hideFooter
+                />
+              ) : (
+                <div className="text-center py-20 text-sm text-stone-400">No profile data available</div>
+              )}
+            </div>
+
+            {/* Confirm checkbox */}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={confirmReviewed}
+                onChange={e => setConfirmReviewed(e.target.checked)}
+                className="mt-0.5 accent-[#283693]"
+              />
+              <span className="text-sm text-stone-700">I've reviewed this profile and confirm this is the correct one to share.</span>
+            </label>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep(1)} className="gap-1.5">
+                <ChevronLeft className="size-4" /> Back
+              </Button>
+              <Button onClick={handleShare} disabled={sending || !confirmReviewed}
+                className="flex-1 gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                <Send className="size-4" />
+                {sending ? 'Sharing...' : 'Send Profile'}
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -148,10 +246,10 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
               <span>A secure link will be generated (expires in 72 hours)</span>
             </div>
 
-            <Button onClick={handleShare} disabled={sending || !form.email}
+            <Button onClick={() => setStep(2)} disabled={!form.email}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              <Send className="size-4" />
-              {sending ? 'Sharing...' : 'Share Profile'}
+              <Eye className="size-4" />
+              Preview Profile
             </Button>
           </div>
         )}
