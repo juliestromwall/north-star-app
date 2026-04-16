@@ -459,6 +459,7 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
                 try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
               }
               try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              try { await createCaseTask({ title: `${sName} Medically Cleared - Collect 3rd Agency Payment`, due_date: logDt, priority: 'high', assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com', created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
             }
 
             if (lbl.includes('legal clearance')) {
@@ -853,6 +854,20 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
         created_by: 'system',
       })
     } catch (err) { console.error('Failed to create 20-week task:', err) }
+
+    // Auto-create 4th Agency Payment task for Julie & Nicole
+    try {
+      await createCaseTask({
+        case_id: journey.id,
+        case_type: 'journey',
+        title: `Confirmation of Heartbeat - Collect 4th Agency Payment`,
+        assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com',
+        due_date: heartbeatDate || new Date().toISOString().split('T')[0],
+        priority: 'high',
+        status: 'open',
+        created_by: 'system',
+      })
+    } catch (err) { console.error('Failed to create 4th payment task:', err) }
     setHeartbeatOpen(false); setHeartbeatDate(''); setHeartbeatDueDate(''); setHeartbeatBabies('1'); setBabySexes([])
     setSaving(false)
     setTimeout(() => onPregnancyConfirmed(), 300)
