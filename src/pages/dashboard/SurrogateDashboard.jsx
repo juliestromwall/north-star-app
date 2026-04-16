@@ -101,42 +101,55 @@ function ProfileProgressCard({ userId, currentUser }) {
   const ctaLabel = isApproved ? 'View Profile' : isSubmitted ? 'View Profile' : percent === 0 ? 'Get Started' : 'Continue'
   const profileLink = percent === 100 ? '/my-profile' : `/my-profile#${nextSection}`
 
+  const title = isApproved ? 'Profile Approved' : isSubmitted ? 'Profile Submitted' : 'My Profile'
+
+  // Status-based accent color
+  const accent = isApproved ? { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100', btn: '#16a34a' }
+    : isSubmitted ? { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', btn: '#d97706' }
+    : { bg: 'bg-[#ed148c]', light: 'bg-pink-50', text: 'text-stone-500', border: 'border-stone-100', btn: '#ed148c' }
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardContent className="py-6">
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+    <div className={`relative overflow-hidden rounded-2xl bg-white border ${accent.border} shadow-sm hover:shadow-md transition-all`}>
+      {/* Accent top bar */}
+      <div className={`h-1 ${accent.bg}`} />
+      <div className="p-6">
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
           <ProgressRing percent={percent} size={72} />
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            <p className="font-semibold text-stone-800 text-lg">My Profile</p>
+            <div className="flex items-center gap-2 justify-center sm:justify-start">
+              <p className="font-semibold text-stone-800 text-lg">{title}</p>
+              {isApproved && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+              {isSubmitted && <Clock className="w-5 h-5 text-amber-500" />}
+            </div>
             {isApproved ? (
-              <p className="text-sm text-green-600 mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
-                <CheckCircle2 className="w-4 h-4" /> Your profile has been approved and is visible to intended parents!
+              <p className="text-sm text-emerald-700 mt-1.5 leading-relaxed">
+                Your profile has been approved and is visible to intended parents!
               </p>
             ) : isSubmitted ? (
-              <p className="text-sm text-blue-600 mt-1 flex items-center gap-1.5 justify-center sm:justify-start">
-                <Send className="w-4 h-4" /> Your profile has been submitted and is under review.
+              <p className="text-sm text-amber-700 mt-1.5 leading-relaxed">
+                Your profile has been submitted and is under review. We will reach out soon for next steps!
               </p>
             ) : (
-              <p className="text-sm text-stone-500 mt-1">
+              <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
                 Complete your matching profile so intended parents can find you. It takes about 20–30 minutes — you can save your progress at any time.
               </p>
             )}
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
-              <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
               </div>
-              <p className="text-xs text-stone-400 mt-1">{percent}% complete</p>
+              <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
             </div>
           </div>
           <Link to={profileLink}>
-            <Button className="rounded-lg gap-1.5 shrink-0 w-full sm:w-auto" style={{ backgroundColor: isApproved ? '#16a34a' : '#ed148c', color: '#fff' }}>
+            <Button className="rounded-xl gap-1.5 shrink-0 w-full sm:w-auto shadow-sm" style={{ backgroundColor: accent.btn, color: '#fff' }}>
               {ctaLabel} <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -326,173 +339,184 @@ function OnboardingDashboard({ name, currentUser }) {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={`Welcome, ${name}!`}
-        subtitle="We're so glad you're here. Take a look around — this is your portal."
-      />
+    <div className="max-w-3xl mx-auto">
+      {/* Welcome header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-[#283693]">Welcome, {name}!</h1>
+      </div>
 
       {/* Top banner — application CTA or "all caught up" */}
       {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
-        appAvailable ? (
-          <Link to="/my-application">
-            <Card className="border-[#283693]/20 hover:shadow-md transition-shadow" style={{ backgroundColor: '#f0f1fa' }}>
-              <CardContent className="py-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
-                    <ClipboardList className="w-6 h-6 text-[#283693]" />
+        <div className="mb-6">
+        {appAvailable ? (
+          <Link to="/my-application" className="block">
+            <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all">
+              <div className={`h-1 ${appAnswers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#283693]'}`} />
+              <div className="p-6">
+                <div className="flex items-center gap-5">
+                  <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${
+                    appAnswers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#283693]/8'
+                  }`}>
+                    {appAnswers?._applicationSubmitted
+                      ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                      : <ClipboardList className="w-6 h-6 text-[#283693]" />
+                    }
                   </div>
-                  <div className="flex-1">
-                    {appAnswers?._applicationSubmitted ? (
-                      <>
-                        <p className="font-semibold text-emerald-600 text-lg">Application Submitted</p>
-                        <p className="text-sm text-stone-600 mt-1 leading-relaxed">Your application has been submitted and is under review. Click here to view your responses.</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-semibold text-[#283693] text-lg">Complete Your Application</p>
-                        <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                          Your application forms are ready! Please complete all sections so we can move forward with your journey.
-                        </p>
-                      </>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-semibold text-base ${appAnswers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#283693]'}`}>
+                        {appAnswers?._applicationSubmitted ? 'Application Submitted' : 'Complete Your Application'}
+                      </p>
+                    </div>
+                    <p className="text-sm text-stone-500 mt-1 leading-relaxed">
+                      {appAnswers?._applicationSubmitted
+                        ? `Submitted on ${new Date(appAnswers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review this soon and get back to you for next steps! You can view your responses below.`
+                        : 'Your application forms are ready! Please complete all sections so we can move forward with your journey.'
+                      }
+                    </p>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-[#283693] shrink-0 mt-1" />
+                  <ArrowRight className={`w-5 h-5 shrink-0 ${appAnswers?._applicationSubmitted ? 'text-emerald-400' : 'text-[#283693]/40'}`} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </Link>
         ) : appAnswers?._reviewedAt ? (
-          <Card className="border-emerald-200" style={{ backgroundColor: '#f0fdf4' }}>
-            <CardContent className="py-6">
-              <div className="flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-100 shrink-0">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
+            <div className="h-1 bg-emerald-500" />
+            <div className="p-6">
+              <div className="flex items-start gap-5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 shrink-0">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="font-semibold text-emerald-700 text-lg">We've reviewed your quiz results!</p>
-                  <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                  <p className="font-semibold text-emerald-700 text-base">We've reviewed your quiz results!</p>
+                  <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
                     If we haven't connected yet, we will be reaching out very shortly! In the meantime, your quiz results look great and we would like to invite you to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
-          <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
-            <CardContent className="py-6">
-              <div className="flex items-start gap-4">
-                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
+            <div className="h-1 bg-gradient-to-r from-[#283693] to-[#ed148c]" />
+            <div className="p-6">
+              <div className="flex items-start gap-5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#283693]/8 shrink-0">
                   <Sparkles className="w-6 h-6 text-[#283693]" />
                 </div>
                 <div>
-                  <p className="font-semibold text-[#283693] text-lg">We're so glad you're here!</p>
-                  <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                  <p className="font-semibold text-[#283693] text-base">We're so glad you're here!</p>
+                  <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
                     Our team is reviewing your quiz results and will be in touch soon. In the meantime, feel free to get a head start on your matching profile — it takes about 20–30 minutes and you can save your progress at any time.
                   </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        )
+            </div>
+          </div>
+        )}
+        </div>
       )}
 
       {/* Action banner — only show when there are pending tasks */}
       {pendingCount > 0 && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-[#ed148c]/10 border border-[#ed148c]/20">
+        <div className="flex items-center gap-3 p-4 mb-6 rounded-xl bg-[#ed148c]/8 border border-[#ed148c]/15">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#ed148c] text-white text-sm font-bold shrink-0">
             {pendingCount}
           </div>
-          <p className="text-sm font-medium text-stone-800">
+          <p className="text-sm font-medium text-stone-700">
             {pendingCount === 1 ? '1 item needs your attention' : `${pendingCount} items need your attention`}
           </p>
         </div>
       )}
 
-      {/* Profile card — full width, prominent */}
-      <ProfileProgressCard userId={userId || currentUser?.email} currentUser={currentUser} />
+      {/* Profile card */}
+      <div className="mb-6">
+        <ProfileProgressCard userId={userId || currentUser?.email} currentUser={currentUser} />
+      </div>
 
       {/* Quiz Results card — hide once application is released OR quiz is reviewed */}
-      {!appAvailable && !appAnswers?._reviewedAt && <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleQuizClick}>
-        <CardContent className="py-4 flex items-center gap-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-50 shrink-0">
-            <ClipboardList className="w-5 h-5 text-amber-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-stone-700 text-sm">Quiz Results</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              <p className="text-xs text-amber-600">Under Review</p>
+      {!appAvailable && !appAnswers?._reviewedAt && (
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all cursor-pointer mb-6" onClick={handleQuizClick}>
+          <div className="h-1 bg-amber-400" />
+          <div className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-50 shrink-0">
+                <ClipboardList className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-stone-700 text-sm">Quiz Results</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <p className="text-xs text-amber-600">Under Review</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-stone-300 shrink-0" />
             </div>
           </div>
-          <ArrowRight className="w-4 h-4 text-stone-400 shrink-0" />
-        </CardContent>
-      </Card>}
+        </div>
+      )}
 
       {/* To Do section */}
       {activeTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              To Do
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm mb-6">
+          <div className="h-1 bg-[#ed148c]" />
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-stone-800">To Do</h2>
               {pendingCount > 0 && (
                 <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#ed148c] text-white text-[11px] font-bold">{pendingCount}</span>
               )}
-            </CardTitle>
-            <CardDescription>Items that need your attention</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {activeTasks.map(task => (
-                <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
-              ))}
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-stone-400 mt-0.5">Items that need your attention</p>
+          </div>
+          <div className="px-6 pb-5 space-y-3">
+            {activeTasks.map(task => (
+              <TaskCard key={task.id} task={task} onStatusChange={handleStatusChange} />
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Completed section — collapsible */}
       {completedTasks.length > 0 && (
         <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
-          <Card>
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm mb-6">
+            <div className="h-1 bg-emerald-400" />
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer">
-                <CardTitle className="flex items-center gap-2 text-base">
+              <div className="px-6 py-4 cursor-pointer flex items-center">
+                <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  Completed
-                  <span className="text-xs font-normal text-stone-400 ml-1">({completedTasks.length})</span>
-                </CardTitle>
+                  <h2 className="text-base font-semibold text-stone-800">Completed</h2>
+                  <span className="text-xs font-normal text-stone-400">({completedTasks.length})</span>
+                </div>
                 <div className="ml-auto">
                   <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${completedOpen ? 'rotate-180' : ''}`} />
                 </div>
-              </CardHeader>
+              </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0">
+              <div className="px-6 pb-5">
                 <div className="divide-y divide-stone-100">
                   {completedTasks.map(task => (
                     <CompletedTaskRow key={task.id} task={task} />
                   ))}
                 </div>
-              </CardContent>
+              </div>
             </CollapsibleContent>
-          </Card>
+          </div>
         </Collapsible>
       )}
 
       {/* Contact */}
-      <Card>
-        <CardContent className="py-5">
-          <div className="text-center">
-            <p className="text-sm text-stone-600">
-              Questions? Reach us at{' '}
-              <a href="mailto:intake@abcsurrogacy.com" className="text-[#283693] underline font-medium">
-                intake@abcsurrogacy.com
-              </a>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="mt-4 mb-2 text-center">
+        <p className="text-xs text-stone-400">
+          Questions? Reach us at{' '}
+          <a href="mailto:intake@abcsurrogacy.com" className="text-[#283693] font-medium hover:text-[#ed148c] transition-colors">
+            intake@abcsurrogacy.com
+          </a>
+        </p>
+      </div>
 
       {/* Quiz Results Dialog */}
       <Dialog open={quizOpen} onOpenChange={setQuizOpen}>

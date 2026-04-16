@@ -195,10 +195,9 @@ export default function IPDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`Welcome, ${firstName}!`}
-        subtitle="Your family-building journey with ABC Surrogacy"
-      />
+      <div>
+        <h1 className="text-2xl font-bold text-[#283693]">Welcome, {firstName}!</h1>
+      </div>
 
       {/* Status Banner */}
       {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (

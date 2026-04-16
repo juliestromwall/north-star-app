@@ -1140,6 +1140,7 @@ export default function PortalApplicationPage() {
       await supabase.from('intake_submissions').update({ answers: updated }).eq('id', caseId)
       setAnswers(updated)
       setSubmitOpen(false)
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 200)
 
       // Create task for assigned admin to review the application
       const surName = [currentAnswers?.firstName, currentAnswers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate'
@@ -1266,7 +1267,7 @@ export default function PortalApplicationPage() {
       {isSubmitted && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
           <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />
-          <p className="text-sm text-emerald-700 font-medium">Application submitted on {new Date(answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. You can view your responses below.</p>
+          <p className="text-sm text-emerald-700 font-medium">Application submitted on {new Date(answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review this soon and get back to you for next steps! You can view your responses below. You are unable to make edits at this time. Please reach out to <a href="mailto:jenn@abcsurrogacy.com" className="underline font-semibold">jenn@abcsurrogacy.com</a> if you need to make a change.</p>
         </div>
       )}
 

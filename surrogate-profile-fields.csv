@@ -1,0 +1,168 @@
+Field Key,Section (data storage),Label / Question,Field Type,Required?,Conditional? (parent → trigger),Portal Section,In FollowUp?,Admin Visible?
+firstName,personal,First Name (or nickname),text,YES,,PersonalSection,No,YES
+dob,personal,Date of Birth,date,No,,PersonalSection,No,YES
+city,personal,City,text,YES,,PersonalSection,No,YES
+state,personal,State,select,YES,,PersonalSection,No,YES
+heightFt,personal,Height (ft),select,YES,,PersonalSection,No,YES
+heightIn,personal,Height (in),select,No,,PersonalSection,No,YES
+weight,personal,Weight (lbs),number,YES,,PersonalSection,No,YES
+bmi,personal,BMI,auto-calc,No,,PersonalSection (display only),No,YES
+maritalStatus,personal,Current Marital/Relationship Status,select,YES,,PersonalSection,No,YES
+monogamous,personal,Are you currently in a monogamous relationship?,yesno,CONDITIONAL,maritalStatus → not Single/Divorced/Widowed,PersonalSection,No,YES
+sexualPartners,personal,How many sexual partners in past 6 months?,select,YES,,PersonalSection,No,YES
+relationshipLength,personal,How long have you been together?,text,CONDITIONAL,maritalStatus → In Relationship/Married/Domestic Partnership,PersonalSection,No,YES
+partnerName,personal,First name of your spouse or partner,text,CONDITIONAL,maritalStatus → In Relationship/Married/Domestic Partnership,PersonalSection,No,YES
+partnerDob,personal,Spouse/Partner's Date of Birth,date,CONDITIONAL,maritalStatus → In Relationship/Married/Domestic Partnership,PersonalSection,No,YES
+partnerUsCitizen,personal,Is your Spouse/Partner a U.S. Citizen or Permanent Resident?,yesno,CONDITIONAL,maritalStatus → In Relationship/Married/Domestic Partnership,PersonalSection,No,YES
+householdMembers,personal,Household Members (name + relationship),array,No,,PersonalSection,No,YES
+profilePhotoUrl,personal,Profile Photo URL,text,No,,PersonalSection,No,No
+numberOfPregnancies,pregnancyHistory,Total number of pregnancies,number,YES,,PregnancyHistorySection,No,YES
+pregnancies,pregnancyHistory,"Pregnancy details array (outcome, dob, gestationWeeks, deliveryType, weight, sex, etc.)",array,YES (each must be complete),,PregnancyHistorySection,No,YES
+sameBioFather,fertility,Is the biological father the same for all of your biological children?,yesno,YES,,FertilitySection,No,YES
+sameBioFatherDetails,fertility,Please explain,textarea,CONDITIONAL,sameBioFather → no,FertilitySection,No,YES
+pregnancyDetails,fertility,"Details about your pregnancy(s) — complications, ups and downs",textarea,YES,,FertilitySection,No,YES
+infertilityTreatment,fertility,Have you ever been seen by a doctor for infertility treatment?,yesno,YES,,FertilitySection,No,YES
+infertilityTreatmentDetails,fertility,Please provide details,textarea,CONDITIONAL,infertilityTreatment → yes,FertilitySection,No,YES
+gynecologicalProblems,fertility,"Have you ever been told of any gynecological problems (endometriosis, cysts, fibroids, abnormal pap)?",yesno,YES,,FertilitySection,No,YES
+gynecologicalProblemsDetails,fertility,Please provide details,textarea,CONDITIONAL,gynecologicalProblems → yes,FertilitySection,No,YES
+pregnancyMedication,fertility,Did you ever take medication (aside from prenatals) during pregnancy?,yesno,YES,,FertilitySection,No,YES
+pregnancyMedicationList,fertility,Please list medications,textarea,CONDITIONAL,pregnancyMedication → yes,FertilitySection,No,YES
+homeOwnership,general,Do you own or rent your home?,select,YES,,GeneralSection,No,YES
+homeDuration,general,How long have you lived in your current home?,text,YES,,GeneralSection,No,YES
+childrenFullTime,general,Do your children live with you full time?,yesno,YES,,GeneralSection,No,YES
+childrenFullTimeDetails,general,Please explain,textarea,CONDITIONAL,childrenFullTime → no,GeneralSection,No,YES
+divorcedRelationship,general,"If divorced/separated, describe relationship with other parent",textarea,No,,GeneralSection,No,YES
+planMoreChildren,general,Do you plan to have any more children of your own?,yesno,YES,,GeneralSection,No,YES
+planMoreChildrenDetails,general,Please share your thoughts,textarea,CONDITIONAL,planMoreChildren → yes,GeneralSection,No,YES
+smokeVape,general,Do you currently smoke or vape?,yesno,YES,,GeneralSection,No,YES
+smokingHistory,general,Do you have a history of smoking in the past?,yesno,YES,,GeneralSection,No,YES
+smokingHistoryDetails,general,For how long and when did you quit?,text,CONDITIONAL,smokingHistory → yes,GeneralSection,No,YES
+householdSmoker,general,Does anyone else in your household currently smoke or vape?,yesno,YES,,GeneralSection,No,YES
+householdSmokerDetails,general,"Please provide details (who, how often, where and what)",textarea,CONDITIONAL,householdSmoker → yes,GeneralSection,No,YES
+alcoholDrugs,general,Do you drink alcohol or use recreational drugs?,yesno,YES,,GeneralSection,No,YES
+alcoholDrugsDetails,general,Please list frequency and type,textarea,CONDITIONAL,alcoholDrugs → yes,GeneralSection,No,YES
+advisedLimitSubstances,general,Have you ever been advised to limit your use of alcohol or any drugs?,yesno,YES,,GeneralSection,No,YES
+advisedLimitDetails,general,Please provide details,textarea,CONDITIONAL,advisedLimitSubstances → yes,GeneralSection,No,YES
+householdControlledSubstances,general,"Does anyone in your household drink alcohol, use controlled substances or recreational drugs?",yesno,YES,,GeneralSection,No,YES
+householdSubstancesDetails,general,"What, how often, and when/where?",textarea,CONDITIONAL,householdControlledSubstances → yes,GeneralSection,No,YES
+householdSubstancesPurpose,general,"If a controlled substance, what is the purpose for use?",textarea,CONDITIONAL,householdControlledSubstances → yes,GeneralSection,No,YES
+typicalDiet,general,"Describe your typical diet and eating habits. Do you cook at home? Eat out? Dietary restrictions?",textarea,YES,,GeneralSection,No,YES
+exerciseFrequency,general,List the forms and frequency of regular exercise,textarea,YES,,GeneralSection,No,YES
+mentalHealthDiagnosis,health,"Have you ever been diagnosed with any mental health challenge (depression, anxiety, bipolar, postpartum)?",yesno,YES,,HealthSection,No,YES
+mentalHealthDetails,health,Please provide details,textarea,CONDITIONAL,mentalHealthDiagnosis → yes,HealthSection,No,YES
+mentalHealthHospitalization,health,Have you ever been hospitalized for a mental health challenge?,yesno,YES,,HealthSection,No,YES
+mentalHealthHospDetails,health,Please provide details,textarea,CONDITIONAL,mentalHealthHospitalization → yes,HealthSection,No,YES
+mentalHealthMedication,health,Do you currently or have you ever taken medication for a mental health challenge?,yesno,YES,,HealthSection,No,YES
+mentalHealthMedDetails,health,Please list dates and medication type,textarea,CONDITIONAL,mentalHealthMedication → yes,HealthSection,No,YES
+counselingTherapy,health,Are you currently or have you ever participated in counseling or psychotherapy?,yesno,YES,,HealthSection,No,YES
+counselingDetails,health,Please provide details,textarea,CONDITIONAL,counselingTherapy → yes,HealthSection,No,YES
+familyMentalHealth,health,"Has anyone in your family ever had a mental health challenge (depression, anxiety, alcoholism, drug abuse)?",yesno,YES,,HealthSection,No,YES
+familyMentalHealthDetails,health,Please explain,textarea,CONDITIONAL,familyMentalHealth → yes,HealthSection,No,YES
+domesticViolence,health,Were you ever involved in a relationship where you experienced domestic violence?,yesno,YES,,HealthSection,No,YES
+domesticViolenceDetails,health,Please explain,textarea,CONDITIONAL,domesticViolence → yes,HealthSection,No,YES
+nonPrescriptionMeds,health,"Non-prescription medication use (Tylenol, Advil, allergy/cold medication, etc.)",textarea,YES,,HealthSection,No,YES
+prescriptionMeds,health,"Prescription medications taken in the past 5 years, their purpose and dates of use",textarea,YES,,HealthSection,No,YES
+currentMeds,health,Current medications and supplements,textarea,YES,,HealthSection,No,YES
+allergies,health,Do you currently have any allergies?,textarea,YES,,HealthSection,No,YES
+medicalConditions,health,Do you currently have any medical conditions we should be made aware of?,textarea,YES,,HealthSection,No,YES
+surgeries,health,Hospitalization/surgery history over past 5 years. List surgery and year.,textarea,YES,,HealthSection,No,YES
+diseaseHistory,health,"Health conditions history (checkbox group: diabetes, asthma, cancer, etc.)",checkbox-group,No,,HealthSection,No,YES
+diseaseHistoryDetails,health,Please explain any checked conditions,textarea,CONDITIONAL,diseaseHistory → has checked items,HealthSection,No,YES
+currentlyEmployed,employment,Are you currently employed?,yesno,YES,,EmploymentSection,No,YES
+employmentIndustry,employment,Please share details on the industry you work in,textarea,CONDITIONAL,currentlyEmployed → yes,EmploymentSection,No,YES
+workHours,employment,"How many hours a week do you work, and what are your typical hours?",text,CONDITIONAL,currentlyEmployed → yes,EmploymentSection,No,YES
+occupation,employment,What specifically is your occupation/position?,text,CONDITIONAL,currentlyEmployed → yes,EmploymentSection,No,YES
+lengthAtEmployer,employment,How long have you worked for your current employer?,text,CONDITIONAL,currentlyEmployed → yes,EmploymentSection,No,YES
+hourlyRate,employment,What is your earned hourly rate?,currency,No (conditional display only),,EmploymentSection,No,YES
+weeklyIncome,employment,What is your approximate weekly income?,currency,No (conditional display only),,EmploymentSection,No,YES
+partnerOccupation,employment,Spouse/partner's occupation,text,No,,EmploymentSection,No,YES
+partnerWeeklyIncome,employment,Spouse/partner's approximate weekly income,currency,No,,EmploymentSection,No,YES
+governmentAssistance,employment,"Do you receive any government assistance (WIC, food stamps)?",yesno,YES,,EmploymentSection,No,YES
+governmentAssistanceDetails,employment,Please explain,textarea,CONDITIONAL,governmentAssistance → yes,EmploymentSection,No,YES
+favoriteMusic,interests,Favorite music,text,YES,,InterestsSection,No,YES
+favoriteMovie,interests,Favorite movie,text,YES,,InterestsSection,No,YES
+favoriteBook,interests,Favorite book,text,YES,,InterestsSection,No,YES
+favoriteFoods,interests,Favorite foods,text,YES,,InterestsSection,No,YES
+favoriteColor,interests,Favorite color,text,YES,,InterestsSection,No,YES
+favoriteFlower,interests,Favorite flower,text,YES,,InterestsSection,No,YES
+pets,interests,"Do you have any pets, including chickens and livestock?",textarea,YES,,InterestsSection,No,YES
+catLitter,interests,"If you have cats, who changes the litter box?",text,CONDITIONAL,pets → contains 'cat',InterestsSection,No,YES
+hobbies,interests,What do you like to do in your free time?,textarea,YES,,InterestsSection,No,YES
+collections,interests,Do you collect anything special?,text,No,,InterestsSection,No,YES
+dreamTravel,interests,Where would you most like to travel and why?,textarea,YES,,InterestsSection,No,YES
+personality,interests,How would you describe yourself and your personality?,textarea,YES,,InterestsSection,No,YES
+previousSurrogate,experiencedSurrogate,Have you ever been a surrogate before?,yesno,No,,ExperiencedSurrogateSection,No,YES
+surrogacyTimes,experiencedSurrogate,How many times?,number,No,previousSurrogate → yes,ExperiencedSurrogateSection,No,YES
+journeys,experiencedSurrogate,"Journey details array (reName, reDates, outcome, weeksDelivered, transfers, embryoSource, complications, unsuccessfulCycles)",array,No,previousSurrogate → yes,ExperiencedSurrogateSection,No,YES
+overallExperience,experiencedSurrogate,"Overall surrogacy experience — what you liked, what to avoid next time",textarea,No,previousSurrogate → yes,ExperiencedSurrogateSection,No,YES
+reasonForSurrogacy,hopesWishes,"Why do you want to become a surrogate, and how long have you been thinking about it?",textarea,YES,,HopesWishesSection,No,YES
+compensationUse,hopesWishes,How do you plan to use the money from being a surrogate?,textarea,YES,,HopesWishesSection,No,YES
+surrogacyFit,hopesWishes,How do you see surrogacy fitting into your life?,textarea,YES,,HopesWishesSection,No,YES
+supportSystem,hopesWishes,Who will be your resource to help with children for appointments / bed rest? Provide specific details.,textarea,YES,,HopesWishesSection,No,YES
+threeTransferAttempts,hopesWishes,Are you willing to have 3 transfer attempts with the same IP if needed?,yesno,YES,,HopesWishesSection,No,YES
+reduceCaffeine,hopesWishes,Are you willing to reduce caffeine and soda during pregnancy?,yesno,YES,,HopesWishesSection,No,YES
+lifestyleChanges,hopesWishes,Are you open to making other lifestyle changes at IP request?,textarea,YES,,HopesWishesSection,No,YES
+pumpBreastmilk,hopesWishes,Are you open to pumping colostrum and breast milk for your IP?,select,YES,,HopesWishesSection,No,YES
+idealIPs,hopesWishes,Describe your ideal intended parent(s),textarea,YES,,HopesWishesSection,No,YES
+preferredCommunication,hopesWishes,What is the best form of communication for you?,select,YES,,HopesWishesSection,No,YES
+ipInvolvement,hopesWishes,How much involvement from the Intended Parents during pregnancy?,select,YES,,HopesWishesSection,No,YES
+ipsAtAppointments,hopesWishes,Would you be willing to have the IPs at doctor appointments and delivery?,select,YES,,HopesWishesSection,No,YES
+ipsAtAppointmentsDetails,hopesWishes,Please explain,textarea,CONDITIONAL,ipsAtAppointments → No,HopesWishesSection,No,YES
+deliveryRoomOthers,hopesWishes,"Is there anyone else you'd like in the delivery room (partner, friend, mom)?",textarea,YES,,HopesWishesSection,No,YES
+ipsCantAttend,hopesWishes,How do you feel about IPs who cannot attend regularly?,textarea,YES,,HopesWishesSection,No,YES
+ipsWithChildren,hopesWishes,Are you willing to match with IPs who already have children?,yesno,YES,,HopesWishesSection,No,YES
+openLGBTQ,hopesWishes,Are you open to matching with LGBTQ+ individuals/couples?,yesno,YES,,HopesWishesSection,No,YES
+openSingleIP,hopesWishes,Are you willing to match with a single Intended Parent?,yesno,YES,,HopesWishesSection,No,YES
+transferAnotherState,hopesWishes,Are you willing to have the embryo transfer in another state?,yesno,YES,,HopesWishesSection,No,YES
+ipsOutsideUS,hopesWishes,Are you willing to match with IPs who live outside of the U.S.?,yesno,YES,,HopesWishesSection,No,YES
+childCareTraveling,hopesWishes,Who will care for your children when you need to travel for surrogacy?,textarea,YES,,HopesWishesSection,No,YES
+whenReadyToBegin,hopesWishes,When are you ready to begin?,select,YES,,HopesWishesSection,No,YES
+postBirthRelationship,hopesWishes,Ideal relationship with IP(s) post birth,textarea,YES,,HopesWishesSection,No,YES
+cvsAmnio,hopesWishes,"If recommended by a physician, would you undergo CVS/amniocentesis?",yesno,YES,,HopesWishesSection,No,YES
+cvsAmnioDetails,hopesWishes,Please explain,textarea,CONDITIONAL,cvsAmnio → no,HopesWishesSection,No,YES
+willingnessToTerminate,hopesWishes,Willingness to terminate for a serious genetic or medical condition?,textarea,YES,,HopesWishesSection,No,YES
+partnerAgreesTermination,hopesWishes,Would your spouse/support person support the decision for termination?,yesno,YES (if has partner),,HopesWishesSection,No,YES
+conditionsWontTerminate,hopesWishes,Are there any conditions where you would not terminate? Please explain.,textarea,YES,,HopesWishesSection,No,YES
+embryosToTransfer,hopesWishes,How many embryos are you in agreement to transfer at a time?,select,YES,,HopesWishesSection,No,YES
+carryTwins,hopesWishes,"If embryo splits into twins, are you willing to carry twins?",yesno,YES,,HopesWishesSection,No,YES
+desiredCompensation,hopesWishes,Surrogate base fee,currency,YES,,HopesWishesSection,No,YES
+additionalComments,hopesWishes,Message to potential Intended Parent(s),textarea,No,,HopesWishesSection,No,YES
+usCitizen,followUp (stored in original section),Are you a U.S. Citizen or Permanent Resident?,yesno,YES,,FollowUpSection,YES,YES
+realId,followUp,Do you have a Real ID?,yesno,YES,,FollowUpSection,YES,YES
+validPassport,followUp,Do you have a current/valid passport?,yesno,YES,,FollowUpSection,YES,YES
+otherLanguages,followUp,Do you (or anyone in your household) speak a language other than English?,yesno,YES,,FollowUpSection,YES,YES
+otherLanguagesDetails,followUp,Which language(s)?,text,CONDITIONAL,otherLanguages → yes,FollowUpSection,YES,YES
+breastfeeding,followUp,Are you currently breastfeeding/lactating?,yesno,YES,,FollowUpSection,YES,YES
+breastfeedingStopDate,followUp,When do you expect to stop?,text,CONDITIONAL,breastfeeding → yes,FollowUpSection,YES,YES
+cycleLength,followUp,Are your cycles typically between 28 to 30 days?,yesno,YES,,FollowUpSection,YES,YES
+cycleLengthDetails,followUp,What is your typical cycle length?,text,CONDITIONAL,cycleLength → no,FollowUpSection,YES,YES
+contraceptiveMethod,followUp,Which contraceptive method do you currently use?,text,YES,,FollowUpSection,YES,YES
+lastPeriod,followUp,When was the start of your last period?,text,YES,,FollowUpSection,YES,YES
+nearestNICU,followUp,What is the nearest hospital with a Level II or III NICU?,text,YES,,FollowUpSection,YES,YES
+willingToTravelNICU,followUp,Are you ok traveling to a hospital with at least a Level II NICU?,yesno,YES,,FollowUpSection,YES,YES
+timeToConceive,followUp,How long after stopping contraceptives did it take to get pregnant?,text,YES,,FollowUpSection,YES,YES
+childrenSpecialNeeds,followUp,Do any of your children have special needs or medical conditions?,yesno,YES,,FollowUpSection,YES,YES
+placedForAdoption,followUp,Have you ever placed a child for adoption?,yesno,YES,,FollowUpSection,YES,YES
+gunsOwned,followUp,Do you own any guns?,yesno,YES,,FollowUpSection,YES,YES
+piercingsTattoos,followUp,Do you have any piercings or tattoos?,yesno,YES,,FollowUpSection,YES,YES
+lastTattooDate,followUp,When did you have your last tattoo?,text,CONDITIONAL,piercingsTattoos → yes,FollowUpSection,YES,YES
+nonSterilePiercing,followUp,Have you been tattooed or had a non-sterile skin piercing in the last 12 months?,yesno,YES,,FollowUpSection,YES,YES
+eatingDisorders,followUp,Do you have a history of eating disorders?,yesno,YES,,FollowUpSection,YES,YES
+criminalHistory,followUp,Have you or anyone in your household ever been arrested or convicted?,yesno,YES,,FollowUpSection,YES,YES
+recentTravel,followUp,Have you traveled outside of the U.S. in the last 6 months?,yesno,YES,,FollowUpSection,YES,YES
+travelPlans,followUp,Do you plan on traveling within or outside of the U.S.?,yesno,YES,,FollowUpSection,YES,YES
+sleepIssues,followUp,Do you have any issues with sleeping?,yesno,YES,,FollowUpSection,YES,YES
+sleepHours,followUp,How many hours do you typically sleep each night?,text,YES,,FollowUpSection,YES,YES
+reliableVehicle,followUp,Do you have a reliable vehicle to drive?,yesno,YES,,FollowUpSection,YES,YES
+autoInsurance,followUp,Do you have automobile insurance?,yesno,YES,,FollowUpSection,YES,YES
+validLicense,followUp,Do you have a valid driver's license?,yesno,YES,,FollowUpSection,YES,YES
+partnerFdaTests,followUp,Will your partner submit to the FDA required lab tests?,yesno,YES,,FollowUpSection,YES,YES
+openToVaccinations,followUp,Are you open to being vaccinated if required for the surrogacy process?,yesno,YES,,FollowUpSection,YES,YES
+lastPhysical,followUp,When was your last annual physical?,text,YES,,FollowUpSection,YES,YES
+lastPap,followUp,Most recent Pap and results,text,YES,,FollowUpSection,YES,YES
+healthInsurance,followUp,Do you have health insurance coverage?,yesno,YES,,FollowUpSection,YES,YES
+insuranceType,followUp,Is it a private/personal policy or through an employer?,text,CONDITIONAL,healthInsurance → yes,FollowUpSection,YES,YES
+educationLevel,followUp,Highest level of education,select,YES,,FollowUpSection,YES,YES
+currentlyInSchool,followUp,Are you currently in school?,yesno,YES,,FollowUpSection,YES,YES
+currentlyInSchoolDetails,followUp,Please provide details,text,CONDITIONAL,currentlyInSchool → yes,FollowUpSection,YES,YES
+compensationNegotiable,followUp,Is your Surrogate Base Fee negotiable?,yesno,YES,,FollowUpSection,YES,YES

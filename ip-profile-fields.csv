@@ -1,0 +1,55 @@
+Field Key,Section,Label / Question,Field Type,Per Person?,Conditional? (parent → trigger),Required for Completion?
+reasonForSurrogacy,fertility,What led to your decision to pursue surrogacy?,textarea,No,,YES
+fertilityProcedures,fertility,What fertility procedures have you tried?,textarea,No,,YES
+hasFrozenEmbryos,fertility,Do you have frozen embryos?,yesno,No,,YES
+frozenEmbryoCount,fertility,How many frozen embryos?,text,No,hasFrozenEmbryos → yes,CONDITIONAL
+embryosGeneticallyTested,fertility,Have the embryos been genetically tested?,textarea,No,,YES
+usingEggDonor,fertility,Using an egg donor?,yesno,No,,YES
+usingSpermDonor,fertility,Using a sperm donor?,yesno,No,,YES
+embryoTransferCount,fertility,"Transfer one embryo or two? (options: 1, 2, Undecided)",select,No,,YES
+anticipatedTransferDate,fertility,When do you anticipate having the embryo transfer?,text,No,,YES
+hasOtherChildren,fertility,Do you have other children?,yesno,No,,YES
+otherChildrenDetails,fertility,How many and what age(s)?,text,No,hasOtherChildren → yes,CONDITIONAL
+clinicName,surrogacy,Name and location of your clinic and RE?,text,No,,YES
+surrogatePreference,surrogacy,"Prefer single, married, or no preference for surrogate? (options: Single, Married, No Preference)",select,No,,YES
+locationPreference,surrogacy,Preference on where surrogate resides?,yesno,No,,YES
+locationPreferenceStates,surrogacy,Which state(s)?,text,No,locationPreference → yes,CONDITIONAL
+firstTimeOrRepeat,surrogacy,First time or repeat surrogate?,textarea,No,,YES
+attendAppointments,surrogacy,Attend milestone OB appointments?,yesno,No,,YES
+terminationForAbnormalities,surrogacy,"If abnormalities, would you terminate?",textarea,No,,YES
+relationshipWithSurrogate,surrogacy,What kind of relationship during pregnancy?,textarea,No,,YES
+inDeliveryRoom,surrogacy,Want to be in the delivery room?,yesno,No,,YES
+tandemSurrogacy,surrogacy,Pursue tandem surrogacy?,yesno,No,,YES
+whatTellChild,surrogacy,What will you tell your child about the birth process?,textarea,No,,YES
+messageToGC,surrogacy,Anything you'd like to say to a potential GC?,textarea,No,,YES
+dob,personal,Date of Birth,date,YES (ip1 + ip2),,YES
+birthplace,personal,Birthplace,text,YES (ip1 + ip2),,YES
+ethnicity,personal,Ethnicity,text,YES (ip1 + ip2),,YES
+languages,personal,Languages,text,YES (ip1 + ip2),,YES
+usCitizen,personal,US Citizen?,yesno,YES (ip1 + ip2),,YES
+citizenshipCountry,personal,Citizenship Country,text,YES (ip1 + ip2),usCitizen → no,CONDITIONAL
+criminalHistory,personal,Ever been arrested or convicted?,textarea,YES (ip1 + ip2),,YES
+generalHealth,health,General health condition,textarea,YES (ip1 + ip2),,YES
+medicalConditions,health,Any medical conditions?,textarea,YES (ip1 + ip2),,YES
+hepatitisBC,health,Tested positive for Hep B or C?,textarea,YES (ip1 + ip2),,YES
+hivAids,health,HIV/AIDS?,yesno,YES (ip1 + ip2),,YES
+mentalHealthDiagnosis,health,Mental health diagnosis?,yesno,YES (ip1 + ip2),,YES
+mentalHealthDiagnosisDetails,health,Diagnosis details,textarea,YES (ip1 + ip2),mentalHealthDiagnosis → yes,CONDITIONAL
+mentalHealthMedication,health,Mental health medication?,yesno,YES (ip1 + ip2),,YES
+mentalHealthMedicationDetails,health,Medication details,textarea,YES (ip1 + ip2),mentalHealthMedication → yes,CONDITIONAL
+mentalHealthHospitalization,health,Mental health hospitalization?,yesno,YES (ip1 + ip2),,YES
+mentalHealthHospitalizationDetails,health,Hospitalization details,textarea,YES (ip1 + ip2),mentalHealthHospitalization → yes,CONDITIONAL
+healthConditionsList,health,"Health conditions (check all that apply: Blood Transfusion, Polio or Meningitis, High Blood Pressure, Scarlet Fever, Nervous Breakdown, Heart Disease, Low Blood Pressure, Gonorrhea/Syphilis, Jaundice, Epilepsy, Migraines, Tuberculosis, Cancer, Hepatitis, HIV/AIDS, Herpes, Chicken Pox, None of the above)",checkboxGroup,YES (ip1 + ip2),,YES
+healthConditionsDetails,health,Dates for any of the above,textarea,YES (ip1 + ip2),healthConditionsList → has checked items (not 'None of the above'),CONDITIONAL
+favoriteMusic,history,Favorite Music,text,YES (ip1 + ip2),,YES
+favoriteMovie,history,Favorite Movie,text,YES (ip1 + ip2),,YES
+favoriteBook,history,Favorite Book,text,YES (ip1 + ip2),,YES
+favoriteFoods,history,Favorite Foods,text,YES (ip1 + ip2),,YES
+favoriteColor,history,Favorite Color,text,YES (ip1 + ip2),,YES
+favoriteFlower,history,Favorite Flower,text,YES (ip1 + ip2),,YES
+pets,history,Pets,textarea,YES (ip1 + ip2),,YES
+freeTime,history,What do you do in your free time?,textarea,YES (ip1 + ip2),,YES
+collections,history,Collections,text,YES (ip1 + ip2),,YES
+travelDestination,history,Favorite travel destination,textarea,YES (ip1 + ip2),,YES
+personality,history,Describe yourself and personality,textarea,YES (ip1 + ip2),,YES
+messageToSurrogate,history,What else would you like to tell the prospective surrogate?,textarea,YES (ip1 + ip2),,YES
