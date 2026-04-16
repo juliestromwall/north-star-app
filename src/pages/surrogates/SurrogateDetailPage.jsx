@@ -418,6 +418,7 @@ export default function SurrogateDetailPage() {
             if (result?.status) setProfileStatus(result.status)
             const uid = result?.user_id || found.userId || found.user_id
             if (uid) loadPhotos(uid)
+            else loadPhotos(null) // still try case ID path
           } else {
             // Fallback: email might have changed — try looking up by user_id
             const uid = found.userId || found.user_id
@@ -445,30 +446,25 @@ export default function SurrogateDetailPage() {
 
       function loadPhotos(uid) {
         const caseId = String(found?.id || '')
-        const paths = [
-          listProfilePhotos(uid).catch(() => []),
-          listProfilePhotos(`${uid}/headshot`).catch(() => []),
-          listProfilePhotos(`${uid}/portrait`).catch(() => []),
-        ]
-        // Also check intake case ID path if different from auth UUID
-        if (caseId && caseId !== uid) {
-          paths.push(
-            listProfilePhotos(caseId).catch(() => []),
-            listProfilePhotos(`${caseId}/headshot`).catch(() => []),
-            listProfilePhotos(`${caseId}/portrait`).catch(() => []),
-          )
-        }
-        Promise.all(paths).then(results => {
-          let gallery = results[0], headshots = results[1], portraits = results[2]
-          if (results.length > 3) {
-            gallery = [...gallery, ...results[3]]
-            headshots = [...headshots, ...results[4]]
-            portraits = [...portraits, ...results[5]]
+        const ids = [uid, caseId].filter(Boolean)
+        const uniqueIds = [...new Set(ids)]
+
+        async function fetchAllPhotos() {
+          let allHeadshots = [], allPortraits = [], allGallery = []
+          for (const id of uniqueIds) {
+            const [gallery, headshots, portraits] = await Promise.all([
+              listProfilePhotos(id).catch(() => []),
+              listProfilePhotos(`${id}/headshot`).catch(() => []),
+              listProfilePhotos(`${id}/portrait`).catch(() => []),
+            ])
+            allHeadshots.push(...headshots)
+            allPortraits.push(...portraits)
+            allGallery.push(...gallery)
           }
-          // Order: headshot (cover) first, then portrait, then gallery
-          const all = [...headshots, ...portraits, ...gallery]
+          const all = [...allHeadshots, ...allPortraits, ...allGallery]
           setPhotos(all)
-        })
+        }
+        fetchAllPhotos()
         getPortraitPhotoUrl(uid).then(url => {
           if (url) setPortraitUrl(url)
         }).catch(() => {})
@@ -3615,13 +3611,19 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const previewRef = useRef(null)
 
   // Load photos fresh for preview (headshot first, then portrait, then gallery)
-  // Also try the profile record's user_id since that's what the portal uses for uploads
+  // Check multiple paths: auth UUID, case ID, and profile record's user_id
   async function loadPreviewPhotos() {
     const uid = surrogate?.userId || surrogate?.user_id
     const caseId = String(surrogate?.id || '')
-    // Also get user_id from the profile record if available
-    const profileUid = profileData?._userId
-    const ids = [uid, caseId, profileUid].filter(Boolean)
+    // Also fetch user_id from surrogate_profiles table (most reliable — set by portal)
+    let profileUid = null
+    if (surrogate?.email) {
+      try {
+        const profileRecord = await fetchSurrogateProfileByEmail(surrogate.email)
+        if (profileRecord?.user_id) profileUid = profileRecord.user_id
+      } catch {}
+    }
+    const ids = [uid, profileUid, caseId].filter(Boolean)
     const uniqueIds = [...new Set(ids)]
     let allHeadshots = [], allPortraits = [], allGallery = []
     for (const id of uniqueIds) {
