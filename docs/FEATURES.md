@@ -28,7 +28,7 @@
 | MatchedJourneysPage | src/pages/journeys/MatchedJourneysPage.jsx | Dashboard for matched surrogacy journeys with tile/list views, stage filters, search |
 | ComingSoonPage | src/pages/ComingSoonPage.jsx | Public landing page at root URL |
 | AdminDashboard | src/pages/dashboard/AdminDashboard.jsx | Live stats (Surrogates, Intended Parents, Matches in Progress, Matched Journeys), clickable Surrogates tile → Screening Overview with card-style stage filters (Pre-Qualification/Screening/Matching), spreadsheet table, match pipeline, quick actions |
-| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Profile card, application CTA (3 states: not reviewed/reviewed/app released), tasks |
+| SurrogateDashboard | src/pages/dashboard/SurrogateDashboard.jsx | Clean white cards with colored accent bars (green/amber/indigo). Application card + Profile card with dynamic titles (My Profile / Profile Submitted / Profile Approved). Submit scrolls to top + shows date + contact info. First-visit welcome modal (photos reminder). No auto-popup at 100%. |
 | PortalApplicationPage | src/pages/portal/PortalApplicationPage.jsx | 7-section application form (Personal Info, Profile Follow Up, Confidential, References, Clinic/Hospital, Payment Preference, Social Media Release) with validation, accordion, submit flow, read-only after submission |
 | PortalDocumentsPage | src/pages/portal/PortalDocumentsPage.jsx | Surrogate portal documents: signed e-sign docs + user uploads |
 | SignReleaseBatchPage | src/pages/esign/SignReleaseBatchPage.jsx | Batch signing page for medical records releases — one link, verify once, sign all, PDF generation per form |
@@ -97,6 +97,13 @@
 | AdminPhotosSection | src/pages/surrogates/SurrogateDetailPage.jsx | Unified photo grid with PROFILE/COVER badges, crop/rotate/resize editor, inactive toggle for shared profiles |
 | PhotoLightbox | src/pages/profile/SurrogateProfilePage.jsx | Full-screen photo lightbox modal with arrows, thumbnails, counter — used in ProfilePreview |
 | IPDashboard | src/pages/dashboard/IPDashboard.jsx | Real IP portal dashboard: case info, partner info, coordinator, quick links |
+| RecipientInput | src/components/shared/ComposeWindows.jsx | Gmail-style email autocomplete dropdown for To/Cc/Bcc fields. Suggestions from sent + inbox messages, 24h localStorage cache. Keyboard nav (↑↓/Enter/Tab/Esc). |
+| fetchEmailContacts | src/lib/google.js | Pulls 200 sent + 200 inbox messages, extracts unique emails from To/Cc/Bcc/From headers, sorts by frequency, caches in localStorage |
+| addEmailContactToCache | src/lib/google.js | Updates contact cache after sending so new recipients appear immediately |
+| Future Tasks Dropdown | src/pages/dashboard/AdminDashboard.jsx, src/components/shared/CaseTasksWidget.jsx | Tasks due >7 days out collapse into "Future Tasks (N)" dropdown on dashboard + case widgets |
+| Julie & Nicole Joint Tasks | src/components/shared/CaseTasksWidget.jsx, src/pages/dashboard/AdminDashboard.jsx | Combo option in task assign dropdown stores comma-separated emails. fetchMyTasks matches via OR/ilike so both see shared tasks |
+| Dashboard Task Expand/Delete/Uncomplete | src/pages/dashboard/AdminDashboard.jsx | Click row to expand (case, assigned, created by, completed by, notes). Trash icon to delete. Click checkmark on completed task to mark incomplete. |
+| docs/AUTO_TASKS.csv | docs/AUTO_TASKS.csv | Catalog of all 26 auto-generated task triggers: title, assignee, priority, due date, source file |
 | IPProfilePage | src/pages/profile/IPProfilePage.jsx | Read-only IP profile view: personal, partner, location, fertility info |
 | ProfileRouter | src/pages/profile/ProfileRouter.jsx | Routes /my-profile to IPProfilePage or SurrogateProfilePage based on role |
 | findCaseByEmail | src/lib/db.js | Helper that finds intake case by primary email OR partner ip2Email (supports IP couple logins) |

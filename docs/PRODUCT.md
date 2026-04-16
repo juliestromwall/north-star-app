@@ -316,3 +316,9 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 | Expenses to Pay | Non-escrow expenses requiring direct agency payment. Auto-creates task for Julie Allgood. Tracked on Expense Tracker "Expenses to Pay" tab. |
 | Profile Follow Up Questions | Additional screening questions (35 fields) shown to surrogates after Personal Information in their application. Covers lifestyle, health, fertility, education, employment. |
 | Psych Check-In Sheet | Password-protected shared page for external psych provider. HIPAA compliant — SHA-256 hashed password, no portal login required. |
+| Experienced Surrogate | Quiz question (Yes/No) added to step 4. Pre-fills profile's experiencedSurrogate.previousSurrogate. Hides "Was this a surrogacy pregnancy?" in pregnancy history if "No". |
+| Joint Task Assignment | "Julie & Nicole" combo option in task dropdowns — stores comma-separated emails so both see the task on their dashboards. Either can complete it. |
+| Future Tasks | Tasks due more than 7 days out collapse into a "Future Tasks (N)" dropdown to keep the active list focused on the next week. |
+| Agency Payments | 3rd Agency Payment auto-task fires when Medical Clearance is logged complete on a journey. 4th Agency Payment auto-task fires when heartbeat confirmed. Both joint to Julie & Nicole. |
+| 20-Week Check-In | Auto-task created on heartbeat confirmation. Calculated as 121 days post-transfer (5-day embryo: 2w5d at transfer + 17w2d = 20w0d). Joint task: Julie & Nicole. |
+| Reference Check Auto-Task | When Reference Check on Screening Checklist is logged "Requested", auto-creates "Complete Reference Checks for {GC}" assigned to intake@abcsurrogacy.com, due same day. |

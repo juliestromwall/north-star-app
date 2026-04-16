@@ -1,5 +1,81 @@
 # Session Log
 
+## 2026-04-16 (Dashboard UI Polish, Quiz Additions, Task Enhancements, Gmail Autocomplete, Auto-Tasks)
+
+**Worked on:** Surrogate dashboard visual redesign, experienced surrogate quiz question + profile updates, task assignment for Julie & Nicole (joint), Future Tasks dropdown, delete/expand/incomplete on dashboard tasks, Gmail recipient autocomplete, more auto-task triggers, documentation of all auto-tasks.
+
+**Changes made:**
+
+Surrogate Dashboard UI:
+- Removed "We're so glad you're here" subtitle from all GC/IP dashboards
+- Clean white cards with colored accent bars (replaces shadcn Card boxes + tight spacing)
+- Application card: green accent on submit, indigo→pink gradient while pending
+- Profile card: dynamic title — "My Profile" → "Profile Submitted" (amber) → "Profile Approved" (green)
+- Application submit: scroll to top + updated message with date, next steps, contact for edits
+- Contact footer simplified to inline text (no card)
+- IP dashboard subtitle also removed
+
+Profile:
+- Removed 100% auto-popup (triggered mid-keystroke on long text)
+- First-visit welcome modal (localStorage-tracked) about photos + submission
+- Submit button always visible — opens warning or submit dialog based on %
+- Fix: isPregnancyComplete missing import (pregnancy history crash)
+
+Surrogate Quiz:
+- New question on step 4: "Are you an experienced surrogate?" (Yes/No)
+- Quiz answer pre-fills profile's experiencedSurrogate.previousSurrogate
+- Pregnancy History: removed "Ectopic Pregnancy" from complications checklist (already an outcome)
+- Pregnancy History: "Was this a surrogacy pregnancy?" only shows if experienced
+
+Admin Views:
+- GCApplicationTab quiz section: added Experienced Surrogate field + (BE) Referral toggle
+- SurrogateDetailPage quiz edit form: added Experienced Surrogate yes/no + saved to answers
+
+Task Assignment — Julie & Nicole (joint):
+- Add "Julie & Nicole" combo option in task assign dropdowns (case widget + dashboard)
+- Combo stores comma-separated emails; fetchMyTasks matches via OR/ilike
+- Task row displays combo name "Julie & Nicole" instead of raw emails
+- Both dashboard Add Task + Edit Task dropdowns show the combo
+
+Future Tasks Dropdown:
+- Tasks due >7 days out collapse into "Future Tasks (N)" dropdown on dashboard + case widgets
+- Current (≤7 days or no due date) tasks always shown
+
+Dashboard Task Enhancements:
+- Delete button (trash icon) on all task rows
+- Click task row to expand: shows case link, assigned to, created by, completed by, notes
+- Click green checkmark on completed task to mark incomplete (moves back to open)
+
+Gmail Recipient Autocomplete:
+- fetchEmailContacts() pulls 200 sent + 200 inbox messages, extracts unique addresses
+- 24h localStorage cache per user
+- addEmailContactToCache() updates after each send
+- RecipientInput component with dropdown: name + email + avatar, keyboard nav (arrows/Enter/Tab/Esc)
+- Used for To, Cc, Bcc fields
+- Supports comma/semicolon-separated multi-recipient input
+
+New Auto-Tasks:
+- Heartbeat confirmed → "🤰 {GC Name} - 20wks Check in with IP(s)" for Julie & Nicole (121 days post-transfer)
+- Heartbeat confirmed → "Confirmation of Heartbeat - Collect 4th Agency Payment" for Julie & Nicole
+- Medical Clearance complete (journey) → "{GC Name} Medically Cleared - Collect 3rd Agency Payment" for Julie & Nicole
+- Reference Check requested → "Complete Reference Checks for {GC Name}" for intake@abcsurrogacy.com
+
+Email Fix:
+- All Jennifer Rose auto-tasks updated from jennifer@ → intake@abcsurrogacy.com (testimony, reference check)
+
+Documentation:
+- docs/AUTO_TASKS.csv — 26 auto-task triggers with title, assignee, priority, due date, source file
+
+**Next steps:**
+- Pick up in the am — user signed off for the night
+- Match-Centric Case Architecture plan still pending (not started)
+- Consider configurable auto-task rules from Settings
+
+**Open questions:**
+- None
+
+---
+
 ## 2026-04-14 — 2026-04-15 Session B (Email, Admin Notes, Tasks, Auto-Tasks, Records Summary)
 
 **Worked on:** Email compose improvements, admin notes rich text editing, dashboard task features, auto-task creation for checklists, records summary merge/complete, pregnancy multiples, Terms & Privacy Policy
