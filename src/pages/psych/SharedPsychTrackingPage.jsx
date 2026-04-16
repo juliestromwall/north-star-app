@@ -601,7 +601,7 @@ export default function SharedPsychTrackingPage() {
 
       {/* Check-In Report Builder Dialog */}
       <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="!max-w-[95vw] sm:!max-w-[1400px] !w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b-2 border-[#283693]/20">
             <DialogTitle asChild>
               <h2 className="text-2xl font-bold text-[#283693] flex items-center gap-2">
