@@ -4446,7 +4446,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <span className="text-[10px] text-gray-400 uppercase">What years were you seen there?</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reDates || ''} onChange={e => updateItem('reDates', e.target.value)} placeholder="e.g. 2022-2023" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 col-span-2">
             <span className="text-[10px] text-gray-400 uppercase">What was the outcome of this surrogacy journey?</span>
             <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
               <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
@@ -4456,14 +4456,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 ))}
               </SelectContentUI>
             </SelectUI>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Weeks when delivered</span>
-            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weeksDelivered || ''} onChange={e => updateItem('weeksDelivered', e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">How many transfers until pregnant?</span>
-            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.transfers || ''} onChange={e => updateItem('transfers', e.target.value)} />
           </div>
         </div>
         <div className="space-y-1">

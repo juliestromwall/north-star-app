@@ -1534,12 +1534,10 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                 <div key={i} className="rounded-xl bg-[#fdf8f3] p-4 space-y-2">
                   <p className="text-xs font-bold text-[#283693] uppercase">Journey #{i + 1}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
-                    <PVField label="Reproductive Doctor" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
-                    <PVField label="IVF Clinic Location" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
-                    <PVField label="Years seen there" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
-                    <PVField label="Outcome of surrogacy journey" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
-                    <PVField label="Weeks when delivered" value={j.weeksDelivered} fp={`experiencedSurrogate.journeys.${i}.weeksDelivered`} />
-                    <PVField label="Transfers until pregnant" value={j.transfers} fp={`experiencedSurrogate.journeys.${i}.transfers`} />
+                    <PVField label="What was the name of the Reproductive Doctor?" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
+                    <PVField label="What City/State was the IVF clinic located in?" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
+                    <PVField label="What years were you seen there?" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
+                    <PVField label="What was the outcome of this surrogacy journey?" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
                     <PVField label="Embryo source" value={Array.isArray(j.embryoSource) ? j.embryoSource.join(', ') : j.embryoSource} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
                   </div>
                 </div>
@@ -2426,13 +2424,9 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                         <TextField label="What was the name of the Reproductive Doctor?" value={j.reName || ''} onChange={val => updateJourney(idx, 'reName', val)} placeholder="Dr. Smith" />
                         <TextField label="What City/State was the IVF clinic located in?" value={j.reLocation || ''} onChange={val => updateJourney(idx, 'reLocation', val)} placeholder="e.g. Los Angeles, CA" />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <TextField label="What years were you seen there?" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2022-2023" />
-                        <TextField label="Weeks when delivered" value={j.weeksDelivered || ''} onChange={val => updateJourney(idx, 'weeksDelivered', val)} placeholder="e.g. 38" />
-                      </div>
+                      <TextField label="What years were you seen there?" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2022-2023" />
                       <SelectField label="What was the outcome of this surrogacy journey?" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
                         options={['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other']} />
-                      <TextField label="How many transfers until pregnant?" value={j.transfers || ''} onChange={val => updateJourney(idx, 'transfers', val)} placeholder="e.g. 1" />
                       <CheckboxGroupField label="Embryo source (select all that apply)" value={Array.isArray(j.embryoSource) ? j.embryoSource : j.embryoSource ? [j.embryoSource] : []} onChange={val => updateJourney(idx, 'embryoSource', val)}
                         options={["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown']} />
                     </div>
