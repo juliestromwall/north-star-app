@@ -87,7 +87,29 @@ export async function onRequestPost(context) {
         'Content-Type': 'application/json',
         Prefer: 'return=representation',
       }
-      // Fetch current answers
+      // 1. Find the actual step ID for "Profile Complete" from checklist config
+      const configRes = await fetch(
+        `${supabaseUrl}/rest/v1/app_config?config_key=eq.checklist_config&select=config_value`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      )
+      const configRows = await configRes.json()
+      let profileStepId = null
+      if (configRows?.length > 0) {
+        const checklistConfig = configRows[0].config_value || {}
+        const gcConfig = checklistConfig.gc || checklistConfig.surrogate || {}
+        for (const stageId of Object.keys(gcConfig)) {
+          const steps = gcConfig[stageId]?.steps || []
+          const match = steps.find(s =>
+            s.label?.toLowerCase().includes('profile complete') ||
+            s.label?.toLowerCase().includes('profile') && s.label?.toLowerCase().includes('complete')
+          )
+          if (match) { profileStepId = match.id; break }
+        }
+      }
+      // Fallback to common IDs
+      if (!profileStepId) profileStepId = 'profile_complete'
+
+      // 2. Fetch current answers and update tracking
       const fetchRes = await fetch(
         `${supabaseUrl}/rest/v1/intake_submissions?id=eq.${caseId}&select=answers`,
         { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
@@ -97,7 +119,7 @@ export async function onRequestPost(context) {
         const currentAnswers = rows[0].answers || {}
         const existingTracking = currentAnswers._recordTracking || {}
         const today = new Date().toISOString().split('T')[0]
-        const stepData = existingTracking.profileComplete || { history: [] }
+        const stepData = existingTracking[profileStepId] || { history: [] }
         const trackingEntry = {
           status: 'reviewing',
           date: today,
@@ -106,7 +128,7 @@ export async function onRequestPost(context) {
         }
         const updatedTracking = {
           ...existingTracking,
-          profileComplete: {
+          [profileStepId]: {
             ...stepData,
             status: 'reviewing',
             history: [...(stepData.history || []), trackingEntry],
