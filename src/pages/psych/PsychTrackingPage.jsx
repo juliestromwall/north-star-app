@@ -1,24 +1,36 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Share2, Copy, Check, ExternalLink, Plus } from 'lucide-react'
+import { Search, Share2, Copy, Check, ExternalLink, Plus, FileText, ClipboardCheck, Loader2, Eye } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig } from '@/lib/db'
+import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig, createCaseTask, uploadBase64ToCaseDocuments } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { formatDate } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 const TRACKING_KEY = 'psych_tracking'
+const CHECKINS_KEY = 'psych_checkins'
 const SHARE_KEY = 'psych_tracking_share'
 
 const CHECKIN_COLS = [
   { key: 'week10', label: '10 Week' },
   { key: 'week20', label: '20 Week' },
   { key: 'week30', label: '30 Week' },
+  { key: 'birthGuidelines', label: 'Birth Guidelines' },
   { key: 'postDelivery', label: 'Post Delivery' },
 ]
+
+const MILESTONE_LABELS = {
+  week10: '10 Week',
+  week20: '20 Week',
+  week30: '30 Week',
+  birthGuidelines: 'Birth Guidelines',
+  postDelivery: 'Post Delivery',
+}
 
 // Calculate gestational milestone dates from due date
 // Due date = 40 weeks (280 days) from conception
@@ -41,10 +53,82 @@ function generateShareToken() {
   return Array.from(arr, b => b.toString(16).padStart(2, '0')).join('')
 }
 
+function formatDateTime(isoStr) {
+  if (!isoStr) return ''
+  const d = new Date(isoStr)
+  return d.toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
+function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
+  const dt = report.dateTime ? new Date(report.dateTime) : new Date()
+  const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  const completedDt = report.completedAt ? new Date(report.completedAt) : dt
+  const completedDateStr = completedDt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  const completedTimeStr = completedDt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+
+  return `<!DOCTYPE html><html><head>
+    <title>${surrogateName} - ${milestoneName} Check In</title>
+    <style>
+      @page { size: letter; margin: 1in; }
+      @media print {
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .print-bar { display: none !important; }
+      }
+      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.6; font-size: 14px; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+      .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+      .content { max-width: 700px; margin: 0 auto; padding: 40px; }
+      h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; }
+      .divider { border: none; border-top: 2px solid #283693; margin: 12px 0 24px 0; }
+      .header-line { font-size: 13px; color: #57534e; margin: 2px 0; }
+      .section-title { font-size: 13px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 6px 0; }
+      .section-value { font-size: 14px; margin: 0 0 4px 0; }
+      .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 6px; padding: 16px; white-space: pre-wrap; font-size: 13px; line-height: 1.7; margin: 6px 0; }
+      .signature { margin-top: 36px; padding-top: 16px; border-top: 1px solid #d6d3d1; font-size: 13px; color: #57534e; line-height: 1.8; }
+    </style>
+  </head><body>
+    <div class="print-bar">
+      <strong>${surrogateName} - ${milestoneName} Check In</strong>
+      <button onclick="window.print()">Save as PDF</button>
+    </div>
+    <div class="content">
+      <h1>Contact Note</h1>
+      <hr class="divider" />
+      <p class="header-line"><strong>${report.therapistName || ''}${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}</strong></p>
+      <p class="header-line">Date and Time: ${dateStr} ${timeStr}</p>
+      <p class="header-line">Note Completed By: ${report.therapistName || ''}</p>
+      <p class="header-line">Patient: ${report.patientName || surrogateName}</p>
+
+      <p class="section-title">Contacted Party</p>
+      <p class="section-value">Name: ${report.contactedPartyName || surrogateName}</p>
+      <p class="section-value">Relationship to Patient: ${report.relationship || 'Self'}</p>
+
+      <p class="section-title">Method of Communication</p>
+      <p class="section-value">${report.communicationMethod || ''}</p>
+
+      <p class="section-title">Reason for Communication</p>
+      <p class="section-value">${report.reason || milestoneName + ' Check-In'}</p>
+
+      <p class="section-title">Billing Information</p>
+      <p class="section-value">Time spent: ${report.timeSpent || ''}</p>
+      <p class="section-value">The patient will not be billed for this communication.</p>
+
+      <p class="section-title">Communication Details</p>
+      <div class="details-box">${(report.details || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+
+      <div class="signature">
+        <p><strong>${report.signatureName || report.therapistName || ''}</strong>${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}${report.signatureLicense ? ', License ' + report.signatureLicense : ''}, signed this note and declared this information to be accurate and complete on ${completedDateStr} at ${completedTimeStr}.</p>
+      </div>
+    </div>
+  </body></html>`
+}
+
 export default function PsychTrackingPage() {
   const [surrogates, setSurrogates] = useState([])
   const [journeys, setJourneys] = useState([])
   const [tracking, setTracking] = useState({})
+  const [checkins, setCheckins] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [shareOpen, setShareOpen] = useState(false)
@@ -53,15 +137,25 @@ export default function PsychTrackingPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [manualForm, setManualForm] = useState({ name: '', email: '', phone: '' })
 
+  // Check-in dialog state
+  const [checkinOpen, setCheckinOpen] = useState(false)
+  const [checkinRow, setCheckinRow] = useState(null)
+  const [checkinMilestone, setCheckinMilestone] = useState(null)
+  const [checkinForm, setCheckinForm] = useState({})
+  const [checkinSaving, setCheckinSaving] = useState(false)
+  const [checkinReadOnly, setCheckinReadOnly] = useState(false)
+
   useEffect(() => {
     Promise.all([
       fetchSurrogatesFromIntake(),
       fetchMatchedJourneys(),
       getAppConfig(TRACKING_KEY),
-    ]).then(([gcs, js, saved]) => {
+      getAppConfig(CHECKINS_KEY),
+    ]).then(([gcs, js, saved, savedCheckins]) => {
       setSurrogates(gcs || [])
       setJourneys(js || [])
       setTracking(saved || {})
+      setCheckins(savedCheckins || {})
     }).catch(() => {})
       .finally(() => setLoading(false))
   }, [])
@@ -69,6 +163,11 @@ export default function PsychTrackingPage() {
   const saveTracking = useCallback(async (updated) => {
     setTracking(updated)
     await setAppConfig(TRACKING_KEY, updated).catch(() => {})
+  }, [])
+
+  const saveCheckins = useCallback(async (updated) => {
+    setCheckins(updated)
+    await setAppConfig(CHECKINS_KEY, updated).catch(() => {})
   }, [])
 
   // Build rows: only surrogates with an active pregnancy tracker
@@ -95,6 +194,7 @@ export default function PsychTrackingPage() {
           week10: t.week10 || null,
           week20: t.week20 || null,
           week30: t.week30 || null,
+          birthGuidelines: t.birthGuidelines || null,
           postDelivery: t.postDelivery || null,
         }
       }).filter(Boolean)
@@ -116,6 +216,7 @@ export default function PsychTrackingPage() {
         week10: val.week10 || null,
         week20: val.week20 || null,
         week30: val.week30 || null,
+        birthGuidelines: val.birthGuidelines || null,
         postDelivery: val.postDelivery || null,
       }))
 
@@ -131,6 +232,144 @@ export default function PsychTrackingPage() {
   async function updateDate(surrogateId, field, value) {
     const updated = { ...tracking, [surrogateId]: { ...tracking[surrogateId], [field]: value } }
     await saveTracking(updated)
+  }
+
+  function openCheckinDialog(row, milestoneKey, readOnly = false) {
+    const existing = checkins[row.id]?.[milestoneKey]
+    const milestoneName = MILESTONE_LABELS[milestoneKey]
+    if (existing) {
+      setCheckinForm({ ...existing })
+      setCheckinReadOnly(readOnly || existing.status === 'complete')
+    } else {
+      setCheckinForm({
+        therapistName: '',
+        dateTime: new Date().toISOString(),
+        patientName: row.name,
+        contactedPartyName: row.name,
+        relationship: 'Self',
+        communicationMethod: 'Phone',
+        reason: `${milestoneName} Check-In`,
+        timeSpent: '',
+        details: '',
+        signatureName: '',
+        signatureCredentials: '',
+        signatureLicense: '',
+        status: 'draft',
+        completedAt: null,
+        savedAt: null,
+      })
+      setCheckinReadOnly(false)
+    }
+    setCheckinRow(row)
+    setCheckinMilestone(milestoneKey)
+    setCheckinOpen(true)
+  }
+
+  function openPdfWindow(report, milestoneKey, surrogateName) {
+    const milestoneName = MILESTONE_LABELS[milestoneKey]
+    const html = generateCheckinPdfHtml(report, milestoneName, surrogateName)
+    const win = window.open('', '_blank')
+    if (!win) { alert('Please allow popups to view the PDF'); return }
+    win.document.write(html)
+    win.document.close()
+  }
+
+  async function handleSaveDraft() {
+    if (!checkinRow || !checkinMilestone) return
+    setCheckinSaving(true)
+    try {
+      const report = { ...checkinForm, status: 'draft', savedAt: new Date().toISOString() }
+      const updatedCheckins = {
+        ...checkins,
+        [checkinRow.id]: {
+          ...(checkins[checkinRow.id] || {}),
+          [checkinMilestone]: report,
+        },
+      }
+      await saveCheckins(updatedCheckins)
+      setCheckinOpen(false)
+    } catch (e) { console.error('Failed to save draft:', e) }
+    finally { setCheckinSaving(false) }
+  }
+
+  async function handleSubmitReport() {
+    if (!checkinRow || !checkinMilestone) return
+    setCheckinSaving(true)
+    try {
+      const now = new Date().toISOString()
+      const today = new Date().toISOString().split('T')[0]
+      const report = { ...checkinForm, status: 'complete', completedAt: now, savedAt: now }
+      const milestoneName = MILESTONE_LABELS[checkinMilestone]
+
+      // 1. Save report to psych_checkins
+      const updatedCheckins = {
+        ...checkins,
+        [checkinRow.id]: {
+          ...(checkins[checkinRow.id] || {}),
+          [checkinMilestone]: report,
+        },
+      }
+      await saveCheckins(updatedCheckins)
+
+      // 2. Mark the milestone date as today in psych_tracking
+      const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
+      await saveTracking(updatedTracking)
+
+      // 3. Open PDF in new window
+      openPdfWindow(report, checkinMilestone, checkinRow.name)
+
+      // 4. Create auto-tasks for case/journey managers
+      try {
+        const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
+        if (journey) {
+          const taskTitle = `${milestoneName} Therapist Check In Complete for ${checkinRow.name}`
+          // Create tasks for assigned team members
+          const assignees = new Set()
+          if (journey.journey_data?.assigned_to) assignees.add(journey.journey_data.assigned_to)
+          if (journey.assigned_to) assignees.add(journey.assigned_to)
+          for (const assignee of assignees) {
+            await createCaseTask({
+              journey_id: journey.id,
+              title: taskTitle,
+              priority: 'normal',
+              status: 'pending',
+              assigned_to: assignee,
+              created_at: now,
+            }).catch(() => {})
+          }
+          // If no specific assignees found, create unassigned task
+          if (assignees.size === 0) {
+            await createCaseTask({
+              journey_id: journey.id,
+              title: taskTitle,
+              priority: 'normal',
+              status: 'pending',
+              created_at: now,
+            }).catch(() => {})
+          }
+        }
+      } catch (e) { console.error('Failed to create tasks:', e) }
+
+      // 5. Save PDF as case document
+      try {
+        if (supabase && !checkinRow.id.startsWith('manual_')) {
+          const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
+          const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
+          // We store as HTML doc reference since we can't generate a real PDF blob in browser easily
+          // The PDF is available via the "Download PDF" / print flow
+          await uploadBase64ToCaseDocuments({
+            surrogateId: checkinRow.id,
+            category: 'psych',
+            fileName,
+            base64Data: btoa(unescape(encodeURIComponent(html))),
+            uploadedBy: report.therapistName || 'Therapist',
+          }).catch(() => {})
+        }
+      } catch (e) { console.error('Failed to save document:', e) }
+
+      setCheckinOpen(false)
+    } catch (e) { console.error('Failed to submit report:', e) }
+    finally { setCheckinSaving(false) }
   }
 
   async function handleShare() {
@@ -171,6 +410,8 @@ export default function PsychTrackingPage() {
 
   if (loading) return <div className="p-8 text-center text-stone-400 text-sm">Loading...</div>
 
+  const milestoneName = checkinMilestone ? MILESTONE_LABELS[checkinMilestone] : ''
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -193,7 +434,194 @@ export default function PsychTrackingPage() {
         </div>
       </div>
 
-      <PsychTable rows={filtered} onDateChange={updateDate} />
+      <PsychTable
+        rows={filtered}
+        checkins={checkins}
+        onDateChange={updateDate}
+        onCheckin={(row, milestone) => openCheckinDialog(row, milestone)}
+        onViewReport={(row, milestone) => openCheckinDialog(row, milestone, true)}
+        onDownloadPdf={(row, milestone) => {
+          const report = checkins[row.id]?.[milestone]
+          if (report) openPdfWindow(report, milestone, row.name)
+        }}
+      />
+
+      {/* Check-In Report Builder Dialog */}
+      <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <ClipboardCheck className="size-5 text-[#283693]" />
+              {milestoneName} Check-In {checkinRow ? `\u2014 ${checkinRow.name}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Row 1: Therapist Name + Date/Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Therapist Name</label>
+                <Input
+                  value={checkinForm.therapistName || ''}
+                  onChange={e => setCheckinForm(f => ({ ...f, therapistName: e.target.value }))}
+                  placeholder="Dr. Jane Smith"
+                  disabled={checkinReadOnly}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Date and Time</label>
+                <Input
+                  type="datetime-local"
+                  value={checkinForm.dateTime ? new Date(checkinForm.dateTime).toISOString().slice(0, 16) : ''}
+                  onChange={e => setCheckinForm(f => ({ ...f, dateTime: new Date(e.target.value).toISOString() }))}
+                  disabled={checkinReadOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Patient (read-only) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Patient</label>
+              <Input value={checkinForm.patientName || ''} disabled className="bg-stone-50" />
+            </div>
+
+            {/* Row 3: Contacted Party + Relationship */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Contacted Party Name</label>
+                <Input
+                  value={checkinForm.contactedPartyName || ''}
+                  onChange={e => setCheckinForm(f => ({ ...f, contactedPartyName: e.target.value }))}
+                  disabled={checkinReadOnly}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Relationship to Patient</label>
+                <select
+                  value={checkinForm.relationship || 'Self'}
+                  onChange={e => setCheckinForm(f => ({ ...f, relationship: e.target.value }))}
+                  disabled={checkinReadOnly}
+                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                >
+                  <option value="Self">Self</option>
+                  <option value="Spouse/Partner">Spouse/Partner</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 4: Method + Reason */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Method of Communication</label>
+                <select
+                  value={checkinForm.communicationMethod || 'Phone'}
+                  onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
+                  disabled={checkinReadOnly}
+                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                >
+                  <option value="Phone">Phone</option>
+                  <option value="Video Call">Video Call</option>
+                  <option value="In Person">In Person</option>
+                  <option value="Email">Email</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Reason for Communication</label>
+                <Input
+                  value={checkinForm.reason || ''}
+                  onChange={e => setCheckinForm(f => ({ ...f, reason: e.target.value }))}
+                  disabled={checkinReadOnly}
+                />
+              </div>
+            </div>
+
+            {/* Row 5: Time Spent */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Time Spent</label>
+              <Input
+                value={checkinForm.timeSpent || ''}
+                onChange={e => setCheckinForm(f => ({ ...f, timeSpent: e.target.value }))}
+                placeholder="e.g. 30 minutes"
+                disabled={checkinReadOnly}
+              />
+            </div>
+
+            {/* Row 6: Communication Details */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Communication Details</label>
+              <Textarea
+                value={checkinForm.details || ''}
+                onChange={e => setCheckinForm(f => ({ ...f, details: e.target.value }))}
+                placeholder="Enter detailed notes about the communication..."
+                rows={6}
+                disabled={checkinReadOnly}
+                className="resize-y"
+              />
+            </div>
+
+            {/* Signature Section */}
+            <div className="border-t border-stone-200 pt-4 mt-4">
+              <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Signature</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Name</label>
+                  <Input
+                    value={checkinForm.signatureName || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, signatureName: e.target.value }))}
+                    placeholder="Full name"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Credentials</label>
+                  <Input
+                    value={checkinForm.signatureCredentials || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, signatureCredentials: e.target.value }))}
+                    placeholder="e.g. LMFT, PsyD"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">License Number</label>
+                  <Input
+                    value={checkinForm.signatureLicense || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, signatureLicense: e.target.value }))}
+                    placeholder="License #"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            {checkinReadOnly ? (
+              <>
+                <DialogClose asChild><Button variant="outline" size="sm">Close</Button></DialogClose>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
+                  const report = checkins[checkinRow?.id]?.[checkinMilestone]
+                  if (report) openPdfWindow(report, checkinMilestone, checkinRow.name)
+                }}>
+                  <FileText className="size-3.5" /> Download PDF
+                </Button>
+              </>
+            ) : (
+              <>
+                <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSaveDraft} disabled={checkinSaving}>
+                  {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                  Save Draft
+                </Button>
+                <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleSubmitReport} disabled={checkinSaving}>
+                  {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
+                  Submit Report
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Dialog */}
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
@@ -260,7 +688,50 @@ export default function PsychTrackingPage() {
   )
 }
 
-// ── Editable Date Cell ──
+// ── Check-In Cell (replaces EditableDateCell for milestone columns) ──
+function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport, onDownloadPdf }) {
+  const report = checkins[row.id]?.[milestoneKey]
+  const isDraft = report?.status === 'draft'
+  const isComplete = report?.status === 'complete'
+
+  if (value && isComplete) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-emerald-600 font-medium text-xs">{formatDate(value)}</span>
+        <button
+          onClick={() => onViewReport(row, milestoneKey)}
+          className="text-[#283693] hover:text-[#1e2a6e] transition-colors"
+          title="View Report"
+        >
+          <Eye className="size-3" />
+        </button>
+      </div>
+    )
+  }
+
+  if (isDraft) {
+    return (
+      <button
+        onClick={() => onCheckin(row, milestoneKey)}
+        className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors"
+        title="Continue draft"
+      >
+        Draft
+      </button>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => onCheckin(row, milestoneKey)}
+      className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors"
+    >
+      Check In
+    </button>
+  )
+}
+
+// ── Editable Date Cell (for due date / delivery date) ──
 function EditableDateCell({ value, onSave }) {
   const [editing, setEditing] = useState(false)
 
@@ -291,11 +762,11 @@ function EditableDateCell({ value, onSave }) {
     )
   }
 
-  return <span className="text-stone-300">—</span>
+  return <span className="text-stone-300">&mdash;</span>
 }
 
 // ── Table ──
-export function PsychTable({ rows, onDateChange, isSharedView = false }) {
+export function PsychTable({ rows, checkins = {}, onDateChange, onCheckin, onViewReport, onDownloadPdf, isSharedView = false }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -319,10 +790,11 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                   Surrogate
                 </th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Contact</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Due Date</th>
+                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Estimated Due Date</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">30 Week</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Birth Guidelines</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Delivery Date</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">Post Delivery</th>
               </tr>
@@ -336,6 +808,7 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
+                <th className="border-r border-stone-100" />
                 <th className="border-r border-stone-100" />
                 <th />
               </tr>
@@ -359,17 +832,37 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                   {/* 10 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week10Date ? formatDate(row.week10Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week10 ? 'bg-green-50/60' : ''}`}>
-                    <EditableDateCell value={row.week10} onSave={(date) => onDateChange(row.id, 'week10', date)} />
+                    {onCheckin ? (
+                      <CheckInCell value={row.week10} milestoneKey="week10" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onDownloadPdf={onDownloadPdf} />
+                    ) : (
+                      <EditableDateCell value={row.week10} onSave={(date) => onDateChange(row.id, 'week10', date)} />
+                    )}
                   </td>
                   {/* 20 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week20Date ? formatDate(row.week20Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week20 ? 'bg-green-50/60' : ''}`}>
-                    <EditableDateCell value={row.week20} onSave={(date) => onDateChange(row.id, 'week20', date)} />
+                    {onCheckin ? (
+                      <CheckInCell value={row.week20} milestoneKey="week20" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onDownloadPdf={onDownloadPdf} />
+                    ) : (
+                      <EditableDateCell value={row.week20} onSave={(date) => onDateChange(row.id, 'week20', date)} />
+                    )}
                   </td>
                   {/* 30 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week30Date ? formatDate(row.week30Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week30 ? 'bg-green-50/60' : ''}`}>
-                    <EditableDateCell value={row.week30} onSave={(date) => onDateChange(row.id, 'week30', date)} />
+                    {onCheckin ? (
+                      <CheckInCell value={row.week30} milestoneKey="week30" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onDownloadPdf={onDownloadPdf} />
+                    ) : (
+                      <EditableDateCell value={row.week30} onSave={(date) => onDateChange(row.id, 'week30', date)} />
+                    )}
+                  </td>
+                  {/* Birth Guidelines */}
+                  <td className={`px-3 py-3 border-r border-stone-100 ${row.birthGuidelines ? 'bg-green-50/60' : ''}`}>
+                    {onCheckin ? (
+                      <CheckInCell value={row.birthGuidelines} milestoneKey="birthGuidelines" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onDownloadPdf={onDownloadPdf} />
+                    ) : (
+                      <EditableDateCell value={row.birthGuidelines} onSave={(date) => onDateChange(row.id, 'birthGuidelines', date)} />
+                    )}
                   </td>
                   {/* Delivery Date */}
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">
@@ -377,7 +870,11 @@ export function PsychTable({ rows, onDateChange, isSharedView = false }) {
                   </td>
                   {/* Post Delivery */}
                   <td className={`px-3 py-3 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
-                    <EditableDateCell value={row.postDelivery} onSave={(date) => onDateChange(row.id, 'postDelivery', date)} />
+                    {onCheckin ? (
+                      <CheckInCell value={row.postDelivery} milestoneKey="postDelivery" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onDownloadPdf={onDownloadPdf} />
+                    ) : (
+                      <EditableDateCell value={row.postDelivery} onSave={(date) => onDateChange(row.id, 'postDelivery', date)} />
+                    )}
                   </td>
                 </tr>
               ))}
