@@ -2787,9 +2787,13 @@ const CONDITIONAL_FIELDS = {
   currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
   lifestyleChangesDetails: { parent: 'lifestyleChanges', showWhen: 'yes' },
   ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
-  cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'yes' },
+  cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
   conditionsWontTerminate: { parent: 'willingnessToTerminate', showWhen: 'yes' },
   diseaseHistoryDetails: { parent: 'diseaseHistory', showWhen: '_array_has_value' },
+  // Experienced Surrogate — hide details when previousSurrogate is 'no'
+  surrogacyTimes: { parent: 'previousSurrogate', showWhen: 'yes' },
+  journeys: { parent: 'previousSurrogate', showWhen: 'yes' },
+  overallExperience: { parent: 'previousSurrogate', showWhen: 'yes' },
 }
 
 function isConditionalVisible(fieldKey, sectionData) {
@@ -2925,6 +2929,10 @@ function countSectionFilled(data, section) {
     partnerWeeklyIncome: { parent: 'maritalStatus', show: '_partner' },
     partnerFdaTests: { parent: 'maritalStatus', show: '_partner' },
     partnerAgreesTermination: { parent: 'maritalStatus', show: '_partner' },
+    // Experienced Surrogate — skip details when previousSurrogate is 'no'
+    surrogacyTimes: { parent: 'previousSurrogate', show: 'yes' },
+    journeys: { parent: 'previousSurrogate', show: 'yes' },
+    overallExperience: { parent: 'previousSurrogate', show: 'yes' },
   }
 
   const PARTNER_STATUSES = ['In a Relationship', 'Married', 'Domestic Partnership']
