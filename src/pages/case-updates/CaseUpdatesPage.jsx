@@ -485,9 +485,9 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             }
                           } else if (row.dataField === 'experiencedSurrogate') {
                             const profile = allProfiles[s.id]
-                            const prev = profile?.preferences?.previousSurrogate
+                            const prev = profile?.experiencedSurrogate?.previousSurrogate || profile?.preferences?.previousSurrogate
                             if (prev === 'yes' || prev === true) {
-                              const times = profile?.preferences?.surrogacyTimes || ''
+                              const times = profile?.experiencedSurrogate?.surrogacyTimes || profile?.preferences?.surrogacyTimes || ''
                               value = `Yes${times ? ` (${times})` : ''}`
                             } else {
                               value = prev === 'no' || prev === false ? 'No' : ''
