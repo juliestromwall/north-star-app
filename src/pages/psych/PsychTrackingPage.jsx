@@ -360,9 +360,15 @@ export default function PsychTrackingPage() {
     const existing = checkins[row.id]?.[milestoneKey]
     const milestoneName = MILESTONE_LABELS[milestoneKey]
     // Find case manager from row.assignedTo (email)
-    const cm = row.assignedTo ? adminUsers.find(a => a.email === row.assignedTo) : null
-    const caseManagerName = cm?.name || ''
-    const caseManagerEmail = cm?.email || row.assignedTo || ''
+    const assignedEmail = row.assignedTo || ''
+    const cm = assignedEmail ? adminUsers.find(a => a.email?.toLowerCase() === assignedEmail.toLowerCase()) : null
+    // If admin found, use their name. Otherwise, derive name from email prefix.
+    let caseManagerName = cm?.name || ''
+    if (!caseManagerName && assignedEmail) {
+      const prefix = assignedEmail.split('@')[0]
+      caseManagerName = prefix.split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+    }
+    const caseManagerEmail = cm?.email || assignedEmail
     if (existing) {
       setCheckinForm({
         ...existing,

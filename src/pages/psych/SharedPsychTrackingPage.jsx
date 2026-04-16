@@ -343,11 +343,20 @@ export default function SharedPsychTrackingPage() {
         const t = tracking[gc.id] || {}
         const jd = j.journey_data || {}
         const milestones = calcMilestoneDates(jd.dueDate)
+        const assignedEmail = j.assigned_to || jd.assigned_to || gc.assignedTo || ''
+        let cmName = ''
+        if (assignedEmail) {
+          const prefix = assignedEmail.split('@')[0]
+          cmName = prefix.split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
+        }
         return {
           id: gc.id,
           name: gc.name,
           email: gc.email || '',
           phone: gc.phone || '',
+          assignedTo: assignedEmail,
+          caseManagerName: cmName,
+          caseManagerEmail: assignedEmail,
           dueDate: jd.dueDate || null,
           deliveryDate: jd.deliveryDate || null,
           ...milestones,
