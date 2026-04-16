@@ -1,15 +1,56 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText } from 'lucide-react'
+import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import RichTextEditor from '@/components/shared/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { formatDate } from '@/lib/utils'
+
+// Therapist defaults (pre-filled but editable)
+const THERAPIST_DEFAULTS = {
+  therapistName: 'Jenny Oliver-Miramontes, LMFT',
+  signatureName: 'Jennifer Oliver-Miramontes',
+  signatureCredentials: 'LMFT, MA',
+  signatureLicense: '51961',
+}
+
+// Pacific Time formatting helpers
+const PT_TZ = 'America/Los_Angeles'
+
+function formatPTDate(d) {
+  return d.toLocaleDateString('en-US', { timeZone: PT_TZ, month: '2-digit', day: '2-digit', year: 'numeric' })
+}
+function formatPTTime(d) {
+  return d.toLocaleTimeString('en-US', { timeZone: PT_TZ, hour: '2-digit', minute: '2-digit', hour12: true })
+}
+function ptLocalInputValue(iso) {
+  const d = iso ? new Date(iso) : new Date()
+  const parts = d.toLocaleString('en-US', {
+    timeZone: PT_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const m = parts.match(/(\d{2})\/(\d{2})\/(\d{4}),?\s(\d{2}):(\d{2})/)
+  if (!m) return ''
+  return `${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}`
+}
+function ptLocalInputToIso(local) {
+  if (!local) return ''
+  const [datePart, timePart] = local.split('T')
+  const [y, mo, d] = datePart.split('-').map(Number)
+  const [h, mi] = timePart.split(':').map(Number)
+  const asUtc = Date.UTC(y, mo - 1, d, h, mi)
+  const guess = new Date(asUtc)
+  const ptStr = guess.toLocaleString('en-US', { timeZone: PT_TZ })
+  const ptDate = new Date(ptStr)
+  const diff = guess.getTime() - ptDate.getTime()
+  return new Date(asUtc + diff).toISOString()
+}
 
 const TRACKING_KEY = 'psych_tracking'
 const CHECKINS_KEY = 'psych_checkins'
@@ -62,14 +103,18 @@ async function setAppConfigPublic(key, value) {
 
 function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   const dt = report.dateTime ? new Date(report.dateTime) : new Date()
-  const dateStr = dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-  const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  const dateStr = formatPTDate(dt)
+  const timeStr = formatPTTime(dt)
   const completedDt = report.completedAt ? new Date(report.completedAt) : dt
-  const completedDateStr = completedDt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-  const completedTimeStr = completedDt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  const completedDateStr = formatPTDate(completedDt)
+  const completedTimeStr = formatPTTime(completedDt)
+  const detailsHtml = report.details || ''
+  const contactedEmail = report.contactedPartyEmail || ''
+  const contactedPhone = report.contactedPartyPhone || ''
+  const licenseStr = report.signatureLicense ? (/^license/i.test(report.signatureLicense) ? report.signatureLicense : 'License ' + report.signatureLicense) : ''
 
   return `<!DOCTYPE html><html><head>
-    <title>${surrogateName} - ${milestoneName} Check In</title>
+    <title>${surrogateName} - ${milestoneName} Check-In</title>
     <style>
       @page { size: letter; margin: 1in; }
       @media print {
@@ -80,29 +125,38 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       .print-bar { position: sticky; top: 0; z-index: 100; padding: 14px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
       .print-bar button { background: white; color: #283693; border: none; padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
       .content { max-width: 700px; margin: 0 auto; padding: 40px; }
-      h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; }
+      h1 { font-size: 24px; font-weight: 700; margin: 0 0 4px 0; color: #283693; }
       .divider { border: none; border-top: 2px solid #283693; margin: 12px 0 24px 0; }
       .header-line { font-size: 13px; color: #57534e; margin: 2px 0; }
       .section-title { font-size: 13px; font-weight: 700; color: #283693; text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 6px 0; }
       .section-value { font-size: 14px; margin: 0 0 4px 0; }
-      .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 6px; padding: 16px; white-space: pre-wrap; font-size: 13px; line-height: 1.7; margin: 6px 0; }
+      .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 6px; padding: 16px; font-size: 13px; line-height: 1.7; margin: 6px 0; }
+      .details-box ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
+      .details-box ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+      .details-box li { margin: 0.25em 0; }
+      .details-box li p { margin: 0; }
+      .details-box p { margin: 0.25em 0; }
+      .details-box mark { border-radius: 2px; padding: 1px 2px; }
+      .details-box img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.5em 0; }
       .signature { margin-top: 36px; padding-top: 16px; border-top: 1px solid #d6d3d1; font-size: 13px; color: #57534e; line-height: 1.8; }
     </style>
   </head><body>
     <div class="print-bar">
-      <strong>${surrogateName} - ${milestoneName} Check In</strong>
+      <strong>${surrogateName} - ${milestoneName} Check-In</strong>
       <button onclick="window.print()">Save as PDF</button>
     </div>
     <div class="content">
-      <h1>Contact Note</h1>
+      <h1>${surrogateName} - ${milestoneName} Check-In</h1>
       <hr class="divider" />
       <p class="header-line"><strong>${report.therapistName || ''}${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}</strong></p>
-      <p class="header-line">Date and Time: ${dateStr} ${timeStr}</p>
+      <p class="header-line">Date and Time: ${dateStr} ${timeStr} (Pacific Time)</p>
       <p class="header-line">Note Completed By: ${report.therapistName || ''}</p>
       <p class="header-line">Patient: ${report.patientName || surrogateName}</p>
 
       <p class="section-title">Contacted Party</p>
       <p class="section-value">Name: ${report.contactedPartyName || surrogateName}</p>
+      ${contactedEmail ? `<p class="section-value">Email: ${contactedEmail}</p>` : ''}
+      ${contactedPhone ? `<p class="section-value">Phone: ${contactedPhone}</p>` : ''}
       <p class="section-value">Relationship to Patient: ${report.relationship || 'Self'}</p>
 
       <p class="section-title">Method of Communication</p>
@@ -116,10 +170,10 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
       <p class="section-value">The patient will not be billed for this communication.</p>
 
       <p class="section-title">Communication Details</p>
-      <div class="details-box">${(report.details || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+      <div class="details-box">${detailsHtml}</div>
 
       <div class="signature">
-        <p><strong>${report.signatureName || report.therapistName || ''}</strong>${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}${report.signatureLicense ? ', License ' + report.signatureLicense : ''}, signed this note and declared this information to be accurate and complete on ${completedDateStr} at ${completedTimeStr}.</p>
+        <p><strong>${report.signatureName || report.therapistName || ''}</strong>${report.signatureCredentials ? ', ' + report.signatureCredentials : ''}${licenseStr ? ', ' + licenseStr : ''}, signed this note and declared this information to be accurate and complete on ${completedDateStr} at ${completedTimeStr} (Pacific Time).</p>
       </div>
     </div>
   </body></html>`
@@ -303,18 +357,20 @@ export default function SharedPsychTrackingPage() {
       setCheckinReadOnly(readOnly || existing.status === 'complete')
     } else {
       setCheckinForm({
-        therapistName: '',
+        therapistName: THERAPIST_DEFAULTS.therapistName,
         dateTime: new Date().toISOString(),
         patientName: row.name,
         contactedPartyName: row.name,
+        contactedPartyEmail: row.email || '',
+        contactedPartyPhone: row.phone || '',
         relationship: 'Self',
         communicationMethod: 'Phone',
         reason: `${milestoneName} Check-In`,
         timeSpent: '',
         details: '',
-        signatureName: '',
-        signatureCredentials: '',
-        signatureLicense: '',
+        signatureName: THERAPIST_DEFAULTS.signatureName,
+        signatureCredentials: THERAPIST_DEFAULTS.signatureCredentials,
+        signatureLicense: THERAPIST_DEFAULTS.signatureLicense,
         status: 'draft',
         completedAt: null,
         savedAt: null,
@@ -545,112 +601,162 @@ export default function SharedPsychTrackingPage() {
 
       {/* Check-In Report Builder Dialog */}
       <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <ClipboardCheck className="size-5 text-[#283693]" />
-              {milestoneName} Check-In {checkinRow ? `\u2014 ${checkinRow.name}` : ''}
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-3 border-b-2 border-[#283693]/20">
+            <DialogTitle asChild>
+              <h2 className="text-2xl font-bold text-[#283693] flex items-center gap-2">
+                <ClipboardCheck className="size-6 text-[#283693]" />
+                {checkinRow ? `${checkinRow.name} - ${milestoneName} Check-In` : `${milestoneName} Check-In`}
+              </h2>
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Therapist Name</label>
-                <Input
-                  value={checkinForm.therapistName || ''}
-                  onChange={e => setCheckinForm(f => ({ ...f, therapistName: e.target.value }))}
-                  placeholder="Dr. Jane Smith"
-                  disabled={checkinReadOnly}
-                />
+            {/* Therapist + Date/Time + Patient */}
+            <div className="rounded-lg bg-stone-50/60 border border-stone-100 p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Therapist Name</label>
+                  <Input
+                    value={checkinForm.therapistName || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, therapistName: e.target.value }))}
+                    placeholder="Dr. Jane Smith"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Date and Time (Pacific Time)</label>
+                  <Input
+                    type="datetime-local"
+                    value={ptLocalInputValue(checkinForm.dateTime)}
+                    onChange={e => setCheckinForm(f => ({ ...f, dateTime: ptLocalInputToIso(e.target.value) }))}
+                    disabled={checkinReadOnly}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Date and Time</label>
-                <Input
-                  type="datetime-local"
-                  value={checkinForm.dateTime ? new Date(checkinForm.dateTime).toISOString().slice(0, 16) : ''}
-                  onChange={e => setCheckinForm(f => ({ ...f, dateTime: new Date(e.target.value).toISOString() }))}
-                  disabled={checkinReadOnly}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Patient</label>
-              <Input value={checkinForm.patientName || ''} disabled className="bg-stone-50" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Contacted Party Name</label>
-                <Input
-                  value={checkinForm.contactedPartyName || ''}
-                  onChange={e => setCheckinForm(f => ({ ...f, contactedPartyName: e.target.value }))}
-                  disabled={checkinReadOnly}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Relationship to Patient</label>
-                <select
-                  value={checkinForm.relationship || 'Self'}
-                  onChange={e => setCheckinForm(f => ({ ...f, relationship: e.target.value }))}
-                  disabled={checkinReadOnly}
-                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
-                >
-                  <option value="Self">Self</option>
-                  <option value="Spouse/Partner">Spouse/Partner</option>
-                  <option value="Other">Other</option>
-                </select>
+                <label className="text-xs font-medium text-stone-600">Patient</label>
+                <Input value={checkinForm.patientName || ''} disabled className="bg-white" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Method of Communication</label>
-                <select
-                  value={checkinForm.communicationMethod || 'Phone'}
-                  onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
-                  disabled={checkinReadOnly}
-                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
-                >
-                  <option value="Phone">Phone</option>
-                  <option value="Video Call">Video Call</option>
-                  <option value="In Person">In Person</option>
-                  <option value="Email">Email</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Reason for Communication</label>
-                <Input
-                  value={checkinForm.reason || ''}
-                  onChange={e => setCheckinForm(f => ({ ...f, reason: e.target.value }))}
-                  disabled={checkinReadOnly}
-                />
+            {/* Contacted Party */}
+            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+                <User className="size-4" /> Contacted Party
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Name</label>
+                  <Input
+                    value={checkinForm.contactedPartyName || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyName: e.target.value }))}
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Relationship to Patient</label>
+                  <select
+                    value={checkinForm.relationship || 'Self'}
+                    onChange={e => setCheckinForm(f => ({ ...f, relationship: e.target.value }))}
+                    disabled={checkinReadOnly}
+                    className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                  >
+                    <option value="Self">Self</option>
+                    <option value="Spouse/Partner">Spouse/Partner</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Email</label>
+                  <Input
+                    type="email"
+                    value={checkinForm.contactedPartyEmail || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyEmail: e.target.value }))}
+                    placeholder="email@example.com"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-stone-600">Phone</label>
+                  <Input
+                    value={checkinForm.contactedPartyPhone || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyPhone: e.target.value }))}
+                    placeholder="xxx-xxx-xxxx"
+                    disabled={checkinReadOnly}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Time Spent</label>
+            {/* Method of Communication */}
+            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+                <Phone className="size-4" /> Method of Communication
+              </h3>
+              <select
+                value={checkinForm.communicationMethod || 'Phone'}
+                onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
+                disabled={checkinReadOnly}
+                className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+              >
+                <option value="Phone">Phone</option>
+                <option value="Video Call">Video Call</option>
+                <option value="In Person">In Person</option>
+                <option value="Email">Email</option>
+              </select>
+            </div>
+
+            {/* Reason for Communication */}
+            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+                <ClipboardList className="size-4" /> Reason for Communication
+              </h3>
               <Input
-                value={checkinForm.timeSpent || ''}
-                onChange={e => setCheckinForm(f => ({ ...f, timeSpent: e.target.value }))}
-                placeholder="e.g. 30 minutes"
+                value={checkinForm.reason || ''}
+                onChange={e => setCheckinForm(f => ({ ...f, reason: e.target.value }))}
                 disabled={checkinReadOnly}
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-600">Communication Details</label>
-              <Textarea
-                value={checkinForm.details || ''}
-                onChange={e => setCheckinForm(f => ({ ...f, details: e.target.value }))}
-                placeholder="Enter detailed notes about the communication..."
-                rows={6}
-                disabled={checkinReadOnly}
-                className="resize-y"
-              />
+            {/* Billing Information */}
+            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+                <DollarSign className="size-4" /> Billing Information
+              </h3>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-stone-600">Time Spent</label>
+                <Input
+                  value={checkinForm.timeSpent || ''}
+                  onChange={e => setCheckinForm(f => ({ ...f, timeSpent: e.target.value }))}
+                  placeholder="e.g. 30 minutes"
+                  disabled={checkinReadOnly}
+                />
+              </div>
+              <p className="text-xs text-stone-500 italic">The patient will not be billed for this communication.</p>
             </div>
 
+            {/* Communication Details */}
+            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
+              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="size-4" /> Communication Details
+              </h3>
+              {checkinReadOnly ? (
+                <div
+                  className="rounded-xl border border-stone-200 bg-white p-3 text-sm text-stone-700 min-h-[120px]"
+                  dangerouslySetInnerHTML={{ __html: checkinForm.details || '<p class="text-stone-400">(no details)</p>' }}
+                />
+              ) : (
+                <RichTextEditor
+                  content={checkinForm.details || ''}
+                  onChange={html => setCheckinForm(f => ({ ...f, details: html }))}
+                  placeholder="Enter detailed notes about the communication..."
+                  minHeight="160px"
+                />
+              )}
+            </div>
+
+            {/* Signature Section */}
             <div className="border-t border-stone-200 pt-4 mt-4">
               <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Signature</p>
               <div className="grid grid-cols-3 gap-4">
