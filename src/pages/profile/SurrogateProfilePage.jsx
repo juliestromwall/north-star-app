@@ -713,7 +713,7 @@ export default function SurrogateProfilePage() {
         await fetch('/api/notify-profile-submitted', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ surrogateName, surrogateEmail: currentUser?.email }),
+          body: JSON.stringify({ surrogateName, surrogateEmail: currentUser?.email, caseId: intakeCaseId }),
         })
       } catch (err) { console.error('Profile notify email failed:', err) }
 
@@ -731,35 +731,7 @@ export default function SurrogateProfilePage() {
         }).catch(err => console.error('Task creation failed:', err))
       }
 
-      // 4. Auto-log "Profile Complete" on checklist as reviewing (same pattern as app submit)
-      if (intakeCaseId && supabase) {
-        try {
-          const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', intakeCaseId).single()
-          if (fresh) {
-            const currentAnswers = fresh.answers || {}
-            const existingTracking = currentAnswers._recordTracking || {}
-            const today = new Date().toISOString().split('T')[0]
-            const stepData = existingTracking.profileComplete || { history: [] }
-            const trackingEntry = {
-              status: 'reviewing',
-              date: today,
-              note: 'Submitted by Applicant',
-              by: 'System',
-            }
-            const updatedTracking = {
-              ...existingTracking,
-              profileComplete: {
-                ...stepData,
-                status: 'reviewing',
-                history: [...(stepData.history || []), trackingEntry],
-              },
-            }
-            await supabase.from('intake_submissions').update({
-              answers: { ...currentAnswers, _recordTracking: updatedTracking },
-            }).eq('id', intakeCaseId)
-          }
-        } catch (err) { console.error('Checklist log failed:', err) }
-      }
+      // 4. Checklist logging is handled server-side in /api/notify-profile-submitted
 
       setShowSubmitModal(false)
     } catch (err) {
@@ -825,9 +797,20 @@ export default function SurrogateProfilePage() {
               <span className="text-xs font-medium text-gray-500">{overallCompletion}% complete</span>
             </div>
           </div>
-          <Button onClick={openPreview} variant="outline" className="gap-1.5 shrink-0 border-[#283693] text-[#283693]">
-            <Eye className="w-4 h-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button onClick={openPreview} variant="outline" className="gap-1.5 border-[#283693] text-[#283693]">
+              <Eye className="w-4 h-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
+            </Button>
+            {!profileApproved && !profileSubmitted && overallCompletion === 100 && (
+              <Button
+                onClick={() => setShowSubmitModal(true)}
+                className="gap-1.5"
+                style={{ backgroundColor: '#283693', color: '#fff' }}
+              >
+                <Send className="w-4 h-4" /> Submit for Review
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Submitted banner */}
@@ -910,17 +893,11 @@ export default function SurrogateProfilePage() {
                 </Collapsible>
               )
             })}
-            {/* Submit Profile button */}
-            {!profileApproved && !profileSubmitted && (
+            {/* Submit Profile button (below sections for incomplete profiles) */}
+            {!profileApproved && !profileSubmitted && overallCompletion < 100 && (
               <div className="text-center pt-4">
                 <Button
-                  onClick={() => {
-                    if (overallCompletion < 100) {
-                      setShowIncompleteWarning(true)
-                    } else {
-                      setShowSubmitModal(true)
-                    }
-                  }}
+                  onClick={() => setShowIncompleteWarning(true)}
                   className="gap-2 px-8 py-3 text-base rounded-xl"
                   style={{ backgroundColor: '#283693', color: '#fff' }}
                 >

@@ -1,5 +1,6 @@
 // Cloudflare Pages Function — POST /api/notify-profile-submitted
 // Notifies admin team when a surrogate submits their profile for review
+// Also logs "Profile Complete" on the checklist as "reviewing"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,8 +16,10 @@ export async function onRequestPost(context) {
   const { env } = context
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const supabaseUrl = env.SUPABASE_URL
+  const supabaseKey = env.SUPABASE_SERVICE_ROLE_KEY
 
-  const { surrogateName, surrogateEmail } = await context.request.json()
+  const { surrogateName, surrogateEmail, caseId } = await context.request.json()
 
   if (!resendKey || !surrogateName) {
     return new Response(JSON.stringify({ error: 'Missing data or Resend not configured' }), {
@@ -57,6 +60,7 @@ export async function onRequestPost(context) {
     </div>
   `
 
+  // Send email
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -69,19 +73,61 @@ export async function onRequestPost(context) {
       }),
     })
     const data = await res.json()
-    if (!res.ok) {
-      console.error('Resend failed:', data)
-      return new Response(JSON.stringify({ success: false, error: data }), {
-        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
-    }
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    if (!res.ok) console.error('Resend failed:', data)
   } catch (err) {
-    console.error('Profile submitted notify failed:', err)
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    console.error('Profile submitted notify email failed:', err)
   }
+
+  // Log "Profile Complete" as reviewing on the checklist (server-side with service role)
+  if (supabaseUrl && supabaseKey && caseId) {
+    try {
+      const sbHeaders = {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      }
+      // Fetch current answers
+      const fetchRes = await fetch(
+        `${supabaseUrl}/rest/v1/intake_submissions?id=eq.${caseId}&select=answers`,
+        { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+      )
+      const rows = await fetchRes.json()
+      if (rows?.length > 0) {
+        const currentAnswers = rows[0].answers || {}
+        const existingTracking = currentAnswers._recordTracking || {}
+        const today = new Date().toISOString().split('T')[0]
+        const stepData = existingTracking.profileComplete || { history: [] }
+        const trackingEntry = {
+          status: 'reviewing',
+          date: today,
+          note: 'Submitted by Applicant',
+          by: 'System',
+        }
+        const updatedTracking = {
+          ...existingTracking,
+          profileComplete: {
+            ...stepData,
+            status: 'reviewing',
+            history: [...(stepData.history || []), trackingEntry],
+          },
+        }
+        const updatedAnswers = { ...currentAnswers, _recordTracking: updatedTracking }
+        await fetch(
+          `${supabaseUrl}/rest/v1/intake_submissions?id=eq.${caseId}`,
+          {
+            method: 'PATCH',
+            headers: sbHeaders,
+            body: JSON.stringify({ answers: updatedAnswers }),
+          }
+        )
+      }
+    } catch (err) {
+      console.error('Profile checklist log failed:', err)
+    }
+  }
+
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  })
 }
