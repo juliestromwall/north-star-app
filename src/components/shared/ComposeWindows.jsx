@@ -9,7 +9,7 @@ import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import { useDrafts } from '@/context/DraftContext'
 import { useRole } from '@/context/RoleContext'
-import { sendEmail, createGmailDraft } from '@/lib/google'
+import { sendEmail, createGmailDraft, fetchEmailContacts, addEmailContactToCache } from '@/lib/google'
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
@@ -166,6 +166,92 @@ function FormattingToolbar({ editor }) {
 
 // ── Compose Window ──────────────────────────────────────
 
+function RecipientInput({ value, onChange, placeholder, contacts }) {
+  const [focused, setFocused] = useState(false)
+  const [highlightedIdx, setHighlightedIdx] = useState(0)
+  const inputRef = useRef(null)
+  const containerRef = useRef(null)
+
+  // Get the segment being typed (everything after the last comma)
+  const lastCommaIdx = Math.max(value.lastIndexOf(','), value.lastIndexOf(';'))
+  const beforeFragment = lastCommaIdx >= 0 ? value.slice(0, lastCommaIdx + 1) : ''
+  const fragment = (lastCommaIdx >= 0 ? value.slice(lastCommaIdx + 1) : value).trim().toLowerCase()
+
+  // Filter suggestions
+  const suggestions = fragment.length >= 1
+    ? contacts.filter(c => c.email.toLowerCase().includes(fragment) || c.name?.toLowerCase().includes(fragment)).slice(0, 8)
+    : []
+
+  function selectContact(contact) {
+    const newVal = (beforeFragment + (beforeFragment && !beforeFragment.endsWith(' ') ? ' ' : '') + contact.email + ', ').replace(/^\s+/, '')
+    onChange(newVal)
+    setHighlightedIdx(0)
+    inputRef.current?.focus()
+  }
+
+  function handleKeyDown(e) {
+    if (suggestions.length === 0) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightedIdx(i => Math.min(i + 1, suggestions.length - 1)) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightedIdx(i => Math.max(i - 1, 0)) }
+    else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      selectContact(suggestions[highlightedIdx])
+    } else if (e.key === 'Escape') {
+      setFocused(false)
+    }
+  }
+
+  // Reset highlight when suggestions change
+  useEffect(() => { setHighlightedIdx(0) }, [fragment])
+
+  // Close on outside click
+  useEffect(() => {
+    if (!focused) return
+    function onClick(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setFocused(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [focused])
+
+  const showDropdown = focused && suggestions.length > 0
+
+  return (
+    <div ref={containerRef} className="flex-1 relative">
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className="w-full text-sm outline-none bg-transparent"
+      />
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+          {suggestions.map((c, i) => (
+            <button
+              key={c.email}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); selectContact(c) }}
+              onMouseEnter={() => setHighlightedIdx(i)}
+              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${i === highlightedIdx ? 'bg-[#283693]/8' : 'hover:bg-stone-50'}`}
+            >
+              <div className="size-7 rounded-full bg-[#283693]/10 flex items-center justify-center text-[10px] font-semibold text-[#283693] shrink-0">
+                {(c.name || c.email)[0]?.toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                {c.name && <p className="font-medium text-stone-800 truncate">{c.name}</p>}
+                <p className={`text-xs text-stone-500 truncate ${!c.name ? 'text-stone-800 font-medium' : ''}`}>{c.email}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ComposeWindow({ draft, index }) {
   const { updateDraft, closeDraft, minimizeDraft, expandDraft } = useDrafts()
   const { currentUser } = useRole()
@@ -179,6 +265,13 @@ function ComposeWindow({ draft, index }) {
   const [caseDocs, setCaseDocs] = useState([])
   const [docSearch, setDocSearch] = useState('')
   const [docsLoading, setDocsLoading] = useState(false)
+  const [contacts, setContacts] = useState([])
+
+  // Load Gmail contacts (cached)
+  useEffect(() => {
+    if (!userId) return
+    fetchEmailContacts(userId).then(setContacts).catch(() => {})
+  }, [userId])
 
   async function openDocPicker() {
     if (!draft.caseId) { alert('Select a case first to attach documents.'); return }
@@ -308,6 +401,9 @@ function ComposeWindow({ draft, index }) {
         bcc: draft.bcc || undefined,
         attachments: draft.attachments,
       })
+
+      // Cache recipients for autocomplete on next compose
+      try { addEmailContactToCache(userId, [draft.to, draft.cc, draft.bcc].filter(Boolean)) } catch {}
 
       if (draft.caseId && draft.caseId !== '_none' && supabase) {
         const c = cases?.find(c => String(c.id) === String(draft.caseId))
@@ -460,11 +556,11 @@ function ComposeWindow({ draft, index }) {
         <div className="px-3 pt-2 space-y-1.5 shrink-0">
           <div className="flex items-center gap-2 border-b pb-1.5">
             <span className="text-xs text-muted-foreground w-6">To</span>
-            <input
-              value={draft.to}
-              onChange={e => updateDraft(draft.id, { to: e.target.value })}
+            <RecipientInput
+              value={draft.to || ''}
+              onChange={v => updateDraft(draft.id, { to: v })}
               placeholder="recipient@email.com"
-              className="flex-1 text-sm outline-none bg-transparent"
+              contacts={contacts}
             />
             {!draft.showCcBcc && (
               <button onClick={() => updateDraft(draft.id, { showCcBcc: true })} className="text-xs text-muted-foreground hover:text-foreground">
@@ -476,11 +572,11 @@ function ComposeWindow({ draft, index }) {
             <>
               <div className="flex items-center gap-2 border-b pb-1.5">
                 <span className="text-xs text-muted-foreground w-6">Cc</span>
-                <input value={draft.cc} onChange={e => updateDraft(draft.id, { cc: e.target.value })} className="flex-1 text-sm outline-none bg-transparent" />
+                <RecipientInput value={draft.cc || ''} onChange={v => updateDraft(draft.id, { cc: v })} placeholder="" contacts={contacts} />
               </div>
               <div className="flex items-center gap-2 border-b pb-1.5">
                 <span className="text-xs text-muted-foreground w-6">Bcc</span>
-                <input value={draft.bcc} onChange={e => updateDraft(draft.id, { bcc: e.target.value })} className="flex-1 text-sm outline-none bg-transparent" />
+                <RecipientInput value={draft.bcc || ''} onChange={v => updateDraft(draft.id, { bcc: v })} placeholder="" contacts={contacts} />
               </div>
             </>
           )}

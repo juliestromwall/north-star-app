@@ -79,6 +79,123 @@ export async function listEmails(userId, { query = '', maxResults = 20, pageToke
   return data
 }
 
+/** Parse "Name <email@x.com>" or "email@x.com" into { name, email } */
+function parseEmailHeader(headerVal) {
+  if (!headerVal) return []
+  // Split on commas not inside quotes/brackets
+  const parts = []
+  let current = ''
+  let inQuote = false
+  let inAngle = false
+  for (const ch of headerVal) {
+    if (ch === '"') inQuote = !inQuote
+    else if (ch === '<') inAngle = true
+    else if (ch === '>') inAngle = false
+    if (ch === ',' && !inQuote && !inAngle) {
+      parts.push(current.trim()); current = ''
+    } else {
+      current += ch
+    }
+  }
+  if (current.trim()) parts.push(current.trim())
+  return parts.map(p => {
+    const m = p.match(/^(?:"?([^"<]+?)"?\s*)?<([^>]+)>$/) || p.match(/^([^@<>]+@[^@<>]+)$/)
+    if (!m) return null
+    if (m.length === 3) return { name: (m[1] || '').trim(), email: m[2].trim().toLowerCase() }
+    return { name: '', email: m[1].trim().toLowerCase() }
+  }).filter(c => c && c.email && c.email.includes('@'))
+}
+
+/** Fetch contacts (people you've emailed/received from) — cached in localStorage */
+export async function fetchEmailContacts(userId, { force = false, maxMessages = 200 } = {}) {
+  if (!userId) return []
+  const cacheKey = `gmail_contacts_${userId}`
+  const cacheTtl = 24 * 60 * 60 * 1000 // 24h
+
+  if (!force) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null')
+      if (cached && (Date.now() - cached.ts < cacheTtl)) return cached.contacts || []
+    } catch {}
+  }
+
+  try {
+    const token = await getAccessToken(userId)
+    const contactMap = new Map() // email -> { name, email, count, lastSeen }
+
+    // Fetch from Sent + Inbox (separately for label filter)
+    for (const labelIds of [['SENT'], ['INBOX']]) {
+      const params = new URLSearchParams({ maxResults: String(maxMessages) })
+      labelIds.forEach(id => params.append('labelIds', id))
+      const listRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const listData = await listRes.json()
+      const ids = (listData.messages || []).map(m => m.id)
+
+      // Batch fetch metadata only — To, Cc, Bcc, From
+      const headerNames = ['To', 'Cc', 'Bcc', 'From']
+      const promises = ids.map(id => {
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&` +
+          headerNames.map(n => `metadataHeaders=${n}`).join('&')
+        return fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => null)
+      })
+      const results = await Promise.all(promises)
+      for (const msg of results) {
+        if (!msg?.payload?.headers) continue
+        const ts = parseInt(msg.internalDate) || 0
+        for (const h of msg.payload.headers) {
+          if (!headerNames.includes(h.name)) continue
+          const parsed = parseEmailHeader(h.value)
+          for (const c of parsed) {
+            const existing = contactMap.get(c.email)
+            if (existing) {
+              existing.count++
+              if (!existing.name && c.name) existing.name = c.name
+              if (ts > existing.lastSeen) existing.lastSeen = ts
+            } else {
+              contactMap.set(c.email, { ...c, count: 1, lastSeen: ts })
+            }
+          }
+        }
+      }
+    }
+
+    const contacts = Array.from(contactMap.values()).sort((a, b) => b.count - a.count || b.lastSeen - a.lastSeen)
+    try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), contacts })) } catch {}
+    return contacts
+  } catch (err) {
+    console.error('fetchEmailContacts failed:', err)
+    return []
+  }
+}
+
+/** Add a contact to the local cache (called after sending an email) */
+export function addEmailContactToCache(userId, recipients) {
+  if (!userId) return
+  const cacheKey = `gmail_contacts_${userId}`
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || '{"contacts":[]}')
+    const map = new Map(cached.contacts.map(c => [c.email, c]))
+    for (const r of recipients) {
+      const parsed = parseEmailHeader(r)
+      for (const c of parsed) {
+        const existing = map.get(c.email)
+        if (existing) {
+          existing.count++
+          existing.lastSeen = Date.now()
+          if (!existing.name && c.name) existing.name = c.name
+        } else {
+          map.set(c.email, { ...c, count: 1, lastSeen: Date.now() })
+        }
+      }
+    }
+    const contacts = Array.from(map.values()).sort((a, b) => b.count - a.count || b.lastSeen - a.lastSeen)
+    localStorage.setItem(cacheKey, JSON.stringify({ ts: cached.ts || Date.now(), contacts }))
+  } catch {}
+}
+
 /** Get a single email by ID */
 export async function getEmail(userId, messageId, format = 'full') {
   const token = await getAccessToken(userId)
