@@ -2805,7 +2805,6 @@ function isConditionalVisible(fieldKey, sectionData) {
 const PROFILE_SECTIONS = [
   { key: 'personal', title: 'Personal Information', fields: [
     'firstName', 'dob', 'city', 'state', 'heightFt', 'heightIn', 'weight',
-    'usCitizen', 'realId', 'validPassport', 'otherLanguages', 'otherLanguagesDetails',
     'maritalStatus', 'monogamous', 'sexualPartners', 'relationshipLength', 'partnerName',
     'partnerDob', 'partnerUsCitizen', 'householdMembers'
   ] },
@@ -2816,29 +2815,18 @@ const PROFILE_SECTIONS = [
     'sameBioFather', 'sameBioFatherDetails', 'pregnancyDetails',
     'infertilityTreatment', 'infertilityTreatmentDetails',
     'gynecologicalProblems', 'gynecologicalProblemsDetails',
-    'contraceptiveMethod', 'lastPeriod', 'cycleLength', 'cycleLengthDetails',
-    'breastfeeding', 'breastfeedingStopDate', 'timeToConceive',
-    'pregnancyMedication', 'pregnancyMedicationList',
-    'nearestNICU', 'willingToTravelNICU'
+    'pregnancyMedication', 'pregnancyMedicationList'
   ] },
   { key: 'general', title: 'General Information', fields: [
     'homeOwnership', 'homeDuration', 'childrenFullTime', 'childrenFullTimeDetails',
-    'childrenSpecialNeeds', 'childrenSpecialNeedsDetails',
-    'placedForAdoption', 'placedForAdoptionDetails', 'divorcedRelationship',
+    'divorcedRelationship',
     'planMoreChildren', 'planMoreChildrenDetails',
     'smokeVape', 'smokingHistory', 'smokingHistoryDetails',
     'householdSmoker', 'householdSmokerDetails',
     'alcoholDrugs', 'alcoholDrugsDetails',
     'advisedLimitSubstances', 'advisedLimitDetails',
     'householdControlledSubstances', 'householdSubstancesDetails', 'householdSubstancesPurpose',
-    'gunsOwned', 'gunsDetails',
-    'piercingsTattoos', 'piercingsTattoosDetails', 'lastTattooDate', 'nonSterilePiercing',
-    'eatingDisorders', 'eatingDisordersDetails', 'typicalDiet',
-    'partnerFdaTests', 'ethnicity', 'religion', 'religionImportance', 'differentReligion',
-    'criminalHistory', 'criminalHistoryDetails',
-    'recentTravel', 'recentTravelDetails', 'travelPlans', 'travelPlansDetails',
-    'exerciseFrequency', 'sleepIssues', 'sleepIssuesDetails', 'sleepHours',
-    'reliableVehicle', 'autoInsurance', 'validLicense'
+    'typicalDiet', 'exerciseFrequency'
   ] },
   { key: 'health', title: 'Health Information', fields: [
     'mentalHealthDiagnosis', 'mentalHealthDetails',
@@ -2848,16 +2836,13 @@ const PROFILE_SECTIONS = [
     'familyMentalHealth', 'familyMentalHealthDetails',
     'domesticViolence', 'domesticViolenceDetails',
     'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
-    'allergies', 'medicalConditions', 'lastPhysical', 'lastPap',
-    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails',
-    'openToVaccinations', 'vaccinationReasons',
-    'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling'
+    'allergies', 'medicalConditions',
+    'surgeries', 'diseaseHistory', 'diseaseHistoryDetails'
   ] },
   { key: 'employment', title: 'Employment Information', fields: [
     'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
     'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
     'partnerOccupation', 'partnerWeeklyIncome',
-    'healthInsurance', 'insuranceType',
     'governmentAssistance', 'governmentAssistanceDetails'
   ] },
   { key: 'interests', title: 'Interests', fields: [
@@ -2865,15 +2850,12 @@ const PROFILE_SECTIONS = [
     'favoriteColor', 'favoriteFlower', 'pets', 'catLitter',
     'hobbies', 'collections', 'dreamTravel', 'personality'
   ] },
-  { key: 'academic', title: 'Academic Information', fields: [
-    'educationLevel', 'currentlyInSchool', 'currentlyInSchoolDetails'
-  ] },
   { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [
     'previousSurrogate', 'surrogacyTimes', 'journeys', 'overallExperience'
   ] },
   { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: [
     'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
-    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'lifestyleChangesDetails',
+    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges',
     'pumpBreastmilk',
     'idealIPs', 'preferredCommunication', 'ipInvolvement',
     'ipsAtAppointments', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers', 'ipsCantAttend',
@@ -2883,8 +2865,7 @@ const PROFILE_SECTIONS = [
     'cvsAmnio', 'cvsAmnioDetails', 'willingnessToTerminate',
     'partnerAgreesTermination', 'conditionsWontTerminate',
     'embryosToTransfer', 'carryTwins',
-    'desiredCompensation', 'compensationNegotiable',
-    'additionalComments'
+    'desiredCompensation', 'additionalComments'
   ] },
 ]
 
