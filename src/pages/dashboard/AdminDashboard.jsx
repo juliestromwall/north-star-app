@@ -609,6 +609,7 @@ export default function AdminDashboard() {
                 {getAdminStaff().map(a => (
                   <option key={a.email} value={a.email}>{a.name}{a.email === currentUser?.email ? ' (me)' : ''}</option>
                 ))}
+                {(() => { const s = getAdminStaff(); const j = s.find(a => a.email === 'julie@abcsurrogacy.com'); const n = s.find(a => a.email === 'nicole@abcsurrogacy.com'); return j && n ? <option value={`${j.email},${n.email}`}>{j.name} & {n.name}</option> : null })()}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -675,6 +676,7 @@ export default function AdminDashboard() {
                   {getAdminStaff().map(a => (
                     <option key={a.email} value={a.email}>{a.name}{a.email === currentUser?.email ? ' (me)' : ''}</option>
                   ))}
+                  {(() => { const s = getAdminStaff(); const j = s.find(a => a.email === 'julie@abcsurrogacy.com'); const n = s.find(a => a.email === 'nicole@abcsurrogacy.com'); return j && n ? <option value={`${j.email},${n.email}`}>{j.name} & {n.name}</option> : null })()}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
