@@ -57,9 +57,9 @@ export async function onRequestPost(context) {
     const bytes = new Uint8Array(binary.length)
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
 
-    // 2. Upload to storage
+    // 2. Upload to storage (psych-evaluation folder)
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const storagePath = `${surrogateId}/psych/${Date.now()}-${safeName}`
+    const storagePath = `${surrogateId}/psych-evaluation/${Date.now()}-${safeName}`
     try {
       const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${BUCKET}/${storagePath}`, {
         method: 'POST',
@@ -78,7 +78,7 @@ export async function onRequestPost(context) {
           headers: { ...sbHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
           body: JSON.stringify({
             surrogate_id: surrogateId,
-            category: 'psych',
+            category: 'psych-evaluation',
             file_name: fileName,
             file_type: 'application/pdf',
             file_size: bytes.length,
@@ -100,11 +100,30 @@ export async function onRequestPost(context) {
       results.errors.upload_exception = e.message
     }
 
-    // 4. Create task
+    // 4. Look up matched journey if not provided (covers shared link case)
+    let resolvedJourneyId = journeyId
+    let resolvedAssignee = caseManagerEmail || ''
+    if (!resolvedJourneyId) {
+      try {
+        const jRes = await fetch(
+          `${supabaseUrl}/rest/v1/matched_journeys?gc_case_id=eq.${surrogateId}&select=id,assigned_to,journey_data`,
+          { headers: sbHeaders }
+        )
+        const jRows = await jRes.json()
+        if (jRows?.length > 0) {
+          resolvedJourneyId = jRows[0].id
+          if (!resolvedAssignee) {
+            resolvedAssignee = jRows[0].assigned_to || jRows[0].journey_data?.assigned_to || ''
+          }
+        }
+      } catch (e) { console.error('Journey lookup failed:', e) }
+    }
+
+    // 5. Create task — on the journey if matched, else on the surrogate case
     try {
-      const taskPayload = journeyId
-        ? { case_id: journeyId, case_type: 'journey', title: taskTitle, priority: 'normal', status: 'open', assigned_to: caseManagerEmail || '', created_by: uploadedBy || 'Therapist', description: taskDescription || '' }
-        : { case_id: surrogateId, case_type: 'surrogate', title: taskTitle, priority: 'normal', status: 'open', assigned_to: caseManagerEmail || '', created_by: uploadedBy || 'Therapist', description: taskDescription || '' }
+      const taskPayload = resolvedJourneyId
+        ? { case_id: resolvedJourneyId, case_type: 'journey', title: taskTitle, priority: 'normal', status: 'open', assigned_to: resolvedAssignee, created_by: uploadedBy || 'Therapist', description: taskDescription || '' }
+        : { case_id: surrogateId, case_type: 'surrogate', title: taskTitle, priority: 'normal', status: 'open', assigned_to: resolvedAssignee, created_by: uploadedBy || 'Therapist', description: taskDescription || '' }
       const taskRes = await fetch(`${supabaseUrl}/rest/v1/case_tasks`, {
         method: 'POST',
         headers: { ...sbHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
