@@ -90,7 +90,7 @@ export default function SurrogateIntakeForm() {
   const step1Valid = form.firstName && form.lastName && form.dob && form.email && form.phone && form.state && form.usCitizen !== null && emailValid && phoneValid
   const step2Valid = form.maritalStatus && form.preferredContact
   const step3Valid = form.heightFt && form.heightIn && form.weightLbs
-  const step4Valid = form.healthyPregnancy !== null && form.sixOrMoreDeliveries !== null && form.moreThanTwoCsections !== null
+  const step4Valid = form.healthyPregnancy !== null && form.sixOrMoreDeliveries !== null && form.moreThanTwoCsections !== null && form.experiencedSurrogate !== null
   const step5Valid = form.hearAboutUs && form.agreeBackgroundCheck && (form.hearAboutUs !== 'Friend or family' || form.referralName?.trim())
   const stepValid = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
   const [emailError, setEmailError] = useState(null)
@@ -361,6 +361,17 @@ export default function SurrogateIntakeForm() {
           <YesNoGrid
             value={form.moreThanTwoCsections}
             onChange={v => set('moreThanTwoCsections', v)}
+            yesLabel="Yes"
+            noLabel="No"
+            accentColor={GC_COLOR}
+            accentFg={GC_FG}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-stone-800 mb-3">Are you an experienced surrogate?</p>
+          <YesNoGrid
+            value={form.experiencedSurrogate}
+            onChange={v => set('experiencedSurrogate', v)}
             yesLabel="Yes"
             noLabel="No"
             accentColor={GC_COLOR}

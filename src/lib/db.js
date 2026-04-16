@@ -1050,7 +1050,7 @@ export async function fetchMyTasks(assignedTo) {
   const { data, error } = await supabase
     .from('case_tasks')
     .select('*')
-    .eq('assigned_to', assignedTo)
+    .or(`assigned_to.eq.${assignedTo},assigned_to.ilike.%${assignedTo}%`)
     .in('status', ['open', 'in_progress'])
     .order('due_date', { ascending: true, nullsFirst: false })
   if (error) return []

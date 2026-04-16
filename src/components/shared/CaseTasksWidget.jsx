@@ -147,7 +147,11 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
       </div>
       {expanded && (
         <div className="mt-2 pl-6 space-y-2 text-xs">
-          {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{getAdminStaff().find(a => a.email === task.assigned_to)?.name || task.assigned_to}</span></p>}
+          {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{
+            task.assigned_to.includes(',')
+              ? task.assigned_to.split(',').map(e => getAdminStaff().find(a => a.email === e.trim())?.name || e.trim()).join(' & ')
+              : getAdminStaff().find(a => a.email === task.assigned_to)?.name || task.assigned_to
+          }</span></p>}
           {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by}</span></p>}
           {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by} on {formatDate(task.completed_at)}</span></p>}
           {editing ? (
@@ -172,6 +176,18 @@ function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
   )
 }
 
+function buildAssignOptions() {
+  const staff = getAdminStaff()
+  const options = staff.map(a => ({ value: a.email, label: a.name }))
+  // Add "Julie & Nicole" combo if both exist
+  const julie = staff.find(a => a.name?.toLowerCase().includes('julie'))
+  const nicole = staff.find(a => a.name?.toLowerCase().includes('nicole'))
+  if (julie && nicole) {
+    options.push({ value: `${julie.email},${nicole.email}`, label: 'Julie & Nicole' })
+  }
+  return options
+}
+
 function AddTaskDialog({ open, onOpenChange, onSave, currentUser }) {
   const [form, setForm] = useState({ title: '', description: '', priority: 'normal', due_date: '', assigned_to: currentUser?.email || '' })
   const [saving, setSaving] = useState(false)
@@ -193,6 +209,8 @@ function AddTaskDialog({ open, onOpenChange, onSave, currentUser }) {
       })
     } catch {} finally { setSaving(false) }
   }
+
+  const assignOptions = buildAssignOptions()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,7 +243,7 @@ function AddTaskDialog({ open, onOpenChange, onSave, currentUser }) {
             <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
             <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
               <option value="">Unassigned</option>
-              {getAdminStaff().map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+              {assignOptions.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
           <div className="flex gap-2 justify-end pt-2">
@@ -416,7 +434,7 @@ function DashboardAddTaskDialog({ open, onOpenChange, onSave, currentUser, cases
             <label className="text-[11px] text-stone-400 font-medium">Assign To</label>
             <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
               <option value="">Unassigned</option>
-              {getAdminStaff().map(a => <option key={a.email} value={a.email}>{a.name}</option>)}
+              {buildAssignOptions().map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
           <div className="flex gap-2 justify-end pt-2">

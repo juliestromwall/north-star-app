@@ -47,8 +47,8 @@ function saveProfile(userId, data) {
 
 function Field({ label, children, className = '' }) {
   return (
-    <div className={`space-y-1.5 ${className}`}>
-      <Label className="text-sm font-medium text-gray-700">{label}</Label>
+    <div className={`space-y-1 ${className}`}>
+      <Label className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">{label}</Label>
       {children}
     </div>
   )
@@ -63,7 +63,7 @@ function TextField({ label, value, onChange, placeholder, type = 'text', disable
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className="bg-white"
+        className="bg-white border-stone-200 text-sm h-9 focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
       />
     </Field>
   )
@@ -77,7 +77,7 @@ function TextAreaField({ label, value, onChange, placeholder, rows = 3, classNam
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="bg-white"
+        className="bg-white border-stone-200 text-sm focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
       />
     </Field>
   )
@@ -87,7 +87,7 @@ function SelectField({ label, value, onChange, options, placeholder = 'Select...
   return (
     <Field label={label} className={className}>
       <Select value={value || ''} onValueChange={onChange}>
-        <SelectTrigger className="w-full bg-white">
+        <SelectTrigger className="w-full bg-white border-stone-200 text-sm h-9">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -105,14 +105,14 @@ function SelectField({ label, value, onChange, options, placeholder = 'Select...
 function YesNoField({ label, value, onChange, className = '' }) {
   return (
     <Field label={label} className={className}>
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex items-center gap-2 pt-0.5">
         <button
           type="button"
           onClick={() => onChange('yes')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+          className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
             value === 'yes'
-              ? 'bg-[#283693] text-white shadow-md'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              ? 'bg-[#283693] text-white shadow-sm'
+              : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
           }`}
         >
           Yes
@@ -120,10 +120,10 @@ function YesNoField({ label, value, onChange, className = '' }) {
         <button
           type="button"
           onClick={() => onChange('no')}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+          className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all ${
             value === 'no'
-              ? 'bg-[#283693] text-white shadow-md'
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              ? 'bg-[#283693] text-white shadow-sm'
+              : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
           }`}
         >
           No
@@ -594,6 +594,13 @@ export default function SurrogateProfilePage() {
           partnerName: answers.partnerName || '',
           usCitizen: answers.usCitizen === true ? 'yes' : answers.usCitizen === false ? 'no' : '',
         },
+        experiencedSurrogate: {
+          ...prev.experiencedSurrogate,
+          // Only pre-fill if not already set
+          ...(prev.experiencedSurrogate?.previousSurrogate ? {} : {
+            previousSurrogate: answers.experiencedSurrogate === true ? 'yes' : answers.experiencedSurrogate === false ? 'no' : '',
+          }),
+        },
       }))
     })
   }, [currentUser?.email])
@@ -779,40 +786,43 @@ export default function SurrogateProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fdf8f3]">
-      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-stone-50/60">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-5">
 
         {/* ── Page Header ── */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <ProgressRing percent={overallCompletion} />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-[#283693]">My Surrogate Profile</h1>
-            <p className="text-gray-500 mt-1">
-              Complete your matching profile so intended parents can get to know you.
-            </p>
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-stone-100 flex flex-col sm:flex-row items-center gap-5">
+            <ProgressRing percent={overallCompletion} />
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <h1 className="text-xl font-bold text-[#283693]">My Surrogate Profile</h1>
+              <p className="text-stone-400 text-sm mt-0.5">Complete your matching profile so intended parents can get to know you.</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button onClick={openPreview} variant="outline" size="sm" className="gap-1.5 rounded-lg border-stone-300 text-stone-600 hover:text-[#283693] hover:border-[#283693]/30">
+                <Eye className="w-3.5 h-3.5" /> {previewOpen ? 'Edit' : 'Preview'}
+              </Button>
+              {!profileApproved && !profileSubmitted && overallCompletion === 100 && (
+                <Button
+                  size="sm"
+                  onClick={() => setShowSubmitModal(true)}
+                  className="gap-1.5 rounded-lg"
+                  style={{ backgroundColor: '#283693', color: '#fff' }}
+                >
+                  <Send className="w-3.5 h-3.5" /> Submit
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="px-6 py-3 bg-stone-50/50">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-1.5 bg-stone-200/60 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#ed148c] to-[#283693] rounded-full transition-all duration-700"
                   style={{ width: `${overallCompletion}%` }}
                 />
               </div>
-              <span className="text-xs font-medium text-gray-500">{overallCompletion}% complete</span>
+              <span className="text-[11px] font-semibold text-stone-400 tabular-nums">{overallCompletion}%</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button onClick={openPreview} variant="outline" className="gap-1.5 border-[#283693] text-[#283693]">
-              <Eye className="w-4 h-4" /> {previewOpen ? 'Edit Profile' : 'Preview'}
-            </Button>
-            {!profileApproved && !profileSubmitted && overallCompletion === 100 && (
-              <Button
-                onClick={() => setShowSubmitModal(true)}
-                className="gap-1.5"
-                style={{ backgroundColor: '#283693', color: '#fff' }}
-              >
-                <Send className="w-4 h-4" /> Submit for Review
-              </Button>
-            )}
           </div>
         </div>
 
@@ -858,41 +868,37 @@ export default function SurrogateProfilePage() {
               const isLocked = profileApproved || profileSubmitted
               return (
                 <Collapsible key={sec.key} open={isLocked ? false : isOpen} onOpenChange={() => !isLocked && toggleSection(sec.key)}>
-                  <Card id={`section-${sec.key}`} className={`rounded-2xl shadow-sm border-gray-100 overflow-hidden ${isLocked ? 'opacity-60' : ''}`}>
+                  <div id={`section-${sec.key}`} className={`bg-white rounded-xl border border-stone-200 overflow-hidden ${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                     <CollapsibleTrigger asChild>
-                      <CardHeader className={`${isLocked ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50/50'} transition-colors`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                            complete ? 'bg-green-100' : 'bg-[#283693]/10'
-                          }`}>
-                            <Icon className={`w-5 h-5 ${complete ? 'text-green-600' : 'text-[#283693]'}`} />
-                          </div>
-                          <div>
-                            <CardTitle className="text-base">{sec.title}</CardTitle>
-                            <CardDescription>{sec.description}</CardDescription>
-                          </div>
+                      <button className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${isLocked ? 'cursor-default' : 'hover:bg-stone-50/60'}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          complete ? 'bg-emerald-50' : 'bg-[#283693]/5'
+                        }`}>
+                          <Icon className={`w-4 h-4 ${complete ? 'text-emerald-500' : 'text-[#283693]/70'}`} />
                         </div>
-                        <CardAction>
-                          <div className="flex items-center gap-3">
-                            {total > 0 && (
-                              <span className="text-xs text-gray-400">{filled}/{total}</span>
-                            )}
-                            {complete ? (
-                              <CheckCircle2 className="w-5 h-5 text-green-500" />
-                            ) : total > 0 ? (
-                              <Circle className="w-5 h-5 text-gray-300" />
-                            ) : null}
-                            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                          </div>
-                        </CardAction>
-                      </CardHeader>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-stone-800">{sec.title}</p>
+                          <p className="text-[11px] text-stone-400 mt-0.5">{sec.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          {total > 0 && (
+                            <span className={`text-[11px] font-medium tabular-nums ${complete ? 'text-emerald-500' : 'text-stone-400'}`}>{filled}/{total}</span>
+                          )}
+                          {complete ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          ) : total > 0 ? (
+                            <Circle className="w-4 h-4 text-stone-300" />
+                          ) : null}
+                          <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className={isLocked ? 'pointer-events-none opacity-60' : ''}>
+                      <div className="px-5 pb-5 pt-2 border-t border-stone-100">
                         <SectionBody sectionKey={sec.key} v={v} u={u} profile={profile} setProfile={setProfile} />
-                      </CardContent>
+                      </div>
                     </CollapsibleContent>
-                  </Card>
+                  </div>
                 </Collapsible>
               )
             })}
@@ -1806,7 +1812,9 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
               <SelectField label="Pregnancy Outcome" value={pregnancies[expandedIdx]?.outcome || ''} onChange={val => updatePregnancy(expandedIdx, 'outcome', val)}
                 options={['Live Birth', 'Miscarriage', 'Stillborn', 'Ectopic Pregnancy', 'Termination']} />
 
-              <YesNoField label="Was this a surrogacy pregnancy?" value={pregnancies[expandedIdx]?.wasSurrogacy || ''} onChange={val => updatePregnancy(expandedIdx, 'wasSurrogacy', val)} />
+              {profile?.experiencedSurrogate?.previousSurrogate === 'yes' && (
+                <YesNoField label="Was this a surrogacy pregnancy?" value={pregnancies[expandedIdx]?.wasSurrogacy || ''} onChange={val => updatePregnancy(expandedIdx, 'wasSurrogacy', val)} />
+              )}
 
               {pregnancies[expandedIdx]?.wasSurrogacy !== 'yes' && (
                 <TextField label="About how many months did it take you to get pregnant?" value={pregnancies[expandedIdx]?.cyclesToConceive || ''} onChange={val => updatePregnancy(expandedIdx, 'cyclesToConceive', val)} required className="max-w-xs" />
@@ -1931,7 +1939,7 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                 <TextAreaField label="Please provide details" value={pregnancies[expandedIdx]?.birthDefectDetails || ''} onChange={val => updatePregnancy(expandedIdx, 'birthDefectDetails', val)} rows={2} />
               )}
               <CheckboxGroupField label="Pregnancy complications (check all that apply)" options={[
-                'C-Section', 'Ectopic Pregnancy', 'Gestational Diabetes', 'High Blood Pressure',
+                'C-Section', 'Gestational Diabetes', 'High Blood Pressure',
                 'IUGR (Intrauterine Growth Restriction)', 'Physician Ordered Bed Rest', 'Placenta Previa',
                 'Postpartum Depression', 'Premature Birth', 'Retained Placenta', 'Toxemia', 'Other', 'None of the above'
               ]} value={pregnancies[expandedIdx]?.complicationsList || []} onChange={val => updatePregnancy(expandedIdx, 'complicationsList', val)} />

@@ -212,6 +212,7 @@ function GCAnswerDetail({ answers }) {
         <p className="font-semibold text-stone-700 mb-3 pb-1 border-b">Pregnancy History</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-2">
           <QuizAnswerRow label="Healthy Pregnancy" value={answers.healthyPregnancy} />
+          <QuizAnswerRow label="Experienced Surrogate" value={answers.experiencedSurrogate} />
         </div>
       </section>
 
