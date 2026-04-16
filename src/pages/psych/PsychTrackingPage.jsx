@@ -455,63 +455,54 @@ export default function PsychTrackingPage() {
       const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
       await saveTracking(updatedTracking)
 
-      // 3. Generate real PDF using html2pdf.js and upload to case documents
+      // 3. Generate PDF and submit via server-side API (handles RLS + uploads + task)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
-      let pdfBlob = null
       try {
-        const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
-        // Strip the print bar from saved version
-        const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
-        const html2pdf = (await import('html2pdf.js')).default
-        const tempDiv = document.createElement('div')
-        tempDiv.innerHTML = cleanHtml
-        document.body.appendChild(tempDiv)
-        const pdfWorker = html2pdf().set({
-          margin: 0.5,
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        }).from(tempDiv)
-        pdfBlob = await pdfWorker.output('blob')
-        document.body.removeChild(tempDiv)
-      } catch (e) { console.error('PDF generation failed:', e) }
-
-      // 4. Upload PDF to surrogate's case (psych folder)
-      if (pdfBlob && supabase && !String(checkinRow.id).startsWith('manual_')) {
-        try {
-          const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
-          const result = await uploadCaseDocument({
-            surrogateId: checkinRow.id,
-            category: 'psych',
-            file: pdfFile,
-            uploadedBy: report.therapistName || 'Therapist',
+        if (!String(checkinRow.id).startsWith('manual_')) {
+          const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
+          const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
+          const html2pdf = (await import('html2pdf.js')).default
+          const tempDiv = document.createElement('div')
+          tempDiv.innerHTML = cleanHtml
+          document.body.appendChild(tempDiv)
+          const pdfBlob = await html2pdf().set({
+            margin: 0.5,
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          }).from(tempDiv).output('blob')
+          document.body.removeChild(tempDiv)
+          // Convert blob to base64
+          const arrayBuffer = await pdfBlob.arrayBuffer()
+          const bytes = new Uint8Array(arrayBuffer)
+          let binary = ''
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+          const pdfBase64 = btoa(binary)
+          const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
+          const submitRes = await fetch('/api/therapist-checkin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              surrogateId: checkinRow.id,
+              surrogateName: checkinRow.name,
+              milestoneName,
+              pdfBase64,
+              fileName,
+              uploadedBy: report.therapistName || 'Therapist',
+              caseManagerEmail: checkinForm.caseManagerEmail || journey?.assigned_to || journey?.journey_data?.assigned_to || '',
+              journeyId: journey?.id || null,
+              taskTitle: `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`,
+              taskDescription: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.`,
+            }),
           })
-          console.log('PDF uploaded to case docs:', result)
-        } catch (e) { console.error('Failed to upload PDF to case:', e) }
-      }
-
-      // 5. Open PDF in new window for therapist to download
-      openPdfWindow(report, checkinMilestone, checkinRow.name)
-
-      // 6. Create task for case manager: "{GC Name} {Check In Event} Complete - Needs Review"
-      try {
-        const journey = journeys.find(j => j.gc_case_id === checkinRow.id)
-        const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
-        const assignedTo = checkinForm.caseManagerEmail || journey?.assigned_to || journey?.journey_data?.assigned_to || ''
-        const taskPayload = journey
-          ? { case_id: journey.id, case_type: 'journey', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
-          : (!String(checkinRow.id).startsWith('manual_')
-            ? { case_id: Number(checkinRow.id), case_type: 'surrogate', title: taskTitle, priority: 'normal', status: 'open', assigned_to: assignedTo, created_by: report.therapistName || 'Therapist', description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.` }
-            : null)
-        if (taskPayload) {
-          try {
-            await createCaseTask(taskPayload)
-          } catch (taskErr) {
-            console.error('Task creation error:', taskErr)
-          }
+          const result = await submitRes.json()
+          console.log('Check-in submission result:', result)
         }
-      } catch (e) { console.error('Failed to create task:', e) }
+      } catch (e) { console.error('Check-in submission failed:', e) }
+
+      // Open PDF in new window for therapist to download
+      openPdfWindow(report, checkinMilestone, checkinRow.name)
 
       setCheckinOpen(false)
     } catch (e) { console.error('Failed to submit report:', e) }

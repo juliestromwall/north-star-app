@@ -483,10 +483,10 @@ export default function SharedPsychTrackingPage() {
       const updatedTracking = { ...tracking, [checkinRow.id]: { ...tracking[checkinRow.id], [checkinMilestone]: today } }
       await saveTracking(updatedTracking)
 
-      // 3. Generate real PDF and upload to surrogate's psych folder
+      // 3. Generate PDF and submit via server-side API (handles RLS bypass)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
       try {
-        if (supabase && !String(checkinRow.id).startsWith('manual_')) {
+        if (!String(checkinRow.id).startsWith('manual_')) {
           const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
           const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
           const html2pdf = (await import('html2pdf.js')).default
@@ -501,33 +501,32 @@ export default function SharedPsychTrackingPage() {
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
           }).from(tempDiv).output('blob')
           document.body.removeChild(tempDiv)
-          const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' })
-          await uploadCaseDocument({
-            surrogateId: checkinRow.id,
-            category: 'psych',
-            file: pdfFile,
-            uploadedBy: report.therapistName || 'Therapist',
+          // Convert blob to base64
+          const arrayBuffer = await pdfBlob.arrayBuffer()
+          const bytes = new Uint8Array(arrayBuffer)
+          let binary = ''
+          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+          const pdfBase64 = btoa(binary)
+          // Submit to server endpoint
+          const submitRes = await fetch('/api/therapist-checkin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              surrogateId: checkinRow.id,
+              surrogateName: checkinRow.name,
+              milestoneName,
+              pdfBase64,
+              fileName,
+              uploadedBy: report.therapistName || 'Therapist',
+              caseManagerEmail: checkinForm.caseManagerEmail || '',
+              taskTitle: `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`,
+              taskDescription: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.`,
+            }),
           })
+          const result = await submitRes.json()
+          console.log('Check-in submission result:', result)
         }
-      } catch (e) { console.error('PDF upload failed:', e) }
-
-      // 4. Create task for case manager (Needs Review)
-      try {
-        const taskTitle = `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`
-        const assignedTo = checkinForm.caseManagerEmail || ''
-        if (!String(checkinRow.id).startsWith('manual_')) {
-          await createCaseTask({
-            case_id: Number(checkinRow.id),
-            case_type: 'surrogate',
-            title: taskTitle,
-            priority: 'normal',
-            status: 'open',
-            assigned_to: assignedTo,
-            created_by: report.therapistName || 'Therapist',
-            description: `Check-in report submitted by ${report.therapistName || 'Therapist'}. PDF saved to Psych folder.`,
-          })
-        }
-      } catch (e) { console.error('Task creation failed:', e) }
+      } catch (e) { console.error('Check-in submission failed:', e) }
 
       // 4. Open PDF for download
       openPdfWindow(report, checkinMilestone, checkinRow.name)
