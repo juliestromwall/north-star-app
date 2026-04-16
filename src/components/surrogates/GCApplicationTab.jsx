@@ -116,6 +116,7 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
     { key: 'hearAboutUs', label: 'How did you hear about us?', type: 'select', options: HEAR_OPTIONS },
     { key: 'hearAboutUsOther', label: 'Other (specify)' },
     { key: 'agreeBackgroundCheck', label: 'Agreed to Background Check', type: 'yesno' },
+    { key: 'experiencedSurrogate', label: 'Experienced Surrogate', type: 'yesno' },
   ]
 
   const allLabels = QUIZ_FIELDS.map(f => f.label.toLowerCase())
@@ -126,6 +127,7 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
     (_, answers) => {
       const init = {}
       for (const f of QUIZ_FIELDS) init[f.key] = answers?.[f.key] ?? ''
+      init.beReferral = surrogate?.referralPartner === 'be_surrogacy'
       return init
     }
   )
@@ -142,13 +144,15 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
         const { data } = await supabase.from('intake_submissions').select('answers').eq('id', surrogate.id).single()
         if (data?.answers) currentAnswers = data.answers
       }
-      const merged = { ...currentAnswers, ...form }
+      const { beReferral, ...quizFields } = form
+      const merged = { ...currentAnswers, ...quizFields }
       await updateIntakeSubmission(surrogate.id, {
         answers: merged,
         applicant_name: `${form.firstName || ''} ${form.lastName || ''}`.trim(),
         applicant_email: (form.email || '').trim().toLowerCase(),
         applicant_phone: form.phone || '',
         state_region: form.state || '',
+        referral_partner: beReferral ? 'be_surrogacy' : null,
       })
       if (onSaved) onSaved(merged)
       cancel()
@@ -174,32 +178,52 @@ function QuizSection({ surrogate, quizAnswers, onSaved, search }) {
       />
       <CardContent>
         {editing ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {QUIZ_FIELDS.map(f => {
-              if (f.type === 'yesno') return (
-                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
-              )
-              if (f.type === 'select') return (
-                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={f.options} /></div>
-              )
-              return (
-                <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel>
-                  <input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
-                    className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" />
-                </div>
-              )
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {QUIZ_FIELDS.map(f => {
+                if (f.type === 'yesno') return (
+                  <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
+                )
+                if (f.type === 'select') return (
+                  <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel><SelectField value={form[f.key]} onValueChange={v => set(f.key, v)} options={f.options} /></div>
+                )
+                return (
+                  <div key={f.key} className="space-y-1"><FieldLabel>{f.label}</FieldLabel>
+                    <input type={f.type || 'text'} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}
+                      className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none" />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex items-center justify-between pt-4 mt-4 border-t">
+              <div className="flex items-center gap-2">
+                <img src="/be-logo.png" alt="BE" className="h-6 w-auto" />
+                <span className="text-sm font-medium">Referral</span>
+              </div>
+              <Switch checked={form.beReferral} onCheckedChange={v => set('beReferral', v)} />
+            </div>
+          </>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {QUIZ_FIELDS.map(f => {
-              const val = qa[f.key]
-              if (val === undefined || val === null || val === '') return null
-              const display = f.type === 'yesno' ? boolDisplay(val) : String(val)
-              if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
-              return <ReadField key={f.key} label={f.label} value={display} />
-            })}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {QUIZ_FIELDS.map(f => {
+                const val = qa[f.key]
+                if (val === undefined || val === null || val === '') return null
+                const display = f.type === 'yesno' ? boolDisplay(val) : String(val)
+                if (search && !f.label.toLowerCase().includes(search) && !display.toLowerCase().includes(search)) return null
+                return <ReadField key={f.key} label={f.label} value={display} />
+              })}
+            </div>
+            <div className="flex items-center justify-between pt-4 mt-4 border-t">
+              <div className="flex items-center gap-2">
+                <img src="/be-logo.png" alt="BE" className="h-5 w-auto" />
+                <span className="text-sm text-muted-foreground">Referral</span>
+              </div>
+              <span className={`text-sm font-medium ${surrogate?.referralPartner === 'be_surrogacy' ? 'text-green-600' : 'text-muted-foreground'}`}>
+                {surrogate?.referralPartner === 'be_surrogacy' ? 'Yes' : 'No'}
+              </span>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
@@ -256,66 +280,244 @@ function EditHeader({ title, description, editing, saving, startEdit, handleSave
   )
 }
 
-// ── Application Section ─────────────────────────────────
+// ── Application Section (merged Personal Information) ───
 function ApplicationSection({ surrogate, answers, profileData, onSaved, search }) {
   const stored = answers?._application || {}
   const profile = profileData?.personal || {}
-  const fertility = profileData?.fertility || {}
   const general = profileData?.general || {}
+  const employment = profileData?.employment || {}
 
-  const readFields = [
-    { label: 'Street Address', value: stored.street || '' },
-    { label: 'City', value: stored.city || profile.city || '' },
-    { label: 'State', value: stored.state || profile.state || '' },
-    { label: 'Zip Code', value: stored.zipCode || '' },
-    { label: 'Real ID', value: boolDisplay(stored.realId ?? profile.realId) },
-    { label: 'Valid Passport', value: boolDisplay(stored.validPassport ?? profile.validPassport) },
-    { label: 'Nearest hospital with Level II or III NICU', value: stored.nearestNICU || fertility.nearestNICU || '' },
-    { label: 'Willing to travel to Level II+ NICU?', value: boolDisplay(stored.willingToTravelNICU ?? fertility.willingToTravelNICU) },
+  const allLabels = [
+    'Full Legal Name', 'Maiden Name', 'Date of Birth', 'Last 4 of SSN', 'Religion',
+    'Real ID', 'Valid Passport',
+    'Street Address', 'City', 'State', 'Zip Code',
+    'Health Insurance', 'Insurance Provider', 'Policy Number', 'Group Number', 'Insurance Phone',
+    'Spouse/Partner First Name', 'Spouse/Partner Date of Birth', 'Spouse/Partner Email', 'Spouse/Partner Phone',
+    'Emergency Contact Name', 'Emergency Contact Phone', 'Emergency Contact Relationship',
   ]
-  const filtered = search ? readFields.filter(f => f.label.toLowerCase().includes(search) || String(f.value).toLowerCase().includes(search)) : readFields
-  const hasMatch = search ? filtered.length > 0 : true
+  const hasMatch = search ? allLabels.some(l => l.toLowerCase().includes(search)) : true
 
-  const hasPartner = ['Married', 'Domestic Partnership', 'In a Relationship'].includes(profile.maritalStatus || answers?.maritalStatus)
-
-  const { editing, saving, form, set, startEdit, handleSave, cancel } = useFormSection(
+  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
     surrogate.id, answers, '_application',
-    (saved) => ({
-      street: saved.street || '',
-      city: saved.city || profile.city || '',
-      state: saved.state || profile.state || '',
-      zipCode: saved.zipCode || '',
-      realId: saved.realId ?? profile.realId ?? '',
-      validPassport: saved.validPassport ?? profile.validPassport ?? '',
-      nearestNICU: saved.nearestNICU || fertility.nearestNICU || '',
-      willingToTravelNICU: saved.willingToTravelNICU ?? fertility.willingToTravelNICU ?? '',
-    })
+    (saved) => {
+      const init = {
+        // Identity
+        fullLegalName: saved.fullLegalName || '',
+        maidenName: saved.maidenName || '',
+        dob: saved.dob || '',
+        ssn4: saved.ssn4 || '',
+        religion: saved.religion || '',
+        realId: saved.realId ?? '',
+        validPassport: saved.validPassport ?? '',
+        // Address
+        street: saved.street || '',
+        city: saved.city || profile.city || '',
+        state: saved.state || profile.state || '',
+        zipCode: saved.zipCode || '',
+        // Insurance
+        hasInsurance: saved.hasInsurance ?? '',
+        insuranceProvider: saved.insuranceProvider || '',
+        insurancePolicyNumber: saved.insurancePolicyNumber || '',
+        insuranceGroupNumber: saved.insuranceGroupNumber || '',
+        insurancePhone: saved.insurancePhone || '',
+        // Spouse/Partner
+        hasSpouse: saved.hasSpouse ?? '',
+        spouseFirstName: saved.spouseFirstName || '',
+        spouseDob: saved.spouseDob || '',
+        spouseEmail: saved.spouseEmail || '',
+        spousePhone: saved.spousePhone || '',
+        // Emergency Contact
+        emergencyName: saved.emergencyName || '',
+        emergencyPhone: saved.emergencyPhone || '',
+        emergencyRelationship: saved.emergencyRelationship || '',
+      }
+      // Pre-fill from profile/quiz data
+      if (!init.fullLegalName) init.fullLegalName = `${profile.firstName || answers?.firstName || ''} ${profile.lastName || answers?.lastName || ''}`.trim()
+      if (!init.dob) init.dob = profile.dob || answers?.dob || ''
+      if (!init.religion) init.religion = general.religion || ''
+      if (!init.hasSpouse && (answers?.maritalStatus === 'Married' || answers?.maritalStatus === 'Domestic Partnership')) init.hasSpouse = 'yes'
+      if (!init.hasInsurance && (employment.healthInsurance === 'yes' || employment.healthInsurance === true)) init.hasInsurance = 'yes'
+      return init
+    }
   )
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
   if (!hasMatch) return null
 
+  const showInsurance = editing ? form.hasInsurance === 'yes' || form.hasInsurance === true : stored.hasInsurance === 'yes' || stored.hasInsurance === true
+  const showSpouse = editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true
+
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Personal Information" description="Address, identification, and NICU information" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
-      <CardContent>
-        {editing ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-1"><FieldLabel>Street Address</FieldLabel><Input value={form.street} onChange={e => set('street', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.city} onChange={e => set('city', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>State</FieldLabel><SelectField value={form.state} onValueChange={v => set('state', v)} options={US_STATES} /></div>
-            <div className="space-y-1"><FieldLabel>Zip Code</FieldLabel><Input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>Real ID?</FieldLabel><YesNoButtons value={form.realId} onChange={v => set('realId', v)} /></div>
-            <div className="space-y-1"><FieldLabel>Valid Passport?</FieldLabel><YesNoButtons value={form.validPassport} onChange={v => set('validPassport', v)} /></div>
-            <div className="space-y-1 col-span-full sm:col-span-1"><FieldLabel>Nearest Hospital with Level II or III NICU</FieldLabel><Input value={form.nearestNICU} onChange={e => set('nearestNICU', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>Willing to travel to Level II+ NICU?</FieldLabel><YesNoButtons value={form.willingToTravelNICU} onChange={v => set('willingToTravelNICU', v)} /></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(f => <ReadField key={f.label} label={f.label} value={f.value} />)}
-          </div>
-        )}
+      <EditHeader title="Personal Information" description="Identity, address, insurance, spouse, and emergency contact" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <CardContent className="space-y-6">
+        {/* Identity */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Identity</p>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1"><FieldLabel>Full Legal Name</FieldLabel><Input value={form.fullLegalName} onChange={e => set('fullLegalName', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Maiden Name (if applicable)</FieldLabel><Input value={form.maidenName} onChange={e => set('maidenName', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Date of Birth</FieldLabel><Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Last 4 of SSN</FieldLabel><Input value={form.ssn4} onChange={e => set('ssn4', e.target.value)} maxLength={4} /></div>
+              <div className="space-y-1"><FieldLabel>Religion (if applicable)</FieldLabel><Input value={form.religion} onChange={e => set('religion', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Real ID?</FieldLabel><YesNoButtons value={form.realId} onChange={v => set('realId', v)} /></div>
+              <div className="space-y-1"><FieldLabel>Valid Passport?</FieldLabel><YesNoButtons value={form.validPassport} onChange={v => set('validPassport', v)} /></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReadField label="Full Legal Name" value={stored.fullLegalName} />
+              <ReadField label="Maiden Name" value={stored.maidenName} />
+              <ReadField label="Date of Birth" value={stored.dob} />
+              <ReadField label="Last 4 of SSN" value={stored.ssn4} />
+              <ReadField label="Religion" value={stored.religion} />
+              <ReadField label="Real ID" value={boolDisplay(stored.realId)} />
+              <ReadField label="Valid Passport" value={boolDisplay(stored.validPassport)} />
+            </div>
+          )}
+        </div>
+
+        {/* Address */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Address</p>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1"><FieldLabel>Street Address</FieldLabel><Input value={form.street} onChange={e => set('street', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.city} onChange={e => set('city', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>State</FieldLabel><SelectField value={form.state} onValueChange={v => set('state', v)} options={US_STATES} /></div>
+              <div className="space-y-1"><FieldLabel>Zip Code</FieldLabel><Input value={form.zipCode} onChange={e => set('zipCode', e.target.value)} /></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReadField label="Street Address" value={stored.street} />
+              <ReadField label="City" value={stored.city} />
+              <ReadField label="State" value={stored.state} />
+              <ReadField label="Zip Code" value={stored.zipCode} />
+            </div>
+          )}
+        </div>
+
+        {/* Health Insurance */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Health Insurance</p>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1"><FieldLabel>Do you have health insurance?</FieldLabel><YesNoButtons value={form.hasInsurance} onChange={v => set('hasInsurance', v)} /></div>
+              {showInsurance && (
+                <>
+                  <div className="space-y-1"><FieldLabel>Insurance Provider</FieldLabel><Input value={form.insuranceProvider} onChange={e => set('insuranceProvider', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Policy Number</FieldLabel><Input value={form.insurancePolicyNumber} onChange={e => set('insurancePolicyNumber', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Group Number</FieldLabel><Input value={form.insuranceGroupNumber} onChange={e => set('insuranceGroupNumber', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Insurance Phone</FieldLabel><Input value={form.insurancePhone} onChange={e => set('insurancePhone', e.target.value)} /></div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReadField label="Has Insurance" value={boolDisplay(stored.hasInsurance)} />
+              {showInsurance && (
+                <>
+                  <ReadField label="Insurance Provider" value={stored.insuranceProvider} />
+                  <ReadField label="Policy Number" value={stored.insurancePolicyNumber} />
+                  <ReadField label="Group Number" value={stored.insuranceGroupNumber} />
+                  <ReadField label="Insurance Phone" value={stored.insurancePhone} />
+                </>
+              )}
+            </div>
+          )}
+          <InsuranceCardDisplay surrogateId={surrogate.id} />
+        </div>
+
+        {/* Spouse/Partner */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Spouse/Partner</p>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1"><FieldLabel>Do you have a spouse/partner?</FieldLabel><YesNoButtons value={form.hasSpouse} onChange={v => set('hasSpouse', v)} /></div>
+              {showSpouse && (
+                <>
+                  <div className="space-y-1"><FieldLabel>Spouse/Partner First Name</FieldLabel><Input value={form.spouseFirstName} onChange={e => set('spouseFirstName', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Spouse/Partner Date of Birth</FieldLabel><Input type="date" value={form.spouseDob} onChange={e => set('spouseDob', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Spouse/Partner Email</FieldLabel><Input type="email" value={form.spouseEmail} onChange={e => set('spouseEmail', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Spouse/Partner Phone</FieldLabel><Input value={form.spousePhone} onChange={e => set('spousePhone', e.target.value)} /></div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReadField label="Has Spouse/Partner" value={boolDisplay(stored.hasSpouse)} />
+              {showSpouse && (
+                <>
+                  <ReadField label="Spouse/Partner First Name" value={stored.spouseFirstName} />
+                  <ReadField label="Spouse/Partner DOB" value={stored.spouseDob} />
+                  <ReadField label="Spouse/Partner Email" value={stored.spouseEmail} />
+                  <ReadField label="Spouse/Partner Phone" value={stored.spousePhone} />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Emergency Contact */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Emergency Contact</p>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-1"><FieldLabel>Emergency Contact Name</FieldLabel><Input value={form.emergencyName} onChange={e => set('emergencyName', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Emergency Contact Phone</FieldLabel><Input value={form.emergencyPhone} onChange={e => set('emergencyPhone', e.target.value)} /></div>
+              <div className="space-y-1"><FieldLabel>Emergency Contact Relationship</FieldLabel><Input value={form.emergencyRelationship} onChange={e => set('emergencyRelationship', e.target.value)} /></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReadField label="Emergency Contact Name" value={stored.emergencyName} />
+              <ReadField label="Emergency Contact Phone" value={stored.emergencyPhone} />
+              <ReadField label="Emergency Contact Relationship" value={stored.emergencyRelationship} />
+            </div>
+          )}
+        </div>
+
+        <PhotoIdDisplay surrogateId={surrogate.id} />
       </CardContent>
     </Card>
+  )
+}
+
+// ── Insurance Card Display ────────────────────────────────
+function InsuranceCardDisplay({ surrogateId }) {
+  const [docs, setDocs] = useState([])
+  useEffect(() => {
+    if (!surrogateId) return
+    import('@/lib/supabase').then(({ supabase }) => {
+      if (!supabase) return
+      supabase.from('case_documents').select('*').eq('surrogate_id', surrogateId).eq('category', 'insurance-card').then(({ data }) => {
+        if (data) setDocs(data)
+      })
+    })
+  }, [surrogateId])
+
+  if (docs.length === 0) return null
+  const labels = { 'insurance-front': 'Insurance Card (Front)', 'insurance-back': 'Insurance Card (Back)' }
+
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Insurance Cards</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {docs.map(doc => (
+          <a key={doc.id} href={doc.public_url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-stone-50 transition-colors">
+            {doc.file_type?.startsWith('image/') ? (
+              <img src={doc.public_url} alt="" className="w-16 h-10 object-cover rounded border" />
+            ) : (
+              <div className="w-16 h-10 rounded border bg-stone-100 flex items-center justify-center text-stone-400 text-[10px]">PDF</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-stone-700 truncate">{labels[doc.doc_label] || doc.file_name}</p>
+              <p className="text-[10px] text-stone-400">{doc.doc_label ? labels[doc.doc_label] : 'Unlabeled'}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -396,102 +598,6 @@ function ReferencesSection({ surrogate, answers, onSaved, search }) {
   )
 }
 
-// ── Confidential Info Section ───────────────────────────
-function ConfidentialSection({ surrogate, answers, profileData, onSaved, search }) {
-  const stored = answers?._confidential || {}
-  const profile = profileData?.personal || {}
-  const general = profileData?.general || {}
-  const employment = profileData?.employment || {}
-
-  const fields = [
-    'fullLegalName', 'maidenName', 'dob',
-    'ssn4', 'driversLicense', 'religion',
-    'hasInsurance',
-    'insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone',
-    'hasSpouse',
-    'spouseFullName', 'spouseEmail', 'spousePhone',
-    'emergencyName', 'emergencyPhone', 'emergencyRelationship',
-  ]
-
-  const fieldLabels = {
-    fullLegalName: 'Full Legal Name', maidenName: 'Maiden Name (if applicable)',
-    dob: 'Date of Birth',
-    ssn4: 'Last 4 of SSN', driversLicense: "Driver's License #", religion: 'Religion (if applicable)',
-    hasInsurance: 'Do you have health insurance?',
-    insuranceProvider: 'Health Insurance Provider', insurancePolicyNumber: 'Policy Number',
-    insuranceGroupNumber: 'Group Number', insurancePhone: 'Insurance Phone',
-    hasSpouse: 'Do you have a spouse/partner?',
-    spouseFullName: 'Spouse/Partner Full Name', spouseEmail: 'Spouse/Partner Email',
-    spousePhone: 'Spouse/Partner Phone',
-    emergencyName: 'Emergency Contact Name', emergencyPhone: 'Emergency Contact Phone',
-    emergencyRelationship: 'Emergency Contact Relationship',
-  }
-
-  const yesNoFields = new Set(['hasInsurance', 'hasSpouse'])
-  const selectFields = {}
-
-  const hasMatch = search ? fields.some(f => (fieldLabels[f] || f).toLowerCase().includes(search)) : true
-
-  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
-    surrogate.id, answers, '_confidential',
-    (saved) => {
-      const init = {}
-      for (const f of fields) {
-        // Pull from stored first, then profile data
-        init[f] = saved[f] ?? ''
-      }
-      // Pre-fill from profile/quiz data
-      if (!init.fullLegalName) init.fullLegalName = `${profile.firstName || answers?.firstName || ''} ${profile.lastName || answers?.lastName || ''}`.trim()
-      if (!init.dob) init.dob = profile.dob || answers?.dob || ''
-      if (!init.religion) init.religion = general.religion || ''
-      if (!init.hasSpouse && (answers?.maritalStatus === 'Married' || answers?.maritalStatus === 'Domestic Partnership')) init.hasSpouse = 'yes'
-      if (!init.hasInsurance && (employment.healthInsurance === 'yes' || employment.healthInsurance === true)) init.hasInsurance = 'yes'
-      return init
-    }
-  )
-  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
-
-  if (!hasMatch) return null
-
-  const spouseFields = fields.filter(f => f.startsWith('spouse'))
-  const emergencyFields = fields.filter(f => f.startsWith('emergency'))
-  const personalFields = fields.filter(f => !f.startsWith('spouse') && !f.startsWith('emergency') && !f.startsWith('insurance') && f !== 'hasSpouse' && f !== 'hasInsurance')
-  const insuranceFields = fields.filter(f => f.startsWith('insurance'))
-  const showInsurance = editing ? form.hasInsurance === 'yes' || form.hasInsurance === true : stored.hasInsurance === 'yes' || stored.hasInsurance === true
-
-  function renderField(f) {
-    const label = fieldLabels[f] || f
-    if (editing) {
-      if (yesNoFields.has(f)) return <div key={f} className="space-y-1"><FieldLabel>{label}</FieldLabel><YesNoButtons value={form[f]} onChange={v => set(f, v)} /></div>
-      if (selectFields[f]) return <div key={f} className="space-y-1"><FieldLabel>{label}</FieldLabel><SelectField value={form[f]} onValueChange={v => set(f, v)} options={selectFields[f]} /></div>
-      return <div key={f} className="space-y-1"><FieldLabel>{label}</FieldLabel><Input value={form[f] || ''} onChange={e => set(f, e.target.value)} /></div>
-    }
-    return <ReadField key={f} label={label} value={yesNoFields.has(f) ? boolDisplay(stored[f]) : (stored[f] || '')} />
-  }
-
-  return (
-    <Card className="rounded-2xl">
-      <EditHeader title="Confidential Information" description="Personal details, insurance, and emergency contact" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {personalFields.map(renderField)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderField('hasInsurance')}
-          {showInsurance && insuranceFields.map(renderField)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderField('hasSpouse')}
-          {(editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true) && spouseFields.map(renderField)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {emergencyFields.map(renderField)}
-        </div>
-        <PhotoIdDisplay surrogateId={surrogate.id} />
-      </CardContent>
-    </Card>
-  )
-}
 
 // ── Photo ID Display (admin view) ──────────────────────
 function PhotoIdDisplay({ surrogateId }) {
@@ -1243,19 +1349,24 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
 }
 
 // ── Main Export ──────────────────────────────────────────
-// ── Profile Follow Up Questions (read-only from profile data) ──
-function FollowUpQuestionsSection({ surrogate, profileData, search }) {
-  const [open, setOpen] = useState(false)
+// ── Profile Follow Up Questions (editable) ──
+function FollowUpQuestionsSection({ surrogate, answers, profileData, onSaved, search }) {
   const hasMatch = !search || 'follow up profile screening'.includes(search)
   if (!hasMatch) return null
 
-  function getVal(key) {
-    // Check followUp section first, then original sections
+  function getProfileVal(key) {
     if (profileData?.followUp?.[key] !== undefined && profileData.followUp[key] !== '') return profileData.followUp[key]
     for (const sec of ['personal', 'fertility', 'general', 'health', 'employment', 'academic', 'hopesWishes']) {
       if (profileData?.[sec]?.[key] !== undefined && profileData[sec][key] !== '') return profileData[sec][key]
     }
     return ''
+  }
+
+  // Merge: answers._profileFollowUp takes priority over profileData
+  const stored = answers?._profileFollowUp || {}
+  function getVal(key) {
+    if (stored[key] !== undefined && stored[key] !== '') return stored[key]
+    return getProfileVal(key)
   }
 
   function fmt(val) {
@@ -1268,43 +1379,62 @@ function FollowUpQuestionsSection({ surrogate, profileData, search }) {
 
   const filled = FOLLOW_UP_FIELDS.filter(f => { const v = getVal(f.key); return v !== '' && v !== null && v !== undefined }).length
 
+  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
+    surrogate.id, answers, '_profileFollowUp',
+    (saved) => {
+      const init = {}
+      for (const f of FOLLOW_UP_FIELDS) {
+        init[f.key] = saved[f.key] !== undefined && saved[f.key] !== '' ? saved[f.key] : getProfileVal(f.key)
+      }
+      return init
+    }
+  )
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
   return (
     <Card className="rounded-2xl">
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-stone-50/50 transition-colors">
-            <div className="flex items-center gap-2">
-              <Shield className="size-4 text-[#283693]" />
-              <div>
-                <CardTitle className="text-base">Profile Follow Up Questions</CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">Screening and eligibility details from profile</p>
-              </div>
-            </div>
-            <CardAction>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-stone-400">{filled}/{FOLLOW_UP_FIELDS.length}</span>
-                <ChevronDown className={`size-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-              </div>
-            </CardAction>
-          </CardHeader>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {FOLLOW_UP_FIELDS.map(f => {
-                const val = getVal(f.key)
-                const label = FIELD_LABELS[f.key] || f.key
-                return (
-                  <div key={f.key}>
-                    <p className="text-[10px] text-stone-400 font-medium">{label}</p>
-                    <p className={`text-sm font-medium ${val === '—' ? 'text-stone-300' : val === 'Yes' ? 'text-emerald-600' : val === 'No' ? 'text-red-500' : 'text-stone-800'}`}>{fmt(val)}</p>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+      <EditHeader
+        title={<span className="flex items-center gap-2"><Shield className="size-4 text-[#283693]" /> Profile Follow Up Questions</span>}
+        description={`Screening and eligibility details (${filled}/${FOLLOW_UP_FIELDS.length} answered)`}
+        editing={editing}
+        saving={saving}
+        startEdit={startEdit}
+        handleSave={() => handleSave(onSaved)}
+        cancel={cancel}
+      />
+      <CardContent>
+        {editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FOLLOW_UP_FIELDS.map(f => {
+              const label = FIELD_LABELS[f.key] || f.key
+              // Check conditional visibility
+              if (f.conditional && !f.conditional(form)) return null
+              if (f.type === 'yesno') return (
+                <div key={f.key} className="space-y-1"><FieldLabel>{label}</FieldLabel><YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} /></div>
+              )
+              if (f.type === 'textarea') return (
+                <div key={f.key} className="space-y-1 col-span-full sm:col-span-2"><FieldLabel>{label}</FieldLabel><Textarea value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} rows={2} /></div>
+              )
+              return (
+                <div key={f.key} className="space-y-1"><FieldLabel>{label}</FieldLabel><Input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} /></div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {FOLLOW_UP_FIELDS.map(f => {
+              const val = getVal(f.key)
+              const label = FIELD_LABELS[f.key] || f.key
+              return (
+                <div key={f.key}>
+                  <p className="text-[10px] text-stone-400 font-medium">{label}</p>
+                  <p className={`text-sm font-medium ${fmt(val) === '—' ? 'text-stone-300' : fmt(val) === 'Yes' ? 'text-emerald-600' : fmt(val) === 'No' ? 'text-red-500' : 'text-stone-800'}`}>{fmt(val)}</p>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
     </Card>
   )
 }
@@ -1333,11 +1463,11 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
 
       <QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} />
       <ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
-      <ConfidentialSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
+      <FollowUpQuestionsSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
-      <FollowUpQuestionsSection surrogate={surrogate} profileData={profileData} search={searchLower} />
       <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
       <PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
+      <SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
 
       {/* Background Waivers */}
       {(!searchLower || 'background waiver'.includes(searchLower)) && (
@@ -1350,14 +1480,12 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
           <CardContent className="space-y-2">
             <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
             <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate}
-              partnerName={answers?._confidential?.partnerFullName}
-              partnerEmail={answers?._confidential?.partnerEmail}
+              partnerName={answers?._application?.spouseFirstName}
+              partnerEmail={answers?._application?.spouseEmail}
             />
           </CardContent>
         </Card>
       )}
-
-      <SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
     </div>
   )
 }
