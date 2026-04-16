@@ -478,6 +478,7 @@ import {
   REQUIRED_FIELDS as SHARED_REQUIRED_FIELDS,
   CONDITIONAL_REQUIRED as SHARED_CONDITIONAL_REQUIRED,
   countCompleted as sharedCountCompleted,
+  isPregnancyComplete,
 } from '@/components/profile/profileConstants'
 
 // Filter out followUp — those are application/admin questions, not portal profile sections
