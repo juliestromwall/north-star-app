@@ -1907,10 +1907,10 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
             {' · '}
             {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {doc.doc_label && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{{ gc: 'GC', ip1: 'IP1', ip2: 'IP2', partner: 'Partner' }[doc.doc_label] || doc.doc_label}</span>}
+            {doc.doc_label && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{{ gc: 'GC', ip1: 'IP1', ip2: 'IP2', partner: 'Partner', 'previous-journey': 'Previous Journey' }[doc.doc_label] || doc.doc_label}</span>}
             {compact && cat ? ` · ${cat.label}` : ''}
             {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-stone-100 text-stone-500">{doc._source}</span>}
-            {!doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-amber-50 text-amber-600">Previous Match</span>}
+            {!doc.doc_label && !doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-amber-50 text-amber-600">Previous Journey</span>}
           </p>
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -10,6 +10,13 @@ const corsHeaders = {
 
 const SHARE_KEY = 'psych_tracking_share'
 
+function isActiveMatchedJourney(journey) {
+  const status = String(journey?.status || '').toLowerCase()
+  const stage = String(journey?.stage || '').toLowerCase()
+  const state = `${status} ${stage}`
+  return !/(broken|cancelled|canceled|failed|terminated|dissolved)/.test(state)
+}
+
 function b64url(bytes) {
   let binary = ''
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -174,14 +181,15 @@ export async function onRequestPost(context) {
     if (!resolvedJourneyId) {
       try {
         const jRes = await fetch(
-          `${supabaseUrl}/rest/v1/matched_journeys?gc_case_id=eq.${surrogateId}&select=id,assigned_to,journey_data`,
+          `${supabaseUrl}/rest/v1/matched_journeys?gc_case_id=eq.${surrogateId}&select=id,assigned_to,status,stage,journey_data&order=created_at.desc`,
           { headers: sbHeaders }
         )
         const jRows = await jRes.json()
-        if (jRows?.length > 0) {
-          resolvedJourneyId = jRows[0].id
+        const activeJourney = (jRows || []).find(isActiveMatchedJourney)
+        if (activeJourney) {
+          resolvedJourneyId = activeJourney.id
           if (!resolvedAssignee) {
-            resolvedAssignee = jRows[0].assigned_to || jRows[0].journey_data?.assigned_to || ''
+            resolvedAssignee = activeJourney.assigned_to || activeJourney.journey_data?.assigned_to || ''
           }
         }
       } catch (e) { console.error('Journey lookup failed:', e) }

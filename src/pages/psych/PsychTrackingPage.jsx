@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import RichTextEditor from '@/components/shared/RichTextEditor'
 import { fetchSurrogatesFromIntake, getAppConfig, setAppConfig } from '@/lib/db'
-import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchMatchedJourneys, isActiveMatchedJourney } from '@/lib/matching'
 import { fetchAdminUsers } from '@/lib/adminUsers'
 import { formatDate } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -287,7 +287,7 @@ export default function PsychTrackingPage() {
   // Build rows: only surrogates with an active pregnancy tracker
   const rows = useMemo(() => {
     const pregnantRows = journeys
-      .filter(j => j.journey_data?.pregnant === 'yes')
+      .filter(j => isActiveMatchedJourney(j) && j.journey_data?.pregnant === 'yes')
       .map(j => {
         const gc = surrogates.find(s => s.id === j.gc_case_id)
         if (!gc) return null

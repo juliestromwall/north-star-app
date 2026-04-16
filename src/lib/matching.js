@@ -108,6 +108,13 @@ export async function fetchMatchQuestions({ shareId, journeyId, caseId }) {
 
 // ── Matched Journeys ──────────────────────────────────────
 
+export function isActiveMatchedJourney(journey) {
+  const status = String(journey?.status || '').toLowerCase()
+  const stage = String(journey?.stage || '').toLowerCase()
+  const state = `${status} ${stage}`
+  return !/(broken|cancelled|canceled|failed|terminated|dissolved)/.test(state)
+}
+
 export async function createMatchedJourney({ gcCaseId, ipCaseId, assignedTo, createdBy }) {
   if (!supabase) return null
   const { data, error } = await supabase
@@ -128,9 +135,11 @@ export async function createMatchedJourney({ gcCaseId, ipCaseId, assignedTo, cre
 export async function findJourneyByCaseId(caseId) {
   if (!supabase) return null
   // Check if this case is a GC or IP in any active journey
-  const { data: gcMatch } = await supabase.from('matched_journeys').select('id').eq('gc_case_id', caseId).maybeSingle()
+  const { data: gcMatches } = await supabase.from('matched_journeys').select('id,status,stage').eq('gc_case_id', caseId).order('created_at', { ascending: false })
+  const gcMatch = (gcMatches || []).find(isActiveMatchedJourney)
   if (gcMatch) return gcMatch.id
-  const { data: ipMatch } = await supabase.from('matched_journeys').select('id').eq('ip_case_id', caseId).maybeSingle()
+  const { data: ipMatches } = await supabase.from('matched_journeys').select('id,status,stage').eq('ip_case_id', caseId).order('created_at', { ascending: false })
+  const ipMatch = (ipMatches || []).find(isActiveMatchedJourney)
   if (ipMatch) return ipMatch.id
   return null
 }
@@ -142,7 +151,7 @@ export async function fetchMatchedJourneys() {
     .select('*')
     .order('created_at', { ascending: false })
   if (error) return []
-  return data || []
+  return (data || []).filter(isActiveMatchedJourney)
 }
 
 export async function fetchMatchedJourney(id) {
@@ -185,6 +194,11 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
   const { data: gcDocs } = await supabase.from('case_documents').select('*').eq('surrogate_id', gcCaseId)
   const { data: ipDocs } = await supabase.from('case_documents').select('*').eq('surrogate_id', ipCaseId)
   const allJourneyDocs = [...(gcDocs || []), ...(ipDocs || [])]
+  const existingDocKeysByCase = new Map()
+  for (const caseId of [gcCaseId, ipCaseId]) {
+    const docs = allJourneyDocs.filter(d => d.surrogate_id === caseId)
+    existingDocKeysByCase.set(caseId, new Set(docs.map(d => `${d.storage_path || ''}|${d.file_name || ''}`)))
+  }
 
   // 4. Store break record in both GC and IP intake_submissions answers
   for (const caseId of [gcCaseId, ipCaseId]) {
@@ -219,16 +233,21 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
       await supabase.from('intake_submissions').update({ answers: { ...row.answers, _matchHistory: history } }).eq('id', caseId)
     }
 
-    // Copy documents from the OTHER case into this case as "previous-match"
-    // Copy docs uploaded DURING the journey from the OTHER case into this case
-    // Only docs created after the match was created count as "journey docs"
+    // Copy documents uploaded during this journey from the other party into this case.
+    // This preserves a Previous Journey copy after the match is broken.
     const matchCreated = journey?.created_at || '1970-01-01'
     const otherCaseId = caseId === gcCaseId ? ipCaseId : gcCaseId
+    const existingDocKeys = existingDocKeysByCase.get(caseId) || new Set()
     const journeyDocsFromOther = allJourneyDocs.filter(d =>
-      d.surrogate_id === otherCaseId && d.created_at >= matchCreated
+      d.surrogate_id === otherCaseId &&
+      d.created_at >= matchCreated &&
+      d.doc_label !== 'previous-journey' &&
+      !String(d.uploaded_by || '').startsWith('Previous Match')
     )
     for (const doc of journeyDocsFromOther) {
       try {
+        const docKey = `${doc.storage_path || ''}|${doc.file_name || ''}`
+        if (existingDocKeys.has(docKey)) continue
         await supabase.from('case_documents').insert({
           surrogate_id: caseId,
           category: doc.category,
@@ -237,21 +256,31 @@ export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCase
           file_size: doc.file_size,
           storage_path: doc.storage_path,
           public_url: doc.public_url,
+          doc_label: 'previous-journey',
           uploaded_by: `Previous Match (${brokenBy})`,
         })
-      } catch {}
+        existingDocKeys.add(docKey)
+      } catch (err) {
+        console.warn('Failed to copy previous journey document:', err)
+      }
     }
 
-    // Also tag this case's own docs uploaded during the journey as Previous Match
+    // Also tag this case's own docs uploaded during the journey as Previous Journey.
     const ownJourneyDocs = allJourneyDocs.filter(d =>
-      d.surrogate_id === caseId && d.created_at >= matchCreated
+      d.surrogate_id === caseId &&
+      d.created_at >= matchCreated &&
+      d.doc_label !== 'previous-journey' &&
+      !String(d.uploaded_by || '').startsWith('Previous Match')
     )
     for (const doc of ownJourneyDocs) {
       try {
         await supabase.from('case_documents').update({
+          doc_label: 'previous-journey',
           uploaded_by: `Previous Match (${brokenBy})`,
         }).eq('id', doc.id)
-      } catch {}
+      } catch (err) {
+        console.warn('Failed to tag previous journey document:', err)
+      }
     }
   }
 

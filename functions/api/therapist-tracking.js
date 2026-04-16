@@ -11,6 +11,13 @@ const corsHeaders = {
 const TRACKING_KEY = 'psych_tracking'
 const CHECKINS_KEY = 'psych_checkins'
 const SHARE_KEY = 'psych_tracking_share'
+
+function isActiveMatchedJourney(journey) {
+  const status = String(journey?.status || '').toLowerCase()
+  const stage = String(journey?.stage || '').toLowerCase()
+  const state = `${status} ${stage}`
+  return !/(broken|cancelled|canceled|failed|terminated|dissolved)/.test(state)
+}
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 export async function onRequestOptions() {
@@ -129,7 +136,7 @@ async function loadRows(env) {
     getConfig(env, TRACKING_KEY),
     getConfig(env, CHECKINS_KEY),
     sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.gc&status=in.(qualified,approved,reviewed,pending_review)&select=id,applicant_email,answers&order=submitted_at.desc'),
-    sbFetch(env, '/rest/v1/matched_journeys?select=id,gc_case_id,assigned_to,journey_data&order=created_at.desc'),
+    sbFetch(env, '/rest/v1/matched_journeys?select=id,gc_case_id,assigned_to,status,stage,journey_data&order=created_at.desc'),
   ])
 
   if (!gcsRes.ok || !journeysRes.ok) throw new Error('Unable to load therapist tracking data')
@@ -150,7 +157,7 @@ async function loadRows(env) {
   }))
 
   const pregnantRows = journeys
-    .filter(j => j.journey_data?.pregnant === 'yes')
+    .filter(j => isActiveMatchedJourney(j) && j.journey_data?.pregnant === 'yes')
     .map(j => {
       const gc = gcById.get(j.gc_case_id)
       if (!gc) return null
