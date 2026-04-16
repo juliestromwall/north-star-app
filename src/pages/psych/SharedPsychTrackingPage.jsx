@@ -169,7 +169,7 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
     </div>
     <div class="content">
       <h1 class="title">${surrogateName} — ${milestoneName} Check-In</h1>
-      <p class="subtitle">Contact Note</p>
+      <p class="subtitle">Gestational Surrogate</p>
       <hr class="top-divider" />
 
       <div class="header-card">
@@ -183,8 +183,8 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
             <span class="value">${dateStr} ${timeStr} <span style="color:#a8a29e;font-weight:400;">(PT)</span></span>
           </div>
           <div class="item">
-            <span class="label">Patient</span>
-            <span class="value">${report.patientName || surrogateName}</span>
+            <span class="label">Method</span>
+            <span class="value">${report.communicationMethod || '—'}</span>
           </div>
           <div class="item">
             <span class="label">Reason</span>
@@ -193,18 +193,13 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
         </div>
       </div>
 
-      <p class="section-title">Contacted Party</p>
+      <p class="section-title">Requested By</p>
       <div class="info-card">
         <div class="info-row">
-          <div><div class="lbl">Name</div><div class="val">${report.contactedPartyName || surrogateName}</div></div>
-          <div><div class="lbl">Relationship</div><div class="val">${report.relationship || 'Self'}</div></div>
-          <div><div class="lbl">Method</div><div class="val">${report.communicationMethod || '—'}</div></div>
+          <div><div class="lbl">Case Manager</div><div class="val">${report.caseManagerName || '—'}</div></div>
+          <div><div class="lbl">Company</div><div class="val">Abundant Beginnings Co.</div></div>
+          <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${report.caseManagerEmail || '—'}</div></div>
         </div>
-        ${(contactedEmail || contactedPhone) ? `
-        <div class="info-row-2" style="border-top: 1px solid #f5f4f3;">
-          <div><div class="lbl">Email</div><div class="val" style="word-break:break-all;">${contactedEmail || '—'}</div></div>
-          <div><div class="lbl">Phone</div><div class="val">${contactedPhone || '—'}</div></div>
-        </div>` : ''}
       </div>
 
       <p class="section-title">Billing Information</p>
@@ -406,9 +401,8 @@ export default function SharedPsychTrackingPage() {
         therapistName: THERAPIST_DEFAULTS.therapistName,
         dateTime: new Date().toISOString(),
         patientName: row.name,
-        contactedPartyName: row.name,
-        contactedPartyEmail: row.email || '',
-        contactedPartyPhone: row.phone || '',
+        caseManagerName: row.caseManagerName || '',
+        caseManagerEmail: row.caseManagerEmail || '',
         relationship: 'Self',
         communicationMethod: 'Phone',
         reason: `${milestoneName} Check-In`,
@@ -681,76 +675,51 @@ export default function SharedPsychTrackingPage() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-600">Patient</label>
-                <Input value={checkinForm.patientName || ''} disabled className="bg-white" />
+                <label className="text-xs font-medium text-stone-600">Method of Communication</label>
+                <select
+                  value={checkinForm.communicationMethod || 'Phone'}
+                  onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
+                  disabled={checkinReadOnly}
+                  className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
+                >
+                  <option value="Phone">Phone</option>
+                  <option value="Video Call">Video Call</option>
+                  <option value="In Person">In Person</option>
+                  <option value="Email">Email</option>
+                </select>
               </div>
             </div>
 
-            {/* Contacted Party */}
+            {/* Requested By */}
             <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
-                <User className="size-4" /> Contacted Party
+                <User className="size-4" /> Requested By
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-stone-600">Name</label>
+                  <label className="text-xs font-medium text-stone-600">Case Manager</label>
                   <Input
-                    value={checkinForm.contactedPartyName || ''}
-                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyName: e.target.value }))}
+                    value={checkinForm.caseManagerName || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, caseManagerName: e.target.value }))}
+                    placeholder="Case manager name"
                     disabled={checkinReadOnly}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-stone-600">Relationship to Patient</label>
-                  <select
-                    value={checkinForm.relationship || 'Self'}
-                    onChange={e => setCheckinForm(f => ({ ...f, relationship: e.target.value }))}
-                    disabled={checkinReadOnly}
-                    className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
-                  >
-                    <option value="Self">Self</option>
-                    <option value="Spouse/Partner">Spouse/Partner</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <label className="text-xs font-medium text-stone-600">Company</label>
+                  <Input value="Abundant Beginnings Co." disabled className="bg-white" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 col-span-2">
                   <label className="text-xs font-medium text-stone-600">Email</label>
                   <Input
                     type="email"
-                    value={checkinForm.contactedPartyEmail || ''}
-                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyEmail: e.target.value }))}
+                    value={checkinForm.caseManagerEmail || ''}
+                    onChange={e => setCheckinForm(f => ({ ...f, caseManagerEmail: e.target.value }))}
                     placeholder="email@example.com"
                     disabled={checkinReadOnly}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-stone-600">Phone</label>
-                  <Input
-                    value={checkinForm.contactedPartyPhone || ''}
-                    onChange={e => setCheckinForm(f => ({ ...f, contactedPartyPhone: e.target.value }))}
-                    placeholder="xxx-xxx-xxxx"
-                    disabled={checkinReadOnly}
-                  />
-                </div>
               </div>
-            </div>
-
-            {/* Method of Communication */}
-            <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
-              <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
-                <Phone className="size-4" /> Method of Communication
-              </h3>
-              <select
-                value={checkinForm.communicationMethod || 'Phone'}
-                onChange={e => setCheckinForm(f => ({ ...f, communicationMethod: e.target.value }))}
-                disabled={checkinReadOnly}
-                className="w-full h-9 rounded-md border border-stone-200 bg-white px-3 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#283693]/20 focus:border-[#283693] disabled:bg-stone-50 disabled:text-stone-500"
-              >
-                <option value="Phone">Phone</option>
-                <option value="Video Call">Video Call</option>
-                <option value="In Person">In Person</option>
-                <option value="Email">Email</option>
-              </select>
             </div>
 
             {/* Reason for Communication */}
