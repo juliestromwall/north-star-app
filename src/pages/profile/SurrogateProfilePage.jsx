@@ -498,6 +498,17 @@ function calculateBMI(ft, inches, lbs) {
   return ((w / (totalInches * totalInches)) * 703).toFixed(1)
 }
 
+function normalizeJourneyList(journeys) {
+  if (Array.isArray(journeys)) return journeys
+  if (journeys && typeof journeys === 'object') {
+    return Object.keys(journeys)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(key => journeys[key])
+      .filter(Boolean)
+  }
+  return []
+}
+
 export default function SurrogateProfilePage() {
   const { currentUser } = useRole()
   const userId = currentUser?.id || currentUser?.email || 'anonymous'
@@ -1560,7 +1571,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
               <div className="inline-flex items-center gap-2 rounded-full bg-[#ed148c]/10 text-[#ed148c] text-sm font-semibold px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4" /> Experienced Surrogate — {expSurr.surrogacyTimes || '?'} time(s)
               </div>
-              {(expSurr.journeys || []).map((j, i) => (
+              {normalizeJourneyList(expSurr.journeys).map((j, i) => (
                 <div key={i} className="rounded-xl bg-[#fdf8f3] p-4 space-y-2">
                   <p className="text-xs font-bold text-[#283693] uppercase">Journey #{i + 1}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
@@ -2411,7 +2422,7 @@ function AcademicSection({ v, u }) {
 // ─────────────────────────────────────────────────────────
 function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
   const s = 'experiencedSurrogate'
-  const journeys = profile?.experiencedSurrogate?.journeys || []
+  const journeys = normalizeJourneyList(profile?.experiencedSurrogate?.journeys)
   const journeyCount = parseInt(v(s, 'surrogacyTimes')) || 0
 
   const updateJourneyCount = (val) => {
@@ -2431,7 +2442,7 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
 
   const updateJourney = (idx, field, val) => {
     setProfile(prev => {
-      const updated = [...(prev.experiencedSurrogate?.journeys || [])]
+      const updated = normalizeJourneyList(prev.experiencedSurrogate?.journeys)
       updated[idx] = { ...updated[idx], [field]: val }
       return { ...prev, experiencedSurrogate: { ...prev.experiencedSurrogate, journeys: updated } }
     })
