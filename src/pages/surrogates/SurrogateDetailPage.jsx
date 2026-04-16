@@ -3615,10 +3615,13 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const previewRef = useRef(null)
 
   // Load photos fresh for preview (headshot first, then portrait, then gallery)
+  // Also try the profile record's user_id since that's what the portal uses for uploads
   async function loadPreviewPhotos() {
     const uid = surrogate?.userId || surrogate?.user_id
     const caseId = String(surrogate?.id || '')
-    const ids = [uid, caseId].filter(Boolean)
+    // Also get user_id from the profile record if available
+    const profileUid = profileData?._userId
+    const ids = [uid, caseId, profileUid].filter(Boolean)
     const uniqueIds = [...new Set(ids)]
     let allHeadshots = [], allPortraits = [], allGallery = []
     for (const id of uniqueIds) {
@@ -3631,7 +3634,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       allPortraits.push(...portraits)
       allGallery.push(...gallery)
     }
-    const ordered = [...allHeadshots, ...allPortraits, ...allGallery]
+    let ordered = [...allHeadshots, ...allPortraits, ...allGallery]
+    // Fallback: if no photos found via fetch but parent has photos, use those
+    if (ordered.length === 0 && photos.length > 0) {
+      ordered = photos
+    }
     setPreviewPhotos(ordered)
     return ordered
   }
