@@ -64,7 +64,7 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         from: `ABC Surrogacy <${fromEmail}>`,
         to: notifyEmails,
-        subject: `${surrogateName} submitted their surrogate profile for review`,
+        subject: `🚨 ${surrogateName} submitted their surrogate profile for review`,
         html: htmlBody,
       }),
     })

@@ -505,6 +505,7 @@ export default function SurrogateProfilePage() {
   const [profile, setProfile] = useState(() => loadProfile(userId))
   const [profileApproved, setProfileApproved] = useState(false)
   const [profileSubmitted, setProfileSubmitted] = useState(false)
+  const [profileStatusLoaded, setProfileStatusLoaded] = useState(false)
   const [showSubmitModal, setShowSubmitModal] = useState(false)
   const [showIncompleteWarning, setShowIncompleteWarning] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -617,6 +618,7 @@ export default function SurrogateProfilePage() {
     fetchSurrogateProfile(currentUser.id).then(result => {
       if (result?.status === 'approved') setProfileApproved(true)
       if (result?.status === 'pending_review') setProfileSubmitted(true)
+      setProfileStatusLoaded(true)
       if (result?.profile_data && Object.keys(result.profile_data).length > 0) {
         // Supabase has data — merge with localStorage, migrating old keys
         setProfile(prev => {
@@ -676,18 +678,28 @@ export default function SurrogateProfilePage() {
 
   // Auto-popup when profile reaches 100% and hasn't been submitted/approved
   useEffect(() => {
-    if (overallCompletion === 100 && !profileApproved && !profileSubmitted && !hasShownAutoPopup && !previewOpen) {
+    if (overallCompletion === 100 && profileStatusLoaded && !profileApproved && !profileSubmitted && !hasShownAutoPopup && !previewOpen) {
       setHasShownAutoPopup(true)
       setShowSubmitModal(true)
     }
-  }, [overallCompletion, profileApproved, profileSubmitted, hasShownAutoPopup])
+  }, [overallCompletion, profileApproved, profileSubmitted, profileStatusLoaded, hasShownAutoPopup])
 
   // Submit profile for review
   async function handleSubmitForReview() {
     setSubmitting(true)
     try {
-      const firstName = profile?.personal?.firstName || currentUser?.name?.split(' ')[0] || 'Surrogate'
-      const lastName = profile?.personal?.lastName || currentUser?.name?.split(' ').slice(1).join(' ') || ''
+      // Get full name — try profile first, then fetch from intake quiz
+      let firstName = profile?.personal?.firstName || currentUser?.name?.split(' ')[0] || 'Surrogate'
+      let lastName = profile?.personal?.lastName || currentUser?.name?.split(' ').slice(1).join(' ') || ''
+      if (!lastName && currentUser?.email) {
+        try {
+          const intake = await fetchIntakeByEmail(currentUser.email)
+          if (intake) {
+            if (!profile?.personal?.firstName && intake.firstName) firstName = intake.firstName
+            if (intake.lastName) lastName = intake.lastName
+          }
+        } catch {}
+      }
       const surrogateName = `${firstName} ${lastName}`.trim()
 
       // 1. Update profile status to "pending_review"
