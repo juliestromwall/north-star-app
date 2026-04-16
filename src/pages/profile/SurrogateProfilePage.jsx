@@ -1114,7 +1114,7 @@ function PregnancyCard({ pregnancy: pr, index }) {
             {pr.outcome && <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${outcomeColor}`}>{pr.outcome}</span>}
             {pr.wasSurrogacy === 'yes' && <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#ed148c]/10 text-[#ed148c]">Surrogacy</span>}
             {gestation && <span className="text-xs font-semibold text-[#283693]">{gestation}</span>}
-            {pr.dob && <span className="text-xs text-stone-400">· {new Date(pr.dob).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
+            {pr.dob && <span className="text-xs text-stone-400">· {new Date(pr.dob + 'T00:00').toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
           </div>
         </div>
       </div>
@@ -1534,16 +1534,14 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                 <div key={i} className="rounded-xl bg-[#fdf8f3] p-4 space-y-2">
                   <p className="text-xs font-bold text-[#283693] uppercase">Journey #{i + 1}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2">
-                    <PVField label="RE Doctor" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
-                    <PVField label="Location" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
-                    <PVField label="Dates" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
-                    <PVField label="Outcome" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
-                    <PVField label="Weeks Delivered" value={j.weeksDelivered} fp={`experiencedSurrogate.journeys.${i}.weeksDelivered`} />
-                    <PVField label="Transfers" value={j.transfers} fp={`experiencedSurrogate.journeys.${i}.transfers`} />
-                    <PVField label="Embryo Source" value={j.embryoSource} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
+                    <PVField label="Reproductive Doctor" value={j.reName} fp={`experiencedSurrogate.journeys.${i}.reName`} />
+                    <PVField label="IVF Clinic Location" value={j.reLocation} fp={`experiencedSurrogate.journeys.${i}.reLocation`} />
+                    <PVField label="Years seen there" value={j.reDates} fp={`experiencedSurrogate.journeys.${i}.reDates`} />
+                    <PVField label="Outcome of surrogacy journey" value={j.outcome} fp={`experiencedSurrogate.journeys.${i}.outcome`} />
+                    <PVField label="Weeks when delivered" value={j.weeksDelivered} fp={`experiencedSurrogate.journeys.${i}.weeksDelivered`} />
+                    <PVField label="Transfers until pregnant" value={j.transfers} fp={`experiencedSurrogate.journeys.${i}.transfers`} />
+                    <PVField label="Embryo source" value={Array.isArray(j.embryoSource) ? j.embryoSource.join(', ') : j.embryoSource} fp={`experiencedSurrogate.journeys.${i}.embryoSource`} />
                   </div>
-                  {j.complications && <PVField label="Complications" value={j.complications} fp={`experiencedSurrogate.journeys.${i}.complications`} />}
-                  {j.unsuccessfulCycles && <PVField label="Unsuccessful Cycles" value={j.unsuccessfulCycles} fp={`experiencedSurrogate.journeys.${i}.unsuccessfulCycles`} />}
                 </div>
               ))}
               {expSurr.overallExperience && <PVField label="Overall Experience" value={expSurr.overallExperience} fp="experiencedSurrogate.overallExperience" />}
@@ -2385,7 +2383,7 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
     const current = [...journeys]
     if (n > current.length) {
       for (let i = current.length; i < n; i++) {
-        current.push({ reName: '', reLocation: '', reDates: '', outcome: '', complications: '', weeksDelivered: '', transfers: '', embryoSource: '', unsuccessfulCycles: '' })
+        current.push({ reName: '', reLocation: '', reDates: '', outcome: '', weeksDelivered: '', transfers: '', embryoSource: [] })
       }
     }
     setProfile(prev => ({
@@ -2424,20 +2422,19 @@ function ExperiencedSurrogateSection({ v, u, profile, setProfile }) {
                       <span className="text-sm font-semibold text-[#283693]">Surrogacy Journey #{idx + 1}</span>
                     </div>
                     <div className="p-4 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <TextField label="RE Doctor Name" value={j.reName || ''} onChange={val => updateJourney(idx, 'reName', val)} placeholder="Dr. Smith" />
-                        <TextField label="Year" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2023" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <TextField label="What was the name of the Reproductive Doctor?" value={j.reName || ''} onChange={val => updateJourney(idx, 'reName', val)} placeholder="Dr. Smith" />
+                        <TextField label="What City/State was the IVF clinic located in?" value={j.reLocation || ''} onChange={val => updateJourney(idx, 'reLocation', val)} placeholder="e.g. Los Angeles, CA" />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <SelectField label="Pregnancy outcome" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
-                          options={['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other']} />
+                        <TextField label="What years were you seen there?" value={j.reDates || ''} onChange={val => updateJourney(idx, 'reDates', val)} placeholder="e.g. 2022-2023" />
                         <TextField label="Weeks when delivered" value={j.weeksDelivered || ''} onChange={val => updateJourney(idx, 'weeksDelivered', val)} placeholder="e.g. 38" />
                       </div>
-                      <TextAreaField label="Complications or details" value={j.complications || ''} onChange={val => updateJourney(idx, 'complications', val)} rows={2} placeholder="Describe any complications during this journey" />
+                      <SelectField label="What was the outcome of this surrogacy journey?" value={j.outcome || ''} onChange={val => updateJourney(idx, 'outcome', val)}
+                        options={['Healthy delivery', 'Delivery with complications', 'Miscarriage', 'Chemical pregnancy', 'No pregnancy achieved', 'Other']} />
                       <TextField label="How many transfers until pregnant?" value={j.transfers || ''} onChange={val => updateJourney(idx, 'transfers', val)} placeholder="e.g. 1" />
                       <CheckboxGroupField label="Embryo source (select all that apply)" value={Array.isArray(j.embryoSource) ? j.embryoSource : j.embryoSource ? [j.embryoSource] : []} onChange={val => updateJourney(idx, 'embryoSource', val)}
-                        options={['IP Sperm', 'IP Egg', 'Donor Egg', 'Donor Sperm', 'Donor Embryo', 'Unknown']} />
-                      <TextAreaField label="Any unsuccessful cycles? (lining issues, failed transfers, chemical pregnancies)" value={j.unsuccessfulCycles || ''} onChange={val => updateJourney(idx, 'unsuccessfulCycles', val)} rows={2} />
+                        options={["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown']} />
                     </div>
                   </div>
                 )

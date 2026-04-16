@@ -931,7 +931,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
           case_id: journey.id,
           case_type: 'journey',
           title: `Reach out to ${surName} about a Testimony`,
-          assigned_to: 'jennifer@abcsurrogacy.com',
+          assigned_to: 'intake@abcsurrogacy.com',
           due_date: dueDate,
           priority: 'normal',
           status: 'open',

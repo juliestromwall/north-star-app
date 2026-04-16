@@ -1,0 +1,27 @@
+Trigger,Task Title,Assigned To,Priority,Due Date,Case Type,Source File
+Surrogate Application Submitted (portal),Review Application - {GC Name},Case assignee (admin),High,Today,Surrogate,src/pages/portal/PortalApplicationPage.jsx
+Surrogate Profile Submitted for Review,Review {GC Name}'s Profile,intake@abcsurrogacy.com,High,Today,Surrogate,src/pages/profile/SurrogateProfilePage.jsx
+Screening Checklist — Connect with Applicant 1st attempt,Reach out to {GC Name} - 2nd Attempt,Current admin,Normal,+2 days,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Connect with Applicant 2nd attempt,Reach out to {GC Name} - 3rd Attempt,Current admin,Normal,+7 days,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Connect with Applicant 3rd attempt,Reach out to {GC Name} - 4th Attempt,Current admin,Normal,+14 days,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Connect with Applicant 4th attempt,Mark {GC Name} as Withdrawn - Ghosted,Current admin,High,+1 day,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Reference Check Requested,Complete Reference Checks for {GC Name},intake@abcsurrogacy.com,Normal,Log date,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Medical Clearance Complete (surrogate page),Pay 1st Screening Incentive to {GC Name},julie@abcsurrogacy.com,High,Log date,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Medical Clearance Complete + Referral (surrogate page),Pay 1st Referral Incentive to {Referrer} for {GC Name}'s Medical Clearance,julie@abcsurrogacy.com,High,Log date,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Legal Clearance Complete (surrogate page),Pay 2nd Screening Incentive to {GC Name},julie@abcsurrogacy.com,High,Log date,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Screening Checklist — Legal Clearance Complete + Referral (surrogate page),Pay 2nd Referral Incentive to {Referrer} for {GC Name}'s Legal Clearance,julie@abcsurrogacy.com,High,Log date,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Medical Record — Fax Received (surrogate page),Fax Received - Verify if {Record Label} are complete,Current admin,Normal,Today,Surrogate,src/pages/surrogates/SurrogateDetailPage.jsx
+Medical Record — Fax Received (fax inbox),Fax Received - Verify if {Record Label} are complete,Current admin,Normal,Today,Surrogate,src/pages/fax/FaxPage.jsx
+Records Summary Completed (workspace),Review Records Summary for {GC Name},julie@abcsurrogacy.com,High,Today,Surrogate,src/pages/records/RecordsSummaryWorkspace.jsx
+Records Summary Completed (workspace),Review Records Summary for {GC Name},nicole@abcsurrogacy.com,High,Today,Surrogate,src/pages/records/RecordsSummaryWorkspace.jsx
+Records Summary Completed (workspace),Review Records Summary for {GC Name},desiree@abcsurrogacy.com,High,Today,Surrogate,src/pages/records/RecordsSummaryWorkspace.jsx
+Matched Journey Checklist — Medical Clearance Complete,Pay 1st Screening Incentive to {GC Name},julie@abcsurrogacy.com,High,Log date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Matched Journey Checklist — Medical Clearance Complete + Referral,Pay 1st Referral Incentive to {Referrer} for {GC Name}'s Medical Clearance,julie@abcsurrogacy.com,High,Log date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Matched Journey Checklist — Medical Clearance Complete,{GC Name} Medically Cleared - Collect 3rd Agency Payment,Julie & Nicole,High,Log date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Matched Journey Checklist — Legal Clearance Complete,Pay 2nd Screening Incentive to {GC Name},julie@abcsurrogacy.com,High,Log date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Matched Journey Checklist — Legal Clearance Complete + Referral,Pay 2nd Referral Incentive to {Referrer} for {GC Name}'s Legal Clearance,julie@abcsurrogacy.com,High,Log date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Heartbeat Confirmed (Journey Pregnancy Tracker),🤰 {GC Name} - 20wks Check in with IP(s),Julie & Nicole,Normal,+121 days from transfer,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Heartbeat Confirmed (Journey Pregnancy Tracker),Confirmation of Heartbeat - Collect 4th Agency Payment,Julie & Nicole,High,Heartbeat date,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Birth Logged (Journey Pregnancy Tracker),Reach out to {GC Name} about a Testimony,intake@abcsurrogacy.com,Normal,+1 month from birth,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Expense Added with Escrow Not Opened (Journey),Pay Expense for {Journey} — {Paid To} ${Amount},julie@abcsurrogacy.com,High,Today,Journey,src/pages/journeys/JourneyDetailPage.jsx
+Expense Reconcile — Request Receipt,Upload receipt — ${Amount} to {Vendor},Journey assignee,High,Today,Journey,src/pages/expenses/ExpensesPage.jsx

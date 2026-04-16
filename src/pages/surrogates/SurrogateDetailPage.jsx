@@ -1185,7 +1185,7 @@ export default function SurrogateDetailPage() {
                         title: `Complete Reference Checks for ${surrogate.name || 'Surrogate'}`,
                         due_date: date || new Date().toISOString().split('T')[0],
                         priority: 'normal',
-                        assigned_to: 'jennifer@abcsurrogacy.com',
+                        assigned_to: 'intake@abcsurrogacy.com',
                         created_by: currentUser?.email,
                         status: 'open',
                         case_id: surrogate.id,
@@ -4433,21 +4433,21 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <Trash2 className="size-3" /> Remove
           </Button>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">RE Doctor Name</span>
+            <span className="text-[10px] text-gray-400 uppercase">What was the name of the Reproductive Doctor?</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reName || ''} onChange={e => updateItem('reName', e.target.value)} />
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">RE Location</span>
+            <span className="text-[10px] text-gray-400 uppercase">What City/State was the IVF clinic located in?</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reLocation || ''} onChange={e => updateItem('reLocation', e.target.value)} />
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">RE Dates</span>
-            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reDates || ''} onChange={e => updateItem('reDates', e.target.value)} />
+            <span className="text-[10px] text-gray-400 uppercase">What years were you seen there?</span>
+            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.reDates || ''} onChange={e => updateItem('reDates', e.target.value)} placeholder="e.g. 2022-2023" />
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Outcome</span>
+            <span className="text-[10px] text-gray-400 uppercase">What was the outcome of this surrogacy journey?</span>
             <SelectUI value={item.outcome || ''} onValueChange={v => updateItem('outcome', v)}>
               <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
               <SelectContentUI>
@@ -4458,32 +4458,31 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             </SelectUI>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Weeks Delivered</span>
+            <span className="text-[10px] text-gray-400 uppercase">Weeks when delivered</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.weeksDelivered || ''} onChange={e => updateItem('weeksDelivered', e.target.value)} />
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Transfers</span>
+            <span className="text-[10px] text-gray-400 uppercase">How many transfers until pregnant?</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.transfers || ''} onChange={e => updateItem('transfers', e.target.value)} />
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Embryo Source</span>
-            <SelectUI value={item.embryoSource || ''} onValueChange={v => updateItem('embryoSource', v)}>
-              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-              <SelectContentUI>
-                {['Donor eggs', "IM's eggs", 'Unknown'].map(o => (
-                  <SelectItemUI key={o} value={o}>{o}</SelectItemUI>
-                ))}
-              </SelectContentUI>
-            </SelectUI>
+        </div>
+        <div className="space-y-1">
+          <span className="text-[10px] text-gray-400 uppercase">Embryo source (select all that apply)</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-white rounded border border-gray-200">
+            {["IM's Egg", 'Donor Egg', "IF's Sperm", 'Donor Sperm', 'Embryo Adoption', 'Unknown'].map(opt => {
+              const list = Array.isArray(item.embryoSource) ? item.embryoSource : (item.embryoSource ? [item.embryoSource] : [])
+              const checked = list.includes(opt)
+              return (
+                <label key={opt} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
+                  <input type="checkbox" checked={checked} onChange={() => {
+                    const next = checked ? list.filter(x => x !== opt) : [...list, opt]
+                    updateItem('embryoSource', next)
+                  }} />
+                  <span className="text-stone-600">{opt}</span>
+                </label>
+              )
+            })}
           </div>
-        </div>
-        <div className="space-y-1">
-          <span className="text-[10px] text-gray-400 uppercase">Complications</span>
-          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.complications || ''} onChange={e => updateItem('complications', e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <span className="text-[10px] text-gray-400 uppercase">Unsuccessful Cycles</span>
-          <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.unsuccessfulCycles || ''} onChange={e => updateItem('unsuccessfulCycles', e.target.value)} />
         </div>
       </div>
     )

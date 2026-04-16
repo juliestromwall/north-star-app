@@ -143,17 +143,19 @@ export const FIELD_LABELS = {
   currentlyInSchoolDetails: 'Please provide details',
 
   // Updated fields
-  reDates: 'Year',
   partnerAgreesTermination: 'Would your spouse or support person support the decision for termination?',
   compensationNegotiable: 'Is your Surrogate Base Fee negotiable?',
 
   // Experienced Surrogate
   previousSurrogate: 'Have you ever been a surrogate before?',
   surrogacyTimes: 'How many times?',
-  reName: 'RE Doctor Name', reLocation: 'RE Location', reDates: 'RE Dates',
-  outcome: 'Pregnancy outcome', weeksDelivered: 'Weeks when delivered',
-  transfers: 'How many transfers until pregnant?', embryoSource: 'Embryo source',
-  complications: 'Complications or details', unsuccessfulCycles: 'Any unsuccessful cycles?',
+  reName: 'What was the name of the Reproductive Doctor?',
+  reLocation: 'What City/State was the IVF clinic located in?',
+  reDates: 'What years were you seen there?',
+  outcome: 'What was the outcome of this surrogacy journey?',
+  weeksDelivered: 'Weeks when delivered',
+  transfers: 'How many transfers until pregnant?',
+  embryoSource: 'Embryo source (select all that apply)',
   overallExperience: 'Please describe the overall experience. What did you like and what would you like to avoid in your next journey?',
 
   // Hopes & Wishes
