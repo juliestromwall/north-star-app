@@ -69,7 +69,20 @@ export async function onRequestPost(context) {
     const newTokens = await tokenRes.json()
 
     if (!tokenRes.ok || !newTokens.access_token) {
-      return new Response(JSON.stringify({ error: 'Token refresh failed', detail: newTokens }), {
+      // Google error like "invalid_grant" means the refresh_token is expired/revoked.
+      // Delete the row so the user can cleanly reconnect.
+      if (newTokens.error === 'invalid_grant') {
+        await fetch(
+          `${supabaseUrl}/rest/v1/google_tokens?user_id=eq.${user_id}`,
+          { method: 'DELETE', headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
+        )
+      }
+      return new Response(JSON.stringify({
+        error: 'Token refresh failed',
+        google_error: newTokens.error,
+        google_error_description: newTokens.error_description,
+        action_required: newTokens.error === 'invalid_grant' ? 'reconnect' : null,
+      }), {
         status: 401,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })

@@ -68,13 +68,30 @@ export async function onRequestGet(context) {
     const supabaseUrl = env.SUPABASE_URL
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
-    const upsertRes = await fetch(`${supabaseUrl}/rest/v1/google_tokens`, {
+    // If Google didn't return a refresh_token (rare with prompt=consent, but possible),
+    // delete the old row first so we don't keep the stale refresh_token. The user will need to reconnect.
+    if (!tokens.refresh_token) {
+      console.error('No refresh_token in Google response. Cannot save tokens. Detail:', tokens)
+      return Response.redirect(`${url.origin}/settings?google=no_refresh_token`, 302)
+    }
+
+    // Delete any existing row for this user first, then insert fresh.
+    // This avoids any upsert/conflict issues and guarantees a clean slate.
+    await fetch(
+      `${supabaseUrl}/rest/v1/google_tokens?user_id=eq.${userId}`,
+      {
+        method: 'DELETE',
+        headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` },
+      }
+    )
+
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/google_tokens`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': serviceKey,
         'Authorization': `Bearer ${serviceKey}`,
-        'Prefer': 'resolution=merge-duplicates',
+        'Prefer': 'return=representation',
       },
       body: JSON.stringify({
         user_id: userId,
@@ -87,10 +104,10 @@ export async function onRequestGet(context) {
       }),
     })
 
-    if (!upsertRes.ok) {
-      const err = await upsertRes.text()
-      console.error('Supabase upsert failed:', err)
-      return Response.redirect(`${url.origin}/settings?google=error`, 302)
+    if (!insertRes.ok) {
+      const err = await insertRes.text()
+      console.error('Supabase insert failed:', err)
+      return Response.redirect(`${url.origin}/settings?google=error&detail=${encodeURIComponent(err.slice(0, 200))}`, 302)
     }
 
     return Response.redirect(`${url.origin}/settings?google=success`, 302)
