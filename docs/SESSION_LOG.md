@@ -1,5 +1,83 @@
 # Session Log
 
+## 2026-04-15 — 2026-04-16 Session A (Multi-Admin SMS, Team Chats, Therapist Check-Ins, Application Restructure)
+
+**Worked on:** Multi-admin Twilio SMS with Send-As + merged threads, Team Chats internal messaging, Therapist Check-In Report Builder with PDF generation, application restructure (combine Personal+Confidential), several auto-email notifications, profile UI improvements.
+
+**Changes made:**
+
+Multi-Admin Twilio SMS:
+- Per-admin Twilio phone number in Settings (stored in user_prefs)
+- /api/sms/send accepts optional `from` param
+- /api/sms/list accepts comma-separated `numbers` to fetch from multiple lines
+- /api/admin-phones returns admins with configured numbers
+- CaseTextsTab: "Send as" dropdown, merged multi-admin threads, sender name on each bubble
+- Discussed Toktiv app for iPhone calls/texts using Twilio number
+
+Team Chats (NEW):
+- /team-chats nav item under INBOX
+- team_chat_groups + team_chat_messages tables
+- iMessage-style two-panel UI with group list + thread
+- "New Chat" dialog (name + member checkboxes, max 10)
+- 3 endpoints: /api/team-chats/groups, /messages, /list
+- Sending → Supabase insert + Twilio SMS to all other members
+- Polls every 10s, mobile responsive
+
+Therapist Check-In Report Builder:
+- "Due Date" → "Estimated Due Date", new "Birth Guidelines" column
+- "+ Add date" → "Check In" buttons (open report dialog)
+- 95vw wide dialog with full report builder:
+  - Pre-fill: Jenny Oliver-Miramontes LMFT, MA License 51961
+  - Pacific Time everywhere
+  - Rich text Communication Details
+  - "Requested By" auto-fills case manager from journey assigned admin
+  - Polished UI: blue section headers + icons + tinted cards
+- Real PDF via html2pdf.js (was uploading HTML as fake PDF)
+- /api/therapist-checkin server endpoint with service role bypasses RLS
+- PDF saves to surrogate's psych-evaluation folder (not psych or "Other")
+- Task on matched journey if matched, surrogate case otherwise:
+  "{GC Name} {Check-In Event} Complete - Needs Review"
+- "Are you sure?" confirmation dialog before submit
+- PDF redesigned compact card layout matching Records Summary style
+
+Application Restructure (Portal + Admin):
+- Combined Personal + Confidential into one "Personal Information" section
+- Removed NICU questions and Driver's License # field
+- spouseFullName → spouseFirstName, added spouseDob
+- Insurance card front/back photo uploads
+- Pre-fill city/state, partner first name, partner DOB from profile
+- Admin Follow-Up Questions now editable
+- Quick links bar at top of admin Application tab (8 sections)
+- New order: Quiz → Personal → Follow Up → References → Clinic → Payment → Social → Background Waivers
+
+Auto-Emails:
+- /api/notify-app-released: surrogate gets email when admin opens app
+  ("🥳 I've reviewed your Profile!"). Admin sees confirmation: Cancel/Release & Email/Just Release
+- /api/notify-app-submitted: admin notified when surrogate submits app
+- notify-profile-submitted: added Julie's gmail, fixed full name from quiz, 🚨 emoji
+
+Profile/Submit Improvements:
+- Insurance status indicator on preview header (Verified/Verifying/Needs Policy)
+- Submit Profile button moved to header (next to Preview) when 100%
+- Fixed 100% popup not waiting for status to load
+- Experienced Surrogate field reads from quiz answers as fallback
+- Server-side checklist logging in /api/notify-profile-submitted
+  (was failing client-side due to RLS)
+- High priority on profile review task
+
+Bug Fixes:
+- Photo crop modal forced to 95vw / 1400px max width
+- startsWith TypeError on numeric surrogate IDs (String() cast)
+- Therapist check-in PDF folder ID corrected
+- Removed silent .catch(() => {}) that hid task creation errors
+
+**Next steps:**
+- Verify therapist check-in PDF + task creation works in production after deploy
+- Show full birthdate (MM/DD/YYYY) for baby in pregnancy section (deferred)
+
+**Open questions:**
+- Therapist check-in: user reported "still didn't work" but console only showed unrelated warnings (no /api/therapist-checkin response logged). Need to confirm latest deploy and capture network tab response.
+
 ## 2026-04-16 (Dashboard UI Polish, Quiz Additions, Task Enhancements, Gmail Autocomplete, Auto-Tasks)
 
 **Worked on:** Surrogate dashboard visual redesign, experienced surrogate quiz question + profile updates, task assignment for Julie & Nicole (joint), Future Tasks dropdown, delete/expand/incomplete on dashboard tasks, Gmail recipient autocomplete, more auto-task triggers, documentation of all auto-tasks.

@@ -277,7 +277,8 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 | E-Sign Sign | /e-signature/:id | public | Built (public route, email verification, field inputs, signature pad, PDF preview) |
 | Messages | /messages | all | Stub |
 | Email | /email | admin+ | Built (Gmail API, inbox/send/attachments, log to case) |
-| Team Chats | /team-chats | admin+ | Placeholder (Phase 9) |
+| Team Chats | /team-chats | admin+ | Built (group messaging via Twilio SMS, iMessage-style UI, max 10 members) |
+| Therapist Tracking | /therapist-tracking | admin+ | Built (10/20/30 week + Birth Guidelines + Post Delivery check-ins, full Check-In Report Builder with PDF generation + auto-task) |
 | Fax | /fax | admin+ | Built (SRFax API live, hero stats, table layout, send from case docs, fullscreen PDF preview with nav, file to Medical Records with rename + log update + auto-advance, filed case tracking, sidebar unread badge) |
 | Psych Tracking | /psych-tracking | admin+ | Built (10/20/30 week + post-delivery check-ins, shareable external link) |
 | Referral & Bonus Tracker | /referral-bonus-tracker | admin+ | Built (referrals from quiz, sign-on bonuses, clearance dates, payment tracking) |

@@ -115,12 +115,26 @@
 | ExpensesToPayTable | src/pages/expenses/ExpensesPage.jsx | "Expenses to Pay" tab for non-escrow expenses. Mark paid + reconcile workflow. |
 | notify-pregnancy-confirmed | functions/api/notify-pregnancy-confirmed.js | Auto-email on heartbeat confirmation. Branded template via Resend API. |
 | notify-records-summary | functions/api/notify-records-summary.js | Auto-email when Records Summary is requested. Direct link to surrogate's records page. |
+| notify-app-released | functions/api/notify-app-released.js | Surrogate gets email when admin releases their application. Subject: "🥳 I've reviewed your Profile!" From assigned admin's name. |
+| notify-app-submitted | functions/api/notify-app-submitted.js | Admin notified (Julie + assigned) when surrogate submits their application. Includes review button. |
+| therapist-checkin | functions/api/therapist-checkin.js | Server-side handler for therapist check-in submission. Uploads PDF to psych-evaluation folder + creates case manager review task on matched journey. |
+| sms/send | functions/api/sms/send.js | Send SMS via Twilio. Accepts optional `from` param so admins can pick their own Twilio number. |
+| sms/list | functions/api/sms/list.js | List SMS messages. Accepts comma-separated `numbers` to fetch from multiple admin lines. |
+| admin-phones | functions/api/admin-phones.js | Returns admins with configured Twilio numbers (from user_prefs). |
+| team-chats/groups | functions/api/team-chats/groups.js | Create new team chat group with member list (max 10). |
+| team-chats/messages | functions/api/team-chats/messages.js | GET/POST messages for a group. Sending also fans out SMS to other members. |
+| team-chats/list | functions/api/team-chats/list.js | List all team chat groups with last message preview. |
 | PaymentPreferenceSection | src/components/surrogates/GCApplicationTab.jsx | Screening Incentive Payment Preference (Venmo/Zelle + screenshot upload). Admin-editable. |
 | ProfileFollowUpForm | src/pages/portal/PortalApplicationPage.jsx | 35 follow-up questions (lifestyle, health, fertility, education) for surrogate portal application. |
 | PaymentPreferenceForm | src/pages/portal/PortalApplicationPage.jsx | Surrogate portal: Venmo/Zelle payment preference with screenshot upload. |
 | FIELD_LABELS | src/components/profile/profileConstants.js | Single source of truth for 150+ surrogate profile field labels — used by portal, admin, and preview. |
 | ConfirmDialog | src/components/ui/confirm-dialog.jsx | Reusable in-app confirmation dialog replacing browser confirm(). Supports destructive styling, custom title/message/button text. |
 | ProfilePortraitOverlay | src/pages/profile/SurrogateProfilePage.jsx | Portrait photo overlays bottom-left edge of cover photo in ProfilePreview. Works in all contexts including PDF. |
+| TeamChatsPage | src/pages/messages/TeamChatsPage.jsx | Internal team messaging via Twilio. Two-panel iMessage-style UI. Create groups (max 10 members), send messages that go to all members via SMS. Polls every 10s. |
+| Therapist Check-In Builder | src/pages/psych/PsychTrackingPage.jsx | Per-milestone (10/20/30 week, Birth Guidelines, Post Delivery) check-in report builder. Pre-fills Jenny Oliver-Miramontes LMFT + auto-fills case manager. Pacific Time, rich text Communication Details. Generates real PDF via html2pdf.js, uploads to Psych Evaluation folder, creates auto-task on matched journey. |
+| /api/therapist-checkin | functions/api/therapist-checkin.js | Server-side endpoint with service role key. Handles PDF upload to case-documents psych-evaluation folder + task creation. Bypasses RLS for shared link users. Looks up matched journey to route task correctly. |
+| Multi-Admin SMS | src/pages/surrogates/SurrogateDetailPage.jsx (CaseTextsTab) | Each admin has own Twilio number in Settings. "Send as" dropdown picks which number. Merged threads from all admin numbers per case with sender attribution. |
+| InsuranceStatusIndicator | src/pages/profile/SurrogateProfilePage.jsx (ProfilePreview) | Shows insurance status pill on profile preview header (Verified/Verifying/Needs Policy) based on insurance table policy status. |
 
 ## Bot Protection
 
@@ -203,6 +217,7 @@ Store: `src/lib/stageStatusStore.js` (localStorage-backed CRUD for config + per-
 
 | Date | Change |
 |------|--------|
+| 2026-04-16 | Multi-admin Twilio SMS: per-admin number in Settings, "Send as" dropdown on case Texts tab, merged threads from all admin numbers with sender attribution. Team Chats nav + iMessage-style page. Therapist Check-In Builder polish: pre-filled therapist info (Jenny Oliver-Miramontes), Pacific Time, rich text Communication Details, "Requested By" auto-fills case manager, real PDF via html2pdf.js, server-side endpoint bypasses RLS, PDF lands in psych-evaluation folder, task on matched journey with "{Name} {Event} Complete - Needs Review". Application restructure: combined Personal+Confidential, removed NICU/DL#, insurance card uploads, partner first name+DOB pre-fill from profile. Admin Follow-Up section editable + section quick-links. Auto-emails for app released ("🥳 I've reviewed your Profile!") + app submitted (Julie+assigned). Insurance status indicator on profile preview. Submit Profile button moved to header. Server-side checklist logging. Toktiv app recommended for iPhone Twilio calls/texts. |
 | 2026-04-14 | Therapist Check-In Report Builder: milestone check-in dialog (therapist info, patient, communication details, signature), Save Draft / Submit Report, PDF generation via print window, auto-task creation for journey managers, PDF saved to case documents (psych category), view completed reports read-only. Birth Guidelines column. Renamed "Due Date" to "Estimated Due Date". |
 | 2026-04-14 | Team Chats: full two-panel group messaging (group list + iMessage-style thread), create group dialog, SMS notifications to members via Twilio, 10s message polling. API endpoints for list/messages/groups. |
 | 2026-04-15 | Email: attach from case docs, CC always visible, Reply All. Admin notes: rich text + images + float alignment, edit notes, mark as read (collapse). Dashboard tasks: assign to admins, edit, completed dropdown. Auto-tasks: Connect with Applicant follow-ups (2/7/14/1d), Medical/Legal Clearance incentive tasks for Julie. Records Summary: drag-reorder merge, Complete files to Medical Records + creates review tasks. Pregnancy: Baby A/B/C for multiples. Terms & Privacy Policy + password-set acknowledgment. |
