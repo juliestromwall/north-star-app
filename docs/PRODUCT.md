@@ -96,6 +96,33 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
    - Question appears in Match History on Matching page
 5. Admin can click "Pending — click to mark answered" to toggle question status
 
+### Therapist Check-Ins
+1. Therapist Jenny Oliver-Miramontes accesses /therapist-tracking (or shared external link with password)
+2. For each milestone (10w, 20w, 30w, Birth Guidelines, Post Delivery) clicks "Check In"
+3. Report Builder dialog opens (95vw wide):
+   - Pre-filled therapist info (Jenny + LMFT + license)
+   - Date/time auto-set to Pacific Time
+   - Method dropdown (Phone/Video/In Person/Email)
+   - Auto-filled Requested By: Case Manager (from journey assigned admin) + Company "Abundant Beginnings Co."
+   - Rich text Communication Details
+   - Pre-filled signature
+4. "Save Draft" — saves for later (resumable). "Submit Report" — opens "Are you sure?" confirmation
+5. On confirm:
+   - Real PDF generated via html2pdf.js
+   - PDF uploaded to surrogate's "Psych Evaluation" document folder
+   - Auto-task created on matched journey (or surrogate case if not matched): "{GC Name} {Event} Complete - Needs Review"
+   - Milestone date marked as today
+   - PDF opens in new window for therapist to download
+6. Completed reports viewable in read-only mode with Download PDF button (even after journey archived)
+
+### Team Internal Messaging
+1. Each admin sets their personal Twilio phone number in Settings
+2. Team Chats page (under INBOX nav) lets admins create group chats with team members (max 10)
+3. Sending a message from the app inserts to Supabase + sends Twilio SMS to all other group members
+4. Admins can also use Toktiv app on their iPhone to send/receive Twilio texts and calls
+5. Texts to surrogates/IPs from the app: "Send as" dropdown lets admin pick which Twilio number to use
+6. Case Texts tab merges threads from ALL admin numbers with sender attribution
+
 ### Case Tasks
 1. Tasks can be created on any case (Surrogate, IP, Journey) from the Overview tab
 2. Tasks can also be created from the admin Dashboard with a searchable case picker
