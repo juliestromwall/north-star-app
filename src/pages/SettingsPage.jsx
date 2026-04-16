@@ -348,9 +348,9 @@ function AdminNotesSection() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editingNote ? 'Edit Note' : 'Publish Note'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="max-w-2xl max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
+          <DialogHeader className="shrink-0"><DialogTitle>{editingNote ? 'Edit Note' : 'Publish Note'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 overflow-y-auto pr-1">
             <div className="space-y-2">
               <label className="text-sm font-medium">Title (optional)</label>
               <input type="text" value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="e.g. System Update" className="w-full text-sm rounded-md border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/50" />
@@ -381,7 +381,7 @@ function AdminNotesSection() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-stone-100 pt-4">
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
             <Button onClick={handlePublish} disabled={!noteMessage.trim() || (noteTarget === 'specific' && selectedUserIds.length === 0)}>{editingNote ? 'Save Changes' : 'Publish'}</Button>
           </DialogFooter>
