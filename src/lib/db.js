@@ -291,9 +291,16 @@ export async function getProfilePhotoUrls(userIds) {
   )
   if (!result || result.error) return {}
   const map = {}
+  const needsStorage = []
   for (const row of result.data) {
     const url = row.profile_data?.personal?.profilePhotoUrl
     if (url) map[row.user_id] = url
+    else if (row.user_id) needsStorage.push(row.user_id)
+  }
+  // Fallback: check storage for portrait photos for any user without profilePhotoUrl
+  if (needsStorage.length > 0) {
+    const portraits = await Promise.all(needsStorage.map(uid => getPortraitPhotoUrl(uid).catch(() => null)))
+    needsStorage.forEach((uid, i) => { if (portraits[i]) map[uid] = portraits[i] })
   }
   return map
 }
@@ -563,7 +570,7 @@ export async function fetchAllSurrogateProfiles() {
   if (!supabase) return []
   const { data, error } = await supabase
     .from('surrogate_profiles')
-    .select('email, profile_data')
+    .select('email, profile_data, user_id')
   if (error) return []
   return data || []
 }

@@ -18,7 +18,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, getAllSurrogateStageStatuses } from '@/lib/stageStatusStore'
 import { getChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
-import { getProfilePhotoUrls } from '@/lib/db'
+import { getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles, getAppConfig } from '@/lib/db'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -347,16 +347,31 @@ export default function SurrogateListPage() {
           map[p.email] = p.profile_data
         }
         setProfiles(map)
-        // Load avatar URLs from profiles
+        // Load avatar URLs from profiles — first from profile_data, then fallback to storage
         const avatars = {}
+        const needsStoragePortrait = [] // [{ surrogateId, userId }]
         for (const p of (profileList || [])) {
           const url = p.profile_data?.personal?.profilePhotoUrl
+          const match = filtered.find(s => s.email === p.email)
+          if (!match) continue
           if (url) {
-            const match = filtered.find(s => s.email === p.email)
-            if (match) avatars[match.id] = url
+            avatars[match.id] = url
+          } else if (p.user_id) {
+            needsStoragePortrait.push({ surrogateId: match.id, userId: p.user_id })
           }
         }
         setAvatarUrls(avatars)
+        // Fetch portraits from storage for any surrogate without a profilePhotoUrl
+        if (needsStoragePortrait.length > 0) {
+          Promise.all(needsStoragePortrait.map(({ userId }) => getPortraitPhotoUrl(userId).catch(() => null)))
+            .then(urls => {
+              const update = {}
+              needsStoragePortrait.forEach(({ surrogateId }, i) => {
+                if (urls[i]) update[surrogateId] = urls[i]
+              })
+              if (Object.keys(update).length) setAvatarUrls(prev => ({ ...prev, ...update }))
+            })
+        }
         // Fetch last login dates
         const emails = filtered.map(s => s.email).filter(Boolean)
         if (emails.length) {
