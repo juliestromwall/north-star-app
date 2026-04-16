@@ -485,7 +485,8 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             }
                           } else if (row.dataField === 'experiencedSurrogate') {
                             const profile = allProfiles[s.id]
-                            const prev = profile?.experiencedSurrogate?.previousSurrogate || profile?.preferences?.previousSurrogate
+                            // Check profile section, then quiz answers
+                            const prev = profile?.experiencedSurrogate?.previousSurrogate || profile?.preferences?.previousSurrogate || s.answers?.experiencedSurrogate
                             if (prev === 'yes' || prev === true) {
                               const times = profile?.experiencedSurrogate?.surrogacyTimes || profile?.preferences?.surrogacyTimes || ''
                               value = `Yes${times ? ` (${times})` : ''}`

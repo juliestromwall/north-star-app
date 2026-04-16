@@ -1448,30 +1448,54 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     setQuizAnswers(updatedAnswers)
   }
 
+  const APP_SECTIONS = [
+    { id: 'quiz', label: 'Surrogate Quiz' },
+    { id: 'personal', label: 'Personal Info' },
+    { id: 'followup', label: 'Follow Up' },
+    { id: 'references', label: 'References' },
+    { id: 'clinic', label: 'Clinic & Hospital' },
+    { id: 'payment', label: 'Payment Pref' },
+    { id: 'social', label: 'Social Media' },
+    { id: 'waivers', label: 'BG Waivers' },
+  ]
+
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          placeholder="Search questions..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* Quick Links + Search */}
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          {APP_SECTIONS.map(sec => (
+            <button
+              key={sec.id}
+              onClick={() => document.getElementById(`app-sec-${sec.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="rounded-lg border border-stone-200 hover:border-[#283693]/30 hover:bg-[#283693]/5 p-2 text-center cursor-pointer transition-colors"
+            >
+              <p className="text-[10px] font-medium text-stone-600 truncate">{sec.label}</p>
+            </button>
+          ))}
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Search questions..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
-      <QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} />
-      <ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
-      <FollowUpQuestionsSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
-      <ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
-      <ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} />
-      <PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
-      <SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} />
+      <div id="app-sec-quiz"><QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-personal"><ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-followup"><FollowUpQuestionsSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-references"><ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-clinic"><ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-payment"><PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-social"><SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
 
       {/* Background Waivers */}
       {(!searchLower || 'background waiver'.includes(searchLower)) && (
-        <Card>
+        <Card id="app-sec-waivers">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Shield className="size-4 text-[#283693]" /> Background Waivers
