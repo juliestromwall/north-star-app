@@ -2914,9 +2914,9 @@ function countSectionFilled(data, section) {
     diseaseHistoryDetails: { parent: 'diseaseHistory', show: 'yes' },
     vaccinationReasons: { parent: 'openToVaccinations', show: 'no' },
     governmentAssistanceDetails: { parent: 'governmentAssistance', show: 'yes' },
-    cvsAmnioDetails: { parent: 'cvsAmnio' },
+    cvsAmnioDetails: { parent: 'cvsAmnio', show: 'no' },
     lifestyleChangesDetails: { parent: 'lifestyleChanges', show: 'yes' },
-    ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments' },
+    ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', show: 'No' },
     currentlyInSchoolDetails: { parent: 'currentlyInSchool', show: 'yes' },
     // Partner fields — skip if not in a relationship
     partnerName: { parent: 'maritalStatus', show: '_partner' },
