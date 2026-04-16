@@ -415,7 +415,19 @@ export default function SignFormPage() {
                     <Input
                       type={f.type === 'date' ? 'date' : 'text'}
                       value={fieldValues[f.id] || ''}
-                      onChange={e => updateField(f.id, e.target.value)}
+                      onChange={e => {
+                        let v = e.target.value
+                        if (f.id === 'ssn') {
+                          // Auto-format as xxx-xx-xxxx
+                          const digits = v.replace(/\D/g, '').slice(0, 9)
+                          if (digits.length <= 3) v = digits
+                          else if (digits.length <= 5) v = `${digits.slice(0, 3)}-${digits.slice(3)}`
+                          else v = `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`
+                        }
+                        updateField(f.id, v)
+                      }}
+                      placeholder={f.id === 'ssn' ? 'xxx-xx-xxxx' : undefined}
+                      maxLength={f.id === 'ssn' ? 11 : undefined}
                       className="h-9"
                     />
                   </div>
@@ -435,7 +447,9 @@ export default function SignFormPage() {
                         value={signatures[s.id]}
                         onChange={val => {
                           setSignatures(prev => ({ ...prev, [s.id]: val }))
-                          if (val) setActiveSigId(null)
+                          // Only auto-close for drawn signatures (fires once on mouseup)
+                          // Typed signatures fire on every keystroke — close via "Done" button
+                          if (val?.type === 'drawn') setActiveSigId(null)
                         }}
                         signerName={mySigner.name}
                       />
