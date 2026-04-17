@@ -1040,6 +1040,7 @@ const ROLE_OPTIONS = [
   { value: 'office_admin', label: 'Office Admin' },
   { value: 'admin', label: 'Admin' },
   { value: 'marketing', label: 'Marketing' },
+  { value: 'records_admin', label: 'Records Admin' },
 ]
 
 const ROLE_BADGE_STYLES = {
@@ -1047,6 +1048,7 @@ const ROLE_BADGE_STYLES = {
   office_admin: 'bg-violet-100 text-violet-700 border-violet-200',
   admin: 'bg-sky-100 text-sky-700 border-sky-200',
   marketing: 'bg-amber-100 text-amber-700 border-amber-200',
+  records_admin: 'bg-purple-100 text-purple-700 border-purple-200',
   super_admin: 'bg-red-100 text-red-700 border-red-200',
 }
 
@@ -1223,6 +1225,7 @@ function UserManagementSection() {
                         {opt.value === 'office_admin' && 'Admin access plus settings (notes, team, statuses, checklists)'}
                         {opt.value === 'admin' && 'Operations, clients, forms, and messaging'}
                         {opt.value === 'marketing' && 'Read-only analytics and intake submissions'}
+                        {opt.value === 'records_admin' && 'Medical records summary only'}
                       </p>
                     </div>
                   </label>
