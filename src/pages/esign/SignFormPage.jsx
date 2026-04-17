@@ -379,17 +379,18 @@ export default function SignFormPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
-      <div className="max-w-4xl mx-auto py-6 px-4">
+      <div className="max-w-2xl mx-auto py-6 px-3 sm:px-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
           <div>
-            <h1 className="text-xl font-bold text-[#283693]">{template.title}</h1>
-            <p className="text-sm text-stone-500">Signed in as {mySigner.name} ({mySigner.email})</p>
+            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-8 sm:h-10 mb-2" />
+            <h1 className="text-lg sm:text-xl font-bold text-[#283693]">{template.title}</h1>
+            <p className="text-xs sm:text-sm text-stone-500">Signed in as {mySigner.name} ({mySigner.email})</p>
           </div>
           <Button
             onClick={handleSubmit}
             disabled={signing}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto shrink-0"
             style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
           >
             {signing ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
@@ -399,9 +400,9 @@ export default function SignFormPage() {
 
         {/* Form fields panel */}
         <Card className="mb-6">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-4">Fill in your information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {template.fields.map(f => {
                 if (f.type === 'radio') {
                   return (
@@ -462,7 +463,7 @@ export default function SignFormPage() {
             </div>
 
             {/* Signatures */}
-            <div className="mt-6 pt-6 border-t space-y-6">
+            <div className="mt-5 pt-5 border-t space-y-5">
               <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Signatures</h3>
               {template.signatures.map(s => (
                 <div key={s.id} className="space-y-2">
@@ -502,13 +503,27 @@ export default function SignFormPage() {
           </CardContent>
         </Card>
 
-        {/* Document Preview */}
-        <Card>
+        {/* Document Preview — hidden on mobile for cleaner UX, shown on desktop */}
+        <Card className="hidden sm:block">
           <CardContent className="p-6">
             <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Document Preview</h3>
-            <div className="border rounded-xl p-6 bg-white" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            <div className="border rounded-xl p-6 bg-white text-sm overflow-x-auto [&_table]:w-full [&_td]:text-xs [&_td]:py-1" dangerouslySetInnerHTML={{ __html: previewHtml }} />
           </CardContent>
         </Card>
+
+        {/* Mobile submit button at bottom */}
+        <div className="sm:hidden pt-4 pb-8">
+          <Button
+            onClick={handleSubmit}
+            disabled={signing}
+            className="gap-2 w-full py-3 text-base"
+            style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+          >
+            {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
+            {signing ? 'Submitting...' : 'Sign & Submit'}
+          </Button>
+          <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+        </div>
       </div>
     </div>
   )
