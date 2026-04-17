@@ -181,25 +181,76 @@ export default function FloatingStickyNotes() {
   const [notes, setNotes] = useState([])
   const [loaded, setLoaded] = useState(false)
   const isAdmin = ADMIN_ROLES.includes(currentRole)
-  const configKey = `floating_notes_${currentUser?.email || 'default'}`
+  const normalizedEmail = currentUser?.email?.trim().toLowerCase() || ''
+  const configKey = currentUser?.id ? `floating_notes_${currentUser.id}` : `floating_notes_${normalizedEmail || 'default'}`
+  const legacyConfigKey = normalizedEmail ? `floating_notes_${normalizedEmail}` : null
+
+  function readLocalBackup(keys) {
+    for (const key of keys) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(`abc_${key}`) || 'null')
+        if (Array.isArray(saved) && saved.length > 0) return saved
+      } catch {
+        // Ignore corrupt browser backups and keep checking the other keys.
+      }
+    }
+    return null
+  }
+
+  function writeLocalBackups(keys, value) {
+    for (const key of keys) {
+      try {
+        localStorage.setItem(`abc_${key}`, JSON.stringify(value))
+      } catch {
+        // Browser storage can be unavailable in private mode; Supabase remains primary.
+      }
+    }
+  }
 
   // Load from Supabase
   useEffect(() => {
-    if (!currentUser?.email) return
-    getAppConfig(configKey).then(saved => {
-      if (saved && Array.isArray(saved)) setNotes(saved)
-    }).catch(() => {}).finally(() => setLoaded(true))
-  }, [configKey])
+    const keys = [configKey, legacyConfigKey].filter(Boolean)
+    if (!isAdmin || keys.length === 0) {
+      setTimeout(() => {
+        setNotes([])
+        setLoaded(true)
+      }, 0)
+      return
+    }
+    let cancelled = false
+    setTimeout(() => {
+      if (!cancelled) setLoaded(false)
+    }, 0)
+    Promise.all(keys.map(key => getAppConfig(key).catch(() => null))).then(async results => {
+      if (cancelled) return
+      const remote = results.find(saved => Array.isArray(saved) && saved.length > 0)
+        || results.find(saved => Array.isArray(saved))
+      const backup = readLocalBackup(keys)
+      const resolved = Array.isArray(remote) && remote.length > 0 ? remote : (backup || remote || [])
+      setNotes(resolved)
+      writeLocalBackups(keys, resolved)
+      if (resolved.length > 0) {
+        await Promise.all(keys.map(key => setAppConfig(key, resolved).catch(() => null)))
+      }
+    }).catch(() => {
+      if (!cancelled) setNotes(readLocalBackup(keys) || [])
+    }).finally(() => {
+      if (!cancelled) setLoaded(true)
+    })
+    return () => { cancelled = true }
+  }, [configKey, legacyConfigKey, isAdmin])
 
   // Save to Supabase (debounced)
   const saveTimer = useRef(null)
   const saveNotes = useCallback((updated) => {
     setNotes(updated)
+    const keys = [configKey, legacyConfigKey].filter(Boolean)
+    writeLocalBackups(keys, updated)
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      setAppConfig(configKey, updated).catch(() => {})
+      Promise.all(keys.map(key => setAppConfig(key, updated).catch(() => null)))
     }, 1000)
-  }, [configKey])
+  }, [configKey, legacyConfigKey])
 
   if (!isAdmin || !loaded) return null
 
@@ -247,17 +298,20 @@ export default function FloatingStickyNotes() {
         />
       ))}
       {/* Minimized bar — positioned in the top bar after nav icons */}
-      <MinimizedBar notes={minimizedNotes} onRestore={restoreNote} onDelete={deleteNote} onAdd={addNote} />
+      <MinimizedBar notes={minimizedNotes} onRestore={restoreNote} onAdd={addNote} />
     </>
   )
 }
 
-export function MinimizedBar({ notes, onRestore, onDelete, onAdd }) {
+export function MinimizedBar({ notes, onRestore, onAdd }) {
   const [target, setTarget] = useState(null)
   useEffect(() => {
     // Wait for TopBar to render the portal target
     const el = document.getElementById('sticky-notes-bar')
-    if (el) setTarget(el)
+    if (el) {
+      const timer = setTimeout(() => setTarget(el), 0)
+      return () => clearTimeout(timer)
+    }
     else {
       const timer = setTimeout(() => setTarget(document.getElementById('sticky-notes-bar')), 500)
       return () => clearTimeout(timer)
