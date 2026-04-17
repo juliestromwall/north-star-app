@@ -858,24 +858,23 @@ export default function AdminDashboard() {
 
       {/* My Cases — separated by type */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-stone-700">{showAllCases ? 'All Cases' : 'My Cases'} ({myJourneys.length + mySurrogates.length + myIPs.length})</h3>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+        <div className="mb-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 value={caseSearch}
                 onChange={e => setCaseSearch(e.target.value)}
-                placeholder="Search cases..."
-                className="h-8 pl-8 pr-3 text-xs border border-stone-200 rounded-lg bg-white w-48 outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+                placeholder="Search by name, email, or location..."
+                className="h-10 w-full pl-10 pr-4 text-sm border border-stone-200 rounded-xl bg-white outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
               />
             </div>
-            <div className="flex items-center border rounded-md">
-              <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-8" onClick={() => setCaseView('grid')}>
-                <LayoutGrid className="size-3.5" />
+            <div className="flex items-center border rounded-md shrink-0">
+              <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-9" onClick={() => setCaseView('grid')}>
+                <LayoutGrid className="size-4" />
               </Button>
-              <Button variant={caseView === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none size-8" onClick={() => setCaseView('list')}>
-                <ListIcon className="size-3.5" />
+              <Button variant={caseView === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none size-9" onClick={() => setCaseView('list')}>
+                <ListIcon className="size-4" />
               </Button>
             </div>
           </div>
