@@ -45,18 +45,18 @@ function SignaturePad({ value, onChange, signerName }) {
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
-        <button type="button" onClick={() => setMode('typed')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
-        <button type="button" onClick={() => setMode('drawn')} className={`text-xs px-3 py-1 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
+        <button type="button" onClick={() => setMode('typed')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Type</button>
+        <button type="button" onClick={() => setMode('drawn')} className={`text-sm px-4 py-1.5 rounded-full font-medium ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500'}`}>Draw</button>
       </div>
       {mode === 'typed' ? (
         <input type="text" value={typeof value === 'object' ? value?.name || '' : value || ''}
           onChange={e => onChange({ type: 'typed', name: e.target.value })}
           placeholder="Type your full name"
-          className="w-full text-xl py-3 px-4 border-b-2 border-[#283693]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
+          className="w-full text-lg sm:text-xl py-3 px-4 border-b-2 border-[#283693]/30 bg-stone-50/50 outline-none rounded-t font-serif italic" />
       ) : (
         <div>
-          <canvas ref={canvasRef} width={500} height={80} className="w-full border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none" onMouseDown={handleDown} onTouchStart={handleDown} />
-          <button type="button" onClick={() => { const c = canvasRef.current; if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange(null) } }} className="text-xs text-stone-400 hover:text-red-500 mt-1">Clear</button>
+          <canvas ref={canvasRef} width={500} height={120} className="w-full h-24 sm:h-20 border border-stone-200 rounded-lg bg-white cursor-crosshair touch-none" onMouseDown={handleDown} onTouchStart={handleDown} />
+          <button type="button" onClick={() => { const c = canvasRef.current; if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange(null) } }} className="text-xs text-stone-400 hover:text-red-500 mt-1.5">Clear</button>
         </div>
       )}
     </div>
@@ -302,21 +302,27 @@ export default function SignReleaseBatchPage() {
 
   if (docs.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <FileText className="size-12 text-stone-300 mx-auto mb-4" />
-        <h1 className="text-xl font-bold text-stone-700">No documents found</h1>
-        <p className="text-stone-500 mt-2">This signing link may have expired or the documents have already been signed.</p>
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="text-center">
+          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 mx-auto mb-6" />
+          <FileText className="size-12 text-stone-300 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-stone-700">No documents found</h1>
+          <p className="text-stone-500 mt-2 text-sm">This signing link may have expired or the documents have already been signed.</p>
+        </div>
       </div>
     )
   }
 
   if (allDone) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-stone-800">All Release Forms Signed!</h1>
-        <p className="text-stone-500 mt-2">Thank you! {docs.length} medical records release form{docs.length === 1 ? ' has' : 's have'} been signed and filed.</p>
-        <p className="text-stone-400 text-sm mt-4">You may close this page.</p>
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="text-center">
+          <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 mx-auto mb-6" />
+          <CheckCircle2 className="size-16 text-emerald-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-stone-800">All Release Forms Signed!</h1>
+          <p className="text-stone-500 mt-2">Thank you! {docs.length} medical records release form{docs.length === 1 ? ' has' : 's have'} been signed and filed.</p>
+          <p className="text-stone-400 text-sm mt-4">You may close this page.</p>
+        </div>
       </div>
     )
   }
@@ -360,10 +366,12 @@ export default function SignReleaseBatchPage() {
   const allSigned = pendingDocs.every(d => signatures[d.id])
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-[#283693]">Medical Records Release Forms</h1>
-        <p className="text-stone-500 mt-1">Please review and sign each form below. {signedDocs.size > 0 && `${signedDocs.size} of ${docs.length} complete.`}</p>
+    <div className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-8 space-y-5">
+      {/* Header */}
+      <div className="text-center px-2">
+        <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+        <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">Medical Records Release Forms</h1>
+        <p className="text-stone-500 text-sm mt-1">Please review and sign each form below. {signedDocs.size > 0 && `${signedDocs.size} of ${docs.length} complete.`}</p>
       </div>
 
       {/* Progress bar */}
@@ -381,32 +389,32 @@ export default function SignReleaseBatchPage() {
         const meta = JSON.parse(doc.document_hash || '{}')
 
         return (
-          <Card key={doc.id} className={`rounded-2xl ${isSigned ? 'opacity-60' : ''}`}>
-            <CardContent className="p-6 space-y-4">
+          <Card key={doc.id} className={`rounded-xl sm:rounded-2xl overflow-hidden ${isSigned ? 'opacity-60' : ''}`}>
+            <CardContent className="p-4 sm:p-6 space-y-4">
               {/* Provider header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-6 flex items-center justify-center">{i + 1}</span>
+              <div className="flex items-start sm:items-center justify-between gap-2">
+                <div className="flex items-start sm:items-center gap-2.5">
+                  <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-7 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">{i + 1}</span>
                   <div>
-                    <p className="font-semibold text-stone-800">{meta.providerName || doc.title}</p>
+                    <p className="font-semibold text-stone-800 text-sm sm:text-base leading-snug">{meta.providerName || doc.title}</p>
                     <p className="text-xs text-stone-400">
                       {{ ob: 'Prenatal/OB Records', hospital: 'Labor & Delivery Records', mfm: 'MFM Records', ivf: 'IVF/Fertility Records' }[meta.providerType] || 'Medical Records'}
                     </p>
                   </div>
                 </div>
-                {isSigned && <CheckCircle2 className="size-5 text-emerald-500" />}
-                {hasSig && !isSigned && <CheckCircle2 className="size-5 text-amber-400" />}
+                {isSigned && <CheckCircle2 className="size-5 text-emerald-500 shrink-0" />}
+                {hasSig && !isSigned && <CheckCircle2 className="size-5 text-amber-400 shrink-0" />}
               </div>
 
-              {/* Document content */}
+              {/* Document content — responsive height */}
               {html && (
-                <div className="border rounded-lg p-4 bg-white max-h-[400px] overflow-y-auto text-sm" dangerouslySetInnerHTML={{ __html: html.replace(/\{\{Signature:GC\}\}/g, '<span style="color: #ed148c; font-weight: 600;">[Sign below]</span>').replace(/\{\{Name:GC\}\}/g, mySigner?.name || '').replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })) }} />
+                <div className="border rounded-lg p-3 sm:p-4 bg-white max-h-[300px] sm:max-h-[400px] overflow-y-auto text-xs sm:text-sm leading-relaxed [&_table]:w-full [&_table]:text-xs [&_td]:py-1 [&_td]:px-1" dangerouslySetInnerHTML={{ __html: html.replace(/\{\{Signature:GC\}\}/g, '<span style="color: #ed148c; font-weight: 600;">[Sign below]</span>').replace(/\{\{Name:GC\}\}/g, mySigner?.name || '').replace(/\{\{Date:GC\}\}/g, new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })) }} />
               )}
 
               {/* Signature for this doc */}
               {!isSigned && (
-                <div className="pt-2 border-t">
-                  <p className="text-xs font-medium text-stone-600 mb-2">Sign for: {meta.providerName}</p>
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold text-stone-600 mb-2">Sign for: <span className="text-[#283693]">{meta.providerName}</span></p>
                   <SignaturePad
                     value={signatures[doc.id]}
                     onChange={v => setSignatures(prev => ({ ...prev, [doc.id]: v }))}
@@ -420,12 +428,12 @@ export default function SignReleaseBatchPage() {
       })}
 
       {/* Submit all */}
-      <div className="flex flex-col items-center gap-3 pt-4">
-        <label className="flex items-center gap-2 text-sm text-stone-700">
-          <input type="checkbox" id="agree-batch" className="size-4 accent-[#283693]" />
-          I agree that my electronic signature is legally binding
+      <div className="flex flex-col items-center gap-4 pt-4 pb-8 px-2">
+        <label className="flex items-center gap-2.5 text-sm text-stone-700 leading-snug text-center">
+          <input type="checkbox" id="agree-batch" className="size-5 accent-[#283693] shrink-0" />
+          <span>I agree that my electronic signature is legally binding</span>
         </label>
-        <Button size="lg" className="gap-2 text-base px-10" style={{ backgroundColor: '#ed148c' }}
+        <Button size="lg" className="gap-2 text-base w-full sm:w-auto sm:px-10 py-3" style={{ backgroundColor: '#ed148c' }}
           onClick={() => {
             const agreed = document.getElementById('agree-batch')?.checked
             if (!agreed) { alert('Please agree to the terms before signing.'); return }
@@ -435,6 +443,7 @@ export default function SignReleaseBatchPage() {
           {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
           {signing ? 'Signing...' : `Sign All ${docs.length} Release Forms`}
         </Button>
+        <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
       </div>
     </div>
   )
