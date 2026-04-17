@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
-  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw,
+  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw, Search,
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -58,6 +58,7 @@ export default function AdminDashboard() {
   const [futureOpen, setFutureOpen] = useState(false)
   const [expandedTaskId, setExpandedTaskId] = useState(null)
   const [caseView, setCaseView] = useState('grid')
+  const [caseSearch, setCaseSearch] = useState('')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
@@ -182,19 +183,25 @@ export default function AdminDashboard() {
   const HIDDEN_JOURNEY_STATUSES = new Set(['Complete'])
 
   const visibleJourneys = journeys.filter(j => !HIDDEN_JOURNEY_STATUSES.has(j.status))
-  const myJourneys = showAllCases ? visibleJourneys : visibleJourneys.filter(j => j.assigned_to === myEmail)
-  const mySurrogates = surrogates.filter(s => {
+  const allMyJourneys = showAllCases ? visibleJourneys : visibleJourneys.filter(j => j.assigned_to === myEmail)
+  const allMySurrogates = surrogates.filter(s => {
     if (!(showAllCases || s.assignedTo === myEmail)) return false
     if (matchedGcIds.has(s.id)) return false
     const ss = getSurrogateStageStatus(s.id)
     return !HIDDEN_GC_STAGES.has(ss?.stage)
   })
-  const myIPs = ips.filter(ip => {
+  const allMyIPs = ips.filter(ip => {
     if (!(showAllCases || ip.assignedTo === myEmail)) return false
     if (matchedIpIds.has(ip.id)) return false
     const ss = getSurrogateStageStatus(ip.id)
     return !HIDDEN_IP_STAGES.has(ss?.stage)
   })
+
+  // Apply search filter
+  const q = caseSearch.trim().toLowerCase()
+  const myJourneys = q ? allMyJourneys.filter(j => (j.gc_name || '').toLowerCase().includes(q) || (j.ip_name || '').toLowerCase().includes(q) || (j.label || '').toLowerCase().includes(q)) : allMyJourneys
+  const mySurrogates = q ? allMySurrogates.filter(s => (s.name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || (s.location || '').toLowerCase().includes(q)) : allMySurrogates
+  const myIPs = q ? allMyIPs.filter(ip => (ip.names || '').toLowerCase().includes(q) || (ip.email || '').toLowerCase().includes(q) || (ip.location || '').toLowerCase().includes(q)) : allMyIPs
 
   async function completeTask(taskId) {
     try {
@@ -853,13 +860,24 @@ export default function AdminDashboard() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-stone-700">{showAllCases ? 'All Cases' : 'My Cases'} ({myJourneys.length + mySurrogates.length + myIPs.length})</h3>
-          <div className="flex items-center border rounded-md">
-            <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-8" onClick={() => setCaseView('grid')}>
-              <LayoutGrid className="size-3.5" />
-            </Button>
-            <Button variant={caseView === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none size-8" onClick={() => setCaseView('list')}>
-              <ListIcon className="size-3.5" />
-            </Button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input
+                value={caseSearch}
+                onChange={e => setCaseSearch(e.target.value)}
+                placeholder="Search cases..."
+                className="h-8 pl-8 pr-3 text-xs border border-stone-200 rounded-lg bg-white w-48 outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+              />
+            </div>
+            <div className="flex items-center border rounded-md">
+              <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-8" onClick={() => setCaseView('grid')}>
+                <LayoutGrid className="size-3.5" />
+              </Button>
+              <Button variant={caseView === 'list' ? 'default' : 'ghost'} size="icon" className="rounded-l-none size-8" onClick={() => setCaseView('list')}>
+                <ListIcon className="size-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 
