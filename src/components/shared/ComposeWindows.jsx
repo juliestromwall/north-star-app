@@ -13,6 +13,7 @@ import { sendEmail, createGmailDraft, fetchEmailContacts, addEmailContactToCache
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
+import { EMAIL_TAGS } from '@/lib/emailTags'
 import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -708,26 +709,9 @@ function ComposeWindow({ draft, index }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">No tag</SelectItem>
-                  <SelectItem value="check_in">Check In</SelectItem>
-                  <SelectItem value="clinic">Clinic</SelectItem>
-                  <SelectItem value="escrow">Escrow</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                  <SelectItem value="general">General</SelectItem>
-                  <SelectItem value="gifts">Gifts</SelectItem>
-                  <SelectItem value="hospital">Hospital</SelectItem>
-                  <SelectItem value="insurance">Insurance</SelectItem>
-                  <SelectItem value="legal">Legal</SelectItem>
-                  <SelectItem value="matching">Matching</SelectItem>
-                  <SelectItem value="medical_records">Medical Records</SelectItem>
-                  <SelectItem value="monitoring">Monitoring Clinic</SelectItem>
-                  <SelectItem value="ob">OB</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                  <SelectItem value="payment_requests">Payment Requests</SelectItem>
-                  <SelectItem value="postpartum">Postpartum</SelectItem>
-                  <SelectItem value="psych">Psych</SelectItem>
-                  <SelectItem value="task">Task</SelectItem>
-                  <SelectItem value="transfer">Transfer</SelectItem>
-                  <SelectItem value="travel">Travel</SelectItem>
+                  {EMAIL_TAGS.map(t => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
