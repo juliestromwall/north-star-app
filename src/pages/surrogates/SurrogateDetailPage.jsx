@@ -1119,8 +1119,12 @@ export default function SurrogateDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`surrogate_${surrogate.id}`} tabs={[
           { value: 'overview', label: 'Overview' },
-          { value: 'contact', label: 'Application' },
           { value: 'profile', label: 'Profile' },
+          { value: 'contact', label: 'Application' },
+          { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
+          { value: 'notes', label: 'Notes' },
+          { value: 'insurance', label: 'Insurance' },
           { value: 'records', label: (() => {
             const rt = recordTracking || {}
             const pregs = profileData?.pregnancyHistory?.pregnancies || []
@@ -1138,10 +1142,6 @@ export default function SurrogateDetailPage() {
             return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
           })() },
           { value: 'documents', label: 'Documents' },
-          { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
-          { value: 'insurance', label: 'Insurance' },
-          { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
-          { value: 'notes', label: 'Notes' },
           ...(quizAnswers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
 
