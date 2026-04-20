@@ -153,7 +153,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     }
     const KEYS = [
       'fullLegalName','maidenName','dob','ssn4','religion',
-      'street','city','state','zipCode','realId','validPassport',
+      'street','city','state','zipCode',
       'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
       'hasSpouse','spouseFirstName','spouseDob','spouseEmail','spousePhone',
       'emergencyName','emergencyPhone','emergencyRelationship',
@@ -168,12 +168,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
   const SPOUSE_KEYS = ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone']
   const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
 
-  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','realId','validPassport','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
   if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS)
   if (hasInsurance) requiredKeys.push(...INSURANCE_KEYS)
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
-    if (k === 'realId' || k === 'validPassport' || k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+    if (k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
     if (k === 'emergencyPhone' || k === 'spousePhone' || k === 'insurancePhone') return isValidPhone(v)
     if (k === 'spouseEmail') return isValidEmail(v)
     return v?.toString().trim()
@@ -183,12 +183,12 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     if (!d) return false
     const hs = d.hasSpouse === 'yes'
     const hi = d.hasInsurance === 'yes'
-    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','realId','validPassport','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
     if (hs) rk.push(...SPOUSE_KEYS)
     if (hi) rk.push(...INSURANCE_KEYS)
     return rk.every(k => {
       const v = d[k]
-      if (k === 'realId' || k === 'validPassport' || k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+      if (k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
       if (k.includes('Phone')) return isValidPhone(v)
       if (k.includes('Email')) return isValidEmail(v)
       return v?.toString().trim()
@@ -231,8 +231,6 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
               </Select>
             </div>
             <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Do you have a Real ID? <Req /></FieldLabel><YesNoButtons value={form.realId} onChange={v => setForm(f => ({ ...f, realId: v }))} /></div>
-            <div className="space-y-1"><FieldLabel>Do you have a valid passport? <Req /></FieldLabel><YesNoButtons value={form.validPassport} onChange={v => setForm(f => ({ ...f, validPassport: v }))} /></div>
           </div>
 
           {/* Insurance */}
@@ -317,8 +315,6 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
 // ── Profile Follow Up Questions ──────────────────────────
 function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle }) {
   const FIELDS = [
-    { key: 'otherLanguages', label: 'Do you (or anyone in your household) speak a language other than English?', type: 'yesno' },
-    { key: 'otherLanguagesDetails', label: 'Which language(s)?', type: 'text', conditional: d => d.otherLanguages === 'yes' },
     { key: 'breastfeeding', label: 'Are you currently breastfeeding/lactating?', type: 'yesno' },
     { key: 'breastfeedingStopDate', label: 'When do you expect to stop?', type: 'text', conditional: d => d.breastfeeding === 'yes' },
     { key: 'cycleLength', label: 'Are your cycles typically between 28 to 30 days?', type: 'yesno' },
@@ -1367,7 +1363,7 @@ export default function PortalApplicationPage() {
       const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
       const required = [
         'fullLegalName', 'dob', 'ssn4', 'street', 'city', 'state', 'zipCode',
-        'realId', 'validPassport', 'hasInsurance',
+        'hasInsurance',
         ...(hi ? ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone'] : []),
         'hasSpouse',
         ...(hs ? ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone'] : []),
@@ -1375,7 +1371,7 @@ export default function PortalApplicationPage() {
       ]
       return required.every(k => {
         const v = d[k]
-        if (['realId', 'validPassport', 'hasInsurance', 'hasSpouse'].includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
+        if (['hasInsurance', 'hasSpouse'].includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
         if (['insurancePhone', 'spousePhone', 'emergencyPhone'].includes(k)) return isValidPhone(v)
         if (k === 'spouseEmail') return isValidEmail(v)
         return v?.toString().trim()
@@ -1414,7 +1410,7 @@ export default function PortalApplicationPage() {
     }
     if (key === '_profileFollowUp') {
       // Check that all yes/no fields have a value
-      const ynKeys = ['breastfeeding', 'cycleLength', 'placedForAdoption', 'gunsOwned', 'eatingDisorders', 'recentTravel', 'sleepIssues', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'compensationNegotiable', 'otherLanguages', 'nonSterilePiercing']
+      const ynKeys = ['breastfeeding', 'cycleLength', 'placedForAdoption', 'gunsOwned', 'eatingDisorders', 'recentTravel', 'sleepIssues', 'autoInsurance', 'validLicense', 'partnerFdaTests', 'compensationNegotiable', 'nonSterilePiercing']
       return ynKeys.every(k => d[k] === 'yes' || d[k] === 'no' || d[k] === true || d[k] === false)
     }
     if (key === '_paymentPreference') {

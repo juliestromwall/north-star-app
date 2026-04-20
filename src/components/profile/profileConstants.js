@@ -373,11 +373,6 @@ const DELETED_FIELDS = [
 
 // Fields moved from their original sections to the Follow Up Questions form
 const FOLLOW_UP_FIELDS = [
-  // From Personal
-  { key: 'realId', type: 'yesno', section: 'personal' },
-  { key: 'validPassport', type: 'yesno', section: 'personal' },
-  { key: 'otherLanguages', type: 'yesno', section: 'personal' },
-  { key: 'otherLanguagesDetails', type: 'text', section: 'personal', conditional: d => d.otherLanguages === 'yes' },
   // From Fertility
   { key: 'breastfeeding', type: 'yesno', section: 'fertility' },
   { key: 'breastfeedingStopDate', type: 'text', section: 'fertility', conditional: d => d.breastfeeding === 'yes' },

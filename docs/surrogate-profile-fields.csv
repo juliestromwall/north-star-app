@@ -7,10 +7,6 @@ Personal Information,heightFt,Height (ft),select
 Personal Information,heightIn,Height (in),select
 Personal Information,weight,Weight (lbs),text
 Personal Information,usCitizen,"Are you a U.S. Citizen or Permanent Resident?",yesno
-Personal Information,realId,"Do you have a Real ID?",yesno
-Personal Information,validPassport,"Do you have a current/valid passport?",yesno
-Personal Information,otherLanguages,"Do you (or anyone in your household) speak a language other than English?",yesno
-Personal Information,otherLanguagesDetails,"Which language(s)?",text
 Personal Information,maritalStatus,"Current Marital/Relationship Status",select
 Personal Information,monogamous,"Are you in a monogamous relationship?",yesno
 Personal Information,sexualPartners,"How many sexual partners have you had in the past 12 months?",text

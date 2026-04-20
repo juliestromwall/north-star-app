@@ -128,10 +128,6 @@ carryTwins,hopesWishes,"If embryo splits into twins, are you willing to carry tw
 desiredCompensation,hopesWishes,Surrogate base fee,currency,YES,,HopesWishesSection,No,YES
 additionalComments,hopesWishes,Message to potential Intended Parent(s),textarea,No,,HopesWishesSection,No,YES
 usCitizen,followUp (stored in original section),Are you a U.S. Citizen or Permanent Resident?,yesno,YES,,FollowUpSection,YES,YES
-realId,followUp,Do you have a Real ID?,yesno,YES,,FollowUpSection,YES,YES
-validPassport,followUp,Do you have a current/valid passport?,yesno,YES,,FollowUpSection,YES,YES
-otherLanguages,followUp,Do you (or anyone in your household) speak a language other than English?,yesno,YES,,FollowUpSection,YES,YES
-otherLanguagesDetails,followUp,Which language(s)?,text,CONDITIONAL,otherLanguages → yes,FollowUpSection,YES,YES
 breastfeeding,followUp,Are you currently breastfeeding/lactating?,yesno,YES,,FollowUpSection,YES,YES
 breastfeedingStopDate,followUp,When do you expect to stop?,text,CONDITIONAL,breastfeeding → yes,FollowUpSection,YES,YES
 cycleLength,followUp,Are your cycles typically between 28 to 30 days?,yesno,YES,,FollowUpSection,YES,YES

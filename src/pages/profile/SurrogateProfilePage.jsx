@@ -1229,6 +1229,11 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
   const portraitPhoto = photos?.find(p => p.path?.includes('/portrait/'))
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
+  const formatCurrency = (value) => {
+    const digits = String(value || '').replace(/[^0-9]/g, '')
+    if (!digits) return ''
+    return `$${Number(digits).toLocaleString('en-US')}`
+  }
 
   const age = (() => {
     if (!about.dob) return null
@@ -1335,7 +1340,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
             <div className="flex items-baseline gap-2">
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#ed148c] font-bold">Base Fee</span>
-              <span className="text-2xl font-heading font-black text-[#283693] leading-none">{hopes.desiredCompensation || '—'}</span>
+              <span className="text-2xl font-heading font-black text-[#283693] leading-none">{formatCurrency(hopes.desiredCompensation) || '—'}</span>
             </div>
             {(() => {
               const isVerified = insuranceStatus === 'active_policy' || insuranceStatus === 'verified_open_enrollment' || insuranceStatus === 'complete'
@@ -1620,7 +1625,6 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVField label="When are you ready to begin?" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
             <PVField label="Ideal relationship with Intended Parent(s) post birth" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
             <PVField label="How many embryos are you in agreement to transfer at a time?" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
-            <PVField label="Surrogate base fee" value={hopes.desiredCompensation ? `$${Number(hopes.desiredCompensation).toLocaleString()}` : null} fp="hopesWishes.desiredCompensation" />
             <PVField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={hopes.deliveryRoomOthers} fp="hopesWishes.deliveryRoomOthers" />
             <PVField label="How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?" value={hopes.ipsCantAttend} fp="hopesWishes.ipsCantAttend" />
             <PVField label="Who will care for your child(ren) when you need to travel for surrogacy?" value={hopes.childCareTraveling} fp="hopesWishes.childCareTraveling" />
@@ -1759,11 +1763,6 @@ function FollowUpSection({ v, u, profile }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-stone-400 italic">These questions help us complete your screening. Please answer honestly.</p>
-
-      <YesNoField label="Do you have a Real ID?" value={val('realId')} onChange={set('realId')} />
-      <YesNoField label="Do you have a current/valid passport?" value={val('validPassport')} onChange={set('validPassport')} />
-      <YesNoField label="Do you (or anyone in your household) speak a language other than English?" value={val('otherLanguages')} onChange={set('otherLanguages')} />
-      {val('otherLanguages') === 'yes' && <TextField label="Which language(s)?" value={val('otherLanguagesDetails')} onChange={set('otherLanguagesDetails')} />}
 
       <YesNoField label="Are you currently breastfeeding/lactating?" value={val('breastfeeding')} onChange={set('breastfeeding')} />
       {val('breastfeeding') === 'yes' && <TextField label="When do you expect to stop?" value={val('breastfeedingStopDate')} onChange={set('breastfeedingStopDate')} />}

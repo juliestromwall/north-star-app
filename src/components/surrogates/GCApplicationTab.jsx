@@ -307,8 +307,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
         dob: saved.dob || '',
         ssn4: saved.ssn4 || '',
         religion: saved.religion || '',
-        realId: saved.realId ?? '',
-        validPassport: saved.validPassport ?? '',
         // Address
         street: saved.street || '',
         city: saved.city || profile.city || '',
@@ -361,8 +359,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
               <div className="space-y-1"><FieldLabel>Date of Birth</FieldLabel><Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} /></div>
               <div className="space-y-1"><FieldLabel>Last 4 of SSN</FieldLabel><Input value={form.ssn4} onChange={e => set('ssn4', e.target.value)} maxLength={4} /></div>
               <div className="space-y-1"><FieldLabel>Religion (if applicable)</FieldLabel><Input value={form.religion} onChange={e => set('religion', e.target.value)} /></div>
-              <div className="space-y-1"><FieldLabel>Real ID?</FieldLabel><YesNoButtons value={form.realId} onChange={v => set('realId', v)} /></div>
-              <div className="space-y-1"><FieldLabel>Valid Passport?</FieldLabel><YesNoButtons value={form.validPassport} onChange={v => set('validPassport', v)} /></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -371,8 +367,6 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
               <ReadField label="Date of Birth" value={stored.dob} />
               <ReadField label="Last 4 of SSN" value={stored.ssn4} />
               <ReadField label="Religion" value={stored.religion} />
-              <ReadField label="Real ID" value={boolDisplay(stored.realId)} />
-              <ReadField label="Valid Passport" value={boolDisplay(stored.validPassport)} />
             </div>
           )}
         </div>
