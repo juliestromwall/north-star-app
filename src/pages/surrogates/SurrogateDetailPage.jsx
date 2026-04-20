@@ -4040,7 +4040,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   // Textarea fields (multi-line text)
   const TEXTAREA_FIELDS = new Set([
-    'sameBioFatherDetails', 'pregnancyDetails', 'infectionAfterDetails', 'birthDefectDetails',
+    'sameBioFatherDetails', 'pregnancyDetails', 'infectionAfterDetails',
     'complicationsExplanation', 'infertilityTreatmentDetails', 'gynecologicalProblemsDetails',
     'pregnancyMedicationList', 'nearestNICU', 'cycleLengthDetails', 'breastfeedingStopDate', 'timeToConceive',
     'homeDuration', 'childrenFullTimeDetails', 'childrenSpecialNeedsDetails', 'placedForAdoptionDetails',
@@ -4392,22 +4392,6 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               onChange={e => updateItem(item.wasSurrogacy === 'yes' ? 'transfersUntilPregnant' : 'cyclesToConceive', e.target.value)}
               placeholder={item.wasSurrogacy === 'yes' ? 'e.g. 2' : 'e.g. 3'} />
           </div>
-          <div className="col-span-2 space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Birth defect or genetic abnormality?</span>
-            <SelectUI value={item.birthDefect || ''} onValueChange={v => updateItem('birthDefect', v)}>
-              <SelectTriggerUI className="h-8 text-xs bg-white w-48"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-              <SelectContentUI>
-                <SelectItemUI value="yes">Yes</SelectItemUI>
-                <SelectItemUI value="no">No</SelectItemUI>
-              </SelectContentUI>
-            </SelectUI>
-          </div>
-          {item.birthDefect === 'yes' && (
-            <div className="col-span-2 space-y-1">
-              <span className="text-[10px] text-gray-400 uppercase">Birth defect details</span>
-              <Textarea className="bg-white text-xs min-h-[50px]" rows={2} value={item.birthDefectDetails || ''} onChange={e => updateItem('birthDefectDetails', e.target.value)} />
-            </div>
-          )}
           <div className="col-span-2 space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Complications (check all that apply)</span>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-2 bg-white rounded border border-gray-200">

@@ -37,8 +37,6 @@ Pregnancy History,Birth Length,Text
 Pregnancy History,Delivery/Procedure Type,Select
 Pregnancy History,"Did you have an infection, fever or bleeding following this delivery/procedure?",Yes/No
 Pregnancy History,Please provide details (infection),Textarea
-Pregnancy History,Did this pregnancy result in a baby with a birth defect or genetic abnormality?,Yes/No
-Pregnancy History,Please provide details (birth defect),Textarea
 Pregnancy History,Pregnancy complications (check all that apply),Checkbox Group
 Pregnancy History,Please explain any checked complications,Textarea
 Pregnancy History,Additional details about this pregnancy,Textarea

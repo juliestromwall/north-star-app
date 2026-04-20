@@ -29,7 +29,6 @@ Pregnancy History,pregnancies[].complicationsList,"Complications List",text
 Pregnancy History,pregnancies[].gestationDays,Gestation Days,number
 Pregnancy History,pregnancies[].gestationWeeks,Gestation Weeks,number
 Pregnancy History,pregnancies[].singleOrMultiples,Single or Multiples,select
-Pregnancy History,pregnancies[].birthDefect,Birth Defect,yesno
 Pregnancy History,pregnancies[].infectionAfter,Infection After Birth,yesno
 Fertility Information,sameBioFather,"Is the biological father the same for all of your biological children?",yesno
 Fertility Information,sameBioFatherDetails,"Please explain",textarea

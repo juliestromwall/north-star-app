@@ -1163,7 +1163,6 @@ function PregnancyCard({ pregnancy: pr, index }) {
         {pr.wasSurrogacy === 'yes' && pr.transfersUntilPregnant && <PCRow label="How many embryo transfers did it take until pregnancy was achieved?" value={pr.transfersUntilPregnant} />}
         {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={`${pr.cyclesToConceive} months`} />}
         {(isLoss || isStillborn) && pr.deliveryType && <PCRow label="Delivery / Procedure Type" value={pr.deliveryType} />}
-        {pr.birthDefect && <PCRow label="Did this pregnancy result in a baby with a birth defect or genetic abnormality?" value={pr.birthDefect === 'yes' ? (pr.birthDefectDetails || 'Yes') : 'No'} />}
 
         {/* Complications */}
         {(complications.length > 0 || hasNoneSelected) && (
@@ -2103,10 +2102,6 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                   options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
               )}
 
-              <YesNoField label="Did this pregnancy result in a baby with a birth defect or genetic abnormality?" value={pregnancies[expandedIdx]?.birthDefect || ''} onChange={val => updatePregnancy(expandedIdx, 'birthDefect', val)} />
-              {pregnancies[expandedIdx]?.birthDefect === 'yes' && (
-                <TextAreaField label="Please provide details" value={pregnancies[expandedIdx]?.birthDefectDetails || ''} onChange={val => updatePregnancy(expandedIdx, 'birthDefectDetails', val)} rows={2} />
-              )}
               <CheckboxGroupField label="Pregnancy complications (check all that apply)" options={[
                 'C-Section', 'Gestational Diabetes', 'High Blood Pressure',
                 'IUGR (Intrauterine Growth Restriction)', 'Physician Ordered Bed Rest', 'Placenta Previa',
