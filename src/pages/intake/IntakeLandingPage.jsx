@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Clock, Lock, Shield } from 'lucide-react'
+import { useIframeHeightReporter } from '@/lib/embed'
 
 function parseDevice(ua) {
   if (/tablet|ipad/i.test(ua)) return 'Tablet'
@@ -69,6 +70,7 @@ const STATS = [
 export default function IntakeLandingPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  useIframeHeightReporter()
 
   useEffect(() => {
     captureTrackingParams(searchParams)

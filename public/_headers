@@ -1,0 +1,11 @@
+# Allow abcsurrogacy.com and its subdomains to embed the public intake flow.
+# Other origins (including unknown marketing partners) cannot frame these pages.
+
+/surrogatequiz
+  Content-Security-Policy: frame-ancestors 'self' https://abcsurrogacy.com https://*.abcsurrogacy.com
+
+/apply/surrogate
+  Content-Security-Policy: frame-ancestors 'self' https://abcsurrogacy.com https://*.abcsurrogacy.com
+
+/apply/confirmation
+  Content-Security-Policy: frame-ancestors 'self' https://abcsurrogacy.com https://*.abcsurrogacy.com

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ABC Quiz Embed Preview</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fafafa; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    .page { max-width: 900px; margin: 0 auto; padding: 32px 16px 64px; }
+    .banner { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .banner h1 { margin: 0 0 6px; font-size: 16px; letter-spacing: 0.01em; color: #283693; }
+    .banner p { margin: 0; font-size: 13px; color: #555; line-height: 1.5; }
+    .banner code { background: #f3f3f5; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+    .frame-wrap { background: #fff; border: 1px solid #eee; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    iframe#abc-quiz { width: 100%; border: 0; display: block; min-height: 900px; }
+    .meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font-size: 12px; color: #777; border-bottom: 1px solid #f0f0f0; }
+    .meta .host { font-family: ui-monospace, Menlo, monospace; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="banner">
+      <h1>Embed preview</h1>
+      <p>
+        This page simulates how <code>/surrogatequiz</code> would render on a partner site (e.g. abcsurrogacy.com/ppc-surrogacy-page/). The iframe auto-resizes via the <code>abc:height</code> postMessage. Close and reopen this tab to reset.
+      </p>
+    </div>
+    <div class="frame-wrap">
+      <div class="meta">
+        <span>Iframe: <span class="host" id="src-label">/surrogatequiz</span></span>
+        <span id="height-label">height: —</span>
+      </div>
+      <iframe id="abc-quiz" allow="clipboard-write" title="ABC Surrogacy qualification quiz"></iframe>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var frame = document.getElementById('abc-quiz');
+      var hl = document.getElementById('height-label');
+      var srcLabel = document.getElementById('src-label');
+      // Forward any tracking params (utm_*, fbclid, ttclid, gclid, msclkid, etc.)
+      // from the host page URL into the iframe so attribution works.
+      var base = '/surrogatequiz';
+      var params = window.location.search;
+      frame.src = base + params;
+      srcLabel.textContent = base + params;
+      window.addEventListener('message', function (e) {
+        if (!e.data) return;
+        if (e.data.type === 'abc:height') {
+          var h = Math.max(300, Number(e.data.height) || 0);
+          frame.style.height = (h + 24) + 'px';
+          hl.textContent = 'height: ' + h + 'px';
+        } else if (e.data.type === 'abc:scroll-to-top') {
+          // Scroll the partner page so the iframe is at the top of the viewport
+          frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { supabase } from '@/lib/supabase'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
+import { useIframeHeightReporter, scrollParentToIframeTop } from '@/lib/embed'
 
 const QUALIFIED_GC_STEPS = [
   { icon: Mail, label: 'Confirmation email sent', desc: 'Check your inbox for a welcome email with details about your application.' },
@@ -24,6 +25,8 @@ const CONFETTI_ICON_SRC = '/abc-favicon.png'
 export default function IntakeConfirmationPage() {
   const { state } = useLocation()
   const navigate  = useNavigate()
+  useIframeHeightReporter()
+  useEffect(() => { scrollParentToIframeTop() }, [])
   const [password, setPassword]               = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw, setShowPw]                   = useState(false)
@@ -271,7 +274,20 @@ export default function IntakeConfirmationPage() {
                 <p className="text-sm text-emerald-600 mt-1">You're all set. Head to your portal to complete your profile.</p>
               </div>
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => {
+                  // If embedded in a cross-origin iframe, break out so the session is re-established
+                  // at the top level (avoids Safari's third-party storage partitioning) and the portal
+                  // renders full-screen rather than inside the partner's page.
+                  if (typeof window !== 'undefined' && window.top !== window.self) {
+                    try {
+                      window.top.location.href = window.location.origin + '/dashboard'
+                      return
+                    } catch {
+                      // Top-navigation blocked — fall through to in-iframe navigation
+                    }
+                  }
+                  navigate('/dashboard')
+                }}
                 className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
                 style={{ backgroundColor: '#283693', color: '#fff' }}
               >

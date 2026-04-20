@@ -31,7 +31,14 @@ export default function AdminDashboard() {
   const showAllCases = isSuperAdmin || isMasterAdmin
   const [adminNotes, setAdminNotes] = useState([])
   const [expandedReadNotes, setExpandedReadNotes] = useState({})
-  const activeNotes = (adminNotes || []).filter(n => n.is_active)
+  // A note is visible on this dashboard only when it's active AND either targets everyone (null/empty)
+  // or explicitly lists the current user. Master admins still manage all notes via Settings.
+  const activeNotes = (adminNotes || []).filter(n => {
+    if (!n.is_active) return false
+    const targets = n.target_user_ids
+    if (!targets || targets.length === 0) return true
+    return !!currentUser?.id && targets.includes(currentUser.id)
+  })
   const unreadNotes = activeNotes.filter(n => {
     const dismissals = n.admin_note_dismissals || []
     return !dismissals.some(d => d.user_id === currentUser?.id)
