@@ -592,6 +592,76 @@ function ReferencesSection({ surrogate, answers, onSaved, search }) {
   )
 }
 
+function EmploymentSection({ surrogate, answers, profileData, onSaved, search }) {
+  const stored = answers?._employment || {}
+  const profileEmployment = profileData?.employment || {}
+  const fields = [
+    { key: 'currentlyEmployed', label: 'Are you currently employed?', type: 'yesno' },
+    { key: 'employmentIndustry', label: 'Please share details on the industry you work in.' },
+    { key: 'workHours', label: 'How many hours a week do you work, and what are your typical hours?' },
+    { key: 'occupation', label: 'What specifically is your occupation/position and your duties/responsibilities?' },
+    { key: 'lengthAtEmployer', label: 'How long have you worked for your current employer?' },
+    { key: 'hourlyRate', label: 'What is your earned hourly rate?' },
+    { key: 'weeklyIncome', label: 'What is your approximate weekly income?' },
+    { key: 'partnerOccupation', label: "What is your spouse/partner's occupation?" },
+    { key: 'partnerWeeklyIncome', label: "What is your spouse/partner's approximate weekly income?" },
+    { key: 'healthInsurance', label: 'Do you have health insurance coverage?', type: 'yesno' },
+    { key: 'insuranceType', label: 'Is it private/personal or through an employer?' },
+    { key: 'governmentAssistance', label: 'Do you receive any government assistance?', type: 'yesno' },
+    { key: 'governmentAssistanceDetails', label: 'Please explain government assistance' },
+  ]
+
+  const allLabels = fields.map(f => f.label.toLowerCase())
+  const hasMatch = search ? allLabels.some(l => l.includes(search)) || fields.some(f => String(stored[f.key] || profileEmployment[f.key] || '').toLowerCase().includes(search)) : true
+
+  function getVal(key) {
+    if (stored[key] !== undefined && stored[key] !== '') return stored[key]
+    return profileEmployment[key] || ''
+  }
+
+  const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
+    surrogate.id, answers, '_employment',
+    (saved) => {
+      const init = {}
+      for (const f of fields) init[f.key] = saved[f.key] !== undefined && saved[f.key] !== '' ? saved[f.key] : (profileEmployment[f.key] || '')
+      return init
+    }
+  )
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
+
+  if (!hasMatch) return null
+
+  return (
+    <Card className="rounded-2xl">
+      <EditHeader title="Employment Information" description="Work, income, insurance, and government assistance" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
+      <CardContent>
+        {editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {fields.map(f => (
+              <div key={f.key} className={`space-y-1 ${['occupation', 'employmentIndustry', 'governmentAssistanceDetails'].includes(f.key) ? 'sm:col-span-2' : ''}`}>
+                <FieldLabel>{f.label}</FieldLabel>
+                {f.type === 'yesno' ? (
+                  <YesNoButtons value={form[f.key]} onChange={v => set(f.key, v)} />
+                ) : ['occupation', 'employmentIndustry', 'governmentAssistanceDetails'].includes(f.key) ? (
+                  <Textarea value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} rows={2} />
+                ) : (
+                  <Input value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {fields.map(f => (
+              <ReadField key={f.key} label={f.label} value={f.type === 'yesno' ? boolDisplay(getVal(f.key)) : getVal(f.key)} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 
 // ── Photo ID Display (admin view) ──────────────────────
 function PhotoIdDisplay({ surrogateId }) {
@@ -1446,6 +1516,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     { id: 'quiz', label: 'Surrogate Quiz' },
     { id: 'personal', label: 'Personal Info' },
     { id: 'followup', label: 'Follow Up' },
+    { id: 'employment', label: 'Employment' },
     { id: 'references', label: 'References' },
     { id: 'clinic', label: 'Clinic & Hospital' },
     { id: 'payment', label: 'Payment Pref' },
@@ -1457,7 +1528,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
     <div className="space-y-4">
       {/* Quick Links + Search */}
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
           {APP_SECTIONS.map(sec => (
             <button
               key={sec.id}
@@ -1482,6 +1553,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <div id="app-sec-quiz"><QuizSection surrogate={surrogate} quizAnswers={quizAnswers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-personal"><ApplicationSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-followup"><FollowUpQuestionsSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
+      <div id="app-sec-employment"><EmploymentSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-references"><ReferencesSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-clinic"><ClinicHospitalSection surrogate={surrogate} answers={answers} profileData={profileData} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-payment"><PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>

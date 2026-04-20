@@ -313,7 +313,7 @@ export async function extractPdfText(file) {
 }
 
 export async function parseSurrogateApplicationPdfFiles(files) {
-  const parsed = { intakeAnswers: {}, application: {}, references: {}, profileData: {}, docs: [] }
+  const parsed = { intakeAnswers: {}, application: {}, employment: {}, references: {}, profileData: {}, docs: [] }
   for (const file of files) {
     const text = await extractPdfText(file)
     const section = detectSection(text)
@@ -331,6 +331,7 @@ export async function parseSurrogateApplicationPdfFiles(files) {
       merge(parsed.profileData.personal, result.profilePersonal)
     } else if (doc.section === 'employment') {
       const result = parseEmployment(doc.text)
+      merge(parsed.employment, result.employment)
       parsed.profileData.employment = parsed.profileData.employment || {}
       merge(parsed.profileData.employment, result.employment)
     } else if (doc.section === 'references') {
@@ -361,6 +362,7 @@ export function getSurrogateApplicationImportSummary(parsed) {
     sectionsDetected: parsed.docs.map(d => ({ file: d.file.name, section: d.section })),
     intakeKeys: Object.keys(parsed.intakeAnswers || {}),
     applicationKeys: Object.keys(parsed.application || {}),
+    employmentKeys: Object.keys(parsed.employment || {}),
     referenceKeys: Object.keys(parsed.references || {}),
     profileSections: Object.fromEntries(Object.entries(parsed.profileData || {}).map(([section, values]) => [section, Object.keys(values || {})])),
   }
@@ -388,6 +390,7 @@ export async function importSurrogateApplicationPdfFiles({ email, files, uploade
     ...(intake.answers || {}),
     ...parsed.intakeAnswers,
     _application: { ...(intake.answers?._application || {}), ...parsed.application },
+    _employment: { ...(intake.answers?._employment || {}), ...parsed.employment },
     _references: { ...(intake.answers?._references || {}), ...parsed.references },
   }
   const { error: updateError } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', intake.id)

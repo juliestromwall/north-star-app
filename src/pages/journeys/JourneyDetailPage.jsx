@@ -2165,7 +2165,7 @@ export default function JourneyDetailPage() {
         // Load GC quiz answers + profile + photos for Application/Profile tabs
         const gc = gcs.find(g => g.id === j.gc_case_id)
         if (gc?.email) {
-          fetchIntakeByEmail(gc.email).then(d => { if (d) setGcQuizAnswers(d.answers || {}) }).catch(() => {})
+          fetchIntakeByEmail(gc.email).then(answers => { if (answers) setGcQuizAnswers(answers) }).catch(() => {})
           fetchSurrogateProfileByEmail(gc.email).then(d => {
             if (d?.profile_data) setGcProfileData(d.profile_data)
             if (d?.status) setGcProfileStatus(d.status)
