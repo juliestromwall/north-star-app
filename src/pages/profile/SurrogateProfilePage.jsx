@@ -748,7 +748,7 @@ export default function SurrogateProfilePage() {
           assigned_to: 'intake@abcsurrogacy.com',
           due_date: today,
           priority: 'high',
-          status: 'pending',
+          status: 'open',
         }).catch(err => console.error('Task creation failed:', err))
       }
 
@@ -1091,6 +1091,8 @@ function PregnancyCard({ pregnancy: pr, index }) {
   const isLive = pr.outcome === 'Live Birth'
   const isLoss = pr.outcome === 'Miscarriage' || pr.outcome === 'Termination' || pr.outcome === 'Ectopic Pregnancy'
   const isStillborn = pr.outcome === 'Stillborn'
+  // Miscarriage/Termination: show only a compact header; fold additional details inline
+  const headerOnly = pr.outcome === 'Miscarriage' || pr.outcome === 'Termination'
 
   // Build baby summary for Live Birth
   const babies = []
@@ -1111,10 +1113,10 @@ function PregnancyCard({ pregnancy: pr, index }) {
     : 'bg-stone-100 text-stone-600'
 
   return (
-    <div className="bg-white rounded-xl border border-stone-200 overflow-hidden print:break-inside-avoid">
+    <div className={`bg-white rounded-xl border border-stone-200 overflow-hidden print:break-inside-avoid`}>
       {/* Header strip */}
-      <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-[#283693]/5 to-transparent border-b border-stone-100">
-        <div className="w-9 h-9 rounded-full bg-[#283693] text-white flex items-center justify-center font-heading font-black text-sm">P{num}</div>
+      <div className={`flex items-start gap-3 px-5 py-3 bg-gradient-to-r from-[#283693]/5 to-transparent ${headerOnly ? '' : 'border-b border-stone-100'}`}>
+        <div className="w-9 h-9 rounded-full bg-[#283693] text-white flex items-center justify-center font-heading font-black text-sm shrink-0">P{num}</div>
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             {pr.outcome && <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${outcomeColor}`}>{pr.outcome}</span>}
@@ -1135,6 +1137,25 @@ function PregnancyCard({ pregnancy: pr, index }) {
               return <span className="text-xs text-stone-400">· {dateStr}{ageStr}</span>
             })()}
           </div>
+          {headerOnly && (pr.deliveryType || pr.name || pr.complications) && (
+            <div className="mt-1.5 space-y-0.5">
+              {pr.deliveryType && (
+                <p className="text-[12px] text-stone-600 leading-relaxed">
+                  <span className="text-stone-400">Delivery Type: </span>{pr.deliveryType}
+                </p>
+              )}
+              {pr.name && (
+                <p className="text-[12px] text-stone-600 leading-relaxed">
+                  <span className="text-stone-400">Notes: </span>{pr.name}
+                </p>
+              )}
+              {pr.complications && (
+                <p className="text-[12px] text-stone-600 leading-relaxed">
+                  <span className="text-stone-400">Additional details about this pregnancy: </span>{pr.complications}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1159,6 +1180,7 @@ function PregnancyCard({ pregnancy: pr, index }) {
       )}
 
       {/* Detail rows using FULL question labels */}
+      {!headerOnly && (
       <div className="divide-y divide-stone-100">
         {pr.wasSurrogacy === 'yes' && pr.transfersUntilPregnant && <PCRow label="How many embryo transfers did it take until pregnancy was achieved?" value={pr.transfersUntilPregnant} />}
         {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={`${pr.cyclesToConceive} months`} />}
@@ -1191,6 +1213,7 @@ function PregnancyCard({ pregnancy: pr, index }) {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
@@ -1410,7 +1433,6 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
 
         {/* Pregnancy History */}
         <PVSection title="Pregnancy History" icon={Baby} number={2}>
-          <PVField label="Total Pregnancies" value={pregHistory.numberOfPregnancies} fp="pregnancyHistory.numberOfPregnancies" />
           {pregnancies.length > 0 && (
             <div className="mt-4 space-y-4">
               {pregnancies.map((pr, i) => (
@@ -2097,9 +2119,13 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                 )
               })()}
 
-              {(pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Stillborn' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' || pregnancies[expandedIdx]?.outcome === 'Termination') && (
+              {pregnancies[expandedIdx]?.outcome === 'Stillborn' && (
                 <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
-                  options={['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']} />
+                  options={['Vaginal', 'C-Section']} />
+              )}
+              {(pregnancies[expandedIdx]?.outcome === 'Miscarriage' || pregnancies[expandedIdx]?.outcome === 'Ectopic Pregnancy' || pregnancies[expandedIdx]?.outcome === 'Termination') && (
+                <SelectField label="Delivery/Procedure Type" value={pregnancies[expandedIdx]?.deliveryType || ''} onChange={val => updatePregnancy(expandedIdx, 'deliveryType', val)}
+                  options={['Natural', 'Medicated', 'Surgical']} />
               )}
 
               <CheckboxGroupField label="Pregnancy complications (check all that apply)" options={[

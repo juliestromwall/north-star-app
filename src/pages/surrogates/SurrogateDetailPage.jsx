@@ -4237,7 +4237,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               <SelectContentUI>
                 {(item.outcome === 'Live Birth' || item.outcome === 'Stillborn'
                   ? ['Vaginal', 'C-Section']
-                  : ['Natural', 'Surgical / D&C', 'Medical (medication)', 'C-Section', 'N/A']
+                  : ['Natural', 'Medicated', 'Surgical']
                 ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
               </SelectContentUI>
             </SelectUI>

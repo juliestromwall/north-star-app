@@ -1302,7 +1302,7 @@ export default function PortalApplicationPage() {
           case_type: 'surrogate',
           title: `Review Application - ${surName}`,
           description: 'Application submitted by applicant. Please review all sections.',
-          assigned_to: assignedTo || '',
+          assigned_to: assignedTo || 'intake@abcsurrogacy.com',
           due_date: new Date().toISOString().split('T')[0],
           priority: 'high',
           status: 'open',

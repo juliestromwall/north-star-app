@@ -237,7 +237,8 @@ const REQUIRED_FIELDS = {
   general: ['homeOwnership', 'homeDuration', 'childrenFullTime', 'planMoreChildren',
     'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
     'householdControlledSubstances', 'typicalDiet', 'exerciseFrequency',
-    'childrenSpecialNeeds', 'piercingsTattoos', 'criminalHistory', 'travelPlans', 'reliableVehicle'],
+    'childrenSpecialNeeds', 'piercingsTattoos', 'criminalHistory', 'travelPlans', 'reliableVehicle',
+    'divorcedRelationship'],
   health: ['mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
     'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
     'allergies', 'medicalConditions', 'surgeries', 'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
@@ -333,14 +334,42 @@ function countCompleted(data, sectionKey) {
     return { filled: allPregsComplete ? numPreg + 1 : completedPregs, total: numPreg + 1, complete: allPregsComplete }
   }
 
+  // Special: experienced surrogate — when previousSurrogate === 'yes', every journey must have all fields filled
+  if (sectionKey === 'experiencedSurrogate') {
+    const es = data?.experiencedSurrogate || {}
+    const prev = es.previousSurrogate
+    // Base: previousSurrogate must be answered
+    if (!prev) return { filled: 0, total: 1, complete: false }
+    if (prev !== 'yes') return { filled: 1, total: 1, complete: true }
+    const count = parseInt(es.surrogacyTimes) || 0
+    const journeys = Array.isArray(es.journeys) ? es.journeys : []
+    const perJourneyFields = ['reName', 'reLocation', 'reDates', 'outcome', 'embryoSourceList']
+    // previousSurrogate (1) + surrogacyTimes (1) + overallExperience (1) + each journey's 5 fields
+    const total = 3 + count * perJourneyFields.length
+    let filled = 1 // previousSurrogate
+    if (count > 0) filled++
+    if (es.overallExperience) filled++
+    for (let i = 0; i < count; i++) {
+      const j = journeys[i] || {}
+      for (const f of perJourneyFields) {
+        const val = j[f]
+        const isFilled = Array.isArray(val) ? val.length > 0 : (val !== undefined && val !== '' && val !== null)
+        if (isFilled) filled++
+      }
+    }
+    return { filled, total, complete: filled === total }
+  }
+
   // Build list of active required fields (base + visible conditionals)
   const conditionals = CONDITIONAL_REQUIRED[sectionKey] || {}
   const sectionData = data?.[sectionKey] || {}
   const activeFields = [...fields]
 
   // Add conditional fields only when their parent triggers them
+  // Rules may specify parentSection to reference a field in another section.
   for (const [field, rule] of Object.entries(conditionals)) {
-    const parentVal = sectionData[rule.parent]
+    const parentData = rule.parentSection ? (data?.[rule.parentSection] || {}) : sectionData
+    const parentVal = parentData[rule.parent]
     const matches = typeof rule.showWhen === 'function' ? rule.showWhen(parentVal) : parentVal === rule.showWhen
     if (matches) activeFields.push(field)
   }

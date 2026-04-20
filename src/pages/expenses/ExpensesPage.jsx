@@ -194,7 +194,7 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                       case_id: reconcileExp.journey_id,
                       case_type: 'journey',
                       title: `Upload receipt — ${formatCurrency(reconcileExp.amount)} to ${reconcileExp.paid_to || 'vendor'}`,
-                      assigned_to: reconcileJourney?.assignedTo || '',
+                      assigned_to: reconcileJourney?.assignedTo || 'julie@abcsurrogacy.com',
                       due_date: new Date().toISOString().split('T')[0],
                       priority: 'high',
                       status: 'open',
