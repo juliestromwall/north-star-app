@@ -37,6 +37,8 @@ function normalizeLabel(value) {
 
 function normalizeYesNo(value) {
   const v = String(value || '').trim().toLowerCase()
+  if (/^yes\b/.test(v)) return 'yes'
+  if (/^no\b|^nope\b/.test(v)) return 'no'
   if (['yes', 'y', 'true'].includes(v)) return 'yes'
   if (['no', 'n', 'false', 'none'].includes(v)) return 'no'
   return value || ''
@@ -76,6 +78,28 @@ function firstLine(value) {
   return String(value || '').split(/\n/).map(v => v.trim()).find(Boolean) || ''
 }
 
+function cleanBeValue(value) {
+  return cleanText(value)
+    .split(/\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => !/^Surrogate Flags$/i.test(line))
+    .filter(line => !/^Surrogate Follow Up Q&A$/i.test(line))
+    .join('\n')
+    .replace(/\bSc\s+hool\b/gi, 'School')
+    .replace(/\bGE\s+D\b/gi, 'GED')
+    .trim()
+}
+
+function beAnswer(value) {
+  return cleanBeValue(value)
+    .split(/\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .filter(line => !/^NOTE:/i.test(line))
+    .pop() || ''
+}
+
 function last4(value) {
   const digits = String(value || '').replace(/\D/g, '')
   return digits.slice(-4)
@@ -107,6 +131,8 @@ function cleanText(text) {
   return String(text || '')
     .replace(/\f/g, '\n')
     .replace(/Page \d+ of \d+/g, '')
+    .replace(/\bSurrogate\s+\d+\s*\|\s*Pg\s+\d+\s+of\s+\d+\b/gi, '')
+    .replace(/\bSurrogate Photos\b/gi, '')
     .replace(/\n{3,}/g, '\n\n')
 }
 
@@ -539,15 +565,21 @@ function parseBeSurrogacyProfile(text) {
     })
   }
 
-  const assistance = v['Do you currently receive any of the following types of support or assistance (select all that may apply)?'] || ''
-  const healthInsurance = v['Please tell us about the status of your health insurance/medical coverage.'] || ''
-  const intendedParents = v['What type of Intended Parent(s) are you open to working with during your surrogacy journey? Please select all that apply.'] || ''
-  const diseaseHistory = v['Have you ever been diagnosed with any of the following medical conditions (please select all that may apply)?'] || ''
-  const mentalConditions = v['Now Girl, no judgement at all BUT we want to make sure, have you ever been diagnosed with any of the following conditions (please select all that may apply)?'] || ''
+  const assistance = cleanBeValue(v['Do you currently receive any of the following types of support or assistance (select all that may apply)?'])
+  const assistanceItems = assistance.split(/\n/).map(line => line.trim()).filter(Boolean)
+  const assistanceDetails = /Medicaid/i.test(assistance)
+    ? 'Medicaid'
+    : assistanceItems.filter(line => !/none of the above/i.test(line)).join('\n')
+  const healthInsurance = cleanBeValue(v['Please tell us about the status of your health insurance/medical coverage.'])
+  const intendedParents = cleanBeValue(v['What type of Intended Parent(s) are you open to working with during your surrogacy journey? Please select all that apply.'])
+  const diseaseHistory = beAnswer(v['Have you ever been diagnosed with any of the following medical conditions (please select all that may apply)?'])
+  const mentalConditions = beAnswer(v['Now Girl, no judgement at all BUT we want to make sure, have you ever been diagnosed with any of the following conditions (please select all that may apply)?'])
   const spouseFullName = firstLine(v['If you have a spouse/partner, what is their full name?'])
   const spouseNames = spouseFullName.split(/\s+/)
   const hasSpouse = normalizeYesNo(v['Do you have a spouse or a partner?'])
-  const hasInsurance = /do not currently have health insurance/i.test(healthInsurance) ? 'no' : healthInsurance ? 'yes' : ''
+  const healthInsuranceText = healthInsurance.replace(/\s+/g, ' ')
+  const hasInsurance = /do not currently have health insurance/i.test(healthInsuranceText) ? 'no' : healthInsurance ? 'yes' : ''
+  const insuranceType = hasInsurance === 'no' ? 'No current health insurance' : healthInsurance
 
   const profileData = {
     personal: {
@@ -570,7 +602,7 @@ function parseBeSurrogacyProfile(text) {
       childrenFullTime: /live with me/i.test(v['Please describe your current household as it relates to raising your child(ren).'] || '') ? 'yes' : '',
       validLicense: normalizeYesNo(v['Do you have a valid driver\'s license?']),
       criminalHistory: v['Have you ever been arrested?'] === 'No' && v['Have you ever been convicted of any of the following (check all that may apply)'] === 'No' ? 'no' : '',
-      supportSystem: v['Do you have a solid support system to help you during a pregnancy, including childcare, transportation, emotional support, etc.'],
+      supportSystem: beAnswer(v['Do you have a solid support system to help you during a pregnancy, including childcare, transportation, emotional support, etc.']),
       smokeVape: normalizeYesNo(v['Have you ever used tobacco products, including vape products?']),
       alcoholDrugs: normalizeYesNo(v['Have you ever used any recreational drugs? (Yes, marijuana counts – remember it is not legal everywhere, yet!)']),
     },
@@ -583,20 +615,20 @@ function parseBeSurrogacyProfile(text) {
       breastfeedingStopDate: v['If you are currently breastfeeding, when do you plan on stopping?'],
       contraceptiveMethod: v['What is your current method of Birth Control?'],
       lastPeriod: normalizeDate(firstLine(v['What is the start date of your most recent menstrual cycle (LMP)?'])),
-      pregnancyDetails: v['Please indicate any of the following conditions you may be experiencing, or have experienced in the past (select all that may apply).'],
+      pregnancyDetails: beAnswer(v['Please indicate any of the following conditions you may be experiencing, or have experienced in the past (select all that may apply).']),
     },
     health: {
       lastPhysical: normalizeDate(firstLine(v['What is the date of your last Annual Physical exam?'])),
       lastPap: `${firstLine(v['What was the date of your most recent PAP smear screening?'])}${v['Did your last PAP smear results come back normal PAP?'] ? ` - Normal: ${firstLine(v['Did your last PAP smear results come back normal PAP?'])}` : ''}`,
-      openToVaccinations: v['Are you up to date on all other vaccinations (TDAP, MMR, Varicella)?'],
+      openToVaccinations: beAnswer(v['Are you up to date on all other vaccinations (TDAP, MMR, Varicella)?']),
       mentalHealthDiagnosis: mentalConditions && !/^none$/i.test(firstLine(mentalConditions)) ? 'yes' : 'no',
       mentalHealthDiagnosisDetails: mentalConditions,
       mentalHealthMedication: /n\/a|no/i.test(v['Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").'] || '') ? 'no' : 'yes',
-      mentalHealthMedicationDetails: v['Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").'],
+      mentalHealthMedicationDetails: beAnswer(v['Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").']),
       medicalConditions: diseaseHistory && !/^none$/i.test(firstLine(diseaseHistory)) ? 'yes' : 'no',
-      medicalConditionDetails: diseaseHistory,
-      prescriptionMeds: v['In the last 12 months, please list all prescription medication you are taking or have taken for medical conditions (or indicate "N/A").'],
-      currentMeds: v['In the last 12 months, please list all over-the-counter medication you are taking, or have taken, including supplements & vitamins (or indicate "N/A").'],
+      medicalConditionDetails: /^none$/i.test(diseaseHistory) ? '' : diseaseHistory,
+      prescriptionMeds: beAnswer(v['In the last 12 months, please list all prescription medication you are taking or have taken for medical conditions (or indicate "N/A").']),
+      currentMeds: beAnswer(v['In the last 12 months, please list all over-the-counter medication you are taking, or have taken, including supplements & vitamins (or indicate "N/A").']),
     },
     employment: {
       currentlyEmployed: normalizeYesNo(v['Are you currently employed?']),
@@ -606,12 +638,12 @@ function parseBeSurrogacyProfile(text) {
       hourlyRate,
       workHours: workStatus,
       healthInsurance: hasInsurance,
-      insuranceType: healthInsurance,
-      governmentAssistance: assistance && !/none of the above/i.test(assistance) ? 'yes' : 'no',
-      governmentAssistanceDetails: assistance,
+      insuranceType,
+      governmentAssistance: assistanceDetails ? 'yes' : 'no',
+      governmentAssistanceDetails: assistanceDetails,
     },
     academic: {
-      educationLevel: firstLine(v['What is the highest level of education you have completed?'] || header['Education:']),
+      educationLevel: firstLine(cleanBeValue(v['What is the highest level of education you have completed?'] || header['Education:'])),
     },
     hopesWishes: {
       idealIPs: intendedParents,
@@ -619,8 +651,8 @@ function parseBeSurrogacyProfile(text) {
       ipsOutsideUS: /international/i.test(intendedParents) ? 'yes' : '',
       willingTwins: normalizeYesNo(v['Are you willing to carry multiples (twins/triplets)?']),
       selectiveReduction: normalizeYesNo(v['Are you willing to have selective reduction (reduce triplets to twins or singleton pregnancy IF one of the babies shows signs of no viability)?']),
-      willingnessToTerminate: v['Are you willing to terminate the pregnancy at the Intended Parent(s) request due to huge genetic, chromosomal, or developmental abnormalities discovered that would affect the babies viability or compatibility with life?'],
-      conditionsWontTerminate: v['Will you agree to terminate the pregnancy due to diagnosis of Down Syndrome if requested by IPs or doctors?'],
+      willingnessToTerminate: beAnswer(v['Are you willing to terminate the pregnancy at the Intended Parent(s) request due to huge genetic, chromosomal, or developmental abnormalities discovered that would affect the babies viability or compatibility with life?']),
+      conditionsWontTerminate: beAnswer(v['Will you agree to terminate the pregnancy due to diagnosis of Down Syndrome if requested by IPs or doctors?']),
       cvsAmnio: normalizeYesNo(v['Are you willing to have an amniocentesis or CVS testing if requested by your doctor?']),
     },
   }
@@ -669,7 +701,7 @@ function parseBeSurrogacyProfile(text) {
       weightLbs: profileData.personal.weight,
       maritalStatus: profileData.personal.maritalStatus,
       healthyPregnancy: normalizeYesNo(v['Have you had at least one healthy, full term pregnancy and delivery?']),
-      hearAboutUs: v['How did you hear about us?'],
+      hearAboutUs: beAnswer(v['How did you hear about us?']),
       referralPartner: 'be_surrogacy',
     },
     profileData,
