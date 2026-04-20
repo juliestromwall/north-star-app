@@ -1609,16 +1609,30 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
 }
 
 // ── Expenses Tab ────────────────────────────────────────
+function emptyLineItem() {
+  return { id: Math.random().toString(36).slice(2), amount: '', description: '', file: null }
+}
+function sumLineItems(items) {
+  return (items || []).reduce((sum, li) => sum + (parseFloat(li.amount) || 0), 0)
+}
+function formatLineItemsAsNotes(items) {
+  return (items || [])
+    .filter(li => parseFloat(li.amount) || li.description)
+    .map(li => `$${(parseFloat(li.amount) || 0).toFixed(2)} — ${li.description || '(no description)'}`)
+    .join('\n')
+}
+
 function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
-  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-  const [tabExpenseFile, setTabExpenseFile] = useState(null)
+  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
   const { currentUser } = useRole()
   const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
+  const total = sumLineItems(lineItems)
 
   useEffect(() => {
     fetchJourneyExpenses(journeyId).then(data => {
@@ -1628,13 +1642,15 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
   }, [journeyId])
 
   async function handleAdd() {
-    if (!newExpense.amount) return
+    if (total <= 0) return
     setSaving(true)
     try {
+      // Upload each line item's file to case documents; use the first as the primary attachment_url
       let attachmentUrl = null
-      if (tabExpenseFile) {
-        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: tabExpenseFile, uploadedBy: currentUser?.name || 'Admin' })
-        attachmentUrl = doc?.public_url || null
+      for (const li of lineItems) {
+        if (!li.file) continue
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
       }
       // Resolve paid_to based on escrow/type
       let resolvedPaidTo = newExpense.paid_to || null
@@ -1658,7 +1674,7 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
       const created = await insertExpense({
         journey_id: journeyId,
         expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
-        amount: parseFloat(newExpense.amount) || 0,
+        amount: total,
         paid_to: resolvedPaidTo,
         cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
         submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
@@ -1667,7 +1683,7 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
         pay_via: payVia,
         pay_via_info: payViaInfo,
         needs_payment: needsPayment,
-        notes: newExpense.notes || null,
+        notes: formatLineItemsAsNotes(lineItems) || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
@@ -1678,7 +1694,7 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
           await createCaseTask({
             case_id: journeyId,
             case_type: 'journey',
-            title: `Pay Expense for ${journeyLabel || 'Journey'} — ${resolvedPaidTo} $${parseFloat(newExpense.amount).toFixed(2)}`,
+            title: `Pay Expense for ${journeyLabel || 'Journey'} — ${resolvedPaidTo} $${total.toFixed(2)}`,
             assigned_to: 'julie@abcsurrogacy.com',
             due_date: new Date().toISOString().split('T')[0],
             priority: 'high',
@@ -1688,8 +1704,8 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
           })
         } catch (err) { console.error('Failed to create task:', err) }
       }
-      setNewExpense({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-      setTabExpenseFile(null)
+      setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+      setLineItems([emptyLineItem()])
       setAddOpen(false)
     } catch (err) {
       console.error('Failed to add expense:', err)
@@ -1734,18 +1750,64 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
-                <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+              <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+            </div>
+            {/* Line items */}
+            <div className="space-y-2 border-t border-stone-100 pt-3">
+              <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Line Items</p>
+              {lineItems.map((li, idx) => (
+                <div key={li.id} className="rounded-lg border border-stone-200 p-2 space-y-1.5 bg-stone-50/40">
+                  <div className="grid grid-cols-[110px_1fr_auto] gap-2 items-start">
+                    <Input
+                      value={li.amount}
+                      onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, amount: (cents / 100).toFixed(2) } : x)) }}
+                      placeholder="0.00"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      value={li.description}
+                      onChange={e => setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, description: e.target.value } : x))}
+                      placeholder="Description"
+                      className="h-8 text-sm"
+                    />
+                    {lineItems.length > 1 && (
+                      <button
+                        onClick={() => setLineItems(prev => prev.filter((_, i) => i !== idx))}
+                        className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                        title="Remove line item"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                    {lineItems.length === 1 && <div className="w-7" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                      onChange={e => setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, file: e.target.files?.[0] || null } : x))}
+                      className="h-7 text-[10px] file:text-[10px]"
+                    />
+                  </div>
+                  {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
+                </div>
+              ))}
+              <button
+                onClick={() => setLineItems(prev => [...prev, emptyLineItem()])}
+                className="text-xs text-[#283693] hover:underline font-medium"
+                type="button"
+              >
+                + Add Line Item
+              </button>
+              <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
+                <span className="text-base font-bold text-[#283693]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             {/* Escrow Opened */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
               <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
               <div className="flex gap-1">
                 <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: true }))}
@@ -1813,18 +1875,9 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
                 )}
               </>
             )}
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
-              <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Attachment</label>
-              <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={e => setTabExpenseFile(e.target.files?.[0] || null)} className="h-9 text-xs" />
-              {tabExpenseFile && <p className="text-[10px] text-stone-400">{tabExpenseFile.name} ({(tabExpenseFile.size / 1024).toFixed(0)}KB)</p>}
-            </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setTabExpenseFile(null) }}>Cancel</Button>
-              <Button size="sm" onClick={handleAdd} disabled={saving || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1">
+              <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
+              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {saving ? 'Adding...' : 'Add Expense'}
               </Button>
@@ -2083,8 +2136,9 @@ export default function JourneyDetailPage() {
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
-  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-  const [expenseFile, setExpenseFile] = useState(null)
+  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [expenseLineItems, setExpenseLineItems] = useState([emptyLineItem()])
+  const expenseTotal = sumLineItems(expenseLineItems)
   const [savingExpense, setSavingExpense] = useState(false)
   const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
   const [gcFlip, setGcFlip] = useState({})
@@ -2300,18 +2354,64 @@ export default function JourneyDetailPage() {
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
-                <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                <Input value={newExpense.amount} onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setNewExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }} placeholder="0.00" className="h-9" />
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+              <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+            </div>
+            {/* Line items */}
+            <div className="space-y-2 border-t border-stone-100 pt-3">
+              <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Line Items</p>
+              {expenseLineItems.map((li, idx) => (
+                <div key={li.id} className="rounded-lg border border-stone-200 p-2 space-y-1.5 bg-stone-50/40">
+                  <div className="grid grid-cols-[110px_1fr_auto] gap-2 items-start">
+                    <Input
+                      value={li.amount}
+                      onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setExpenseLineItems(prev => prev.map((x, i) => i === idx ? { ...x, amount: (cents / 100).toFixed(2) } : x)) }}
+                      placeholder="0.00"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      value={li.description}
+                      onChange={e => setExpenseLineItems(prev => prev.map((x, i) => i === idx ? { ...x, description: e.target.value } : x))}
+                      placeholder="Description"
+                      className="h-8 text-sm"
+                    />
+                    {expenseLineItems.length > 1 && (
+                      <button
+                        onClick={() => setExpenseLineItems(prev => prev.filter((_, i) => i !== idx))}
+                        className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                        title="Remove line item"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                    {expenseLineItems.length === 1 && <div className="w-7" />}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                      onChange={e => setExpenseLineItems(prev => prev.map((x, i) => i === idx ? { ...x, file: e.target.files?.[0] || null } : x))}
+                      className="h-7 text-[10px] file:text-[10px]"
+                    />
+                  </div>
+                  {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
+                </div>
+              ))}
+              <button
+                onClick={() => setExpenseLineItems(prev => [...prev, emptyLineItem()])}
+                className="text-xs text-[#283693] hover:underline font-medium"
+                type="button"
+              >
+                + Add Line Item
+              </button>
+              <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
+                <span className="text-base font-bold text-[#283693]">${expenseTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
             {/* Escrow Opened */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
               <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
               <div className="flex gap-1">
                 <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: true }))}
@@ -2379,24 +2479,17 @@ export default function JourneyDetailPage() {
                 )}
               </>
             )}
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Notes</label>
-              <Input value={newExpense.notes} onChange={e => setNewExpense(p => ({ ...p, notes: e.target.value }))} placeholder="Description or details" className="h-9" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[11px] text-stone-400 font-medium">Attachment</label>
-              <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={e => setExpenseFile(e.target.files?.[0] || null)} className="h-9 text-xs" />
-              {expenseFile && <p className="text-[10px] text-stone-400">{expenseFile.name} ({(expenseFile.size / 1024).toFixed(0)}KB)</p>}
-            </div>
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseFile(null) }}>Cancel</Button>
-              <Button size="sm" disabled={savingExpense || !newExpense.amount} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
+              <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseLineItems([emptyLineItem()]) }}>Cancel</Button>
+              <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
                 setSavingExpense(true)
                 try {
+                  // Upload each line item's file; keep first URL as the primary attachment
                   let attachmentUrl = null
-                  if (expenseFile) {
-                    const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: expenseFile, uploadedBy: currentUser?.name || 'Admin' })
-                    attachmentUrl = doc?.public_url || null
+                  for (const li of expenseLineItems) {
+                    if (!li.file) continue
+                    const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+                    if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
                   }
                   // Resolve paid_to based on escrow/type
                   let resolvedPaidTo = newExpense.paid_to || null
@@ -2421,7 +2514,7 @@ export default function JourneyDetailPage() {
                   const created = await insertExpense({
                     journey_id: journey.id,
                     expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
-                    amount: parseFloat(newExpense.amount) || 0,
+                    amount: expenseTotal,
                     paid_to: resolvedPaidTo,
                     cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
                     submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
@@ -2430,7 +2523,7 @@ export default function JourneyDetailPage() {
                     pay_via: payVia,
                     pay_via_info: payViaInfo,
                     needs_payment: needsPayment,
-                    notes: newExpense.notes || null,
+                    notes: formatLineItemsAsNotes(expenseLineItems) || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
@@ -2440,7 +2533,7 @@ export default function JourneyDetailPage() {
                       await createCaseTask({
                         case_id: journey.id,
                         case_type: 'journey',
-                        title: `Pay Expense for ${journeyLabel} — ${resolvedPaidTo} $${parseFloat(newExpense.amount).toFixed(2)}`,
+                        title: `Pay Expense for ${journeyLabel} — ${resolvedPaidTo} $${expenseTotal.toFixed(2)}`,
                         assigned_to: 'julie@abcsurrogacy.com',
                         due_date: new Date().toISOString().split('T')[0],
                         priority: 'high',
@@ -2450,8 +2543,8 @@ export default function JourneyDetailPage() {
                       })
                     } catch (err) { console.error('Failed to create task:', err) }
                   }
-                  setNewExpense({ expense_date: new Date().toISOString().split('T')[0], amount: '', paid_to: '', notes: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-                  setExpenseFile(null)
+                  setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+                  setExpenseLineItems([emptyLineItem()])
                   setExpenseOpen(false)
                 } catch (err) {
                   console.error('Failed to add expense:', err)
