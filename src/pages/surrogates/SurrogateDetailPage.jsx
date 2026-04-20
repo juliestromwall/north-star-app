@@ -3697,6 +3697,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
 }
 
 export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileData, profileStatus, setProfileStatus, photos, setPhotos, portraitUrl, heightStr, quizAnswers, setQuizAnswers, insuranceStatus }) {
+  const { currentUser } = useRole()
   const [editingSection, setEditingSection] = useState(null)
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -3705,6 +3706,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   const [downloading, setDownloading] = useState(false)
   const [openAdminSections, setOpenAdminSections] = useState({})
   const [profileUserId, setProfileUserId] = useState(null)
+  const [sendBackOpen, setSendBackOpen] = useState(false)
+  const [sendBackMessage, setSendBackMessage] = useState('')
+  const [sendingBack, setSendingBack] = useState(false)
   const adminSaveTimer = useRef(null)
   const previewRef = useRef(null)
 
@@ -4567,20 +4571,73 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             variant="outline"
             className="gap-1.5 rounded-full border-violet-300 text-violet-700 hover:bg-violet-100 shrink-0"
             disabled={statusLoading}
-            onClick={async () => {
-              setStatusLoading(true)
-              try {
-                await updateSurrogateProfileStatus(surrogate.email, 'draft')
-                setProfileStatus('draft')
-              } catch (err) { console.error('Failed to send back:', err) }
-              setStatusLoading(false)
-            }}
+            onClick={() => { setSendBackMessage(''); setSendBackOpen(true) }}
           >
-            {statusLoading ? <Loader2 className="size-3.5 animate-spin" /> : <Pencil className="size-3.5" />}
+            <Pencil className="size-3.5" />
             Send Back for Editing
           </Button>
         </div>
       )}
+
+      <Dialog open={sendBackOpen} onOpenChange={setSendBackOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Profile Back for Editing</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-stone-500">
+              List what's missing — one item per line. {surrogate.name?.split(' ')[0] || 'The surrogate'} will receive an email and their profile will reopen for edits.
+            </p>
+            <Textarea
+              value={sendBackMessage}
+              onChange={e => setSendBackMessage(e.target.value)}
+              placeholder={'e.g.\n• Missing pregnancy details for P2\n• Need to fill out Hopes & Wishes section\n• Profile photo'}
+              rows={7}
+              className="text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSendBackOpen(false)} disabled={sendingBack}>Cancel</Button>
+              <Button
+                size="sm"
+                disabled={sendingBack || !sendBackMessage.trim()}
+                className="gap-1.5"
+                style={{ backgroundColor: '#283693', color: '#fff' }}
+                onClick={async () => {
+                  setSendingBack(true)
+                  try {
+                    const firstName = surrogate.name?.split(' ')[0] || 'there'
+                    const adminName = currentUser?.name || 'The ABC Team'
+                    const subject = '📝 Your Profile is Missing Some Information'
+                    const bodyHtml = `<p>Thank you so much ${firstName} for working on your profile. I see you submitted it for review! Woohoo!</p>
+<p>I am not seeing the following information:</p>
+<p>${sendBackMessage.trim().replace(/\n/g, '<br/>')}</p>
+<p>I have opened it for you to be able to make your edits. Once you are done, please submit again.</p>
+<p>Thank you so much,</p>
+<p>${adminName}</p>`
+                    // Send email first; if that fails, don't flip status so admin can retry
+                    if (surrogate.email && currentUser?.id) {
+                      const { sendEmail } = await import('@/lib/google')
+                      await sendEmail(currentUser.id, { to: surrogate.email, subject, body: bodyHtml })
+                    }
+                    await updateSurrogateProfileStatus(surrogate.email, 'draft')
+                    setProfileStatus('draft')
+                    setSendBackOpen(false)
+                  } catch (err) {
+                    console.error('Failed to send profile back:', err)
+                    alert('Failed to send: ' + (err.message || 'Unknown error'))
+                  } finally {
+                    setSendingBack(false)
+                  }
+                }}
+              >
+                {sendingBack ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                Send Email & Reopen
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {isApproved && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
           <ShieldCheck className="w-5 h-5 text-green-600 shrink-0" />
