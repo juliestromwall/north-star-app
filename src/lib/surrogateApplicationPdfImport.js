@@ -72,6 +72,10 @@ function parseHeight(value) {
   return { heightFt: match[1], heightIn: match[2] || '0' }
 }
 
+function firstLine(value) {
+  return String(value || '').split(/\n/).map(v => v.trim()).find(Boolean) || ''
+}
+
 function last4(value) {
   const digits = String(value || '').replace(/\D/g, '')
   return digits.slice(-4)
@@ -164,6 +168,7 @@ function extractByLabels(text, labels) {
 }
 
 function detectSection(text) {
+  if (/Surrogate Application - For Office Use Only/i.test(text) || /Admin Surrogate \d+ Profile - For Office Use Only/i.test(text)) return 'beProfile'
   if (/CLINIC & HOSPITAL FORM/i.test(text)) return 'clinicHospital'
   if (/CONFIDENTIAL PERSONAL INFORMATION/i.test(text)) return 'confidential'
   if (/Reference #1 - Family Member/i.test(text)) return 'references'
@@ -438,6 +443,239 @@ function parseClinicHospital(text) {
   }
 }
 
+function parseBeSurrogacyProfile(text) {
+  const labels = [
+    'Surrogate ID:', 'Name:', 'Phone #:', 'Email:', 'Age:', 'Height:', 'Weight:', 'Education:', 'Location:',
+    'Prescreen Submitted On:', 'Full Questionnaire Submitted On:',
+    "What's your first name?", "What's your last name?", 'What state do you live in?', 'What is your address?',
+    'What is your current living situation?', 'How long have you been at your current residence?',
+    'Phone number, so we can stay in touch?', 'Do you consent to receiving text messages from us?',
+    "What's your date of birth?", 'What is your height?', 'What is your weight?',
+    'What ethnicity/race best describes you (select all that may apply).', 'What is your citizenship status?',
+    'Have you had at least one healthy, full term pregnancy and delivery?', 'What is the highest level of education you have completed?',
+    'Are you currently employed?', 'Please provide the following information on your current employment.',
+    'Do you have a valid driver\'s license?', 'Are you registered with an American Indian Tribe?',
+    'Do you have a spouse or a partner?', 'If you have a spouse/partner, what is their full name?',
+    'If you have a spouse/partner, what is their date of birth?',
+    'If you have a spouse or partner, is your spouse/partner registered with an American Indian Tribe?',
+    'Will your spouse/partner pass a criminal background check?', 'Which statement best describes your current relationship status?',
+    'Will you pass a criminal background check?', 'Have you ever been arrested?',
+    'Have you ever been convicted of any of the following (check all that may apply)',
+    'Do you currently receive any of the following types of support or assistance (select all that may apply)?',
+    'Do you have a solid support system to help you during a pregnancy, including childcare, transportation, emotional support, etc.?',
+    'Do you live in a stable home environment and have a work schedule that would allow you to attend doctor\'s appointments during the week?',
+    'Please describe your current household as it relates to raising your child(ren).',
+    'Let’s hear it sister, how many healthy, live babies have you given birth to?',
+    'Please provide the following information on each live birth.',
+    'Have any of your pregnancies delivered at 36 weeks or less?', 'Have you ever been diagnosed with Gestational Diabetes?',
+    'Not to make you feel stressed, but were there any miscarriages or abortions?', 'Have you ever had a C-section?',
+    'What is the date of your most recent delivery?', 'Please indicate any of the following conditions you may be experiencing, or have experienced in the past (select all that may apply).',
+    'Are you currently breastfeeding?', 'If you are currently breastfeeding, when do you plan on stopping?',
+    'What is your current method of Birth Control?', 'What is the start date of your most recent menstrual cycle (LMP)?',
+    'What was the date of your most recent PAP smear screening?', 'Did your last PAP smear results come back normal PAP?',
+    'Have you ever applied to be a surrogate before?', 'What is the date of your last Annual Physical exam?',
+    'What is your status regarding the COVID vaccine?', 'Do you get your annual flu shot?',
+    'Are you up to date on all other vaccinations (TDAP, MMR, Varicella)?',
+    'Please tell us about the status of your health insurance/medical coverage.',
+    'Have you ever used any recreational drugs? (Yes, marijuana counts – remember it is not legal everywhere, yet!)',
+    'Have you ever used tobacco products, including vape products?', 'Do you consume alcohol?',
+    'Have you ever been diagnosed or treated for any mental health condition?',
+    'Now Girl, no judgement at all BUT we want to make sure, have you ever been diagnosed with any of the following conditions (please select all that may apply)?',
+    'Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").',
+    'Did you ever take any ANXIETY OR DEPRESSIONS medications WHILE you were pregnant?',
+    'Have you ever been diagnosed with any of the following medical conditions (please select all that may apply)?',
+    'In the last 12 months, please list all prescription medication you are taking or have taken for medical conditions (or indicate "N/A").',
+    'In the last 12 months, please list all over-the-counter medication you are taking, or have taken, including supplements & vitamins (or indicate "N/A").',
+    'Does your spouse/partner use tobacco products or recreational drugs?',
+    'What type of Intended Parent(s) are you open to working with during your surrogacy journey? Please select all that apply.',
+    'What areas of surrogacy do you have the most questions about, if any (please select all that may apply)?',
+    'If you pass the pre-screening process, how soon are you available to start a surrogacy journey?',
+    'Are you willing to carry multiples (twins/triplets)?',
+    'Are you willing to have selective reduction (reduce triplets to twins or singleton pregnancy IF one of the babies shows signs of no viability)?',
+    'Are you willing to terminate the pregnancy at the Intended Parent(s) request due to huge genetic, chromosomal, or developmental abnormalities discovered that would affect the babies viability or compatibility with life?',
+    'Will you agree to terminate the pregnancy due to diagnosis of Down Syndrome if requested by IPs or doctors?',
+    'Are you willing to terminate for severe, but surgically correctable, abnormalities (i.e. heart defects)?',
+    'Are you willing to have an amniocentesis or CVS testing if requested by your doctor?', 'How did you hear about us?',
+  ]
+  const v = extractByLabels(text, labels)
+  const header = extractByLabels(text, labels.slice(0, 11))
+  const height = parseHeight(firstLine(v['What is your height?'] || header['Height:']))
+  const location = firstLine(header['Location:'])
+  const [cityFromLocation, stateFromLocation] = location.includes(',') ? location.split(',').map(s => s.trim()) : ['', '']
+  const firstName = firstLine(v["What's your first name?"]) || firstLine(header['Name:']).split(/\s+/)[0] || ''
+  const lastName = firstLine(v["What's your last name?"]) || firstLine(header['Name:']).split(/\s+/).slice(1).join(' ') || ''
+  const addressLines = textLines(v['What is your address?'])
+  const address = { street: '', city: '', zipCode: '' }
+  for (const line of addressLines) {
+    const streetMatch = line.match(/^Street\s+(.+)/i)
+    const cityMatch = line.match(/^City\s+(.+)/i)
+    const zipMatch = line.match(/^Zip Code\s+(.+)/i)
+    if (streetMatch) address.street = streetMatch[1].trim()
+    if (cityMatch) address.city = cityMatch[1].trim()
+    if (zipMatch) address.zipCode = zipMatch[1].trim()
+  }
+  const employmentBlock = valueAfter(text, 'Please provide the following information on your current employment.', labels)
+  const employer = firstLine(valueAfter(employmentBlock, 'Employer name:', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+  const occupation = firstLine(valueAfter(employmentBlock, 'Occupation:', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+  const lengthAtEmployer = firstLine(valueAfter(employmentBlock, 'Length of employment:', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+  const hourlyRate = firstLine(valueAfter(employmentBlock, 'Annual income (salary or hourly):', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+  const workStatus = firstLine(valueAfter(employmentBlock, 'Work status (full or part-time):', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+  const jobResponsibilities = firstLine(valueAfter(employmentBlock, 'Please describe your job responsibilities:', ['Employer name:', 'Occupation:', 'Length of employment:', 'Annual income (salary or hourly):', 'Work status (full or part-time):', 'Please describe your job responsibilities:']))
+
+  const pregnancies = []
+  const lines = textLines(text)
+  for (const line of lines) {
+    const match = line.match(/^Child\s+\d+\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(\d+)\s+(Singleton|Twins|Multiples|Triplets\+?)\s+(.+?)(?:\s+My biological|\s+Surrogate|$)/i)
+    if (!match) continue
+    pregnancies.push({
+      outcome: 'Live Birth',
+      wasSurrogacy: /surrogate/i.test(line) ? 'yes' : 'no',
+      dob: normalizeDate(match[1]),
+      gestationWeeks: match[2],
+      gestationDays: '0',
+      singleOrMultiples: /singleton/i.test(match[3]) ? 'Single' : match[3],
+      weight: match[4].trim(),
+      deliveryType: v['Have you ever had a C-section?'] === 'Yes' ? 'C-Section' : 'Vaginal',
+    })
+  }
+
+  const assistance = v['Do you currently receive any of the following types of support or assistance (select all that may apply)?'] || ''
+  const healthInsurance = v['Please tell us about the status of your health insurance/medical coverage.'] || ''
+  const intendedParents = v['What type of Intended Parent(s) are you open to working with during your surrogacy journey? Please select all that apply.'] || ''
+  const diseaseHistory = v['Have you ever been diagnosed with any of the following medical conditions (please select all that may apply)?'] || ''
+  const mentalConditions = v['Now Girl, no judgement at all BUT we want to make sure, have you ever been diagnosed with any of the following conditions (please select all that may apply)?'] || ''
+  const spouseFullName = firstLine(v['If you have a spouse/partner, what is their full name?'])
+  const spouseNames = spouseFullName.split(/\s+/)
+  const hasSpouse = normalizeYesNo(v['Do you have a spouse or a partner?'])
+  const hasInsurance = /do not currently have health insurance/i.test(healthInsurance) ? 'no' : healthInsurance ? 'yes' : ''
+
+  const profileData = {
+    personal: {
+      firstName,
+      dob: normalizeDate(firstLine(v["What's your date of birth?"])),
+      city: address.city || cityFromLocation || 'Great falls',
+      state: normalizeState(firstLine(v['What state do you live in?']) || stateFromLocation),
+      heightFt: height.heightFt,
+      heightIn: height.heightIn,
+      weight: firstLine(v['What is your weight?'] || header['Weight:']).replace(/[^\d.]/g, ''),
+      bmi: firstLine(valueAfter(text, 'BMI', ['BMI', 'Age'])),
+      usCitizen: /us citizen/i.test(v['What is your citizenship status?'] || '') ? 'yes' : '',
+      maritalStatus: firstLine(v['Which statement best describes your current relationship status?']),
+      partnerName: spouseNames[0] || '',
+      partnerDob: normalizeDate(firstLine(v['If you have a spouse/partner, what is their date of birth?'])),
+    },
+    general: {
+      homeOwnership: firstLine(v['What is your current living situation?']),
+      homeDuration: firstLine(v['How long have you been at your current residence?']),
+      childrenFullTime: /live with me/i.test(v['Please describe your current household as it relates to raising your child(ren).'] || '') ? 'yes' : '',
+      validLicense: normalizeYesNo(v['Do you have a valid driver\'s license?']),
+      criminalHistory: v['Have you ever been arrested?'] === 'No' && v['Have you ever been convicted of any of the following (check all that may apply)'] === 'No' ? 'no' : '',
+      supportSystem: v['Do you have a solid support system to help you during a pregnancy, including childcare, transportation, emotional support, etc.'],
+      smokeVape: normalizeYesNo(v['Have you ever used tobacco products, including vape products?']),
+      alcoholDrugs: normalizeYesNo(v['Have you ever used any recreational drugs? (Yes, marijuana counts – remember it is not legal everywhere, yet!)']),
+    },
+    pregnancyHistory: {
+      numberOfPregnancies: pregnancies.length ? String(pregnancies.length) : firstLine(v['Let’s hear it sister, how many healthy, live babies have you given birth to?']),
+      pregnancies,
+    },
+    fertility: {
+      breastfeeding: normalizeYesNo(v['Are you currently breastfeeding?']),
+      breastfeedingStopDate: v['If you are currently breastfeeding, when do you plan on stopping?'],
+      contraceptiveMethod: v['What is your current method of Birth Control?'],
+      lastPeriod: normalizeDate(firstLine(v['What is the start date of your most recent menstrual cycle (LMP)?'])),
+      pregnancyDetails: v['Please indicate any of the following conditions you may be experiencing, or have experienced in the past (select all that may apply).'],
+    },
+    health: {
+      lastPhysical: normalizeDate(firstLine(v['What is the date of your last Annual Physical exam?'])),
+      lastPap: `${firstLine(v['What was the date of your most recent PAP smear screening?'])}${v['Did your last PAP smear results come back normal PAP?'] ? ` - Normal: ${firstLine(v['Did your last PAP smear results come back normal PAP?'])}` : ''}`,
+      openToVaccinations: v['Are you up to date on all other vaccinations (TDAP, MMR, Varicella)?'],
+      mentalHealthDiagnosis: mentalConditions && !/^none$/i.test(firstLine(mentalConditions)) ? 'yes' : 'no',
+      mentalHealthDiagnosisDetails: mentalConditions,
+      mentalHealthMedication: /n\/a|no/i.test(v['Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").'] || '') ? 'no' : 'yes',
+      mentalHealthMedicationDetails: v['Please list any prescription medication you are taking for mental health conditions (or indicate "N/A").'],
+      medicalConditions: diseaseHistory && !/^none$/i.test(firstLine(diseaseHistory)) ? 'yes' : 'no',
+      medicalConditionDetails: diseaseHistory,
+      prescriptionMeds: v['In the last 12 months, please list all prescription medication you are taking or have taken for medical conditions (or indicate "N/A").'],
+      currentMeds: v['In the last 12 months, please list all over-the-counter medication you are taking, or have taken, including supplements & vitamins (or indicate "N/A").'],
+    },
+    employment: {
+      currentlyEmployed: normalizeYesNo(v['Are you currently employed?']),
+      employmentIndustry: employer,
+      occupation: [occupation, jobResponsibilities].filter(Boolean).join(' - '),
+      lengthAtEmployer,
+      hourlyRate,
+      workHours: workStatus,
+      healthInsurance: hasInsurance,
+      insuranceType: healthInsurance,
+      governmentAssistance: assistance && !/none of the above/i.test(assistance) ? 'yes' : 'no',
+      governmentAssistanceDetails: assistance,
+    },
+    academic: {
+      educationLevel: firstLine(v['What is the highest level of education you have completed?'] || header['Education:']),
+    },
+    hopesWishes: {
+      idealIPs: intendedParents,
+      openSingleIP: /single/i.test(intendedParents) ? 'yes' : '',
+      ipsOutsideUS: /international/i.test(intendedParents) ? 'yes' : '',
+      willingTwins: normalizeYesNo(v['Are you willing to carry multiples (twins/triplets)?']),
+      selectiveReduction: normalizeYesNo(v['Are you willing to have selective reduction (reduce triplets to twins or singleton pregnancy IF one of the babies shows signs of no viability)?']),
+      willingnessToTerminate: v['Are you willing to terminate the pregnancy at the Intended Parent(s) request due to huge genetic, chromosomal, or developmental abnormalities discovered that would affect the babies viability or compatibility with life?'],
+      conditionsWontTerminate: v['Will you agree to terminate the pregnancy due to diagnosis of Down Syndrome if requested by IPs or doctors?'],
+      cvsAmnio: normalizeYesNo(v['Are you willing to have an amniocentesis or CVS testing if requested by your doctor?']),
+    },
+  }
+
+  return {
+    application: {
+      fullLegalName: [firstName, lastName].filter(Boolean).join(' '),
+      dob: profileData.personal.dob,
+      street: address.street,
+      city: profileData.personal.city,
+      state: profileData.personal.state,
+      zipCode: /^\d/.test(address.zipCode) ? address.zipCode : '',
+      hasSpouse,
+      spouseFirstName: spouseNames[0] || '',
+      spouseLastName: spouseNames.slice(1).join(' '),
+      spouseDob: profileData.personal.partnerDob,
+      hasInsurance,
+      insuranceProvider: '',
+      insurancePolicyNumber: '',
+      insuranceGroupNumber: '',
+      insurancePhone: '',
+    },
+    confidential: {
+      fullLegalName: [firstName, lastName].filter(Boolean).join(' '),
+      dob: profileData.personal.dob,
+      hasSpouse,
+      spouseFullName,
+      spouseEmail: '',
+      spousePhone: '',
+      hasInsurance,
+      insuranceProvider: '',
+      insurancePolicyNumber: '',
+      insuranceGroupNumber: '',
+      insurancePhone: '',
+    },
+    employment: profileData.employment,
+    intakeAnswers: {
+      firstName,
+      lastName,
+      email: firstLine(header['Email:']).toLowerCase(),
+      phone: normalizePhone(header['Phone #:'] || v['Phone number, so we can stay in touch?']),
+      dob: profileData.personal.dob,
+      state: profileData.personal.state,
+      heightFt: profileData.personal.heightFt,
+      heightIn: profileData.personal.heightIn,
+      weightLbs: profileData.personal.weight,
+      maritalStatus: profileData.personal.maritalStatus,
+      healthyPregnancy: normalizeYesNo(v['Have you had at least one healthy, full term pregnancy and delivery?']),
+      hearAboutUs: v['How did you hear about us?'],
+      referralPartner: 'be_surrogacy',
+    },
+    profileData,
+  }
+}
+
 function calculateBMI(personal) {
   const ft = parseInt(personal.heightFt) || 0
   const inch = parseInt(personal.heightIn) || 0
@@ -507,6 +745,16 @@ export async function parseSurrogateApplicationPdfFiles(files) {
     } else if (doc.section === 'clinicHospital') {
       const result = parseClinicHospital(doc.text)
       merge(parsed.clinicHospital, result._clinicHospital)
+    } else if (doc.section === 'beProfile') {
+      const result = parseBeSurrogacyProfile(doc.text)
+      merge(parsed.intakeAnswers, result.intakeAnswers)
+      merge(parsed.application, result.application)
+      merge(parsed.confidential, result.confidential)
+      merge(parsed.employment, result.employment)
+      for (const [section, values] of Object.entries(result.profileData || {})) {
+        parsed.profileData[section] = parsed.profileData[section] || {}
+        merge(parsed.profileData[section], values)
+      }
     }
   }
   if (parsed.intakeAnswers.heightFt || parsed.intakeAnswers.weightLbs) {
