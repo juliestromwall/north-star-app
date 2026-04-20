@@ -13,6 +13,7 @@ import { useRole } from '@/context/RoleContext'
 import { adminAddSurrogate, adminAddIP, insertCaseNote, uploadCaseDocument, fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { createMatchedJourney, updateMatchedJourney } from '@/lib/matching'
 import { MATCH_STAGES } from '@/lib/constants'
+import { getSurrogateApplicationImportSummary, importSurrogateApplicationPdfFiles, parseSurrogateApplicationPdfFiles } from '@/lib/surrogateApplicationPdfImport'
 import * as XLSX from 'xlsx'
 
 const US_STATES = [
@@ -313,6 +314,171 @@ function MatchSheetImport({ matchSheetFile, setMatchSheetFile, matchSheetData, s
         </div>
       )}
     </div>
+  )
+}
+
+function FieldPreview({ title, values }) {
+  const entries = Object.entries(values || {}).filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+  if (!entries.length) return null
+  return (
+    <div className="rounded-lg border border-stone-200 bg-white">
+      <div className="px-3 py-2 border-b border-stone-100">
+        <p className="text-xs font-semibold text-stone-600">{title}</p>
+      </div>
+      <div className="divide-y divide-stone-100">
+        {entries.map(([key, value]) => (
+          <div key={key} className="grid grid-cols-[150px_1fr] gap-3 px-3 py-2 text-xs">
+            <span className="font-medium text-stone-500">{key}</span>
+            <span className="text-stone-700 whitespace-pre-wrap break-words">{String(value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ExistingSurrogateApplicationPdfImport({ currentUser }) {
+  const [email, setEmail] = useState('')
+  const [pdfs, setPdfs] = useState([])
+  const [preview, setPreview] = useState(null)
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handlePreview() {
+    if (!email.trim()) {
+      setError('Enter the surrogate email first.')
+      return
+    }
+    if (!pdfs.length) {
+      setError('Drop at least one PDF.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const parsed = await parseSurrogateApplicationPdfFiles(pdfs)
+      setPreview({ parsed, summary: getSurrogateApplicationImportSummary(parsed) })
+    } catch (err) {
+      console.error('PDF preview failed:', err)
+      setError(err.message || 'Could not read those PDFs.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleImport() {
+    if (!email.trim()) {
+      setError('Enter the surrogate email first.')
+      return
+    }
+    if (!pdfs.length) {
+      setError('Drop at least one PDF.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const imported = await importSurrogateApplicationPdfFiles({
+        email,
+        files: pdfs,
+        uploadedBy: currentUser?.name || 'Application PDF Import',
+      })
+      setPreview({ parsed: imported.parsed, summary: imported.summary })
+      setResult(imported)
+    } catch (err) {
+      console.error('PDF import failed:', err)
+      setError(err.message || 'Import failed. Check console for details.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const summary = preview?.summary
+  const parsed = preview?.parsed
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Existing Surrogate Application PDFs</CardTitle>
+        <CardDescription>Enter the surrogate email, drop the old application PDFs, preview the mapped fields, then import.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <AlertCircle className="size-4 shrink-0" />
+            {error}
+          </div>
+        )}
+        {result && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <Check className="size-4 shrink-0" />
+            Imported into {result.intake.applicant_name || result.intake.applicant_email}. {result.uploaded.length} PDF{result.uploaded.length !== 1 ? 's' : ''} uploaded.
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Surrogate Email</label>
+              <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="surrogate@example.com" className="h-9" />
+            </div>
+            <FileDropZone
+              label="Application PDFs"
+              icon={FileText}
+              accept=".pdf"
+              multiple={true}
+              files={pdfs}
+              onFiles={(files) => { setPdfs(files); setPreview(null); setResult(null) }}
+              description="Intake, personal info, employment, references"
+            />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={handlePreview} disabled={loading || !pdfs.length} className="gap-2">
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                Preview
+              </Button>
+              <Button type="button" onClick={handleImport} disabled={loading || !pdfs.length || !email.trim()} className="gap-2" style={{ backgroundColor: '#283693' }}>
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                Import PDFs
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {!preview ? (
+              <div className="h-full min-h-48 rounded-lg border border-dashed border-stone-200 flex items-center justify-center text-sm text-stone-400 px-4 text-center">
+                Preview shows the detected forms and mapped answers before anything is saved.
+              </div>
+            ) : (
+              <>
+                <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                  <p className="text-xs font-semibold text-stone-600 mb-2">Detected PDFs</p>
+                  <div className="space-y-1">
+                    {summary.sectionsDetected.map(item => (
+                      <div key={item.file} className="flex items-center gap-2 text-xs text-stone-600">
+                        <FileText className="size-3 text-stone-400" />
+                        <span className="truncate">{item.file}</span>
+                        <span className="ml-auto rounded-full bg-white border border-stone-200 px-2 py-0.5 capitalize">{item.section}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                  <FieldPreview title="Intake Answers" values={parsed.intakeAnswers} />
+                  <FieldPreview title="Application Details" values={parsed.application} />
+                  <FieldPreview title="References" values={parsed.references} />
+                  {Object.entries(parsed.profileData || {}).map(([section, values]) => (
+                    <FieldPreview key={section} title={`Profile: ${section}`} values={values} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -780,6 +946,8 @@ export default function CaseImportPage() {
           {error}
         </div>
       )}
+
+      <ExistingSurrogateApplicationPdfImport currentUser={currentUser} />
 
       {/* Basic Info */}
       <Card>
