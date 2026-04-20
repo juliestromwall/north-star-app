@@ -65,9 +65,32 @@ function normalizeState(value) {
 
 function parseHeight(value) {
   const raw = String(value || '').trim()
+  const feetInches = raw.match(/(\d+)\s*feet?\s*(\d+)?\s*inches?/i)
+  if (feetInches) return { heightFt: feetInches[1], heightIn: feetInches[2] || '0' }
   const match = raw.match(/(\d+)\s*(?:['"'.]|,)?\s*(\d+)?/)
   if (!match) return {}
   return { heightFt: match[1], heightIn: match[2] || '0' }
+}
+
+function last4(value) {
+  const digits = String(value || '').replace(/\D/g, '')
+  return digits.slice(-4)
+}
+
+function parseCityStateZip(value) {
+  const raw = String(value || '').trim()
+  const match = raw.match(/^(.+?),\s*([A-Za-z]{2}|[A-Za-z ]+)\s+(\d{5}(?:-\d{4})?)$/)
+  if (!match) return { city: '', state: '', zipCode: '' }
+  return { city: match[1].trim(), state: normalizeState(match[2]), zipCode: match[3] }
+}
+
+function sliceBetween(text, startPattern, endPattern) {
+  const start = text.search(startPattern)
+  if (start === -1) return ''
+  const rest = text.slice(start)
+  if (!endPattern) return rest
+  const end = rest.slice(1).search(endPattern)
+  return end === -1 ? rest : rest.slice(0, end + 1)
 }
 
 function merge(target, source) {
@@ -141,6 +164,8 @@ function extractByLabels(text, labels) {
 }
 
 function detectSection(text) {
+  if (/CLINIC & HOSPITAL FORM/i.test(text)) return 'clinicHospital'
+  if (/CONFIDENTIAL PERSONAL INFORMATION/i.test(text)) return 'confidential'
   if (/Reference #1 - Family Member/i.test(text)) return 'references'
   if (/Employment Information/i.test(text)) return 'employment'
   if (/Basic Information/i.test(text)) return 'application'
@@ -222,6 +247,82 @@ function parseApplication(text, intakeAnswers) {
   }
 }
 
+function parseConfidential(text) {
+  const labels = [
+    'Full Legal Name:', 'Maiden Last Name, if different:', 'Street Address:', 'City, State, Zip Code:',
+    'How long have you lived at current address?', 'Own/ Rent:', 'Home Phone:',
+    'Can confidential messages be left on your home answering machine?', 'Work Phone:',
+    'May I speak freely when leaving messages at work?', 'Mobile Phone Number:',
+    'Can confidential messages be left on your mobile phone voicemail?', 'E-mail address:',
+    'Is your e-mail address confidential?', 'Social Security Number:', 'US Citizen:',
+    'Driver’s License Number:', 'Driver’s License State:', 'Driver’s License Expiration Date:',
+    'Your Age:', 'Date of Birth:', 'Height:', 'Weight:', 'Place of Birth:', 'Religion:',
+  ]
+  const v = extractByLabels(text, labels)
+  const spouseBlock = sliceBetween(text, /Spouse's Information/i, /Emergency Contact/i)
+  const spouseLabels = [
+    'Full legal name:', 'Length of relationship:', 'US Citizen:', 'Driver’s License Number:',
+    'Driver’s License State:', 'Driver’s License Expiration Date:', 'Date of Birth:', 'Home Phone:',
+    'Work Phone:', 'Cell Phone:', 'Social Security Number:',
+  ]
+  const spouse = extractByLabels(spouseBlock, spouseLabels)
+  const emergencyBlock = sliceBetween(text, /Emergency Contact/i, /Acknowledgement/i)
+  const emergency = extractByLabels(emergencyBlock, ['Name:', 'Home Phone:', 'Cell Phone:'])
+  const cityStateZip = parseCityStateZip(v['City, State, Zip Code:'])
+  const height = parseHeight(v.Height)
+  const hasSpouseRaw = valueAfter(text, 'Do you have a spouse / partner?', ['Do you have a spouse / partner?', "Spouse's Information"])
+  const spouseNames = String(spouse['Full legal name:'] || '').trim().split(/\s+/)
+
+  return {
+    _application: {
+      fullLegalName: v['Full Legal Name:'],
+      maidenName: v['Maiden Last Name, if different:'],
+      dob: normalizeDate(v['Date of Birth:']),
+      ssn4: last4(v['Social Security Number:']),
+      religion: v['Religion:'],
+      street: v['Street Address:'],
+      city: cityStateZip.city,
+      state: cityStateZip.state,
+      zipCode: cityStateZip.zipCode,
+      hasSpouse: hasSpouseRaw ? 'yes' : '',
+      spouseFirstName: spouseNames[0] || '',
+      spouseLastName: spouseNames.slice(1).join(' '),
+      spouseDob: normalizeDate(spouse['Date of Birth:']),
+      spousePhone: normalizePhone(spouse['Cell Phone:'] || spouse['Home Phone:']),
+      emergencyName: emergency['Name:'],
+      emergencyPhone: normalizePhone(emergency['Cell Phone:'] || emergency['Home Phone:']),
+      emergencyRelationship: emergency['Name:'] ? 'Emergency contact' : '',
+    },
+    _confidential: {
+      fullLegalName: v['Full Legal Name:'],
+      maidenName: v['Maiden Last Name, if different:'],
+      dob: normalizeDate(v['Date of Birth:']),
+      ssn4: last4(v['Social Security Number:']),
+      driversLicense: v['Driver’s License Number:'],
+      religion: v['Religion:'],
+      hasInsurance: '',
+      hasSpouse: hasSpouseRaw ? 'yes' : '',
+      spouseFullName: spouse['Full legal name:'],
+      spousePhone: normalizePhone(spouse['Cell Phone:'] || spouse['Home Phone:']),
+      emergencyName: emergency['Name:'],
+      emergencyPhone: normalizePhone(emergency['Cell Phone:'] || emergency['Home Phone:']),
+      emergencyRelationship: emergency['Name:'] ? 'Emergency contact' : '',
+    },
+    profilePersonal: {
+      dob: normalizeDate(v['Date of Birth:']),
+      city: cityStateZip.city,
+      state: cityStateZip.state,
+      heightFt: height.heightFt,
+      heightIn: height.heightIn,
+      weight: v.Weight?.replace(/[^\d.]/g, ''),
+      usCitizen: normalizeYesNo(v['US Citizen:']),
+      partnerName: spouse['Full legal name:']?.split(/\s+/)[0] || '',
+      partnerDob: normalizeDate(spouse['Date of Birth:']),
+      relationshipLength: spouse['Length of relationship:'],
+    },
+  }
+}
+
 function parseEmployment(text) {
   const labels = [
     'Are you currently employed?',
@@ -277,6 +378,64 @@ function parseReferences(text) {
   return { _references: refs }
 }
 
+function parseClinicHospital(text) {
+  const labels = [
+    'Name & location of your current OB/GYN or primary care physician',
+    'Are you an experienced surrogate?',
+  ]
+  const v = extractByLabels(text, labels)
+  const pregnancies = []
+  const lines = textLines(text)
+  const deliveryIndexes = lines
+    .map((line, idx) => ({ line, idx }))
+    .filter(item => /^Delivery #\d+ Birth Date:/i.test(item.line))
+
+  const pregLabels = ['OB Clinic name:', 'Address:', 'Hospital name:', 'Hospital Address:', 'Notes:', 'Add another delivery?']
+  for (let i = 0; i < deliveryIndexes.length; i++) {
+    const current = deliveryIndexes[i]
+    const next = deliveryIndexes[i + 1]?.idx ?? lines.length
+    const blockLines = lines.slice(current.idx, next)
+    const nextLabelIdx = blockLines.findIndex((line, idx) => idx > 0 && pregLabels.some(label => normalizeLabel(line) === normalizeLabel(label)))
+    const date = normalizeWhitespace(blockLines.slice(1, nextLabelIdx === -1 ? 2 : nextLabelIdx).join('\n'))
+    const block = blockLines.join('\n')
+    const values = extractByLabels(block, pregLabels)
+    pregnancies.push({
+      date: normalizeDate(date),
+      outcome: 'Live Birth',
+      receivedPrenatalCare: 'yes',
+      wasSurrogacy: '',
+      obClinicName: values['OB Clinic name:'],
+      obDoctorName: '',
+      obPhone: '',
+      obAddress: values['Address:'],
+      hospitalName: values['Hospital name:'],
+      hospitalPhone: '',
+      hospitalAddress: values['Hospital Address:'],
+      sawMFM: '',
+      mfmClinicName: '',
+      mfmDoctorName: '',
+      mfmPhone: '',
+      mfmAddress: '',
+      wasIVF: '',
+      ivfClinicName: '',
+      ivfDoctorName: '',
+      ivfPhone: '',
+      ivfAddress: '',
+    })
+  }
+
+  return {
+    _clinicHospital: {
+      currentOBGYN: v['Name & location of your current OB/GYN or primary care physician'],
+      currentOBPhone: '',
+      currentOBAddress: '',
+      experiencedSurrogate: normalizeYesNo(v['Are you an experienced surrogate?']),
+      numberOfPregnancies: pregnancies.length ? String(pregnancies.length) : '',
+      pregnancies,
+    },
+  }
+}
+
 function calculateBMI(personal) {
   const ft = parseInt(personal.heightFt) || 0
   const inch = parseInt(personal.heightIn) || 0
@@ -313,7 +472,7 @@ export async function extractPdfText(file) {
 }
 
 export async function parseSurrogateApplicationPdfFiles(files) {
-  const parsed = { intakeAnswers: {}, application: {}, employment: {}, references: {}, profileData: {}, docs: [] }
+  const parsed = { intakeAnswers: {}, application: {}, confidential: {}, employment: {}, references: {}, clinicHospital: {}, profileData: {}, docs: [] }
   for (const file of files) {
     const text = await extractPdfText(file)
     const section = detectSection(text)
@@ -329,6 +488,12 @@ export async function parseSurrogateApplicationPdfFiles(files) {
       merge(parsed.application, result._application)
       parsed.profileData.personal = parsed.profileData.personal || {}
       merge(parsed.profileData.personal, result.profilePersonal)
+    } else if (doc.section === 'confidential') {
+      const result = parseConfidential(doc.text)
+      merge(parsed.application, result._application)
+      merge(parsed.confidential, result._confidential)
+      parsed.profileData.personal = parsed.profileData.personal || {}
+      merge(parsed.profileData.personal, result.profilePersonal)
     } else if (doc.section === 'employment') {
       const result = parseEmployment(doc.text)
       merge(parsed.employment, result.employment)
@@ -337,6 +502,9 @@ export async function parseSurrogateApplicationPdfFiles(files) {
     } else if (doc.section === 'references') {
       const result = parseReferences(doc.text)
       merge(parsed.references, result._references)
+    } else if (doc.section === 'clinicHospital') {
+      const result = parseClinicHospital(doc.text)
+      merge(parsed.clinicHospital, result._clinicHospital)
     }
   }
   if (parsed.intakeAnswers.heightFt || parsed.intakeAnswers.weightLbs) {
@@ -362,8 +530,10 @@ export function getSurrogateApplicationImportSummary(parsed) {
     sectionsDetected: parsed.docs.map(d => ({ file: d.file.name, section: d.section })),
     intakeKeys: Object.keys(parsed.intakeAnswers || {}),
     applicationKeys: Object.keys(parsed.application || {}),
+    confidentialKeys: Object.keys(parsed.confidential || {}),
     employmentKeys: Object.keys(parsed.employment || {}),
     referenceKeys: Object.keys(parsed.references || {}),
+    clinicHospitalKeys: Object.keys(parsed.clinicHospital || {}),
     profileSections: Object.fromEntries(Object.entries(parsed.profileData || {}).map(([section, values]) => [section, Object.keys(values || {})])),
   }
 }
@@ -390,8 +560,10 @@ export async function importSurrogateApplicationPdfFiles({ email, files, uploade
     ...(intake.answers || {}),
     ...parsed.intakeAnswers,
     _application: { ...(intake.answers?._application || {}), ...parsed.application },
+    _confidential: { ...(intake.answers?._confidential || {}), ...parsed.confidential },
     _employment: { ...(intake.answers?._employment || {}), ...parsed.employment },
     _references: { ...(intake.answers?._references || {}), ...parsed.references },
+    _clinicHospital: { ...(intake.answers?._clinicHospital || {}), ...parsed.clinicHospital },
   }
   const { error: updateError } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', intake.id)
   if (updateError) throw updateError

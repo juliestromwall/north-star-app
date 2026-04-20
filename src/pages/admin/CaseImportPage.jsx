@@ -468,8 +468,10 @@ function ExistingSurrogateApplicationPdfImport({ currentUser }) {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                   <FieldPreview title="Intake Answers" values={parsed.intakeAnswers} />
                   <FieldPreview title="Application Details" values={parsed.application} />
+                  <FieldPreview title="Confidential Details" values={parsed.confidential} />
                   <FieldPreview title="Employment" values={parsed.employment} />
                   <FieldPreview title="References" values={parsed.references} />
+                  <FieldPreview title="Clinic & Hospital" values={parsed.clinicHospital} />
                   {Object.entries(parsed.profileData || {}).map(([section, values]) => (
                     <FieldPreview key={section} title={`Profile: ${section}`} values={values} />
                   ))}
