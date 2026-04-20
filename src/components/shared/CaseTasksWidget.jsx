@@ -146,7 +146,7 @@ export default function CaseTasksWidget({ caseId, caseType, caseName }) {
 }
 
 function TaskRow({ task, onStatusChange, onDelete, onUpdate }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(!!task.description)
   const [editing, setEditing] = useState(false)
   const [desc, setDesc] = useState(task.description || '')
 

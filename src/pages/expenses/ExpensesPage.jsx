@@ -26,6 +26,9 @@ function getAdminName(email) {
   return user ? user.name : email.split('@')[0]
 }
 
+// Journeys excluded from the expense tracker (legacy/test data — expenses still live on the journey page itself)
+const EXCLUDED_JOURNEY_IDS = new Set([19])
+
 const COLUMNS = [
   { key: 'expense_date', label: 'Date', format: 'date' },
   { key: 'amount', label: 'Amount', format: 'currency' },
@@ -431,7 +434,7 @@ export default function ExpensesPage() {
           }
         }
 
-        setExpenses(allExpenses)
+        setExpenses(allExpenses.filter(e => !EXCLUDED_JOURNEY_IDS.has(Number(e.journey_id))))
         setJourneyMap(jMap)
       } catch (err) {
         console.error('Failed to load expenses:', err)

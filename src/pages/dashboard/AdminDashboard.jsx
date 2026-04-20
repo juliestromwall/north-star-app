@@ -56,7 +56,10 @@ export default function AdminDashboard() {
   const [completedTasks, setCompletedTasks] = useState([])
   const [completedOpen, setCompletedOpen] = useState(false)
   const [futureOpen, setFutureOpen] = useState(false)
-  const [expandedTaskId, setExpandedTaskId] = useState(null)
+  // Per-task explicit expand/collapse overrides. Undefined = use default (expanded if task has a note).
+  const [taskExpansions, setTaskExpansions] = useState({})
+  const getTaskExpanded = (t) => taskExpansions[t.id] !== undefined ? taskExpansions[t.id] : !!t.description
+  const toggleTaskExpanded = (t) => setTaskExpansions(prev => ({ ...prev, [t.id]: !getTaskExpanded(t) }))
   const [caseView, setCaseView] = useState('grid')
   const [caseSearch, setCaseSearch] = useState('')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
@@ -588,7 +591,7 @@ export default function AdminDashboard() {
                     if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
                   }
                 }
-                const isExpanded = expandedTaskId === task.id
+                const isExpanded = getTaskExpanded(task)
                 const isComplete = task.status === 'complete'
                 return (
                   <div key={task.id} className={`rounded-lg border ${isComplete ? 'border-stone-100 opacity-60' : task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
@@ -602,7 +605,7 @@ export default function AdminDashboard() {
                           <Circle className="size-4" />
                         </button>
                       )}
-                      <button onClick={() => setExpandedTaskId(isExpanded ? null : task.id)} className="flex-1 min-w-0 text-left">
+                      <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
                         <p className={`text-sm truncate ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>{task.title}</p>
                         <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
                           {task.due_date && <span>{formatDate(task.due_date)}</span>}
@@ -687,14 +690,14 @@ export default function AdminDashboard() {
                     if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
                   }
                 }
-                const isExpanded = expandedTaskId === task.id
+                const isExpanded = getTaskExpanded(task)
                 return (
                   <div key={task.id} className="rounded-lg border border-stone-100 opacity-70 hover:opacity-100 transition-opacity">
                     <div className="px-3 py-2 flex items-center gap-2">
                       <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
                         <CheckCircle2 className="size-4" />
                       </button>
-                      <button onClick={() => setExpandedTaskId(isExpanded ? null : task.id)} className="flex-1 min-w-0 text-left">
+                      <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
                         <p className="text-sm text-stone-500 line-through truncate">{task.title}</p>
                         <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
                           {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}

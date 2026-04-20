@@ -174,7 +174,7 @@ function SidebarContent({ sections, pendingCount, showBabiesBorn, unreadSMS, unr
 
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const { currentRole, currentUser, isAuthenticated } = useRole()
-  const sections = getNavForRole(currentRole)
+  const sections = getNavForRole(currentRole, currentUser?.email)
   const showBabiesBorn = [ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN].includes(currentRole)
   const [pendingCount, setPendingCount] = useState(0)
   const [unreadSMS, setUnreadSMS] = useState(0)

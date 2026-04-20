@@ -183,6 +183,7 @@ const nav = [
         icon: Upload,
         path: '/case-import',
         roles: [ROLES.SUPER_ADMIN],
+        emails: ['intake@abcsurrogacy.com'],
       },
       {
         label: 'System',
@@ -224,7 +225,13 @@ const nav = [
   },
 ]
 
-export function getNavForRole(role) {
+export function getNavForRole(role, email) {
+  const emailLc = (email || '').trim().toLowerCase()
+  const itemAllowed = (item) => {
+    if (item.roles === 'all') return true
+    if (Array.isArray(item.emails) && emailLc && item.emails.some(e => e.toLowerCase() === emailLc)) return true
+    return item.roles.includes(role)
+  }
   // Marketing role only sees the Marketing section
   if (role === ROLES.MARKETING) {
     return nav
@@ -240,14 +247,13 @@ export function getNavForRole(role) {
     .filter(section => {
       if (!section.roles) return true
       if (section.roles === 'all') return true
-      return section.roles.includes(role)
+      if (section.roles.includes(role)) return true
+      // Keep section visible if any item inside is allowed for this email
+      return section.items.some(item => Array.isArray(item.emails) && emailLc && item.emails.some(e => e.toLowerCase() === emailLc))
     })
     .map(section => ({
       ...section,
-      items: section.items.filter(item => {
-        if (item.roles === 'all') return true
-        return item.roles.includes(role)
-      }),
+      items: section.items.filter(itemAllowed),
     }))
     .filter(section => section.items.length > 0)
 }
