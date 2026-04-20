@@ -318,8 +318,32 @@ function MatchSheetImport({ matchSheetFile, setMatchSheetFile, matchSheetData, s
 }
 
 function FieldPreview({ title, values }) {
-  const entries = Object.entries(values || {}).filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+  const entries = Object.entries(values || {}).filter(([, value]) => {
+    if (value === undefined || value === null) return false
+    if (Array.isArray(value)) return value.length > 0
+    return String(value).trim() !== ''
+  })
   if (!entries.length) return null
+
+  function renderPreviewValue(value) {
+    if (Array.isArray(value)) {
+      return value.map((item, index) => (
+        <div key={index} className="mb-2 last:mb-0 rounded-md bg-stone-50 border border-stone-100 p-2">
+          <p className="font-semibold text-stone-500 mb-1">#{index + 1}</p>
+          {Object.entries(item || {}).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([k, v]) => (
+            <p key={k}><span className="text-stone-400">{k}: </span>{String(v)}</p>
+          ))}
+        </div>
+      ))
+    }
+    if (typeof value === 'object') {
+      return Object.entries(value || {}).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '').map(([k, v]) => (
+        <p key={k}><span className="text-stone-400">{k}: </span>{String(v)}</p>
+      ))
+    }
+    return String(value)
+  }
+
   return (
     <div className="rounded-lg border border-stone-200 bg-white">
       <div className="px-3 py-2 border-b border-stone-100">
@@ -329,7 +353,7 @@ function FieldPreview({ title, values }) {
         {entries.map(([key, value]) => (
           <div key={key} className="grid grid-cols-[150px_1fr] gap-3 px-3 py-2 text-xs">
             <span className="font-medium text-stone-500">{key}</span>
-            <span className="text-stone-700 whitespace-pre-wrap break-words">{String(value)}</span>
+            <span className="text-stone-700 whitespace-pre-wrap break-words">{renderPreviewValue(value)}</span>
           </div>
         ))}
       </div>

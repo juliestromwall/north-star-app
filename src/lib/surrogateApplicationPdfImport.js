@@ -257,6 +257,7 @@ function parseConfidential(text) {
     'Is your e-mail address confidential?', 'Social Security Number:', 'US Citizen:',
     'Driver’s License Number:', 'Driver’s License State:', 'Driver’s License Expiration Date:',
     'Your Age:', 'Date of Birth:', 'Height:', 'Weight:', 'Place of Birth:', 'Religion:',
+    'Medical Insurance',
   ]
   const v = extractByLabels(text, labels)
   const spouseBlock = sliceBetween(text, /Spouse's Information/i, /Emergency Contact/i)
@@ -382,6 +383,7 @@ function parseClinicHospital(text) {
   const labels = [
     'Name & location of your current OB/GYN or primary care physician',
     'Are you an experienced surrogate?',
+    'For each pregnancy, please provide the names and locations for each clinic and hospital you received care.',
   ]
   const v = extractByLabels(text, labels)
   const pregnancies = []
