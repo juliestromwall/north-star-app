@@ -34,19 +34,26 @@ function fileSizeLabel(bytes) {
 }
 
 const EMAIL_TAGS = [
+  { value: 'check_in', label: 'Check In', color: 'bg-sky-100 text-sky-700' },
+  { value: 'clinic', label: 'Clinic', color: 'bg-lime-100 text-lime-700' },
   { value: 'escrow', label: 'Escrow', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'expense', label: 'Expense', color: 'bg-amber-100 text-amber-700' },
-  { value: 'medical_records', label: 'Medical Records', color: 'bg-purple-100 text-purple-700' },
-  { value: 'monitoring', label: 'Monitoring', color: 'bg-blue-100 text-blue-700' },
-  { value: 'ob', label: 'OB', color: 'bg-pink-100 text-pink-700' },
+  { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
+  { value: 'gifts', label: 'Gifts', color: 'bg-fuchsia-100 text-fuchsia-700' },
   { value: 'hospital', label: 'Hospital', color: 'bg-red-100 text-red-700' },
+  { value: 'insurance', label: 'Insurance', color: 'bg-teal-100 text-teal-700' },
   { value: 'legal', label: 'Legal', color: 'bg-indigo-100 text-indigo-700' },
   { value: 'matching', label: 'Matching', color: 'bg-violet-100 text-violet-700' },
-  { value: 'task', label: 'Task', color: 'bg-orange-100 text-orange-700' },
-  { value: 'insurance', label: 'Insurance', color: 'bg-teal-100 text-teal-700' },
-  { value: 'transfer', label: 'Transfer', color: 'bg-rose-100 text-rose-700' },
+  { value: 'medical_records', label: 'Medical Records', color: 'bg-purple-100 text-purple-700' },
+  { value: 'monitoring', label: 'Monitoring Clinic', color: 'bg-blue-100 text-blue-700' },
+  { value: 'ob', label: 'OB', color: 'bg-pink-100 text-pink-700' },
+  { value: 'other', label: 'Other', color: 'bg-slate-100 text-slate-700' },
+  { value: 'payment_requests', label: 'Payment Requests', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'postpartum', label: 'Postpartum', color: 'bg-green-100 text-green-700' },
   { value: 'psych', label: 'Psych', color: 'bg-cyan-100 text-cyan-700' },
-  { value: 'general', label: 'General', color: 'bg-stone-100 text-stone-700' },
+  { value: 'task', label: 'Task', color: 'bg-orange-100 text-orange-700' },
+  { value: 'transfer', label: 'Transfer', color: 'bg-rose-100 text-rose-700' },
+  { value: 'travel', label: 'Travel', color: 'bg-gray-100 text-gray-700' },
 ]
 
 export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, additionalCaseIds = [], caseManagerName, contactEmails = [], onUnreadCount }) {
@@ -633,7 +640,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               <p className="text-[10px] text-stone-400">From: {logDialog?.from}</p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold text-stone-400 uppercase">Tag (optional)</p>
+              <p className="text-[10px] font-semibold text-stone-400 uppercase">Tag <span className="text-rose-500">*</span></p>
               <div className="flex flex-wrap gap-1.5">
                 {EMAIL_TAGS.map(t => (
                   <button key={t.value} onClick={() => setLogTag(logTag === t.value ? '' : t.value)}
@@ -649,9 +656,9 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 <span className="text-sm text-stone-700 flex items-center gap-1.5"><Lock className="size-3.5 text-purple-600" /> Mark as Private</span>
               </label>
             )}
-            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={logging} onClick={handleConfirmLog}>
+            <Button size="sm" className="w-full gap-1.5" style={{ backgroundColor: '#283693' }} disabled={logging || !logTag} onClick={handleConfirmLog}>
               {logging ? <Loader2 className="size-3 animate-spin" /> : <LinkIcon className="size-3" />}
-              {logging ? 'Logging...' : 'Log to Case'}
+              {logging ? 'Logging...' : !logTag ? 'Select a tag to continue' : 'Log to Case'}
             </Button>
           </div>
         </DialogContent>
