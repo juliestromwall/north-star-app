@@ -12,13 +12,27 @@ function formatDate(d) {
     ' ' + new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function JourneyUpdateButton({ caseId, caseType = 'journey', caseName, compact = false }) {
+export default function JourneyUpdateButton({ caseId, caseType = 'journey', caseName, compact = false, hideIfEmpty = false }) {
   const { currentUser } = useRole()
   const [open, setOpen] = useState(false)
   const [updates, setUpdates] = useState([])
+  const [loadedOnMount, setLoadedOnMount] = useState(!hideIfEmpty)
   const [newUpdate, setNewUpdate] = useState('')
   const [saving, setSaving] = useState(false)
   const configKey = `journey_updates_${caseType}_${caseId}`
+
+  // Pre-load on mount when the caller wants to hide on empty, so we can decide whether to render.
+  useEffect(() => {
+    if (!hideIfEmpty || !caseId) return
+    getAppConfig(configKey).then(saved => {
+      const arr = Array.isArray(saved)
+        ? saved
+        : typeof saved === 'string'
+          ? (() => { try { const p = JSON.parse(saved); return Array.isArray(p) ? p : [] } catch { return [] } })()
+          : []
+      setUpdates(arr)
+    }).catch(() => {}).finally(() => setLoadedOnMount(true))
+  }, [hideIfEmpty, configKey])
 
   useEffect(() => {
     if (!open || !caseId) return
@@ -50,6 +64,8 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
   }
 
   if (compact) {
+    // When hideIfEmpty is on, wait for the mount-load to finish and skip rendering if there are no updates
+    if (hideIfEmpty && (!loadedOnMount || updates.length === 0)) return null
     return (
       <>
         <button onClick={() => setOpen(true)} title="Journey Updates" className="text-stone-400 hover:text-[#283693] transition-colors">

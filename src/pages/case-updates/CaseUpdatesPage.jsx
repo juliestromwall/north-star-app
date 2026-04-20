@@ -458,6 +458,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             stage={stageLabel} status={ss.status}
                             checklistSteps={sheetRows} tracking={allTracking[s.id]}
                           />
+                          <JourneyUpdateButton caseId={s.id} caseType="surrogate" caseName={s.name} compact hideIfEmpty />
                           <AppointmentsBadge caseId={s.id} caseType="surrogate" caseName={s.name} />
                         </div>
                       </th>
@@ -748,6 +749,7 @@ function IPUpdatesSheet({ ips }) {
                             stage={stageLabel} status={ss.status}
                             checklistSteps={sheetRows} tracking={allTracking[ip.id]}
                           />
+                          <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} compact hideIfEmpty />
                           <AppointmentsBadge caseId={ip.id} caseType="ip" caseName={ip.names} />
                         </div>
                       </th>
@@ -981,7 +983,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             journeyData={j.journey_data}
                             iconOnly
                           />
-                          <JourneyUpdateButton caseId={j.id} caseType="journey" caseName={journeyName} compact />
+                          <JourneyUpdateButton caseId={j.id} caseType="journey" caseName={journeyName} compact hideIfEmpty />
                           <ProviderInfoButton journeyData={j.journey_data || {}} gcInsurance={null} compact />
                           <AppointmentsBadge caseId={j.id} caseType="journey" caseName={journeyName} />
                         </div>
