@@ -276,17 +276,28 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
                     </td>
                   ))}
                   <td className="px-3 py-3 text-center border-l border-stone-100 dark:border-[#2a2a38]">
-                    {exp.attachment_url ? (
-                      <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
-                        <Eye className="size-4" />
-                      </button>
-                    ) : (() => {
-                      const gmailMatch = (exp.notes || '').match(/Gmail ID: ([a-zA-Z0-9]+)/)
-                      if (gmailMatch && onViewEmail) {
-                        return <button onClick={() => onViewEmail(gmailMatch[1])} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View linked email"><Mail className="size-4" /></button>
-                      }
-                      return <span className="text-stone-200">—</span>
-                    })()}
+                    <div className="inline-flex items-center gap-2 justify-center">
+                      {exp.attachment_url ? (
+                        <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
+                          <Eye className="size-4" />
+                        </button>
+                      ) : (() => {
+                        const gmailMatch = (exp.notes || '').match(/Gmail ID: ([a-zA-Z0-9]+)/)
+                        if (gmailMatch && onViewEmail) {
+                          return <button onClick={() => onViewEmail(gmailMatch[1])} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View linked email"><Mail className="size-4" /></button>
+                        }
+                        return <span className="text-stone-200">—</span>
+                      })()}
+                      {j.gcPayPrefScreenshotUrl && (
+                        <button
+                          onClick={() => setPreviewUrl(j.gcPayPrefScreenshotUrl)}
+                          className="text-pink-400 hover:text-pink-600 transition-colors"
+                          title="View surrogate's payment preference screenshot"
+                        >
+                          <Eye className="size-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   {showReconcile && (
                     <td className="px-4 py-3 text-center">
@@ -349,10 +360,33 @@ function ExpensesToPayTable({ expenses, journeyMap, onMarkPaid, onReconcile, cur
                 <td className="px-4 py-3 border-r border-stone-100">{exp.paid_to || '—'}</td>
                 <td className="px-4 py-3 border-r border-stone-100">
                   {exp.pay_via ? (
-                    <div>
-                      <span className="font-medium capitalize">{exp.pay_via}</span>
-                      {exp.pay_via_info && <p className="text-[10px] text-stone-400">{exp.pay_via_info}</p>}
+                    <div className="flex items-center gap-1.5">
+                      <div>
+                        <span className="font-medium capitalize">{exp.pay_via}</span>
+                        {exp.pay_via_info && <p className="text-[10px] text-stone-400">{exp.pay_via_info}</p>}
+                      </div>
+                      {j.gcPayPrefScreenshotUrl && (
+                        <a
+                          href={j.gcPayPrefScreenshotUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-pink-400 hover:text-pink-600 transition-colors shrink-0"
+                          title="View surrogate's payment preference screenshot"
+                        >
+                          <Eye className="size-4" />
+                        </a>
+                      )}
                     </div>
+                  ) : j.gcPayPrefScreenshotUrl ? (
+                    <a
+                      href={j.gcPayPrefScreenshotUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-pink-400 hover:text-pink-600 transition-colors inline-flex items-center gap-1"
+                      title="View surrogate's payment preference screenshot"
+                    >
+                      <Eye className="size-4" />
+                    </a>
                   ) : '—'}
                 </td>
                 <td className="px-4 py-3 border-r border-stone-100">{exp.notes || '—'}</td>
@@ -423,6 +457,13 @@ export default function ExpensesPage() {
         const ipMap = {}
         for (const ip of ips) ipMap[ip.id] = ip.names
 
+        // Build surrogate payment-preference lookup by case id
+        const gcPayPrefMap = {}
+        for (const s of surrogates) {
+          const pref = s.answers?._paymentPreference
+          if (pref?.screenshotUrl) gcPayPrefMap[s.id] = pref.screenshotUrl
+        }
+
         const jMap = {}
         for (const j of journeys) {
           const gcName = gcMap[j.gc_case_id] || 'GC'
@@ -431,6 +472,7 @@ export default function ExpensesPage() {
             caseName: `${ipName} + ${gcName}`,
             caseManager: getAdminName(j.assigned_to),
             assignedTo: j.assigned_to,
+            gcPayPrefScreenshotUrl: gcPayPrefMap[j.gc_case_id] || null,
           }
         }
 
