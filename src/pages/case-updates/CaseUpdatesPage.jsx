@@ -17,6 +17,9 @@ import { formatDate } from '@/lib/utils'
 import StageBadge from '@/components/shared/StageBadge'
 import { getAppConfig, setAppConfig } from '@/lib/db'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
+import { journeyManagerOutlineColor, JOURNEY_MANAGERS } from '@/pages/journeys/MatchedJourneysPage'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getAdminStaff } from '@/data/mock/users'
 
 function calcGestationalAge(dueDate) {
   if (!dueDate) return null
@@ -806,6 +809,8 @@ function IPUpdatesSheet({ ips }) {
 // ── Journey Updates ──
 function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   const [stageFilter, setStageFilter] = useState('journey-oversight')
+  const [caseManagerFilter, setCaseManagerFilter] = useState('all')
+  const [journeyManagerFilter, setJourneyManagerFilter] = useState('all')
   const [logPopover, setLogPopover] = useState(null)
   // Journey checklist steps are stored under 'gc' type with journey stage IDs
   const allJourneySteps = useMemo(() => getAllChecklistSteps('gc').filter(s => s.stageId === stageFilter), [stageFilter])
@@ -824,8 +829,20 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
   }, [journeys])
 
   const filtered = useMemo(() => {
-    return journeys.filter(j => j.stage === stageFilter)
-  }, [journeys, stageFilter])
+    return journeys.filter(j => {
+      if (j.stage !== stageFilter) return false
+      if (caseManagerFilter !== 'all') {
+        const matchCm = caseManagerFilter === '_unassigned' ? !j.assigned_to : j.assigned_to === caseManagerFilter
+        if (!matchCm) return false
+      }
+      if (journeyManagerFilter !== 'all') {
+        const jm = j.journey_data?.journeyManager || ''
+        const matchJm = journeyManagerFilter === '_unassigned' ? !jm : jm === journeyManagerFilter
+        if (!matchJm) return false
+      }
+      return true
+    })
+  }, [journeys, stageFilter, caseManagerFilter, journeyManagerFilter])
 
   // Load checklist tracking from journey_data for each journey
   const allTracking = useMemo(() => {
@@ -842,7 +859,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
         <h3 className="text-lg font-semibold text-[#283693] mb-1">Matched Journey Updates</h3>
         <p className="text-sm text-stone-400 mb-4">Click a stage to filter journeys</p>
 
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-4">
           {JOURNEY_STAGE_IDS.map(stageId => {
             const stage = SURROGATE_STAGES.find(s => s.id === stageId)
             if (!stage) return null
@@ -856,6 +873,39 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
               </button>
             )
           })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Case Manager</span>
+            <Select value={caseManagerFilter} onValueChange={setCaseManagerFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="_unassigned">Unassigned</SelectItem>
+                {getAdminStaff().map(a => <SelectItem key={a.email} value={a.email}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Journey Manager</span>
+            <Select value={journeyManagerFilter} onValueChange={setJourneyManagerFilter}>
+              <SelectTrigger className="h-8 w-[180px] text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="_unassigned">Unassigned</SelectItem>
+                {JOURNEY_MANAGERS.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {(caseManagerFilter !== 'all' || journeyManagerFilter !== 'all') && (
+            <button
+              className="text-[10px] text-stone-400 hover:text-[#283693] underline"
+              onClick={() => { setCaseManagerFilter('all'); setJourneyManagerFilter('all') }}
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {filtered.length === 0 ? (
@@ -877,8 +927,13 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                     const jd = j.journey_data || {}
                     const gestAge = calcGestationalAge(jd.dueDate)
                     const isPregnant = jd.pregnant === 'yes'
+                    const outline = journeyManagerOutlineColor(j)
                     return (
-                      <th key={j.id} className="text-center px-3 py-3 min-w-[180px] border-r border-stone-100 last:border-r-0">
+                      <th
+                        key={j.id}
+                        className="text-center px-3 py-3 min-w-[180px] border-r border-stone-100 last:border-r-0"
+                        style={outline ? { borderTop: `4px solid ${outline}` } : undefined}
+                      >
                         <Link to={`/journeys/${j.id}`} className="hover:opacity-80 block text-center">
                           <p className="text-xs font-semibold text-[#283693]">{ip?.names || 'IP'}</p>
                           <p className="text-[10px] text-stone-800 font-normal leading-tight">+</p>
@@ -1037,7 +1092,7 @@ function CellStatus({ status, lastEntry }) {
 function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
   const manualHistory = [...history].reverse().filter(e => !e.auto)
   return (
-    <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden text-left" onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between px-3 py-2 bg-stone-50 border-b border-stone-100">
         <p className="text-[11px] font-semibold text-stone-600">Details</p>
         <button onClick={onClose} className="p-0.5 text-stone-300 hover:text-stone-500 rounded"><X className="size-3.5" /></button>
@@ -1050,11 +1105,21 @@ function LogPopover({ history, onClose, subtasks = [], tracking = {} }) {
             {subtasks.map(sub => {
               const subData = tracking[sub.id] || {}
               const subStatus = subData.status || 'not_started'
+              const subHistory = (subData.history || []).filter(e => !e.auto && e.note)
+              const latestNote = subHistory.length > 0 ? subHistory[subHistory.length - 1] : null
               return (
-                <div key={sub.id} className="flex items-center gap-2 text-xs py-0.5">
-                  {subStatus === 'complete' ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : subStatus === 'na' ? <X className="size-3.5 text-stone-300 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
-                  <span className={`flex-1 ${subStatus === 'complete' ? 'text-stone-500' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
-                  <StatusPill status={subStatus} label={subData.optionLabel || subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
+                <div key={sub.id} className="py-0.5">
+                  <div className="flex items-center gap-2 text-xs text-left">
+                    {subStatus === 'complete' ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : subStatus === 'na' ? <X className="size-3.5 text-stone-300 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
+                    <span className={`flex-1 text-left ${subStatus === 'complete' ? 'text-stone-500' : subStatus === 'na' ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{sub.label}</span>
+                    <StatusPill status={subStatus} label={subData.optionLabel || subStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
+                  </div>
+                  {latestNote && (
+                    <div className="ml-[22px] mt-0.5 text-[10px] text-stone-500 bg-stone-50 rounded px-2 py-1 text-left whitespace-pre-wrap break-words">
+                      <span className="block">{latestNote.note}</span>
+                      <span className="block text-[9px] text-stone-400 mt-0.5">{latestNote.by || ''}{latestNote.date ? ` · ${formatDate(latestNote.date)}` : ''}</span>
+                    </div>
+                  )}
                 </div>
               )
             })}

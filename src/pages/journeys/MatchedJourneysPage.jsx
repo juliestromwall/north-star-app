@@ -18,10 +18,25 @@ import { getAdminStaff } from '@/data/mock/users'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
+// The only people who can be Journey Manager
+export const JOURNEY_MANAGERS = ['Julie Allgood', 'Nicole Lawson']
+
+// Outline color by Journey Manager: Julie → indigo, Nicole → coral
+export function journeyManagerOutlineColor(j) {
+  const name = (j?.journey_data?.journeyManager || '').toLowerCase()
+  if (name.includes('julie')) return '#283693'
+  if (name.includes('nicole')) return '#ed148c'
+  return null
+}
+
 export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
+  const outline = journeyManagerOutlineColor(j)
   return (
     <Link to={`/journeys/${j.id}`}>
-      <Card className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0">
+      <Card
+        className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0"
+        style={outline ? { border: `2px solid ${outline}` } : undefined}
+      >
         {/* IP */}
         <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
           <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
@@ -300,8 +315,15 @@ export default function MatchedJourneysPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(j => (
-                  <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
+                {filtered.map(j => {
+                  const outline = journeyManagerOutlineColor(j)
+                  return (
+                  <tr
+                    key={j.id}
+                    className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer"
+                    style={outline ? { boxShadow: `inset 4px 0 0 ${outline}` } : undefined}
+                    onClick={() => window.location.href = `/journeys/${j.id}`}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <ProfileAvatar name={j.ip?.names || '?'} avatar={ipAvatars[j.ip_case_id]} size="sm" />
@@ -319,7 +341,8 @@ export default function MatchedJourneysPage() {
                     <td className="px-4 py-3 text-stone-500 text-xs">{j.journey_data?.journeyManager || j.assigned_to || '—'}</td>
                     <td className="px-4 py-3 text-stone-400 text-xs">{new Date(j.created_at).toLocaleDateString()}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </CardContent>

@@ -41,6 +41,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
+import { JOURNEY_MANAGERS } from '@/pages/journeys/MatchedJourneysPage'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
@@ -2663,7 +2664,7 @@ export default function JourneyDetailPage() {
                   <SelectTriggerUI className="h-7 text-xs font-semibold border-none shadow-none px-1 w-auto min-w-24 text-[#283693]"><SelectValueUI /></SelectTriggerUI>
                   <SelectContentUI>
                     <SelectItemUI value="_unassigned">Unassigned</SelectItemUI>
-                    {getAdminStaff().map(a => <SelectItemUI key={a.email} value={a.name}>{a.name}</SelectItemUI>)}
+                    {JOURNEY_MANAGERS.map(name => <SelectItemUI key={name} value={name}>{name}</SelectItemUI>)}
                   </SelectContentUI>
                 </SelectUI>
               </div>
