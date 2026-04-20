@@ -1618,6 +1618,13 @@ function getFileIcon(fileType) {
   return FileText
 }
 
+// Shorten a case label like "GC — Jane Doe" or "IP — Smith & Jones" to just "GC"/"IP"
+function shortCaseLabel(full) {
+  if (!full) return ''
+  const dash = full.split(/[—–-]/)[0]?.trim()
+  return dash || full
+}
+
 function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploadClick, onFileDrop, DocRow }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: cat.id })
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 10 : 'auto' }
@@ -1728,6 +1735,13 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
   const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
 
+  // Case-folder options (matched view shows folder picker when >1 option)
+  const caseFolderOptions = [
+    { id: surrogateId, label: shortCaseLabel(caseLabels?.[surrogateId]) || 'Surrogate' },
+    ...(additionalCaseIds || []).map(id => ({ id, label: shortCaseLabel(caseLabels?.[id]) || 'IP' })),
+  ]
+  const isMatchedView = caseFolderOptions.length > 1
+
   useEffect(() => {
     async function loadDocs() {
       try {
@@ -1765,6 +1779,15 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     document.getElementById('doc-upload-input')?.click()
   }
 
+  function stageFilesForAssignment(files, categoryId) {
+    const staged = files.map(file => {
+      const ext = file.name.split('.').pop().toLowerCase()
+      const previewUrl = ['jpg','jpeg','png','gif','webp','pdf'].includes(ext) ? URL.createObjectURL(file) : null
+      return { file, name: file.name, category: categoryId || 'other', caseId: surrogateId, previewUrl, ext }
+    })
+    setZipFiles(staged)
+  }
+
   async function handleUpload(e) {
     const files = Array.from(e.target.files || [])
     const cat = uploadCategoryRef.current
@@ -1772,10 +1795,18 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     // Check for zip files
     const zipFile = files.find(f => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip')
     if (zipFile) {
-      await extractZip(zipFile)
+      await extractZip(zipFile, cat)
       e.target.value = ''
       setUploading(false)
       setUploadCategory(null)
+      return
+    }
+    // In matched view, stage files so user can pick folder per file
+    if (isMatchedView) {
+      stageFilesForAssignment(files, cat)
+      e.target.value = ''
+      setUploadCategory(null)
+      uploadCategoryRef.current = null
       return
     }
     setUploading(true)
@@ -1791,7 +1822,11 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     // Check for zip
     const zipFile = files.find(f => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip')
     if (zipFile) {
-      await extractZip(zipFile)
+      await extractZip(zipFile, categoryId)
+      return
+    }
+    if (isMatchedView) {
+      stageFilesForAssignment(files, categoryId)
       return
     }
     setUploadCategory(categoryId)
@@ -1804,7 +1839,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     } catch {} finally { setUploading(false); setUploadCategory(null) }
   }
 
-  async function extractZip(zipFile) {
+  async function extractZip(zipFile, defaultCategory) {
     try {
       const JSZip = (await import('jszip')).default
       const zip = await JSZip.loadAsync(zipFile)
@@ -1819,7 +1854,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
         const mime = mimeMap[ext] || blob.type || 'application/octet-stream'
         const file = new window.File([blob], name, { type: mime })
         const previewUrl = ['jpg','jpeg','png','gif','webp','pdf'].includes(ext) ? URL.createObjectURL(file) : null
-        extracted.push({ file, name, category: 'other', previewUrl, ext })
+        extracted.push({ file, name, category: defaultCategory || 'other', caseId: surrogateId, previewUrl, ext })
       }
       if (extracted.length > 0) setZipFiles(extracted)
     } catch (err) {
@@ -1827,7 +1862,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     }
   }
 
-  async function uploadBatch(files, getCategoryForItem) {
+  async function uploadBatch(files, getCategoryForItem, getCaseIdForItem) {
     const total = files.length
     let done = 0
     setUploadProgress({ done: 0, total })
@@ -1838,7 +1873,9 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       const results = await Promise.allSettled(
         batch.map(item => {
           const file = item.file instanceof window.File ? item.file : new window.File([item.file], item.name, { type: item.file.type })
-          return uploadCaseDocument({ surrogateId, category: getCategoryForItem(item), file, uploadedBy: currentUser.name })
+          const itemCaseId = getCaseIdForItem ? getCaseIdForItem(item) : surrogateId
+          return uploadCaseDocument({ surrogateId: itemCaseId, category: getCategoryForItem(item), file, uploadedBy: currentUser.name })
+            .then(doc => doc ? { ...doc, _source: caseLabels?.[itemCaseId] || null } : doc)
         })
       )
       for (const r of results) {
@@ -1853,7 +1890,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
   async function uploadZipFiles() {
     if (!zipFiles) return
-    await uploadBatch(zipFiles, item => item.category)
+    await uploadBatch(zipFiles, item => item.category, item => item.caseId)
     setZipFiles(null)
   }
 
@@ -1958,11 +1995,11 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       <input type="file" multiple className="hidden" id="doc-upload-input" onChange={handleUpload}
         accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.heic,.webp,.txt,.xls,.xlsx,.zip" />
 
-      {/* ZIP extraction assignment dialog */}
+      {/* File assignment dialog (shown after zip extraction or for matched-case direct uploads) */}
       {zipFiles && (
         <Card className="rounded-2xl border-2 border-[#283693]/30 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Assign Extracted Files ({zipFiles.length})</CardTitle>
+            <CardTitle className="text-base">Assign Files ({zipFiles.length})</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setZipFiles(null)}>Cancel</Button>
               <Button size="sm" onClick={uploadZipFiles} disabled={uploading} className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
@@ -1983,15 +2020,32 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                 </div>
               </div>
             )}
+            {isMatchedView && (
+              <div className="mb-3 flex items-center justify-between gap-2 text-xs">
+                <span className="text-stone-500">Apply to all:</span>
+                <div className="flex gap-1.5">
+                  {caseFolderOptions.map(opt => (
+                    <button
+                      key={opt.id}
+                      className="px-2 py-1 rounded-md border border-stone-200 hover:border-[#283693] hover:bg-[#283693]/5 text-stone-600 hover:text-[#283693]"
+                      onClick={() => setZipFiles(prev => prev.map(f => ({ ...f, caseId: opt.id })))}
+                    >
+                      {opt.label} folder
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <div className="grid grid-cols-[auto_1fr_1fr_auto] bg-gray-50 border-b border-gray-200 px-4 py-2 gap-2">
+              <div className={`grid ${isMatchedView ? 'grid-cols-[auto_1fr_1fr_120px_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'} bg-gray-50 border-b border-gray-200 px-4 py-2 gap-2`}>
                 <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
                 <span className="text-xs font-semibold text-gray-500 uppercase">File Name</span>
-                <span className="text-xs font-semibold text-gray-500 uppercase">Folder</span>
+                <span className="text-xs font-semibold text-gray-500 uppercase">Category</span>
+                {isMatchedView && <span className="text-xs font-semibold text-gray-500 uppercase">Folder</span>}
                 <span className="text-xs font-semibold text-gray-500 uppercase w-8"></span>
               </div>
               {zipFiles.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[auto_1fr_1fr_auto] items-center px-4 py-2 border-b border-gray-100 last:border-0 gap-2">
+                <div key={idx} className={`grid ${isMatchedView ? 'grid-cols-[auto_1fr_1fr_120px_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'} items-center px-4 py-2 border-b border-gray-100 last:border-0 gap-2`}>
                   {item.previewUrl ? (
                     <button className="p-1 rounded hover:bg-[#283693]/10 text-[#283693]" onClick={() => setZipPreviewIdx(idx)} title="Preview">
                       <Eye className="size-4" />
@@ -2010,6 +2064,14 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                       {DOC_CATEGORIES.map(c => <SelectItemUI key={c.id} value={c.id}>{c.label}</SelectItemUI>)}
                     </SelectContentUI>
                   </SelectUI>
+                  {isMatchedView && (
+                    <SelectUI value={String(item.caseId)} onValueChange={v => setZipFiles(prev => prev.map((f, i) => i === idx ? { ...f, caseId: caseFolderOptions.find(o => String(o.id) === v)?.id ?? f.caseId } : f))}>
+                      <SelectTriggerUI className="h-8 text-xs"><SelectValueUI /></SelectTriggerUI>
+                      <SelectContentUI>
+                        {caseFolderOptions.map(opt => <SelectItemUI key={opt.id} value={String(opt.id)}>{opt.label}</SelectItemUI>)}
+                      </SelectContentUI>
+                    </SelectUI>
+                  )}
                   <button className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
                     onClick={() => setZipFiles(prev => prev.filter((_, i) => i !== idx))}>
                     <X className="size-3.5" />
@@ -2771,7 +2833,6 @@ const SECTION_DESCRIPTIONS = {
 
 // Conditional fields: only show when parent field has a specific value
 const CONDITIONAL_FIELDS = {
-  otherLanguagesDetails: { parent: 'otherLanguages', showWhen: 'yes' },
   sameBioFatherDetails: { parent: 'sameBioFather', showWhen: 'no' },
   infertilityTreatmentDetails: { parent: 'infertilityTreatment', showWhen: 'yes' },
   gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', showWhen: 'yes' },
@@ -2912,7 +2973,6 @@ function countSectionFilled(data, section) {
   // Map of "details" fields to their parent toggle fields
   // If the parent is 'no'/empty, the detail field is not required
   const CONDITIONAL_PAIRS = {
-    otherLanguagesDetails: { parent: 'otherLanguages', show: 'yes' },
     sameBioFatherDetails: { parent: 'sameBioFather', show: 'no' },
     infertilityTreatmentDetails: { parent: 'infertilityTreatment', show: 'yes' },
     gynecologicalProblemsDetails: { parent: 'gynecologicalProblems', show: 'yes' },
@@ -3931,7 +3991,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   // Yes/No toggle fields (match surrogate YesNoField)
   const YES_NO_FIELDS = new Set([
-    'usCitizen', 'realId', 'validPassport', 'otherLanguages', 'monogamous', 'partnerUsCitizen',
+    'usCitizen', 'monogamous', 'partnerUsCitizen',
     'sameBioFather', 'infertilityTreatment', 'gynecologicalProblems', 'cycleLength', 'breastfeeding',
     'pregnancyMedication', 'willingToTravelNICU',
     'childrenFullTime', 'childrenSpecialNeeds', 'placedForAdoption', 'planMoreChildren',
