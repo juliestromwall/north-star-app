@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate, updateCaseEmailTag } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
@@ -372,6 +372,22 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
 
   const unreadInboxCount = inboxEmails.filter(e => e.isUnread).length
 
+  // Group inbox messages into threads
+  const inboxThreads = useMemo(() => {
+    const byThread = new Map()
+    for (const msg of inboxEmails) {
+      const tid = msg.threadId || msg.id
+      if (!byThread.has(tid)) byThread.set(tid, [])
+      byThread.get(tid).push(msg)
+    }
+    return Array.from(byThread.entries())
+      .map(([tid, msgs]) => {
+        const sorted = [...msgs].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        return { threadId: tid, messages: sorted, latest: sorted[0], count: sorted.length }
+      })
+      .sort((a, b) => new Date(b.latest.date || 0) - new Date(a.latest.date || 0))
+  }, [inboxEmails])
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -383,7 +399,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                 Logged ({emails.length})
               </button>
               <button onClick={() => setViewMode('inbox')} className={`px-3 py-1 text-xs font-medium transition-colors relative ${viewMode === 'inbox' ? 'bg-[#283693] text-white' : 'bg-white text-stone-500 hover:bg-stone-50'}`}>
-                Inbox ({inboxEmails.length})
+                Last 30 Days ({inboxEmails.length})
                 {unreadInboxCount > 0 && viewMode !== 'inbox' && (
                   <span className="absolute -top-1 -right-1 flex size-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
@@ -424,37 +440,47 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
           })}
         </div>
       )}
-      {/* Inbox view */}
+      {/* Last 30 Days view */}
       {viewMode === 'inbox' && (
         <Card className="rounded-2xl">
           <CardContent className="p-0">
             {loadingInbox ? (
               <div className="flex items-center justify-center py-8"><Loader2 className="size-5 animate-spin text-stone-400" /></div>
-            ) : inboxEmails.length === 0 ? (
+            ) : inboxThreads.length === 0 ? (
               <p className="text-sm text-stone-400 text-center py-8">No recent emails from case contacts</p>
             ) : (
               <div className="divide-y">
-                {inboxEmails.map(msg => (
-                  <div key={msg.id} className={`px-4 py-3 flex items-start gap-3 group ${msg.isUnread ? 'bg-blue-50/40' : ''}`}>
-                    {msg.isUnread ? <MailOpen className="size-4 text-blue-500 mt-1 shrink-0" /> : <Mail className="size-4 text-muted-foreground mt-1 shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <button onClick={() => handleViewInboxEmail(msg)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">
-                            {msg.subject || '(no subject)'}
-                          </button>
-                          {msg.isUnread && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">New</span>}
+                {inboxThreads.map(thread => {
+                  const latest = thread.latest
+                  const anyUnread = thread.messages.some(m => m.isUnread)
+                  const senders = [...new Set(thread.messages.map(m => extractName(m.from) || m.from).filter(Boolean))]
+                  return (
+                    <div key={thread.threadId} className={`px-4 py-3 flex items-start gap-3 group ${anyUnread ? 'bg-blue-50/40' : ''}`}>
+                      {anyUnread ? <MailOpen className="size-4 text-blue-500 mt-1 shrink-0" /> : <Mail className="size-4 text-muted-foreground mt-1 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <button onClick={() => handleViewInboxEmail(latest)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">
+                              {latest.subject || '(no subject)'}
+                            </button>
+                            {thread.count > 1 && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-600 shrink-0" title={`${thread.count} messages in this thread`}>
+                                {thread.count}
+                              </span>
+                            )}
+                            {anyUnread && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">New</span>}
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">{formatDate(latest.date)}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground shrink-0">{formatDate(msg.date)}</span>
+                        <p className="text-xs text-muted-foreground truncate">{thread.count > 1 ? senders.slice(0, 3).join(', ') + (senders.length > 3 ? ` +${senders.length - 3}` : '') : `From: ${senders[0] || ''}`}</p>
+                        {latest.snippet && <p className="text-xs text-muted-foreground truncate mt-0.5">{latest.snippet}</p>}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">From: {extractName(msg.from) || msg.from}</p>
-                      {msg.snippet && <p className="text-xs text-muted-foreground truncate mt-0.5">{msg.snippet}</p>}
+                      <button onClick={() => openLogDialog(latest)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log latest message in this thread to this case">
+                        <LinkIcon className="size-3 inline mr-1" />Log
+                      </button>
                     </div>
-                    <button onClick={() => openLogDialog(msg)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#283693] text-white hover:bg-[#283693]/90" title="Log to this case">
-                      <LinkIcon className="size-3 inline mr-1" />Log
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>
