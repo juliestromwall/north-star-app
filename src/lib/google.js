@@ -220,17 +220,27 @@ export async function getAttachment(userId, messageId, attachmentId) {
   return data
 }
 
-/** Fetch the user's Gmail signature (primary send-as address) */
-export async function getGmailSignature(userId) {
+/** Fetch primary send-as settings (display name, email, signature) */
+export async function getGmailSendAs(userId) {
   const token = await getAccessToken(userId)
   const res = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs',
     { headers: { Authorization: `Bearer ${token}` } }
   )
   const data = await res.json()
-  if (!res.ok) return ''
-  const primary = (data.sendAs || []).find(s => s.isPrimary)
-  return primary?.signature || ''
+  if (!res.ok) return { displayName: '', sendAsEmail: '', signature: '' }
+  const primary = (data.sendAs || []).find(s => s.isPrimary) || {}
+  return {
+    displayName: primary.displayName || '',
+    sendAsEmail: primary.sendAsEmail || '',
+    signature: primary.signature || '',
+  }
+}
+
+/** Backwards-compat: just the signature HTML */
+export async function getGmailSignature(userId) {
+  const info = await getGmailSendAs(userId)
+  return info.signature
 }
 
 /** RFC 2047 encoded-word for subjects with non-ASCII chars (e.g. emoji) */
@@ -243,9 +253,23 @@ function encodeSubject(subject) {
 }
 
 /** Build a base64url-encoded MIME message */
-function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
+function formatFromHeader(from) {
+  if (!from) return null
+  const { displayName, email } = from
+  if (!email) return null
+  if (!displayName) return `From: ${email}`
+  // RFC 5322: quote display name when it has special chars, and MIME-encode non-ASCII
+  const hasNonAscii = /[^\x00-\x7F]/.test(displayName)
+  const name = hasNonAscii
+    ? `=?UTF-8?B?${btoa(unescape(encodeURIComponent(displayName)))}?=`
+    : `"${displayName.replace(/"/g, '\\"')}"`
+  return `From: ${name} <${email}>`
+}
+
+function buildMimeRaw({ from, to, subject, body, cc, bcc, attachments = [] }) {
   const boundary = 'abc_surrogacy_' + Date.now()
   const mimeLines = [
+    formatFromHeader(from),
     `To: ${to || ''}`,
     cc ? `Cc: ${cc}` : null,
     bcc ? `Bcc: ${bcc}` : null,
@@ -282,9 +306,9 @@ function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
 }
 
 /** Send an email (with optional attachments) */
-export async function sendEmail(userId, { to, subject, body, cc, bcc, attachments = [] }) {
+export async function sendEmail(userId, { to, subject, body, cc, bcc, attachments = [], from }) {
   const token = await getAccessToken(userId)
-  const raw = buildMimeRaw({ to, subject, body, cc, bcc, attachments })
+  const raw = buildMimeRaw({ from, to, subject, body, cc, bcc, attachments })
 
   const res = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
@@ -303,9 +327,9 @@ export async function sendEmail(userId, { to, subject, body, cc, bcc, attachment
 }
 
 /** Save a draft to Gmail */
-export async function createGmailDraft(userId, { to, subject, body, cc, bcc, attachments = [] }) {
+export async function createGmailDraft(userId, { to, subject, body, cc, bcc, attachments = [], from }) {
   const token = await getAccessToken(userId)
-  const raw = buildMimeRaw({ to, subject, body, cc, bcc, attachments })
+  const raw = buildMimeRaw({ from, to, subject, body, cc, bcc, attachments })
 
   const res = await fetch(
     'https://gmail.googleapis.com/gmail/v1/users/me/drafts',

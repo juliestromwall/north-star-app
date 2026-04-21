@@ -423,6 +423,7 @@ function ComposeWindow({ draft, index }) {
         cc: draft.cc || undefined,
         bcc: draft.bcc || undefined,
         attachments: draft.attachments,
+        from: (draft.senderName || draft.senderEmail) ? { displayName: draft.senderName, email: draft.senderEmail || currentUser?.email } : undefined,
       })
 
       // Cache recipients for autocomplete on next compose
@@ -437,7 +438,9 @@ function ComposeWindow({ draft, index }) {
             case_id: Number(draft.caseId) || draft.caseId,
             case_type: caseType,
             subject: draft.subject,
-            from_address: currentUser?.email || '',
+            from_address: draft.senderName
+              ? `${draft.senderName} <${draft.senderEmail || currentUser?.email || ''}>`
+              : (draft.senderEmail || currentUser?.email || ''),
             to_address: draft.to,
             date: new Date().toISOString(),
             snippet: (editor?.getText() || '').slice(0, 200),
@@ -479,6 +482,7 @@ function ComposeWindow({ draft, index }) {
           cc: draft.cc || undefined,
           bcc: draft.bcc || undefined,
           attachments: draft.attachments,
+          from: (draft.senderName || draft.senderEmail) ? { displayName: draft.senderName, email: draft.senderEmail || currentUser?.email } : undefined,
         })
       } catch (err) {
         console.error('Failed to save draft:', err)

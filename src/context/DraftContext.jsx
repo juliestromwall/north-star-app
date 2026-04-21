@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react'
-import { getGmailSignature } from '@/lib/google'
+import { getGmailSendAs } from '@/lib/google'
 
 const DraftContext = createContext(null)
 
@@ -7,24 +7,24 @@ let nextDraftId = 1
 
 export function DraftProvider({ children }) {
   const [drafts, setDrafts] = useState([])
-  const signatureCache = useRef({ userId: null, html: null, loading: false })
+  const sendAsCache = useRef({ userId: null, info: null, loading: false })
 
-  // Fetch and cache signature
-  const fetchSignature = useCallback(async (userId) => {
-    if (!userId) return ''
-    if (signatureCache.current.userId === userId && signatureCache.current.html !== null) {
-      return signatureCache.current.html
+  // Fetch and cache sendAs info (displayName + email + signature)
+  const fetchSendAs = useCallback(async (userId) => {
+    if (!userId) return null
+    if (sendAsCache.current.userId === userId && sendAsCache.current.info) {
+      return sendAsCache.current.info
     }
-    if (signatureCache.current.loading) return ''
-    signatureCache.current.loading = true
+    if (sendAsCache.current.loading) return null
+    sendAsCache.current.loading = true
     try {
-      const html = await getGmailSignature(userId)
-      signatureCache.current = { userId, html: html || '', loading: false }
-      return html || ''
+      const info = await getGmailSendAs(userId)
+      sendAsCache.current = { userId, info, loading: false }
+      return info
     } catch (e) {
-      console.warn('Signature fetch failed:', e)
-      signatureCache.current = { userId, html: '', loading: false }
-      return ''
+      console.warn('sendAs fetch failed:', e)
+      sendAsCache.current = { userId, info: { displayName: '', sendAsEmail: '', signature: '' }, loading: false }
+      return sendAsCache.current.info
     }
   }, [])
 
@@ -75,19 +75,22 @@ export function DraftProvider({ children }) {
 
     setDrafts(prev => [...prev, draft])
 
-    // Backfill signature async — stored separately, not in editor body
-    fetchSignature(userId).then(sig => {
-      if (sig) {
-        setDrafts(prev => prev.map(d => {
-          if (d.id !== id) return d
-          if (d.signatureHtml) return d
-          return { ...d, signatureHtml: sig }
-        }))
-      }
+    // Backfill sendAs info (display name for From header + signature) async
+    fetchSendAs(userId).then(info => {
+      if (!info) return
+      setDrafts(prev => prev.map(d => {
+        if (d.id !== id) return d
+        return {
+          ...d,
+          signatureHtml: d.signatureHtml || info.signature || '',
+          senderName: d.senderName || info.displayName || '',
+          senderEmail: d.senderEmail || info.sendAsEmail || '',
+        }
+      }))
     }).catch(() => {})
 
     return id
-  }, [fetchSignature])
+  }, [fetchSendAs])
 
   const updateDraft = useCallback((id, updates) => {
     setDrafts(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d))
