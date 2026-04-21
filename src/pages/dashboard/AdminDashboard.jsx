@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, deleteCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, deleteCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes, insertAdminNoteReply } from '@/lib/db'
 import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
@@ -25,6 +25,62 @@ import {
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
   ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw, Search,
 } from 'lucide-react'
+
+// Renders the reply list + reply form for an admin note. Visibility rules are
+// enforced by RLS on admin_note_replies: the replier sees their own reply, the
+// note author sees all replies, everyone else sees nothing.
+function NoteReplyBlock({ note, currentUser, onReplied }) {
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState(null)
+  const isAuthor = !!currentUser?.id && note.created_by === currentUser.id
+  const replies = (note.admin_note_replies || []).slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+  async function submit() {
+    const msg = text.trim()
+    if (!msg) return
+    setSending(true)
+    setError(null)
+    try {
+      const saved = await insertAdminNoteReply({ noteId: note.id, message: msg, repliedByName: currentUser?.name || '' })
+      if (saved && onReplied) onReplied(note.id, saved)
+      setText('')
+    } catch (err) {
+      setError(err?.message || 'Failed to send')
+    }
+    setSending(false)
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/60 space-y-2">
+      {replies.length > 0 && (
+        <div className="space-y-1.5">
+          {replies.map(r => (
+            <div key={r.id} className="rounded-lg bg-white/70 px-3 py-2 text-xs">
+              <p className="font-semibold text-[#283693] text-[11px]">{r.replied_by_name || 'Admin'} <span className="text-stone-400 font-normal ml-1">{new Date(r.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span></p>
+              <p className="text-stone-700 whitespace-pre-wrap">{r.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {!isAuthor && (
+        <div className="flex items-end gap-2">
+          <Textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Reply privately to the author..."
+            rows={2}
+            className="bg-white/80 text-xs min-h-0 resize-none"
+          />
+          <Button size="sm" onClick={submit} disabled={sending || !text.trim()} className="gap-1.5 shrink-0" style={{ backgroundColor: '#283693' }}>
+            {sending ? <Loader2 className="size-3 animate-spin" /> : 'Reply'}
+          </Button>
+        </div>
+      )}
+      {error && <p className="text-[10px] text-rose-500">{error}</p>}
+    </div>
+  )
+}
 
 export default function AdminDashboard() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
@@ -346,27 +402,30 @@ export default function AdminDashboard() {
       {unreadNotes.map((note) => (
         <div key={note.id} className="relative rounded-2xl overflow-hidden border-2 border-[#ed148c]/20" style={{ background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 50%, #fff1f2 100%)' }}>
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#ed148c]" />
-          <div className="flex items-start gap-3 px-5 py-4 pl-6">
-            <div className="flex items-center justify-center size-9 rounded-full bg-[#ed148c]/10 shrink-0 mt-0.5">
-              <Megaphone className="size-4 text-[#ed148c]" />
+          <div className="px-5 py-4 pl-6">
+            <div className="flex items-start gap-3">
+              <div className="flex items-center justify-center size-9 rounded-full bg-[#ed148c]/10 shrink-0 mt-0.5">
+                <Megaphone className="size-4 text-[#ed148c]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {note.title && <p className="font-bold text-[#283693] text-base">{note.title}</p>}
+                <div className="text-sm text-stone-600 mt-0.5 leading-relaxed admin-note-content" dangerouslySetInnerHTML={{ __html: note.message }} />
+                <p className="text-[10px] text-stone-400 mt-1.5">
+                  {note.created_by || 'Admin'} · {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              </div>
+              <button onClick={async () => {
+                if (supabase && currentUser?.id) {
+                  try {
+                    await supabase.from('admin_note_dismissals').insert({ note_id: note.id, user_id: currentUser.id })
+                    setAdminNotes(prev => prev.map(n => n.id === note.id ? { ...n, admin_note_dismissals: [...(n.admin_note_dismissals || []), { user_id: currentUser.id }] } : n))
+                  } catch {}
+                }
+              }} className="text-[10px] text-stone-400 hover:text-[#283693] font-medium px-2 py-1 rounded-lg hover:bg-white/50 transition-colors shrink-0">
+                Mark as Read
+              </button>
             </div>
-            <div className="flex-1 min-w-0">
-              {note.title && <p className="font-bold text-[#283693] text-base">{note.title}</p>}
-              <div className="text-sm text-stone-600 mt-0.5 leading-relaxed admin-note-content" dangerouslySetInnerHTML={{ __html: note.message }} />
-              <p className="text-[10px] text-stone-400 mt-1.5">
-                {note.created_by || 'Admin'} · {new Date(note.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-            <button onClick={async () => {
-              if (supabase && currentUser?.id) {
-                try {
-                  await supabase.from('admin_note_dismissals').insert({ note_id: note.id, user_id: currentUser.id })
-                  setAdminNotes(prev => prev.map(n => n.id === note.id ? { ...n, admin_note_dismissals: [...(n.admin_note_dismissals || []), { user_id: currentUser.id }] } : n))
-                } catch {}
-              }
-            }} className="text-[10px] text-stone-400 hover:text-[#283693] font-medium px-2 py-1 rounded-lg hover:bg-white/50 transition-colors shrink-0">
-              Mark as Read
-            </button>
+            <NoteReplyBlock note={note} currentUser={currentUser} onReplied={(noteId, reply) => setAdminNotes(prev => prev.map(n => n.id === noteId ? { ...n, admin_note_replies: [...(n.admin_note_replies || []), reply] } : n))} />
           </div>
         </div>
       ))}
@@ -390,6 +449,7 @@ export default function AdminDashboard() {
                   <div className="px-4 pb-3 pt-1 border-t border-stone-100">
                     <div className="text-sm text-stone-600 leading-relaxed admin-note-content" dangerouslySetInnerHTML={{ __html: note.message }} />
                     <p className="text-[10px] text-stone-400 mt-1.5">{note.created_by || 'Admin'}</p>
+                    <NoteReplyBlock note={note} currentUser={currentUser} onReplied={(noteId, reply) => setAdminNotes(prev => prev.map(n => n.id === noteId ? { ...n, admin_note_replies: [...(n.admin_note_replies || []), reply] } : n))} />
                   </div>
                 )}
               </div>

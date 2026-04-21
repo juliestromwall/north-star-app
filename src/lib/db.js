@@ -108,7 +108,7 @@ export async function getRecordTrackingBatch(surrogateIds) {
 
 export async function fetchActiveAdminNotes() {
   const result = await withTimeout(
-    () => supabase.from('admin_notes').select('*, admin_note_dismissals(*)').eq('is_active', true).order('created_at', { ascending: false })
+    () => supabase.from('admin_notes').select('*, admin_note_dismissals(*), admin_note_replies(*)').eq('is_active', true).order('created_at', { ascending: false })
   )
   if (!result) return []
   if (result.error) throw result.error
@@ -117,11 +117,22 @@ export async function fetchActiveAdminNotes() {
 
 export async function fetchAllAdminNotes() {
   const result = await withTimeout(
-    () => supabase.from('admin_notes').select('*, admin_note_dismissals(*)').order('created_at', { ascending: false })
+    () => supabase.from('admin_notes').select('*, admin_note_dismissals(*), admin_note_replies(*)').order('created_at', { ascending: false })
   )
   if (!result) return []
   if (result.error) throw result.error
   return result.data
+}
+
+export async function insertAdminNoteReply({ noteId, message, repliedByName }) {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('admin_note_replies')
+    .insert({ note_id: noteId, message, replied_by_name: repliedByName || null })
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
 
 export async function insertAdminNote(note) {
