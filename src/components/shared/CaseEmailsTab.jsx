@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon, X } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon, X, Reply, ReplyAll, Forward } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
 import { EMAIL_TAGS } from '@/lib/emailTags'
@@ -612,15 +612,52 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                   dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml || '' }}
                 />
               </div>
-              {/* Actions for inbox emails */}
-              {selectedEmail?._fromInbox && (
-                <div className="border-t pt-3 flex items-center gap-2">
-                  <Button size="sm" className="gap-1.5 text-xs" style={{ backgroundColor: '#283693' }}
-                    onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
-                    <LinkIcon className="size-3" /> Log to Case
-                  </Button>
-                </div>
-              )}
+              {/* Actions */}
+              <div className="border-t pt-3 flex items-center gap-2 flex-wrap">
+                {(() => {
+                  const replyMsg = {
+                    from: fullEmail.from,
+                    to: fullEmail.to,
+                    cc: fullEmail.cc,
+                    subject: fullEmail.subject,
+                    date: fullEmail.date,
+                    bodyHtml: fullEmail.bodyHtml,
+                  }
+                  const handleReply = () => {
+                    openDraft({ replyTo: replyMsg, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  const handleReplyAll = () => {
+                    openDraft({ replyTo: { ...replyMsg, _replyAll: true, _myEmail: currentUser?.email }, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  const handleForward = () => {
+                    openDraft({ forwardMsg: replyMsg, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  return (
+                    <>
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReply}>
+                        <Reply className="size-3" /> Reply
+                      </Button>
+                      {fullEmail.cc && (
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReplyAll}>
+                          <ReplyAll className="size-3" /> Reply All
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleForward}>
+                        <Forward className="size-3" /> Forward
+                      </Button>
+                      {selectedEmail?._fromInbox && (
+                        <Button size="sm" className="gap-1.5 text-xs ml-auto" style={{ backgroundColor: '#283693' }}
+                          onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
+                          <LinkIcon className="size-3" /> Log to Case
+                        </Button>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">
