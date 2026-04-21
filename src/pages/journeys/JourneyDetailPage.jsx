@@ -626,6 +626,10 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
             <Check className="size-2.5" /> Reconciled
           </span>
+        ) : exp.paid_at ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+            <Check className="size-2.5" /> Paid
+          </span>
         ) : (
           <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
         )}

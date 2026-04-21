@@ -263,9 +263,16 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               return (
                 <tr key={exp.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
-                    <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
-                      {caseName}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
+                        {caseName}
+                      </Link>
+                      {exp.paid_at && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                          <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
+                        </span>
+                      )}
+                    </div>
                     {isPreMatch ? (
                       <p className="text-[10px] mt-0.5"><span className="text-stone-400">Pre-match</span></p>
                     ) : (
@@ -551,9 +558,11 @@ export default function ExpensesPage() {
   // Filter and sort — Hold-for-Payment items never appear in the main tracker
   let filtered = expenses.filter(e => e.pay_to_type !== 'hold')
   if (activeTab === 'expenses') {
-    filtered = filtered.filter(e => !e.reconciled && !e.needs_payment)
+    // Awaiting reconciliation — either escrow-paid, or direct-pay that's already been marked Paid
+    filtered = filtered.filter(e => !e.reconciled && (!e.needs_payment || !!e.paid_at))
   } else if (activeTab === 'to_pay') {
-    filtered = filtered.filter(e => e.needs_payment && !e.reconciled)
+    // Still needs to be paid
+    filtered = filtered.filter(e => e.needs_payment && !e.paid_at && !e.reconciled)
   } else {
     filtered = filtered.filter(e => e.reconciled)
   }
