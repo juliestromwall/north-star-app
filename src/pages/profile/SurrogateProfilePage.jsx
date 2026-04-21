@@ -757,9 +757,27 @@ export default function SurrogateProfilePage() {
       }
       const surrogateName = `${firstName} ${lastName}`.trim()
 
+      // 0. Persist profile to Supabase first. If this fails, abort —
+      // otherwise status flips to pending_review without the data landing.
+      if (currentUser?.id && currentUser?.email) {
+        try {
+          await saveSurrogateProfile(currentUser.id, currentUser.email, profile)
+        } catch (err) {
+          console.error('Profile save before submit failed:', err)
+          alert("We couldn't save your profile to our servers. Please check your internet connection and try again. If this keeps happening, contact support@abcsurrogacy.com and we'll help you finish submitting.")
+          return
+        }
+      }
+
       // 1. Update profile status to "pending_review"
       if (currentUser?.email) {
-        await updateSurrogateProfileStatus(currentUser.email, 'pending_review').catch(() => {})
+        try {
+          await updateSurrogateProfileStatus(currentUser.email, 'pending_review')
+        } catch (err) {
+          console.error('Status update failed:', err)
+          alert("Your profile was saved, but we couldn't mark it as submitted. Please contact support@abcsurrogacy.com so we can finalize your submission.")
+          return
+        }
       }
       setProfileSubmitted(true)
 
