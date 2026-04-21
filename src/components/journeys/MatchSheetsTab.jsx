@@ -550,11 +550,15 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       <PartyBanner color="#283693" icon={Users}>Intended Parents</PartyBanner>
 
       <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
-      <InfoGrid items={[
-        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
-        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}` },
-        { label: 'Email', value: ipCase?.email },
-        { label: 'Phone', value: formatPhone(ipCase?.phone) },
+      <InfoGrid columns={4} items={[
+        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim(), span: 2 },
+        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}`, span: 2 },
+        { label: 'Email', value: ipCase?.email, span: 2 },
+        { label: 'Phone', value: formatPhone(ipCase?.phone), span: 2 },
+        { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', ') },
+        { label: 'City', value: a.city },
+        { label: 'State', value: a.stateProv },
+        { label: 'Zip', value: a.zipCode },
       ]} />
 
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
@@ -571,11 +575,15 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       {/* Surrogate */}
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
-      <InfoGrid items={[
-        { label: 'Full Name', value: gcCase?.name },
-        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
-        { label: 'Email', value: gcCase?.email },
-        { label: 'Phone', value: formatPhone(gcCase?.phone) },
+      <InfoGrid columns={4} items={[
+        { label: 'Full Name', value: gcCase?.name, span: 2 },
+        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}`, span: 2 },
+        { label: 'Email', value: gcCase?.email, span: 2 },
+        { label: 'Phone', value: formatPhone(gcCase?.phone), span: 2 },
+        { label: 'Street Address', value: personal.streetAddress || ga.streetAddress },
+        { label: 'City', value: ga.city || personal.city },
+        { label: 'State', value: ga.state || personal.state },
+        { label: 'Zip', value: personal.zipCode || ga.zipCode },
       ]} />
 
       {/* Escrow Details */}
