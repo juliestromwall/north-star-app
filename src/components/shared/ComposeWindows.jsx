@@ -641,10 +641,16 @@ function ComposeWindow({ draft, index }) {
         <FormattingToolbar editor={editor} />
 
         <div className="flex items-center gap-1.5 px-3 py-2 border-t bg-muted/30 shrink-0">
-          <Button onClick={handleSend} disabled={sending || !draft.to.trim()} size="sm" className="gap-1.5">
-            {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-            Send
-          </Button>
+          {(() => {
+            const caseSelected = draft.caseId && draft.caseId !== '_none'
+            const needsTag = caseSelected && !draft.emailTag
+            return (
+              <Button onClick={handleSend} disabled={sending || !draft.to.trim() || needsTag} size="sm" className="gap-1.5" title={needsTag ? 'Select a tag to log this email to the case' : ''}>
+                {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                {needsTag ? 'Select a tag' : 'Send'}
+              </Button>
+            )
+          })()}
 
           <input type="file" ref={fileRef} onChange={handleFileAdd} multiple hidden />
           <Button variant="ghost" size="icon-sm" onClick={() => fileRef.current?.click()} className="size-7" title="Attach file">
@@ -703,12 +709,11 @@ function ComposeWindow({ draft, index }) {
             </Select>
 
             {draft.caseId && draft.caseId !== '_none' && (
-              <Select value={draft.emailTag || '_none'} onValueChange={v => updateDraft(draft.id, { emailTag: v === '_none' ? '' : v })}>
-                <SelectTrigger className="h-7 text-xs w-[100px] border-dashed">
-                  <SelectValue placeholder="Tag..." />
+              <Select value={draft.emailTag || ''} onValueChange={v => updateDraft(draft.id, { emailTag: v })}>
+                <SelectTrigger className={`h-7 text-xs w-[130px] ${draft.emailTag ? 'border-dashed' : 'border-2 border-rose-300 ring-1 ring-rose-200'}`}>
+                  <SelectValue placeholder="Tag (required)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">No tag</SelectItem>
                   {EMAIL_TAGS.map(t => (
                     <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}

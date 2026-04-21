@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRole } from '@/context/RoleContext'
-import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate } from '@/lib/db'
+import { fetchCaseEmails, deleteCaseEmail, updateCaseEmailPrivate, updateCaseEmailTag } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { getGoogleStatus, getEmail, listEmails, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { Card, CardContent } from '@/components/ui/card'
@@ -261,6 +261,17 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     }
   }
 
+  const [editTagEmail, setEditTagEmail] = useState(null) // email row being edited
+  async function saveTag(emailId, tag) {
+    try {
+      await updateCaseEmailTag(emailId, tag)
+      setEmails(prev => prev.map(e => e.id === emailId ? { ...e, tag: tag || null } : e))
+      setEditTagEmail(null)
+    } catch (err) {
+      console.error('Failed to update tag:', err)
+    }
+  }
+
   const [savingAtt, setSavingAtt] = useState(null)
   const [saveAttDialog, setSaveAttDialog] = useState(null) // attachment to save
   const [saveCategory, setSaveCategory] = useState('other')
@@ -463,7 +474,23 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <button onClick={() => handleViewFull(email)} className="text-sm font-medium truncate text-left text-[#283693] hover:underline cursor-pointer">{email.subject || '(no subject)'}</button>
-                      {tagObj && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tagObj.color}`}>{tagObj.label}</span>}
+                      {tagObj ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditTagEmail(email) }}
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${tagObj.color} hover:ring-2 hover:ring-offset-1 hover:ring-stone-300 transition-all cursor-pointer`}
+                          title="Change tag"
+                        >
+                          {tagObj.label}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditTagEmail(email) }}
+                          className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-all"
+                          title="Add tag"
+                        >
+                          + Tag
+                        </button>
+                      )}
                       {email.is_private && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-purple-100 text-purple-700 inline-flex items-center gap-0.5">
                           <Lock className="size-2.5" /> Private
@@ -638,6 +665,39 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
               {logging ? <Loader2 className="size-3 animate-spin" /> : <LinkIcon className="size-3" />}
               {logging ? 'Logging...' : !logTag ? 'Select a tag to continue' : 'Log to Case'}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Tag Dialog */}
+      <Dialog open={!!editTagEmail} onOpenChange={(open) => { if (!open) setEditTagEmail(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Edit Tag</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-stone-50 px-3 py-2">
+              <p className="text-xs font-medium truncate">{editTagEmail?.subject || '(no subject)'}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {EMAIL_TAGS.map(t => (
+                <button
+                  key={t.value}
+                  onClick={() => saveTag(editTagEmail.id, t.value)}
+                  className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-all ${editTagEmail?.tag === t.value ? t.color + ' border-transparent ring-2 ring-stone-300' : 'bg-white text-stone-500 border-stone-200 hover:border-stone-300'}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {editTagEmail?.tag && (
+              <button
+                onClick={() => saveTag(editTagEmail.id, null)}
+                className="text-[11px] text-stone-400 hover:text-rose-600 transition-colors"
+              >
+                Remove tag
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

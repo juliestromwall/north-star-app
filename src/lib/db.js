@@ -890,6 +890,12 @@ export async function updateCaseEmailPrivate(id, isPrivate) {
   if (error) throw error
 }
 
+export async function updateCaseEmailTag(id, tag) {
+  if (!supabase) return
+  const { error } = await supabase.from('case_emails').update({ tag: tag || null }).eq('id', id)
+  if (error) throw error
+}
+
 // ── Insurance ───────────────────────────────────────────
 
 export async function fetchInsurance(caseId, caseType = 'surrogate') {
