@@ -3108,6 +3108,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
   const [addOpen, setAddOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [newDisbursementRequested, setNewDisbursementRequested] = useState(false)
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
   const total = sumLineItems(lineItems)
@@ -3201,9 +3202,12 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
         notes: formatLineItemsAsNotes(lineItems) || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
+        disbursement_requested_at: newDisbursementRequested ? new Date().toISOString() : null,
+        disbursement_requested_by: newDisbursementRequested ? (currentUser?.email || '') : null,
       })
       if (created) { setExpenses(prev => [created, ...prev]); onExpensesChanged?.() }
       setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+      setNewDisbursementRequested(false)
       setLineItems([emptyLineItem()])
       setAddOpen(false)
     } catch (err) {
@@ -3226,6 +3230,26 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
       setExpenses(prev => prev.filter(e => e.id !== id))
       onExpensesChanged?.()
     } catch (err) { console.error('Failed to delete expense:', err) }
+  }
+
+  async function handleAdvanceDisbursement(id, step) {
+    const now = new Date().toISOString()
+    const who = currentUser?.email || ''
+    const row = expenses.find(e => e.id === id)
+    const updates = {}
+    if (step === 'request') {
+      updates.disbursement_requested_at = now
+      updates.disbursement_requested_by = who
+    } else if (step === 'paid') {
+      updates.disbursement_paid_at = now
+      updates.disbursement_paid_by = who
+      if (row && !row.disbursement_requested_at) {
+        updates.disbursement_requested_at = now
+        updates.disbursement_requested_by = who
+      }
+    }
+    const updated = await updateExpense(id, updates)
+    if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
   return (
@@ -3350,6 +3374,13 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
                 )}
               </>
             )}
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+              <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
+              <button onClick={() => setNewDisbursementRequested(v => !v)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequested ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                {newDisbursementRequested ? 'Yes' : 'No'}
+              </button>
+            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
               <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
@@ -3393,7 +3424,8 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow Opened</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Disbursement</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
                     <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
@@ -3402,7 +3434,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={surrogateId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={surrogateId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onAdvanceDisbursement={handleAdvanceDisbursement} />
                   ))}
                 </tbody>
               </table>

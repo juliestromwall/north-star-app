@@ -34,7 +34,7 @@ const COLUMNS = [
   { key: 'amount', label: 'Amount', format: 'currency' },
   { key: 'paid_to', label: 'Paid To' },
   { key: 'cc_last4', label: 'CC Last 4', format: 'cc4' },
-  { key: 'submitted_to_escrow', label: 'Escrow', format: 'yesno' },
+  { key: 'submitted_to_escrow', label: 'Escrow Opened', format: 'yesno' },
   { key: 'notes', label: 'Notes' },
 ]
 
@@ -105,7 +105,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail }) {
+function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail, onAdvanceDisbursement }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -237,10 +237,13 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                 Case
               </th>
               {COLUMNS.map((col, i) => (
-                <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
+                <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : 'border-r border-stone-100 dark:border-[#2a2a38]'}`}>
                   {col.label}
                 </th>
               ))}
+              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
+                Disbursement
+              </th>
               <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-l border-stone-100 dark:border-[#2a2a38]">
                 Doc
               </th>
@@ -261,8 +264,8 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
 
               return (
-                <tr key={exp.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
-                  <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
+                <tr key={exp.id} className={`border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50 ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : ''}`}>
+                  <td className={`px-5 py-3.5 sticky left-0 z-20 border-r border-stone-200 dark:border-[#2a2a38] ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : 'bg-white dark:bg-[#1a1a24]'}`}>
                     <div className="flex items-center gap-2">
                       <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
                         {caseName}
@@ -280,7 +283,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                     )}
                   </td>
                   {COLUMNS.map((col, i) => (
-                    <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
+                    <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : 'border-r border-stone-100 dark:border-[#2a2a38]'}`}>
                       <EditableCell
                         col={col}
                         value={exp[col.key]}
@@ -288,6 +291,22 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       />
                     </td>
                   ))}
+                  <td className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38]">
+                    {exp.disbursement_paid_at ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.disbursement_paid_at)}
+                      </span>
+                    ) : exp.disbursement_requested_at ? (
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                          Requested {formatDate(exp.disbursement_requested_at)}
+                        </span>
+                        <button onClick={() => onAdvanceDisbursement(exp.id, 'paid')} className="text-[10px] text-emerald-700 hover:underline">Mark Disb. Paid</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => onAdvanceDisbursement(exp.id, 'request')} className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition-colors">Submit Request</button>
+                    )}
+                  </td>
                   <td className="px-3 py-3 text-center border-l border-stone-100 dark:border-[#2a2a38]">
                     <div className="inline-flex items-center gap-2 justify-center">
                       {exp.attachment_url ? (
@@ -555,6 +574,32 @@ export default function ExpensesPage() {
     }
   }
 
+  async function handleAdvanceDisbursement(expenseId, step) {
+    try {
+      const now = new Date().toISOString()
+      const who = currentUser?.email || ''
+      const row = expenses.find(e => e.id === expenseId)
+      const updates = {}
+      if (step === 'request') {
+        updates.disbursement_requested_at = now
+        updates.disbursement_requested_by = who
+      } else if (step === 'paid') {
+        updates.disbursement_paid_at = now
+        updates.disbursement_paid_by = who
+        if (row && !row.disbursement_requested_at) {
+          updates.disbursement_requested_at = now
+          updates.disbursement_requested_by = who
+        }
+      }
+      const updated = await updateExpense(expenseId, updates)
+      if (updated) {
+        setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, ...updated } : e))
+      }
+    } catch (err) {
+      console.error('Failed to advance disbursement:', err)
+    }
+  }
+
   // Filter and sort — Hold-for-Payment items never appear in the main tracker
   let filtered = expenses.filter(e => e.pay_to_type !== 'hold')
   if (activeTab === 'expenses') {
@@ -683,6 +728,7 @@ export default function ExpensesPage() {
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
                 onViewEmail={handleViewEmail}
+                onAdvanceDisbursement={handleAdvanceDisbursement}
               />
             </CardContent>
           </Card>
@@ -716,6 +762,7 @@ export default function ExpensesPage() {
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
                 onViewEmail={handleViewEmail}
+                onAdvanceDisbursement={handleAdvanceDisbursement}
               />
             </CardContent>
           </Card>

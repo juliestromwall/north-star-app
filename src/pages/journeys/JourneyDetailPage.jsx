@@ -478,7 +478,7 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onAdvanceDisbursement }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [customPayeeDraft, setCustomPayeeDraft] = useState('')
@@ -589,12 +589,30 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     : (exp.paid_to || '—')
 
   return (
-    <tr className="border-b border-stone-100 hover:bg-stone-50/50">
+    <tr className={`border-b border-stone-100 hover:bg-stone-50/50 ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : ''}`}>
       <td className="px-4 py-3 text-sm">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
       <td className="px-4 py-3 text-sm font-medium">{renderCell('amount', fmtCurrency(exp.amount))}</td>
       <td className="px-4 py-3 text-sm">{renderCell('paid_to', paidToDisplay)}</td>
       <td className="px-4 py-3 text-sm">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
       <td className="px-4 py-3 text-sm">{renderCell('submitted_to_escrow', exp.submitted_to_escrow ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-stone-400">No</span>)}</td>
+      <td className="px-4 py-3 text-sm">
+        {exp.disbursement_paid_at ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+            <Check className="size-2.5" /> Paid {formatDate(exp.disbursement_paid_at)}
+          </span>
+        ) : exp.disbursement_requested_at ? (
+          <div className="flex flex-col gap-1 items-start">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+              Requested {formatDate(exp.disbursement_requested_at)}
+            </span>
+            {typeof onAdvanceDisbursement === 'function' && !exp.reconciled && (
+              <button onClick={() => onAdvanceDisbursement(exp.id, 'paid')} className="text-[10px] text-emerald-700 hover:underline">Mark Disb. Paid</button>
+            )}
+          </div>
+        ) : typeof onAdvanceDisbursement === 'function' && !exp.reconciled ? (
+          <button onClick={() => onAdvanceDisbursement(exp.id, 'request')} className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition-colors">Submit Request</button>
+        ) : '—'}
+      </td>
       <td className="px-4 py-3 text-sm text-stone-500">{renderCell('notes', exp.notes || '—')}</td>
       <td className="px-3 py-3 text-center">
         {exp.attachment_url ? (
@@ -1681,6 +1699,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const [addOpen, setAddOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [newDisbursementRequested, setNewDisbursementRequested] = useState(false)
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
   const { currentUser } = useRole()
@@ -1785,6 +1804,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         notes: formatLineItemsAsNotes(lineItems) || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
+        disbursement_requested_at: newDisbursementRequested ? new Date().toISOString() : null,
+        disbursement_requested_by: newDisbursementRequested ? (currentUser?.email || '') : null,
       })
       if (created) { setExpenses(prev => [created, ...prev]); onExpensesChanged?.() }
       // If escrow not opened, create task for Julie Allgood
@@ -1804,6 +1825,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         } catch (err) { console.error('Failed to create task:', err) }
       }
       setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+      setNewDisbursementRequested(false)
       setLineItems([emptyLineItem()])
       setAddOpen(false)
     } catch (err) {
@@ -1827,6 +1849,26 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     } catch (err) {
       console.error('Failed to delete expense:', err)
     }
+  }
+
+  async function handleAdvanceDisbursement(id, step) {
+    const now = new Date().toISOString()
+    const who = currentUser?.email || ''
+    const row = expenses.find(e => e.id === id)
+    const updates = {}
+    if (step === 'request') {
+      updates.disbursement_requested_at = now
+      updates.disbursement_requested_by = who
+    } else if (step === 'paid') {
+      updates.disbursement_paid_at = now
+      updates.disbursement_paid_by = who
+      if (row && !row.disbursement_requested_at) {
+        updates.disbursement_requested_at = now
+        updates.disbursement_requested_by = who
+      }
+    }
+    const updated = await updateExpense(id, updates)
+    if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
   const fmtCurrency = (val) => {
@@ -1982,6 +2024,13 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 )}
               </>
             )}
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+              <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
+              <button onClick={() => setNewDisbursementRequested(v => !v)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequested ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                {newDisbursementRequested ? 'Yes' : 'No'}
+              </button>
+            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
               <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
@@ -2028,7 +2077,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow Opened</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Disbursement</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
                     <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
@@ -2037,7 +2087,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onAdvanceDisbursement={handleAdvanceDisbursement} />
                   ))}
                 </tbody>
               </table>
@@ -2252,6 +2302,7 @@ export default function JourneyDetailPage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [newDisbursementRequestedHero, setNewDisbursementRequestedHero] = useState(false)
   const [expenseLineItems, setExpenseLineItems] = useState([emptyLineItem()])
   const expenseTotal = sumLineItems(expenseLineItems)
   const [savingExpense, setSavingExpense] = useState(false)
@@ -2703,6 +2754,13 @@ export default function JourneyDetailPage() {
                 )}
               </>
             )}
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+              <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
+              <button onClick={() => setNewDisbursementRequestedHero(v => !v)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequestedHero ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                {newDisbursementRequestedHero ? 'Yes' : 'No'}
+              </button>
+            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseLineItems([emptyLineItem()]) }}>Cancel</Button>
               <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
@@ -2755,6 +2813,8 @@ export default function JourneyDetailPage() {
                     notes: formatLineItemsAsNotes(expenseLineItems) || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
+                    disbursement_requested_at: newDisbursementRequestedHero ? new Date().toISOString() : null,
+                    disbursement_requested_by: newDisbursementRequestedHero ? (currentUser?.email || '') : null,
                   })
                   if (created) setJourneyExpenses(prev => [created, ...prev])
                   // If escrow not opened, create task for Julie Allgood
@@ -2774,6 +2834,7 @@ export default function JourneyDetailPage() {
                     } catch (err) { console.error('Failed to create task:', err) }
                   }
                   setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+                  setNewDisbursementRequestedHero(false)
                   setExpenseLineItems([emptyLineItem()])
                   setExpenseOpen(false)
                 } catch (err) {
