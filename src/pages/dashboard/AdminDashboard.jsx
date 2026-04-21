@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCompletedTasks, updateCaseTask, createCaseTask, deleteCaseTask, fetchAllOpenTasks, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, getAppConfig, setAppConfig, fetchActiveAdminNotes } from '@/lib/db'
 import { updateEvent } from '@/lib/google'
-import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
 import { getAdminStaff } from '@/data/mock/users'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -181,8 +181,10 @@ export default function AdminDashboard() {
 
   // Build cases — super/master admins see all, others see only assigned
   const myEmail = currentUser?.email
-  const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
-  const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
+  // Only *active* (non-archived) journeys block a surrogate/IP from appearing as a standalone case
+  const activeJourneysForFilter = journeys.filter(isJourneyActive)
+  const matchedGcIds = new Set(activeJourneysForFilter.map(j => j.gc_case_id))
+  const matchedIpIds = new Set(activeJourneysForFilter.map(j => j.ip_case_id))
 
   // Hide inactive cases from the dashboard:
   //   Surrogates: holding, withdrawn, not-qualified

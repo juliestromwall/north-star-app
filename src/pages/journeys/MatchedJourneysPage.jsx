@@ -31,12 +31,18 @@ export function journeyManagerOutlineColor(j) {
 
 export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
   const outline = journeyManagerOutlineColor(j)
+  const isArchived = !!j.journey_data?._archivedAt
   return (
     <Link to={`/journeys/${j.id}`}>
       <Card
-        className="rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0"
+        className={`rounded-2xl hover:shadow-lg transition-shadow cursor-pointer group overflow-hidden p-0 gap-0 ${isArchived ? 'opacity-70' : ''}`}
         style={outline ? { border: `2px solid ${outline}` } : undefined}
       >
+        {isArchived && (
+          <div className="px-3 py-1 bg-stone-100 text-stone-500 text-[9px] font-bold uppercase tracking-widest text-center border-b border-stone-200">
+            Archived
+          </div>
+        )}
         {/* IP */}
         <div className="px-4 pt-3 pb-2" style={{ backgroundColor: '#28369308' }}>
           <p className="text-[9px] font-semibold text-[#283693]/40 uppercase tracking-widest mb-1.5">Intended Parent{j.ip?.type === 'Couple' ? 's' : ''}</p>
@@ -147,17 +153,27 @@ export default function MatchedJourneysPage() {
       .then(([js, gcs, allIps]) => {
         setJourneys(js); setSurrogates(gcs); setIps(allIps)
         // Load surrogate avatars
-        const userIds = gcs.filter(g => g.userId).map(g => g.userId)
+        const gcsInJourneys = gcs.filter(g => (js || []).some(j => j.gc_case_id === g.id))
+        const userIds = gcsInJourneys.filter(g => g.userId).map(g => g.userId)
         if (userIds.length > 0) {
           getProfilePhotoUrls(userIds).then(urlMap => {
             // Map user_id → gc_case_id
             const byCase = {}
-            for (const g of gcs) {
+            for (const g of gcsInJourneys) {
               if (g.userId && urlMap[g.userId]) byCase[g.id] = urlMap[g.userId]
             }
-            setGcAvatars(byCase)
+            setGcAvatars(prev => ({ ...byCase, ...prev }))
           })
         }
+        // Fallback: also check {gc_case_id}/portrait for surrogates without a userId-based URL
+        ;(async () => {
+          const needsFallback = gcsInJourneys.filter(g => !g.userId || !userIds.includes(g.userId))
+          if (needsFallback.length === 0) return
+          const urls = await Promise.all(needsFallback.map(g => getPortraitPhotoUrl(String(g.id)).catch(() => null)))
+          const update = {}
+          needsFallback.forEach((g, i) => { if (urls[i]) update[g.id] = urls[i] })
+          if (Object.keys(update).length) setGcAvatars(prev => ({ ...prev, ...update }))
+        })()
         // Load IP avatars from storage (path: ip-{caseId}/portrait/)
         const ipIds = allIps.map(ip => ip.id)
         if (ipIds.length > 0) {
@@ -317,10 +333,11 @@ export default function MatchedJourneysPage() {
               <tbody>
                 {filtered.map(j => {
                   const outline = journeyManagerOutlineColor(j)
+                  const isArchived = !!j.journey_data?._archivedAt
                   return (
                   <tr
                     key={j.id}
-                    className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer"
+                    className={`border-b last:border-0 hover:bg-stone-50/50 cursor-pointer ${isArchived ? 'opacity-60' : ''}`}
                     style={outline ? { boxShadow: `inset 4px 0 0 ${outline}` } : undefined}
                     onClick={() => window.location.href = `/journeys/${j.id}`}
                   >

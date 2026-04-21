@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  ArrowLeft, Heart, Users, Baby, MapPin, Stethoscope, FileText,
+  ArrowLeft, ArrowRight, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
   Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
@@ -33,7 +33,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
@@ -2133,6 +2133,11 @@ export default function JourneyDetailPage() {
   const [breakOpen, setBreakOpen] = useState(false)
   const [breakReason, setBreakReason] = useState('')
   const [breaking, setBreaking] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+  const [archiveReason, setArchiveReason] = useState('')
+  const [archiving, setArchiving] = useState(false)
+  const [startCaseOpen, setStartCaseOpen] = useState(false)
+  const [startingCase, setStartingCase] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
@@ -2304,6 +2309,44 @@ export default function JourneyDetailPage() {
     }
   }
 
+  async function handleArchiveJourney() {
+    setArchiving(true)
+    try {
+      await archiveJourney(journey.id, {
+        reason: archiveReason.trim() || null,
+        archivedBy: currentUser.name,
+        gcCaseId: journey.gc_case_id,
+        ipCaseId: journey.ip_case_id,
+        gcName: gcCase?.name,
+        ipName: ipCase?.names,
+      })
+      window.location.href = '/journeys'
+    } catch (err) {
+      alert('Failed to archive journey: ' + (err.message || ''))
+      setArchiving(false)
+    }
+  }
+
+  async function handleStartNewCase() {
+    setStartingCase(true)
+    try {
+      const newCase = await startNewCaseFromJourney({
+        fromCaseId: journey.gc_case_id,
+        journeyId: journey.id,
+        createdBy: currentUser.name,
+      })
+      if (newCase?.id) {
+        window.location.href = `/surrogates/${newCase.id}`
+      } else {
+        setStartCaseOpen(false)
+        setStartingCase(false)
+      }
+    } catch (err) {
+      alert('Failed to start new case: ' + (err.message || ''))
+      setStartingCase(false)
+    }
+  }
+
   if (loading) return <div className="text-center py-12 text-stone-400">Loading journey...</div>
   if (!journey) return (
     <div className="space-y-6">
@@ -2341,6 +2384,69 @@ export default function JourneyDetailPage() {
               <Button variant="destructive" size="sm" onClick={handleBreakMatch} disabled={breaking || !breakReason.trim()} className="gap-1">
                 {breaking ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 {breaking ? 'Breaking...' : 'Break Match'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Start New Case Dialog */}
+      <Dialog open={startCaseOpen} onOpenChange={setStartCaseOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#ed148c]">Start New Case for {gcCase?.name?.split(' ')[0] || 'Surrogate'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-pink-50 border border-pink-200 p-3 text-sm text-[#283693]">
+              <p className="font-semibold">Create a fresh case while this journey stays open?</p>
+              <p className="mt-1 text-xs text-stone-600">
+                Use this after delivery when the current journey must remain active (escrow, post-partum payments, etc.).
+                A new surrogate case will be created with a copy of the existing application. Her profile
+                travels automatically (it's keyed by email). The team can start a new checklist on the new case while
+                this journey continues as-is.
+              </p>
+              {jd._newCaseStartedId && (
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                  Heads up — a new case was already started for this surrogate. Creating another will link to an additional new case.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setStartCaseOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleStartNewCase} disabled={startingCase} className="gap-1" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
+                {startingCase ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                {startingCase ? 'Creating...' : 'Start New Case'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Journey Dialog */}
+      <Dialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#283693]">Archive Journey</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#283693]">
+              <p className="font-semibold">This journey is complete — archive it?</p>
+              <p className="mt-1 text-xs text-stone-600">
+                All journey data (checklist, expenses, notes, emails, documents) will be preserved.
+                <strong className="mx-1">{gcCase?.name}</strong> will rejoin the case list so she can start a new journey, and
+                <strong className="mx-1">{ipCase?.names}</strong> will return to the intended-parents list.
+                Previous-match history will be logged on both cases.
+              </p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-stone-500 font-medium">Reason / notes (optional)</label>
+              <Textarea value={archiveReason} onChange={e => setArchiveReason(e.target.value)} placeholder="e.g. Baby delivered. Starting new journey." rows={3} />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setArchiveOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleArchiveJourney} disabled={archiving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                {archiving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                {archiving ? 'Archiving...' : 'Archive Journey'}
               </Button>
             </div>
           </div>
@@ -2607,9 +2713,20 @@ export default function JourneyDetailPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
-                <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
-                  <X className="size-3" /> Break Match
-                </Button>
+                {jd._archivedAt ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
+                    <Check className="size-3" /> Archived
+                  </span>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setArchiveOpen(true)}>
+                      <Check className="size-3" /> Archive Journey
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
+                      <X className="size-3" /> Break Match
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -2827,6 +2944,28 @@ export default function JourneyDetailPage() {
                 </div>
                 <AttorneyRow prefix="gcAttorney" data={jd} onSaveBatch={updateFields}
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'GC Attorney', email, caseId: journey.id })} />
+                {/* Start New Case — only after delivery, while the current journey stays open for escrow/post-partum */}
+                {jd.delivered && (
+                  <div className="pt-1">
+                    {jd._newCaseStartedId ? (
+                      <Link
+                        to={`/surrogates/${jd._newCaseStartedId}`}
+                        className="inline-flex items-center gap-1.5 text-xs text-[#283693] hover:text-[#ed148c] hover:underline"
+                      >
+                        <ArrowRight className="size-3" /> New case started {jd._newCaseStartedAt ? `${fmtDate(jd._newCaseStartedAt)}` : ''} — open it
+                      </Link>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-[#ed148c]/40 text-[#ed148c] hover:bg-[#ed148c]/10 hover:text-[#ed148c]"
+                        onClick={() => setStartCaseOpen(true)}
+                      >
+                        <Plus className="size-3" /> Start New Case for {gcCase.name?.split(' ')[0] || 'Surrogate'}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </>)
             })() : <p className="text-xs text-stone-400">GC not found</p>}
             {/* GC Sticky Note */}

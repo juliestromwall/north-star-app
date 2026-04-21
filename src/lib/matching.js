@@ -177,6 +177,159 @@ export async function updateMatchedJourney(id, updates) {
   return data
 }
 
+// True if a journey is still active (i.e. not archived). Archived journeys keep all their data
+// but their participants reappear in the case/matching lists so they can start a new journey.
+export function isJourneyActive(j) {
+  return !j?.journey_data?._archivedAt
+}
+
+// Archive a journey — preserve all data but release the GC and IP back into their respective lists.
+// Stamps _archivedAt on the journey, logs a _matchHistory entry on both intake rows (so the
+// existing "Previous Match" UI kicks in), and drops a case note on both sides.
+export async function archiveJourney(journeyId, { reason, archivedBy, gcCaseId, ipCaseId, gcName, ipName }) {
+  if (!supabase) return null
+
+  const { data: journey } = await supabase.from('matched_journeys').select('*').eq('id', journeyId).single()
+  if (!journey) return null
+  const journeyData = journey.journey_data || {}
+  const archivedAt = new Date().toISOString()
+
+  // 1. Stamp archive metadata on the journey — keep all existing journey_data
+  const updatedJourneyData = {
+    ...journeyData,
+    _archivedAt: archivedAt,
+    _archivedBy: archivedBy || null,
+    _archiveReason: reason || null,
+  }
+  await supabase.from('matched_journeys')
+    .update({ journey_data: updatedJourneyData })
+    .eq('id', journeyId)
+
+  // 2. Append a completed-match entry to _matchHistory on both intake rows
+  for (const caseId of [gcCaseId, ipCaseId]) {
+    if (!caseId) continue
+    const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+    if (!row?.answers) continue
+    const isGc = caseId === gcCaseId
+    const history = Array.isArray(row.answers._matchHistory) ? row.answers._matchHistory : []
+    history.push({
+      journeyId,
+      partnerId: isGc ? ipCaseId : gcCaseId,
+      partnerName: isGc ? (ipName || 'Unknown IP') : (gcName || 'Unknown GC'),
+      partnerType: isGc ? 'ip' : 'gc',
+      status: 'completed',
+      reason: reason || null,
+      archivedBy: archivedBy || null,
+      archivedAt,
+      matchCreated: journey.created_at,
+      assignedTo: journey.assigned_to,
+      stage: journey.stage,
+      journeyData: {
+        escrowMin: journeyData.escrowMin, escrowBalance: journeyData.escrowBalance,
+        ivfClinic: journeyData.ivfClinic, ivfDoctor: journeyData.ivfDoctor,
+        obClinic: journeyData.obClinic, obDoctor: journeyData.obDoctor,
+        deliveryHospital: journeyData.deliveryHospital,
+        gcAttorneyName: journeyData.gcAttorneyName, ipAttorneyName: journeyData.ipAttorneyName,
+        delivered: journeyData.delivered, deliveryDate: journeyData.deliveryDate,
+        babyNames: journeyData.babyNames, babySexes: journeyData.babySexes,
+      },
+    })
+    await supabase.from('intake_submissions')
+      .update({ answers: { ...row.answers, _matchHistory: history } })
+      .eq('id', caseId)
+  }
+
+  // 3. Drop a case note on both sides for visibility
+  const noteContent = `Journey archived${reason ? ` — reason: ${reason}` : ''}. Both parties are now available for new matches.`
+  for (const caseId of [gcCaseId, ipCaseId]) {
+    if (!caseId) continue
+    try {
+      await supabase.from('case_notes').insert({
+        surrogate_id: caseId,
+        author_name: archivedBy || 'Admin',
+        content: noteContent,
+      })
+    } catch (err) {
+      console.warn('Failed to add archive case note:', err)
+    }
+  }
+
+  return true
+}
+
+// Start a new surrogate case that inherits the application + profile from an existing case.
+// Use this after delivery when the existing journey must stay open (e.g. escrow still in progress),
+// but we want the surrogate back in the case list so she can begin a new round of profile work
+// and the team can run a fresh checklist.
+// - Creates a new intake_submissions row with the old row's answers copied, flagged with
+//   _continuedFromCaseId/_continuedFromJourneyId for traceability.
+// - The shared surrogate_profiles row (keyed by email) is automatically visible on the new case.
+// - Stamps _newCaseStartedId/_newCaseStartedAt/_newCaseStartedBy on the old journey so the
+//   admin can see the linkage from either side.
+export async function startNewCaseFromJourney({ fromCaseId, journeyId, createdBy }) {
+  if (!supabase) return null
+
+  const { data: oldCase, error: getErr } = await supabase
+    .from('intake_submissions')
+    .select('*')
+    .eq('id', fromCaseId)
+    .single()
+  if (getErr || !oldCase) throw getErr || new Error('Source case not found')
+
+  const nowIso = new Date().toISOString()
+  const newAnswers = {
+    ...(oldCase.answers || {}),
+    _continuedFromCaseId: fromCaseId,
+    _continuedFromJourneyId: journeyId || null,
+    _continuedAt: nowIso,
+    _continuedBy: createdBy || null,
+  }
+
+  const newSubmission = {
+    intake_type: oldCase.intake_type,
+    status: oldCase.status || 'qualified',
+    qualified: oldCase.qualified !== false,
+    applicant_name: oldCase.applicant_name,
+    applicant_email: oldCase.applicant_email,
+    applicant_phone: oldCase.applicant_phone,
+    answers: newAnswers,
+    submitted_at: nowIso,
+    assigned_to: oldCase.assigned_to,
+    referral_partner: oldCase.referral_partner,
+    state_region: oldCase.state_region,
+    dq_reasons: Array.isArray(oldCase.dq_reasons) ? oldCase.dq_reasons : [],
+  }
+
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .insert(newSubmission)
+    .select()
+    .single()
+  if (error) throw error
+
+  // Mark the originating journey so the old case page can link to the new case.
+  if (journeyId) {
+    const { data: oldJourney } = await supabase
+      .from('matched_journeys')
+      .select('journey_data')
+      .eq('id', journeyId)
+      .single()
+    if (oldJourney) {
+      const updatedJd = {
+        ...(oldJourney.journey_data || {}),
+        _newCaseStartedId: data.id,
+        _newCaseStartedAt: nowIso,
+        _newCaseStartedBy: createdBy || null,
+      }
+      await supabase.from('matched_journeys')
+        .update({ journey_data: updatedJd })
+        .eq('id', journeyId)
+    }
+  }
+
+  return data
+}
+
 export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCaseId, gcName, ipName }) {
   if (!supabase) return null
 

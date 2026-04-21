@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRole } from '@/context/RoleContext'
 import PageHeader from '@/components/shared/PageHeader'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchSurrogateProfilesByEmails, getRecordTrackingBatch, fetchCaseEmails, fetchCaseTasks, fetchCaseNotes, fetchInsurance, fetchInsurancePayments, fetchJourneyExpenses } from '@/lib/db'
-import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
 import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
@@ -253,8 +253,9 @@ export default function CaseUpdatesPage() {
   }, [])
 
   // Exclude surrogates and IPs that are in a matched journey
-  const matchedGcIds = useMemo(() => new Set(journeys.map(j => j.gc_case_id).filter(Boolean)), [journeys])
-  const matchedIpIds = useMemo(() => new Set(journeys.map(j => j.ip_case_id).filter(Boolean)), [journeys])
+  // Only active (non-archived) journeys block a case from the unmatched list
+  const matchedGcIds = useMemo(() => new Set(journeys.filter(isJourneyActive).map(j => j.gc_case_id).filter(Boolean)), [journeys])
+  const matchedIpIds = useMemo(() => new Set(journeys.filter(isJourneyActive).map(j => j.ip_case_id).filter(Boolean)), [journeys])
   // Filter by assigned admin (unless super/master admin)
   const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id) && (showAll || s.assignedTo === myEmail)), [surrogates, matchedGcIds, showAll, myEmail])
   const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id) && (showAll || ip.assignedTo === myEmail)), [ips, matchedIpIds, showAll, myEmail])

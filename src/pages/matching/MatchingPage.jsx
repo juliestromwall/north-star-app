@@ -17,7 +17,7 @@ import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNo
 import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails, getPortraitPhotoUrl } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
-import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion } from '@/lib/matching'
+import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion, isJourneyActive } from '@/lib/matching'
 
 // ── Searchable Picker (used for Create Match dialog) ──
 function SearchablePicker({ label, placeholder, value, options, onSelect }) {
@@ -169,8 +169,10 @@ export default function MatchingPage() {
     return surrogates.filter(s => getSurrogateStageStatus(s.id).stage === 'matching')
   }, [surrogates])
 
-  const matchedGcIds = new Set(journeys.map(j => j.gc_case_id))
-  const matchedIpIds = new Set(journeys.map(j => j.ip_case_id))
+  // Only active (non-archived) journeys block cases from the matching pipeline
+  const activeJourneysForFilter = journeys.filter(isJourneyActive)
+  const matchedGcIds = new Set(activeJourneysForFilter.map(j => j.gc_case_id))
+  const matchedIpIds = new Set(activeJourneysForFilter.map(j => j.ip_case_id))
   // Hide already-matched cases from the pipeline
   const unmatchedGCs = matchingGCs.filter(s => !matchedGcIds.has(s.id))
   const unmatchedIPs = ips.filter(i => !matchedIpIds.has(i.id))

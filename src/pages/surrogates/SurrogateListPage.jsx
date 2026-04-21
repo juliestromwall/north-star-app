@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { getAdminStaff } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
-import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
@@ -339,7 +339,9 @@ export default function SurrogateListPage() {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])
       .then(([data, profileList, journeys]) => {
         // Filter out matched surrogates
-        const matchedGcIds = new Set((journeys || []).map(j => j.gc_case_id))
+        // Only *active* (non-archived) journeys block a surrogate from appearing in this list
+        const activeJourneys = (journeys || []).filter(isJourneyActive)
+        const matchedGcIds = new Set(activeJourneys.map(j => j.gc_case_id))
         const filtered = (data || []).filter(s => !matchedGcIds.has(s.id))
         setSurrogates(filtered)
         const map = {}
@@ -369,6 +371,17 @@ export default function SurrogateListPage() {
               needsStoragePortrait.forEach(({ surrogateId }, i) => {
                 if (urls[i]) update[surrogateId] = urls[i]
               })
+              if (Object.keys(update).length) setAvatarUrls(prev => ({ ...prev, ...update }))
+            })
+        }
+        // Fallback: also check storage at {caseId}/portrait for any surrogate still without an avatar
+        // (covers applicants who uploaded a photo before a profile record / userId was set up)
+        const stillMissing = filtered.filter(s => !avatars[s.id] && !needsStoragePortrait.some(n => n.surrogateId === s.id))
+        if (stillMissing.length > 0) {
+          Promise.all(stillMissing.map(s => getPortraitPhotoUrl(String(s.id)).catch(() => null)))
+            .then(urls => {
+              const update = {}
+              stillMissing.forEach((s, i) => { if (urls[i]) update[s.id] = urls[i] })
               if (Object.keys(update).length) setAvatarUrls(prev => ({ ...prev, ...update }))
             })
         }

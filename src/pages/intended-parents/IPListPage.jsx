@@ -15,7 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, adminAddIP, getAppConfig, getPortraitPhotoUrl } from '@/lib/db'
-import { fetchMatchedJourneys } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { IP_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getChecklistMilestones } from '@/lib/checklistStore'
@@ -218,7 +218,8 @@ export default function IPListPage() {
   useEffect(() => {
     Promise.all([fetchIPsFromIntake(), fetchMatchedJourneys()])
       .then(([data, journeys]) => {
-        const matchedIpIds = new Set((journeys || []).map(j => j.ip_case_id))
+        const activeJourneys = (journeys || []).filter(isJourneyActive)
+        const matchedIpIds = new Set(activeJourneys.map(j => j.ip_case_id))
         const ipList = (data || []).filter(ip => !matchedIpIds.has(ip.id))
         setIps(ipList)
         // Load stage statuses
