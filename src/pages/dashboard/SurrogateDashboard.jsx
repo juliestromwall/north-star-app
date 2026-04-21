@@ -21,14 +21,30 @@ function getProfileData(userId) {
   } catch { return null }
 }
 
-// Sections visible on the portal profile page (excludes followUp which is application-only)
-const PROFILE_SECTIONS = SECTION_META.filter(s => s.key !== 'followUp')
+// Merge Supabase profile_data with localStorage the same way SurrogateProfilePage does,
+// so the dashboard % matches the profile page % even on fresh sessions/devices.
+function mergeProfileData(supabaseData, localData) {
+  const hasSupabase = supabaseData && Object.keys(supabaseData).length > 0
+  if (!hasSupabase) return localData || {}
+  const merged = { ...supabaseData }
+  if (merged.about || merged.family) {
+    merged.personal = { ...merged.about, ...merged.family, ...merged.personal }
+  }
+  if (merged.lifestyle && !merged.general) merged.general = merged.lifestyle
+  if (merged.preferences && !merged.hopesWishes) merged.hopesWishes = merged.preferences
+  if (localData) {
+    for (const [section, fields] of Object.entries(localData)) {
+      if (!merged[section]) merged[section] = fields
+      else merged[section] = { ...merged[section], ...fields }
+    }
+  }
+  return merged
+}
 
-function getProfileCompletion(userId) {
-  const data = getProfileData(userId)
+function computeCompletion(data) {
   if (!data) return 0
   let total = 0, filled = 0
-  for (const s of PROFILE_SECTIONS) {
+  for (const s of SECTION_META) {
     const { filled: f, total: t } = countCompleted(data, s.key)
     total += t
     filled += f
@@ -36,11 +52,11 @@ function getProfileCompletion(userId) {
   return total > 0 ? Math.round((filled / total) * 100) : 0
 }
 
-function getFirstIncompleteSection(userId) {
-  const data = getProfileData(userId)
-  for (const s of PROFILE_SECTIONS) {
+function firstIncompleteSection(data) {
+  if (!data) return 'personal'
+  for (const s of SECTION_META) {
     const fields = REQUIRED_FIELDS[s.key] || []
-    if (fields.length === 0) continue
+    if (fields.length === 0 && s.key !== 'pregnancyHistory' && s.key !== 'experiencedSurrogate') continue
     const { complete } = countCompleted(data, s.key)
     if (!complete) return s.key
   }
@@ -87,11 +103,15 @@ function ProfileProgressCard({ userId, currentUser }) {
   const [nextSection, setNextSection] = useState('about')
   const [profileStatus, setProfileStatus] = useState(null) // null, 'pending_review', 'approved'
   useEffect(() => {
-    setPercent(getProfileCompletion(userId))
-    setNextSection(getFirstIncompleteSection(userId))
+    const local = getProfileData(userId)
+    setPercent(computeCompletion(local))
+    setNextSection(firstIncompleteSection(local))
     if (currentUser?.id) {
       fetchSurrogateProfile(currentUser.id).then(result => {
         if (result?.status) setProfileStatus(result.status)
+        const merged = mergeProfileData(result?.profile_data, local)
+        setPercent(computeCompletion(merged))
+        setNextSection(firstIncompleteSection(merged))
       }).catch(() => {})
     }
   }, [userId, currentUser?.id])
