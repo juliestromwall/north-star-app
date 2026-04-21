@@ -301,46 +301,6 @@ export default function IPDashboard() {
         </div>
       )}
 
-      {/* ── Submitted thank-you card ── */}
-      {caseData?.answers?._profileSubmitted && !caseData?.answers?._profileReleasedAt && (
-        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
-          <div className="h-1 bg-blue-500" />
-          <div className="p-6">
-            <div className="flex items-start gap-5">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 shrink-0">
-                <Send className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-blue-700 text-base">Thank you for submitting your profile</p>
-                <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
-                  We will review and reach out to you with any additional questions and next steps.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Reopened-for-edits card ── */}
-      {caseData?.answers?._profileSubmitted && caseData?.answers?._profileReleasedAt && (
-        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
-          <div className="h-1 bg-amber-500" />
-          <div className="p-6">
-            <div className="flex items-start gap-5">
-              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 shrink-0">
-                <AlertCircle className="w-6 h-6 text-amber-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-amber-700 text-base">Profile reopened for edits</p>
-                <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
-                  Our team has reopened your profile. Please make your updates and re-submit when you're ready.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── My Profile progress card (mirrors surrogate ProfileProgressCard) ── */}
       <IPProfileProgressCard caseData={caseData} />
 
