@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2,
+  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2, Unlock, Send,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -58,6 +58,7 @@ export default function IPDetailPage() {
   const [portalStatus, setPortalStatus] = useState(null)
   const [invitingPartner, setInvitingPartner] = useState(false)
   const [partnerInviteResult, setPartnerInviteResult] = useState(null)
+  const [releasingProfile, setReleasingProfile] = useState(false)
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
@@ -232,6 +233,54 @@ export default function IPDetailPage() {
                 </Button>
               )}
               <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />
+              {/* Profile submission status — admin view */}
+              {ip.answers?._profileSubmitted && !ip.answers?._profileReleasedAt && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50"
+                    disabled={releasingProfile}
+                    onClick={async () => {
+                      if (!window.confirm(`Reopen ${ip.names}'s profile so they can make edits?`)) return
+                      setReleasingProfile(true)
+                      try {
+                        const { supabase } = await import('@/lib/supabase')
+                        if (!supabase) throw new Error('No DB connection')
+                        const updatedAnswers = {
+                          ...(ip.answers || {}),
+                          _profileReleasedAt: new Date().toISOString(),
+                          _profileReleasedBy: currentUser?.name || currentUser?.email || '',
+                        }
+                        const { error } = await supabase
+                          .from('intake_submissions')
+                          .update({ answers: updatedAnswers })
+                          .eq('id', ip.id)
+                        if (error) throw error
+                        setIp(prev => ({ ...prev, answers: updatedAnswers }))
+                      } catch (err) {
+                        alert(`Release failed: ${err.message || 'Unknown error'}`)
+                      } finally {
+                        setReleasingProfile(false)
+                      }
+                    }}>
+                    {releasingProfile ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
+                    {releasingProfile ? 'Releasing...' : 'Release Application'}
+                  </Button>
+                  <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                    <Send className="size-3" /> Profile Submitted
+                  </span>
+                  {ip.answers?._profileSubmittedAt && (
+                    <span className="text-[10px] text-stone-400">Submitted {new Date(ip.answers._profileSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                  )}
+                </div>
+              )}
+              {ip.answers?._profileSubmitted && ip.answers?._profileReleasedAt && (
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] text-amber-600 font-medium">Profile reopened for edits</span>
+                  <span className="text-[10px] text-stone-400">Released {new Date(ip.answers._profileReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+              )}
               {/* Invite / Portal status — primary IP */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center">

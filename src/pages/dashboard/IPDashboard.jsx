@@ -5,9 +5,88 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
-import { Heart, FileText, ArrowRight, Loader2, User, Mail, Phone, MapPin, CheckCircle2, Clock, ClipboardList, ChevronDown, AlertCircle } from 'lucide-react'
+import { Heart, FileText, ArrowRight, Loader2, User, Mail, Phone, MapPin, CheckCircle2, Clock, ClipboardList, ChevronDown, AlertCircle, Send, UserCheck, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { findCaseByEmail, fetchUserTasks, updateTaskStatus, fetchIntakeByEmail } from '@/lib/db'
+import { countCompletion } from '@/pages/profile/IPProfilePage'
+
+// ── Progress ring (matches surrogate dashboard) ──
+function ProgressRing({ percent, size = 72 }) {
+  const r = (size - 6) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (percent / 100) * circ
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e7e5e4" strokeWidth={5} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#ed148c" strokeWidth={5}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}
+        className="transition-all duration-700"
+      />
+      <text x="50%" y="50%" textAnchor="middle" dy=".35em" className="text-xs font-bold fill-stone-700">{percent}%</text>
+    </svg>
+  )
+}
+
+// ── My Profile progress card (mirrors surrogate ProfileProgressCard) ──
+function IPProfileProgressCard({ caseData }) {
+  if (!caseData) return null
+  const answers = caseData.answers || {}
+  const profile = answers._ipProfile || {}
+  const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
+  const percent = countCompletion(profile, hasPartner)
+  const isSubmitted = !!answers._profileSubmitted && !answers._profileReleasedAt
+  const isReleased = !!answers._profileSubmitted && !!answers._profileReleasedAt
+  const title = isSubmitted ? 'Profile Submitted' : 'My Profile'
+  const ctaLabel = isSubmitted ? 'View Profile' : percent === 0 ? 'Get Started' : 'Continue'
+
+  // Status-based accent color
+  const accent = isSubmitted
+    ? { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', btn: '#d97706' }
+    : { bg: 'bg-[#ed148c]', light: 'bg-pink-50', text: 'text-stone-500', border: 'border-stone-100', btn: '#ed148c' }
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl bg-white border ${accent.border} shadow-sm hover:shadow-md transition-all`}>
+      <div className={`h-1 ${accent.bg}`} />
+      <div className="p-6">
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+          <ProgressRing percent={percent} size={72} />
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <div className="flex items-center gap-2 justify-center sm:justify-start">
+              <p className="font-semibold text-stone-800 text-lg">{title}</p>
+              {isSubmitted && <Clock className="w-5 h-5 text-amber-500" />}
+            </div>
+            {isSubmitted ? (
+              <p className="text-sm text-amber-700 mt-1.5 leading-relaxed">
+                Your profile has been submitted and is under review. We will reach out soon for next steps!
+              </p>
+            ) : isReleased ? (
+              <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
+                Our team reopened your profile. Make any updates and re-submit when you're ready.
+              </p>
+            ) : (
+              <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
+                Complete your matching profile so surrogates can find you. It takes about 20–30 minutes — you can save your progress at any time.
+              </p>
+            )}
+            <div className="mt-3 max-w-sm mx-auto sm:mx-0">
+              <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${percent}%`, background: isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+              </div>
+              <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
+            </div>
+          </div>
+          <Link to="/my-profile">
+            <Button className="rounded-xl gap-1.5 shrink-0 w-full sm:w-auto shadow-sm" style={{ backgroundColor: accent.btn, color: '#fff' }}>
+              {ctaLabel} <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── Task components (same as surrogate dashboard) ──
 
@@ -194,29 +273,77 @@ export default function IPDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[#283693]">Welcome, {firstName}!</h1>
       </div>
 
-      {/* Status Banner */}
-      {!loading && activeTasks.length === 0 && completedTasks.length === 0 && (
-        <Card className="border-[#283693]/20" style={{ backgroundColor: '#f0f1fa' }}>
-          <CardContent className="py-6">
-            <div className="flex items-start gap-4">
-              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#283693]/10 shrink-0">
-                <Heart className="w-6 h-6 text-[#283693]" />
+      {/* ── Welcome intro card (pre-submit) ── */}
+      {!caseData?.answers?._profileSubmitted && (
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
+          <div className="h-1 bg-gradient-to-r from-[#283693] to-[#ed148c]" />
+          <div className="p-6">
+            <div className="flex items-start gap-5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#283693]/8 shrink-0">
+                <Sparkles className="w-6 h-6 text-[#283693]" />
               </div>
-              <div>
-                <p className="font-semibold text-[#283693] text-lg">Welcome to Your Portal</p>
-                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
-                  We're here to support you every step of the way. Our team will be in touch shortly to discuss next steps in your journey.
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-[#283693] text-base">Welcome to Your User Portal</p>
+                <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
+                  We would love if you could complete your Intended Parent Profile. This is the profile that may be shared with prospective surrogates. Please be sure to include photos of you, and some photos with your family, loved ones or pets.
+                </p>
+                <p className="text-sm text-stone-500 mt-2 leading-relaxed">
+                  If there are two Intended Parents, both of you will have information to complete in some sections. Once you are done, please Submit your profile for review.
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
+
+      {/* ── Submitted thank-you card ── */}
+      {caseData?.answers?._profileSubmitted && !caseData?.answers?._profileReleasedAt && (
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
+          <div className="h-1 bg-blue-500" />
+          <div className="p-6">
+            <div className="flex items-start gap-5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 shrink-0">
+                <Send className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-blue-700 text-base">Thank you for submitting your profile</p>
+                <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
+                  We will review and reach out to you with any additional questions and next steps.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reopened-for-edits card ── */}
+      {caseData?.answers?._profileSubmitted && caseData?.answers?._profileReleasedAt && (
+        <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
+          <div className="h-1 bg-amber-500" />
+          <div className="p-6">
+            <div className="flex items-start gap-5">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 shrink-0">
+                <AlertCircle className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-amber-700 text-base">Profile reopened for edits</p>
+                <p className="text-sm text-stone-500 mt-1.5 leading-relaxed">
+                  Our team has reopened your profile. Please make your updates and re-submit when you're ready.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── My Profile progress card (mirrors surrogate ProfileProgressCard) ── */}
+      <IPProfileProgressCard caseData={caseData} />
+
 
       {/* Action banner — pending tasks */}
       {pendingCount > 0 && (

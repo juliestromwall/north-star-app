@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin, Send, AlertTriangle } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import Cropper from 'react-easy-crop'
-import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos } from '@/lib/db'
+import { findCaseByEmail, updateIntakeSubmission, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, createCaseTask } from '@/lib/db'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 // ── Field definitions ──
 
@@ -752,7 +753,7 @@ const SECTIONS = [
 
 // ── Completion helpers ──
 
-function countCompletion(profile, hasPartner) {
+export function countCompletion(profile, hasPartner) {
   let filled = 0, total = 0
   for (const sec of SECTIONS) {
     const data = sec.perPerson ? profile?.ip1?.[sec.key] || {} : profile?.[sec.key] || {}
@@ -889,6 +890,8 @@ export default function IPProfilePage() {
   const [openSections, setOpenSections] = useState({})
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
+  const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const saveTimer = useRef(null)
 
   useEffect(() => {
@@ -933,6 +936,11 @@ export default function IPProfilePage() {
   const ip2Name = caseData?.answers?.ip2FirstName || 'IP2'
   const completion = useMemo(() => countCompletion(profile, hasPartner), [profile, hasPartner])
   const isApproved = !!profile?._approved
+  // Lock state: profile submitted and not released back by admin
+  const profileSubmitted = !!caseData?.answers?._profileSubmitted
+  const profileReleasedAt = caseData?.answers?._profileReleasedAt
+  // Once released, profileSubmitted stays true but isLocked goes false so the IP can edit
+  const isLocked = (profileSubmitted && !profileReleasedAt) || isApproved
 
   // Auto-save with debounce (2 seconds after last change)
   const scheduleAutoSave = useCallback((updatedProfile) => {
@@ -947,7 +955,7 @@ export default function IPProfilePage() {
 
   // Update a shared section field
   function updateField(sectionKey, fieldKey, value) {
-    if (profile?._approved) return
+    if (isLocked) return
     const updated = { ...profile, [sectionKey]: { ...profile[sectionKey], [fieldKey]: value } }
     setProfile(updated)
     scheduleAutoSave(updated)
@@ -955,10 +963,71 @@ export default function IPProfilePage() {
 
   // Update a per-person section field
   function updatePersonField(person, sectionKey, fieldKey, value) {
-    if (profile?._approved) return
+    if (isLocked) return
     const updated = { ...profile, [person]: { ...profile[person], [sectionKey]: { ...profile[person]?.[sectionKey], [fieldKey]: value } } }
     setProfile(updated)
     scheduleAutoSave(updated)
+  }
+
+  // Submit profile for review
+  async function handleSubmitForReview() {
+    if (!caseData?.id) return
+    setSubmitting(true)
+    try {
+      const a = caseData.answers || {}
+      const primaryName = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
+      const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : ''
+      const ipName = ip2Name ? `${primaryName} & ${ip2Name}` : primaryName || 'Intended Parent'
+
+      // 1. Flush any pending profile edits + mark as submitted on the same row
+      const now = new Date().toISOString()
+      const updatedAnswers = {
+        ...a,
+        _ipProfile: profile,
+        _profileSubmitted: true,
+        _profileSubmittedAt: now,
+        _profileSubmittedBy: currentUser?.name || currentUser?.email || '',
+        // If a previously-released profile is being re-submitted, clear the release flag.
+        _profileReleasedAt: null,
+        _profileReleasedBy: null,
+      }
+      try {
+        await updateIntakeSubmission(caseData.id, { answers: updatedAnswers })
+        setCaseData({ ...caseData, answers: updatedAnswers })
+      } catch (err) {
+        console.error('IP profile submit save failed:', err)
+        alert("We couldn't save your profile. Please check your internet connection and try again.")
+        return
+      }
+
+      // 2. Notify Julie/Nicole/intake
+      try {
+        await fetch('/api/notify-ip-profile-submitted', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ipName, ipEmail: currentUser?.email, caseId: caseData.id }),
+        })
+      } catch (err) { console.error('IP profile notify email failed:', err) }
+
+      // 3. Task for the assigned admin (falls back to intake@)
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        const assignedTo = caseData.assigned_to || 'intake@abcsurrogacy.com'
+        await createCaseTask({
+          case_id: caseData.id,
+          case_type: 'ip',
+          title: `Review ${ipName}'s Profile`,
+          assigned_to: assignedTo,
+          due_date: today,
+          priority: 'high',
+          status: 'open',
+        })
+      } catch (err) { console.error('IP profile task creation failed:', err) }
+
+      setShowSubmitModal(false)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function toggleSection(key) {
@@ -1034,6 +1103,32 @@ export default function IPProfilePage() {
         </CardContent>
       </Card>
 
+      {/* Submitted banner */}
+      {profileSubmitted && !profileReleasedAt && !isApproved && (
+        <div className="flex items-center gap-3 p-5 rounded-xl bg-blue-50 border-2 border-blue-200 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+            <Send className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="font-bold text-blue-800">Profile Submitted for Review</p>
+            <p className="text-sm text-blue-600 mt-0.5">Your profile has been submitted. Our team will review and reach out with any additional questions. If you need to make edits, please contact <a href="mailto:info@abcsurrogacy.com" className="font-semibold underline">info@abcsurrogacy.com</a>.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Reopened banner — admin released profile back to IP */}
+      {profileSubmitted && profileReleasedAt && !isApproved && (
+        <div className="flex items-center gap-3 p-5 rounded-xl bg-amber-50 border-2 border-amber-200 shadow-sm">
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="font-bold text-amber-800">Profile reopened for edits</p>
+            <p className="text-sm text-amber-700 mt-0.5">Our team has reopened your profile. Please make your updates and re-submit when you're ready.</p>
+          </div>
+        </div>
+      )}
+
       {/* Approved banner */}
       {isApproved && (
         <div className="flex items-center gap-3 p-5 rounded-xl bg-green-50 border-2 border-green-300 shadow-sm">
@@ -1061,7 +1156,7 @@ export default function IPProfilePage() {
           />
         </div>
       ) : (
-      <>
+      <div className={isLocked ? 'opacity-50 pointer-events-none space-y-6' : 'space-y-6'}>
       {/* Basic Information — Photos */}
       <Collapsible open={openSections['basic']} onOpenChange={() => toggleSection('basic')}>
         <Card className="rounded-2xl">
@@ -1198,8 +1293,67 @@ export default function IPProfilePage() {
           </Collapsible>
         )
       })}
-      </>
+      </div>
       )}
+
+      {/* Submit Profile for Review button */}
+      {!previewOpen && !isApproved && !profileSubmitted && (
+        <div className="text-center pt-4">
+          <Button
+            onClick={() => setShowSubmitModal(true)}
+            disabled={submitting}
+            className="gap-2 px-8 py-3 text-base rounded-xl"
+            style={{ backgroundColor: '#ed148c', color: '#fff' }}
+          >
+            <Send className="w-4 h-4" /> Submit Profile for Review
+          </Button>
+          <p className="text-xs text-stone-400 mt-2">You won't be able to edit after submitting, but our team can reopen it for you if needed.</p>
+        </div>
+      )}
+
+      {/* Re-submit button when profile was reopened */}
+      {!previewOpen && !isApproved && profileSubmitted && profileReleasedAt && (
+        <div className="text-center pt-4">
+          <Button
+            onClick={() => setShowSubmitModal(true)}
+            disabled={submitting}
+            className="gap-2 px-8 py-3 text-base rounded-xl"
+            style={{ backgroundColor: '#ed148c', color: '#fff' }}
+          >
+            <Send className="w-4 h-4" /> Re-Submit Profile for Review
+          </Button>
+        </div>
+      )}
+
+      {/* Submit confirmation modal */}
+      <Dialog open={showSubmitModal} onOpenChange={(v) => !submitting && setShowSubmitModal(v)}>
+        <DialogContent className="max-w-md">
+          <div className="text-center space-y-4 py-2">
+            <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            </div>
+            <h2 className="text-xl font-bold text-[#283693]">Ready to submit your profile?</h2>
+            <div className="text-stone-600 text-sm space-y-2">
+              <p>Once submitted, <strong>you won't be able to edit your profile</strong> until our team reviews it. If you need to make a correction after submitting, please contact us and we'll reopen it for you.</p>
+              <p>Our team will review your profile and reach out with any additional questions and next steps.</p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowSubmitModal(false)} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitForReview}
+                disabled={submitting}
+                style={{ backgroundColor: '#ed148c', color: '#fff' }}
+                className="gap-1.5"
+              >
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Submit for Review
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Contact */}
       <Card className="bg-stone-50 border-dashed rounded-2xl">
