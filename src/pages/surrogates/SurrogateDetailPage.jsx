@@ -4354,7 +4354,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     try {
       await updateSurrogateProfileStatus(surrogate.email, isApproved ? 'draft' : 'approved')
       setProfileStatus(isApproved ? 'draft' : 'approved')
-    } catch {} finally { setStatusLoading(false) }
+    } catch (err) {
+      console.error('Approve/unapprove failed:', err)
+      alert('Failed to update profile status: ' + (err?.message || 'Unknown error'))
+    } finally { setStatusLoading(false) }
   }
 
   function addArrayItem(field) {

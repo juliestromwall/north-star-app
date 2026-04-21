@@ -662,9 +662,9 @@ export async function updateSurrogateProfileStatus(email, status) {
     .update({ status, updated_at: new Date().toISOString() })
     .eq('email', email.trim().toLowerCase())
     .select()
-    .single()
   if (error) throw error
-  return data
+  if (!data || data.length === 0) throw new Error(`No surrogate_profiles row found for ${email}`)
+  return data[0]
 }
 
 export async function adminUpdateSurrogateProfile(email, profileData) {
