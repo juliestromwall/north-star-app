@@ -1183,7 +1183,7 @@ function PregnancyCard({ pregnancy: pr, index }) {
       {!headerOnly && (
       <div className="divide-y divide-stone-100">
         {pr.wasSurrogacy === 'yes' && pr.transfersUntilPregnant && <PCRow label="How many embryo transfers did it take until pregnancy was achieved?" value={pr.transfersUntilPregnant} />}
-        {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={`${pr.cyclesToConceive} months`} />}
+        {pr.wasSurrogacy !== 'yes' && pr.cyclesToConceive && <PCRow label="About how many months did it take you to get pregnant?" value={pr.cyclesToConceive} />}
         {(isLoss || isStillborn) && pr.deliveryType && <PCRow label="Delivery / Procedure Type" value={pr.deliveryType} />}
 
         {/* Complications */}
