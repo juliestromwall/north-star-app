@@ -297,17 +297,20 @@ export default function SurrogateDetailPage() {
   const [inviting, setInviting] = useState(false)
   const [inviteResult, setInviteResult] = useState(null)
   const [holdUnpaidCount, setHoldUnpaidCount] = useState(0)
+  const [pendingUnpaidCount, setPendingUnpaidCount] = useState(0)
 
-  const refreshHoldCount = React.useCallback(() => {
+  const refreshExpenseCounts = React.useCallback(() => {
     if (!id) return
     fetchSurrogateExpenses(Number(id)).then(rows => {
-      const unpaid = (rows || []).filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
-      setHoldUnpaidCount(unpaid)
+      const hold = (rows || []).filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
+      const pending = (rows || []).filter(e => e.pay_to_type !== 'hold' && e.needs_payment && !e.reconciled && !e.paid_at).length
+      setHoldUnpaidCount(hold)
+      setPendingUnpaidCount(pending)
     }).catch(() => {})
   }, [id])
 
-  // Count pre-match Hold-for-Payment expenses that still need action
-  useEffect(() => { refreshHoldCount() }, [refreshHoldCount])
+  // Count pre-match pending / Hold-for-Payment expenses that still need action
+  useEffect(() => { refreshExpenseCounts() }, [refreshExpenseCounts])
   const [portalStatus, setPortalStatus] = useState(null) // { exists, lastSignIn }
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
@@ -631,7 +634,7 @@ export default function SurrogateDetailPage() {
               </div>
             </div>
             <div className="flex gap-2 shrink-0 items-center">
-              {holdUnpaidCount > 0 && (
+              {pendingUnpaidCount > 0 && (
                 <button
                   type="button"
                   onClick={() => {
@@ -641,7 +644,20 @@ export default function SurrogateDetailPage() {
                   title="Click to view Expenses tab"
                   className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full hover:bg-amber-100 transition-colors"
                 >
-                  <DollarSign className="size-3" /> Hold for Payment: {holdUnpaidCount} unpaid
+                  <DollarSign className="size-3" /> {pendingUnpaidCount} pending
+                </button>
+              )}
+              {holdUnpaidCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trigger = document.querySelector('[data-state][role="tab"][value="expenses"]')
+                    trigger?.click?.()
+                  }}
+                  title="Click to view Expenses tab"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full hover:bg-stone-200 transition-colors"
+                >
+                  <DollarSign className="size-3" /> {holdUnpaidCount} on hold
                 </button>
               )}
               {surrogate.phone && (
@@ -1384,7 +1400,7 @@ export default function SurrogateDetailPage() {
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="mt-4">
-          <SurrogateExpensesTab surrogateId={surrogate.id} gcName={surrogate.name} gcPaymentPref={quizAnswers?._paymentPreference || {}} onExpensesChanged={refreshHoldCount} />
+          <SurrogateExpensesTab surrogateId={surrogate.id} gcName={surrogate.name} gcPaymentPref={quizAnswers?._paymentPreference || {}} onExpensesChanged={refreshExpenseCounts} />
         </TabsContent>
 
         {/* Documents Tab */}

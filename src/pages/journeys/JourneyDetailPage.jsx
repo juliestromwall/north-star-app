@@ -2244,6 +2244,7 @@ export default function JourneyDetailPage() {
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [journeyExpenses, setJourneyExpenses] = useState([])
   const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && e.needs_payment && !e.paid_at).length
+  const holdExpenseCount = journeyExpenses.filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
@@ -2902,7 +2903,12 @@ export default function JourneyDetailPage() {
                 <span className="text-stone-500 flex items-center gap-1.5">Escrow Close Date: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
                 {unpaidExpenseCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                    <DollarSign className="size-3" /> {unpaidExpenseCount} unpaid
+                    <DollarSign className="size-3" /> {unpaidExpenseCount} pending
+                  </span>
+                )}
+                {holdExpenseCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full">
+                    <DollarSign className="size-3" /> {holdExpenseCount} on hold
                   </span>
                 )}
               </div>
