@@ -208,23 +208,22 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setLoadingFull(true)
     setFullEmail(null)
 
-    // 1. Use stored body_html first (works for any admin without Gmail access)
+    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
+
+    // 1. Render stored body_html immediately (fast), or snippet for system emails.
+    //    Attachments aren't stored — they come from Gmail when/if available.
     if (loggedEmail.body_html) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
         to: loggedEmail.to_address || '',
+        cc: loggedEmail.cc_address || '',
         date: loggedEmail.date,
         subject: loggedEmail.subject,
         bodyHtml: loggedEmail.body_html,
         attachments: [],
       })
       setLoadingFull(false)
-      return
-    }
-
-    // 2. System-generated emails (not from Gmail) — show snippet as body
-    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
-    if (isSystemEmail) {
+    } else if (isSystemEmail) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
         to: loggedEmail.to_address || '',
@@ -234,21 +233,29 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         attachments: [],
       })
       setLoadingFull(false)
-      return
     }
 
-    // 3. Try fetching from Gmail (only works if current admin has access)
-    if (connected && userId) {
+    // 2. If connected and it's a real Gmail message, fetch to pull in attachments (and enrich body if we didn't have one).
+    if (!isSystemEmail && connected && userId) {
       try {
         const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
         const headers = parseEmailHeaders(full)
         const bodyHtml = parseEmailBody(full)
         const attachments = parseEmailAttachments(full)
-        setFullEmail({ ...headers, bodyHtml, attachments })
+        setFullEmail(prev => ({
+          ...(prev || {}),
+          ...headers,
+          // Prefer Gmail body if we didn't have one stored
+          bodyHtml: prev?.bodyHtml || bodyHtml,
+          attachments,
+        }))
         setLoadingFull(false)
         return
       } catch {}
     }
+
+    // If we already set from stored body_html / system email, we're done
+    if (loggedEmail.body_html || isSystemEmail) return
 
     // 4. Fallback — show whatever metadata we have (snippet + logged_by info)
     setFullEmail({
