@@ -753,34 +753,48 @@ const SECTIONS = [
 
 // ── Completion helpers ──
 
+// Conditional fields (e.g. "details" follow-ups that only appear when the parent
+// question is answered Yes) are only counted when their parent condition is met.
+// For per-person sections, visibility is evaluated against THAT person's own
+// answers — IP1 saying "no" must not make the field disappear from IP2's count
+// when IP2 said "yes", and vice versa.
+function fillStats(fields, data) {
+  let filled = 0, total = 0
+  for (const f of fields) {
+    if (f.conditional && !f.conditional(data)) continue
+    total++
+    const val = data[f.key]
+    if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) filled++
+  }
+  return { filled, total }
+}
+
 export function countCompletion(profile, hasPartner) {
   let filled = 0, total = 0
   for (const sec of SECTIONS) {
-    const data = sec.perPerson ? profile?.ip1?.[sec.key] || {} : profile?.[sec.key] || {}
-    const visibleFields = sec.fields.filter(f => !f.conditional || f.conditional(data))
     if (sec.perPerson) {
       for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
-        const d = profile?.[person]?.[sec.key] || {}
-        for (const f of visibleFields) { total++; const val = d[f.key]; if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) filled++ }
+        const s = fillStats(sec.fields, profile?.[person]?.[sec.key] || {})
+        filled += s.filled; total += s.total
       }
     } else {
-      for (const f of visibleFields) { total++; const val = data[f.key]; if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) filled++ }
+      const s = fillStats(sec.fields, profile?.[sec.key] || {})
+      filled += s.filled; total += s.total
     }
   }
   return total > 0 ? Math.round((filled / total) * 100) : 0
 }
 
 function countSectionCompletion(profile, section, hasPartner) {
-  const data = section.perPerson ? profile?.ip1?.[section.key] || {} : profile?.[section.key] || {}
-  const visibleFields = section.fields.filter(f => !f.conditional || f.conditional(data))
   let filled = 0, total = 0
   if (section.perPerson) {
     for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
-      const d = profile?.[person]?.[section.key] || {}
-      for (const f of visibleFields) { total++; const val = d[f.key]; if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) filled++ }
+      const s = fillStats(section.fields, profile?.[person]?.[section.key] || {})
+      filled += s.filled; total += s.total
     }
   } else {
-    for (const f of visibleFields) { total++; const val = data[f.key]; if (val !== undefined && val !== null && val !== '' && !(Array.isArray(val) && val.length === 0)) filled++ }
+    const s = fillStats(section.fields, profile?.[section.key] || {})
+    filled += s.filled; total += s.total
   }
   return { filled, total, complete: total > 0 && filled === total }
 }

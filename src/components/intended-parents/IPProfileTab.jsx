@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown, Save, Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, Camera, Upload, X, Loader2, Trash2,
-  Eye, Download, ShieldCheck, ShieldX
+  Eye, Download, ShieldCheck, ShieldX, Unlock
 } from 'lucide-react'
+import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { IPProfilePreview, SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
@@ -745,6 +746,7 @@ function AdminPhotoGallery({ storagePath, order, onOrderChange }) {
 }
 
 export default function IPProfileTab({ ip, onUpdate }) {
+  const { currentUser } = useRole()
   const answers = ip?.answers || {}
   // Local copy of profile for immediate UI updates; debounced save bubbles up
   const [localProfile, setLocalProfile] = useState(answers._ipProfile || {})
@@ -752,6 +754,7 @@ export default function IPProfileTab({ ip, onUpdate }) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
   const [approvalSaving, setApprovalSaving] = useState(false)
+  const [reopening, setReopening] = useState(false)
   const previewRef = useRef(null)
 
   // Sync localProfile when ip prop changes (e.g., navigating to a different IP)
@@ -816,6 +819,22 @@ export default function IPProfileTab({ ip, onUpdate }) {
     try {
       await onUpdate({ ...answers, _ipProfile: updatedProfile })
     } catch {} finally { setApprovalSaving(false) }
+  }
+
+  async function handleReopen() {
+    const ipFirstName = answers.primaryFirstName || 'this IP'
+    if (!window.confirm(`Reopen ${ipFirstName}'s profile so they can edit it again?`)) return
+    setReopening(true)
+    const updatedProfile = { ...profile, _approved: false, _approvedAt: null }
+    setLocalProfile(updatedProfile)
+    try {
+      await onUpdate({
+        ...answers,
+        _ipProfile: updatedProfile,
+        _profileReleasedAt: new Date().toISOString(),
+        _profileReleasedBy: currentUser?.name || currentUser?.email || '',
+      })
+    } catch {} finally { setReopening(false) }
   }
 
   function downloadPDF() {
@@ -895,6 +914,23 @@ export default function IPProfileTab({ ip, onUpdate }) {
             <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={downloadPDF}>
               <Download className="size-3.5" /> Save as PDF
             </Button>
+            {(() => {
+              const isLockedFromSubmit = !!answers._profileSubmitted && !answers._profileReleasedAt
+              const isLocked = isLockedFromSubmit || isApproved
+              if (!isLocked) return null
+              return (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 rounded-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                  onClick={handleReopen}
+                  disabled={reopening}
+                >
+                  {reopening ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
+                  {reopening ? 'Reopening...' : 'Reopen for Editing'}
+                </Button>
+              )
+            })()}
             <Button
               size="sm"
               className={`gap-1.5 rounded-full ${isApproved ? 'bg-amber-500 hover:bg-amber-600' : 'bg-green-600 hover:bg-green-700'} text-white`}
