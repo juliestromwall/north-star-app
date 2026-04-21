@@ -411,8 +411,11 @@ function ComposeWindow({ draft, index }) {
     if (!draft.to.trim() || !userId) return
     setSending(true)
     try {
-      const htmlBody = editor?.getHTML() || draft.body || '<p></p>'
-      // Don't append signature — Gmail auto-appends it on send
+      const editorHtml = editor?.getHTML() || draft.body || '<p></p>'
+      // Gmail API does NOT auto-append signatures (that's web-UI only) — include it explicitly
+      const htmlBody = draft.signatureHtml
+        ? `${editorHtml}<br><div>--</div>${draft.signatureHtml}`
+        : editorHtml
       const result = await sendEmail(userId, {
         to: draft.to.trim(),
         subject: draft.subject,
@@ -438,7 +441,7 @@ function ComposeWindow({ draft, index }) {
             to_address: draft.to,
             date: new Date().toISOString(),
             snippet: (editor?.getText() || '').slice(0, 200),
-            body_html: editor?.getHTML() || null,
+            body_html: htmlBody,
             logged_by: userId,
             logged_by_name: currentUser?.name || '',
             tag: draft.emailTag || null,
@@ -465,8 +468,10 @@ function ComposeWindow({ draft, index }) {
     if (userId) {
       setSavingDraft(true)
       try {
-        const htmlBody = editor?.getHTML() || draft.body || ''
-        // Don't append signature — Gmail adds it when draft is sent from Gmail
+        const editorHtml = editor?.getHTML() || draft.body || ''
+        const htmlBody = draft.signatureHtml
+          ? `${editorHtml}<br><div>--</div>${draft.signatureHtml}`
+          : editorHtml
         await createGmailDraft(userId, {
           to: draft.to,
           subject: draft.subject,
