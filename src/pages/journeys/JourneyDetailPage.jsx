@@ -478,9 +478,10 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
+  const [customPayeeDraft, setCustomPayeeDraft] = useState('')
   const fileRef = useRef(null)
 
   function startEdit(field, value) {
@@ -498,6 +499,8 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     setEditField(null)
   }
 
+  const canChangePayee = Array.isArray(payeeOptions) && payeeOptions.length > 0 && typeof onChangePayee === 'function' && !exp.reconciled && !exp.escrow_opened
+
   function renderCell(field, display, className = '') {
     if (editField === field) {
       if (field === 'submitted_to_escrow') {
@@ -509,6 +512,48 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
             </select>
             <button onClick={saveEdit} className="text-green-600"><Check className="size-3" /></button>
             <button onClick={() => setEditField(null)} className="text-stone-400"><X className="size-3" /></button>
+          </div>
+        )
+      }
+      if (field === 'paid_to' && canChangePayee) {
+        return (
+          <div className="flex flex-col gap-1">
+            <select
+              value={exp.pay_to_type || ''}
+              autoFocus
+              onChange={e => {
+                const newType = e.target.value
+                if (!newType) return
+                if (newType === 'other') {
+                  setCustomPayeeDraft(exp.pay_to_type === 'other' ? (exp.paid_to || '') : '')
+                  setEditField('paid_to__custom')
+                  return
+                }
+                onChangePayee(exp.id, newType)
+                setEditField(null)
+              }}
+              className="h-7 text-xs border rounded px-1.5 bg-white"
+            >
+              <option value="">Select...</option>
+              {payeeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <button onClick={() => setEditField(null)} className="text-stone-400 text-[10px] self-start">cancel</button>
+          </div>
+        )
+      }
+      if (field === 'paid_to__custom') {
+        return (
+          <div className="flex items-center gap-1">
+            <Input
+              value={customPayeeDraft}
+              onChange={e => setCustomPayeeDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { onChangePayee(exp.id, 'other', customPayeeDraft.trim()); setEditField(null) } ; if (e.key === 'Escape') setEditField(null) }}
+              placeholder="Name of person or vendor"
+              className="h-7 text-xs"
+              autoFocus
+            />
+            <button onClick={() => { onChangePayee(exp.id, 'other', customPayeeDraft.trim()); setEditField(null) }} className="text-green-600 shrink-0"><Check className="size-3" /></button>
+            <button onClick={() => setEditField(null)} className="text-stone-400 shrink-0"><X className="size-3" /></button>
           </div>
         )
       }
@@ -539,11 +584,15 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     )
   }
 
+  const paidToDisplay = exp.pay_to_type === 'hold'
+    ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Hold for Payment</span>
+    : (exp.paid_to || '—')
+
   return (
     <tr className="border-b border-stone-100 hover:bg-stone-50/50">
       <td className="px-4 py-3 text-sm">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
       <td className="px-4 py-3 text-sm font-medium">{renderCell('amount', fmtCurrency(exp.amount))}</td>
-      <td className="px-4 py-3 text-sm">{renderCell('paid_to', exp.paid_to || '—')}</td>
+      <td className="px-4 py-3 text-sm">{renderCell('paid_to', paidToDisplay)}</td>
       <td className="px-4 py-3 text-sm">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
       <td className="px-4 py-3 text-sm">{renderCell('submitted_to_escrow', exp.submitted_to_escrow ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-stone-400">No</span>)}</td>
       <td className="px-4 py-3 text-sm text-stone-500">{renderCell('notes', exp.notes || '—')}</td>
@@ -1622,7 +1671,7 @@ export function formatLineItemsAsNotes(items) {
     .join('\n')
 }
 
-export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel }) {
+export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel, onExpensesChanged }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -1633,6 +1682,47 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const { currentUser } = useRole()
   const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
   const total = sumLineItems(lineItems)
+
+  const payeeOptions = [
+    ...(gcCase?.name ? [{ value: 'surrogate', label: gcCase.name }] : [{ value: 'surrogate', label: 'Surrogate' }]),
+    ...(ipCase?.names ? [{ value: 'ip1', label: ipCase.names.split('&')[0]?.trim() || 'IP1' }] : []),
+    ...(ipCase?.ip2Name ? [{ value: 'ip2', label: ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2' }] : []),
+    { value: 'other', label: 'Other' },
+    { value: 'hold', label: 'Hold for Payment' },
+  ]
+
+  async function handleChangePayee(id, newType, customName) {
+    let resolvedPaidTo = null
+    let payVia = null
+    let payViaInfo = null
+    let needsPayment = true
+    if (newType === 'hold') {
+      resolvedPaidTo = 'Hold for Payment'
+      needsPayment = false
+    } else if (newType === 'surrogate') {
+      resolvedPaidTo = gcCase?.name || 'Surrogate'
+      payVia = gcPaymentPref.method?.toLowerCase() || null
+      payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+    } else if (newType === 'ip1') {
+      resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+    } else if (newType === 'ip2') {
+      resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+    } else if (newType === 'other') {
+      resolvedPaidTo = (customName && customName.trim()) || 'Other'
+    }
+    const updated = await updateExpense(id, {
+      pay_to_type: newType,
+      paid_to: resolvedPaidTo,
+      needs_payment: needsPayment,
+      pay_via: payVia,
+      pay_via_info: payViaInfo,
+      escrow_opened: false,
+    })
+    if (updated) {
+      setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+      onExpensesChanged?.()
+    }
+  }
 
   useEffect(() => {
     fetchJourneyExpenses(journeyId).then(data => {
@@ -1692,7 +1782,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
-      if (created) setExpenses(prev => [created, ...prev])
+      if (created) { setExpenses(prev => [created, ...prev]); onExpensesChanged?.() }
       // If escrow not opened, create task for Julie Allgood
       if (needsPayment && created) {
         try {
@@ -1721,7 +1811,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
 
   async function handleUpdate(id, field, value) {
     const updated = await updateExpense(id, { [field]: value })
-    if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+    if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
   async function handleDelete(id) {
@@ -1729,6 +1819,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     try {
       await deleteExpense(id)
       setExpenses(prev => prev.filter(e => e.id !== id))
+      onExpensesChanged?.()
     } catch (err) {
       console.error('Failed to delete expense:', err)
     }
@@ -1942,7 +2033,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} />
                   ))}
                 </tbody>
               </table>
@@ -3181,7 +3272,7 @@ export default function JourneyDetailPage() {
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
-          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">

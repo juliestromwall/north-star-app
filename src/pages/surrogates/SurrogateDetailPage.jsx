@@ -298,14 +298,16 @@ export default function SurrogateDetailPage() {
   const [inviteResult, setInviteResult] = useState(null)
   const [holdUnpaidCount, setHoldUnpaidCount] = useState(0)
 
-  // Count pre-match Hold-for-Payment expenses that still need action
-  useEffect(() => {
+  const refreshHoldCount = React.useCallback(() => {
     if (!id) return
     fetchSurrogateExpenses(Number(id)).then(rows => {
       const unpaid = (rows || []).filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
       setHoldUnpaidCount(unpaid)
     }).catch(() => {})
   }, [id])
+
+  // Count pre-match Hold-for-Payment expenses that still need action
+  useEffect(() => { refreshHoldCount() }, [refreshHoldCount])
   const [portalStatus, setPortalStatus] = useState(null) // { exists, lastSignIn }
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
@@ -1382,7 +1384,7 @@ export default function SurrogateDetailPage() {
 
         {/* Expenses Tab */}
         <TabsContent value="expenses" className="mt-4">
-          <SurrogateExpensesTab surrogateId={surrogate.id} gcName={surrogate.name} gcPaymentPref={quizAnswers?._paymentPreference || {}} />
+          <SurrogateExpensesTab surrogateId={surrogate.id} gcName={surrogate.name} gcPaymentPref={quizAnswers?._paymentPreference || {}} onExpensesChanged={refreshHoldCount} />
         </TabsContent>
 
         {/* Documents Tab */}
@@ -3083,7 +3085,7 @@ function countSectionFilled(data, section) {
 }
 
 // ── Case Texts Tab (multi-admin) ──────────────────────────
-function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
+function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesChanged }) {
   const { currentUser } = useRole()
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
@@ -3093,6 +3095,41 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
   const total = sumLineItems(lineItems)
+
+  const payeeOptions = [
+    { value: 'surrogate', label: gcName || 'Surrogate' },
+    { value: 'other', label: 'Other' },
+    { value: 'hold', label: 'Hold for Payment' },
+  ]
+
+  async function handleChangePayee(id, newType, customName) {
+    let resolvedPaidTo = null
+    let payVia = null
+    let payViaInfo = null
+    let needsPayment = true
+    if (newType === 'hold') {
+      resolvedPaidTo = 'Hold for Payment'
+      needsPayment = false
+    } else if (newType === 'surrogate') {
+      resolvedPaidTo = gcName || 'Surrogate'
+      payVia = gcPaymentPref.method?.toLowerCase() || null
+      payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+    } else if (newType === 'other') {
+      resolvedPaidTo = (customName && customName.trim()) || 'Other'
+    }
+    const updated = await updateExpense(id, {
+      pay_to_type: newType,
+      paid_to: resolvedPaidTo,
+      needs_payment: needsPayment,
+      pay_via: payVia,
+      pay_via_info: payViaInfo,
+      escrow_opened: false,
+    })
+    if (updated) {
+      setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+      onExpensesChanged?.()
+    }
+  }
 
   useEffect(() => {
     if (!surrogateId) return
@@ -3149,7 +3186,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
       })
-      if (created) setExpenses(prev => [created, ...prev])
+      if (created) { setExpenses(prev => [created, ...prev]); onExpensesChanged?.() }
       setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
       setLineItems([emptyLineItem()])
       setAddOpen(false)
@@ -3163,7 +3200,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
 
   async function handleUpdate(id, field, value) {
     const updated = await updateExpense(id, { [field]: value })
-    if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+    if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
   async function handleDelete(id) {
@@ -3171,6 +3208,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
     try {
       await deleteExpense(id)
       setExpenses(prev => prev.filter(e => e.id !== id))
+      onExpensesChanged?.()
     } catch (err) { console.error('Failed to delete expense:', err) }
   }
 
@@ -3348,7 +3386,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={surrogateId} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={surrogateId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} />
                   ))}
                 </tbody>
               </table>
