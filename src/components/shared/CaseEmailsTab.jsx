@@ -395,22 +395,6 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
 
   const unreadInboxCount = inboxEmails.filter(e => e.isUnread).length
 
-  // Group inbox messages into threads
-  const inboxThreads = useMemo(() => {
-    const byThread = new Map()
-    for (const msg of inboxEmails) {
-      const tid = msg.threadId || msg.id
-      if (!byThread.has(tid)) byThread.set(tid, [])
-      byThread.get(tid).push(msg)
-    }
-    return Array.from(byThread.entries())
-      .map(([tid, msgs]) => {
-        const sorted = [...msgs].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-        return { threadId: tid, messages: sorted, latest: sorted[0], count: sorted.length }
-      })
-      .sort((a, b) => new Date(b.latest.date || 0) - new Date(a.latest.date || 0))
-  }, [inboxEmails])
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
