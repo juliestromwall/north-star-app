@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon, X } from 'lucide-react'
+import { Mail, MailOpen, Trash2, ExternalLink, Loader2, Download, ArrowLeft, Paperclip, Search, Tag, FileText, Send, Lock, Unlock, LinkIcon, X, Reply, ReplyAll, Forward } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { EMAIL_TEMPLATES, mergeTemplate } from '@/lib/emailTemplates'
 import { EMAIL_TAGS } from '@/lib/emailTags'
@@ -52,6 +52,22 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [viewMode, setViewMode] = useState('logged') // 'logged' | 'inbox'
   const { openDraft } = useDrafts()
+
+  // Group inbox messages into threads — must be declared above any early returns to satisfy rules-of-hooks
+  const inboxThreads = useMemo(() => {
+    const byThread = new Map()
+    for (const msg of inboxEmails) {
+      const tid = msg.threadId || msg.id
+      if (!byThread.has(tid)) byThread.set(tid, [])
+      byThread.get(tid).push(msg)
+    }
+    return Array.from(byThread.entries())
+      .map(([tid, msgs]) => {
+        const sorted = [...msgs].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+        return { threadId: tid, messages: sorted, latest: sorted[0], count: sorted.length }
+      })
+      .sort((a, b) => new Date(b.latest.date || 0) - new Date(a.latest.date || 0))
+  }, [inboxEmails])
 
   useEffect(() => {
     if (!caseId) return
@@ -192,23 +208,22 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     setLoadingFull(true)
     setFullEmail(null)
 
-    // 1. Use stored body_html first (works for any admin without Gmail access)
+    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
+
+    // 1. Render stored body_html immediately (fast), or snippet for system emails.
+    //    Attachments aren't stored — they come from Gmail when/if available.
     if (loggedEmail.body_html) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
         to: loggedEmail.to_address || '',
+        cc: loggedEmail.cc_address || '',
         date: loggedEmail.date,
         subject: loggedEmail.subject,
         bodyHtml: loggedEmail.body_html,
         attachments: [],
       })
       setLoadingFull(false)
-      return
-    }
-
-    // 2. System-generated emails (not from Gmail) — show snippet as body
-    const isSystemEmail = !loggedEmail.gmail_message_id || loggedEmail.gmail_message_id.startsWith('release-forms-') || loggedEmail.gmail_message_id.startsWith('sent-') || loggedEmail.gmail_message_id.startsWith('system-') || loggedEmail.gmail_message_id.startsWith('fax-')
-    if (isSystemEmail) {
+    } else if (isSystemEmail) {
       setFullEmail({
         from: loggedEmail.from_address || loggedEmail.logged_by_name || 'System',
         to: loggedEmail.to_address || '',
@@ -218,21 +233,29 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
         attachments: [],
       })
       setLoadingFull(false)
-      return
     }
 
-    // 3. Try fetching from Gmail (only works if current admin has access)
-    if (connected && userId) {
+    // 2. If connected and it's a real Gmail message, fetch to pull in attachments (and enrich body if we didn't have one).
+    if (!isSystemEmail && connected && userId) {
       try {
         const full = await getEmail(userId, loggedEmail.gmail_message_id, 'full')
         const headers = parseEmailHeaders(full)
         const bodyHtml = parseEmailBody(full)
         const attachments = parseEmailAttachments(full)
-        setFullEmail({ ...headers, bodyHtml, attachments })
+        setFullEmail(prev => ({
+          ...(prev || {}),
+          ...headers,
+          // Prefer Gmail body if we didn't have one stored
+          bodyHtml: prev?.bodyHtml || bodyHtml,
+          attachments,
+        }))
         setLoadingFull(false)
         return
       } catch {}
     }
+
+    // If we already set from stored body_html / system email, we're done
+    if (loggedEmail.body_html || isSystemEmail) return
 
     // 4. Fallback — show whatever metadata we have (snippet + logged_by info)
     setFullEmail({
@@ -612,15 +635,61 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                   dangerouslySetInnerHTML={{ __html: fullEmail.bodyHtml || '' }}
                 />
               </div>
-              {/* Actions for inbox emails */}
-              {selectedEmail?._fromInbox && (
-                <div className="border-t pt-3 flex items-center gap-2">
-                  <Button size="sm" className="gap-1.5 text-xs" style={{ backgroundColor: '#283693' }}
-                    onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
-                    <LinkIcon className="size-3" /> Log to Case
-                  </Button>
-                </div>
-              )}
+              {/* Actions */}
+              <div className="border-t pt-3 flex items-center gap-2 flex-wrap">
+                {(() => {
+                  const replyMsg = {
+                    from: fullEmail.from,
+                    to: fullEmail.to,
+                    cc: fullEmail.cc,
+                    subject: fullEmail.subject,
+                    date: fullEmail.date,
+                    bodyHtml: fullEmail.bodyHtml,
+                  }
+                  const parseAddrs = (str) => (str || '').split(',').map(s => {
+                    const m = s.match(/<([^>]+)>/)
+                    return (m ? m[1] : s).trim().toLowerCase()
+                  }).filter(Boolean)
+                  const fromAddr = (fullEmail.from?.match(/<([^>]+)>/)?.[1] || fullEmail.from || '').trim().toLowerCase()
+                  const myEmail = (currentUser?.email || '').toLowerCase()
+                  const otherRecipients = [...parseAddrs(fullEmail.to), ...parseAddrs(fullEmail.cc)]
+                    .filter(a => a && a !== fromAddr && a !== myEmail)
+                  const showReplyAll = otherRecipients.length > 0
+                  const handleReply = () => {
+                    openDraft({ replyTo: replyMsg, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  const handleReplyAll = () => {
+                    openDraft({ replyTo: { ...replyMsg, _replyAll: true, _myEmail: currentUser?.email }, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  const handleForward = () => {
+                    openDraft({ forwardMsg: replyMsg, caseId, caseType, userId })
+                    setSelectedEmail(null); setFullEmail(null)
+                  }
+                  return (
+                    <>
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReply}>
+                        <Reply className="size-3" /> Reply
+                      </Button>
+                      {showReplyAll && (
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReplyAll}>
+                          <ReplyAll className="size-3" /> Reply All
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleForward}>
+                        <Forward className="size-3" /> Forward
+                      </Button>
+                      {selectedEmail?._fromInbox && (
+                        <Button size="sm" className="gap-1.5 text-xs ml-auto" style={{ backgroundColor: '#283693' }}
+                          onClick={() => { openLogDialog(selectedEmail); setSelectedEmail(null); setFullEmail(null) }}>
+                          <LinkIcon className="size-3" /> Log to Case
+                        </Button>
+                      )}
+                    </>
+                  )
+                })()}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">
