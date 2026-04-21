@@ -36,7 +36,11 @@ export default function AppLayout() {
 
   // Redirect to login if not authenticated (after all hooks)
   if (!authLoading && !isAuthenticated) {
-    return <Navigate to="/login" replace />
+    const intended = location.pathname + location.search
+    const loginPath = intended && intended !== '/' && intended !== '/dashboard'
+      ? `/login?redirect=${encodeURIComponent(intended)}`
+      : '/login'
+    return <Navigate to={loginPath} replace />
   }
 
   return (

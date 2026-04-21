@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, LogIn, ArrowRight, Mail, ArrowLeft, CheckCircle2, ShieldX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { useRole } from '@/context/RoleContext'
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { portalBlocked } = useRole()
+  const { portalBlocked, isAuthenticated, authLoading } = useRole()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -39,7 +39,17 @@ export default function LoginPage() {
     setLoading(false)
   }
 
-  const from = location.state?.from || '/dashboard'
+  const redirectParam = new URLSearchParams(location.search).get('redirect')
+  const safeRedirect = redirectParam && /^\/[^/]/.test(redirectParam) ? redirectParam : null
+  const from = location.state?.from || safeRedirect || '/dashboard'
+
+  // If the user is already logged in (e.g. clicked an email link while a session is active),
+  // skip the form and forward them to their intended destination.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(from, { replace: true })
+    }
+  }, [authLoading, isAuthenticated, from, navigate])
 
   async function handleLogin(e) {
     e.preventDefault()

@@ -4649,7 +4649,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         </p>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.abcsurrogacy.com/profile" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <a href="https://app.abcsurrogacy.com/login?redirect=%2Fprofile" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
             Finish My Profile
           </a>
         </div>
