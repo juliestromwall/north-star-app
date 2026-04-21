@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { ChevronDown, Search, Pencil, Save, Loader2, Plus, Trash2, FileText, Shield, DollarSign, Upload } from 'lucide-react'
-import { updateIntakeSubmission, uploadCaseDocument, fetchInsurance, upsertInsurance } from '@/lib/db'
+import { updateIntakeSubmission, uploadCaseDocument } from '@/lib/db'
 import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileConstants'
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
@@ -345,31 +345,9 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
   const showInsurance = editing ? form.hasInsurance === 'yes' || form.hasInsurance === true : stored.hasInsurance === 'yes' || stored.hasInsurance === true
   const showSpouse = editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true
 
-  // When the surrogate answers YES/NO to health insurance, mirror that into the
-  // surrogate_insurance row so the Insurance tab + profile header stay in sync.
-  // First-time YES also seeds the insurance_status to 'policy_check' (shown as
-  // "Verifying Policy" in the header and "ART Risk Policy Check" in the tab).
-  async function handleSaveWithInsuranceSync() {
-    await handleSave(onSaved)
-    const answeredYes = form.hasInsurance === 'yes' || form.hasInsurance === true
-    const answeredNo = form.hasInsurance === 'no' || form.hasInsurance === false
-    if (!answeredYes && !answeredNo) return
-    try {
-      const existing = await fetchInsurance(surrogate.id, 'surrogate')
-      const updates = { has_insurance: answeredYes }
-      if (answeredYes) {
-        if (!existing?.company && form.insuranceProvider) updates.company = form.insuranceProvider
-        if (!existing?.insurance_status) updates.insurance_status = 'policy_check'
-      }
-      await upsertInsurance(surrogate.id, 'surrogate', updates)
-    } catch (err) {
-      console.error('Insurance sync failed:', err)
-    }
-  }
-
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Personal Information" description="Identity, address, insurance, spouse, and emergency contact" editing={editing} saving={saving} startEdit={startEdit} handleSave={handleSaveWithInsuranceSync} cancel={cancel} />
+      <EditHeader title="Personal Information" description="Identity, address, insurance, spouse, and emergency contact" editing={editing} saving={saving} startEdit={startEdit} handleSave={() => handleSave(onSaved)} cancel={cancel} />
       <CardContent className="space-y-6">
         {/* Identity */}
         <div>

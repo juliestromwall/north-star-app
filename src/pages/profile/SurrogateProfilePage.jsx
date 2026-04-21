@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, upsertInsurance, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -630,6 +630,33 @@ export default function SurrogateProfilePage() {
     }
     return () => clearTimeout(saveTimer.current)
   }, [profile, userId, currentUser?.id, currentUser?.email, profileApproved])
+
+  // Sync the Employment → "Do you have insurance?" answer into surrogate_insurance.
+  // - has_insurance mirrors yes/no.
+  // - On first-time yes, seed insurance_status='policy_check' (shows as
+  //   "Verifying Policy" in the profile header and "ART Risk Policy Check" in
+  //   the Insurance tab) — but only if the admin hasn't already set a status.
+  const lastSyncedInsurance = useRef(null)
+  useEffect(() => {
+    if (profileApproved) return
+    if (!intakeCaseId) return
+    const answer = profile?.employment?.healthInsurance
+    if (answer !== 'yes' && answer !== 'no') return
+    if (lastSyncedInsurance.current === answer) return
+    const timer = setTimeout(async () => {
+      try {
+        const hasIns = answer === 'yes'
+        const existing = await fetchInsurance(intakeCaseId, 'surrogate')
+        const updates = { has_insurance: hasIns }
+        if (hasIns && !existing?.insurance_status) updates.insurance_status = 'policy_check'
+        await upsertInsurance(intakeCaseId, 'surrogate', updates)
+        lastSyncedInsurance.current = answer
+      } catch (err) {
+        console.error('Insurance sync failed:', err)
+      }
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [profile?.employment?.healthInsurance, intakeCaseId, profileApproved])
 
   // Sync with Supabase on first visit
   useEffect(() => {
