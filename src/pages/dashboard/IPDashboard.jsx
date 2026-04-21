@@ -62,7 +62,7 @@ function IPProfileProgressCard({ caseData }) {
             </div>
             {isApproved ? (
               <p className="text-sm text-emerald-700 mt-1.5 leading-relaxed">
-                Your profile has been approved and is visible to surrogates!
+                Your profile has been approved! You can now complete the remaining portion of your application.
               </p>
             ) : isSubmitted ? (
               <p className="text-sm text-amber-700 mt-1.5 leading-relaxed">

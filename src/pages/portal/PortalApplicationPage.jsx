@@ -1199,7 +1199,9 @@ export default function PortalApplicationPage() {
   const [submitOpen, setSubmitOpen] = useState(false)
   const [activeSection, setActiveSection] = useState(null)
   const [assignedTo, setAssignedTo] = useState(null)
+  const [intakeType, setIntakeType] = useState(null) // 'gc' (surrogate) | 'ip'
   const isSubmitted = answers?._applicationSubmitted
+  const isIP = intakeType === 'ip' || currentUser?.role === 'intended_parent'
 
   useEffect(() => {
     if (!currentUser?.email || !supabase) { setLoading(false); return }
@@ -1213,6 +1215,7 @@ export default function PortalApplicationPage() {
         setCaseId(data.id)
         setAnswers(data.answers || {})
         if (data.assigned_to) setAssignedTo(data.assigned_to)
+        if (data.intake_type) setIntakeType(data.intake_type)
       }
     } catch (err) {
       console.error('Failed to load application data:', err)
@@ -1295,11 +1298,15 @@ export default function PortalApplicationPage() {
       setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 200)
 
       // Create task for assigned admin to review the application
-      const surName = [currentAnswers?.firstName, currentAnswers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate'
+      const ip1Name = [currentAnswers?.primaryFirstName, currentAnswers?.primaryLastName].filter(Boolean).join(' ')
+      const ip2Name = [currentAnswers?.ip2FirstName, currentAnswers?.ip2LastName].filter(Boolean).join(' ')
+      const surName = isIP
+        ? (ip2Name ? `${ip1Name} & ${ip2Name}` : (ip1Name || currentUser?.name || 'Intended Parent'))
+        : ([currentAnswers?.firstName, currentAnswers?.lastName].filter(Boolean).join(' ') || currentUser?.name || 'Surrogate')
       try {
         await createCaseTask({
           case_id: Number(caseId),
-          case_type: 'surrogate',
+          case_type: isIP ? 'ip' : 'surrogate',
           title: `Review Application - ${surName}`,
           description: 'Application submitted by applicant. Please review all sections.',
           assigned_to: assignedTo || 'intake@abcsurrogacy.com',
@@ -1312,18 +1319,32 @@ export default function PortalApplicationPage() {
         console.error('Auto-task for app review failed:', err)
       }
 
-      // Notify admin(s) that application was submitted
+      // Notify admin(s) that application was submitted — route IP vs surrogate to the right endpoint
       try {
-        fetch('/api/notify-app-submitted', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            surrogateName: surName,
-            surrogateEmail: currentUser?.email || '',
-            assignedTo: assignedTo || '',
-            caseId: caseId,
-          }),
-        }).catch(() => {})
+        if (isIP) {
+          fetch('/api/notify-ip-app-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ip1Name: ip1Name || currentUser?.name || 'Intended Parent',
+              ip2Name: ip2Name || '',
+              ip1Email: currentUser?.email || '',
+              assignedTo: assignedTo || '',
+              caseId: caseId,
+            }),
+          }).catch(() => {})
+        } else {
+          fetch('/api/notify-app-submitted', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              surrogateName: surName,
+              surrogateEmail: currentUser?.email || '',
+              assignedTo: assignedTo || '',
+              caseId: caseId,
+            }),
+          }).catch(() => {})
+        }
       } catch {}
     } catch (err) {
       console.error('Submit failed:', err)
