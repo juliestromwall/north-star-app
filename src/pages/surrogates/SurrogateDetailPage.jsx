@@ -4607,13 +4607,66 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   try {
                     const firstName = surrogate.name?.split(' ')[0] || 'there'
                     const adminName = currentUser?.name || 'The ABC Team'
-                    const subject = '📝 Your Profile is Missing Some Information'
-                    const bodyHtml = `<p>Thank you so much ${firstName} for working on your profile. I see you submitted it for review! Woohoo!</p>
-<p>I am not seeing the following information:</p>
-<p>${sendBackMessage.trim().replace(/\n/g, '<br/>')}</p>
-<p>I have opened it for you to be able to make your edits. Once you are done, please submit again.</p>
-<p>Thank you so much,</p>
-<p>${adminName}</p>`
+                    const subject = '📝 Your ABC Surrogacy Profile is Missing Some Information'
+                    const missingListHtml = sendBackMessage
+                      .trim()
+                      .split('\n')
+                      .map(line => line.replace(/^[-•*]\s*/, '').trim())
+                      .filter(Boolean)
+                      .map(line => `<li style="margin: 0 0 6px; color: #44403c; font-size: 14px; line-height: 1.5;">${line.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</li>`)
+                      .join('')
+                    const bodyHtml = `
+    <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+      <div style="text-align: center; padding: 32px 24px 16px;">
+        <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="max-width: 200px;" />
+      </div>
+
+      <div style="padding: 0 32px 32px;">
+        <h1 style="color: #283693; font-size: 24px; margin: 0 0 8px; text-align: center;">
+          A few things to <span style="color: #ed148c;">finish up</span>
+        </h1>
+        <p style="color: #78716c; text-align: center; font-size: 14px; margin: 0 0 24px;">
+          Your profile is almost there!
+        </p>
+
+        <div style="background: linear-gradient(135deg, #fef9fb, #f0f1fa); border-radius: 12px; padding: 20px; margin: 0 0 20px;">
+          <p style="margin: 0; font-size: 14px; color: #44403c;">
+            Hi ya ${firstName},
+          </p>
+          <p style="margin: 8px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
+            Thank you so much for working on your profile — I see you submitted it for review! Woohoo! 🥳
+          </p>
+          <p style="margin: 12px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
+            I'm not seeing the following information:
+          </p>
+          <ul style="margin: 12px 0 0; padding-left: 20px;">
+            ${missingListHtml}
+          </ul>
+        </div>
+
+        <p style="margin: 0 0 20px; font-size: 14px; color: #44403c; line-height: 1.6;">
+          I've reopened your profile so you can make your edits. Once you're done, please submit it again.
+        </p>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="https://app.abcsurrogacy.com/profile" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 40px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px;">
+            Finish My Profile
+          </a>
+        </div>
+
+        <p style="margin: 24px 0 0; font-size: 14px; color: #44403c; line-height: 1.6;">
+          Thank you!!!<br/>
+          ${adminName}
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0;" />
+
+        <p style="color: #a8a29e; font-size: 11px; text-align: center;">
+          Abundant Beginnings Company, LLC · abcsurrogacy.com
+        </p>
+      </div>
+    </div>
+  `
                     // Send email first; if that fails, don't flip status so admin can retry
                     if (surrogate.email && currentUser?.id) {
                       const { sendEmail } = await import('@/lib/google')

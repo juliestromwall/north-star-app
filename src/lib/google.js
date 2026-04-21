@@ -233,6 +233,15 @@ export async function getGmailSignature(userId) {
   return primary?.signature || ''
 }
 
+/** RFC 2047 encoded-word for subjects with non-ASCII chars (e.g. emoji) */
+function encodeSubject(subject) {
+  if (!subject) return ''
+  // eslint-disable-next-line no-control-regex
+  if (!/[^\x00-\x7F]/.test(subject)) return subject
+  const utf8 = unescape(encodeURIComponent(subject))
+  return `=?UTF-8?B?${btoa(utf8)}?=`
+}
+
 /** Build a base64url-encoded MIME message */
 function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
   const boundary = 'abc_surrogacy_' + Date.now()
@@ -240,7 +249,7 @@ function buildMimeRaw({ to, subject, body, cc, bcc, attachments = [] }) {
     `To: ${to || ''}`,
     cc ? `Cc: ${cc}` : null,
     bcc ? `Bcc: ${bcc}` : null,
-    `Subject: ${subject || ''}`,
+    `Subject: ${encodeSubject(subject)}`,
     'MIME-Version: 1.0',
   ].filter(Boolean)
 
