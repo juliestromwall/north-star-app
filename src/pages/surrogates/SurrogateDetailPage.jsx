@@ -575,7 +575,7 @@ export default function SurrogateDetailPage() {
                   )
                   if (isChecking) return (
                     <button onClick={() => setInsuranceOpen(true)} className="flex items-center gap-1 text-yellow-500 hover:underline cursor-pointer">
-                      <InsuranceCardIcon size={14} color="currentColor" /> {ins.company || 'Checking'}
+                      <InsuranceCardIcon size={14} color="currentColor" /> Verifying Policy
                     </button>
                   )
                   if (isApplying) return (
