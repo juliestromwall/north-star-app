@@ -1,5 +1,36 @@
 # Session Log
 
+## 2026-04-21 Session A (Kim profile clobber fix: save-first guard, DB protection trigger, address fix for Escrow Sheet)
+
+**Worked on:** Three interlocking fixes around Kimberly Miller's (surrogate id=195) profile disappearing after approval, plus an Escrow Match Sheet UI change.
+
+**Changes made:**
+
+- `b751e84` — Fix Approve button silently failing when a surrogate has duplicate `surrogate_profiles` rows. PostgREST `.single()` returned 406 on ≥2 rows; admin-side status-update path now writes to all matching rows.
+- `1bd73e8` — In `src/pages/profile/SurrogateProfilePage.jsx`, force the pending autosave to flush before flipping status to `pending_review`. Removed `.catch(() => {})` that was silently swallowing autosave failures.
+- `1ce0797` — In `src/components/journeys/MatchSheetsTab.jsx` (`EscrowSheet`, ~line 534–593), add address row (Street/City/State/Zip) for IP #1 and Surrogate. 4-column InfoGrid, kept on one page.
+- `e2e8b9a` — New `scripts/20260421-lock-approved-profiles.sql`: Postgres BEFORE UPDATE trigger `protect_approved_surrogate_profiles` on `surrogate_profiles` that raises when `profile_data` changes while `status='approved'`. Applied to **both staging and prod** via `scripts/staging-setup/apply-lock-trigger.mjs`. Status changes still allowed (approved → draft to unlock).
+
+**Investigation tooling (local only, gitignored under `scripts/staging-setup/`):**
+- `backup-kim-profile.mjs` — snapshot Kim's rows → JSON. Produced `kim-profile-backup-2026-04-21T22-14-41-874Z.json` (canonical row id=`ef3f98f9-8033-4b64-8886-06be4141a1bc`, 10 sections / 110 fields).
+- `kim-deep-search.mjs`, `kim-recovery.mjs` — scan storage, jsonb columns, audit/history tables for any other copies. None found; the local JSON backup is the only offsite copy.
+- `kim-check-current.mjs` — verify current row state in prod.
+
+**Kim incident resolution (2026-04-21 night):**
+User said "I approved it and it disappeared!" after the trigger was installed. Checked prod: canonical row `ef3f98f9…` is intact with 10 sections / 110 fields (now status='draft'). The orphan row `c4fe5655…` (user_id=NULL, 1 section / 7 fields, created by intake) also exists with the same `updated_at`. **Data was never lost** — this is an admin-view bug: `fetchSurrogateProfileByEmail` in `src/lib/db.js:631–642` orders by `updated_at desc` + `.limit(1)` + `.single()`, and when both rows have identical timestamps (they do, because status updates write to all rows by email) it returns arbitrarily — sometimes the 7-field orphan. User asked Codex to take the code fix; no action taken in this session.
+
+**Next steps:**
+- Codex: fix `fetchSurrogateProfileByEmail` in `src/lib/db.js` to prefer `user_id IS NOT NULL` as the tiebreaker (or filter out orphans entirely when a canonical row exists for the same email).
+- Address duplicate-row creation at the root: when a surrogate logs in and an intake-created orphan exists for their email, adopt it (set `user_id`) instead of inserting a new canonical row.
+- Add a server-side completion gate on `/api/notify-profile-submitted` so a partial profile can't trigger the "submitted" email.
+- Escrow Match Sheet address change + lock trigger SQL are already on staging AND prod (`e2e8b9a` is on main).
+
+**Open questions:**
+- Both Kim rows currently show `status='draft'` — something flipped her back from `approved`. Unclear whether user did it manually to "recover" or whether admin-view or approve path wrote 'draft' somewhere. Worth auditing once Codex's fix lands.
+- Should the orphan row `c4fe5655…` be deleted now that the canonical has all data? User said "leave it alone" for tonight. Revisit with the duplicate-adoption fix.
+
+---
+
 ## 2026-04-15 — 2026-04-16 Session A (Multi-Admin SMS, Team Chats, Therapist Check-Ins, Application Restructure)
 
 **Worked on:** Multi-admin Twilio SMS with Send-As + merged threads, Team Chats internal messaging, Therapist Check-In Report Builder with PDF generation, application restructure (combine Personal+Confidential), several auto-email notifications, profile UI improvements.
