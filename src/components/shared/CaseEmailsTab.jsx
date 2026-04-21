@@ -623,6 +623,15 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                     date: fullEmail.date,
                     bodyHtml: fullEmail.bodyHtml,
                   }
+                  const parseAddrs = (str) => (str || '').split(',').map(s => {
+                    const m = s.match(/<([^>]+)>/)
+                    return (m ? m[1] : s).trim().toLowerCase()
+                  }).filter(Boolean)
+                  const fromAddr = (fullEmail.from?.match(/<([^>]+)>/)?.[1] || fullEmail.from || '').trim().toLowerCase()
+                  const myEmail = (currentUser?.email || '').toLowerCase()
+                  const otherRecipients = [...parseAddrs(fullEmail.to), ...parseAddrs(fullEmail.cc)]
+                    .filter(a => a && a !== fromAddr && a !== myEmail)
+                  const showReplyAll = otherRecipients.length > 0
                   const handleReply = () => {
                     openDraft({ replyTo: replyMsg, caseId, caseType, userId })
                     setSelectedEmail(null); setFullEmail(null)
@@ -640,7 +649,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
                       <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReply}>
                         <Reply className="size-3" /> Reply
                       </Button>
-                      {fullEmail.cc && (
+                      {showReplyAll && (
                         <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={handleReplyAll}>
                           <ReplyAll className="size-3" /> Reply All
                         </Button>
