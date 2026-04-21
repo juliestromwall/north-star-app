@@ -278,7 +278,7 @@ export default function IPDetailPage() {
                           }
                         }}>
                         {releasingProfile ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
-                        {releasingProfile ? 'Releasing...' : 'Release Application'}
+                        {releasingProfile ? 'Reopening...' : 'Reopen for Editing'}
                       </Button>
                     )}
                     {isApproved ? (
