@@ -1012,6 +1012,32 @@ export async function fetchJourneyExpenses(journeyId) {
   return data || []
 }
 
+/** Pre-match expenses for a surrogate — rows where surrogate_id matches and journey_id is null */
+export async function fetchSurrogateExpenses(surrogateId) {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .select('*')
+    .eq('surrogate_id', surrogateId)
+    .is('journey_id', null)
+    .order('expense_date', { ascending: false })
+  if (error) return []
+  return data || []
+}
+
+/** At match time, promote this surrogate's pre-match expenses into the new journey */
+export async function attachSurrogateExpensesToJourney(surrogateId, journeyId) {
+  if (!supabase || !surrogateId || !journeyId) return 0
+  const { data, error } = await supabase
+    .from('journey_expenses')
+    .update({ journey_id: journeyId })
+    .eq('surrogate_id', surrogateId)
+    .is('journey_id', null)
+    .select('id')
+  if (error) return 0
+  return (data || []).length
+}
+
 export async function insertExpense(expense) {
   if (!supabase) return null
   const { data, error } = await supabase

@@ -129,6 +129,13 @@ export async function createMatchedJourney({ gcCaseId, ipCaseId, assignedTo, cre
     .select()
     .single()
   if (error) throw error
+  // Promote any pre-match expenses logged on the surrogate's case into this new journey
+  if (data?.id && gcCaseId) {
+    try {
+      const { attachSurrogateExpensesToJourney } = await import('./db')
+      await attachSurrogateExpensesToJourney(gcCaseId, data.id)
+    } catch (err) { console.error('Failed to attach pre-match expenses:', err) }
+  }
   return data
 }
 

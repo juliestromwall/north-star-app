@@ -478,7 +478,7 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const fileRef = useRef(null)
@@ -1609,20 +1609,20 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
 }
 
 // ── Expenses Tab ────────────────────────────────────────
-function emptyLineItem() {
+export function emptyLineItem() {
   return { id: Math.random().toString(36).slice(2), amount: '', description: '', file: null }
 }
-function sumLineItems(items) {
+export function sumLineItems(items) {
   return (items || []).reduce((sum, li) => sum + (parseFloat(li.amount) || 0), 0)
 }
-function formatLineItemsAsNotes(items) {
+export function formatLineItemsAsNotes(items) {
   return (items || [])
     .filter(li => parseFloat(li.amount) || li.description)
     .map(li => `$${(parseFloat(li.amount) || 0).toFixed(2)} — ${li.description || '(no description)'}`)
     .join('\n')
 }
 
-function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel }) {
+export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -1658,17 +1658,22 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
       let payViaInfo = null
       let needsPayment = false
       if (!newExpense.escrow_opened) {
-        needsPayment = true
-        if (newExpense.pay_to_type === 'surrogate') {
-          resolvedPaidTo = gcCase?.name || 'Surrogate'
-          payVia = gcPaymentPref.method?.toLowerCase() || null
-          payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
-        } else if (newExpense.pay_to_type === 'ip1') {
-          resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
-        } else if (newExpense.pay_to_type === 'ip2') {
-          resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
-        } else if (newExpense.pay_to_type === 'other') {
-          resolvedPaidTo = newExpense.pay_to_other || 'Other'
+        if (newExpense.pay_to_type === 'hold') {
+          // Hold for Payment: don't flag as needs_payment and don't create a task
+          resolvedPaidTo = 'Hold for Payment'
+        } else {
+          needsPayment = true
+          if (newExpense.pay_to_type === 'surrogate') {
+            resolvedPaidTo = gcCase?.name || 'Surrogate'
+            payVia = gcPaymentPref.method?.toLowerCase() || null
+            payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+          } else if (newExpense.pay_to_type === 'ip1') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+          } else if (newExpense.pay_to_type === 'ip2') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+          } else if (newExpense.pay_to_type === 'other') {
+            resolvedPaidTo = newExpense.pay_to_other || 'Other'
+          }
         }
       }
       const created = await insertExpense({
@@ -1847,12 +1852,19 @@ function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel 
                     <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
                     {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
                     <option value="other">Other</option>
+                    <option value="hold">Hold for Payment</option>
                   </select>
                 </div>
                 {newExpense.pay_to_type === 'other' && (
                   <div className="space-y-1">
                     <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
                     <Input value={newExpense.pay_to_other || ''} onChange={e => setNewExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'hold' && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1">
+                    <p className="text-[11px] text-amber-700 font-semibold">Held for later payment</p>
+                    <p className="text-xs text-amber-600">This expense will be saved on the case but won't appear in the main Expense Tracker until it's ready to be paid.</p>
                   </div>
                 )}
                 {newExpense.pay_to_type === 'surrogate' && (
@@ -2139,6 +2151,8 @@ export default function JourneyDetailPage() {
   const [startCaseOpen, setStartCaseOpen] = useState(false)
   const [startingCase, setStartingCase] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
+  const [journeyExpenses, setJourneyExpenses] = useState([])
+  const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && e.needs_payment && !e.paid_at).length
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
@@ -2217,6 +2231,7 @@ export default function JourneyDetailPage() {
         const j = await fetchMatchedJourney(Number(id))
         if (!j) { setLoading(false); return }
         setJourney(j)
+        fetchJourneyExpenses(j.id).then(setJourneyExpenses).catch(() => {})
         const [gcs, ips] = await Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
         setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
         setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
@@ -2557,12 +2572,19 @@ export default function JourneyDetailPage() {
                     <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
                     {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
                     <option value="other">Other</option>
+                    <option value="hold">Hold for Payment</option>
                   </select>
                 </div>
                 {newExpense.pay_to_type === 'other' && (
                   <div className="space-y-1">
                     <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
                     <Input value={newExpense.pay_to_other || ''} onChange={e => setNewExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'hold' && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1">
+                    <p className="text-[11px] text-amber-700 font-semibold">Held for later payment</p>
+                    <p className="text-xs text-amber-600">This expense will be saved on the case but won't appear in the main Expense Tracker until it's ready to be paid.</p>
                   </div>
                 )}
                 {newExpense.pay_to_type === 'surrogate' && (
@@ -2603,22 +2625,27 @@ export default function JourneyDetailPage() {
                   let payViaInfo = null
                   let needsPayment = false
                   if (!newExpense.escrow_opened) {
-                    needsPayment = true
-                    if (newExpense.pay_to_type === 'surrogate') {
-                      resolvedPaidTo = gcCase?.name || 'Surrogate'
-                      payVia = gcPaymentPref.method?.toLowerCase() || null
-                      payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
-                    } else if (newExpense.pay_to_type === 'ip1') {
-                      resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
-                    } else if (newExpense.pay_to_type === 'ip2') {
-                      resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
-                    } else if (newExpense.pay_to_type === 'other') {
-                      resolvedPaidTo = newExpense.pay_to_other || 'Other'
+                    if (newExpense.pay_to_type === 'hold') {
+                      resolvedPaidTo = 'Hold for Payment'
+                    } else {
+                      needsPayment = true
+                      if (newExpense.pay_to_type === 'surrogate') {
+                        resolvedPaidTo = gcCase?.name || 'Surrogate'
+                        payVia = gcPaymentPref.method?.toLowerCase() || null
+                        payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+                      } else if (newExpense.pay_to_type === 'ip1') {
+                        resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+                      } else if (newExpense.pay_to_type === 'ip2') {
+                        resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+                      } else if (newExpense.pay_to_type === 'other') {
+                        resolvedPaidTo = newExpense.pay_to_other || 'Other'
+                      }
                     }
                   }
                   const journeyLabel = `${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`
                   const created = await insertExpense({
                     journey_id: journey.id,
+                    surrogate_id: journey.gc_case_id,
                     expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
                     amount: expenseTotal,
                     paid_to: resolvedPaidTo,
@@ -2633,6 +2660,7 @@ export default function JourneyDetailPage() {
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
                   })
+                  if (created) setJourneyExpenses(prev => [created, ...prev])
                   // If escrow not opened, create task for Julie Allgood
                   if (needsPayment && created) {
                     try {
@@ -2781,6 +2809,11 @@ export default function JourneyDetailPage() {
                   {jd.escrowBalanceUpdatedAt && <span className="text-[10px] text-stone-400 ml-1">({formatDate(jd.escrowBalanceUpdatedAt)})</span>}
                 </span>
                 <span className="text-stone-500 flex items-center gap-1.5">Escrow Close Date: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
+                {unpaidExpenseCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                    <DollarSign className="size-3" /> {unpaidExpenseCount} unpaid
+                  </span>
+                )}
               </div>
             </div>
 

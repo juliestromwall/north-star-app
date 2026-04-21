@@ -33,7 +33,9 @@ import EmptyState from '@/components/shared/EmptyState'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIntakeByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchSurrogateProfileByEmail, updateSurrogateProfileStatus, adminUpdateSurrogateProfile, assignSurrogateToAdmin, updateReferralPartner, updateIntakeSubmission, fetchCaseNotes, insertCaseNote, updateCaseNote, deleteCaseNote, fetchCaseDocuments, uploadCaseDocument, updateCaseDocument, deleteCaseDocument, fetchInsurance, createCaseTask, replaceProfilePhoto, uploadProfilePhoto, deleteProfilePhoto, fetchSurrogateExpenses, insertExpense, updateExpense, deleteExpense } from '@/lib/db'
+import { ExpenseRow, emptyLineItem, sumLineItems, formatLineItemsAsNotes } from '@/pages/journeys/JourneyDetailPage'
+import { DollarSign } from 'lucide-react'
 import { SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -294,6 +296,16 @@ export default function SurrogateDetailPage() {
   const [smsSending, setSmsSending] = useState(false)
   const [inviting, setInviting] = useState(false)
   const [inviteResult, setInviteResult] = useState(null)
+  const [holdUnpaidCount, setHoldUnpaidCount] = useState(0)
+
+  // Count pre-match Hold-for-Payment expenses that still need action
+  useEffect(() => {
+    if (!id) return
+    fetchSurrogateExpenses(Number(id)).then(rows => {
+      const unpaid = (rows || []).filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
+      setHoldUnpaidCount(unpaid)
+    }).catch(() => {})
+  }, [id])
   const [portalStatus, setPortalStatus] = useState(null) // { exists, lastSignIn }
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
@@ -616,7 +628,20 @@ export default function SurrogateDetailPage() {
                 </SelectUI>
               </div>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-2 shrink-0 items-center">
+              {holdUnpaidCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const trigger = document.querySelector('[data-state][role="tab"][value="expenses"]')
+                    trigger?.click?.()
+                  }}
+                  title="Click to view Expenses tab"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full hover:bg-amber-100 transition-colors"
+                >
+                  <DollarSign className="size-3" /> Hold for Payment: {holdUnpaidCount} unpaid
+                </button>
+              )}
               {surrogate.phone && (
                 <Button
                   variant={surrogate.preferredContact === 'Text' ? 'default' : 'outline'}
@@ -1141,6 +1166,7 @@ export default function SurrogateDetailPage() {
             const done = active.filter(k => rt[k]?.status === 'complete')
             return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
           })() },
+          { value: 'expenses', label: 'Expenses' },
           { value: 'documents', label: 'Documents' },
           ...(quizAnswers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
@@ -1352,6 +1378,11 @@ export default function SurrogateDetailPage() {
               />
             )
           })()}
+        </TabsContent>
+
+        {/* Expenses Tab */}
+        <TabsContent value="expenses" className="mt-4">
+          <SurrogateExpensesTab surrogateId={surrogate.id} gcName={surrogate.name} gcPaymentPref={quizAnswers?._paymentPreference || {}} />
         </TabsContent>
 
         {/* Documents Tab */}
@@ -3052,6 +3083,283 @@ function countSectionFilled(data, section) {
 }
 
 // ── Case Texts Tab (multi-admin) ──────────────────────────
+function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref }) {
+  const { currentUser } = useRole()
+  const [expenses, setExpenses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+  const [lineItems, setLineItems] = useState([emptyLineItem()])
+  const [saving, setSaving] = useState(false)
+  const total = sumLineItems(lineItems)
+
+  useEffect(() => {
+    if (!surrogateId) return
+    fetchSurrogateExpenses(surrogateId).then(data => {
+      setExpenses(data || [])
+      setLoading(false)
+    })
+  }, [surrogateId])
+
+  const fmtCurrency = val => (!val && val !== 0) ? '—' : `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  async function handleAdd() {
+    if (total <= 0) return
+    setSaving(true)
+    try {
+      let attachmentUrl = null
+      for (const li of lineItems) {
+        if (!li.file) continue
+        const doc = await uploadCaseDocument({ surrogateId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
+      }
+      let resolvedPaidTo = newExpense.paid_to || null
+      let payVia = null
+      let payViaInfo = null
+      let needsPayment = false
+      if (!newExpense.escrow_opened) {
+        if (newExpense.pay_to_type === 'hold') {
+          resolvedPaidTo = 'Hold for Payment'
+        } else {
+          needsPayment = true
+          if (newExpense.pay_to_type === 'surrogate') {
+            resolvedPaidTo = gcName || 'Surrogate'
+            payVia = gcPaymentPref.method?.toLowerCase() || null
+            payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+          } else if (newExpense.pay_to_type === 'other') {
+            resolvedPaidTo = newExpense.pay_to_other || 'Other'
+          }
+        }
+      }
+      const created = await insertExpense({
+        journey_id: null,
+        surrogate_id: surrogateId,
+        expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
+        amount: total,
+        paid_to: resolvedPaidTo,
+        cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
+        submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
+        escrow_opened: newExpense.escrow_opened,
+        pay_to_type: !newExpense.escrow_opened ? newExpense.pay_to_type : null,
+        pay_via: payVia,
+        pay_via_info: payViaInfo,
+        needs_payment: needsPayment,
+        notes: formatLineItemsAsNotes(lineItems) || null,
+        attachment_url: attachmentUrl,
+        created_by: currentUser?.email || '',
+      })
+      if (created) setExpenses(prev => [created, ...prev])
+      setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
+      setLineItems([emptyLineItem()])
+      setAddOpen(false)
+    } catch (err) {
+      console.error('Failed to add expense:', err)
+      alert('Failed to add expense: ' + (err.message || 'Unknown error'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleUpdate(id, field, value) {
+    const updated = await updateExpense(id, { [field]: value })
+    if (updated) setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('Delete this expense?')) return
+    try {
+      await deleteExpense(id)
+      setExpenses(prev => prev.filter(e => e.id !== id))
+    } catch (err) { console.error('Failed to delete expense:', err) }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-stone-700">Pre-Match Expenses</h3>
+          <p className="text-xs text-stone-400 mt-0.5">These will roll into the matched journey once a match is made.</p>
+        </div>
+        <Button size="sm" className="gap-1 text-xs" style={{ backgroundColor: '#283693' }} onClick={() => setAddOpen(true)}>
+          <Plus className="size-3" /> Add Expense
+        </Button>
+      </div>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Expense</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+              <Input type="date" value={newExpense.expense_date} onChange={e => setNewExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+            </div>
+            <div className="space-y-2 border-t border-stone-100 pt-3">
+              <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Line Items</p>
+              {lineItems.map((li, idx) => (
+                <div key={li.id} className="rounded-lg border border-stone-200 p-2 space-y-1.5 bg-stone-50/40">
+                  <div className="grid grid-cols-[110px_1fr_auto] gap-2 items-start">
+                    <Input
+                      value={li.amount}
+                      onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, amount: (cents / 100).toFixed(2) } : x)) }}
+                      placeholder="0.00"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      value={li.description}
+                      onChange={e => setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, description: e.target.value } : x))}
+                      placeholder="Description"
+                      className="h-8 text-sm"
+                    />
+                    {lineItems.length > 1 && (
+                      <button onClick={() => setLineItems(prev => prev.filter((_, i) => i !== idx))} className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600" title="Remove line item">
+                        <X className="size-3.5" />
+                      </button>
+                    )}
+                    {lineItems.length === 1 && <div className="w-7" />}
+                  </div>
+                  <Input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={e => setLineItems(prev => prev.map((x, i) => i === idx ? { ...x, file: e.target.files?.[0] || null } : x))} className="h-7 text-[10px] file:text-[10px]" />
+                  {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
+                </div>
+              ))}
+              <button onClick={() => setLineItems(prev => [...prev, emptyLineItem()])} className="text-xs text-[#283693] hover:underline font-medium" type="button">+ Add Line Item</button>
+              <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
+                <span className="text-base font-bold text-[#283693]">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+              <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
+              <div className="flex gap-1">
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: true }))} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.escrow_opened ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                <button onClick={() => setNewExpense(p => ({ ...p, escrow_opened: false }))} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!newExpense.escrow_opened ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>No</button>
+              </div>
+            </div>
+            {newExpense.escrow_opened ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                    <Input value={newExpense.paid_to} onChange={e => setNewExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                    <Input value={newExpense.cc_last4 || ''} onChange={e => setNewExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+                  <button onClick={() => setNewExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                    {newExpense.submitted_to_escrow ? 'Yes' : 'No'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                  <select value={newExpense.pay_to_type} onChange={e => setNewExpense(p => ({ ...p, pay_to_type: e.target.value }))} className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                    <option value="">Select...</option>
+                    <option value="surrogate">{gcName || 'Surrogate'}</option>
+                    <option value="other">Other</option>
+                    <option value="hold">Hold for Payment</option>
+                  </select>
+                </div>
+                {newExpense.pay_to_type === 'other' && (
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                    <Input value={newExpense.pay_to_other || ''} onChange={e => setNewExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'hold' && (
+                  <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-1">
+                    <p className="text-[11px] text-amber-700 font-semibold">Held for later payment</p>
+                    <p className="text-xs text-amber-600">This expense will be saved on the case but won't appear in the main Expense Tracker until it's ready to be paid.</p>
+                  </div>
+                )}
+                {newExpense.pay_to_type === 'surrogate' && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
+                    <p className="text-[11px] text-blue-700 font-semibold">Pay via</p>
+                    {gcPaymentPref.method ? (
+                      <div className="text-sm text-blue-800">
+                        <p className="font-medium">{gcPaymentPref.method}</p>
+                        <p className="text-xs text-blue-600">
+                          {gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername || 'No username on file' : gcPaymentPref.zelleInfo || 'No info on file'}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-blue-600">No payment preference on file — update in Application tab</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
+              <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
+                {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                {saving ? 'Adding...' : 'Add Expense'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh]">
+          <DialogHeader><DialogTitle>Attachment Preview</DialogTitle></DialogHeader>
+          {previewUrl && (
+            previewUrl.match(/\.(jpg|jpeg|png|gif|webp)/i)
+              ? <img src={previewUrl} alt="Expense attachment" className="w-full rounded-lg" />
+              : <iframe src={previewUrl} className="w-full h-[70vh] rounded-lg border" title="Attachment" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-stone-400 py-8 justify-center">
+          <Loader2 className="size-4 animate-spin" /> Loading expenses...
+        </div>
+      ) : expenses.length === 0 ? (
+        <div className="text-center py-12 text-stone-400">
+          <DollarSign className="size-8 mx-auto mb-2 text-stone-300" />
+          <p className="text-sm">No expenses recorded yet.</p>
+          <p className="text-xs mt-1">Click "+ Add Expense" to get started.</p>
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-stone-50 border-b border-stone-200">
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Date</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
+                    <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
+                    <th className="w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses.map(exp => (
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={surrogateId} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
 function CaseTextsTab({ phone, caseName }) {
   const { currentUser } = useRole()
   const [messages, setMessages] = useState([])

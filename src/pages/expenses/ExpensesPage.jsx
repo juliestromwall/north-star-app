@@ -533,8 +533,8 @@ export default function ExpensesPage() {
     }
   }
 
-  // Filter and sort
-  let filtered = expenses
+  // Filter and sort — Hold-for-Payment items never appear in the main tracker
+  let filtered = expenses.filter(e => e.pay_to_type !== 'hold')
   if (activeTab === 'expenses') {
     filtered = filtered.filter(e => !e.reconciled && !e.needs_payment)
   } else if (activeTab === 'to_pay') {
