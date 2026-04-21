@@ -105,7 +105,7 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail }) {
+function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -253,18 +253,24 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
           </thead>
           <tbody>
             {expenses.map(exp => {
+              const isPreMatch = !exp.journey_id && exp.surrogate_id
               const j = journeyMap[exp.journey_id] || {}
-              const caseName = j.caseName || 'Unknown Journey'
+              const surrogateName = isPreMatch ? (surrogateMap[exp.surrogate_id] || 'Unknown Surrogate') : null
+              const caseName = isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')
               const caseManager = j.caseManager || '—'
-              const journeyId = exp.journey_id
+              const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
 
               return (
                 <tr key={exp.id} className="border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50">
                   <td className="px-5 py-3.5 sticky left-0 bg-white dark:bg-[#1a1a24] z-20 border-r border-stone-200 dark:border-[#2a2a38]">
-                    <Link to={`/journeys/${journeyId}`} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
+                    <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
                       {caseName}
                     </Link>
-                    <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
+                    {isPreMatch ? (
+                      <p className="text-[10px] mt-0.5"><span className="text-stone-400">Pre-match</span></p>
+                    ) : (
+                      <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
+                    )}
                   </td>
                   {COLUMNS.map((col, i) => (
                     <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : ''}`}>
@@ -320,7 +326,7 @@ function ExpenseTable({ expenses, journeyMap, onSave, onReconcile, showReconcile
   )
 }
 
-function ExpensesToPayTable({ expenses, journeyMap, onMarkPaid, onReconcile, currentUser }) {
+function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPaid, onReconcile, currentUser }) {
   if (expenses.length === 0) {
     return (
       <div className="px-6 py-16 text-center text-stone-400">
@@ -346,14 +352,21 @@ function ExpensesToPayTable({ expenses, journeyMap, onMarkPaid, onReconcile, cur
         </thead>
         <tbody>
           {expenses.map(exp => {
+            const isPreMatch = !exp.journey_id && exp.surrogate_id
             const j = journeyMap[exp.journey_id] || {}
-            const caseName = j.caseName || 'Unknown Journey'
+            const surrogateName = isPreMatch ? (surrogateMap[exp.surrogate_id] || 'Unknown Surrogate') : null
+            const caseName = isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')
+            const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
             const isPaid = !!exp.paid_at
             return (
               <tr key={exp.id} className={`border-b border-stone-100 hover:bg-stone-50/50 ${isPaid ? 'bg-green-50/30' : ''}`}>
                 <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
-                  <Link to={`/journeys/${exp.journey_id}`} className="font-semibold text-[#283693] hover:underline text-sm">{caseName}</Link>
-                  <p className="text-[10px] text-stone-400 mt-0.5">{j.caseManager || '—'}</p>
+                  <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm">{caseName}</Link>
+                  {isPreMatch ? (
+                    <p className="text-[10px] mt-0.5"><span className="text-stone-400">Pre-match</span></p>
+                  ) : (
+                    <p className="text-[10px] text-stone-400 mt-0.5">{j.caseManager || '—'}</p>
+                  )}
                 </td>
                 <td className="px-4 py-3 border-r border-stone-100">{formatDate(exp.expense_date)}</td>
                 <td className="px-4 py-3 border-r border-stone-100 font-semibold">{formatCurrency(exp.amount)}</td>
@@ -431,6 +444,7 @@ export default function ExpensesPage() {
   const { currentUser } = useRole()
   const [expenses, setExpenses] = useState([])
   const [journeyMap, setJourneyMap] = useState({})
+  const [surrogateMap, setSurrogateMap] = useState({})
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('expenses')
   const [search, setSearch] = useState('')
@@ -478,6 +492,7 @@ export default function ExpensesPage() {
 
         setExpenses(allExpenses.filter(e => !EXCLUDED_JOURNEY_IDS.has(Number(e.journey_id))))
         setJourneyMap(jMap)
+        setSurrogateMap(gcMap)
       } catch (err) {
         console.error('Failed to load expenses:', err)
       } finally {
@@ -547,7 +562,8 @@ export default function ExpensesPage() {
     const q = search.toLowerCase()
     filtered = filtered.filter(e => {
       const j = journeyMap[e.journey_id] || {}
-      const caseName = (j.caseName || '').toLowerCase()
+      const surrogateName = (surrogateMap[e.surrogate_id] || '').toLowerCase()
+      const caseName = ((j.caseName || '') + ' ' + surrogateName).toLowerCase()
       const amount = String(e.amount || '')
       const paidTo = (e.paid_to || '').toLowerCase()
       return caseName.includes(q) || amount.includes(q) || paidTo.includes(q)
@@ -651,6 +667,7 @@ export default function ExpensesPage() {
               <ExpenseTable
                 expenses={filtered}
                 journeyMap={journeyMap}
+                surrogateMap={surrogateMap}
                 onSave={handleSave}
                 onReconcile={handleReconcile}
                 showReconcile={true}
@@ -668,6 +685,7 @@ export default function ExpensesPage() {
               <ExpensesToPayTable
                 expenses={filtered}
                 journeyMap={journeyMap}
+                surrogateMap={surrogateMap}
                 onMarkPaid={handleMarkPaid}
                 onReconcile={handleReconcile}
                 currentUser={currentUser}
@@ -682,6 +700,7 @@ export default function ExpensesPage() {
               <ExpenseTable
                 expenses={filtered}
                 journeyMap={journeyMap}
+                surrogateMap={surrogateMap}
                 onSave={handleSave}
                 onReconcile={() => {}}
                 showReconcile={false}
