@@ -1,6 +1,6 @@
 # ABC Surrogacy
 
-UI/UX prototype. **No backend yet** — all data is mocked via React state/context.
+Live SaaS at **app.abcsurrogacy.com** with a working Supabase backend. Sensitive production system.
 
 ## Domain Context
 
@@ -13,13 +13,34 @@ See `docs/PRODUCT.md` for terminology, user roles, and flows.
 | Design | ALWAYS read `DESIGN_RULES.md` before UI changes |
 | Features | Update `docs/FEATURES.md` after implementing features |
 | Product docs | Update `docs/PRODUCT.md` when adding roles, flows, or terminology |
-| Constraints | All data is mocked. Supabase client + schema exist for future backend integration. |
 
-## Tech & Deploy
+## Tech
 
 - **Stack:** Vite + React + Tailwind CSS v4 + shadcn/ui
-- **Status:** Prototype only (rebuild with `app-production` for production)
-- **Future backend:** Supabase client (`src/lib/supabase.js`), query helpers (`src/lib/db.js`), schema (`scripts/schema.sql`) are ready but dormant until `.env` is configured
+- **Backend:** Supabase (`src/lib/supabase.js`, `src/lib/db.js`, schema in `scripts/schema.sql` + various migration files)
+- **Hosting:** Cloudflare Pages, deployed from GitHub branches
+
+## Environments
+
+| Env | URL | Branch | Supabase project |
+|-----|-----|--------|------------------|
+| Production | app.abcsurrogacy.com | `main` | `db.abcsurrogacy.com` (`ertvelqlskevksgaanwd`) |
+| Staging | staging.app.abcsurrogacy.com (or `staging.abc-surrogacy.pages.dev` until subdomain split is finished) | `staging` | `hdnavfdmadciihsgscmq.supabase.co` |
+
+## Deploy Workflow — IMPORTANT
+
+**Never push to `main` directly.** Production is sensitive and supports live customers. The workflow is always:
+
+1. **Default branch for any commit is `staging`.** When the user says "deploy" or "deploy to staging", commit + push current work to the `staging` branch. Cloudflare Pages auto-deploys to staging.
+2. **Promotion to production requires explicit user approval.** Only when the user says "promote to prod", "deploy to production", or "merge to main" — fast-forward `main` from `staging` and push.
+3. **Before any push to `main`**, audit the diff for stage-status writes, destructive migrations, or anything that could clobber production data. If you find any, surface it before pushing.
+4. If asked to deploy without specifying a target, **ask** which target. Do not assume `main`.
+
+## Production Safety
+
+- Production data has caused real incidents when local code accidentally wrote to it. Audit every diff before pushing.
+- Never run destructive scripts against production from a local shell.
+- The local-only `scripts/staging-setup/` directory contains DB credentials and is gitignored — never commit anything from there.
 
 ## Key Files
 
