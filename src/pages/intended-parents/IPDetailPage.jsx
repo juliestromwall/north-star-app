@@ -232,7 +232,7 @@ export default function IPDetailPage() {
                 </Button>
               )}
               <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />
-              {/* Invite / Portal status */}
+              {/* Invite / Portal status — primary IP */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center">
                   <span className="text-[10px] text-emerald-600 font-medium">Portal Active</span>
@@ -245,14 +245,30 @@ export default function IPDetailPage() {
                       if (!ip.email) return
                       setInviting(true); setInviteResult(null)
                       try {
-                        await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' }).catch(() => {})
-                        setInviteResult('sent')
+                        const res = await fetch('/api/ip-invite', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: ip.email, name: ip.names, firstName: a.primaryFirstName || '' }),
+                        })
+                        const data = await res.json()
+                        setInviteResult(res.ok && data.emailSent ? 'sent' : 'error')
+                        if (res.ok) {
+                          try {
+                            const { supabase } = await import('@/lib/supabase')
+                            if (supabase) {
+                              const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
+                              if (row) {
+                                await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }).eq('id', ip.id)
+                              }
+                            }
+                            setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
+                          } catch {}
+                        }
                       } catch { setInviteResult('error') }
                       setInviting(false)
                       setTimeout(() => setInviteResult(null), 4000)
                     }}>
                     {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
-                    {inviting ? 'Sending...' : inviteResult === 'sent' ? 'Sent!' : 'Resend Invite'}
+                    {inviting ? 'Sending...' : inviteResult === 'sent' ? 'Sent!' : inviteResult === 'error' ? 'Send failed' : 'Resend Invite'}
                   </Button>
                   <span className="text-[10px] text-amber-500">Hasn't logged in yet</span>
                   {ip.answers?._lastInvitedAt && (
@@ -266,8 +282,13 @@ export default function IPDetailPage() {
                       if (!ip.email) return
                       setInviting(true); setInviteResult(null)
                       try {
-                        await inviteUser(currentUser.id, { email: ip.email, name: ip.names, role: 'intended_parent', portalType: 'intended_parent' })
-                        setInviteResult('sent')
+                        const res = await fetch('/api/ip-invite', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: ip.email, name: ip.names, firstName: a.primaryFirstName || '' }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Invite failed')
+                        setInviteResult(data.emailSent ? 'sent' : 'error')
                         try {
                           const { supabase } = await import('@/lib/supabase')
                           if (supabase) {
@@ -278,14 +299,12 @@ export default function IPDetailPage() {
                           }
                           setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
                         } catch {}
-                      } catch (err) {
-                        setInviteResult(err.message?.includes('already') ? 'exists' : 'error')
-                      }
+                      } catch { setInviteResult('error') }
                       setInviting(false)
                       setTimeout(() => setInviteResult(null), 4000)
                     }}>
                     {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
-                    {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'exists' ? 'Already has account' : 'Invite to Portal'}
+                    {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'error' ? 'Send failed' : 'Invite to Portal'}
                   </Button>
                   {ip.answers?._lastInvitedAt && (
                     <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -295,18 +314,59 @@ export default function IPDetailPage() {
               {/* Partner invite */}
               {hasPartner && ip.ip2Email && (
                 <div className="flex flex-col items-center gap-0.5 ml-2 pl-2 border-l border-stone-200">
-                  {portalStatus2?.exists ? (
+                  {portalStatus2?.exists && portalStatus2?.lastSignIn ? (
                     <div className="flex flex-col items-center">
                       <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">Partner Portal Active</span>
-                      {portalStatus2.lastSignIn && <span className="text-[10px] text-stone-400">Last login {new Date(portalStatus2.lastSignIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                      <span className="text-[10px] text-stone-400">Last login {new Date(portalStatus2.lastSignIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
+                  ) : portalStatus2?.exists && !portalStatus2?.lastSignIn ? (
+                    <>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7 text-amber-600 border-amber-200 hover:bg-amber-50" disabled={invitingPartner}
+                        onClick={async () => {
+                          if (!ip.ip2Email) return
+                          setInvitingPartner(true); setPartnerInviteResult(null)
+                          try {
+                            const res = await fetch('/api/ip-invite', {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email: ip.ip2Email, name: ip.ip2Name, firstName: a.ip2FirstName || '' }),
+                            })
+                            const data = await res.json()
+                            setPartnerInviteResult(res.ok && data.emailSent ? 'sent' : 'error')
+                            if (res.ok) {
+                              try {
+                                const { supabase } = await import('@/lib/supabase')
+                                if (supabase) {
+                                  const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
+                                  if (row) {
+                                    await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _partnerInvitedAt: new Date().toISOString() } }).eq('id', ip.id)
+                                  }
+                                }
+                              } catch {}
+                            }
+                          } catch { setPartnerInviteResult('error') }
+                          setInvitingPartner(false)
+                          setTimeout(() => setPartnerInviteResult(null), 4000)
+                        }}>
+                        {invitingPartner ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                        {invitingPartner ? 'Sending...' : partnerInviteResult === 'sent' ? 'Sent!' : partnerInviteResult === 'error' ? 'Send failed' : 'Resend Invite'}
+                      </Button>
+                      <span className="text-[10px] text-amber-500">Hasn't logged in yet</span>
+                      {ip.answers?._partnerInvitedAt && (
+                        <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._partnerInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      )}
+                    </>
                   ) : (
                     <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7" disabled={invitingPartner}
                       onClick={async () => {
                         setInvitingPartner(true); setPartnerInviteResult(null)
                         try {
-                          await inviteUser(currentUser.id, { email: ip.ip2Email, name: ip.ip2Name, role: 'intended_parent', portalType: 'intended_parent' })
-                          setPartnerInviteResult('sent')
+                          const res = await fetch('/api/ip-invite', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: ip.ip2Email, name: ip.ip2Name, firstName: a.ip2FirstName || '' }),
+                          })
+                          const data = await res.json()
+                          if (!res.ok) throw new Error(data.error || 'Invite failed')
+                          setPartnerInviteResult(data.emailSent ? 'sent' : 'error')
                           try {
                             const { supabase } = await import('@/lib/supabase')
                             if (supabase) {
@@ -316,14 +376,12 @@ export default function IPDetailPage() {
                               }
                             }
                           } catch {}
-                        } catch (err) {
-                          setPartnerInviteResult(err.message?.includes('already') ? 'exists' : 'error')
-                        }
+                        } catch { setPartnerInviteResult('error') }
                         setInvitingPartner(false)
                         setTimeout(() => setPartnerInviteResult(null), 4000)
                       }}>
                       {invitingPartner ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
-                      {invitingPartner ? 'Sending...' : partnerInviteResult === 'sent' ? 'Sent!' : partnerInviteResult === 'exists' ? 'Has account' : `Invite Partner`}
+                      {invitingPartner ? 'Sending...' : partnerInviteResult === 'sent' ? 'Sent!' : partnerInviteResult === 'error' ? 'Send failed' : 'Invite Partner'}
                     </Button>
                   )}
                 </div>
