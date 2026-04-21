@@ -233,54 +233,77 @@ export default function IPDetailPage() {
                 </Button>
               )}
               <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />
-              {/* Profile submission status — admin view */}
-              {ip.answers?._profileSubmitted && !ip.answers?._profileReleasedAt && (
-                <div className="flex flex-col items-center gap-0.5">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50"
-                    disabled={releasingProfile}
-                    onClick={async () => {
-                      if (!window.confirm(`Reopen ${ip.names}'s profile so they can make edits?`)) return
-                      setReleasingProfile(true)
-                      try {
-                        const { supabase } = await import('@/lib/supabase')
-                        if (!supabase) throw new Error('No DB connection')
-                        const updatedAnswers = {
-                          ...(ip.answers || {}),
-                          _profileReleasedAt: new Date().toISOString(),
-                          _profileReleasedBy: currentUser?.name || currentUser?.email || '',
-                        }
-                        const { error } = await supabase
-                          .from('intake_submissions')
-                          .update({ answers: updatedAnswers })
-                          .eq('id', ip.id)
-                        if (error) throw error
-                        setIp(prev => ({ ...prev, answers: updatedAnswers }))
-                      } catch (err) {
-                        alert(`Release failed: ${err.message || 'Unknown error'}`)
-                      } finally {
-                        setReleasingProfile(false)
-                      }
-                    }}>
-                    {releasingProfile ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
-                    {releasingProfile ? 'Releasing...' : 'Release Application'}
-                  </Button>
-                  <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
-                    <Send className="size-3" /> Profile Submitted
-                  </span>
-                  {ip.answers?._profileSubmittedAt && (
-                    <span className="text-[10px] text-stone-400">Submitted {new Date(ip.answers._profileSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  )}
-                </div>
-              )}
-              {ip.answers?._profileSubmitted && ip.answers?._profileReleasedAt && (
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] text-amber-600 font-medium">Profile reopened for edits</span>
-                  <span className="text-[10px] text-stone-400">Released {new Date(ip.answers._profileReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-              )}
+              {/* Profile submission / approval status — admin view */}
+              {(() => {
+                const isApproved = !!ip.answers?._ipProfile?._approved
+                const isSubmittedLocked = ip.answers?._profileSubmitted && !ip.answers?._profileReleasedAt
+                const isReopened = ip.answers?._profileSubmitted && ip.answers?._profileReleasedAt && !isApproved
+                // Show Release Application button whenever the IP's profile is locked
+                // (either submitted-not-yet-released, or approved).
+                const showReleaseBtn = isApproved || isSubmittedLocked
+                if (!showReleaseBtn && !isReopened) return null
+                return (
+                  <div className="flex flex-col items-center gap-0.5">
+                    {showReleaseBtn && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-amber-700 border-amber-300 hover:bg-amber-50"
+                        disabled={releasingProfile}
+                        onClick={async () => {
+                          const verb = isApproved ? 'Unapprove' : 'Reopen'
+                          if (!window.confirm(`${verb} ${ip.names}'s profile so they can make edits?`)) return
+                          setReleasingProfile(true)
+                          try {
+                            const { supabase } = await import('@/lib/supabase')
+                            if (!supabase) throw new Error('No DB connection')
+                            const existingProfile = ip.answers?._ipProfile || {}
+                            const updatedAnswers = {
+                              ...(ip.answers || {}),
+                              _profileReleasedAt: new Date().toISOString(),
+                              _profileReleasedBy: currentUser?.name || currentUser?.email || '',
+                              // Clear approval as part of releasing back to the IP
+                              _ipProfile: { ...existingProfile, _approved: false, _approvedAt: null },
+                            }
+                            const { error } = await supabase
+                              .from('intake_submissions')
+                              .update({ answers: updatedAnswers })
+                              .eq('id', ip.id)
+                            if (error) throw error
+                            setIp(prev => ({ ...prev, answers: updatedAnswers }))
+                          } catch (err) {
+                            alert(`Release failed: ${err.message || 'Unknown error'}`)
+                          } finally {
+                            setReleasingProfile(false)
+                          }
+                        }}>
+                        {releasingProfile ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
+                        {releasingProfile ? 'Releasing...' : 'Release Application'}
+                      </Button>
+                    )}
+                    {isApproved ? (
+                      <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="size-3" /> Profile Approved
+                      </span>
+                    ) : isSubmittedLocked ? (
+                      <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                        <Send className="size-3" /> Profile Submitted
+                      </span>
+                    ) : isReopened ? (
+                      <span className="text-[10px] text-amber-600 font-medium">Profile reopened for edits</span>
+                    ) : null}
+                    {isApproved && ip.answers?._ipProfile?._approvedAt && (
+                      <span className="text-[10px] text-stone-400">Approved {new Date(ip.answers._ipProfile._approvedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    )}
+                    {!isApproved && isSubmittedLocked && ip.answers?._profileSubmittedAt && (
+                      <span className="text-[10px] text-stone-400">Submitted {new Date(ip.answers._profileSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    )}
+                    {isReopened && (
+                      <span className="text-[10px] text-stone-400">Released {new Date(ip.answers._profileReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    )}
+                  </div>
+                )
+              })()}
               {/* Invite / Portal status — primary IP */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (
                 <div className="flex flex-col items-center">

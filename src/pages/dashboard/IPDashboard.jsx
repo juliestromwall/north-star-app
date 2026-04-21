@@ -35,15 +35,18 @@ function IPProfileProgressCard({ caseData }) {
   const profile = answers._ipProfile || {}
   const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
   const percent = countCompletion(profile, hasPartner)
-  const isSubmitted = !!answers._profileSubmitted && !answers._profileReleasedAt
-  const isReleased = !!answers._profileSubmitted && !!answers._profileReleasedAt
-  const title = isSubmitted ? 'Profile Submitted' : 'My Profile'
-  const ctaLabel = isSubmitted ? 'View Profile' : percent === 0 ? 'Get Started' : 'Continue'
+  const isApproved = !!profile?._approved
+  const isSubmitted = !isApproved && !!answers._profileSubmitted && !answers._profileReleasedAt
+  const isReleased = !isApproved && !!answers._profileSubmitted && !!answers._profileReleasedAt
+  const title = isApproved ? 'Profile Approved' : isSubmitted ? 'Profile Submitted' : 'My Profile'
+  const ctaLabel = isApproved || isSubmitted ? 'View Profile' : percent === 0 ? 'Get Started' : 'Continue'
 
   // Status-based accent color
-  const accent = isSubmitted
-    ? { bg: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', btn: '#d97706' }
-    : { bg: 'bg-[#ed148c]', light: 'bg-pink-50', text: 'text-stone-500', border: 'border-stone-100', btn: '#ed148c' }
+  const accent = isApproved
+    ? { bg: 'bg-emerald-500', border: 'border-emerald-100', btn: '#16a34a' }
+    : isSubmitted
+    ? { bg: 'bg-amber-500', border: 'border-amber-100', btn: '#d97706' }
+    : { bg: 'bg-[#ed148c]', border: 'border-stone-100', btn: '#ed148c' }
 
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-white border ${accent.border} shadow-sm hover:shadow-md transition-all`}>
@@ -54,9 +57,14 @@ function IPProfileProgressCard({ caseData }) {
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <div className="flex items-center gap-2 justify-center sm:justify-start">
               <p className="font-semibold text-stone-800 text-lg">{title}</p>
+              {isApproved && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
               {isSubmitted && <Clock className="w-5 h-5 text-amber-500" />}
             </div>
-            {isSubmitted ? (
+            {isApproved ? (
+              <p className="text-sm text-emerald-700 mt-1.5 leading-relaxed">
+                Your profile has been approved and is visible to surrogates!
+              </p>
+            ) : isSubmitted ? (
               <p className="text-sm text-amber-700 mt-1.5 leading-relaxed">
                 Your profile has been submitted and is under review. We will reach out soon for next steps!
               </p>
@@ -72,7 +80,7 @@ function IPProfileProgressCard({ caseData }) {
             <div className="mt-3 max-w-sm mx-auto sm:mx-0">
               <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${percent}%`, background: isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
+                  style={{ width: `${percent}%`, background: isApproved ? '#16a34a' : isSubmitted ? '#d97706' : 'linear-gradient(90deg, #ed148c, #283693)' }} />
               </div>
               <p className="text-[11px] text-stone-400 mt-1">{percent}% complete</p>
             </div>

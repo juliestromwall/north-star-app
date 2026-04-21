@@ -891,6 +891,7 @@ export default function IPProfilePage() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
   const [showSubmitModal, setShowSubmitModal] = useState(false)
+  const [showIncompleteWarning, setShowIncompleteWarning] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const saveTimer = useRef(null)
 
@@ -1300,7 +1301,7 @@ export default function IPProfilePage() {
       {!previewOpen && !isApproved && !profileSubmitted && (
         <div className="text-center pt-4">
           <Button
-            onClick={() => setShowSubmitModal(true)}
+            onClick={() => completion < 100 ? setShowIncompleteWarning(true) : setShowSubmitModal(true)}
             disabled={submitting}
             className="gap-2 px-8 py-3 text-base rounded-xl"
             style={{ backgroundColor: '#ed148c', color: '#fff' }}
@@ -1315,7 +1316,7 @@ export default function IPProfilePage() {
       {!previewOpen && !isApproved && profileSubmitted && profileReleasedAt && (
         <div className="text-center pt-4">
           <Button
-            onClick={() => setShowSubmitModal(true)}
+            onClick={() => completion < 100 ? setShowIncompleteWarning(true) : setShowSubmitModal(true)}
             disabled={submitting}
             className="gap-2 px-8 py-3 text-base rounded-xl"
             style={{ backgroundColor: '#ed148c', color: '#fff' }}
@@ -1351,6 +1352,34 @@ export default function IPProfilePage() {
                 Submit for Review
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Incomplete warning modal */}
+      <Dialog open={showIncompleteWarning} onOpenChange={setShowIncompleteWarning}>
+        <DialogContent className="max-w-md">
+          <div className="text-center space-y-4 py-2">
+            <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+            </div>
+            <h2 className="text-lg font-bold text-stone-800">Profile Not Complete</h2>
+            <p className="text-stone-600">Your profile is <strong>{completion}%</strong> complete. Please finish the sections below before submitting.</p>
+            <div className="space-y-1.5 text-left max-h-40 overflow-y-auto">
+              {SECTIONS.map(sec => {
+                const { complete, filled, total } = countSectionCompletion(profile, sec, hasPartner)
+                if (total === 0 || complete) return null
+                return (
+                  <div key={sec.key} className="flex items-center justify-between text-sm px-3 py-1.5 rounded-lg bg-red-50">
+                    <span className="text-stone-700">{sec.label}</span>
+                    <span className="text-red-500 font-medium">{filled}/{total}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <Button onClick={() => setShowIncompleteWarning(false)} className="w-full" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              Got it — I'll complete my profile
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
