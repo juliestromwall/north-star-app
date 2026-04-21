@@ -170,6 +170,48 @@ export async function fetchIntakeByEmail(email) {
   return result.data?.answers || null
 }
 
+/**
+ * Resolve the intake_submissions.id for a surrogate's email.
+ * If none exists and a firstName is provided, create a stub row (status='profile_only')
+ * so downstream case-keyed features (insurance, documents, notes) have an id to hang off.
+ * Stubs are for surrogates who reach the Profile page without completing the intake form —
+ * either manually added by an admin or who signed up directly.
+ */
+export async function ensureIntakeForProfile({ email, firstName, lastName, phone } = {}) {
+  if (!supabase || !email) return null
+  const cleanEmail = email.trim().toLowerCase()
+  const { data: existing } = await supabase
+    .from('intake_submissions')
+    .select('id')
+    .eq('applicant_email', cleanEmail)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (existing?.id) return existing.id
+  // Defer stub creation until we have at least a first name, so the admin list
+  // doesn't show placeholder rows named after email prefixes.
+  if (!firstName) return null
+  const applicantName = [firstName, lastName].filter(Boolean).join(' ').trim()
+  const { data, error } = await supabase
+    .from('intake_submissions')
+    .insert({
+      intake_type: 'gc',
+      qualified: true,
+      applicant_name: applicantName,
+      applicant_email: cleanEmail,
+      applicant_phone: phone || '',
+      answers: {},
+      status: 'profile_only',
+    })
+    .select('id')
+    .single()
+  if (error) {
+    console.error('ensureIntakeForProfile insert failed:', error)
+    return null
+  }
+  return data?.id
+}
+
 export async function checkEmailExists(email) {
   const result = await withTimeout(
     () => supabase.from('intake_submissions').select('id', { count: 'exact', head: true }).eq('applicant_email', email.trim().toLowerCase())

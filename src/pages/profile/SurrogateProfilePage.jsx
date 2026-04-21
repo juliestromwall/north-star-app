@@ -19,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select'
 import { useRole } from '@/context/RoleContext'
-import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, upsertInsurance, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
+import { fetchIntakeByEmail, uploadProfilePhoto, deleteProfilePhoto, listProfilePhotos, saveSurrogateProfile, fetchSurrogateProfile, fetchInsurance, upsertInsurance, ensureIntakeForProfile, updateSurrogateProfileStatus, createCaseTask, setRecordTracking as setRecordTrackingDB, getRecordTracking } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -560,20 +560,27 @@ export default function SurrogateProfilePage() {
     }
   }, [userId])
 
-  // Fetch intake case ID for photo loading (always runs)
+  // Resolve the intake_submissions.id (the surrogate's "case_id") for this user.
+  // If they reached the Profile page without completing the intake form (manual
+  // admin add, or direct signup), ensureIntakeForProfile creates a stub row once
+  // they have at least a first name. Guard against refiring once we've resolved.
   useEffect(() => {
     if (!currentUser?.email || !supabase) return
-    supabase.from('intake_submissions').select('id').eq('applicant_email', currentUser.email.trim().toLowerCase()).order('submitted_at', { ascending: false }).limit(1).single()
-      .then(({ data }) => {
-        if (data?.id) {
-          setIntakeCaseId(String(data.id))
-          fetchInsurance(data.id, 'surrogate').then(ins => {
-            if (ins) setInsuranceStatus(ins.insurance_status)
-          }).catch(() => {})
-        }
-      })
-      .catch(() => {})
-  }, [currentUser?.email])
+    if (intakeCaseId) return
+    const personal = profile?.personal || {}
+    ensureIntakeForProfile({
+      email: currentUser.email,
+      firstName: personal.firstName,
+      lastName: personal.lastName,
+      phone: personal.phone,
+    }).then(id => {
+      if (!id) return
+      setIntakeCaseId(String(id))
+      fetchInsurance(id, 'surrogate').then(ins => {
+        if (ins) setInsuranceStatus(ins.insurance_status)
+      }).catch(() => {})
+    }).catch(() => {})
+  }, [currentUser?.email, intakeCaseId, profile?.personal?.firstName, profile?.personal?.lastName, profile?.personal?.phone])
 
   // Pre-fill from intake quiz answers
   useEffect(() => {
