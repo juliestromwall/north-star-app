@@ -48,23 +48,24 @@ export async function onRequestPost(context) {
 
     const firstName = user.user_metadata?.full_name?.split(' ')[0] || 'there'
 
+    const origin = new URL(context.request.url).origin
+    const resetRedirect = `${origin}/reset-password`
+
     // 2. Generate reset link
     const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'recovery', email, redirect_to: 'https://app.abcsurrogacy.com/reset-password' }),
+      body: JSON.stringify({ type: 'recovery', email, redirect_to: resetRedirect }),
     })
     const linkData = await linkRes.json()
-    // Supabase returns action_link in different places depending on version
     let resetLink = linkData?.properties?.action_link || linkData?.action_link || null
 
-    // If no action_link, try to build from hashed_token
     if (!resetLink && linkData?.properties?.hashed_token) {
-      resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent('https://app.abcsurrogacy.com/reset-password')}`
+      resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent(resetRedirect)}`
     }
 
     if (resetLink && !resetLink.includes('redirect_to')) {
-      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
+      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent(resetRedirect)
     }
 
     if (!resetLink) {

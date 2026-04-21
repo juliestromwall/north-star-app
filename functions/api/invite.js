@@ -24,6 +24,8 @@ export async function onRequestPost(context) {
   }
 
   const { email, name, role } = await context.request.json()
+  const origin = new URL(context.request.url).origin
+  const resetRedirect = `${origin}/reset-password`
 
   if (!email) {
     return new Response(JSON.stringify({ error: 'Email is required' }), {
@@ -76,15 +78,13 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         type: 'recovery',
         email,
-        redirect_to: 'https://app.abcsurrogacy.com/reset-password',
+        redirect_to: resetRedirect,
       }),
     })
     const linkData = await linkRes.json()
-    // The action_link from generate_link may not include the redirect_to
-    // So we need to append it if missing
     let resetLink = linkData?.properties?.action_link || linkData?.action_link || null
     if (resetLink && !resetLink.includes('redirect_to')) {
-      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent('https://app.abcsurrogacy.com/reset-password')
+      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent(resetRedirect)
     }
 
     return new Response(JSON.stringify({

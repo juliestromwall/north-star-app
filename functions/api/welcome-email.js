@@ -26,15 +26,17 @@ export async function onRequestPost(context) {
   }
 
   const name = `${firstName} ${lastName || ''}`.trim()
+  const origin = new URL(context.request.url).origin
+  const resetRedirect = `${origin}/reset-password`
 
   // Generate a password reset link so they can set up their account
-  let passwordLink = 'https://app.abcsurrogacy.com/login'
+  let passwordLink = `${origin}/login`
   if (supabaseUrl && serviceKey) {
     try {
       const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
-        body: JSON.stringify({ type: 'recovery', email, options: { redirectTo: 'https://app.abcsurrogacy.com/reset-password' } }),
+        body: JSON.stringify({ type: 'recovery', email, options: { redirectTo: resetRedirect } }),
       })
       const data = await res.json()
       if (data?.properties?.action_link) {
