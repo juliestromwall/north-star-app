@@ -303,7 +303,7 @@ export default function SurrogateDetailPage() {
     if (!id) return
     fetchSurrogateExpenses(Number(id)).then(rows => {
       const hold = (rows || []).filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
-      const pending = (rows || []).filter(e => e.pay_to_type !== 'hold' && e.needs_payment && !e.reconciled && !e.paid_at).length
+      const pending = (rows || []).filter(e => e.pay_to_type !== 'hold' && !e.reconciled && !e.paid_at).length
       setHoldUnpaidCount(hold)
       setPendingUnpaidCount(pending)
     }).catch(() => {})

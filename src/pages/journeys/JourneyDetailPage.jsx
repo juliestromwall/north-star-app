@@ -2243,7 +2243,7 @@ export default function JourneyDetailPage() {
   const [startingCase, setStartingCase] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [journeyExpenses, setJourneyExpenses] = useState([])
-  const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && e.needs_payment && !e.paid_at).length
+  const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && !e.paid_at).length
   const holdExpenseCount = journeyExpenses.filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
