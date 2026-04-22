@@ -1688,7 +1688,6 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const [addOpen, setAddOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-  const [newDisbursementRequested, setNewDisbursementRequested] = useState(false)
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
   const { currentUser } = useRole()
@@ -1778,13 +1777,17 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
           }
         }
       }
+      // When the modal marks this expense as submitted-to-escrow, stamp
+      // the disbursement-requested timestamp for the audit trail.
+      const submittedToEscrow = newExpense.escrow_opened ? !!newExpense.submitted_to_escrow : false
+      const now = new Date().toISOString()
       const created = await insertExpense({
         journey_id: journeyId,
         expense_date: newExpense.expense_date || new Date().toISOString().split('T')[0],
         amount: total,
         paid_to: resolvedPaidTo,
         cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
-        submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
+        submitted_to_escrow: submittedToEscrow,
         escrow_opened: newExpense.escrow_opened,
         pay_to_type: !newExpense.escrow_opened ? newExpense.pay_to_type : null,
         pay_via: payVia,
@@ -1793,8 +1796,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         notes: formatLineItemsAsNotes(lineItems) || null,
         attachment_url: attachmentUrl,
         created_by: currentUser?.email || '',
-        disbursement_requested_at: newDisbursementRequested ? new Date().toISOString() : null,
-        disbursement_requested_by: newDisbursementRequested ? (currentUser?.email || '') : null,
+        disbursement_requested_at: submittedToEscrow ? now : null,
+        disbursement_requested_by: submittedToEscrow ? (currentUser?.email || '') : null,
       })
       if (created) { setExpenses(prev => [created, ...prev]); onExpensesChanged?.() }
       // If escrow not opened, create task for Julie Allgood
@@ -1814,7 +1817,6 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         } catch (err) { console.error('Failed to create task:', err) }
       }
       setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-      setNewDisbursementRequested(false)
       setLineItems([emptyLineItem()])
       setAddOpen(false)
     } catch (err) {
@@ -2014,15 +2016,6 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                   </div>
                 )}
               </>
-            )}
-            {newExpense.escrow_opened && newExpense.submitted_to_escrow && (
-              <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
-                <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
-                <button onClick={() => setNewDisbursementRequested(v => !v)}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequested ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                  {newDisbursementRequested ? 'Yes' : 'No'}
-                </button>
-              </div>
             )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
@@ -2294,7 +2287,6 @@ export default function JourneyDetailPage() {
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-  const [newDisbursementRequestedHero, setNewDisbursementRequestedHero] = useState(false)
   const [expenseLineItems, setExpenseLineItems] = useState([emptyLineItem()])
   const expenseTotal = sumLineItems(expenseLineItems)
   const [savingExpense, setSavingExpense] = useState(false)
@@ -2746,13 +2738,6 @@ export default function JourneyDetailPage() {
                 )}
               </>
             )}
-            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
-              <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
-              <button onClick={() => setNewDisbursementRequestedHero(v => !v)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequestedHero ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                {newDisbursementRequestedHero ? 'Yes' : 'No'}
-              </button>
-            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setExpenseOpen(false); setExpenseLineItems([emptyLineItem()]) }}>Cancel</Button>
               <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
@@ -2789,6 +2774,8 @@ export default function JourneyDetailPage() {
                     }
                   }
                   const journeyLabel = `${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`
+                  const submittedToEscrow = newExpense.escrow_opened ? !!newExpense.submitted_to_escrow : false
+                  const nowIso = new Date().toISOString()
                   const created = await insertExpense({
                     journey_id: journey.id,
                     surrogate_id: journey.gc_case_id,
@@ -2796,7 +2783,7 @@ export default function JourneyDetailPage() {
                     amount: expenseTotal,
                     paid_to: resolvedPaidTo,
                     cc_last4: newExpense.escrow_opened ? (newExpense.cc_last4 || null) : null,
-                    submitted_to_escrow: newExpense.escrow_opened ? (newExpense.submitted_to_escrow || false) : false,
+                    submitted_to_escrow: submittedToEscrow,
                     escrow_opened: newExpense.escrow_opened,
                     pay_to_type: !newExpense.escrow_opened ? newExpense.pay_to_type : null,
                     pay_via: payVia,
@@ -2805,8 +2792,8 @@ export default function JourneyDetailPage() {
                     notes: formatLineItemsAsNotes(expenseLineItems) || null,
                     attachment_url: attachmentUrl,
                     created_by: currentUser?.email || '',
-                    disbursement_requested_at: newDisbursementRequestedHero ? new Date().toISOString() : null,
-                    disbursement_requested_by: newDisbursementRequestedHero ? (currentUser?.email || '') : null,
+                    disbursement_requested_at: submittedToEscrow ? nowIso : null,
+                    disbursement_requested_by: submittedToEscrow ? (currentUser?.email || '') : null,
                   })
                   if (created) setJourneyExpenses(prev => [created, ...prev])
                   // If escrow not opened, create task for Julie Allgood
@@ -2826,7 +2813,6 @@ export default function JourneyDetailPage() {
                     } catch (err) { console.error('Failed to create task:', err) }
                   }
                   setNewExpense({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', cc_last4: '', submitted_to_escrow: false, escrow_opened: true, pay_to_type: '', pay_to_other: '' })
-                  setNewDisbursementRequestedHero(false)
                   setExpenseLineItems([emptyLineItem()])
                   setExpenseOpen(false)
                 } catch (err) {
