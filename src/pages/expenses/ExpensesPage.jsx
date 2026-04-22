@@ -147,6 +147,28 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
+// Case cell: IP name in indigo, GC name in pink (matches Case Updates page).
+// Falls back to a plain name for pre-match / surrogate-only expenses.
+function CaseCell({ caseHref, ipName, gcName, fallbackName, meta }) {
+  const hasSplit = ipName && gcName
+  return (
+    <div className="min-w-0">
+      <Link to={caseHref} className="hover:opacity-80 block leading-tight">
+        {hasSplit ? (
+          <>
+            <p className="text-[13px] font-semibold text-[#283693] truncate">{ipName}</p>
+            <p className="text-[10px] text-stone-400 leading-none">+</p>
+            <p className="text-[13px] font-semibold text-[#ed148c] truncate">{gcName}</p>
+          </>
+        ) : (
+          <p className="text-[13px] font-semibold text-[#283693] truncate">{fallbackName}</p>
+        )}
+      </Link>
+      {meta && <p className="text-[10px] text-stone-400 mt-1">{meta}</p>}
+    </div>
+  )
+}
+
 // Collapsed/expanded long-notes cell. Two-line clamp by default;
 // click to expand. Tiny chevron appears only when the content actually
 // overflows two lines.
@@ -376,10 +398,11 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50/60">
-              <th className="text-left px-5 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[240px]">Case</th>
+              <th className="text-left px-5 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[220px]">Case</th>
               <th className="text-right px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Paid To</th>
-              <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[320px]">Notes</th>
+              <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[160px]">Paid To</th>
+              <th className="text-left px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[110px]">CC Last 4</th>
+              <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[300px]">Notes</th>
               <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
               {showReconcile && (
                 <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Reconcile</th>
@@ -392,7 +415,6 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               const isPreMatch = !exp.journey_id && exp.surrogate_id
               const j = journeyMap[exp.journey_id] || {}
               const surrogateName = isPreMatch ? (surrogateMap[exp.surrogate_id] || 'Unknown Surrogate') : null
-              const caseName = isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')
               const caseManager = j.caseManager || '—'
               const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
               const rowGreen = !!(exp.disbursement_paid_at || exp.escrow_not_needed)
@@ -405,16 +427,21 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                 >
                   {/* Case */}
                   <td className="px-5 py-3 align-top">
-                    <Link to={caseHref} className="font-semibold text-[#283693] hover:underline leading-tight">
-                      {caseName}
-                    </Link>
-                    <p className="text-[11px] text-stone-400 mt-0.5">
-                      <span>{isPreMatch ? 'Pre-match' : caseManager}</span>
-                      <span className="mx-1.5 text-stone-300">·</span>
-                      <EditableCell col={COLUMNS[0]} value={exp.expense_date} onSave={(v) => onSave(exp.id, 'expense_date', v)} />
-                    </p>
+                    <CaseCell
+                      caseHref={caseHref}
+                      ipName={!isPreMatch ? j.ipName : null}
+                      gcName={!isPreMatch ? j.gcName : null}
+                      fallbackName={isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')}
+                      meta={
+                        <>
+                          {isPreMatch ? 'Pre-match' : caseManager}
+                          <span className="mx-1.5 text-stone-300">·</span>
+                          <EditableCell col={COLUMNS[0]} value={exp.expense_date} onSave={(v) => onSave(exp.id, 'expense_date', v)} />
+                        </>
+                      }
+                    />
                     {exp.paid_at && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full mt-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full mt-1.5">
                         <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
                       </span>
                     )}
@@ -425,14 +452,14 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                     <EditableCell col={COLUMNS[1]} value={exp.amount} onSave={(v) => onSave(exp.id, 'amount', v)} />
                   </td>
 
-                  {/* Paid To + CC stacked */}
-                  <td className="px-4 py-3 align-top">
-                    <div className="text-stone-700">
-                      <EditableCell col={COLUMNS[2]} value={exp.paid_to} onSave={(v) => onSave(exp.id, 'paid_to', v)} />
-                    </div>
-                    <div className="mt-0.5">
-                      <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
-                    </div>
+                  {/* Paid To */}
+                  <td className="px-4 py-3 align-top text-stone-700">
+                    <EditableCell col={COLUMNS[2]} value={exp.paid_to} onSave={(v) => onSave(exp.id, 'paid_to', v)} />
+                  </td>
+
+                  {/* CC Last 4 */}
+                  <td className="px-3 py-3 align-top">
+                    <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
                   </td>
 
                   {/* Notes */}
@@ -592,14 +619,15 @@ function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPai
               >
                 {/* Case */}
                 <td className="px-5 py-3 align-top">
-                  <Link to={caseHref} className="font-semibold text-[#283693] hover:underline leading-tight">{caseName}</Link>
-                  <p className="text-[11px] text-stone-400 mt-0.5">
-                    {isPreMatch ? 'Pre-match' : (j.caseManager || '—')}
-                    <span className="mx-1.5 text-stone-300">·</span>
-                    {formatDate(exp.expense_date)}
-                  </p>
+                  <CaseCell
+                    caseHref={caseHref}
+                    ipName={!isPreMatch ? j.ipName : null}
+                    gcName={!isPreMatch ? j.gcName : null}
+                    fallbackName={isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')}
+                    meta={<>{isPreMatch ? 'Pre-match' : (j.caseManager || '—')}<span className="mx-1.5 text-stone-300">·</span>{formatDate(exp.expense_date)}</>}
+                  />
                   {isPaid && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full mt-1">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full mt-1.5">
                       <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}{exp.paid_by ? ` · ${getAdminName(exp.paid_by)}` : ''}
                     </span>
                   )}
@@ -715,6 +743,8 @@ export default function ExpensesPage() {
           const ipName = ipMap[j.ip_case_id] || 'IP'
           jMap[j.id] = {
             caseName: `${ipName} + ${gcName}`,
+            ipName,
+            gcName,
             caseManager: getAdminName(j.assigned_to),
             assignedTo: j.assigned_to,
             gcPayPrefScreenshotUrl: gcPayPrefMap[j.gc_case_id] || null,
@@ -791,6 +821,7 @@ export default function ExpensesPage() {
       }
     } catch (err) {
       console.error('Failed to change escrow status:', err)
+      alert('Could not save status change: ' + (err?.message || 'Unknown error'))
     }
   }
 
