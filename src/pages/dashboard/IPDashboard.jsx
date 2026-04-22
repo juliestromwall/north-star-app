@@ -308,7 +308,7 @@ export default function IPDashboard() {
                   <p className="text-sm text-stone-500 mt-1 leading-relaxed">
                     {caseData?.answers?._applicationSubmitted
                       ? `Submitted on ${new Date(caseData.answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review and reach out for next steps!`
-                      : 'A few short forms to gather the rest of the information we need before next steps.'
+                      : 'The information on these forms is for internal use only and will not be shared with any potential surrogate.'
                     }
                   </p>
                 </div>
