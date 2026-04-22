@@ -915,31 +915,33 @@ export default function IPProfilePage() {
       if (data) {
         setCaseData(data)
         const existing = data.answers?._ipProfile || {}
-        // Pre-fill from intake answers if profile sections are empty
+        // Pre-fill from intake answers — done per-field (not per-section) so
+        // the IP doesn't lose intake answers if they edit one field in a
+        // section. Only fills empty fields; never overwrites existing data.
         const a = data.answers || {}
         const boolToYN = (v) => v === true ? 'yes' : v === false ? 'no' : undefined
-        if (!existing.fertility || Object.keys(existing.fertility).length === 0) {
-          existing.fertility = {
-            hasFrozenEmbryos: boolToYN(a.hasFrozenEmbryos),
-            frozenEmbryoCount: a.frozenEmbryoDetails || '',
-            usingEggDonor: boolToYN(a.usingEggDonor),
-            usingSpermDonor: boolToYN(a.usingSpermDonor),
-            hasOtherChildren: boolToYN(a.hasOtherChildren),
-            otherChildrenDetails: a.otherChildrenDetails || '',
-          }
+        const fillIfEmpty = (obj, key, val) => {
+          if (val === undefined || val === null || val === '') return
+          if (obj[key] === undefined || obj[key] === null || obj[key] === '') obj[key] = val
         }
-        if (!existing.surrogacy || Object.keys(existing.surrogacy).length === 0) {
-          const clinicParts = [a.reDoctorName, a.hasRE === true ? 'RE' : ''].filter(Boolean)
-          existing.surrogacy = {
-            clinicName: clinicParts.length > 0 ? clinicParts.join(' — ') : '',
-          }
-        }
+        existing.fertility = existing.fertility || {}
+        fillIfEmpty(existing.fertility, 'hasFrozenEmbryos', boolToYN(a.hasFrozenEmbryos))
+        fillIfEmpty(existing.fertility, 'frozenEmbryoCount', a.frozenEmbryoCount || a.frozenEmbryoDetails)
+        fillIfEmpty(existing.fertility, 'usingEggDonor', boolToYN(a.usingEggDonor))
+        fillIfEmpty(existing.fertility, 'usingSpermDonor', boolToYN(a.usingSpermDonor))
+        fillIfEmpty(existing.fertility, 'hasOtherChildren', boolToYN(a.hasOtherChildren))
+        fillIfEmpty(existing.fertility, 'otherChildrenDetails', a.otherChildrenDetails)
+        existing.surrogacy = existing.surrogacy || {}
+        fillIfEmpty(existing.surrogacy, 'clinicName', a.clinicName)
+        fillIfEmpty(existing.surrogacy, 'reDoctorName', a.reDoctorName)
         const hp = a.hasPartner === 'yes' || a.hasPartner === true
-        if (!existing.ip1?.personal || Object.keys(existing.ip1?.personal || {}).length === 0) {
-          existing.ip1 = { ...existing.ip1, personal: { dob: a.primaryDob || '', ...(existing.ip1?.personal || {}) } }
-        }
-        if (hp && (!existing.ip2?.personal || Object.keys(existing.ip2?.personal || {}).length === 0)) {
-          existing.ip2 = { ...existing.ip2, personal: { dob: a.ip2Dob || '', ...(existing.ip2?.personal || {}) } }
+        existing.ip1 = existing.ip1 || {}
+        existing.ip1.personal = existing.ip1.personal || {}
+        fillIfEmpty(existing.ip1.personal, 'dob', a.primaryDob)
+        if (hp) {
+          existing.ip2 = existing.ip2 || {}
+          existing.ip2.personal = existing.ip2.personal || {}
+          fillIfEmpty(existing.ip2.personal, 'dob', a.ip2Dob)
         }
         setProfile(existing)
       }

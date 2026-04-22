@@ -1221,10 +1221,16 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
     const a = quizData || {}
+    // Prefill priority: existing application answer (data) → profile data
+    // (a._ipProfile) → intake quiz answer (a.*). Goal: never make the IP
+    // re-enter something they've already answered upstream.
+    const profile = a._ipProfile || {}
+    const ip1Personal = profile.ip1?.personal || {}
+    const ip2Personal = profile.ip2?.personal || {}
     const init = {
       ip1FirstName: data?.ip1FirstName || a.primaryFirstName || '',
       ip1LastName: data?.ip1LastName || a.primaryLastName || '',
-      ip1Dob: data?.ip1Dob || a.primaryDob || '',
+      ip1Dob: data?.ip1Dob || ip1Personal.dob || a.primaryDob || '',
       ip1Email: data?.ip1Email || a.email || '',
       ip1Phone: formatPhone(data?.ip1Phone || a.phone || ''),
       country: data?.country || a.country || 'United States',
@@ -1234,7 +1240,7 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
       zipCode: data?.zipCode || a.zipCode || '',
       ip2FirstName: data?.ip2FirstName || a.ip2FirstName || '',
       ip2LastName: data?.ip2LastName || a.ip2LastName || '',
-      ip2Dob: data?.ip2Dob || a.ip2Dob || '',
+      ip2Dob: data?.ip2Dob || ip2Personal.dob || a.ip2Dob || '',
       ip2Email: data?.ip2Email || a.ip2Email || '',
       ip2Phone: formatPhone(data?.ip2Phone || a.ip2Phone || ''),
       preferredContact: data?.preferredContact || '',
@@ -1355,21 +1361,28 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
     const a = quizData || {}
+    // Prefill priority: existing _ipClinic answer → IP profile (fertility +
+    // surrogacy sections) → intake quiz answers. The IP shouldn't re-enter
+    // anything they already gave us in their matching profile or intake.
+    const profile = a._ipProfile || {}
+    const fert = profile.fertility || {}
+    const surr = profile.surrogacy || {}
+    const ynFromBool = (v) => v === true ? 'yes' : v === false ? 'no' : ''
     const init = {
-      clinicName: data?.clinicName || '',
+      clinicName: data?.clinicName || surr.clinicName || '',
       clinicStreet: data?.clinicStreet || '',
       clinicCity: data?.clinicCity || '',
       clinicState: data?.clinicState || '',
       clinicZip: data?.clinicZip || '',
       clinicPhone: formatPhone(data?.clinicPhone || ''),
-      reDoctorName: data?.reDoctorName || a.reDoctorName || '',
+      reDoctorName: data?.reDoctorName || surr.reDoctorName || a.reDoctorName || '',
       reDoctorEmail: data?.reDoctorEmail || '',
       reDoctorPhone: formatPhone(data?.reDoctorPhone || ''),
       nurseCoordinator: data?.nurseCoordinator || '',
-      embryoCount: data?.embryoCount || '',
-      embryosTested: data?.embryosTested || '',
-      usingEggDonor: data?.usingEggDonor || (a.usingEggDonor === true ? 'yes' : a.usingEggDonor === false ? 'no' : ''),
-      usingSpermDonor: data?.usingSpermDonor || (a.usingSpermDonor === true ? 'yes' : a.usingSpermDonor === false ? 'no' : ''),
+      embryoCount: data?.embryoCount || fert.frozenEmbryoCount || a.frozenEmbryoCount || a.frozenEmbryoDetails || '',
+      embryosTested: data?.embryosTested || fert.embryosGeneticallyTested || '',
+      usingEggDonor: data?.usingEggDonor || fert.usingEggDonor || ynFromBool(a.usingEggDonor),
+      usingSpermDonor: data?.usingSpermDonor || fert.usingSpermDonor || ynFromBool(a.usingSpermDonor),
     }
     setForm(init)
     setHydrated(true)
