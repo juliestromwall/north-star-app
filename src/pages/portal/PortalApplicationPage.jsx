@@ -1401,6 +1401,24 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
     const fert = profile.fertility || {}
     const surr = profile.surrogacy || {}
     const ynFromBool = (v) => v === true ? 'yes' : v === false ? 'no' : ''
+    // Profile stores embryosGeneticallyTested as 'Yes' / 'No' / 'Not Yet'
+    // (capitalized). Legacy Clinic applications used 'undecided'. Normalize
+    // everything to the lowercase 'yes'/'no'/'not_yet' taxonomy this form
+    // writes going forward.
+    const normEmbryoTested = (v) => {
+      if (!v) return ''
+      const s = String(v).toLowerCase().replace(/\s+/g, '_')
+      if (s === 'yes' || s === 'no') return s
+      if (s === 'not_yet' || s === 'undecided') return 'not_yet'
+      return ''
+    }
+    // Same idea for egg/sperm donor in case profile ever stores 'Yes'/'No'.
+    const normYN = (v) => {
+      if (!v) return ''
+      const s = String(v).toLowerCase()
+      if (s === 'yes' || s === 'no') return s
+      return ''
+    }
     const init = {
       clinicName: data?.clinicName || surr.clinicName || '',
       clinicStreet: data?.clinicStreet || '',
@@ -1413,9 +1431,9 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
       reDoctorPhone: formatPhone(data?.reDoctorPhone || ''),
       nurseCoordinator: data?.nurseCoordinator || '',
       embryoCount: data?.embryoCount || fert.frozenEmbryoCount || a.frozenEmbryoCount || a.frozenEmbryoDetails || '',
-      embryosTested: data?.embryosTested || fert.embryosGeneticallyTested || '',
-      usingEggDonor: data?.usingEggDonor || fert.usingEggDonor || ynFromBool(a.usingEggDonor),
-      usingSpermDonor: data?.usingSpermDonor || fert.usingSpermDonor || ynFromBool(a.usingSpermDonor),
+      embryosTested: normEmbryoTested(data?.embryosTested) || normEmbryoTested(fert.embryosGeneticallyTested) || '',
+      usingEggDonor: normYN(data?.usingEggDonor) || normYN(fert.usingEggDonor) || ynFromBool(a.usingEggDonor),
+      usingSpermDonor: normYN(data?.usingSpermDonor) || normYN(fert.usingSpermDonor) || ynFromBool(a.usingSpermDonor),
     }
     setForm(init)
     setHydrated(true)
@@ -1427,10 +1445,12 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
     'clinicName','clinicPhone','reDoctorName','reDoctorPhone',
     'embryoCount','embryosTested','usingEggDonor','usingSpermDonor',
   ]
+  const isValidEmbryoOption = (v) => v === 'yes' || v === 'no' || v === 'not_yet' || v === 'undecided'
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
     if (k.endsWith('Phone')) return isValidPhone(v)
-    if (['embryosTested','usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no' || v === 'undecided'
+    if (k === 'embryosTested') return isValidEmbryoOption(v)
+    if (['usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no'
     return v?.toString().trim()
   })
 
@@ -1439,7 +1459,8 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
     return requiredKeys.every(k => {
       const v = d[k]
       if (k.endsWith('Phone')) return isValidPhone(v)
-      if (['embryosTested','usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no' || v === 'undecided'
+      if (k === 'embryosTested') return isValidEmbryoOption(v)
+      if (['usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no'
       return v?.toString().trim()
     })
   }
@@ -1490,7 +1511,7 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
                 <SelectContent>
                   <SelectItem value="yes">Yes</SelectItem>
                   <SelectItem value="no">No</SelectItem>
-                  <SelectItem value="undecided">Undecided</SelectItem>
+                  <SelectItem value="not_yet">Not Yet</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -477,7 +477,7 @@ function ClinicSection({ ip, setIp, search }) {
   const stored = a._ipClinic || {}
   function R(k) { return stored[k] || '' }
 
-  const ynLabel = (v) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : v === 'undecided' ? 'Undecided' : '—'
+  const ynLabel = (v) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : v === 'not_yet' ? 'Not Yet' : v === 'undecided' ? 'Not Yet' : '—'
 
   return (
     <Card className="rounded-2xl">
@@ -533,7 +533,7 @@ function ClinicSection({ ip, setIp, search }) {
             {editing ? (
               <>
                 <div className="space-y-1"><FieldLabel>How Many Embryos?</FieldLabel><Input value={form.embryoCount || ''} onChange={e => set('embryoCount', e.target.value)} /></div>
-                <div className="space-y-1"><FieldLabel>Genetically Tested?</FieldLabel><SelectField value={form.embryosTested} onValueChange={v => set('embryosTested', v)} options={['yes','no','undecided']} /></div>
+                <div className="space-y-1"><FieldLabel>Genetically Tested?</FieldLabel><SelectField value={form.embryosTested} onValueChange={v => set('embryosTested', v)} options={[{value:'yes',label:'Yes'},{value:'no',label:'No'},{value:'not_yet',label:'Not Yet'}]} /></div>
                 <div className="space-y-1"><FieldLabel>Using Egg Donor?</FieldLabel><SelectField value={form.usingEggDonor} onValueChange={v => set('usingEggDonor', v)} options={['yes','no','undecided']} /></div>
                 <div className="space-y-1"><FieldLabel>Using Sperm Donor?</FieldLabel><SelectField value={form.usingSpermDonor} onValueChange={v => set('usingSpermDonor', v)} options={['yes','no','undecided']} /></div>
               </>

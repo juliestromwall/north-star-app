@@ -365,8 +365,10 @@ export default function IPDashboard() {
         </div>
       )}
 
-      {/* Intake Answers card */}
-      {intakeAnswers && (
+      {/* Intake Answers card — hidden from IPs per Julie: they shouldn't
+          be re-reading the quiz they already filled. Admin still sees the
+          full intake answers on the IP case page. */}
+      {false && intakeAnswers && (
         <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleIntakeClick}>
           <CardContent className="py-4 flex items-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#283693]/10 shrink-0">
