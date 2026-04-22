@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { getGoogleStatus, getLabel } from '@/lib/google'
 import { fetchSMSMessages } from '@/lib/sms'
 import { getUnreadSMSCount } from '@/lib/smsReadState'
+import { getAppConfig } from '@/lib/db'
 
 export default function TopBar({ onMenuClick }) {
   const { currentUser, currentRole, isAuthenticated, signOut } = useRole()
@@ -43,19 +44,25 @@ export default function TopBar({ onMenuClick }) {
   }, [isAdmin, currentUser?.id])
 
   useEffect(() => {
-    if (!isAdmin || !isAuthenticated) return
-    const check = () => {
-      fetchSMSMessages()
-        .then(data => {
-          const inboundSids = (data.messages || []).filter(m => m.direction === 'inbound').map(m => m.sid)
-          setHasUnreadSMS(getUnreadSMSCount(inboundSids) > 0)
-        })
-        .catch(() => {})
-    }
-    check()
-    const interval = setInterval(check, 60000)
-    return () => clearInterval(interval)
-  }, [isAdmin, isAuthenticated])
+    if (!isAdmin || !isAuthenticated || !currentUser?.id) return
+    let cancelled = false
+    let interval
+    getAppConfig(`user_prefs_${currentUser.id}`).then(prefs => {
+      const myPhone = prefs?.twilioPhone
+      if (!myPhone || cancelled) return // no Twilio hooked up for this user — no dot
+      const check = () => {
+        fetchSMSMessages(null, [myPhone])
+          .then(data => {
+            const inboundSids = (data.messages || []).filter(m => m.direction === 'inbound').map(m => m.sid)
+            setHasUnreadSMS(getUnreadSMSCount(inboundSids) > 0)
+          })
+          .catch(() => {})
+      }
+      check()
+      interval = setInterval(check, 60000)
+    }).catch(() => {})
+    return () => { cancelled = true; if (interval) clearInterval(interval) }
+  }, [isAdmin, isAuthenticated, currentUser?.id])
 
   async function handleSignOut() {
     await signOut()

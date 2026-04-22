@@ -8,7 +8,7 @@ import { getNavForRole } from '@/lib/navigation'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
-import { fetchUserTasks } from '@/lib/db'
+import { fetchUserTasks, getAppConfig } from '@/lib/db'
 import { fetchSMSMessages } from '@/lib/sms'
 import { getUnreadSMSCount } from '@/lib/smsReadState'
 import { getGoogleStatus, getLabel } from '@/lib/google'
@@ -190,19 +190,25 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
   }, [isAuthenticated, currentUser?.id])
 
   useEffect(() => {
-    if (!isAuthenticated) return
-    const checkUnread = () => {
-      fetchSMSMessages()
-        .then(data => {
-          const inboundSids = (data.messages || []).filter(m => m.direction === 'inbound').map(m => m.sid)
-          setUnreadSMS(getUnreadSMSCount(inboundSids))
-        })
-        .catch(() => {})
-    }
-    checkUnread()
-    const interval = setInterval(checkUnread, 60000)
-    return () => clearInterval(interval)
-  }, [isAuthenticated])
+    if (!isAuthenticated || !currentUser?.id) return
+    let cancelled = false
+    let interval
+    getAppConfig(`user_prefs_${currentUser.id}`).then(prefs => {
+      const myPhone = prefs?.twilioPhone
+      if (!myPhone || cancelled) return // no Twilio hooked up for this user — no dot/count
+      const checkUnread = () => {
+        fetchSMSMessages(null, [myPhone])
+          .then(data => {
+            const inboundSids = (data.messages || []).filter(m => m.direction === 'inbound').map(m => m.sid)
+            setUnreadSMS(getUnreadSMSCount(inboundSids))
+          })
+          .catch(() => {})
+      }
+      checkUnread()
+      interval = setInterval(checkUnread, 60000)
+    }).catch(() => {})
+    return () => { cancelled = true; if (interval) clearInterval(interval) }
+  }, [isAuthenticated, currentUser?.id])
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.id) return
