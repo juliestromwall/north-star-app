@@ -37,7 +37,7 @@ const SURROGACY_FIELDS = [
   { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married/Partnered', 'No Preference'] },
   { key: 'locationPreference', label: 'Do you have a preference on where your surrogate resides?', type: 'yesno' },
   { key: 'locationPreferenceStates', label: 'Which state(s) would you prefer?', type: 'text', conditional: d => d.locationPreference === 'yes' },
-  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or an experienced surrogate?', type: 'select', options: ['No Preference', 'First-Time Surrogate', 'Experienced Surrogate'] },
+  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or an experienced surrogate?', type: 'text', fullWidth: true },
   { key: 'attendAppointments', label: 'Would you like to attend milestone OB appointments with your surrogate?', type: 'yesno' },
   { key: 'attendAppointmentsDetails', label: 'Please explain', type: 'text' },
   { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
@@ -392,10 +392,15 @@ const STATE_ABBR = { AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'Cal
 function expandState(s) { return (s && STATE_ABBR[s.toUpperCase()]) || s }
 
 export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name, primaryName, ip2FullName, location }) {
+  // Admin-hidden fields/photos — filter them out of preview, PDF, and share paths.
+  const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
+  const hiddenPhotos = Array.isArray(profile?._hiddenPhotos) ? profile._hiddenPhotos : []
+  const visiblePhotos = Array.isArray(photos) ? photos.filter(p => !hiddenPhotos.includes(p.path)) : []
+
   // Photos can be tagged with kind, or fall back to path matching
-  const profilePhoto = photos?.find(p => p.kind === 'portrait') || photos?.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
-  const coverPhoto = photos?.find(p => p.kind === 'cover') || photos?.find(p => p.path?.includes('/cover/') || p.path?.includes('/ip-cover/'))
-  const galleryPhotos = photos?.filter(p => p.kind === 'gallery' || (p.path?.includes('/gallery/') && !p.path?.includes('/portrait/') && !p.path?.includes('/cover/'))) || []
+  const profilePhoto = visiblePhotos.find(p => p.kind === 'portrait') || visiblePhotos.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
+  const coverPhoto = visiblePhotos.find(p => p.kind === 'cover') || visiblePhotos.find(p => p.path?.includes('/cover/') || p.path?.includes('/ip-cover/'))
+  const galleryPhotos = visiblePhotos.filter(p => p.kind === 'gallery' || (p.path?.includes('/gallery/') && !p.path?.includes('/portrait/') && !p.path?.includes('/cover/'))) || []
   // All viewable photos for lightbox: cover first, then gallery
   const lightboxPhotos = coverPhoto ? [coverPhoto, ...galleryPhotos] : galleryPhotos
   const [lightboxIdx, setLightboxIdx] = useState(null)
@@ -518,10 +523,14 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
     </div>
   )
 
-  // Render a section of fields with proper Y/N styling
-  const renderFields = (data, fieldDefs) => {
+  // Render a section of fields with proper Y/N styling. basePath is
+  // the dot-path prefix used to look up hidden-field markers
+  // (e.g. "fertility", "surrogacy", "ip1.personal", "ip2.health").
+  const renderFields = (data, fieldDefs, basePath = '') => {
     return fieldDefs.map(f => {
       if (f.conditional && !f.conditional(data)) return null
+      const path = basePath ? `${basePath}.${f.key}` : f.key
+      if (hiddenFields.includes(path)) return null
       const val = data[f.key]
       if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) return null
       if (f.type === 'yesno') return <NewPVYesNo key={f.key} label={f.label} value={val} />
@@ -620,11 +629,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
       {/* Sections */}
       <div className="px-8 sm:px-12 py-6 space-y-6 print:px-10">
         <NewSection title="Fertility Information" icon={Baby} number={1}>
-          {renderFields(fertility, FERTILITY_FIELDS)}
+          {renderFields(fertility, FERTILITY_FIELDS, 'fertility')}
         </NewSection>
 
         <NewSection title="Surrogacy Information" icon={Heart} number={2}>
-          {renderFields(surrogacy, SURROGACY_FIELDS)}
+          {renderFields(surrogacy, SURROGACY_FIELDS, 'surrogacy')}
         </NewSection>
 
         {/* Per-person sections */}
@@ -639,7 +648,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           if (!hasPartner) {
             return (
               <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
-                {renderFields(ip1[secKey] || {}, fieldDefs)}
+                {renderFields(ip1[secKey] || {}, fieldDefs, `ip1.${secKey}`)}
               </NewSection>
             )
           }
@@ -649,11 +658,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
-                  {renderFields(ip1[secKey] || {}, fieldDefs)}
+                  {renderFields(ip1[secKey] || {}, fieldDefs, `ip1.${secKey}`)}
                 </div>
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
-                  {renderFields(ip2[secKey] || {}, fieldDefs)}
+                  {renderFields(ip2[secKey] || {}, fieldDefs, `ip2.${secKey}`)}
                 </div>
               </div>
             </NewSection>
@@ -1441,7 +1450,7 @@ function SharedFields({ section, data, onUpdate }) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {visibleFields.map(f => (
-          <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
+          <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' || f.fullWidth ? 'md:col-span-2' : ''}>
             {renderField(f, data[f.key], val => onUpdate(f.key, val))}
           </div>
         ))}
@@ -1462,7 +1471,7 @@ function PerPersonFields({ section, profile, hasPartner, ip1Name, ip2Name, onUpd
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {visibleFields.map(f => (
-            <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
+            <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' || f.fullWidth ? 'md:col-span-2' : ''}>
               {renderField(f, data[f.key], val => onUpdate(person, section.key, f.key, val))}
             </div>
           ))}

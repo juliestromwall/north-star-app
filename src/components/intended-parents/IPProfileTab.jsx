@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown, Save, Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, Camera, Upload, X, Loader2, Trash2,
-  Eye, Download, ShieldCheck, ShieldX, Unlock, Send
+  Eye, EyeOff, Download, ShieldCheck, ShieldX, Unlock, Send
 } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -234,6 +234,25 @@ function isFieldFilled(value) {
 }
 
 // ─────────────────────────────────────────────────────────
+// Hide-from-IPs toggle (click to hide a specific field from Preview/
+// Send/Save PDF — mirrors the GC profile pattern)
+// ─────────────────────────────────────────────────────────
+
+function HideToggle({ hidden, onToggle, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); if (!disabled) onToggle() }}
+      disabled={disabled}
+      className={`shrink-0 p-0.5 rounded transition-colors ${disabled ? 'opacity-30 cursor-not-allowed text-gray-300' : hidden ? 'text-red-400 hover:text-red-600' : 'text-gray-300 hover:text-gray-500'}`}
+      title={disabled ? 'Unapprove the profile to change visibility' : hidden ? 'Hidden from IPs — click to show' : 'Visible to IPs — click to hide'}
+    >
+      {hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+    </button>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
 // Render field in edit mode
 // ─────────────────────────────────────────────────────────
 
@@ -307,9 +326,10 @@ function renderDisplayField(field, data) {
 // Section Editor (shared section)
 // ─────────────────────────────────────────────────────────
 
-function SharedSectionCard({ section, profile, onSave, id }) {
+function SharedSectionCard({ section, profile, onSave, onToggleHide, id, isApproved }) {
   const [open, setOpen] = useState(false)
   const sectionData = profile?.[section.key] || {}
+  const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
   const Icon = section.icon
 
   function handleFieldChange(key, value) {
@@ -339,9 +359,17 @@ function SharedSectionCard({ section, profile, onSave, id }) {
               {section.fields.map(f => {
                 const node = renderEditField(f, sectionData, handleFieldChange)
                 if (!node) return null
+                const path = `${section.key}.${f.key}`
+                const hidden = hiddenFields.includes(path)
+                const spanClass = f.type === 'textarea' || f.type === 'checkboxGroup' || f.fullWidth ? 'md:col-span-2' : ''
                 return (
-                  <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
-                    {node}
+                  <div key={f.key} className={spanClass}>
+                    <div className={`relative ${hidden ? 'opacity-60' : ''}`}>
+                      <div className="absolute -top-1 right-0 z-10">
+                        <HideToggle hidden={hidden} onToggle={() => onToggleHide(path)} disabled={isApproved} />
+                      </div>
+                      {node}
+                    </div>
                   </div>
                 )
               })}
@@ -357,9 +385,10 @@ function SharedSectionCard({ section, profile, onSave, id }) {
 // Section Editor (per-person section with IP1/IP2 tabs)
 // ─────────────────────────────────────────────────────────
 
-function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, onSave, id }) {
+function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, onSave, onToggleHide, id, isApproved }) {
   const [open, setOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('ip1')
+  const hiddenFields = Array.isArray(profile?._hiddenFields) ? profile._hiddenFields : []
   const Icon = section.icon
 
   function getPersonData(person) {
@@ -378,9 +407,17 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
         {section.fields.map(f => {
           const node = renderEditField(f, personData, (k, v) => handleFieldChange(person, k, v))
           if (!node) return null
+          const path = `${person}.${section.key}.${f.key}`
+          const hidden = hiddenFields.includes(path)
+          const spanClass = f.type === 'textarea' || f.type === 'checkboxGroup' || f.fullWidth ? 'md:col-span-2' : ''
           return (
-            <div key={f.key} className={f.type === 'textarea' || f.type === 'checkboxGroup' ? 'md:col-span-2' : ''}>
-              {node}
+            <div key={f.key} className={spanClass}>
+              <div className={`relative ${hidden ? 'opacity-60' : ''}`}>
+                <div className="absolute -top-1 right-0 z-10">
+                  <HideToggle hidden={hidden} onToggle={() => onToggleHide(path)} disabled={isApproved} />
+                </div>
+                {node}
+              </div>
             </div>
           )
         })}
@@ -837,6 +874,16 @@ export default function IPProfileTab({ ip, onUpdate }) {
     scheduleAutoSave(updatedProfile)
   }
 
+  // Toggle a single field's visibility in Preview/Send/Save PDF. Path
+  // is dot-separated: "fertility.hasFrozenEmbryos" for shared sections,
+  // "ip1.health.mentalHealth" for per-person.
+  function handleToggleHide(path) {
+    if (isApproved) return
+    const current = Array.isArray(profile._hiddenFields) ? profile._hiddenFields : []
+    const updated = current.includes(path) ? current.filter(p => p !== path) : [...current, path]
+    scheduleAutoSave({ ...profile, _hiddenFields: updated })
+  }
+
   return (
     <div className="space-y-6 mt-4">
       {/* Approved banner */}
@@ -945,6 +992,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
                 ip1Name={ip1Name}
                 ip2Name={ip2Name}
                 onSave={handlePerPersonSave}
+                onToggleHide={handleToggleHide}
+                isApproved={isApproved}
                 id={`ip-sec-${section.key}`}
               />
             ) : (
@@ -953,6 +1002,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
                 section={section}
                 profile={profile}
                 onSave={handleSharedSave}
+                onToggleHide={handleToggleHide}
+                isApproved={isApproved}
                 id={`ip-sec-${section.key}`}
               />
             )
