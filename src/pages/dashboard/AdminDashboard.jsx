@@ -13,9 +13,9 @@ import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
 import { getAdminStaff } from '@/data/mock/users'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
-import StageBadge from '@/components/shared/StageBadge'
+import StageBadge, { JourneyStatusPill } from '@/components/shared/StageBadge'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
-import { JourneyTileCard } from '@/pages/journeys/MatchedJourneysPage'
+import { JourneyTileCard, journeyManagerOutlineColor } from '@/pages/journeys/MatchedJourneysPage'
 import { SurrogateCard } from '@/pages/surrogates/SurrogateListPage'
 import { IPTileCard } from '@/pages/intended-parents/IPListPage'
 import { formatDate } from '@/lib/utils'
@@ -977,17 +977,21 @@ export default function AdminDashboard() {
                         <tr className="border-b bg-stone-50/50">
                           <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Intended Parent</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Surrogate</th>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Stage</th>
                           <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Status</th>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-stone-500">Manager</th>
                         </tr>
                       </thead>
                       <tbody>
                         {myJourneys.map(j => {
                           const gc = surrogates.find(s => s.id === j.gc_case_id)
                           const ip = ips.find(i => i.id === j.ip_case_id)
+                          const outline = journeyManagerOutlineColor({ ...j, gc, ip })
                           return (
-                            <tr key={j.id} className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer" onClick={() => window.location.href = `/journeys/${j.id}`}>
+                            <tr
+                              key={j.id}
+                              className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer"
+                              style={outline ? { boxShadow: `inset 4px 0 0 ${outline}` } : undefined}
+                              onClick={() => window.location.href = `/journeys/${j.id}`}
+                            >
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   <ProfileAvatar name={ip?.names || '?'} size="sm" />
@@ -1000,9 +1004,7 @@ export default function AdminDashboard() {
                                   <span className="font-medium text-stone-800">{gc?.name || '—'}</span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3"><StageBadge stage={j.stage} status={j.status} /></td>
-                              <td className="px-4 py-3 font-medium text-stone-600">{j.status || '—'}</td>
-                              <td className="px-4 py-3 text-stone-500 text-xs">{getAdminStaff().find(a => a.email === j.assigned_to)?.name || '—'}</td>
+                              <td className="px-4 py-3"><JourneyStatusPill stage={j.stage} status={j.status} /></td>
                             </tr>
                           )
                         })}

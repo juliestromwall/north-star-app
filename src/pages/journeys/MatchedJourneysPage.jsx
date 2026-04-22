@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
-import StageBadge from '@/components/shared/StageBadge'
+import StageBadge, { JourneyStatusPill } from '@/components/shared/StageBadge'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
@@ -383,9 +383,7 @@ export default function MatchedJourneysPage() {
                 <tr className="border-b bg-stone-50/50">
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Intended Parent</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
-                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Stage</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Manager</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Created</th>
                 </tr>
               </thead>
@@ -412,9 +410,7 @@ export default function MatchedJourneysPage() {
                         <span className="font-medium">{j.gc?.name || '—'}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3"><StageBadge stage={j.stage} status={j.status} /></td>
-                    <td className="px-4 py-3 text-stone-600">{j.status}</td>
-                    <td className="px-4 py-3 text-stone-500 text-xs">{j.journey_data?.journeyManager || j.assigned_to || '—'}</td>
+                    <td className="px-4 py-3"><JourneyStatusPill stage={j.stage} status={j.status} /></td>
                     <td className="px-4 py-3 text-stone-400 text-xs">{new Date(j.created_at).toLocaleDateString()}</td>
                   </tr>
                   )
