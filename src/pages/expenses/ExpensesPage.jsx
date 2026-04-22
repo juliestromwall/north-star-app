@@ -490,116 +490,197 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
   )
 }
 
-function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPaid, onReconcile, currentUser }) {
+// Inline editable CC last-4 field with placeholder prompting the admin
+// to record which card paid this expense. Only accepts digits, max 4.
+function CCLast4Inline({ value, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(value || '')
+  useEffect(() => { setVal(value || '') }, [value])
+
+  if (!editing) {
+    if (value) {
+      return (
+        <button
+          onClick={() => setEditing(true)}
+          className="inline-flex items-center gap-1 text-xs font-mono text-stone-600 hover:text-abc-indigo"
+          title="Click to edit"
+        >
+          ••••{value}
+        </button>
+      )
+    }
+    return (
+      <button
+        onClick={() => setEditing(true)}
+        className="inline-flex items-center gap-1 text-[11px] text-stone-400 hover:text-abc-indigo italic"
+      >
+        + Add CC last 4
+      </button>
+    )
+  }
+  const save = () => {
+    const clean = (val || '').replace(/\D/g, '').slice(-4) || null
+    onSave(clean)
+    setEditing(false)
+  }
+  return (
+    <div className="inline-flex items-center gap-1">
+      <Input
+        value={val}
+        onChange={e => setVal(e.target.value.replace(/\D/g, '').slice(0, 4))}
+        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }}
+        className="h-7 text-xs w-[76px] font-mono"
+        maxLength={4}
+        placeholder="1234"
+        autoFocus
+      />
+      <button onClick={save} className="text-green-600"><Check className="size-3.5" /></button>
+      <button onClick={() => setEditing(false)} className="text-stone-400"><X className="size-3.5" /></button>
+    </div>
+  )
+}
+
+// Card-layout list of expenses in the "Expenses to Pay" tab. Each expense
+// is one card with clear hierarchy: case + amount at top, payment details
+// in a 2-col grid, notes with click-to-expand, and the Mark Paid CTA
+// on the right.
+function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPaid, onReconcile, onSave, currentUser }) {
   if (expenses.length === 0) {
     return (
       <div className="px-6 py-16 text-center text-stone-400">
+        <CheckCircle2 className="size-8 mx-auto mb-2 text-stone-300" />
         <p className="text-sm">No expenses awaiting payment.</p>
+        <p className="text-xs mt-1">Direct-pay expenses from case Expenses tabs will appear here.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="bg-stone-50 border-b border-stone-200">
-            <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[200px] border-r border-stone-200">Case</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Date</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Amount</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Pay To</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Pay Via</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Notes</th>
-            <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Paid</th>
-            <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {expenses.map(exp => {
-            const isPreMatch = !exp.journey_id && exp.surrogate_id
-            const j = journeyMap[exp.journey_id] || {}
-            const surrogateName = isPreMatch ? (surrogateMap[exp.surrogate_id] || 'Unknown Surrogate') : null
-            const caseName = isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')
-            const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
-            const isPaid = !!exp.paid_at
-            return (
-              <tr key={exp.id} className={`border-b border-stone-100 hover:bg-stone-50/50 ${isPaid ? 'bg-green-50/30' : ''}`}>
-                <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
-                  <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm">{caseName}</Link>
-                  {isPreMatch ? (
-                    <p className="text-[10px] mt-0.5"><span className="text-stone-400">Pre-match</span></p>
-                  ) : (
-                    <p className="text-[10px] text-stone-400 mt-0.5">{j.caseManager || '—'}</p>
-                  )}
-                </td>
-                <td className="px-4 py-3 border-r border-stone-100">{formatDate(exp.expense_date)}</td>
-                <td className="px-4 py-3 border-r border-stone-100 font-semibold">{formatCurrency(exp.amount)}</td>
-                <td className="px-4 py-3 border-r border-stone-100">{exp.paid_to || '—'}</td>
-                <td className="px-4 py-3 border-r border-stone-100">
-                  {exp.pay_via ? (
-                    <div className="flex items-center gap-1.5">
-                      <div>
-                        <span className="font-medium capitalize">{exp.pay_via}</span>
-                        {exp.pay_via_info && <p className="text-[10px] text-stone-400">{exp.pay_via_info}</p>}
+    <div className="p-4 sm:p-5 space-y-3">
+      {expenses.map(exp => {
+        const isPreMatch = !exp.journey_id && exp.surrogate_id
+        const j = journeyMap[exp.journey_id] || {}
+        const surrogateName = isPreMatch ? (surrogateMap[exp.surrogate_id] || 'Unknown Surrogate') : null
+        const caseName = isPreMatch ? surrogateName : (j.caseName || 'Unknown Journey')
+        const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
+        const isPaid = !!exp.paid_at
+
+        return (
+          <div
+            key={exp.id}
+            className={`rounded-xl border transition-colors ${
+              isPaid
+                ? 'border-emerald-200 bg-emerald-50/50'
+                : 'border-stone-200 bg-white hover:border-stone-300'
+            }`}
+          >
+            <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
+              {/* Left: case, details, notes */}
+              <div className="space-y-3 min-w-0">
+                {/* Header: case + amount */}
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm leading-snug">
+                      {caseName}
+                    </Link>
+                    <p className="text-[10px] text-stone-400 mt-0.5">
+                      {isPreMatch ? 'Pre-match' : (j.caseManager || '—')} · {formatDate(exp.expense_date)}
+                    </p>
+                  </div>
+                  <p className="text-base font-bold text-stone-800 tabular-nums">
+                    {formatCurrency(exp.amount)}
+                  </p>
+                </div>
+
+                {/* Details grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs pt-2 border-t border-stone-100">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Pay To</p>
+                    <p className="text-stone-700">{exp.paid_to || <span className="text-stone-300">—</span>}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Pay Via</p>
+                    {exp.pay_via ? (
+                      <div className="flex items-center gap-1.5">
+                        <div>
+                          <p className="font-medium capitalize text-stone-700">{exp.pay_via}</p>
+                          {exp.pay_via_info && <p className="text-[10px] text-stone-400 break-all">{exp.pay_via_info}</p>}
+                        </div>
+                        {j.gcPayPrefScreenshotUrl && (
+                          <a
+                            href={j.gcPayPrefScreenshotUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-pink-400 hover:text-pink-600 transition-colors shrink-0"
+                            title="View surrogate's payment preference screenshot"
+                          >
+                            <Eye className="size-4" />
+                          </a>
+                        )}
                       </div>
-                      {j.gcPayPrefScreenshotUrl && (
-                        <a
-                          href={j.gcPayPrefScreenshotUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-pink-400 hover:text-pink-600 transition-colors shrink-0"
-                          title="View surrogate's payment preference screenshot"
-                        >
-                          <Eye className="size-4" />
-                        </a>
-                      )}
-                    </div>
-                  ) : j.gcPayPrefScreenshotUrl ? (
-                    <a
-                      href={j.gcPayPrefScreenshotUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-pink-400 hover:text-pink-600 transition-colors inline-flex items-center gap-1"
-                      title="View surrogate's payment preference screenshot"
-                    >
-                      <Eye className="size-4" />
-                    </a>
-                  ) : '—'}
-                </td>
-                <td className="px-4 py-3 border-r border-stone-100">{exp.notes || '—'}</td>
-                <td className="px-4 py-3 border-r border-stone-100">
-                  {isPaid ? (
-                    <div>
-                      <span className="text-green-600 font-semibold">Paid</span>
-                      <p className="text-[10px] text-stone-400">{formatDate(exp.paid_at)}</p>
-                      {exp.paid_by && <p className="text-[10px] text-stone-400">{getAdminName(exp.paid_by)}</p>}
-                    </div>
-                  ) : <span className="text-amber-600 font-medium">Pending</span>}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {!isPaid ? (
+                    ) : j.gcPayPrefScreenshotUrl ? (
+                      <a
+                        href={j.gcPayPrefScreenshotUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-pink-500 hover:text-pink-600 transition-colors text-[11px]"
+                      >
+                        <Eye className="size-3.5" /> View pay preference
+                      </a>
+                    ) : (
+                      <p className="text-stone-300">—</p>
+                    )}
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">CC Last 4</p>
+                    <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                {exp.notes && (
+                  <div className="pt-2 border-t border-stone-100">
+                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold mb-1">Notes</p>
+                    <NotesCell value={exp.notes} />
+                  </div>
+                )}
+              </div>
+
+              {/* Right: action / paid state */}
+              <div className="flex lg:flex-col items-start lg:items-end gap-2 lg:min-w-[160px] lg:border-l lg:border-stone-100 lg:pl-4">
+                {isPaid ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
+                      <CheckCircle2 className="size-3" /> Paid {formatDate(exp.paid_at)}
+                    </span>
+                    {exp.paid_by && <p className="text-[10px] text-stone-400">by {getAdminName(exp.paid_by)}</p>}
+                    {!exp.reconciled ? (
+                      <button
+                        onClick={() => onReconcile(exp.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors mt-1"
+                      >
+                        <CheckCircle2 className="size-3.5" /> Reconcile
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-emerald-600 font-medium">✓ Done</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending</span>
                     <button
                       onClick={() => onMarkPaid(exp.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
                     >
-                      <CheckCircle2 className="size-3" /> Mark Paid
+                      <CheckCircle2 className="size-3.5" /> Mark Paid
                     </button>
-                  ) : !exp.reconciled ? (
-                    <button
-                      onClick={() => onReconcile(exp.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                    >
-                      <CheckCircle2 className="size-3" /> Reconcile
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-green-600 font-medium">Done</span>
-                  )}
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -893,6 +974,7 @@ export default function ExpensesPage() {
                 surrogateMap={surrogateMap}
                 onMarkPaid={handleMarkPaid}
                 onReconcile={handleReconcile}
+                onSave={handleSave}
                 currentUser={currentUser}
               />
             </CardContent>
