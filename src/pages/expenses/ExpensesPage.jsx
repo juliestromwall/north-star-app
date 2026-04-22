@@ -161,10 +161,10 @@ export function NotesCell({ value }) {
   }
   if (!value) return <span className="text-stone-300">—</span>
   return (
-    <div className="max-w-[360px]">
+    <div className="max-w-[420px]">
       <p
         ref={ref}
-        className={`text-[11px] leading-snug whitespace-pre-wrap break-words text-stone-600 ${open ? '' : 'line-clamp-2'}`}
+        className={`text-[11px] leading-relaxed whitespace-pre-wrap break-words text-stone-600 ${open ? '' : 'line-clamp-2'}`}
       >
         {value}
       </p>
@@ -226,7 +226,7 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid }) {
       <select
         value={status}
         onChange={e => onSetStatus(exp.id, e.target.value)}
-        className={`h-6 text-[10px] border rounded px-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-abc-indigo ${
+        className={`h-7 text-[11px] font-medium border rounded-md pl-2 pr-6 bg-white focus:outline-none focus:ring-1 focus:ring-abc-indigo min-w-[160px] ${
           status === 'not_needed' ? 'text-emerald-700 border-emerald-200 bg-emerald-50' :
           status === 'yes' ? 'text-blue-700 border-blue-200 bg-blue-50' :
           'text-stone-500 border-stone-200'
@@ -376,26 +376,26 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-stone-50 dark:bg-[#1e1e2a] border-b border-stone-200 dark:border-[#2a2a38]">
-              <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[200px] border-r border-stone-200 dark:border-[#2a2a38]">
+              <th className="text-left px-5 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[260px] border-r border-stone-200 dark:border-[#2a2a38]">
                 Case
               </th>
               {COLUMNS.map((col) => (
-                <th key={col.key} className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
+                <th key={col.key} className="text-left px-4 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                   {col.label}
                 </th>
               ))}
-              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38] min-w-[220px]">
+              <th className="text-left px-4 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38] min-w-[280px]">
                 Notes
               </th>
-              <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
+              <th className="text-center px-3 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                 Doc
               </th>
               {showReconcile && (
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
+                <th className="text-center px-4 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                   Reconcile
                 </th>
               )}
-              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap min-w-[180px]">
+              <th className="text-left px-4 py-4 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap min-w-[220px]">
                 Submitted to Escrow
               </th>
             </tr>
@@ -412,25 +412,21 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               const rowGreen = !!(exp.disbursement_paid_at || exp.escrow_not_needed)
               return (
                 <tr key={exp.id} className={`border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50 ${rowGreen ? 'bg-emerald-50/60' : ''}`}>
-                  <td className={`px-5 py-3.5 sticky left-0 z-20 border-r border-stone-200 dark:border-[#2a2a38] ${rowGreen ? 'bg-emerald-50/60' : 'bg-white dark:bg-[#1a1a24]'}`}>
-                    <div className="flex items-center gap-2">
-                      <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
-                        {caseName}
-                      </Link>
-                      {exp.paid_at && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
-                          <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
-                        </span>
-                      )}
-                    </div>
-                    {isPreMatch ? (
-                      <p className="text-[10px] mt-0.5"><span className="text-stone-400">Pre-match</span></p>
-                    ) : (
-                      <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
+                  <td className={`px-5 py-4 sticky left-0 z-20 border-r border-stone-200 dark:border-[#2a2a38] align-top ${rowGreen ? 'bg-emerald-50/60' : 'bg-white dark:bg-[#1a1a24]'}`}>
+                    <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm leading-snug">
+                      {caseName}
+                    </Link>
+                    <p className="text-[10px] text-stone-400 mt-1">
+                      {isPreMatch ? <span>Pre-match</span> : caseManager}
+                    </p>
+                    {exp.paid_at && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full mt-1.5">
+                        <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
+                      </span>
                     )}
                   </td>
                   {COLUMNS.map((col) => (
-                    <td key={col.key} className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38]">
+                    <td key={col.key} className="px-4 py-4 border-r border-stone-100 dark:border-[#2a2a38] align-top whitespace-nowrap">
                       <EditableCell
                         col={col}
                         value={exp[col.key]}
@@ -438,10 +434,10 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       />
                     </td>
                   ))}
-                  <td className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38] align-top">
+                  <td className="px-4 py-4 border-r border-stone-100 dark:border-[#2a2a38] align-top">
                     <NotesCell value={exp.notes} />
                   </td>
-                  <td className="px-3 py-3 text-center border-r border-stone-100 dark:border-[#2a2a38]">
+                  <td className="px-3 py-4 text-center border-r border-stone-100 dark:border-[#2a2a38] align-top">
                     <div className="inline-flex items-center gap-2 justify-center">
                       {exp.attachment_url ? (
                         <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
@@ -466,7 +462,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                     </div>
                   </td>
                   {showReconcile && (
-                    <td className="px-4 py-3 text-center border-r border-stone-100 dark:border-[#2a2a38]">
+                    <td className="px-4 py-4 text-center border-r border-stone-100 dark:border-[#2a2a38] align-top">
                       <button
                         onClick={() => setReconcileId(exp.id)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
@@ -476,7 +472,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       </button>
                     </td>
                   )}
-                  <td className="px-4 py-3 align-top">
+                  <td className="px-4 py-4 align-top">
                     <EscrowStatusCell
                       exp={exp}
                       reconciled={!!exp.reconciled}
