@@ -4297,7 +4297,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   function startSectionEdit(sec) {
     if (isApproved) return
-    const sectionData = data[sec.key] || {}
+    setEditData(buildSectionEditData(sec, data[sec.key] || {}))
+    setEditingSection(sec)
+    setTimeout(() => {
+      document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
+  function buildSectionEditData(sec, sectionData) {
     const merged = { ...sectionData }
     const arrayFieldNames = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList']
     for (const f of sec.fields) {
@@ -4305,14 +4312,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         merged[f] = arrayFieldNames.includes(f) ? [] : ''
       }
     }
-    setEditData(merged)
-    setEditingSection(sec)
-    setTimeout(() => {
-      document.getElementById(`admin-sec-${sec.key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 100)
+    return merged
   }
 
   function updateEditField(field, value) {
+    if (isApproved) return
     setEditData(prev => {
       const next = { ...prev, [field]: value }
       // When numberOfPregnancies changes, auto-resize pregnancies array
@@ -4397,6 +4401,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   function addArrayItem(field) {
+    if (isApproved) return
     const current = editData[field] || []
     let newItem = {}
     if (field === 'pregnancies') {
@@ -4412,6 +4417,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   function removeArrayItem(field, index) {
+    if (isApproved) return
     const current = editData[field] || []
     updateEditField(field, current.filter((_, i) => i !== index))
   }
@@ -4502,14 +4508,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
 
   const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
 
-  function renderScalarFieldEdit(field, secKey) {
-    const val = editData[field]
+  function renderScalarFieldEdit(field, secKey, sourceData = editData) {
+    const val = sourceData?.[field]
     const hidden = isFieldHidden(secKey, field)
 
     const labelRow = (
       <div className="flex items-center gap-1">
         <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
-        <HideToggle sectionKey={secKey} fieldKey={field} />
+        {!isApproved && <HideToggle sectionKey={secKey} fieldKey={field} />}
       </div>
     )
 
@@ -4519,7 +4525,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
           {labelRow}
           <input type="number" min="0" max={field === 'numberOfPregnancies' ? '20' : undefined}
-            className={inputClass} value={val || ''} onChange={e => updateEditField(field, e.target.value)} />
+            className={inputClass} value={val || ''} disabled={isApproved} onChange={e => updateEditField(field, e.target.value)} />
         </div>
       )
     }
@@ -4529,7 +4535,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       return (
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
           {labelRow}
-          <SelectUI value={val || ''} onValueChange={v => updateEditField(field, v)}>
+          <SelectUI value={val || ''} disabled={isApproved} onValueChange={v => updateEditField(field, v)}>
             <SelectTriggerUI className="h-9 text-sm bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
             <SelectContentUI>
               {SELECT_FIELDS[field].map(opt => <SelectItemUI key={opt} value={opt}>{opt}</SelectItemUI>)}
@@ -4554,7 +4560,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
             {CHECKBOX_FIELDS[field].map(opt => (
               <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
-                <Checkbox checked={current.includes(opt)} onCheckedChange={() => toggle(opt)} />
+                <Checkbox checked={current.includes(opt)} disabled={isApproved} onCheckedChange={() => toggle(opt)} />
                 <span className="text-gray-700">{opt}</span>
               </label>
             ))}
@@ -4573,7 +4579,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       return (
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
           {labelRow}
-          <input className={inputClass} value={formatCurrency(val)} placeholder="$0"
+          <input className={inputClass} value={formatCurrency(val)} placeholder="$0" disabled={isApproved}
             onChange={e => { const digits = e.target.value.replace(/[^0-9]/g, ''); updateEditField(field, digits ? '$' + Number(digits).toLocaleString('en-US') : '') }} />
         </div>
       )
@@ -4584,7 +4590,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       return (
         <div key={field} className={`space-y-1 col-span-full ${hidden ? 'opacity-50' : ''}`}>
           {labelRow}
-          <Textarea className="bg-white text-sm min-h-[60px]" rows={2} value={val || ''}
+          <Textarea className="bg-white text-sm min-h-[60px]" rows={2} value={val || ''} disabled={isApproved}
             onChange={e => updateEditField(field, e.target.value)} />
         </div>
       )
@@ -4597,11 +4603,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
           {labelRow}
           <div className="flex items-center gap-2 pt-0.5">
-            <button type="button" onClick={() => updateEditField(field, 'yes')}
+            <button type="button" disabled={isApproved} onClick={() => updateEditField(field, 'yes')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'yes' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               Yes
             </button>
-            <button type="button" onClick={() => updateEditField(field, 'no')}
+            <button type="button" disabled={isApproved} onClick={() => updateEditField(field, 'no')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${display === 'no' ? 'bg-[#283693] text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
               No
             </button>
@@ -4614,15 +4620,16 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     return (
       <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
         {labelRow}
-        <input className={inputClass} value={Array.isArray(val) ? val.join(', ') : String(val || '')}
+        <input className={inputClass} value={Array.isArray(val) ? val.join(', ') : String(val || '')} disabled={isApproved}
           onChange={e => updateEditField(field, e.target.value)} />
       </div>
     )
   }
 
-  function renderPregnancyEdit(item, i, field) {
+  function renderPregnancyEdit(item, i, field, sourceData = editData) {
     const updateItem = (k, val) => {
-      const updated = [...editData[field]]
+      if (isApproved) return
+      const updated = [...(sourceData?.[field] || [])]
       updated[i] = { ...updated[i], [k]: val }
       updateEditField(field, updated)
     }
@@ -4866,9 +4873,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     )
   }
 
-  function renderHouseholdMemberEdit(item, i, field) {
+  function renderHouseholdMemberEdit(item, i, field, sourceData = editData) {
     const updateItem = (k, val) => {
-      const updated = [...editData[field]]
+      if (isApproved) return
+      const updated = [...(sourceData?.[field] || [])]
       updated[i] = { ...updated[i], [k]: val }
       updateEditField(field, updated)
     }
@@ -4876,9 +4884,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-[#283693]">Member #{i + 1}</span>
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
+          {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
-          </Button>
+          </Button>}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
@@ -4901,9 +4909,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     )
   }
 
-  function renderJourneyEdit(item, i, field) {
+  function renderJourneyEdit(item, i, field, sourceData = editData) {
     const updateItem = (k, val) => {
-      const updated = [...editData[field]]
+      if (isApproved) return
+      const updated = [...(sourceData?.[field] || [])]
       updated[i] = { ...updated[i], [k]: val }
       updateEditField(field, updated)
     }
@@ -4911,9 +4920,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-[#283693]">Journey #{i + 1}</p>
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
+          {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-7 text-xs" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
-          </Button>
+          </Button>}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
@@ -4962,9 +4971,10 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     )
   }
 
-  function renderGenericItemEdit(item, i, field) {
+  function renderGenericItemEdit(item, i, field, sourceData = editData) {
     const updateItem = (k, val) => {
-      const updated = [...editData[field]]
+      if (isApproved) return
+      const updated = [...(sourceData?.[field] || [])]
       updated[i] = { ...updated[i], [k]: val }
       updateEditField(field, updated)
     }
@@ -4972,9 +4982,9 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
       <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-semibold text-[#283693]">#{i + 1}</p>
-          <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
+          {!isApproved && <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 gap-1 h-6 text-xs px-2" onClick={() => removeArrayItem(field, i)}>
             <Trash2 className="size-3" /> Remove
-          </Button>
+          </Button>}
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {Object.entries(item).filter(([k]) => k !== 'id').map(([k, v]) => (
@@ -5216,19 +5226,21 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               const sectionData = data[sec.key] || {}
               const isEditing = editingSection?.key === sec.key
               const isOpen = openAdminSections[sec.key]
+              const showEditLayout = isEditing || isApproved
+              const activeEditData = isEditing && editData ? editData : buildSectionEditData(sec, sectionData)
               const allFields = [...sec.fields, ...Object.keys(sectionData).filter(k => !sec.fields.includes(k) && k !== '_hiddenFields' && sectionData[k] !== '' && sectionData[k] !== null && sectionData[k] !== undefined)]
                 .filter(f => isConditionalVisible(f, sectionData))
 
               const scalarFields = allFields.filter(f => {
-                const val = isEditing && editData ? editData[f] : sectionData[f]
+                const val = showEditLayout ? activeEditData[f] : sectionData[f]
                 return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
               })
               const arrayFields = allFields.filter(f => {
-                const val = isEditing && editData ? editData[f] : sectionData[f]
+                const val = showEditLayout ? activeEditData[f] : sectionData[f]
                 return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
               })
-              const emptyArrayFields = isEditing && editData ? allFields.filter(f => {
-                const val = editData[f]
+              const emptyArrayFields = showEditLayout ? allFields.filter(f => {
+                const val = activeEditData[f]
                 return Array.isArray(val) && val.length === 0
               }) : []
 
@@ -5260,27 +5272,27 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                   <CardContent>
-                    {isEditing && editData ? (
-                      <div className="space-y-4">
+                    {showEditLayout ? (
+                      <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {scalarFields.map(field => renderScalarFieldEdit(field, sec.key))}
+                          {scalarFields.map(field => renderScalarFieldEdit(field, sec.key, activeEditData))}
                         </div>
                         {arrayFields.map(field => (
                           <div key={field}>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
-                              {field !== 'pregnancies' && (
+                              {field !== 'pregnancies' && !isApproved && (
                                 <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
                                   <Plus className="size-3" /> {getAddButtonLabel(field)}
                                 </Button>
                               )}
                             </div>
                             <div className="space-y-3">
-                              {editData[field].map((item, i) => {
-                                if (field === 'pregnancies') return renderPregnancyEdit(item, i, field)
-                                if (field === 'householdMembers') return renderHouseholdMemberEdit(item, i, field)
-                                if (field === 'journeys') return renderJourneyEdit(item, i, field)
-                                return renderGenericItemEdit(item, i, field)
+                              {activeEditData[field].map((item, i) => {
+                                if (field === 'pregnancies') return renderPregnancyEdit(item, i, field, activeEditData)
+                                if (field === 'householdMembers') return renderHouseholdMemberEdit(item, i, field, activeEditData)
+                                if (field === 'journeys') return renderJourneyEdit(item, i, field, activeEditData)
+                                return renderGenericItemEdit(item, i, field, activeEditData)
                               })}
                             </div>
                           </div>
@@ -5289,14 +5301,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                           <div key={field}>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs text-muted-foreground font-medium">{formatFieldLabel(field)}</p>
-                              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
+                              {!isApproved && <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => addArrayItem(field)}>
                                 <Plus className="size-3" /> {getAddButtonLabel(field)}
-                              </Button>
+                              </Button>}
                             </div>
                             <p className="text-xs text-gray-400 italic">No entries yet.</p>
                           </div>
                         ))}
-                      </div>
+                      </fieldset>
                     ) : (
                       <div className="space-y-2 text-sm">
                         {scalarFields.map(field => {
