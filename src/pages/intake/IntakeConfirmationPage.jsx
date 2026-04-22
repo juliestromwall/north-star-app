@@ -163,6 +163,13 @@ export default function IntakeConfirmationPage() {
             We are currently reviewing your information, and we will be in touch within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
           </p>
 
+          <img
+            src="/buggy-rolling.gif"
+            alt=""
+            aria-hidden="true"
+            className="block mx-auto max-w-[320px] w-full h-auto mb-8"
+          />
+
           <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
             <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
             <p className="text-sm text-stone-500">
