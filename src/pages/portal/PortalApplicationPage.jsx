@@ -36,8 +36,8 @@ const FORM_SECTIONS = [
 
 const IP_FORM_SECTIONS = [
   { key: '_ipContact', label: 'Contact Information', description: 'Your address and contact details' },
-  { key: '_ipPersonal', label: 'Personal Information', description: 'Background, occupation, and emergency contact' },
   { key: '_ipClinic', label: 'Clinic Information', description: 'Your fertility clinic, doctor, and embryo details' },
+  { key: '_references', label: 'Personal References', description: 'Three personal references' },
 ]
 
 function YesNoButtons({ value, onChange }) {
@@ -1321,112 +1321,6 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
   )
 }
 
-// ── IP Personal Information ──────────────────────────────
-function IPPersonalForm({ data, onSave, saving, readOnly, isOpen, onToggle, hasPartner, ip1Name, ip2Name }) {
-  const [form, setForm] = useState({})
-  useEffect(() => {
-    const init = {
-      ip1Occupation: data?.ip1Occupation || '',
-      ip1Employer: data?.ip1Employer || '',
-      ip1UsCitizen: data?.ip1UsCitizen || '',
-      ip1CitizenshipCountry: data?.ip1CitizenshipCountry || '',
-      ip1Ethnicity: data?.ip1Ethnicity || '',
-      ip1Religion: data?.ip1Religion || '',
-      ip2Occupation: data?.ip2Occupation || '',
-      ip2Employer: data?.ip2Employer || '',
-      ip2UsCitizen: data?.ip2UsCitizen || '',
-      ip2CitizenshipCountry: data?.ip2CitizenshipCountry || '',
-      ip2Ethnicity: data?.ip2Ethnicity || '',
-      ip2Religion: data?.ip2Religion || '',
-      emergencyName: data?.emergencyName || '',
-      emergencyPhone: data?.emergencyPhone || '',
-      emergencyRelationship: data?.emergencyRelationship || '',
-    }
-    setForm(init)
-  }, [data])
-
-  const ip1NonUS = form.ip1UsCitizen === 'no'
-  const ip2NonUS = form.ip2UsCitizen === 'no'
-
-  const requiredKeys = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
-  if (ip1NonUS) requiredKeys.push('ip1CitizenshipCountry')
-  if (hasPartner) {
-    requiredKeys.push('ip2Occupation','ip2Employer','ip2UsCitizen')
-    if (ip2NonUS) requiredKeys.push('ip2CitizenshipCountry')
-  }
-  const allFilled = requiredKeys.every(k => {
-    const v = form[k]
-    if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
-    if (k === 'emergencyPhone') return isValidPhone(v)
-    return v?.toString().trim()
-  })
-
-  function checkComplete(d) {
-    if (!d) return false
-    const rk = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
-    if (d.ip1UsCitizen === 'no') rk.push('ip1CitizenshipCountry')
-    if (hasPartner) {
-      rk.push('ip2Occupation','ip2Employer','ip2UsCitizen')
-      if (d.ip2UsCitizen === 'no') rk.push('ip2CitizenshipCountry')
-    }
-    return rk.every(k => {
-      const v = d[k]
-      if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
-      if (k === 'emergencyPhone') return isValidPhone(v)
-      return v?.toString().trim()
-    })
-  }
-
-  const renderPersonFields = (prefix, label) => (
-    <>
-      <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">{label}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div className="space-y-1"><FieldLabel>Occupation <Req /></FieldLabel><Input value={form[`${prefix}Occupation`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Occupation`]: e.target.value }))} /></div>
-        <div className="space-y-1"><FieldLabel>Employer <Req /></FieldLabel><Input value={form[`${prefix}Employer`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Employer`]: e.target.value }))} /></div>
-        <div className="space-y-1"><FieldLabel>U.S. Citizen? <Req /></FieldLabel><YesNoButtons value={form[`${prefix}UsCitizen`]} onChange={v => setForm(f => ({ ...f, [`${prefix}UsCitizen`]: v }))} /></div>
-        {form[`${prefix}UsCitizen`] === 'no' && (
-          <div className="space-y-1"><FieldLabel>Country of Citizenship <Req /></FieldLabel><Input value={form[`${prefix}CitizenshipCountry`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}CitizenshipCountry`]: e.target.value }))} /></div>
-        )}
-        <div className="space-y-1"><FieldLabel>Ethnicity</FieldLabel><Input value={form[`${prefix}Ethnicity`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Ethnicity`]: e.target.value }))} /></div>
-        <div className="space-y-1"><FieldLabel>Religion</FieldLabel><Input value={form[`${prefix}Religion`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Religion`]: e.target.value }))} /></div>
-      </div>
-    </>
-  )
-
-  return (
-    <Card className="rounded-2xl">
-      <CardHeader className="cursor-pointer" onClick={onToggle}>
-        <div className="flex items-center gap-2">
-          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
-          <div>
-            <CardTitle className="text-base">Personal Information</CardTitle>
-            <CardDescription>Background, occupation, and emergency contact</CardDescription>
-          </div>
-        </div>
-        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
-      </CardHeader>
-      {isOpen && (
-        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
-          {renderPersonFields('ip1', ip1Name ? `${ip1Name}'s Information` : 'Intended Parent #1')}
-          {hasPartner && renderPersonFields('ip2', ip2Name ? `${ip2Name}'s Information` : 'Intended Parent #2')}
-
-          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Emergency Contact</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="space-y-1"><FieldLabel>Name <Req /></FieldLabel><Input value={form.emergencyName || ''} onChange={e => setForm(f => ({ ...f, emergencyName: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.emergencyPhone || ''} onChange={e => setForm(f => ({ ...f, emergencyPhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
-            <div className="space-y-1"><FieldLabel>Relationship <Req /></FieldLabel><Input value={form.emergencyRelationship || ''} onChange={e => setForm(f => ({ ...f, emergencyRelationship: e.target.value }))} /></div>
-          </div>
-
-          {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
-          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipPersonal', form)} disabled={saving || !allFilled}>
-            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
-          </Button>}
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
 // ── IP Clinic Information ────────────────────────────────
 function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({})
@@ -1850,20 +1744,6 @@ export default function PortalApplicationPage() {
         return v?.toString().trim()
       })
     }
-    if (key === '_ipPersonal') {
-      const rk = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
-      if (d.ip1UsCitizen === 'no') rk.push('ip1CitizenshipCountry')
-      if (hasPartner) {
-        rk.push('ip2Occupation','ip2Employer','ip2UsCitizen')
-        if (d.ip2UsCitizen === 'no') rk.push('ip2CitizenshipCountry')
-      }
-      return rk.every(k => {
-        const v = d[k]
-        if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
-        if (k === 'emergencyPhone') return isValidPhone(v)
-        return v?.toString().trim()
-      })
-    }
     if (key === '_ipClinic') {
       const rk = ['clinicName','clinicPhone','reDoctorName','reDoctorPhone','embryoCount','embryoDay','embryosTested','usingEggDonor','usingSpermDonor']
       return rk.every(k => {
@@ -1909,10 +1789,10 @@ export default function PortalApplicationPage() {
         <>
           <IPContactForm data={answers._ipContact} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} hasPartner={hasPartner} readOnly={isSubmitted}
             isOpen={activeSection === '_ipContact'} onToggle={() => setActiveSection(activeSection === '_ipContact' ? null : '_ipContact')} />
-          <IPPersonalForm data={answers._ipPersonal} onSave={isSubmitted ? null : handleSave} saving={saving} hasPartner={hasPartner} ip1Name={ip1Name} ip2Name={ip2Name} readOnly={isSubmitted}
-            isOpen={activeSection === '_ipPersonal'} onToggle={() => setActiveSection(activeSection === '_ipPersonal' ? null : '_ipPersonal')} />
           <IPClinicForm data={answers._ipClinic} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted}
             isOpen={activeSection === '_ipClinic'} onToggle={() => setActiveSection(activeSection === '_ipClinic' ? null : '_ipClinic')} />
+          <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+            isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
         </>
       ) : (
         <>
