@@ -317,6 +317,12 @@ function ContactInfoSection({ ip, setIp, search }) {
       state: saved.state || a.stateProv || '',
       zipCode: saved.zipCode || a.zipCode || '',
       preferredContact: saved.preferredContact || '',
+      emergency1Name: saved.emergency1Name || '',
+      emergency1Phone: saved.emergency1Phone || '',
+      emergency1Email: saved.emergency1Email || '',
+      emergency2Name: saved.emergency2Name || '',
+      emergency2Phone: saved.emergency2Phone || '',
+      emergency2Email: saved.emergency2Email || '',
     })
   )
 
@@ -404,6 +410,26 @@ function ContactInfoSection({ ip, setIp, search }) {
             }
           </div>
         </div>
+        {[1, 2].map(n => (
+          <div key={`emg-${n}`}>
+            <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Emergency Contact #{n}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {editing ? (
+                <>
+                  <div className="space-y-1"><FieldLabel>Name</FieldLabel><Input value={form[`emergency${n}Name`] || ''} onChange={e => set(`emergency${n}Name`, e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" value={form[`emergency${n}Phone`] || ''} onChange={e => set(`emergency${n}Phone`, e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input type="email" value={form[`emergency${n}Email`] || ''} onChange={e => set(`emergency${n}Email`, e.target.value)} /></div>
+                </>
+              ) : (
+                <>
+                  <ReadField label="Name" value={readVal(`emergency${n}Name`)} />
+                  <ReadField label="Phone" value={readVal(`emergency${n}Phone`)} />
+                  <ReadField label="Email" value={readVal(`emergency${n}Email`)} />
+                </>
+              )}
+            </div>
+          </div>
+        ))}
       </CardContent>
     </Card>
   )
@@ -600,7 +626,6 @@ export default function IPApplicationTab({ ip, setIp }) {
       <IntakeAnswersSection ip={ip} setIp={setIp} search={searchLower} />
       <ContactInfoSection ip={ip} setIp={setIp} search={searchLower} />
       <ClinicSection ip={ip} setIp={setIp} search={searchLower} />
-      <ReferencesSection ip={ip} setIp={setIp} search={searchLower} />
 
       {/* Background Waivers */}
       {(!searchLower || 'background waiver'.includes(searchLower)) && (() => {

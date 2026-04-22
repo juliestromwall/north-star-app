@@ -6,7 +6,7 @@ import {
 import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, arrayMove } from '@dnd-kit/sortable'
-import { IPProfilePreview, SortablePhoto, PhotoEditor } from '@/pages/profile/IPProfilePage'
+import { IPProfilePreview, SortablePhoto, PhotoEditor, SECTIONS } from '@/pages/profile/IPProfilePage'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -159,100 +159,12 @@ function DisplayField({ label, value }) {
 }
 
 // ─────────────────────────────────────────────────────────
-// Health conditions options
-// ─────────────────────────────────────────────────────────
-
-const HEALTH_CONDITIONS = [
-  'Blood Transfusion', 'Polio or Meningitis', 'High Blood Pressure',
-  'Scarlet Fever', 'Nervous Breakdown', 'Heart Disease',
-  'Low Blood Pressure', 'Gonorrhea/Syphilis', 'Jaundice',
-  'Epilepsy', 'Migraines', 'Tuberculosis',
-  'Cancer', 'Hepatitis', 'HIV/AIDS',
-  'Herpes', 'Chicken Pox', 'None of the above'
-]
-
-// ─────────────────────────────────────────────────────────
 // Section definitions
 // ─────────────────────────────────────────────────────────
 
-const FERTILITY_FIELDS = [
-  { key: 'reasonForSurrogacy', label: 'What led to your decision to pursue surrogacy?', type: 'textarea' },
-  { key: 'fertilityProcedures', label: 'What fertility procedures have you tried?', type: 'textarea' },
-  { key: 'hasFrozenEmbryos', label: 'Do you have frozen embryos?', type: 'yesno' },
-  { key: 'frozenEmbryoCount', label: 'How many frozen embryos do you have?', type: 'text', conditional: d => d.hasFrozenEmbryos === 'yes' },
-  { key: 'embryosGeneticallyTested', label: 'Have the embryos been genetically tested?', type: 'textarea' },
-  { key: 'usingEggDonor', label: 'Are you using an egg donor?', type: 'yesno' },
-  { key: 'usingSpermDonor', label: 'Are you using a sperm donor?', type: 'yesno' },
-  { key: 'embryoTransferCount', label: 'Would you like to transfer one embryo or two?', type: 'select', options: ['1', '2', 'Undecided'] },
-  { key: 'anticipatedTransferDate', label: 'When do you anticipate having the embryo transfer?', type: 'text' },
-  { key: 'hasOtherChildren', label: 'Do you have other children?', type: 'yesno' },
-  { key: 'otherChildrenDetails', label: 'How many children do you have and what are their ages?', type: 'text', conditional: d => d.hasOtherChildren === 'yes' },
-]
-
-const SURROGACY_FIELDS = [
-  { key: 'clinicName', label: 'What is the name and location of your fertility clinic and Reproductive Endocrinologist (RE)?', type: 'text' },
-  { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married', 'No Preference'] },
-  { key: 'locationPreference', label: 'Do you have a preference on where your surrogate resides?', type: 'yesno' },
-  { key: 'locationPreferenceStates', label: 'Which state(s) would you prefer?', type: 'text', conditional: d => d.locationPreference === 'yes' },
-  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or repeat surrogate?', type: 'textarea' },
-  { key: 'attendAppointments', label: 'Would you like to attend milestone OB appointments with your surrogate?', type: 'yesno' },
-  { key: 'terminationForAbnormalities', label: 'If a serious abnormality were detected during pregnancy, would you consider termination? Please share your thoughts.', type: 'textarea' },
-  { key: 'relationshipWithSurrogate', label: 'What kind of relationship would you like to have with your surrogate during the pregnancy?', type: 'textarea' },
-  { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
-  { key: 'tandemSurrogacy', label: 'Would you consider pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
-  { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
-]
-
-const PERSONAL_FIELDS = [
-  { key: 'dob', label: 'Date of Birth', type: 'date' },
-  { key: 'birthplace', label: 'Where were you born?', type: 'text' },
-  { key: 'ethnicity', label: 'What is your ethnicity?', type: 'text' },
-  { key: 'languages', label: 'What languages do you speak?', type: 'text' },
-  { key: 'usCitizen', label: 'Are you a U.S. Citizen?', type: 'yesno' },
-  { key: 'citizenshipCountry', label: 'What is your country of citizenship?', type: 'text', conditional: d => d.usCitizen === 'no' },
-  { key: 'criminalHistory', label: 'Have you ever been arrested or convicted of a crime? If yes, please explain.', type: 'textarea' },
-]
-
-const HEALTH_FIELDS = [
-  { key: 'generalHealth', label: 'How would you describe your general health?', type: 'textarea' },
-  { key: 'medicalConditions', label: 'Do you have any medical conditions we should be aware of?', type: 'textarea' },
-  { key: 'hepatitisBC', label: 'Have you ever tested positive for Hepatitis B or C?', type: 'textarea' },
-  { key: 'hivAids', label: 'Have you ever tested positive for HIV/AIDS?', type: 'yesno' },
-  { key: 'mentalHealthDiagnosis', label: 'Have you ever been diagnosed with a mental health condition?', type: 'yesno' },
-  { key: 'mentalHealthDiagnosisDetails', label: 'Please provide details about your diagnosis', type: 'textarea', conditional: d => d.mentalHealthDiagnosis === 'yes' },
-  { key: 'mentalHealthMedication', label: 'Have you ever taken medication for a mental health condition?', type: 'yesno' },
-  { key: 'mentalHealthMedicationDetails', label: 'Please provide details about your medication', type: 'textarea', conditional: d => d.mentalHealthMedication === 'yes' },
-  { key: 'mentalHealthHospitalization', label: 'Have you ever been hospitalized for a mental health condition?', type: 'yesno' },
-  { key: 'mentalHealthHospitalizationDetails', label: 'Please provide details about your hospitalization', type: 'textarea', conditional: d => d.mentalHealthHospitalization === 'yes' },
-  { key: 'healthConditionsList', label: 'Please indicate any of the following conditions or diseases you have had (check all that apply)', type: 'checkboxGroup', options: HEALTH_CONDITIONS },
-  { key: 'healthConditionsDetails', label: 'Please provide dates for any of the above checked conditions', type: 'textarea', conditional: d => {
-    const list = d.healthConditionsList
-    return Array.isArray(list) && list.length > 0 && !list.every(v => v === 'None of the above')
-  }},
-]
-
-const HISTORY_FIELDS = [
-  { key: 'favoriteMusic', label: 'Favorite music', type: 'text' },
-  { key: 'favoriteMovie', label: 'Favorite movie', type: 'text' },
-  { key: 'favoriteBook', label: 'Favorite book', type: 'text' },
-  { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
-  { key: 'favoriteColor', label: 'Favorite color', type: 'text' },
-  { key: 'favoriteFlower', label: 'Favorite flower', type: 'text' },
-  { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
-  { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
-  { key: 'collections', label: 'Do you collect anything special?', type: 'text' },
-  { key: 'travelDestination', label: 'Where would you most like to travel and why?', type: 'textarea' },
-  { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
-  { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
-]
-
-const SECTIONS = [
-  { key: 'fertility', label: 'Fertility Information', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
-  { key: 'surrogacy', label: 'Surrogacy Information', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
-  { key: 'personal', label: 'Personal Information', icon: User, fields: PERSONAL_FIELDS, perPerson: true },
-  { key: 'health', label: 'Health Information', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
-  { key: 'history', label: 'Personal History', icon: BookOpen, fields: HISTORY_FIELDS, perPerson: true },
-]
+// Field / SECTIONS definitions are the single source of truth in
+// src/pages/profile/IPProfilePage.jsx — we import them here so the admin tab
+// can never drift from what the IP fills out on their side.
 
 // ─────────────────────────────────────────────────────────
 // Helpers
@@ -345,9 +257,40 @@ function renderEditField(field, data, onChange) {
       return <SelectField key={field.key} label={field.label} value={value} onChange={handleChange} options={field.options} />
     case 'checkboxGroup':
       return <CheckboxGroupField key={field.key} label={field.label} value={value} onChange={handleChange} options={field.options} />
+    case 'qualitiesMax3':
+      return <QualitiesMaxField key={field.key} label={field.label} value={value} onChange={handleChange} options={field.options} max={3} />
     default:
       return <TextField key={field.key} label={field.label} value={value} onChange={handleChange} />
   }
+}
+
+function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
+  const selected = Array.isArray(value) ? value : []
+  const atMax = selected.length >= max
+  const toggle = (opt) => {
+    if (selected.includes(opt)) onChange(selected.filter(v => v !== opt))
+    else if (!atMax) onChange([...selected, opt])
+  }
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const isOn = selected.includes(opt)
+          const disabled = !isOn && atMax
+          return (
+            <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
+                isOn ? 'bg-[#283693] text-white border-[#283693]' : disabled ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed' : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+              }`}>
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 // ─────────────────────────────────────────────────────────

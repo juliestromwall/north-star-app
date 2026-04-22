@@ -35,9 +35,8 @@ const FORM_SECTIONS = [
 ]
 
 const IP_FORM_SECTIONS = [
-  { key: '_ipContact', label: 'Contact Information', description: 'Your address and contact details' },
+  { key: '_ipContact', label: 'Contact Information', description: 'Your address, contact details, and emergency contacts' },
   { key: '_ipClinic', label: 'Clinic Information', description: 'Your fertility clinic, doctor, and embryo details' },
-  { key: '_references', label: 'Personal References', description: 'Three personal references' },
 ]
 
 function YesNoButtons({ value, onChange }) {
@@ -1244,6 +1243,12 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
       ip2Email: data?.ip2Email || a.ip2Email || '',
       ip2Phone: formatPhone(data?.ip2Phone || a.ip2Phone || ''),
       preferredContact: data?.preferredContact || '',
+      emergency1Name: data?.emergency1Name || '',
+      emergency1Phone: formatPhone(data?.emergency1Phone || ''),
+      emergency1Email: data?.emergency1Email || '',
+      emergency2Name: data?.emergency2Name || '',
+      emergency2Phone: formatPhone(data?.emergency2Phone || ''),
+      emergency2Email: data?.emergency2Email || '',
     }
     setForm(init)
     setHydrated(true)
@@ -1253,6 +1258,8 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
   const requiredKeys = [
     'ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone',
     'country','street','city','state','zipCode','preferredContact',
+    'emergency1Name','emergency1Phone','emergency1Email',
+    'emergency2Name','emergency2Phone','emergency2Email',
   ]
   if (hasPartner) requiredKeys.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
   const allFilled = requiredKeys.every(k => {
@@ -1344,6 +1351,23 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
               </Select>
             </div>
           </div>
+
+          {[1, 2].map(n => (
+            <div key={`emg-${n}`}>
+              <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Emergency Contact #{n}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="space-y-1"><FieldLabel>Name <Req /></FieldLabel>
+                  <Input value={form[`emergency${n}Name`] || ''} onChange={e => setForm(f => ({ ...f, [`emergency${n}Name`]: e.target.value }))} />
+                </div>
+                <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel>
+                  <Input type="tel" value={form[`emergency${n}Phone`] || ''} onChange={e => setForm(f => ({ ...f, [`emergency${n}Phone`]: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" />
+                </div>
+                <div className="space-y-1"><FieldLabel>Email <Req /></FieldLabel>
+                  <Input type="email" value={form[`emergency${n}Email`] || ''} onChange={e => setForm(f => ({ ...f, [`emergency${n}Email`]: e.target.value }))} placeholder="name@example.com" />
+                </div>
+              </div>
+            </div>
+          ))}
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
           {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipContact', form)} disabled={saving || !allFilled}>
@@ -1757,7 +1781,9 @@ export default function PortalApplicationPage() {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
     if (key === '_ipContact') {
-      const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','country','street','city','state','zipCode','preferredContact']
+      const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','country','street','city','state','zipCode','preferredContact',
+        'emergency1Name','emergency1Phone','emergency1Email',
+        'emergency2Name','emergency2Phone','emergency2Email']
       if (hasPartner) rk.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
       return rk.every(k => {
         const v = d[k]
@@ -1813,8 +1839,6 @@ export default function PortalApplicationPage() {
             isOpen={activeSection === '_ipContact'} onToggle={() => setActiveSection(activeSection === '_ipContact' ? null : '_ipContact')} />
           <IPClinicForm data={answers._ipClinic} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted}
             isOpen={activeSection === '_ipClinic'} onToggle={() => setActiveSection(activeSection === '_ipClinic' ? null : '_ipClinic')} />
-          <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
-            isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
         </>
       ) : (
         <>

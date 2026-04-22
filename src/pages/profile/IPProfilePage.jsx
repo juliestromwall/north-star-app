@@ -34,7 +34,7 @@ const FERTILITY_FIELDS = [
 
 const SURROGACY_FIELDS = [
   { key: 'clinicName', label: 'What is the name and location of your fertility clinic and Reproductive Endocrinologist (RE)?', type: 'text' },
-  { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married', 'No Preference'] },
+  { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married/Partnered', 'No Preference'] },
   { key: 'locationPreference', label: 'Do you have a preference on where your surrogate resides?', type: 'yesno' },
   { key: 'locationPreferenceStates', label: 'Which state(s) would you prefer?', type: 'text', conditional: d => d.locationPreference === 'yes' },
   { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or repeat surrogate?', type: 'textarea' },
@@ -42,43 +42,33 @@ const SURROGACY_FIELDS = [
   { key: 'terminationForAbnormalities', label: 'If a serious abnormality were detected during pregnancy, would you consider termination? Please share your thoughts.', type: 'textarea' },
   { key: 'relationshipWithSurrogate', label: 'What kind of relationship would you like to have with your surrogate during the pregnancy?', type: 'textarea' },
   { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
-  { key: 'tandemSurrogacy', label: 'Would you consider pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
+  { key: 'inDeliveryRoomDetails', label: 'Please explain', type: 'textarea' },
+  { key: 'tandemSurrogacy', label: 'Are you planning on pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
+  { key: 'tandemSurrogacyDetails', label: 'Please explain', type: 'textarea', conditional: d => d.tandemSurrogacy === 'yes' },
   { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
-]
-
-const PERSONAL_FIELDS = [
-  { key: 'dob', label: 'Date of Birth', type: 'date' },
-  { key: 'birthplace', label: 'Where were you born?', type: 'text' },
-  { key: 'ethnicity', label: 'What is your ethnicity?', type: 'text' },
-  { key: 'languages', label: 'What languages do you speak?', type: 'text' },
-  { key: 'usCitizen', label: 'Are you a U.S. Citizen?', type: 'yesno' },
-  { key: 'citizenshipCountry', label: 'What is your country of citizenship?', type: 'text', conditional: d => d.usCitizen === 'no' },
-  { key: 'criminalHistory', label: 'Have you ever been arrested or convicted of a crime? If yes, please explain.', type: 'textarea' },
-]
-
-const HEALTH_CONDITIONS = [
-  'Blood Transfusion', 'Polio or Meningitis', 'High Blood Pressure', 'Scarlet Fever',
-  'Nervous Breakdown', 'Heart Disease', 'Low Blood Pressure', 'Gonorrhea/Syphilis',
-  'Jaundice', 'Epilepsy', 'Migraines', 'Tuberculosis', 'Cancer', 'Hepatitis',
-  'HIV/AIDS', 'Herpes', 'Chicken Pox', 'None of the above',
 ]
 
 const HEALTH_FIELDS = [
   { key: 'generalHealth', label: 'How would you describe your general health?', type: 'textarea' },
-  { key: 'medicalConditions', label: 'Do you have any medical conditions we should be aware of?', type: 'textarea' },
-  { key: 'hepatitisBC', label: 'Have you ever tested positive for Hepatitis B or C?', type: 'textarea' },
+  { key: 'medicalConditions', label: 'Do you have any medical conditions we should be aware of?', type: 'yesno' },
+  { key: 'medicalConditionsDetails', label: 'Please explain', type: 'textarea', conditional: d => d.medicalConditions === 'yes' },
+  { key: 'hepatitisBC', label: 'Have you ever tested positive for Hepatitis B or C?', type: 'yesno' },
+  { key: 'hepatitisBCDetails', label: 'Please explain', type: 'textarea', conditional: d => d.hepatitisBC === 'yes' },
   { key: 'hivAids', label: 'Have you ever tested positive for HIV/AIDS?', type: 'yesno' },
+  { key: 'hivAidsDetails', label: 'Please explain', type: 'textarea', conditional: d => d.hivAids === 'yes' },
   { key: 'mentalHealthDiagnosis', label: 'Have you ever been diagnosed with a mental health condition?', type: 'yesno' },
   { key: 'mentalHealthDiagnosisDetails', label: 'Please provide details about your diagnosis', type: 'textarea', conditional: d => d.mentalHealthDiagnosis === 'yes' },
   { key: 'mentalHealthMedication', label: 'Have you ever taken medication for a mental health condition?', type: 'yesno' },
   { key: 'mentalHealthMedicationDetails', label: 'Please provide details about your medication', type: 'textarea', conditional: d => d.mentalHealthMedication === 'yes' },
   { key: 'mentalHealthHospitalization', label: 'Have you ever been hospitalized for a mental health condition?', type: 'yesno' },
   { key: 'mentalHealthHospitalizationDetails', label: 'Please provide details about your hospitalization', type: 'textarea', conditional: d => d.mentalHealthHospitalization === 'yes' },
-  { key: 'healthConditionsList', label: 'Please indicate any of the following conditions or diseases you have had (check all that apply)', type: 'checkboxGroup', options: HEALTH_CONDITIONS },
-  { key: 'healthConditionsDetails', label: 'Please provide dates for any of the above checked conditions', type: 'textarea', conditional: d => {
-    const list = d.healthConditionsList
-    return Array.isArray(list) && list.length > 0 && !list.every(v => v === 'None of the above')
-  }},
+]
+
+const QUALITIES_OPTIONS = [
+  'Compassionate','Organized','Optimistic','Calm','Resilient','Thoughtful','Honest',
+  'Patient','Supportive','Independent','Warm','Reliable','Open-minded','Flexible',
+  'Encouraging','Determined','Nurturing','Empathetic','Communicative','Loyal',
+  'Easygoing','Confident','Hopeful','Grounded',
 ]
 
 const HISTORY_FIELDS = [
@@ -86,13 +76,10 @@ const HISTORY_FIELDS = [
   { key: 'favoriteMovie', label: 'Favorite movie', type: 'text' },
   { key: 'favoriteBook', label: 'Favorite book', type: 'text' },
   { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
-  { key: 'favoriteColor', label: 'Favorite color', type: 'text' },
-  { key: 'favoriteFlower', label: 'Favorite flower', type: 'text' },
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
-  { key: 'collections', label: 'Do you collect anything special?', type: 'text' },
-  { key: 'travelDestination', label: 'Where would you most like to travel and why?', type: 'textarea' },
   { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
+  { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS },
   { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
 ]
 
@@ -158,7 +145,7 @@ function PhotoUpload({ label, hint, userId, subfolder, onPhotoChange }) {
 
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       {hint && <p className="text-xs text-stone-400">{hint}</p>}
       {photo ? (
         <div className="relative group w-32 h-32">
@@ -641,11 +628,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         </NewSection>
 
         {/* Per-person sections */}
-        {(['personal', 'health', 'history']).map((secKey, idx) => {
-          const rawDefs = secKey === 'personal' ? PERSONAL_FIELDS : secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
+        {(['health', 'history']).map((secKey, idx) => {
+          const rawDefs = secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
           // Exclude messageToSurrogate — it renders as a special letter card below
           const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate')
-          const sectionLabel = secKey === 'personal' ? 'Personal Information' : secKey === 'health' ? 'Health Information' : 'Personal History'
+          const sectionLabel = secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
           const sectionNum = 3 + idx
 
@@ -743,10 +730,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   )
 }
 
-const SECTIONS = [
+export const SECTIONS = [
   { key: 'fertility', label: 'Fertility Information', description: 'Embryos, donors, and fertility history', icon: Baby, fields: FERTILITY_FIELDS, perPerson: false },
   { key: 'surrogacy', label: 'Surrogacy Information', description: 'Preferences, expectations, and clinic details', icon: Heart, fields: SURROGACY_FIELDS, perPerson: false },
-  { key: 'personal', label: 'Personal Information', description: 'Background, citizenship, and personal details', icon: User, fields: PERSONAL_FIELDS, perPerson: true },
   { key: 'health', label: 'Health Information', description: 'Medical history and health conditions', icon: HeartPulse, fields: HEALTH_FIELDS, perPerson: true },
   { key: 'history', label: 'Personal History', description: 'Interests, favorites, and personality', icon: BookOpen, fields: HISTORY_FIELDS, perPerson: true },
 ]
@@ -804,7 +790,7 @@ function countSectionCompletion(profile, section, hasPartner) {
 function TextField({ label, value, onChange, type = 'text', placeholder, disabled }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       <Input type={type} value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className="h-9" />
     </div>
   )
@@ -813,7 +799,7 @@ function TextField({ label, value, onChange, type = 'text', placeholder, disable
 function TextAreaField({ label, value, onChange, placeholder }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       <Textarea value={value || ''} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} />
     </div>
   )
@@ -822,7 +808,7 @@ function TextAreaField({ label, value, onChange, placeholder }) {
 function YesNoField({ label, value, onChange }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       <div className="flex gap-2">
         <button type="button" onClick={() => onChange('yes')}
           className={`px-4 py-1.5 text-sm rounded-full font-medium transition-colors ${value === 'yes' ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>Yes</button>
@@ -836,7 +822,7 @@ function YesNoField({ label, value, onChange }) {
 function SelectField({ label, value, onChange, options, placeholder = 'Select...' }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       <Select value={value || ''} onValueChange={onChange}>
         <SelectTrigger className="h-9"><SelectValue placeholder={placeholder} /></SelectTrigger>
         <SelectContent>
@@ -851,7 +837,7 @@ function CheckboxGroupField({ label, value, onChange, options }) {
   const selected = Array.isArray(value) ? value : []
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium text-[#283693]">{label}</label>
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {options.map(opt => (
           <label key={opt} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -861,6 +847,40 @@ function CheckboxGroupField({ label, value, onChange, options }) {
             {opt}
           </label>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// Multi-select chip field limited to `max` selections.
+function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
+  const selected = Array.isArray(value) ? value : []
+  const atMax = selected.length >= max
+  const toggle = (opt) => {
+    if (selected.includes(opt)) onChange(selected.filter(v => v !== opt))
+    else if (!atMax) onChange([...selected, opt])
+  }
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const isOn = selected.includes(opt)
+          const disabled = !isOn && atMax
+          return (
+            <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
+                isOn
+                  ? 'bg-[#283693] text-white border-[#283693]'
+                  : disabled
+                    ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
+                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+              }`}>
+              {opt}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -891,6 +911,7 @@ function renderField(field, value, onChange) {
   if (field.type === 'yesno') return <YesNoField label={field.label} value={value} onChange={onChange} />
   if (field.type === 'select') return <SelectField label={field.label} value={value} onChange={onChange} options={field.options} />
   if (field.type === 'checkboxGroup') return <CheckboxGroupField label={field.label} value={value} onChange={onChange} options={field.options} />
+  if (field.type === 'qualitiesMax3') return <QualitiesMaxField label={field.label} value={value} onChange={onChange} options={field.options} max={3} />
   return null
 }
 
