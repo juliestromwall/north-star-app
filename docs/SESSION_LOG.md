@@ -1,5 +1,36 @@
 # Session Log
 
+## 2026-04-21 Session C (Warp-recovery data ops + Matched Journeys UI, SMS scope fix, Gmail 403 fix, emoji picker)
+
+**Worked on:** Recovered after Warp terminal froze with 3 parallel sessions — all prior work was already committed on `staging`. Ran several production data operations, then fixed several UI/UX issues on matched journeys, fixed a leaking SMS notification indicator, fixed email body links, added an emoji picker to compose. Everything shipped through `staging` → `main`.
+
+**Production data ops (all against db.abcsurrogacy.com):**
+- Imported 2 new GCs from `/Users/juliestromwall/Downloads/GCs in intake - Sheet1.csv` via `scripts/import-surrogates.js` — 13 of 15 were already in `intake_submissions`, 2 new rows inserted (Mariah Master, Marissa Hawkins).
+- Reassigned **72 pre-qualification GCs** to `info@abcsurrogacy.com` (Jennifer Rose) via new `scripts/assign-prequal-to-jennifer.js` — overwrote 10 existing admin assignments, filled 62 nulls, 23 already matched. Stage lookup via `app_config.surrogate_stages` with the default-when-missing rule. Skipped withdrawn/holding.
+- Marked **98 qualified GCs as Reviewed** (by Jennifer Rose) via new `scripts/mark-qualified-as-reviewed.js` — sets `intake_submissions.status='reviewed'` and stamps `answers._reviewedAt` / `answers._reviewedBy`. Surrogate dashboard card flips from "Our team is reviewing…" (pink) to "We've reviewed your quiz results!" (emerald).
+- Imported Raquel Rodriguez's old profile from `raquelirodriguez@yahoo.com` xlsx via `scripts/import-old-surrogate-profile.js --apply`. New `surrogate_profiles` row `b2ebb324-bd9c-4bd2-a2ff-8ab9f300a84c`, linked to intake id=52 (applicant name mismatch is fine — keyed by email).
+
+**Email migration (juliestromwall@gmail.com → info@abcsurrogacy.com):**
+- Provided SQL covering 17 attribution columns across `intake_submissions`, `case_tasks`, `matched_journeys`, `journey_notes`, `profile_shares`, `case_notes`, `case_documents`, `esign_*`, `insurance_payments`, `team_chat_*`. User ran it — verified 0 traces of old email remain in application tables; `info@abcsurrogacy.com` now owns the data.
+- `auth.users.email` was NOT touched by the attribution SQL (different subsystem) — which is why the forgot-password email to `info@...` silently failed. Provided SQL to update `auth.users` + `auth.identities` directly in the Supabase SQL editor (`UPDATE auth.users SET email=..., email_change='', email_change_token_new='', email_change_confirm_status=0 WHERE ...` + matching `auth.identities` update for provider=email). **User said Supabase dashboard "edit user" wasn't visible to them — provided SQL route as the fallback, unclear whether they ran it.**
+
+**Commits shipped to staging + main (all UI):**
+- `a32bcc6` — MatchedJourneysPage: `STATUS_PRIORITY` const drives custom box order (All Cases, Pending Medical Clearance, Pending Legal Clearance, Legal Clearance Issued, Transfer Prep, Pregnant, Delivered, Holding, then unlisted alphabetized). Archived journeys excluded from "All Cases" and per-status counts; surfaced via `View archived (N)` text link next to the view toggle (not a big box).
+- `75612cd` — SMS notification scope fix. `Sidebar.jsx` and `TopBar.jsx` were calling `fetchSMSMessages()` with no args, falling back to env var `TWILIO_PHONE_NUMBER` (Julie's sandbox number), so every admin saw her SMS as unread. Both now read `user_prefs_<uid>.twilioPhone` first; if none configured, no fetch and no dot. If set, scoped to that number.
+- `dcda5ee` — `EmailPage.jsx` iframe: wrap srcDoc in `<!doctype html>` shell with `<base target="_blank" rel="noopener noreferrer">` + widen sandbox to `allow-same-origin allow-popups allow-popups-to-escape-sandbox`. Previously, clicking a link inside an email body navigated the iframe itself to the Google URL and got replaced with Google's 403 page. Also added `EmojiPickerButton` in `ComposeWindows.jsx` — 56 curated emojis (smileys, hearts, pregnancy-themed), inserts at Tiptap cursor. No new deps.
+- `0e39f03` — Journey list views on both `/dashboard` (myJourneys section) and `/journeys` list view: consolidated redundant Stage + Status + Manager columns into a single **Status** column rendered as a new `JourneyStatusPill` (colored by stage). Manager column dropped — the pink/indigo left edge (Julie Allgood=indigo, Nicole Lawson=pink, via `journeyManagerOutlineColor`) replaces the text. Dashboard list now has that same left edge too.
+
+**Next steps:**
+- **Scheduled send (email)** — flagged but not built. Gmail API doesn't expose scheduled send (Gmail UI-only). Needs: `scheduled_emails` table + Cloudflare cron trigger + compose UI with date/time picker + "Scheduled" folder. User asked about it; I recommended scoping as a separate day of work. **Not yet approved to build.**
+- **`CaseEmailsTab.jsx` has the same link-click 403 class of bug** as `EmailPage.jsx` but renders via `dangerouslySetInnerHTML` instead of iframe, so the fix is different — either wrap in an iframe too or run a click-time handler that forces `target="_blank"`. Not fixed this session — flagged to user.
+- User's uncommitted working tree still has `src/lib/db.js` and `src/pages/profile/SurrogateProfilePage.jsx` modifications from parallel sessions (the Kim-profile fix thread, Session A). Left untouched per the "only commit what I touched" rule.
+
+**Open questions:**
+- Did user run the `auth.users.email` SQL in the Supabase SQL editor? Status unknown — they never confirmed.
+- Untracked scripts left in working tree (`scripts/assign-prequal-to-jennifer.js`, `scripts/mark-qualified-as-reviewed.js`, plus Session A's `import-*.js`) — user said "just leave as is" earlier. Don't commit without explicit ask.
+
+---
+
 ## 2026-04-21 Session B (Expense Tracker overhaul: Submitted-to-Escrow 3-state, cleaner table, IP/GC colored case cell, journey hero pills)
 
 **Worked on:** Full redesign of `/expenses` + per-journey Expenses tab around a new "Submitted to Escrow" disposition column, plus supporting UI polish and one unrelated prod-data cleanup for journey 38.
