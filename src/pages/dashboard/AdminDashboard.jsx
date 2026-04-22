@@ -245,12 +245,12 @@ export default function AdminDashboard() {
   // Hide inactive cases from the dashboard:
   //   Surrogates: holding, withdrawn, not-qualified
   //   IPs: holding, withdrawn
-  //   Journeys: status === 'Complete'
+  //   Journeys: status === 'Complete' OR _archivedAt is set (broken/finished matches)
   const HIDDEN_GC_STAGES = new Set(['holding', 'withdrawn', 'not-qualified'])
   const HIDDEN_IP_STAGES = new Set(['holding', 'withdrawn'])
   const HIDDEN_JOURNEY_STATUSES = new Set(['Complete'])
 
-  const visibleJourneys = journeys.filter(j => !HIDDEN_JOURNEY_STATUSES.has(j.status))
+  const visibleJourneys = journeys.filter(j => isJourneyActive(j) && !HIDDEN_JOURNEY_STATUSES.has(j.status))
   const allMyJourneys = showAllCases ? visibleJourneys : visibleJourneys.filter(j => j.assigned_to === myEmail)
   const allMySurrogates = surrogates.filter(s => {
     if (!(showAllCases || s.assignedTo === myEmail)) return false
