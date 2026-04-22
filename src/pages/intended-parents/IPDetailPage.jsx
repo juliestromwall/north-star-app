@@ -67,6 +67,16 @@ export default function IPDetailPage() {
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
+  const [sillyGooseOpen, setSillyGooseOpen] = useState(false)
+
+  // Don't let the admin invite an IP to the portal until a case owner
+  // is assigned — otherwise the IP's dashboard has no coordinator to
+  // display. Returns true if assignment is present, false if blocked.
+  function ensureAssignedBeforeInvite() {
+    if (ip?.assignedTo) return true
+    setSillyGooseOpen(true)
+    return false
+  }
   const [recordTracking, setRecordTracking] = useState(() => {
     try {
       const saved = localStorage.getItem(`abc_records_${id}`)
@@ -322,6 +332,7 @@ export default function IPDetailPage() {
                   <Button variant="outline" size="sm" className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50" disabled={inviting}
                     onClick={async () => {
                       if (!ip.email) return
+                      if (!ensureAssignedBeforeInvite()) return
                       setInviting(true); setInviteResult(null)
                       try {
                         const res = await fetch('/api/ip-invite', {
@@ -359,6 +370,7 @@ export default function IPDetailPage() {
                   <Button variant="outline" size="sm" className="gap-1.5" disabled={inviting}
                     onClick={async () => {
                       if (!ip.email) return
+                      if (!ensureAssignedBeforeInvite()) return
                       setInviting(true); setInviteResult(null)
                       try {
                         const res = await fetch('/api/ip-invite', {
@@ -403,6 +415,7 @@ export default function IPDetailPage() {
                       <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7 text-amber-600 border-amber-200 hover:bg-amber-50" disabled={invitingPartner}
                         onClick={async () => {
                           if (!ip.ip2Email) return
+                          if (!ensureAssignedBeforeInvite()) return
                           setInvitingPartner(true); setPartnerInviteResult(null)
                           try {
                             const res = await fetch('/api/ip-invite', {
@@ -437,6 +450,7 @@ export default function IPDetailPage() {
                   ) : (
                     <Button variant="outline" size="sm" className="gap-1.5 text-[10px] h-7" disabled={invitingPartner}
                       onClick={async () => {
+                        if (!ensureAssignedBeforeInvite()) return
                         setInvitingPartner(true); setPartnerInviteResult(null)
                         try {
                           const res = await fetch('/api/ip-invite', {
@@ -753,6 +767,33 @@ export default function IPDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Silly goose: block invite flow when no admin is assigned */}
+      <Dialog open={sillyGooseOpen} onOpenChange={setSillyGooseOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-center text-[#283693]">Silly goose! 🪿</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1 text-center">
+            <img
+              src="https://media.tenor.com/Ym4iH4Mr7McAAAAM/silly-goose-silly-goose-moment.gif"
+              alt="Silly goose moment"
+              className="w-full max-w-[240px] mx-auto rounded-lg"
+            />
+            <p className="text-sm text-stone-700 leading-relaxed font-medium">
+              You must first assign this case to an Admin before inviting the IP to the portal.
+            </p>
+            <p className="text-xs text-stone-500">
+              Use the "Assigned To" dropdown on this case, then try the invite again.
+            </p>
+            <div className="flex justify-center pt-1">
+              <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} onClick={() => setSillyGooseOpen(false)}>
+                Got it
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Release Application confirmation modal */}
       <Dialog open={showReleaseModal} onOpenChange={(v) => !releasingApp && setShowReleaseModal(v)}>

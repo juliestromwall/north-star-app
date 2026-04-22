@@ -9,6 +9,8 @@ import { Heart, FileText, ArrowRight, Loader2, User, Mail, Phone, MapPin, CheckC
 import { Link } from 'react-router-dom'
 import { findCaseByEmail, fetchUserTasks, updateTaskStatus, fetchIntakeByEmail } from '@/lib/db'
 import { countCompletion } from '@/pages/profile/IPProfilePage'
+import ProfileAvatar from '@/components/shared/ProfileAvatar'
+import { getAdminStaff } from '@/data/mock/users'
 
 // ── Progress ring (matches surrogate dashboard) ──
 function ProgressRing({ percent, size = 72 }) {
@@ -384,21 +386,24 @@ export default function IPDashboard() {
       )}
 
       {/* Coordinator */}
-      {caseData?.assigned_to && (
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 shrink-0">
-                <User className="w-5 h-5 text-emerald-600" />
+      {caseData?.assigned_to && (() => {
+        const admin = getAdminStaff().find(a => a.email === caseData.assigned_to)
+        const displayName = admin?.name || caseData.assigned_to.split('@')[0]
+        return (
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center gap-4">
+                <ProfileAvatar name={displayName} avatar={admin?.avatarUrl} size="md" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-stone-400">Your Coordinator</p>
+                  <p className="font-semibold text-stone-700 text-sm">{displayName}</p>
+                  {admin?.email && <p className="text-xs text-stone-400">{admin.email}</p>}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-stone-400">Your Coordinator</p>
-                <p className="font-semibold text-stone-700 text-sm">{caseData.assigned_to}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* To Do section */}
       {activeTasks.length > 0 && (

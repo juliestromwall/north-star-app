@@ -47,6 +47,32 @@ export async function onRequestGet(context) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
+    // Attach each admin's saved avatar URL (stored in app_config under
+    // user_prefs_{id}.avatarUrl by SettingsPage/AdminProfileSection).
+    // Single batched query — one IN() fetch is cheaper than N round-trips.
+    if (admins.length > 0) {
+      try {
+        const keys = admins.map(a => `user_prefs_${a.id}`)
+        const inList = keys.map(k => `"${k}"`).join(',')
+        const prefsRes = await fetch(
+          `${supabaseUrl}/rest/v1/app_config?config_key=in.(${encodeURIComponent(inList)})&select=config_key,config_value`,
+          { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } }
+        )
+        if (prefsRes.ok) {
+          const rows = await prefsRes.json()
+          const avatarByKey = {}
+          for (const r of rows) {
+            const url = r?.config_value?.avatarUrl
+            if (url) avatarByKey[r.config_key] = url
+          }
+          for (const a of admins) {
+            const url = avatarByKey[`user_prefs_${a.id}`]
+            if (url) a.avatarUrl = url
+          }
+        }
+      } catch { /* best-effort */ }
+    }
+
     return new Response(JSON.stringify(admins), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
