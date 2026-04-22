@@ -37,15 +37,15 @@ const SURROGACY_FIELDS = [
   { key: 'surrogatePreference', label: 'Do you prefer a surrogate who is single, married, or do you have no preference?', type: 'select', options: ['Single', 'Married/Partnered', 'No Preference'] },
   { key: 'locationPreference', label: 'Do you have a preference on where your surrogate resides?', type: 'yesno' },
   { key: 'locationPreferenceStates', label: 'Which state(s) would you prefer?', type: 'text', conditional: d => d.locationPreference === 'yes' },
-  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or repeat surrogate?', type: 'textarea' },
+  { key: 'firstTimeOrRepeat', label: 'Do you prefer a first-time or an experienced surrogate?', type: 'select', options: ['No Preference', 'First-Time Surrogate', 'Experienced Surrogate'] },
   { key: 'attendAppointments', label: 'Would you like to attend milestone OB appointments with your surrogate?', type: 'yesno' },
+  { key: 'attendAppointmentsDetails', label: 'Please explain', type: 'textarea' },
   { key: 'terminationForAbnormalities', label: 'If a serious abnormality were detected during pregnancy, would you consider termination? Please share your thoughts.', type: 'textarea' },
   { key: 'relationshipWithSurrogate', label: 'What kind of relationship would you like to have with your surrogate during the pregnancy?', type: 'textarea' },
   { key: 'inDeliveryRoom', label: 'Would you like to be in the delivery room when your baby is born?', type: 'yesno' },
   { key: 'inDeliveryRoomDetails', label: 'Please explain', type: 'textarea' },
   { key: 'tandemSurrogacy', label: 'Are you planning on pursuing tandem surrogacy (two surrogates carrying simultaneously)?', type: 'yesno' },
   { key: 'tandemSurrogacyDetails', label: 'Please explain', type: 'textarea', conditional: d => d.tandemSurrogacy === 'yes' },
-  { key: 'whatTellChild', label: 'What will you tell your child about the way they came into the world?', type: 'textarea' },
 ]
 
 const HEALTH_FIELDS = [
