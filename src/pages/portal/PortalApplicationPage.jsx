@@ -1204,21 +1204,27 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly, 
 // hammer the DB on every keystroke.
 function useAutoSave(form, onSave, sectionKey, readOnly, hydrated) {
   const timer = useRef(null)
+  const onSaveRef = useRef(onSave)
   useEffect(() => {
-    if (!onSave || readOnly || !hydrated) return
+    onSaveRef.current = onSave
+  }, [onSave])
+  useEffect(() => {
+    if (!onSaveRef.current || readOnly || !hydrated || Object.keys(form || {}).length === 0) return
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
-      onSave(sectionKey, form, { silent: true })
+      onSaveRef.current(sectionKey, form, { silent: true })
     }, 1500)
     return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [form, onSave, sectionKey, readOnly, hydrated])
+  }, [form, sectionKey, readOnly, hydrated])
 }
 
 // ── IP Contact Information ──────────────────────────────
 function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle, hasPartner }) {
   const [form, setForm] = useState({})
   const [hydrated, setHydrated] = useState(false)
+  const didHydrate = useRef(false)
   useEffect(() => {
+    if (didHydrate.current) return
     const a = quizData || {}
     // Prefill priority: existing application answer (data) → profile data
     // (a._ipProfile) → intake quiz answer (a.*). Goal: never make the IP
@@ -1252,6 +1258,7 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
     }
     setForm(init)
     setHydrated(true)
+    didHydrate.current = true
   }, [data, quizData])
   useAutoSave(form, onSave, '_ipContact', readOnly, hydrated)
 
@@ -1383,7 +1390,9 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
 function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({})
   const [hydrated, setHydrated] = useState(false)
+  const didHydrate = useRef(false)
   useEffect(() => {
+    if (didHydrate.current) return
     const a = quizData || {}
     // Prefill priority: existing _ipClinic answer → IP profile (fertility +
     // surrogacy sections) → intake quiz answers. The IP shouldn't re-enter
@@ -1410,6 +1419,7 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
     }
     setForm(init)
     setHydrated(true)
+    didHydrate.current = true
   }, [data, quizData])
   useAutoSave(form, onSave, '_ipClinic', readOnly, hydrated)
 
