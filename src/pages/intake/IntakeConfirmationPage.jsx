@@ -163,10 +163,6 @@ export default function IntakeConfirmationPage() {
             We are currently reviewing your information, and we will be in touch within <strong>48 hours</strong> to discuss next steps and answer any questions you may have.
           </p>
 
-          <div className="rounded-xl overflow-hidden mb-8">
-            <img src="/abc-team.jpg" alt="The ABC Surrogacy Team" className="w-full" />
-          </div>
-
           <div className="rounded-xl bg-[#fdf8f3] border border-stone-200 p-6 text-left mb-8">
             <p className="text-sm font-medium text-stone-700 mb-2">Questions?</p>
             <p className="text-sm text-stone-500">

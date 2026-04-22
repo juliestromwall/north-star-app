@@ -52,7 +52,10 @@ export async function onRequestPost(context) {
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <img src="https://app.abcsurrogacy.com/abc-team.jpg" alt="The ABC Surrogacy Team" style="max-width: 100%; border-radius: 12px;" />
+          <p style="margin: 0 0 12px; font-size: 15px; color: #283693; font-weight: 600;">
+            Owners Nicole Lawson &amp; Julie Allgood
+          </p>
+          <img src="https://app.abcsurrogacy.com/abc-team.jpg" alt="Owners Nicole Lawson & Julie Allgood" style="max-width: 100%; border-radius: 12px;" />
         </div>
 
         <div style="background: #fdf8f3; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
