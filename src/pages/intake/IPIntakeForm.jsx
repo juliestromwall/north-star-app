@@ -149,14 +149,14 @@ export default function IPIntakeForm() {
   const partnerCriminalValid = !isCouple || form.ip2CriminalHistory === false || (form.ip2CriminalHistory === true && form.ip2CriminalHistoryDetails.trim())
   const step1Valid = form.primaryFirstName && form.primaryLastName && form.primaryDob && form.email && form.phone && primaryEmailValid && primaryPhoneValid
     && form.primaryUsCitizen !== null && primaryCitizenshipValid
-    && form.primaryCriminalHistory !== null && primaryCriminalValid
   const step2Valid = form.street && form.city && form.stateProv && form.zipCode && postalValid
   const step3Valid = form.hasPartner !== null && (
     !isCouple || (form.ip2FirstName && form.ip2LastName && form.ip2Dob && form.ip2Email && form.ip2Phone && partnerEmailValid && partnerPhoneValid
-      && form.ip2UsCitizen !== null && partnerCitizenshipValid
-      && form.ip2CriminalHistory !== null && partnerCriminalValid)
+      && form.ip2UsCitizen !== null && partnerCitizenshipValid)
   )
   const step4Valid = form.hasRE !== null && (form.hasRE !== true || (form.reDoctorName.trim() && form.reClinicName.trim())) && form.hasFrozenEmbryos !== null && form.usingEggDonor !== null && form.usingSpermDonor !== null
+    && form.primaryCriminalHistory !== null && primaryCriminalValid
+    && (!isCouple || (form.ip2CriminalHistory !== null && partnerCriminalValid))
   const step5Valid = form.wantsConsultation !== null && form.hearAboutUs.trim().length > 0
   const stepValid  = [null, step1Valid, step2Valid, step3Valid, step4Valid, step5Valid]
   const [emailError, setEmailError] = useState(null)
@@ -317,16 +317,6 @@ export default function IPIntakeForm() {
           </div>
         )}
       </div>
-      <div className="space-y-1.5 pt-2">
-        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Have you ever been arrested or convicted of a crime?</Label>
-        <YesNoGrid value={form.primaryCriminalHistory} onChange={v => set('primaryCriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
-        {form.primaryCriminalHistory === true && (
-          <div className="pt-2">
-            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please explain</Label>
-            <textarea value={form.primaryCriminalHistoryDetails} onChange={e => set('primaryCriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
-          </div>
-        )}
-      </div>
       <p className="text-xs text-stone-400 pt-1">We will only reach out to share your results. No spam, ever.</p>
     </QuizShell>
   )
@@ -433,16 +423,6 @@ export default function IPIntakeForm() {
               </div>
             )}
           </div>
-          <div className="space-y-1.5 pt-2">
-            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Has your spouse/partner ever been arrested or convicted of a crime?</Label>
-            <YesNoGrid value={form.ip2CriminalHistory} onChange={v => set('ip2CriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
-            {form.ip2CriminalHistory === true && (
-              <div className="pt-2">
-                <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please explain</Label>
-                <textarea value={form.ip2CriminalHistoryDetails} onChange={e => set('ip2CriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
-              </div>
-            )}
-          </div>
         </>
       )}
       {form.hasPartner === false && (
@@ -490,6 +470,29 @@ export default function IPIntakeForm() {
         <p className="text-sm font-medium text-stone-800 mb-2">Are you using a sperm donor?</p>
         <YesNoGrid value={form.usingSpermDonor} onChange={v => set('usingSpermDonor', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
+      <div className="border-t border-stone-200 pt-4 mt-2" />
+      <div className="space-y-1.5">
+        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Have you ever been arrested or convicted of a crime?</Label>
+        <YesNoGrid value={form.primaryCriminalHistory} onChange={v => set('primaryCriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
+        {form.primaryCriminalHistory === true && (
+          <div className="pt-2">
+            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please describe</Label>
+            <textarea value={form.primaryCriminalHistoryDetails} onChange={e => set('primaryCriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
+          </div>
+        )}
+      </div>
+      {isCouple && (
+        <div className="space-y-1.5 pt-2">
+          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Has your spouse/partner ever been arrested or convicted of a crime?</Label>
+          <YesNoGrid value={form.ip2CriminalHistory} onChange={v => set('ip2CriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
+          {form.ip2CriminalHistory === true && (
+            <div className="pt-2">
+              <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please describe</Label>
+              <textarea value={form.ip2CriminalHistoryDetails} onChange={e => set('ip2CriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
+            </div>
+          )}
+        </div>
+      )}
     </QuizShell>
   )
 
