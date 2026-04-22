@@ -1,5 +1,44 @@
 # Session Log
 
+## 2026-04-21 Session B (Expense Tracker overhaul: Submitted-to-Escrow 3-state, cleaner table, IP/GC colored case cell, journey hero pills)
+
+**Worked on:** Full redesign of `/expenses` + per-journey Expenses tab around a new "Submitted to Escrow" disposition column, plus supporting UI polish and one unrelated prod-data cleanup for journey 38.
+
+**Changes made:**
+
+- `603d547` — **Rename "Disbursement" → "Submitted to Escrow"** on both main tracker and per-journey tabs. New 3-state dropdown (`Escrow Not Funded` / `Yes` / `Not Needed`) with `Yes` revealing Mark-as-Paid. Paid + Not Needed rows get emerald background. Admin can un-do any state via the same dropdown. New `journey_expenses.escrow_not_needed boolean` column (`scripts/20260422-add-escrow-not-needed.sql`) — applied to BOTH staging and prod DBs. Also removed the misleading "Escrow Opened" table column (it was rendering `submitted_to_escrow` under the wrong label).
+- `f7e1e94` — **Drop "Disbursement already requested?"** from all three Add Expense modals (journey tab, journey hero quick-add, surrogate pre-match). Redundant with Submitted-to-Escrow=Yes. On create, `submitted_to_escrow=true` now auto-stamps `disbursement_requested_at/_by` for audit.
+- `1133790` — Initial table padding bump (superseded by `0f489a3`).
+- `991918a` — **Journey hero: 2 new count pills** in ESCROW row. `{n} to submit` (orange) — expenses escrow-opened but not yet submitted. `{n} awaiting disbursement` (blue) — submitted but not yet paid. Live-counts from `journeyExpenses` state.
+- `43239b3` / `f8a81e0` / `9d4dc30` — Card-layout iterations (abandoned per user feedback "too thick").
+- `0f489a3` — **Back to tables, cleaner**: no vertical cell borders, row dividers only, stacked metadata (name / manager · date / Paid badge).
+- `60c2d6e` — **Final layout polish**: new `CaseCell` component mirrors `/case-updates` styling (IP name indigo `#283693`, GC name pink `#ed148c`, stacked with `+` between). CC Last 4 promoted to its own column (was crammed under Paid To). `handleSetEscrowStatus` surfaces save errors via `alert()` instead of swallowing them.
+
+**Prod-data cleanup (journey 38):**
+- Cleared `disbursement_paid_at/_by` and `disbursement_requested_at/_by` on `journey_expenses.id=30` ($1,000 Brittney Everett bonus) per user request. User manually deleted ids 30, 31 duplicates after my read-only investigation confirmed they were from Add-Expense re-entries, not a code bug.
+
+**Escrow status save debug journey:**
+- User reported Submitted-to-Escrow dropdown not saving on staging.
+- DB verified: column exists, direct UPDATEs land.
+- Root cause suspected: PostgREST schema cache stale after `ALTER TABLE`.
+- Applied migration to prod DB too (in case staging build points at prod Supabase URL) + sent `NOTIFY pgrst, 'reload schema'` to both environments via `scripts/staging-setup/reload-postgrest-schema.mjs`.
+- Added `alert()` in handler so any lingering failure is visible instead of silent.
+
+**Deploy status:**
+- All work on `main` at commit `0e39f03` (which sits on top of `60c2d6e`). A parallel session pushed `0e39f03` ("Journey list views: consolidate stage/status") that includes all expense work. Prod is live with everything.
+- DB migration `20260422-add-escrow-not-needed.sql` applied to staging + prod.
+
+**Next steps:**
+- User to verify on prod that the Submitted-to-Escrow dropdown saves after the column + schema reload.
+- Check for the "Mark Paid duplicates line item" bug when user re-tests in staging.
+- Codex's fix for `fetchSurrogateProfileByEmail` duplicate-row tiebreaker (Kim case) is still pending — separate track.
+
+**Open questions:**
+- Pre-match surrogate expenses show Pre-match + surrogate name only (no IP yet). Confirm styling feels right once there's pre-match data on prod.
+- Should Submitted-to-Escrow column persist last-sort / filter across tab switches? Not asked yet; defer.
+
+---
+
 ## 2026-04-21 Session A (Kim profile clobber fix: save-first guard, DB protection trigger, address fix for Escrow Sheet)
 
 **Worked on:** Three interlocking fixes around Kimberly Miller's (surrogate id=195) profile disappearing after approval, plus an Escrow Match Sheet UI change.
