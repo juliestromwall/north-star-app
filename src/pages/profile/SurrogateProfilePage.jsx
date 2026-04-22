@@ -5,8 +5,49 @@ import {
   Ruler, Scale, CalendarDays, MapPin, Upload,
   Loader2, X, RotateCw, Crop as CropIcon, Eye, Send, AlertTriangle,
   Weight as WeightIcon, Droplets, Activity, Shield as ShieldIcon,
-  DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX
+  DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX, Flag
 } from 'lucide-react'
+
+const QUALITIES_OPTIONS = [
+  'Compassionate','Organized','Optimistic','Calm','Resilient','Thoughtful','Honest',
+  'Patient','Supportive','Independent','Warm','Reliable','Open-minded','Flexible',
+  'Encouraging','Determined','Nurturing','Empathetic','Communicative','Loyal',
+  'Easygoing','Confident','Hopeful','Grounded',
+]
+
+// Multi-select chip field limited to `max` selections.
+function QualitiesMaxField({ label, value, onChange, options, max = 3 }) {
+  const selected = Array.isArray(value) ? value : []
+  const atMax = selected.length >= max
+  const toggle = (opt) => {
+    if (selected.includes(opt)) onChange(selected.filter(v => v !== opt))
+    else if (!atMax) onChange([...selected, opt])
+  }
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-bold text-[#283693]">{label}</label>
+      <p className="text-xs text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const isOn = selected.includes(opt)
+          const disabled = !isOn && atMax
+          return (
+            <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
+                isOn
+                  ? 'bg-[#283693] text-white border-[#283693]'
+                  : disabled
+                    ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
+                    : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+              }`}>
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from '@/components/ui/card'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
@@ -1434,6 +1475,16 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
               )
             })()}
           </div>
+
+          {/* Green flags — 3 qualities pulled from Interests */}
+          {Array.isArray(interests?.qualities) && interests.qualities.length > 0 && (
+            <div className="mt-3 flex items-baseline gap-1.5 flex-wrap">
+              <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
+              <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">
+                {interests.qualities.join(', ')}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2466,6 +2517,8 @@ function InterestsSection({ v, u }) {
       <TextAreaField label="What do you like to do in your free time?" value={v(s, 'hobbies')} onChange={u(s, 'hobbies')} rows={3} />
       <TextField label="Do you collect anything special?" value={v(s, 'collections')} onChange={u(s, 'collections')} />
       <TextAreaField label="Where would you most like to travel and why?" value={v(s, 'dreamTravel')} onChange={u(s, 'dreamTravel')} rows={2} />
+      <QualitiesMaxField label="Choose 3 qualities that feel most like you today"
+        value={v(s, 'qualities')} onChange={u(s, 'qualities')} options={QUALITIES_OPTIONS} max={3} />
       <TextAreaField label="How would you describe yourself? Please include a description of your personality and temperament." value={v(s, 'personality')} onChange={u(s, 'personality')}
         placeholder="Share a bit about your personality, hobbies, and what makes you you..." rows={4} />
     </div>

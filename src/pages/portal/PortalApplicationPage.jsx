@@ -1636,8 +1636,9 @@ export default function PortalApplicationPage() {
     if (!caseId || !supabase) return
     setSaving(true)
     try {
-      const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+      const { data: fresh } = await supabase.from('intake_submissions').select('answers, assigned_to').eq('id', caseId).single()
       const currentAnswers = fresh?.answers || answers
+      const reviewTaskAssignee = fresh?.assigned_to || assignedTo || (isIP ? '' : 'intake@abcsurrogacy.com')
 
       // Build checklist update inline (avoids separate read/write + RLS issues)
       const existingTracking = currentAnswers._recordTracking || {}
@@ -1680,7 +1681,7 @@ export default function PortalApplicationPage() {
           case_type: isIP ? 'ip' : 'surrogate',
           title: `Review Application - ${surName}`,
           description: 'Application submitted by applicant. Please review all sections.',
-          assigned_to: assignedTo || (isIP ? 'julie@abcsurrogacy.com' : 'intake@abcsurrogacy.com'),
+          assigned_to: reviewTaskAssignee,
           due_date: new Date().toISOString().split('T')[0],
           priority: 'high',
           status: 'open',
@@ -1700,7 +1701,7 @@ export default function PortalApplicationPage() {
               ip1Name: ip1Name || currentUser?.name || 'Intended Parent',
               ip2Name: ip2Name || '',
               ip1Email: currentUser?.email || '',
-              assignedTo: assignedTo || '',
+              assignedTo: reviewTaskAssignee,
               caseId: caseId,
             }),
           }).catch(() => {})
