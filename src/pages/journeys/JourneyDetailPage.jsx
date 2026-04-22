@@ -2284,6 +2284,15 @@ export default function JourneyDetailPage() {
   const [journeyExpenses, setJourneyExpenses] = useState([])
   const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && !e.paid_at).length
   const holdExpenseCount = journeyExpenses.filter(e => e.pay_to_type === 'hold' && !e.reconciled && !e.paid_at).length
+  // Escrow pipeline counts: expenses that should go through escrow but either
+  // haven't been submitted yet, or have been submitted but not yet disbursed.
+  const needsEscrowSubmitCount = journeyExpenses.filter(e =>
+    e.escrow_opened && !e.submitted_to_escrow && !e.escrow_not_needed &&
+    !e.disbursement_paid_at && !e.reconciled
+  ).length
+  const escrowAwaitingPaidCount = journeyExpenses.filter(e =>
+    e.submitted_to_escrow && !e.disbursement_paid_at && !e.reconciled
+  ).length
   const [showConfetti, setShowConfetti] = useState(false)
   const { fire: fireConfetti, ref: confettiRef } = useConfetti()
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
@@ -2947,6 +2956,16 @@ export default function JourneyDetailPage() {
                 {unpaidExpenseCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                     <DollarSign className="size-3" /> {unpaidExpenseCount} pending
+                  </span>
+                )}
+                {needsEscrowSubmitCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full" title="Expenses on the tracker that haven't been submitted to escrow yet">
+                    <DollarSign className="size-3" /> {needsEscrowSubmitCount} to submit
+                  </span>
+                )}
+                {escrowAwaitingPaidCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full" title="Submitted to escrow but disbursement not yet paid">
+                    <DollarSign className="size-3" /> {escrowAwaitingPaidCount} awaiting disbursement
                   </span>
                 )}
                 {holdExpenseCount > 0 && (
