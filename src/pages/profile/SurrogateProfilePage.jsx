@@ -624,11 +624,11 @@ export default function SurrogateProfilePage() {
   }, [currentUser?.email])
 
   // Auto-save on change (localStorage immediately, Supabase debounced)
-  // Skip saving if profile is approved
+  // Skip remote saves until the status is known, and while the profile is approved.
   const saveTimer = useRef(null)
   useEffect(() => {
-    if (profileApproved) return
     saveProfile(userId, profile)
+    if (!profileStatusLoaded || profileApproved) return
     if (currentUser?.id && currentUser?.email) {
       clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
@@ -636,7 +636,7 @@ export default function SurrogateProfilePage() {
       }, 2000)
     }
     return () => clearTimeout(saveTimer.current)
-  }, [profile, userId, currentUser?.id, currentUser?.email, profileApproved])
+  }, [profile, userId, currentUser?.id, currentUser?.email, profileStatusLoaded, profileApproved])
 
   // Sync the Employment → "Do you have insurance?" answer into surrogate_insurance.
   // - has_insurance mirrors yes/no.
@@ -688,7 +688,7 @@ export default function SurrogateProfilePage() {
           }
           for (const [section, fields] of Object.entries(prev)) {
             if (!merged[section]) merged[section] = fields
-            else merged[section] = { ...merged[section], ...fields }
+            else merged[section] = { ...fields, ...merged[section] }
           }
           return merged
         })

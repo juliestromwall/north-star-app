@@ -3730,7 +3730,7 @@ function toBooleanDisplay(value) {
 }
 
 // ── Photo upload slot (profile / cover) with crop/rotate ──
-function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) {
+function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, locked = false }) {
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -3747,6 +3747,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
   }, [storagePath])
 
   async function handleUpload(e) {
+    if (locked) return
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
@@ -3760,12 +3761,14 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
   }
 
   async function handleDelete() {
+    if (locked) return
     if (!photo) return
     try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
     catch (err) { setError(err.message || 'Delete failed') }
   }
 
   async function handleCropSave(oldPhoto, croppedFile) {
+    if (locked) return
     try {
       const result = await uploadProfilePhoto(storagePath, croppedFile)
       if (result) {
@@ -3797,27 +3800,29 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
       {photo ? (
         <div className="relative group w-40 h-40">
           <img src={photo.url} alt={label} className="w-40 h-40 rounded-2xl object-cover border border-stone-200" />
-          <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-            <button onClick={() => setEditing(true)} className="p-2 rounded-full bg-white text-stone-700 hover:bg-stone-100" title="Crop / Rotate">
-              <Crop className="w-4 h-4" />
-            </button>
-            <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
-              <Upload className="w-4 h-4" />
-              <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
-            </label>
-            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          {!locked && (
+            <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+              <button onClick={() => setEditing(true)} className="p-2 rounded-full bg-white text-stone-700 hover:bg-stone-100" title="Crop / Rotate">
+                <Crop className="w-4 h-4" />
+              </button>
+              <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
+                <Upload className="w-4 h-4" />
+                <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+              </label>
+              <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600" title="Delete">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       ) : (
-        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+        <label className={`flex items-center justify-center w-40 h-40 rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 transition-colors ${locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5'} ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
           <div className="text-center">
-            {uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
+            {locked ? <span className="text-xs text-stone-400">Locked</span> : uploading ? <Loader2 className="w-6 h-6 mx-auto text-[#283693] animate-spin" /> : (
               <><Upload className="w-6 h-6 mx-auto text-stone-400" /><span className="text-xs text-stone-400 mt-1 block">Upload</span></>
             )}
           </div>
-          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading} />
+          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" disabled={uploading || locked} />
         </label>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
@@ -3827,7 +3832,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
 }
 
 // ── Admin gallery (drag-reorder, crop, rotate, multi-upload, delete) ──
-function AdminGallery({ storagePath, onPhotosChange }) {
+function AdminGallery({ storagePath, onPhotosChange, locked = false }) {
   const [galleryPhotos, setGalleryPhotos] = useState([])
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
@@ -3849,6 +3854,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   }, [storagePath]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUpload(e) {
+    if (locked) return
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
     setUploading(true); setError(null)
@@ -3863,6 +3869,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   }
 
   async function handleDelete(photo) {
+    if (locked) return
     try {
       await deleteProfilePhoto(photo.path)
       setGalleryPhotos(prev => { const next = prev.filter(p => p.path !== photo.path); if (onPhotosChange) onPhotosChange(next); return next })
@@ -3870,6 +3877,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   }
 
   async function handleCropSave(oldPhoto, croppedFile) {
+    if (locked) return
     try {
       const result = await uploadProfilePhoto(storagePath, croppedFile)
       if (result) {
@@ -3881,6 +3889,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   }
 
   function handleDragEnd(event) {
+    if (locked) return
     const { active, over } = event
     if (!over || active.id === over.id) return
     setGalleryPhotos(prev => {
@@ -3900,16 +3909,24 @@ function AdminGallery({ storagePath, onPhotosChange }) {
         <SortableContext items={galleryPhotos.map(p => p.path)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {galleryPhotos.map(photo => (
-              <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
+              locked ? (
+                <div key={photo.path} className="aspect-square rounded-2xl overflow-hidden border border-stone-200">
+                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <SortablePhoto key={photo.path} photo={photo} onEdit={setEditing} onDelete={setDeleteTarget} />
+              )
             ))}
-            <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
-              <div className="text-center">
-                {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
-                  <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
-                )}
-              </div>
-              <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
-            </label>
+            {!locked && (
+              <label className={`flex items-center justify-center aspect-square rounded-xl border-2 border-dashed border-stone-300 bg-stone-50 cursor-pointer hover:border-[#283693]/50 hover:bg-[#283693]/5 transition-colors ${uploading ? 'pointer-events-none opacity-50' : ''}`}>
+                <div className="text-center">
+                  {uploading ? <Loader2 className="w-5 h-5 mx-auto text-[#283693] animate-spin" /> : (
+                    <><Upload className="w-5 h-5 mx-auto text-stone-400" /><span className="text-[10px] text-stone-400 mt-1 block">Add</span></>
+                  )}
+                </div>
+                <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" disabled={uploading} />
+              </label>
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -3919,7 +3936,7 @@ function AdminGallery({ storagePath, onPhotosChange }) {
   )
 }
 
-function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate, profileUserId }) {
+function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, portraitUrl, surrogate, profileUserId, locked = false }) {
   const [editingPhoto, setEditingPhoto] = useState(null) // photo object being edited
   const [rotation, setRotation] = useState(0)
   const [scale, setScale] = useState(1)
@@ -3934,6 +3951,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   const [deletePhotoTarget, setDeletePhotoTarget] = useState(null)
 
   async function togglePhotoInactive(photoPath) {
+    if (locked) return
     const current = profileData?._hiddenPhotos || []
     const updated = current.includes(photoPath)
       ? current.filter(p => p !== photoPath)
@@ -3946,6 +3964,7 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
   }
 
   async function handleDeletePhoto(photo) {
+    if (locked) return
     try {
       await deleteProfilePhoto(photo.path)
       setPhotos(prev => prev.filter(p => p.path !== photo.path))
@@ -4066,19 +4085,21 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
             label="Profile Photo"
             hint="A favorite recent photo of just them"
             storagePath={`${baseId}/portrait`}
+            locked={locked}
           />
           <AdminPhotoSlot
             label="Cover Photo"
             hint="A favorite picture with family or doing something they love"
             storagePath={`${baseId}/headshot`}
             cropAspect={16 / 9}
+            locked={locked}
           />
         </div>
         {/* Gallery */}
         <div>
           <p className="text-sm font-semibold text-stone-700 mb-1">Photo Gallery</p>
-          <p className="text-xs text-stone-400 mb-3">Additional photos shown in the carousel. Drag to reorder. Click to crop or rotate.</p>
-          <AdminGallery storagePath={baseId} onPhotosChange={(list) => setPhotos(list)} />
+          <p className="text-xs text-stone-400 mb-3">{locked ? 'Photos are locked while this profile is approved.' : 'Additional photos shown in the carousel. Drag to reorder. Click to crop or rotate.'}</p>
+          <AdminGallery storagePath={baseId} onPhotosChange={(list) => setPhotos(list)} locked={locked} />
         </div>
       </CardContent>
     </Card>
@@ -4275,6 +4296,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   function startSectionEdit(sec) {
+    if (isApproved) return
     const sectionData = data[sec.key] || {}
     const merged = { ...sectionData }
     const arrayFieldNames = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList']
@@ -4629,10 +4651,12 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               </SelectContentUI>
             </SelectUI>
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">{item.outcome === 'Live Birth' ? "Child's Name" : 'Notes'}</span>
-            <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
-          </div>
+          {item.outcome !== 'Live Birth' && (
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Notes</span>
+              <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
+            </div>
+          )}
           <div className="space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Date</span>
             <input type="date" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.dob || ''} onChange={e => updateItem('dob', e.target.value)} />
@@ -4645,18 +4669,20 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <span className="text-[10px] text-gray-400 uppercase">Gestation (days)</span>
             <input type="number" min="0" max="6" className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.gestationDays || ''} onChange={e => updateItem('gestationDays', e.target.value)} />
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
-            <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
-              <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
-              <SelectContentUI>
-                {(item.outcome === 'Live Birth' || item.outcome === 'Stillborn'
-                  ? ['Vaginal', 'C-Section']
-                  : ['Natural', 'Medicated', 'Surgical']
-                ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
-              </SelectContentUI>
-            </SelectUI>
-          </div>
+          {item.outcome !== 'Live Birth' && (
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Delivery Type</span>
+              <SelectUI value={item.deliveryType || ''} onValueChange={v => updateItem('deliveryType', v)}>
+                <SelectTriggerUI className="h-8 text-xs bg-white"><SelectValueUI placeholder="Select..." /></SelectTriggerUI>
+                <SelectContentUI>
+                  {(item.outcome === 'Stillborn'
+                    ? ['Vaginal', 'C-Section']
+                    : ['Natural', 'Medicated', 'Surgical']
+                  ).map(o => <SelectItemUI key={o} value={o}>{o}</SelectItemUI>)}
+                </SelectContentUI>
+              </SelectUI>
+            </div>
+          )}
           {item.outcome === 'Live Birth' && (() => {
             const isMultiples = item.singleOrMultiples === 'Twins' || item.singleOrMultiples === 'Triplets+'
             const isTriplets = item.singleOrMultiples === 'Triplets+'
@@ -5182,6 +5208,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             portraitUrl={portraitUrl}
             surrogate={surrogate}
             profileUserId={profileUserId}
+            locked={isApproved}
           />
 
           <div className="space-y-4">
@@ -5209,7 +5236,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 <Collapsible key={sec.key} open={isOpen} onOpenChange={() => {
                   const newOpen = !isOpen
                   setOpenAdminSections(prev => ({ ...prev, [sec.key]: newOpen }))
-                  if (newOpen && !isEditing) startSectionEdit(sec)
+                  if (newOpen && !isEditing && !isApproved) startSectionEdit(sec)
                   if (!newOpen && isEditing) setEditingSection(null)
                 }}>
                 <Card
@@ -5283,7 +5310,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                                 <span className={`font-medium text-right ${hasValue ? '' : 'text-gray-300'} ${hidden ? 'line-through' : ''}`}>
                                   {formatFieldValue(val) ?? '—'}
                                 </span>
-                                <HideToggle sectionKey={sec.key} fieldKey={field} />
+                                {!isApproved && <HideToggle sectionKey={sec.key} fieldKey={field} />}
                               </div>
                             </div>
                           )

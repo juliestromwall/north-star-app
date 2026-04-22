@@ -594,11 +594,34 @@ export async function fetchAllUserTasks() {
 
 export async function saveSurrogateProfile(userId, email, profileData) {
   if (!supabase) return null
+  const cleanEmail = email.trim().toLowerCase()
+  let existing = null
+  if (userId) {
+    const { data: existingByUser } = await supabase
+      .from('surrogate_profiles')
+      .select('status')
+      .eq('user_id', userId)
+      .maybeSingle()
+    existing = existingByUser
+  }
+  if (!existing) {
+    const { data: existingByEmail } = await supabase
+      .from('surrogate_profiles')
+      .select('status')
+      .eq('email', cleanEmail)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    existing = existingByEmail
+  }
+  if (existing?.status === 'approved') {
+    throw new Error('Approved surrogate profiles are locked. Reopen the profile before editing.')
+  }
   const { data, error } = await supabase
     .from('surrogate_profiles')
     .upsert({
       user_id: userId,
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       profile_data: profileData,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
@@ -624,8 +647,16 @@ export async function fetchAllSurrogateProfiles() {
   const { data, error } = await supabase
     .from('surrogate_profiles')
     .select('email, profile_data, user_id')
+    .order('user_id', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false })
   if (error) return []
-  return data || []
+  const seen = new Set()
+  return (data || []).filter(row => {
+    const email = row.email?.trim().toLowerCase()
+    if (!email || seen.has(email)) return false
+    seen.add(email)
+    return true
+  })
 }
 
 export async function fetchSurrogateProfileByEmail(email) {
@@ -634,6 +665,7 @@ export async function fetchSurrogateProfileByEmail(email) {
     .from('surrogate_profiles')
     .select('profile_data, updated_at, user_id, status')
     .eq('email', email.trim().toLowerCase())
+    .order('user_id', { ascending: false, nullsFirst: false })
     .order('updated_at', { ascending: false })
     .limit(1)
     .single()
@@ -645,12 +677,15 @@ export async function fetchSurrogateProfilesByEmails(emails) {
   if (!supabase || !emails.length) return {}
   const { data, error } = await supabase
     .from('surrogate_profiles')
-    .select('email, profile_data')
+    .select('email, profile_data, user_id, updated_at')
     .in('email', emails.map(e => e.trim().toLowerCase()))
+    .order('user_id', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false })
   if (error || !data) return {}
   const map = {}
   for (const row of data) {
-    map[row.email] = row.profile_data
+    const email = row.email?.trim().toLowerCase()
+    if (email && !map[email]) map[email] = row.profile_data
   }
   return map
 }
@@ -673,12 +708,15 @@ export async function adminUpdateSurrogateProfile(email, profileData) {
   // Find existing record — prefer the one with user_id
   const { data: existing } = await supabase
     .from('surrogate_profiles')
-    .select('id, user_id')
+    .select('id, user_id, status')
     .eq('email', cleanEmail)
     .order('user_id', { ascending: false, nullsFirst: false })
     .limit(1)
     .single()
   if (existing) {
+    if (existing.status === 'approved') {
+      throw new Error('Approved surrogate profiles are locked. Reopen the profile before editing.')
+    }
     // Update the existing record by ID (avoids duplicates)
     const { data: updated, error: updateErr } = await supabase
       .from('surrogate_profiles')
