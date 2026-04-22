@@ -34,7 +34,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, startNewCaseFromJourney } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
@@ -2278,6 +2278,8 @@ export default function JourneyDetailPage() {
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [archiveReason, setArchiveReason] = useState('')
   const [archiving, setArchiving] = useState(false)
+  const [unarchiveOpen, setUnarchiveOpen] = useState(false)
+  const [unarchiving, setUnarchiving] = useState(false)
   const [startCaseOpen, setStartCaseOpen] = useState(false)
   const [startingCase, setStartingCase] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
@@ -2482,6 +2484,25 @@ export default function JourneyDetailPage() {
     }
   }
 
+  async function handleUnarchiveJourney() {
+    setUnarchiving(true)
+    try {
+      await unarchiveJourney(journey.id, {
+        unarchivedBy: currentUser.name,
+        gcCaseId: journey.gc_case_id,
+        ipCaseId: journey.ip_case_id,
+      })
+      // Refresh from DB so the Archived badge flips to Archive/Break buttons
+      const refreshed = await fetchMatchedJourney(journey.id)
+      if (refreshed) setJourney(refreshed)
+      setUnarchiveOpen(false)
+    } catch (err) {
+      alert('Failed to unarchive journey: ' + (err.message || ''))
+    } finally {
+      setUnarchiving(false)
+    }
+  }
+
   async function handleStartNewCase() {
     setStartingCase(true)
     try {
@@ -2602,6 +2623,36 @@ export default function JourneyDetailPage() {
               <Button size="sm" onClick={handleArchiveJourney} disabled={archiving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
                 {archiving ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
                 {archiving ? 'Archiving...' : 'Archive Journey'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unarchive Journey Dialog */}
+      <Dialog open={unarchiveOpen} onOpenChange={(v) => !unarchiving && setUnarchiveOpen(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#283693]">Unarchive Journey</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-[#283693]">
+              <p className="font-semibold">Restore this journey to the active Matched Journeys list?</p>
+              <p className="mt-1 text-xs text-stone-600">
+                {jd._archivedAt && (
+                  <>Archived {fmtDate(jd._archivedAt)}{jd._archivedBy ? ` by ${jd._archivedBy}` : ''}. </>
+                )}
+                The stage and status stay exactly where they were. The previous-match history entry on
+                <strong className="mx-1">{gcCase?.name || 'the surrogate'}</strong> and
+                <strong className="mx-1">{ipCase?.names || 'the IP'}</strong>
+                will be removed.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setUnarchiveOpen(false)} disabled={unarchiving}>Cancel</Button>
+              <Button size="sm" onClick={handleUnarchiveJourney} disabled={unarchiving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                {unarchiving ? <Loader2 className="size-3 animate-spin" /> : <ArrowLeft className="size-3" />}
+                {unarchiving ? 'Unarchiving...' : 'Unarchive Journey'}
               </Button>
             </div>
           </div>
@@ -2886,9 +2937,14 @@ export default function JourneyDetailPage() {
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
                 {jd._archivedAt ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
-                    <Check className="size-3" /> Archived
-                  </span>
+                  <div className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
+                      <Check className="size-3" /> Archived
+                    </span>
+                    <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setUnarchiveOpen(true)}>
+                      <ArrowLeft className="size-3" /> Unarchive
+                    </Button>
+                  </div>
                 ) : (
                   <>
                     <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setArchiveOpen(true)}>

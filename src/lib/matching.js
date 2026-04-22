@@ -264,6 +264,59 @@ export async function archiveJourney(journeyId, { reason, archivedBy, gcCaseId, 
   return true
 }
 
+// Reverse of archiveJourney — used when a journey was archived by mistake.
+// Strips the archive metadata off matched_journeys.journey_data, removes the
+// matching entry from each side's _matchHistory, and drops an "unarchived"
+// case note for audit. Stage/status on the journey are left alone.
+export async function unarchiveJourney(journeyId, { unarchivedBy, gcCaseId, ipCaseId } = {}) {
+  if (!supabase) return null
+
+  const { data: journey } = await supabase.from('matched_journeys').select('*').eq('id', journeyId).single()
+  if (!journey) return null
+  const journeyData = journey.journey_data || {}
+
+  // 1. Clear archive keys from journey_data
+  const cleaned = { ...journeyData }
+  delete cleaned._archivedAt
+  delete cleaned._archivedBy
+  delete cleaned._archiveReason
+  await supabase.from('matched_journeys')
+    .update({ journey_data: cleaned })
+    .eq('id', journeyId)
+
+  // 2. Remove the journeyId entry from _matchHistory on both sides
+  const gcId = gcCaseId || journey.gc_case_id
+  const ipId = ipCaseId || journey.ip_case_id
+  for (const caseId of [gcId, ipId]) {
+    if (!caseId) continue
+    const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
+    if (!row?.answers) continue
+    const history = Array.isArray(row.answers._matchHistory) ? row.answers._matchHistory : []
+    const filtered = history.filter(e => Number(e.journeyId) !== Number(journeyId))
+    if (filtered.length === history.length) continue
+    await supabase.from('intake_submissions')
+      .update({ answers: { ...row.answers, _matchHistory: filtered } })
+      .eq('id', caseId)
+  }
+
+  // 3. Case note for audit trail
+  const noteContent = `Journey unarchived${unarchivedBy ? ` by ${unarchivedBy}` : ''}.`
+  for (const caseId of [gcId, ipId]) {
+    if (!caseId) continue
+    try {
+      await supabase.from('case_notes').insert({
+        surrogate_id: caseId,
+        author_name: unarchivedBy || 'Admin',
+        content: noteContent,
+      })
+    } catch (err) {
+      console.warn('Failed to add unarchive case note:', err)
+    }
+  }
+
+  return true
+}
+
 // Start a new surrogate case that inherits the application + profile from an existing case.
 // Use this after delivery when the existing journey must stay open (e.g. escrow still in progress),
 // but we want the surrogate back in the case list so she can begin a new round of profile work
