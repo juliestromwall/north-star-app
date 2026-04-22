@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import InfoRow from '@/components/shared/InfoRow'
@@ -59,6 +60,7 @@ export default function IPDetailPage() {
   const [invitingPartner, setInvitingPartner] = useState(false)
   const [partnerInviteResult, setPartnerInviteResult] = useState(null)
   const [releasingApp, setReleasingApp] = useState(false)
+  const [showReleaseModal, setShowReleaseModal] = useState(false)
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
@@ -251,46 +253,7 @@ export default function IPDetailPage() {
                         size="sm"
                         className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
                         disabled={releasingApp}
-                        onClick={async () => {
-                          const ip1FirstName = a.primaryFirstName || ''
-                          const ip2FirstName = a.ip2FirstName || ''
-                          const greetingNames = ip2FirstName ? `${ip1FirstName} & ${ip2FirstName}` : (ip1FirstName || ip.names || 'this IP')
-                          if (!window.confirm(`Release the application to ${greetingNames}? They'll get an email with a link to log in and complete the remaining forms.`)) return
-                          setReleasingApp(true)
-                          const adminName = currentUser?.name || currentUser?.email || ''
-                          try {
-                            const { supabase } = await import('@/lib/supabase')
-                            if (!supabase) throw new Error('No DB connection')
-                            const updatedAnswers = {
-                              ...a,
-                              _applicationAvailable: true,
-                              _applicationReleasedAt: new Date().toISOString(),
-                              _applicationReleasedBy: adminName,
-                            }
-                            const { error } = await supabase
-                              .from('intake_submissions')
-                              .update({ answers: updatedAnswers })
-                              .eq('id', ip.id)
-                            if (error) throw error
-                            setIp(prev => ({ ...prev, answers: updatedAnswers }))
-                            // Fire IP-side email (best effort)
-                            try {
-                              await fetch('/api/notify-ip-app-released', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  ip1Email: ip.email || a.email || '',
-                                  ip1FirstName,
-                                  ip2Email: a.ip2Email || '',
-                                  ip2FirstName,
-                                  adminName,
-                                }),
-                              })
-                            } catch (err) { console.error('IP app-released email failed:', err) }
-                          } catch (err) {
-                            alert(`Release failed: ${err.message || 'Unknown error'}`)
-                          } finally { setReleasingApp(false) }
-                        }}>
+                        onClick={() => setShowReleaseModal(true)}>
                         {releasingApp ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                         {releasingApp ? 'Releasing...' : 'Release Application'}
                       </Button>
@@ -790,6 +753,78 @@ export default function IPDetailPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Release Application confirmation modal */}
+      <Dialog open={showReleaseModal} onOpenChange={(v) => !releasingApp && setShowReleaseModal(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="size-5 text-[#283693]" />
+              Release application to {(() => {
+                const a = ip?.answers || {}
+                const n1 = a.primaryFirstName || ''
+                const n2 = a.ip2FirstName || ''
+                return n2 ? `${n1} & ${n2}` : (n1 || ip?.names || 'this IP')
+              })()}?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-stone-600 leading-relaxed">
+              They'll get an email with a link to log in and complete the remaining application forms. You can reopen their profile for edits separately from the Profile tab if needed.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowReleaseModal(false)} disabled={releasingApp}>Cancel</Button>
+              <Button
+                size="sm"
+                style={{ backgroundColor: '#283693', color: '#fff' }}
+                className="gap-1.5"
+                disabled={releasingApp}
+                onClick={async () => {
+                  const a = ip?.answers || {}
+                  const ip1FirstName = a.primaryFirstName || ''
+                  const ip2FirstName = a.ip2FirstName || ''
+                  setReleasingApp(true)
+                  const adminName = currentUser?.name || currentUser?.email || ''
+                  try {
+                    const { supabase } = await import('@/lib/supabase')
+                    if (!supabase) throw new Error('No DB connection')
+                    const updatedAnswers = {
+                      ...a,
+                      _applicationAvailable: true,
+                      _applicationReleasedAt: new Date().toISOString(),
+                      _applicationReleasedBy: adminName,
+                    }
+                    const { error } = await supabase
+                      .from('intake_submissions')
+                      .update({ answers: updatedAnswers })
+                      .eq('id', ip.id)
+                    if (error) throw error
+                    setIp(prev => ({ ...prev, answers: updatedAnswers }))
+                    try {
+                      await fetch('/api/notify-ip-app-released', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          ip1Email: ip.email || a.email || '',
+                          ip1FirstName,
+                          ip2Email: a.ip2Email || '',
+                          ip2FirstName,
+                          adminName,
+                        }),
+                      })
+                    } catch (err) { console.error('IP app-released email failed:', err) }
+                    setShowReleaseModal(false)
+                  } catch (err) {
+                    alert(`Release failed: ${err.message || 'Unknown error'}`)
+                  } finally { setReleasingApp(false) }
+                }}>
+                {releasingApp ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                {releasingApp ? 'Sending...' : 'Release & Send Email'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
