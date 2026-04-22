@@ -596,8 +596,8 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
 
         {/* Stats byline — ages + green flag qualities inline */}
         {(() => {
-          const ip1Qs = Array.isArray(ip1?.history?.qualities) ? ip1.history.qualities : []
-          const ip2Qs = hasPartner && Array.isArray(ip2?.history?.qualities) ? ip2.history.qualities : []
+          const ip1Qs = !hiddenFields.includes('ip1.history.qualities') && Array.isArray(ip1?.history?.qualities) ? ip1.history.qualities : []
+          const ip2Qs = hasPartner && !hiddenFields.includes('ip2.history.qualities') && Array.isArray(ip2?.history?.qualities) ? ip2.history.qualities : []
           return (
             <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">

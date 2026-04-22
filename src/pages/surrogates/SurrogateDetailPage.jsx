@@ -59,7 +59,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { ShieldCheck, ShieldX, Save, Loader2, UserCog, UserPlus, Camera, Send } from 'lucide-react'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
-import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
+import { ProfilePreview, QUALITIES_OPTIONS } from '@/pages/profile/SurrogateProfilePage'
 
 // ── GTPAL ──────────────────────────────────────────────────
 function getGTPAL(profileData) {
@@ -2996,7 +2996,7 @@ const PROFILE_SECTIONS = [
   { key: 'interests', title: 'Interests', fields: [
     'favoriteMusic', 'favoriteMovie', 'favoriteBook', 'favoriteFoods',
     'favoriteColor', 'favoriteFlower', 'pets', 'catLitter',
-    'hobbies', 'collections', 'dreamTravel', 'personality'
+    'hobbies', 'collections', 'dreamTravel', 'qualities', 'personality'
   ] },
   { key: 'experiencedSurrogate', title: 'Experienced Surrogate Info', fields: [
     'previousSurrogate', 'surrogacyTimes', 'journeys', 'overallExperience'
@@ -3694,6 +3694,7 @@ function OverviewTab({ surrogate, screening, heightStr, profileData, recordTrack
 }
 
 function formatFieldLabel(key) {
+  if (key === 'qualities') return 'Choose 3 qualities that feel most like you today'
   if (FIELD_LABELS[key]) return FIELD_LABELS[key]
   return key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase()).trim()
 }
@@ -4518,6 +4519,41 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
         {!isApproved && <HideToggle sectionKey={secKey} fieldKey={field} />}
       </div>
     )
+
+    // Qualities — max-3 chip picker (matches IP side styling)
+    if (field === 'qualities') {
+      const selected = Array.isArray(val) ? val : []
+      const max = 3
+      const atMax = selected.length >= max
+      const toggle = (opt) => {
+        if (selected.includes(opt)) updateEditField(field, selected.filter(v => v !== opt))
+        else if (!atMax) updateEditField(field, [...selected, opt])
+      }
+      return (
+        <div key={field} className={`space-y-1.5 col-span-full ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <p className="text-[11px] text-stone-500">Pick up to {max} — {selected.length}/{max} selected</p>
+          <div className="flex flex-wrap gap-2">
+            {QUALITIES_OPTIONS.map(opt => {
+              const isOn = selected.includes(opt)
+              const disabled = !isOn && (atMax || isApproved)
+              return (
+                <button key={opt} type="button" onClick={() => toggle(opt)} disabled={disabled || isApproved}
+                  className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors border ${
+                    isOn
+                      ? 'bg-[#283693] text-white border-[#283693]'
+                      : disabled
+                        ? 'bg-stone-50 text-stone-300 border-stone-200 cursor-not-allowed'
+                        : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693] hover:text-[#283693]'
+                  }`}>
+                  {opt}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )
+    }
 
     // Number fields
     if (NUMBER_FIELDS.includes(field) && !SELECT_FIELDS[field]) {

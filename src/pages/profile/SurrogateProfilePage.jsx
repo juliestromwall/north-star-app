@@ -8,7 +8,7 @@ import {
   DollarSign, ChevronLeft, ChevronRight, ShieldCheck, ShieldX, Flag
 } from 'lucide-react'
 
-const QUALITIES_OPTIONS = [
+export const QUALITIES_OPTIONS = [
   'Compassionate','Organized','Optimistic','Calm','Resilient','Thoughtful','Honest',
   'Patient','Supportive','Independent','Warm','Reliable','Open-minded','Flexible',
   'Encouraging','Determined','Nurturing','Empathetic','Communicative','Loyal',
@@ -1474,17 +1474,15 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                 </div>
               )
             })()}
+            {Array.isArray(interests?.qualities) && interests.qualities.length > 0 && !hiddenFields.includes('interests.qualities') && (
+              <div className="flex items-center gap-1.5">
+                <Flag className="w-4 h-4 text-emerald-500" fill="currentColor" />
+                <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">
+                  {interests.qualities.join(', ')}
+                </span>
+              </div>
+            )}
           </div>
-
-          {/* Green flags — 3 qualities pulled from Interests */}
-          {Array.isArray(interests?.qualities) && interests.qualities.length > 0 && (
-            <div className="mt-3 flex items-baseline gap-1.5 flex-wrap">
-              <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
-              <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">
-                {interests.qualities.join(', ')}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
