@@ -43,6 +43,20 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 
 ## Key Flows
 
+### Intended Parent: Profile → Application Lifecycle
+
+The IP journey now mirrors the surrogate one with three gated handoffs:
+
+1. **Intake** (`/intendedparentapply`) — IP fills the qualifying quiz, lands in admin Intended Parents list. Already supports country + non-US province handling.
+2. **Portal invite** — admin clicks "Invite to Portal" on `IPDetailPage`. `/api/ip-invite` creates the auth user and sends "Welcome to your secure portal" via Resend (NOT Gmail — independent of admin Google connection state).
+3. **Build Matching Profile** — IP logs in, dashboard shows "My Profile" progress card. They fill out fertility / surrogacy / personal info / health / history sections with auto-save. Photos upload to portrait/cover/gallery. When 100% complete, they click "Submit Profile for Review" → required-fields warning if incomplete, otherwise confirmation modal warning that editing will be locked. Submit fires `/api/notify-ip-profile-submitted` (admins notified) and creates a high-priority `case_tasks` row for the assigned admin.
+4. **Admin reviews profile** — on `IPDetailPage`, header shows "Profile Submitted" badge. Admin opens the Profile tab, can click "Reopen for Editing" to bounce it back (clears `_approved`, sets `_profileReleasedAt`; IP sees an amber "Profile reopened for edits" banner). Or admin clicks "Approve" — header now shows "Profile Approved" + the **"Release Application"** button.
+5. **Release Application** — admin clicks the button (in-app modal confirms), which sets `_applicationAvailable: true` and emails IP1 + IP2 via `/api/notify-ip-app-released` ("We have approved your ABC Surrogacy Profile. You can now complete the remaining forms"). IP dashboard now shows a prominent "You can now complete the remaining Application" card with a "Complete Application →" button at the top.
+6. **Fill Application** — IP visits `/my-application`. Three sections (Contact / Clinic / References) with auto-save (1.5s debounce). All fields prefilled from intake → profile chain (the IP never re-enters DOB, clinic name, RE doctor, embryo info, donor info, etc.). Country swaps State→Province text for non-US.
+7. **Submit Application** — when all 3 sections complete, "Application is 100% complete. Submit application?" modal pops automatically. On submit: emails admins ("📋 Intended Parent {name} has submitted their Application") and creates a `case_tasks` row with `case_type: 'ip'` assigned to the case admin. Header badge flips to "Application Submitted".
+
+All state lives in `intake_submissions.answers` JSON (no schema migrations needed): `_profileSubmitted/_profileReleasedAt`, `_ipProfile._approved/_approvedAt`, `_applicationAvailable/_applicationSubmitted`. Application sections stored as `_ipContact`, `_ipClinic`, `_references`.
+
 ### Surrogate Intake → Admin Assignment
 1. Surrogate visits /surrogatequiz → completes 5-step quiz (bot-protected)
 2. Qualified surrogates auto-appear in admin Surrogates list at stage "Pre-Qualification" / status "New"
@@ -348,5 +362,9 @@ Moving a case to Not Qualified or Withdrawn shows a confirmation dialog and bloc
 | Joint Task Assignment | "Julie & Nicole" combo option in task dropdowns — stores comma-separated emails so both see the task on their dashboards. Either can complete it. |
 | Future Tasks | Tasks due more than 7 days out collapse into a "Future Tasks (N)" dropdown to keep the active list focused on the next week. |
 | Agency Payments | 3rd Agency Payment auto-task fires when Medical Clearance is logged complete on a journey. 4th Agency Payment auto-task fires when heartbeat confirmed. Both joint to Julie & Nicole. |
+| Reopen for Editing | Admin action on the Profile tab (`IPProfileTab` / surrogate equivalent) that bounces a submitted profile back to the user. Clears `_approved` + sets `_profileReleasedAt` so the profile unlocks for edits without losing data. No email fires. |
+| Release Application | Admin action on `IPDetailPage` header (only after profile is approved). Sets `_applicationAvailable: true` and emails IP1 + IP2 with the "complete the remaining forms" template via Resend. Distinct from "Reopen for Editing" (which is about the profile). |
+| IP Application | Three-section portal form on `/my-application` for IPs (separate from the matching profile): Contact Information, Clinic Information, Personal References. Auto-saves. Branches from `PortalApplicationPage` based on `intake_submissions.intake_type === 'ip'`. Surrogates see a different 6-section variant on the same page. |
+| Prefill chain (IP) | Whenever the IP fills out the application, fields are prefilled from existing answer → matching profile → intake quiz, in that priority. The IP should never have to answer the same question twice across the journey. |
 | 20-Week Check-In | Auto-task created on heartbeat confirmation. Calculated as 121 days post-transfer (5-day embryo: 2w5d at transfer + 17w2d = 20w0d). Joint task: Julie & Nicole. |
 | Reference Check Auto-Task | When Reference Check on Screening Checklist is logged "Requested", auto-creates "Complete Reference Checks for {GC}" assigned to intake@abcsurrogacy.com, due same day. |

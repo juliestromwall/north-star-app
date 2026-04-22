@@ -1,5 +1,69 @@
 # Session Log
 
+## 2026-04-21 Session D (Full IP portal build-out: profile submission, application forms, prefill chain)
+
+**Worked on:** End-to-end IP portal lifecycle that mirrors the surrogate flow. Profile submit/approve/release/reopen, branded portal invite via Resend, IP-specific application forms (Contact / Clinic / References), admin actions, auto-save, country support, intake→profile→application prefill chain. Also restored 3 mid-session Warp transcripts at the very start (no code changes — confirmed all 3 were already committed before the freeze) and applied two outstanding DB migrations to prod (`admin_note_replies` table + 6 `journey_expenses` columns) before fast-forwarding 21 staging commits to `main`.
+
+**Changes made:**
+
+- `32b1c39` `IntakeLandingPage.jsx` — turned the "See if you qualify in less than 5 minutes" pill into a clickable button that navigates to `/apply/surrogate` (Step 1 of the quiz). Marketing wanted two entry points.
+- `155ac43` New `functions/api/ip-invite.js` (Resend-based, replaces the Gmail-API path that died silently when admin tokens expired). `IPDetailPage.jsx` invite buttons (primary IP + partner) now use it. "Partner Portal Active" label fixed to require `lastSignIn`, with "Resend Invite" / "Hasn't logged in yet" middle state.
+- `854cc82` IP profile submission + dashboard redesign. New `/api/notify-ip-profile-submitted` endpoint (Resend → julie@ / nicole@ / intake@). `IPProfilePage` got the submit flow (button, warning modal, lock state, banners) keyed off `intake_submissions.answers._profileSubmitted` / `_profileReleasedAt`. `IPDashboard` rewritten to match surrogate layout (white cards + accent bars, ProgressRing, Continue button) — removed the heavy Heart banner.
+- `56e91e7` Removed the duplicate "Thank you for submitting your profile" banner — only the amber Profile Submitted progress card now (matches surrogate).
+- `3d2b2c3` Required-fields warning modal on IP profile submit (lists incomplete sections, mirrors surrogate). Per-person conditional fields fixed in `countCompletion`/`countSectionCompletion` — IP1's "no" no longer hides IP2's required follow-ups. Admin "Release Application" extended to also handle approved state (clears `_approved` + sets `_profileReleasedAt`). Green "Profile Approved" state added to `IPProfileProgressCard`.
+- `5464489` Renamed admin button "Release Application" → "Reopen for Editing" (clearer, doesn't conflict with the application-release flow).
+- `24c11dc` Reopen for Editing button moved from `IPDetailPage` header to the admin's Profile tab (`IPProfileTab`). Header keeps a read-only status badge.
+- `bf9e34d` New "Release Application" admin action (separate from approve/reopen) + new endpoints `notify-ip-app-released` (emails IP1+IP2 via Resend) and `notify-ip-app-submitted` (emails admins). `PortalApplicationPage` detects IP vs surrogate via `intake_submissions.intake_type`, routes IP submits to IP endpoint with `case_type: 'ip'`.
+- `68bca52` Moved Release Application action from IPProfileTab into `IPDetailPage` case-card header (replacing the read-only "Profile Approved" badge spot). State-aware: shows the button when approved+not-released, then "Application Released", then "Application Submitted".
+- `6ee1802` Browser-native `window.confirm` for Release Application swapped for proper shadcn Dialog.
+- `a39235d` Added 3 new IP application form components in `PortalApplicationPage`: `IPContactForm`, `IPPersonalForm`, `IPClinicForm`. Page branches by `intake_type`. New `IP_FORM_SECTIONS` constant alongside the surrogate `FORM_SECTIONS`.
+- `2638ffc` Dropped IPPersonalForm; user clarified IPs only need Contact / Clinic / References. References reuses surrogate's existing `ReferencesForm` (same `_references` key, name/phone/email/cityState/relationship × 3).
+- `db947f3` Multi-fix: (a) Save button bug — `isValidPhone` now accepts any 10-digit format; intake-prefilled phones run through `formatPhone` on hydration. (b) Auto-save: new `useAutoSave` hook on Contact + Clinic, debounce 1.5s. `handleSave` got a `{silent:true}` mode. (c) Removed Clinic fields "Day Frozen", "Anticipated Transfer Date", and the entire Delivery Hospital section. (d) Country field on Contact Info — non-US flips State→Province text and Zip→Postal Code. (e) Submit modal copy: "Application is 100% complete. Submit application?" + bold no-edit warning. (f) IP dashboard: prominent "You can now complete the remaining Application" CTA card at the top with "Complete Application →" button when `_applicationAvailable`.
+- `7a09bdb` Admin `IPApplicationTab` rewired so Contact / Clinic / References sections use the SAME field shape as the IP-side forms (was reading `_ipReferences` instead of `_references`, had different per-person field names for Contact, only had 3 Clinic fields). Also added Country field to the Add IP modal in `IPListPage` with the same non-US fallback.
+- `52f98f3` Prefill chain so the IP never answers the same question twice: profile (`IPProfilePage`) switched from section-level to per-field intake prefill (using `fillIfEmpty` helper) so prefill survives one-field edits; application forms now look at `_ipProfile` data BEFORE intake (Clinic prefills clinicName, reDoctorName, embryoCount, embryosTested, usingEggDonor, usingSpermDonor from profile; Contact prefills DOB from `profile.ip1.personal.dob`).
+
+**Prod DB migrations applied (early in the session, manually via Supabase SQL editor with user running them):**
+
+```sql
+-- admin_note_replies table + 5 RLS policies (idempotent w/ DROP POLICY IF EXISTS)
+-- Casts admin_notes.created_by::text and target_user_ids::text[] for prod where they're text not uuid
+
+-- journey_expenses columns:
+ALTER TABLE journey_expenses ADD COLUMN IF NOT EXISTS disbursement_requested_at timestamptz;
+ALTER TABLE journey_expenses ADD COLUMN IF NOT EXISTS disbursement_requested_by text;
+ALTER TABLE journey_expenses ADD COLUMN IF NOT EXISTS disbursement_paid_at      timestamptz;
+ALTER TABLE journey_expenses ADD COLUMN IF NOT EXISTS disbursement_paid_by      text;
+ALTER TABLE journey_expenses ADD COLUMN IF NOT EXISTS surrogate_id              bigint;
+ALTER TABLE journey_expenses ALTER COLUMN journey_id DROP NOT NULL;
+```
+
+**New endpoints (all Resend-based, env vars `RESEND_API_KEY` + `WELCOME_FROM_EMAIL` already set in prod):**
+- `POST /api/ip-invite` — admin invites IP, sends "Welcome to your secure portal" template
+- `POST /api/notify-ip-profile-submitted` — IP submits matching profile → admins notified
+- `POST /api/notify-ip-app-released` — admin releases application → IP1+IP2 notified
+- `POST /api/notify-ip-app-submitted` — IP submits application → admins notified + case_task created with `case_type: 'ip'` assigned to `intake_submissions.assigned_to`
+
+**State storage** (no DB migration needed — all in `intake_submissions.answers` JSON):
+- Profile: `_profileSubmitted`, `_profileSubmittedAt`, `_profileSubmittedBy`, `_profileReleasedAt`, `_profileReleasedBy`
+- IP profile data: `_ipProfile.{fertility,surrogacy,ip1,ip2}` (existing) + `_ipProfile._approved`, `_ipProfile._approvedAt`
+- Application: `_applicationAvailable`, `_applicationReleasedAt`, `_applicationReleasedBy`, `_applicationSubmitted`, `_applicationSubmittedAt`
+- Application sections: `_ipContact`, `_ipClinic`, `_references`
+
+**Cloudflare Pages quirks observed:**
+- Builds got stuck in "Initializing build environment" for 6+ min once. Fixed via empty commit `5f1a2d0` to kick a fresh build. Worth remembering: Cloudflare serializes builds per-project, so a stuck build holds up the whole queue.
+- Discovered there were 5 commits on `main` not on `staging` (email/Gmail features pushed direct to prod earlier). Had to merge `main` into `staging` before fast-forwarding. One JSX bug surfaced from the merge (duplicate `inboxThreads` useMemo in `CaseEmailsTab.jsx` line 399) — fixed in `cc1021f` before promoting.
+
+**Next steps:**
+- (From Session A) Codex still owes the `fetchSurrogateProfileByEmail` `user_id IS NOT NULL` tiebreaker fix.
+- The surrogate's old `/api/notify-app-released` still uses Gmail (`sendEmail` from `@/lib/google`), which has the same fragility we saw with invites. Worth migrating it to Resend.
+- Removed Clinic fields (Day Frozen, Anticipated Transfer Date, Delivery Hospital) are still in the IP-side admin tab as IP profile fields — only dropped from the application form.
+- Country field is in: intake form (already there), application Contact form, Add IP modal, admin IPApplicationTab. Not yet added to the surrogate equivalents — would be worth doing if any non-US surrogates ever come through.
+
+**Open questions:**
+- For existing IPs whose old `_ipPersonal` data was saved before that section was removed — the data sits in JSON but nothing renders it. Probably fine to leave; only relevant if anyone filled it out today.
+- IP 207 — user reported they couldn't see the application after release; provided SQL to manually set `_applicationAvailable: true`. Don't yet know whether that was the previous Cloudflare deploy lag or an actual bug in the release flow. Watch for repeats.
+- Multiple parallel Claude sessions kept landing commits between my fast-forwards (Session A's lock trigger, Session B's expense tracker overhaul, Session C's Matched Journeys + Gmail fixes). Surfaced each one to the user but they still got promoted as part of every fast-forward. Worth a coordination convention if multiple sessions become routine.
+
 ## 2026-04-21 Session C (Warp-recovery data ops + Matched Journeys UI, SMS scope fix, Gmail 403 fix, emoji picker)
 
 **Worked on:** Recovered after Warp terminal froze with 3 parallel sessions — all prior work was already committed on `staging`. Ran several production data operations, then fixed several UI/UX issues on matched journeys, fixed a leaking SMS notification indicator, fixed email body links, added an emoji picker to compose. Everything shipped through `staging` → `main`.
