@@ -24,7 +24,13 @@
     <div class="banner">
       <h1>Embed preview</h1>
       <p>
-        This page simulates how <code>/surrogatequiz</code> would render on a partner site (e.g. abcsurrogacy.com/ppc-surrogacy-page/). The iframe auto-resizes via the <code>abc:height</code> postMessage. Close and reopen this tab to reset.
+        Simulates how ABC's quiz iframes render on a partner site. Add
+        <code>?quiz=ip</code> to this URL to preview the Intended Parent
+        landing (<code>/intendedparentapply</code>) instead of the default
+        surrogate quiz (<code>/surrogatequiz</code>). The iframe
+        auto-resizes via the <code>abc:height</code> postMessage. Any
+        tracking params (utm_*, fbclid, ttclid, gclid…) on this page's URL
+        are forwarded into the iframe so attribution works.
       </p>
     </div>
     <div class="frame-wrap">
@@ -32,7 +38,7 @@
         <span>Iframe: <span class="host" id="src-label">/surrogatequiz</span></span>
         <span id="height-label">height: —</span>
       </div>
-      <iframe id="abc-quiz" allow="clipboard-write" title="ABC Surrogacy qualification quiz"></iframe>
+      <iframe id="abc-quiz" allow="clipboard-write" title="ABC Surrogacy quiz"></iframe>
     </div>
   </div>
   <script>
@@ -40,10 +46,13 @@
       var frame = document.getElementById('abc-quiz');
       var hl = document.getElementById('height-label');
       var srcLabel = document.getElementById('src-label');
-      // Forward any tracking params (utm_*, fbclid, ttclid, gclid, msclkid, etc.)
-      // from the host page URL into the iframe so attribution works.
-      var base = '/surrogatequiz';
-      var params = window.location.search;
+      // Pick the quiz variant from ?quiz= on the host URL.
+      var hostParams = new URLSearchParams(window.location.search);
+      var variant = (hostParams.get('quiz') || '').toLowerCase();
+      var base = variant === 'ip' ? '/intendedparentapply' : '/surrogatequiz';
+      // Strip our own `quiz` param before forwarding tracking to the iframe.
+      hostParams.delete('quiz');
+      var params = hostParams.toString() ? ('?' + hostParams.toString()) : '';
       frame.src = base + params;
       srcLabel.textContent = base + params;
       window.addEventListener('message', function (e) {

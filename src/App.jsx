@@ -19,6 +19,7 @@ import SettingsPage from './pages/SettingsPage'
 import CalendarPage from './pages/calendar/CalendarPage'
 import TimeClockPage from './pages/time-clock/TimeClockPage'
 import IntakeLandingPage from './pages/intake/IntakeLandingPage'
+import IPIntakeLandingPage from './pages/intake/IPIntakeLandingPage'
 import SurrogateIntakeForm from './pages/intake/SurrogateIntakeForm'
 import IPIntakeForm from './pages/intake/IPIntakeForm'
 import IntakeConfirmationPage from './pages/intake/IntakeConfirmationPage'
@@ -79,7 +80,8 @@ export default function App() {
       <Route path="/intended-parents/:id/share" element={<IPSharePage />} />
       <Route path="/surrogatequiz" element={<IntakeLandingPage />} />
       <Route path="/apply/surrogate" element={<SurrogateIntakeForm />} />
-      <Route path="/intendedparentapply" element={<IPIntakeForm />} />
+      <Route path="/intendedparentapply" element={<IPIntakeLandingPage />} />
+      <Route path="/apply/ip" element={<IPIntakeForm />} />
       <Route path="/apply/confirmation" element={<IntakeConfirmationPage />} />
       <Route path="/share/:token" element={<SharedProfilePage />} />
       <Route path="/therapist-tracking/share/:token" element={<SharedPsychTrackingPage />} />

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
 import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
 import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProtection.jsx'
+import { useIframeHeightReporter, scrollParentToIframeTop } from '@/lib/embed'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 
 const IP_COLOR = '#464DA0'
@@ -102,7 +103,11 @@ export default function IPIntakeForm() {
   const [submitting, setSubmitting] = useState(false)
   const startTimeRef = useRef(Date.now())
   const maxStepRef = useRef(1)
-  useEffect(() => { window.scrollTo(0, 0) }, [step])
+  useIframeHeightReporter()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    scrollParentToIframeTop()
+  }, [step])
   useEffect(() => {
     if (step > maxStepRef.current) maxStepRef.current = step
   }, [step])
