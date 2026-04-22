@@ -23,7 +23,7 @@ const FERTILITY_FIELDS = [
   { key: 'fertilityProcedures', label: 'What fertility procedures have you tried?', type: 'textarea' },
   { key: 'hasFrozenEmbryos', label: 'Do you have frozen embryos?', type: 'yesno' },
   { key: 'frozenEmbryoCount', label: 'How many frozen embryos do you have?', type: 'text', conditional: d => d.hasFrozenEmbryos === 'yes' },
-  { key: 'embryosGeneticallyTested', label: 'Have the embryos been genetically tested?', type: 'textarea' },
+  { key: 'embryosGeneticallyTested', label: 'Have the embryos been genetically tested?', type: 'select', options: ['Yes', 'No', 'Not Yet'] },
   { key: 'usingEggDonor', label: 'Are you using an egg donor?', type: 'yesno' },
   { key: 'usingSpermDonor', label: 'Are you using a sperm donor?', type: 'yesno' },
   { key: 'embryoTransferCount', label: 'Would you like to transfer one embryo or two?', type: 'select', options: ['1', '2', 'Undecided'] },
