@@ -22,8 +22,55 @@ import {
   Send, Paperclip, X, Loader2, Minus, Maximize2, Minimize2, Trash2,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
-  FolderOpen, Search, FileText,
+  FolderOpen, Search, FileText, Smile,
 } from 'lucide-react'
+
+const EMOJI_SET = [
+  '😀','😃','😄','😁','😊','😍','🥰','😘',
+  '😂','🤣','😎','🤔','🙃','😉','😇','🙂',
+  '😢','😭','😡','🥺','😔','😳','😬','🤗',
+  '👍','👎','👏','🙏','👋','💪','🙌','✋',
+  '❤️','💔','💖','💕','✨','🎉','🎊','🌟',
+  '🔥','💯','✅','❌','⭐','🌸','🌺','💐',
+  '👶','🤱','🤰','🍼','👼','🎀','💝','🎂',
+]
+
+function EmojiPickerButton({ editor }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+  return (
+    <div className="relative" ref={ref}>
+      <Button variant="ghost" size="icon-sm" onClick={() => setOpen(o => !o)} className="size-7" title="Insert emoji">
+        <Smile className="size-3.5" />
+      </Button>
+      {open && (
+        <div className="absolute bottom-9 left-0 z-50 bg-white border border-stone-200 rounded-lg shadow-lg p-2 w-[280px]">
+          <div className="grid grid-cols-8 gap-1">
+            {EMOJI_SET.map((e, i) => (
+              <button
+                key={i}
+                type="button"
+                className="text-lg hover:bg-stone-100 rounded p-1 leading-none"
+                onClick={() => {
+                  if (editor) editor.chain().focus().insertContent(e).run()
+                  setOpen(false)
+                }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function fileSizeLabel(bytes) {
   if (!bytes) return ''
@@ -665,6 +712,7 @@ function ComposeWindow({ draft, index }) {
           <Button variant="ghost" size="icon-sm" onClick={() => fileRef.current?.click()} className="size-7" title="Attach file">
             <Paperclip className="size-3.5" />
           </Button>
+          <EmojiPickerButton editor={editor} />
           {draft.caseId && (
             <Button variant="ghost" size="sm" onClick={openDocPicker} className="h-7 gap-1 text-[10px] text-stone-500 hover:text-[#283693]" title="Attach from case documents">
               <FolderOpen className="size-3.5" /> Docs

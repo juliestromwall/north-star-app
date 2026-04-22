@@ -589,10 +589,10 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
           )}
 
           <iframe
-            srcDoc={email.bodyHtml || '<p>' + (email.snippet || '') + '</p>'}
+            srcDoc={`<!doctype html><html><head><base target="_blank" rel="noopener noreferrer"></head><body>${email.bodyHtml || '<p>' + (email.snippet || '') + '</p>'}</body></html>`}
             className="w-full border-0 rounded-lg bg-white"
             style={{ minHeight: 400 }}
-            sandbox="allow-same-origin"
+            sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             onLoad={e => { try { e.target.style.height = e.target.contentDocument.body.scrollHeight + 20 + 'px' } catch {} }}
           />
         </div>
