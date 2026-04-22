@@ -30,9 +30,9 @@ export async function onRequestPost(context) {
     })
   }
 
-  // Notify Julie + Nicole + intake + assigned admin if any
+  // Notify Julie + Nicole + assigned admin if any. Intake coordinator
+  // handles surrogates only, not IPs.
   const recipients = new Set([
-    'intake@abcsurrogacy.com',
     'julie@abcsurrogacy.com',
     'nicole@abcsurrogacy.com',
     'juliestromwall@gmail.com',

@@ -24,7 +24,8 @@ export async function onRequestPost(context) {
     })
   }
 
-  const notifyEmails = ['intake@abcsurrogacy.com', 'julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com', 'juliestromwall@gmail.com']
+  // Intake coordinator handles surrogates only, not IPs.
+  const notifyEmails = ['julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com', 'juliestromwall@gmail.com']
   const reviewUrl = caseId
     ? `https://app.abcsurrogacy.com/intended-parents/${caseId}`
     : 'https://app.abcsurrogacy.com/intended-parents'

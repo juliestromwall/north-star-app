@@ -1047,10 +1047,11 @@ export default function IPProfilePage() {
         })
       } catch (err) { console.error('IP profile notify email failed:', err) }
 
-      // 3. Task for the assigned admin (falls back to intake@)
+      // 3. Task for the assigned admin (IP cases fall back to Julie —
+      // intake coordinator handles surrogates only).
       try {
         const today = new Date().toISOString().split('T')[0]
-        const assignedTo = caseData.assigned_to || 'intake@abcsurrogacy.com'
+        const assignedTo = caseData.assigned_to || 'julie@abcsurrogacy.com'
         await createCaseTask({
           case_id: caseData.id,
           case_type: 'ip',

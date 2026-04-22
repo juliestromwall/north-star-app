@@ -1649,7 +1649,7 @@ export default function PortalApplicationPage() {
           case_type: isIP ? 'ip' : 'surrogate',
           title: `Review Application - ${surName}`,
           description: 'Application submitted by applicant. Please review all sections.',
-          assigned_to: assignedTo || 'intake@abcsurrogacy.com',
+          assigned_to: assignedTo || (isIP ? 'julie@abcsurrogacy.com' : 'intake@abcsurrogacy.com'),
           due_date: new Date().toISOString().split('T')[0],
           priority: 'high',
           status: 'open',

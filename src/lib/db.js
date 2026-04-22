@@ -1215,11 +1215,13 @@ export async function createCaseTask(task) {
   if (!supabase) return null
   // Guard: auto-tasks must have a valid status and assignee to appear on the assignee's dashboard.
   // Schema allows only 'open' | 'in_progress' | 'complete' — coerce unknowns to 'open'.
+  // Intake coordinator handles surrogate intake only, not IPs — IP tasks fall back to Julie.
   const validStatuses = ['open', 'in_progress', 'complete']
+  const fallbackAssignee = task.case_type === 'ip' ? 'julie@abcsurrogacy.com' : 'intake@abcsurrogacy.com'
   const normalized = {
     ...task,
     status: validStatuses.includes(task.status) ? task.status : 'open',
-    assigned_to: task.assigned_to && task.assigned_to.trim() ? task.assigned_to : 'intake@abcsurrogacy.com',
+    assigned_to: task.assigned_to && task.assigned_to.trim() ? task.assigned_to : fallbackAssignee,
   }
   const { data, error } = await supabase
     .from('case_tasks')
