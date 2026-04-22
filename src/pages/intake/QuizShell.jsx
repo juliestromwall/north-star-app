@@ -158,6 +158,8 @@ export function QuizShell({
           onClick={onBack}
           aria-label="Go back"
           className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-stone-100 transition-colors"
+          style={onBack ? undefined : { visibility: 'hidden' }}
+          disabled={!onBack}
         >
           <ArrowLeft className="w-4 h-4 text-stone-500" />
         </button>

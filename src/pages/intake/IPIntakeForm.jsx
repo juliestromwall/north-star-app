@@ -260,7 +260,7 @@ export default function IPIntakeForm() {
   const shell = (s) => ({
     step: s, totalSteps: 5, accentColor: IP_COLOR, accentFg: IP_FG,
     milestone: MILESTONES[s], nextDisabled: !stepValid[s] || (s === 1 && checking),
-    onBack: s === 1 ? () => navigate('/intendedparentapply') : () => setStep(s - 1),
+    onBack: s === 1 ? undefined : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : s === 1 ? handleStep1Next : () => setStep(s + 1),
     nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'Submit application' : 'Continue',
   })
