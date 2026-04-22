@@ -18,6 +18,19 @@ import { getAdminStaff } from '@/data/mock/users'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
+// Order of status filter boxes, left to right. Any statuses present in data but
+// not listed here get appended (alphabetized) just before the Archived box.
+const STATUS_PRIORITY = [
+  'Pending Medical Clearance',
+  'Pending Legal Clearance',
+  'Legal Clearance Issued',
+  'Transfer Prep',
+  'Pregnant',
+  'Delivered',
+  'Delivery',
+  'Holding',
+]
+
 // The only people who can be Journey Manager
 export const JOURNEY_MANAGERS = ['Julie Allgood', 'Nicole Lawson']
 
@@ -212,12 +225,19 @@ export default function MatchedJourneysPage() {
 
   const filtered = useMemo(() => {
     return enriched.filter(j => {
+      const archived = !!j.journey_data?._archivedAt
+      // Archived journeys only show when the Archived filter is active.
+      if (statusFilter === 'archived') {
+        if (!archived) return false
+      } else {
+        if (archived) return false
+      }
       // Owner
       if (ownerFilter === 'mine') { if (j.assigned_to !== currentUser.email) return false }
       else if (ownerFilter === 'unassigned') { if (j.assigned_to) return false }
       else if (ownerFilter !== 'all') { if (j.assigned_to !== ownerFilter) return false }
       // Status
-      if (statusFilter !== 'all' && j.status !== statusFilter) return false
+      if (statusFilter !== 'all' && statusFilter !== 'archived' && j.status !== statusFilter) return false
       // Search
       if (search) {
         const q = search.toLowerCase()
@@ -229,17 +249,37 @@ export default function MatchedJourneysPage() {
     })
   }, [enriched, search, statusFilter, ownerFilter, currentUser.email])
 
-  // Status counts based on owner filter
+  // Status counts based on owner filter — archived journeys are excluded from
+  // per-status counts and surfaced separately in the Archived box.
   const statusCounts = useMemo(() => {
     const counts = {}
     for (const j of ownerFiltered) {
+      if (j.journey_data?._archivedAt) continue
       const st = j.status || 'Unknown'
       counts[st] = (counts[st] || 0) + 1
     }
     return counts
   }, [ownerFiltered])
 
-  const uniqueStatuses = useMemo(() => Object.keys(statusCounts).sort(), [statusCounts])
+  const allCasesCount = useMemo(
+    () => ownerFiltered.filter(j => !j.journey_data?._archivedAt).length,
+    [ownerFiltered]
+  )
+  const archivedCount = useMemo(
+    () => ownerFiltered.filter(j => !!j.journey_data?._archivedAt).length,
+    [ownerFiltered]
+  )
+
+  const orderedStatuses = useMemo(() => {
+    const all = Object.keys(statusCounts)
+    const seen = new Set()
+    const head = []
+    for (const s of STATUS_PRIORITY) {
+      if (all.includes(s)) { head.push(s); seen.add(s) }
+    }
+    const tail = all.filter(s => !seen.has(s)).sort()
+    return [...head, ...tail]
+  }, [statusCounts])
 
   if (loading) return <div className="text-center py-12 text-stone-400">Loading journeys...</div>
 
@@ -247,7 +287,11 @@ export default function MatchedJourneysPage() {
     <div className="space-y-6">
       <PageHeader
         title="Matched Journeys"
-        subtitle={`${filtered.length} of ${enriched.length} journey${enriched.length !== 1 ? 's' : ''} shown`}
+        subtitle={
+          statusFilter === 'archived'
+            ? `${filtered.length} archived journey${filtered.length !== 1 ? 's' : ''}`
+            : `${filtered.length} of ${allCasesCount} journey${allCasesCount !== 1 ? 's' : ''} shown`
+        }
       />
 
       {/* Status filter boxes */}
@@ -257,10 +301,10 @@ export default function MatchedJourneysPage() {
           className={`rounded-xl border px-5 py-3 text-center cursor-pointer transition-all ${statusFilter === 'all' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{enriched.length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{allCasesCount}</p>
           <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
         </button>
-        {uniqueStatuses.map(status => (
+        {orderedStatuses.map(status => (
           <button
             key={status}
             onClick={() => setStatusFilter(statusFilter === status ? 'all' : status)}
@@ -303,12 +347,27 @@ export default function MatchedJourneysPage() {
             <ListIcon className="size-4" />
           </Button>
         </div>
+
+        {archivedCount > 0 && (
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'archived' ? 'all' : 'archived')}
+            className={`text-xs font-medium px-2 self-center whitespace-nowrap transition-colors ${statusFilter === 'archived' ? 'text-[#283693] underline' : 'text-stone-400 hover:text-stone-600'}`}
+          >
+            {statusFilter === 'archived' ? '← Back to active' : `View archived (${archivedCount})`}
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           <Heart className="size-12 text-stone-200 mx-auto mb-3" />
-          <p className="text-stone-400">{journeys.length === 0 ? 'No matched journeys yet. Create a match from the Matching page.' : 'No journeys match your search.'}</p>
+          <p className="text-stone-400">{
+            statusFilter === 'archived'
+              ? 'No archived journeys.'
+              : journeys.length === 0
+                ? 'No matched journeys yet. Create a match from the Matching page.'
+                : 'No journeys match your search.'
+          }</p>
         </div>
       ) : view === 'tile' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
