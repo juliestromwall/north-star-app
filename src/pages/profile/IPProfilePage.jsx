@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin, Send, AlertTriangle } from 'lucide-react'
+import { Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, CheckCircle2, Circle, ChevronDown, Loader2, Upload, X, Camera, Eye, ShieldCheck, Trash2, ChevronLeft, ChevronRight, RotateCw, Crop as CropIcon, CalendarDays, MapPin, Send, AlertTriangle, Flag } from 'lucide-react'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -78,8 +78,8 @@ const HISTORY_FIELDS = [
   { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
-  { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
   { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS },
+  { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
   { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
 ]
 
@@ -594,24 +594,42 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           </div>
         </div>
 
-        {/* Stats byline — ages */}
-        <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
-            {ip1Age && (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
-                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">{hasPartner ? ip1Name : 'yrs'}</span>
+        {/* Stats byline — ages + green flag qualities inline */}
+        {(() => {
+          const ip1Qs = Array.isArray(ip1?.history?.qualities) ? ip1.history.qualities : []
+          const ip2Qs = hasPartner && Array.isArray(ip2?.history?.qualities) ? ip2.history.qualities : []
+          return (
+            <div className="px-8 sm:px-12 pt-6 pb-2 print:px-10">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[#283693]">
+                {ip1Age && (
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-2xl font-heading font-black leading-none">{ip1Age}</span>
+                    <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{hasPartner ? ip1Name : 'yrs'}</span>
+                    {ip1Qs.length > 0 && (
+                      <span className="flex items-baseline gap-1.5 ml-1.5">
+                        <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
+                        <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip1Qs.join(', ')}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+                {ip2Age && (
+                  <><span className="h-6 w-px bg-stone-300" />
+                  <div className="flex items-baseline gap-1.5 flex-wrap">
+                    <span className="text-2xl font-heading font-black leading-none">{ip2Age}</span>
+                    <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip2Name}</span>
+                    {ip2Qs.length > 0 && (
+                      <span className="flex items-baseline gap-1.5 ml-1.5">
+                        <Flag className="w-3.5 h-3.5 text-emerald-500 self-center" fill="currentColor" />
+                        <span className="text-xs uppercase tracking-widest text-stone-500 font-semibold">{ip2Qs.join(', ')}</span>
+                      </span>
+                    )}
+                  </div></>
+                )}
               </div>
-            )}
-            {ip2Age && (
-              <><span className="h-6 w-px bg-stone-300" />
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-heading font-black leading-none">{ip2Age}</span>
-                <span className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold">{ip2Name}</span>
-              </div></>
-            )}
-          </div>
-        </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Thumbnail strip */}
@@ -639,8 +657,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         {/* Per-person sections */}
         {(['health', 'history']).map((secKey, idx) => {
           const rawDefs = secKey === 'health' ? HEALTH_FIELDS : HISTORY_FIELDS
-          // Exclude messageToSurrogate — it renders as a special letter card below
-          const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate')
+          // Exclude messageToSurrogate — renders as a special letter card below.
+          // Exclude qualities — rendered as green flags in the hero instead.
+          const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate' && f.key !== 'qualities')
           const sectionLabel = secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
           const sectionNum = 3 + idx
@@ -1056,11 +1075,10 @@ export default function IPProfilePage() {
         })
       } catch (err) { console.error('IP profile notify email failed:', err) }
 
-      // 3. Task for the assigned admin (IP cases fall back to Julie —
-      // intake coordinator handles surrogates only).
+      // 3. Task for the assigned admin.
       try {
         const today = new Date().toISOString().split('T')[0]
-        const assignedTo = caseData.assigned_to || 'julie@abcsurrogacy.com'
+        const assignedTo = caseData.assigned_to || ''
         await createCaseTask({
           case_id: caseData.id,
           case_type: 'ip',
