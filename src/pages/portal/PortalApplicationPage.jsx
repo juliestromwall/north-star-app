@@ -34,6 +34,12 @@ const FORM_SECTIONS = [
   { key: '_socialMediaRelease', label: 'Social Media Release', description: 'Photo and video consent' },
 ]
 
+const IP_FORM_SECTIONS = [
+  { key: '_ipContact', label: 'Contact Information', description: 'Your address and contact details' },
+  { key: '_ipPersonal', label: 'Personal Information', description: 'Background, occupation, and emergency contact' },
+  { key: '_ipClinic', label: 'Clinic Information', description: 'Your fertility clinic, doctor, and embryo details' },
+]
+
 function YesNoButtons({ value, onChange }) {
   return (
     <div className="flex gap-2">
@@ -1189,6 +1195,396 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly, 
   )
 }
 
+// ─────────────────────────────────────────────────────────
+// Intended Parent Application Forms
+// ─────────────────────────────────────────────────────────
+
+// ── IP Contact Information ──────────────────────────────
+function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle, hasPartner }) {
+  const [form, setForm] = useState({})
+  useEffect(() => {
+    const a = quizData || {}
+    const init = {
+      ip1FirstName: data?.ip1FirstName || a.primaryFirstName || '',
+      ip1LastName: data?.ip1LastName || a.primaryLastName || '',
+      ip1Dob: data?.ip1Dob || a.primaryDob || '',
+      ip1Email: data?.ip1Email || a.email || '',
+      ip1Phone: data?.ip1Phone || a.phone || '',
+      street: data?.street || a.street || '',
+      city: data?.city || a.city || '',
+      state: data?.state || a.stateProv || '',
+      zipCode: data?.zipCode || a.zipCode || '',
+      ip2FirstName: data?.ip2FirstName || a.ip2FirstName || '',
+      ip2LastName: data?.ip2LastName || a.ip2LastName || '',
+      ip2Dob: data?.ip2Dob || a.ip2Dob || '',
+      ip2Email: data?.ip2Email || a.ip2Email || '',
+      ip2Phone: data?.ip2Phone || a.ip2Phone || '',
+      preferredContact: data?.preferredContact || '',
+    }
+    setForm(init)
+  }, [data, quizData])
+
+  const requiredKeys = [
+    'ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone',
+    'street','city','state','zipCode','preferredContact',
+  ]
+  if (hasPartner) requiredKeys.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
+  const allFilled = requiredKeys.every(k => {
+    const v = form[k]
+    if (k.includes('Phone')) return isValidPhone(v)
+    if (k.includes('Email')) return isValidEmail(v)
+    return v?.toString().trim()
+  })
+
+  function checkComplete(d) {
+    if (!d) return false
+    const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','street','city','state','zipCode','preferredContact']
+    if (hasPartner) rk.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
+    return rk.every(k => {
+      const v = d[k]
+      if (k.includes('Phone')) return isValidPhone(v)
+      if (k.includes('Email')) return isValidEmail(v)
+      return v?.toString().trim()
+    })
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2">
+          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Contact Information</CardTitle>
+            <CardDescription>Your address and contact details</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {isOpen && (
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Intended Parent #1</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>First Name <Req /></FieldLabel><Input value={form.ip1FirstName || ''} onChange={e => setForm(f => ({ ...f, ip1FirstName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Last Name <Req /></FieldLabel><Input value={form.ip1LastName || ''} onChange={e => setForm(f => ({ ...f, ip1LastName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Date of Birth <Req /></FieldLabel><Input type="date" value={form.ip1Dob || ''} onChange={e => setForm(f => ({ ...f, ip1Dob: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Email <Req /></FieldLabel><Input type="email" value={form.ip1Email || ''} onChange={e => setForm(f => ({ ...f, ip1Email: e.target.value }))} placeholder="name@example.com" /></div>
+            <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.ip1Phone || ''} onChange={e => setForm(f => ({ ...f, ip1Phone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+          </div>
+
+          {hasPartner && (
+            <>
+              <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Intended Parent #2</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="space-y-1"><FieldLabel>First Name <Req /></FieldLabel><Input value={form.ip2FirstName || ''} onChange={e => setForm(f => ({ ...f, ip2FirstName: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Last Name <Req /></FieldLabel><Input value={form.ip2LastName || ''} onChange={e => setForm(f => ({ ...f, ip2LastName: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Date of Birth <Req /></FieldLabel><Input type="date" value={form.ip2Dob || ''} onChange={e => setForm(f => ({ ...f, ip2Dob: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Email <Req /></FieldLabel><Input type="email" value={form.ip2Email || ''} onChange={e => setForm(f => ({ ...f, ip2Email: e.target.value }))} placeholder="name@example.com" /></div>
+                <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.ip2Phone || ''} onChange={e => setForm(f => ({ ...f, ip2Phone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+              </div>
+            </>
+          )}
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Home Address</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street || ''} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city || ''} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>State <Req /></FieldLabel>
+              <Select value={form.state || ''} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
+          </div>
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Preferences</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1"><FieldLabel>Preferred Contact Method <Req /></FieldLabel>
+              <Select value={form.preferredContact || ''} onValueChange={v => setForm(f => ({ ...f, preferredContact: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Email">Email</SelectItem>
+                  <SelectItem value="Phone">Phone</SelectItem>
+                  <SelectItem value="Text">Text</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipContact', form)} disabled={saving || !allFilled}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ── IP Personal Information ──────────────────────────────
+function IPPersonalForm({ data, onSave, saving, readOnly, isOpen, onToggle, hasPartner, ip1Name, ip2Name }) {
+  const [form, setForm] = useState({})
+  useEffect(() => {
+    const init = {
+      ip1Occupation: data?.ip1Occupation || '',
+      ip1Employer: data?.ip1Employer || '',
+      ip1UsCitizen: data?.ip1UsCitizen || '',
+      ip1CitizenshipCountry: data?.ip1CitizenshipCountry || '',
+      ip1Ethnicity: data?.ip1Ethnicity || '',
+      ip1Religion: data?.ip1Religion || '',
+      ip2Occupation: data?.ip2Occupation || '',
+      ip2Employer: data?.ip2Employer || '',
+      ip2UsCitizen: data?.ip2UsCitizen || '',
+      ip2CitizenshipCountry: data?.ip2CitizenshipCountry || '',
+      ip2Ethnicity: data?.ip2Ethnicity || '',
+      ip2Religion: data?.ip2Religion || '',
+      emergencyName: data?.emergencyName || '',
+      emergencyPhone: data?.emergencyPhone || '',
+      emergencyRelationship: data?.emergencyRelationship || '',
+    }
+    setForm(init)
+  }, [data])
+
+  const ip1NonUS = form.ip1UsCitizen === 'no'
+  const ip2NonUS = form.ip2UsCitizen === 'no'
+
+  const requiredKeys = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
+  if (ip1NonUS) requiredKeys.push('ip1CitizenshipCountry')
+  if (hasPartner) {
+    requiredKeys.push('ip2Occupation','ip2Employer','ip2UsCitizen')
+    if (ip2NonUS) requiredKeys.push('ip2CitizenshipCountry')
+  }
+  const allFilled = requiredKeys.every(k => {
+    const v = form[k]
+    if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
+    if (k === 'emergencyPhone') return isValidPhone(v)
+    return v?.toString().trim()
+  })
+
+  function checkComplete(d) {
+    if (!d) return false
+    const rk = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
+    if (d.ip1UsCitizen === 'no') rk.push('ip1CitizenshipCountry')
+    if (hasPartner) {
+      rk.push('ip2Occupation','ip2Employer','ip2UsCitizen')
+      if (d.ip2UsCitizen === 'no') rk.push('ip2CitizenshipCountry')
+    }
+    return rk.every(k => {
+      const v = d[k]
+      if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
+      if (k === 'emergencyPhone') return isValidPhone(v)
+      return v?.toString().trim()
+    })
+  }
+
+  const renderPersonFields = (prefix, label) => (
+    <>
+      <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">{label}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="space-y-1"><FieldLabel>Occupation <Req /></FieldLabel><Input value={form[`${prefix}Occupation`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Occupation`]: e.target.value }))} /></div>
+        <div className="space-y-1"><FieldLabel>Employer <Req /></FieldLabel><Input value={form[`${prefix}Employer`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Employer`]: e.target.value }))} /></div>
+        <div className="space-y-1"><FieldLabel>U.S. Citizen? <Req /></FieldLabel><YesNoButtons value={form[`${prefix}UsCitizen`]} onChange={v => setForm(f => ({ ...f, [`${prefix}UsCitizen`]: v }))} /></div>
+        {form[`${prefix}UsCitizen`] === 'no' && (
+          <div className="space-y-1"><FieldLabel>Country of Citizenship <Req /></FieldLabel><Input value={form[`${prefix}CitizenshipCountry`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}CitizenshipCountry`]: e.target.value }))} /></div>
+        )}
+        <div className="space-y-1"><FieldLabel>Ethnicity</FieldLabel><Input value={form[`${prefix}Ethnicity`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Ethnicity`]: e.target.value }))} /></div>
+        <div className="space-y-1"><FieldLabel>Religion</FieldLabel><Input value={form[`${prefix}Religion`] || ''} onChange={e => setForm(f => ({ ...f, [`${prefix}Religion`]: e.target.value }))} /></div>
+      </div>
+    </>
+  )
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2">
+          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Personal Information</CardTitle>
+            <CardDescription>Background, occupation, and emergency contact</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {isOpen && (
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          {renderPersonFields('ip1', ip1Name ? `${ip1Name}'s Information` : 'Intended Parent #1')}
+          {hasPartner && renderPersonFields('ip2', ip2Name ? `${ip2Name}'s Information` : 'Intended Parent #2')}
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Emergency Contact</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Name <Req /></FieldLabel><Input value={form.emergencyName || ''} onChange={e => setForm(f => ({ ...f, emergencyName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.emergencyPhone || ''} onChange={e => setForm(f => ({ ...f, emergencyPhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            <div className="space-y-1"><FieldLabel>Relationship <Req /></FieldLabel><Input value={form.emergencyRelationship || ''} onChange={e => setForm(f => ({ ...f, emergencyRelationship: e.target.value }))} /></div>
+          </div>
+
+          {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipPersonal', form)} disabled={saving || !allFilled}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
+// ── IP Clinic Information ────────────────────────────────
+function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
+  const [form, setForm] = useState({})
+  useEffect(() => {
+    const a = quizData || {}
+    const init = {
+      clinicName: data?.clinicName || a.reDoctorName ? '' : '',
+      clinicStreet: data?.clinicStreet || '',
+      clinicCity: data?.clinicCity || '',
+      clinicState: data?.clinicState || '',
+      clinicZip: data?.clinicZip || '',
+      clinicPhone: data?.clinicPhone || '',
+      reDoctorName: data?.reDoctorName || a.reDoctorName || '',
+      reDoctorEmail: data?.reDoctorEmail || '',
+      reDoctorPhone: data?.reDoctorPhone || '',
+      nurseCoordinator: data?.nurseCoordinator || '',
+      embryoCount: data?.embryoCount || '',
+      embryoDay: data?.embryoDay || '',
+      embryosTested: data?.embryosTested || '',
+      usingEggDonor: data?.usingEggDonor || (a.usingEggDonor === true ? 'yes' : a.usingEggDonor === false ? 'no' : ''),
+      usingSpermDonor: data?.usingSpermDonor || (a.usingSpermDonor === true ? 'yes' : a.usingSpermDonor === false ? 'no' : ''),
+      anticipatedTransferDate: data?.anticipatedTransferDate || '',
+      hospitalName: data?.hospitalName || '',
+      hospitalCity: data?.hospitalCity || '',
+      hospitalState: data?.hospitalState || '',
+    }
+    setForm(init)
+  }, [data, quizData])
+
+  const requiredKeys = [
+    'clinicName','clinicPhone','reDoctorName','reDoctorPhone',
+    'embryoCount','embryoDay','embryosTested','usingEggDonor','usingSpermDonor',
+  ]
+  const allFilled = requiredKeys.every(k => {
+    const v = form[k]
+    if (k.endsWith('Phone')) return isValidPhone(v)
+    if (['embryosTested','usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no' || v === 'undecided'
+    return v?.toString().trim()
+  })
+
+  function checkComplete(d) {
+    if (!d) return false
+    return requiredKeys.every(k => {
+      const v = d[k]
+      if (k.endsWith('Phone')) return isValidPhone(v)
+      if (['embryosTested','usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no' || v === 'undecided'
+      return v?.toString().trim()
+    })
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center gap-2">
+          {checkComplete(data) ? <CheckCircle2 className="size-4 text-emerald-500" /> : <Circle className="size-4 text-stone-300" />}
+          <div>
+            <CardTitle className="text-base">Clinic Information</CardTitle>
+            <CardDescription>Your fertility clinic, doctor, and embryo details</CardDescription>
+          </div>
+        </div>
+        <CardAction><ChevronDown className={`size-4 text-stone-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} /></CardAction>
+      </CardHeader>
+      {isOpen && (
+        <CardContent className={`space-y-4 ${readOnly ? 'pointer-events-none opacity-60' : ''}`}>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Fertility Clinic</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Clinic Name <Req /></FieldLabel><Input value={form.clinicName || ''} onChange={e => setForm(f => ({ ...f, clinicName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Clinic Phone <Req /></FieldLabel><Input type="tel" value={form.clinicPhone || ''} onChange={e => setForm(f => ({ ...f, clinicPhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address</FieldLabel><Input value={form.clinicStreet || ''} onChange={e => setForm(f => ({ ...f, clinicStreet: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.clinicCity || ''} onChange={e => setForm(f => ({ ...f, clinicCity: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>State</FieldLabel>
+              <Select value={form.clinicState || ''} onValueChange={v => setForm(f => ({ ...f, clinicState: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Zip</FieldLabel><Input value={form.clinicZip || ''} onChange={e => setForm(f => ({ ...f, clinicZip: e.target.value }))} /></div>
+          </div>
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Reproductive Endocrinologist (RE)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Doctor Name <Req /></FieldLabel><Input value={form.reDoctorName || ''} onChange={e => setForm(f => ({ ...f, reDoctorName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input type="email" value={form.reDoctorEmail || ''} onChange={e => setForm(f => ({ ...f, reDoctorEmail: e.target.value }))} placeholder="doctor@clinic.com" /></div>
+            <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={form.reDoctorPhone || ''} onChange={e => setForm(f => ({ ...f, reDoctorPhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
+            <div className="space-y-1"><FieldLabel>Nurse Coordinator</FieldLabel><Input value={form.nurseCoordinator || ''} onChange={e => setForm(f => ({ ...f, nurseCoordinator: e.target.value }))} /></div>
+          </div>
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Embryos</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>How Many Embryos? <Req /></FieldLabel><Input value={form.embryoCount || ''} onChange={e => setForm(f => ({ ...f, embryoCount: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>Day Frozen <Req /></FieldLabel>
+              <Select value={form.embryoDay || ''} onValueChange={v => setForm(f => ({ ...f, embryoDay: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">Day 3</SelectItem>
+                  <SelectItem value="5">Day 5</SelectItem>
+                  <SelectItem value="6">Day 6</SelectItem>
+                  <SelectItem value="7">Day 7</SelectItem>
+                  <SelectItem value="mixed">Mixed</SelectItem>
+                  <SelectItem value="undecided">Undecided</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Genetically Tested? <Req /></FieldLabel>
+              <Select value={form.embryosTested || ''} onValueChange={v => setForm(f => ({ ...f, embryosTested: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="undecided">Undecided</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Using Egg Donor? <Req /></FieldLabel>
+              <Select value={form.usingEggDonor || ''} onValueChange={v => setForm(f => ({ ...f, usingEggDonor: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="undecided">Undecided</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Using Sperm Donor? <Req /></FieldLabel>
+              <Select value={form.usingSpermDonor || ''} onValueChange={v => setForm(f => ({ ...f, usingSpermDonor: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                  <SelectItem value="undecided">Undecided</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><FieldLabel>Anticipated Transfer Date</FieldLabel><Input type="date" value={form.anticipatedTransferDate || ''} onChange={e => setForm(f => ({ ...f, anticipatedTransferDate: e.target.value }))} /></div>
+          </div>
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Delivery Hospital (Optional)</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="space-y-1"><FieldLabel>Hospital Name</FieldLabel><Input value={form.hospitalName || ''} onChange={e => setForm(f => ({ ...f, hospitalName: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.hospitalCity || ''} onChange={e => setForm(f => ({ ...f, hospitalCity: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>State</FieldLabel>
+              <Select value={form.hospitalState || ''} onValueChange={v => setForm(f => ({ ...f, hospitalState: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
+          {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipClinic', form)} disabled={saving || !allFilled}>
+            {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />} Save
+          </Button>}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 // ── Main Page ──────────────────────────────────────────
 export default function PortalApplicationPage() {
   const { currentUser } = useRole()
@@ -1202,6 +1598,10 @@ export default function PortalApplicationPage() {
   const [intakeType, setIntakeType] = useState(null) // 'gc' (surrogate) | 'ip'
   const isSubmitted = answers?._applicationSubmitted
   const isIP = intakeType === 'ip' || currentUser?.role === 'intended_parent'
+  const sections = isIP ? IP_FORM_SECTIONS : FORM_SECTIONS
+  const hasPartner = answers?.hasPartner === 'yes' || answers?.hasPartner === true
+  const ip1Name = answers?.primaryFirstName || ''
+  const ip2Name = answers?.ip2FirstName || ''
 
   useEffect(() => {
     if (!currentUser?.email || !supabase) { setLoading(false); return }
@@ -1236,7 +1636,7 @@ export default function PortalApplicationPage() {
       if (error) throw error
       setAnswers(updatedAnswers)
       // Advance to next section
-      const sectionOrder = ['_application', '_confidential', '_references', '_clinicHospital', '_socialMediaRelease']
+      const sectionOrder = sections.map(s => s.key)
       const currentIdx = sectionOrder.indexOf(sectionKey)
       const nextKey = sectionOrder[currentIdx + 1]
       if (nextKey) {
@@ -1247,7 +1647,7 @@ export default function PortalApplicationPage() {
         // All saved — check if all complete and show submit
         setTimeout(() => {
           // Re-check with updated answers
-          const allDone = FORM_SECTIONS.every(s => isSectionComplete(s.key, updatedAnswers))
+          const allDone = sections.every(s => isSectionComplete(s.key, updatedAnswers))
           if (allDone && !updatedAnswers._applicationSubmitted) {
             setSubmitOpen(true)
           }
@@ -1440,17 +1840,50 @@ export default function PortalApplicationPage() {
     if (key === '_socialMediaRelease') {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
+    if (key === '_ipContact') {
+      const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','street','city','state','zipCode','preferredContact']
+      if (hasPartner) rk.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
+      return rk.every(k => {
+        const v = d[k]
+        if (k.includes('Phone')) return isValidPhone(v)
+        if (k.includes('Email')) return isValidEmail(v)
+        return v?.toString().trim()
+      })
+    }
+    if (key === '_ipPersonal') {
+      const rk = ['ip1Occupation','ip1Employer','ip1UsCitizen','emergencyName','emergencyPhone','emergencyRelationship']
+      if (d.ip1UsCitizen === 'no') rk.push('ip1CitizenshipCountry')
+      if (hasPartner) {
+        rk.push('ip2Occupation','ip2Employer','ip2UsCitizen')
+        if (d.ip2UsCitizen === 'no') rk.push('ip2CitizenshipCountry')
+      }
+      return rk.every(k => {
+        const v = d[k]
+        if (k.endsWith('UsCitizen')) return v === 'yes' || v === 'no'
+        if (k === 'emergencyPhone') return isValidPhone(v)
+        return v?.toString().trim()
+      })
+    }
+    if (key === '_ipClinic') {
+      const rk = ['clinicName','clinicPhone','reDoctorName','reDoctorPhone','embryoCount','embryoDay','embryosTested','usingEggDonor','usingSpermDonor']
+      return rk.every(k => {
+        const v = d[k]
+        if (k.endsWith('Phone')) return isValidPhone(v)
+        if (['embryosTested','usingEggDonor','usingSpermDonor'].includes(k)) return v === 'yes' || v === 'no' || v === 'undecided'
+        return v?.toString().trim()
+      })
+    }
     return false
   }
 
-  const completedCount = FORM_SECTIONS.filter(s => isSectionComplete(s.key)).length
-  const allComplete = completedCount === FORM_SECTIONS.length
+  const completedCount = sections.filter(s => isSectionComplete(s.key)).length
+  const allComplete = completedCount === sections.length
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="My Application"
-        subtitle={isSubmitted ? 'Your application has been submitted.' : `Complete each section below. ${completedCount} of ${FORM_SECTIONS.length} complete.`}
+        subtitle={isSubmitted ? 'Your application has been submitted.' : `Complete each section below. ${completedCount} of ${sections.length} complete.`}
       />
 
       {isSubmitted && (
@@ -1465,26 +1898,39 @@ export default function PortalApplicationPage() {
           <div className="flex-1 h-2 rounded-full bg-stone-100">
             <div
               className="h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(completedCount / FORM_SECTIONS.length) * 100}%`, backgroundColor: '#ed148c' }}
+              style={{ width: `${(completedCount / sections.length) * 100}%`, backgroundColor: '#ed148c' }}
             />
           </div>
-          <span className="text-xs text-stone-500 font-medium">{completedCount}/{FORM_SECTIONS.length}</span>
+          <span className="text-xs text-stone-500 font-medium">{completedCount}/{sections.length}</span>
         </div>
       )}
 
-      <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
-        quizData={answers} caseId={caseId} userId={currentUser?.id || currentUser?.email}
-        isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
-      <ProfileFollowUpForm data={answers._profileFollowUp} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
-        isOpen={activeSection === '_profileFollowUp'} onToggle={() => setActiveSection(activeSection === '_profileFollowUp' ? null : '_profileFollowUp')} />
-      <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
-        isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
-      <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
-        isOpen={activeSection === '_clinicHospital'} onToggle={() => setActiveSection(activeSection === '_clinicHospital' ? null : '_clinicHospital')} />
-      <PaymentPreferenceForm data={answers._paymentPreference} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} caseId={caseId}
-        isOpen={activeSection === '_paymentPreference'} onToggle={() => setActiveSection(activeSection === '_paymentPreference' ? null : '_paymentPreference')} />
-      <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted}
-        isOpen={activeSection === '_socialMediaRelease'} onToggle={() => setActiveSection(activeSection === '_socialMediaRelease' ? null : '_socialMediaRelease')} />
+      {isIP ? (
+        <>
+          <IPContactForm data={answers._ipContact} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} hasPartner={hasPartner} readOnly={isSubmitted}
+            isOpen={activeSection === '_ipContact'} onToggle={() => setActiveSection(activeSection === '_ipContact' ? null : '_ipContact')} />
+          <IPPersonalForm data={answers._ipPersonal} onSave={isSubmitted ? null : handleSave} saving={saving} hasPartner={hasPartner} ip1Name={ip1Name} ip2Name={ip2Name} readOnly={isSubmitted}
+            isOpen={activeSection === '_ipPersonal'} onToggle={() => setActiveSection(activeSection === '_ipPersonal' ? null : '_ipPersonal')} />
+          <IPClinicForm data={answers._ipClinic} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} readOnly={isSubmitted}
+            isOpen={activeSection === '_ipClinic'} onToggle={() => setActiveSection(activeSection === '_ipClinic' ? null : '_ipClinic')} />
+        </>
+      ) : (
+        <>
+          <PersonalInfoForm data={answers._application} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+            quizData={answers} caseId={caseId} userId={currentUser?.id || currentUser?.email}
+            isOpen={activeSection === '_application'} onToggle={() => setActiveSection(activeSection === '_application' ? null : '_application')} />
+          <ProfileFollowUpForm data={answers._profileFollowUp} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+            isOpen={activeSection === '_profileFollowUp'} onToggle={() => setActiveSection(activeSection === '_profileFollowUp' ? null : '_profileFollowUp')} />
+          <ReferencesForm data={answers._references} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted}
+            isOpen={activeSection === '_references'} onToggle={() => setActiveSection(activeSection === '_references' ? null : '_references')} />
+          <ClinicHospitalForm data={answers._clinicHospital} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userId={currentUser?.id || currentUser?.email} readOnly={isSubmitted}
+            isOpen={activeSection === '_clinicHospital'} onToggle={() => setActiveSection(activeSection === '_clinicHospital' ? null : '_clinicHospital')} />
+          <PaymentPreferenceForm data={answers._paymentPreference} onSave={isSubmitted ? null : handleSave} saving={saving} readOnly={isSubmitted} caseId={caseId}
+            isOpen={activeSection === '_paymentPreference'} onToggle={() => setActiveSection(activeSection === '_paymentPreference' ? null : '_paymentPreference')} />
+          <SocialMediaForm data={answers._socialMediaRelease} onSave={isSubmitted ? null : handleSave} saving={saving} quizData={answers} userEmail={currentUser?.email} readOnly={isSubmitted}
+            isOpen={activeSection === '_socialMediaRelease'} onToggle={() => setActiveSection(activeSection === '_socialMediaRelease' ? null : '_socialMediaRelease')} />
+        </>
+      )}
 
       {/* Submit button — only when all complete and not yet submitted */}
       {!isSubmitted && allComplete && (
