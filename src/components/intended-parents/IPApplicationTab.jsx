@@ -289,82 +289,46 @@ function IntakeAnswersSection({ ip, setIp, search }) {
   )
 }
 
-// ── Contact Information (IP1 + IP2) ─────────────────────
+// ── Contact Information (matches IP-side _ipContact shape) ──
 function ContactInfoSection({ ip, setIp, search }) {
   const a = ip.answers || {}
   const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
+  const isUS = !a._ipContact?.country || a._ipContact?.country?.toLowerCase().includes('united states')
 
-  const allLabels = ['first name', 'last name', 'email', 'phone', 'date of birth', 'country', 'street', 'city', 'state', 'zip', 'employer', 'job position', 'contact', 'address', 'work phone', 'home phone', 'cell phone']
+  const allLabels = ['first name', 'last name', 'email', 'phone', 'date of birth', 'country', 'street', 'city', 'state', 'zip', 'province', 'postal', 'preferred contact', 'address']
   const hasMatch = search ? allLabels.some(l => l.includes(search)) : true
 
-  const { editing, saving, form, set, setForm, startEdit, handleSave, cancel } = useFormSection(
+  const { editing, saving, form, set, startEdit, handleSave, cancel } = useFormSection(
     ip.id, a, '_ipContact',
     (saved) => ({
-      // IP1
       ip1FirstName: saved.ip1FirstName || a.primaryFirstName || '',
       ip1LastName: saved.ip1LastName || a.primaryLastName || '',
-      ip1Email: saved.ip1Email || a.email || ip.email || '',
-      ip1HomePhone: saved.ip1HomePhone || '',
-      ip1CellPhone: saved.ip1CellPhone || a.phone || ip.phone || '',
-      ip1WorkPhone: saved.ip1WorkPhone || '',
       ip1Dob: saved.ip1Dob || a.primaryDob || '',
-      ip1Country: saved.ip1Country || a.country || 'United States',
-      ip1Street: saved.ip1Street || a.street || '',
-      ip1Street2: saved.ip1Street2 || a.street2 || '',
-      ip1City: saved.ip1City || a.city || '',
-      ip1State: saved.ip1State || a.stateProv || '',
-      ip1Zip: saved.ip1Zip || a.zipCode || '',
-      ip1Employer: saved.ip1Employer || '',
-      ip1EmployerAddress: saved.ip1EmployerAddress || '',
-      ip1EmployerPhone: saved.ip1EmployerPhone || '',
-      ip1JobPosition: saved.ip1JobPosition || '',
-      // IP2
+      ip1Email: saved.ip1Email || a.email || ip.email || '',
+      ip1Phone: saved.ip1Phone || a.phone || ip.phone || '',
       ip2FirstName: saved.ip2FirstName || a.ip2FirstName || '',
       ip2LastName: saved.ip2LastName || a.ip2LastName || '',
-      ip2Email: saved.ip2Email || a.ip2Email || '',
-      ip2HomePhone: saved.ip2HomePhone || '',
-      ip2CellPhone: saved.ip2CellPhone || a.ip2Phone || '',
-      ip2WorkPhone: saved.ip2WorkPhone || '',
       ip2Dob: saved.ip2Dob || a.ip2Dob || '',
-      ip2Employer: saved.ip2Employer || '',
-      ip2EmployerAddress: saved.ip2EmployerAddress || '',
-      ip2EmployerPhone: saved.ip2EmployerPhone || '',
-      ip2JobPosition: saved.ip2JobPosition || '',
+      ip2Email: saved.ip2Email || a.ip2Email || '',
+      ip2Phone: saved.ip2Phone || a.ip2Phone || '',
+      country: saved.country || a.country || 'United States',
+      street: saved.street || a.street || '',
+      city: saved.city || a.city || '',
+      state: saved.state || a.stateProv || '',
+      zipCode: saved.zipCode || a.zipCode || '',
+      preferredContact: saved.preferredContact || '',
     })
   )
 
   if (!hasMatch) return null
 
-  const ip1Fields = [
-    ['ip1FirstName', 'First Name'], ['ip1LastName', 'Last Name'], ['ip1Email', 'Email', 'email'],
-    ['ip1HomePhone', 'Home Phone', 'tel'], ['ip1CellPhone', 'Cell Phone', 'tel'], ['ip1WorkPhone', 'Work Phone', 'tel'],
-    ['ip1Dob', 'Date of Birth', 'date'], ['ip1Country', 'Country'],
-    ['ip1Street', 'Street Address'], ['ip1Street2', 'Street Address Line 2'],
-    ['ip1City', 'City'], ['ip1State', 'State/Province', 'select'], ['ip1Zip', 'Zip Code'],
-    ['ip1Employer', 'Employer Name'], ['ip1EmployerAddress', 'Employer Address'],
-    ['ip1EmployerPhone', 'Employer Phone', 'tel'], ['ip1JobPosition', 'Job Position'],
-  ]
+  const formIsUS = !form.country || form.country?.toLowerCase().includes('united states')
+  const stored = a._ipContact || {}
 
-  const ip2Fields = [
-    ['ip2FirstName', 'First Name'], ['ip2LastName', 'Last Name'], ['ip2Email', 'Email', 'email'],
-    ['ip2HomePhone', 'Home Phone', 'tel'], ['ip2CellPhone', 'Cell Phone', 'tel'], ['ip2WorkPhone', 'Work Phone', 'tel'],
-    ['ip2Dob', 'Date of Birth', 'date'],
-    ['ip2Employer', 'Employer Name'], ['ip2EmployerAddress', 'Employer Address'],
-    ['ip2EmployerPhone', 'Employer Phone', 'tel'], ['ip2JobPosition', 'Job Position'],
-  ]
-
-  function renderField([key, label, type]) {
-    const stored = (a._ipContact || {})[key] || ''
-    if (editing) {
-      if (type === 'select') return <div key={key} className="space-y-1"><FieldLabel>{label}</FieldLabel><SelectField value={form[key]} onValueChange={v => set(key, v)} options={US_STATES} /></div>
-      return <div key={key} className="space-y-1"><FieldLabel>{label}</FieldLabel><Input type={type || 'text'} value={form[key] || ''} onChange={e => set(key, e.target.value)} /></div>
-    }
-    return <ReadField key={key} label={label} value={stored} />
-  }
+  function readVal(k) { return stored[k] || '' }
 
   async function saveAndSync() {
     await handleSave((updatedAnswers) => {
-      // Sync key fields back to parent IP state
       const c = updatedAnswers._ipContact || {}
       const ip1Name = `${c.ip1FirstName || ''} ${c.ip1LastName || ''}`.trim()
       const ip2Name = hasPartner ? `${c.ip2FirstName || ''} ${c.ip2LastName || ''}`.trim() : ''
@@ -374,49 +338,99 @@ function ContactInfoSection({ ip, setIp, search }) {
         ip2Name: ip2Name || prev.ip2Name,
         names: ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name || prev.names,
         email: c.ip1Email || prev.email,
-        phone: c.ip1CellPhone || prev.phone,
+        phone: c.ip1Phone || prev.phone,
         ip2Email: c.ip2Email || prev.ip2Email,
-        ip2Phone: c.ip2CellPhone || prev.ip2Phone,
-        location: [c.ip1City, c.ip1State].filter(Boolean).join(', ') || prev.location,
+        ip2Phone: c.ip2Phone || prev.ip2Phone,
+        location: [c.city, c.state].filter(Boolean).join(', ') || prev.location,
         answers: updatedAnswers,
       }))
     })
   }
 
+  const renderPersonFields = (prefix, label) => (
+    <div>
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">{label}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[['FirstName','First Name'],['LastName','Last Name'],['Dob','Date of Birth','date'],['Email','Email','email'],['Phone','Phone','tel']].map(([k,l,t]) => (
+          editing
+            ? <div key={`${prefix}${k}`} className="space-y-1"><FieldLabel>{l}</FieldLabel><Input type={t || 'text'} value={form[`${prefix}${k}`] || ''} onChange={e => set(`${prefix}${k}`, e.target.value)} /></div>
+            : <ReadField key={`${prefix}${k}`} label={l} value={readVal(`${prefix}${k}`)} />
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Contact Information" description="IP1 and IP2 contact details, address, and employment" editing={editing} saving={saving} startEdit={startEdit} handleSave={saveAndSync} cancel={cancel} />
+      <EditHeader title="Contact Information" description="What the IP entered on /my-application" editing={editing} saving={saving} startEdit={startEdit} handleSave={saveAndSync} cancel={cancel} />
       <CardContent className="space-y-6">
+        {renderPersonFields('ip1', 'Intended Parent 1')}
+        {hasPartner && renderPersonFields('ip2', 'Intended Parent 2')}
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Intended Parent 1</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Home Address</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ip1Fields.map(renderField)}
+            {editing ? (
+              <>
+                <div className="space-y-1"><FieldLabel>Country</FieldLabel><Input value={form.country || ''} onChange={e => set('country', e.target.value)} placeholder="United States" /></div>
+                <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address</FieldLabel><Input value={form.street || ''} onChange={e => set('street', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.city || ''} onChange={e => set('city', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>{formIsUS ? 'State' : 'State / Province / Region'}</FieldLabel>
+                  {formIsUS
+                    ? <SelectField value={form.state} onValueChange={v => set('state', v)} options={US_STATES} />
+                    : <Input value={form.state || ''} onChange={e => set('state', e.target.value)} placeholder="Province / Region" />
+                  }
+                </div>
+                <div className="space-y-1"><FieldLabel>{formIsUS ? 'Zip Code' : 'Postal Code'}</FieldLabel><Input value={form.zipCode || ''} onChange={e => set('zipCode', e.target.value)} /></div>
+              </>
+            ) : (
+              <>
+                <ReadField label="Country" value={readVal('country')} />
+                <ReadField label="Street Address" value={readVal('street')} />
+                <ReadField label="City" value={readVal('city')} />
+                <ReadField label={isUS ? 'State' : 'State / Province / Region'} value={readVal('state')} />
+                <ReadField label={isUS ? 'Zip Code' : 'Postal Code'} value={readVal('zipCode')} />
+              </>
+            )}
           </div>
         </div>
-        {hasPartner && (
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Intended Parent 2</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {ip2Fields.map(renderField)}
-            </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Preferences</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {editing
+              ? <div className="space-y-1"><FieldLabel>Preferred Contact Method</FieldLabel>
+                  <SelectField value={form.preferredContact} onValueChange={v => set('preferredContact', v)} options={['Email','Phone','Text']} />
+                </div>
+              : <ReadField label="Preferred Contact Method" value={readVal('preferredContact')} />
+            }
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   )
 }
 
-// ── Clinic Information ──────────────────────────────────
+// ── Clinic Information (matches IP-side _ipClinic shape) ──
 function ClinicSection({ ip, setIp, search }) {
   const a = ip.answers || {}
-  const hasMatch = search ? ['clinic', 'reproductive', 'doctor', 're '].some(k => search.includes(k)) : true
+  const hasMatch = search ? ['clinic', 'reproductive', 'doctor', 're ', 'embryo', 'donor', 'nurse'].some(k => search.includes(k)) : true
 
   const { editing, saving, form, set, startEdit, handleSave, cancel } = useFormSection(
     ip.id, a, '_ipClinic',
     (saved) => ({
-      clinicName: saved.clinicName || a.reDoctorName || '',
-      doctorName: saved.doctorName || '',
+      clinicName: saved.clinicName || '',
+      clinicStreet: saved.clinicStreet || '',
+      clinicCity: saved.clinicCity || '',
+      clinicState: saved.clinicState || '',
+      clinicZip: saved.clinicZip || '',
       clinicPhone: saved.clinicPhone || '',
+      reDoctorName: saved.reDoctorName || a.reDoctorName || saved.doctorName || '',
+      reDoctorEmail: saved.reDoctorEmail || '',
+      reDoctorPhone: saved.reDoctorPhone || '',
+      nurseCoordinator: saved.nurseCoordinator || '',
+      embryoCount: saved.embryoCount || '',
+      embryosTested: saved.embryosTested || '',
+      usingEggDonor: saved.usingEggDonor || (a.usingEggDonor === true ? 'yes' : a.usingEggDonor === false ? 'no' : ''),
+      usingSpermDonor: saved.usingSpermDonor || (a.usingSpermDonor === true ? 'yes' : a.usingSpermDonor === false ? 'no' : ''),
     })
   )
 
@@ -427,32 +441,86 @@ function ClinicSection({ ip, setIp, search }) {
       const c = updatedAnswers._ipClinic || {}
       setIp(prev => ({
         ...prev,
-        reDoctorName: c.doctorName || c.clinicName || prev.reDoctorName,
-        hasRE: !!(c.clinicName || c.doctorName) || prev.hasRE,
+        reDoctorName: c.reDoctorName || prev.reDoctorName,
+        hasRE: !!(c.clinicName || c.reDoctorName) || prev.hasRE,
         answers: updatedAnswers,
       }))
     })
   }
 
   const stored = a._ipClinic || {}
+  function R(k) { return stored[k] || '' }
+
+  const ynLabel = (v) => v === 'yes' ? 'Yes' : v === 'no' ? 'No' : v === 'undecided' ? 'Undecided' : '—'
 
   return (
     <Card className="rounded-2xl">
-      <EditHeader title="Clinic Information" description="Reproductive clinic and doctor details" editing={editing} saving={saving} startEdit={startEdit} handleSave={saveAndSync} cancel={cancel} />
-      <CardContent>
-        {editing ? (
+      <EditHeader title="Clinic Information" description="What the IP entered on /my-application" editing={editing} saving={saving} startEdit={startEdit} handleSave={saveAndSync} cancel={cancel} />
+      <CardContent className="space-y-6">
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Fertility Clinic</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-1"><FieldLabel>Reproductive Clinic Name</FieldLabel><Input value={form.clinicName} onChange={e => set('clinicName', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>Reproductive Doctor's Name</FieldLabel><Input value={form.doctorName} onChange={e => set('doctorName', e.target.value)} /></div>
-            <div className="space-y-1"><FieldLabel>Reproductive Clinic Phone</FieldLabel><Input type="tel" value={form.clinicPhone} onChange={e => set('clinicPhone', e.target.value)} /></div>
+            {editing ? (
+              <>
+                <div className="space-y-1 sm:col-span-2"><FieldLabel>Clinic Name</FieldLabel><Input value={form.clinicName || ''} onChange={e => set('clinicName', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>Clinic Phone</FieldLabel><Input type="tel" value={form.clinicPhone || ''} onChange={e => set('clinicPhone', e.target.value)} /></div>
+                <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address</FieldLabel><Input value={form.clinicStreet || ''} onChange={e => set('clinicStreet', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.clinicCity || ''} onChange={e => set('clinicCity', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>State</FieldLabel><SelectField value={form.clinicState} onValueChange={v => set('clinicState', v)} options={US_STATES} /></div>
+                <div className="space-y-1"><FieldLabel>Zip</FieldLabel><Input value={form.clinicZip || ''} onChange={e => set('clinicZip', e.target.value)} /></div>
+              </>
+            ) : (
+              <>
+                <ReadField label="Clinic Name" value={R('clinicName')} />
+                <ReadField label="Clinic Phone" value={R('clinicPhone')} />
+                <ReadField label="Street Address" value={R('clinicStreet')} />
+                <ReadField label="City" value={R('clinicCity')} />
+                <ReadField label="State" value={R('clinicState')} />
+                <ReadField label="Zip" value={R('clinicZip')} />
+              </>
+            )}
           </div>
-        ) : (
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Reproductive Endocrinologist</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <ReadField label="Reproductive Clinic Name" value={stored.clinicName} />
-            <ReadField label="Reproductive Doctor's Name" value={stored.doctorName} />
-            <ReadField label="Reproductive Clinic Phone" value={stored.clinicPhone} />
+            {editing ? (
+              <>
+                <div className="space-y-1"><FieldLabel>Doctor Name</FieldLabel><Input value={form.reDoctorName || ''} onChange={e => set('reDoctorName', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input type="email" value={form.reDoctorEmail || ''} onChange={e => set('reDoctorEmail', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input type="tel" value={form.reDoctorPhone || ''} onChange={e => set('reDoctorPhone', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>Nurse Coordinator</FieldLabel><Input value={form.nurseCoordinator || ''} onChange={e => set('nurseCoordinator', e.target.value)} /></div>
+              </>
+            ) : (
+              <>
+                <ReadField label="Doctor Name" value={R('reDoctorName')} />
+                <ReadField label="Email" value={R('reDoctorEmail')} />
+                <ReadField label="Phone" value={R('reDoctorPhone')} />
+                <ReadField label="Nurse Coordinator" value={R('nurseCoordinator')} />
+              </>
+            )}
           </div>
-        )}
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Embryos</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {editing ? (
+              <>
+                <div className="space-y-1"><FieldLabel>How Many Embryos?</FieldLabel><Input value={form.embryoCount || ''} onChange={e => set('embryoCount', e.target.value)} /></div>
+                <div className="space-y-1"><FieldLabel>Genetically Tested?</FieldLabel><SelectField value={form.embryosTested} onValueChange={v => set('embryosTested', v)} options={['yes','no','undecided']} /></div>
+                <div className="space-y-1"><FieldLabel>Using Egg Donor?</FieldLabel><SelectField value={form.usingEggDonor} onValueChange={v => set('usingEggDonor', v)} options={['yes','no','undecided']} /></div>
+                <div className="space-y-1"><FieldLabel>Using Sperm Donor?</FieldLabel><SelectField value={form.usingSpermDonor} onValueChange={v => set('usingSpermDonor', v)} options={['yes','no','undecided']} /></div>
+              </>
+            ) : (
+              <>
+                <ReadField label="How Many Embryos?" value={R('embryoCount')} />
+                <ReadField label="Genetically Tested?" value={ynLabel(R('embryosTested'))} />
+                <ReadField label="Using Egg Donor?" value={ynLabel(R('usingEggDonor'))} />
+                <ReadField label="Using Sperm Donor?" value={ynLabel(R('usingSpermDonor'))} />
+              </>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
@@ -473,7 +541,7 @@ function ReferencesSection({ ip, setIp, search }) {
   const hasMatch = search ? allLabels.some(l => l.toLowerCase().includes(search)) || 'reference'.includes(search) : true
 
   const { editing, saving, form, setForm, startEdit, handleSave, cancel } = useFormSection(
-    ip.id, a, '_ipReferences',
+    ip.id, a, '_references',
     (saved) => {
       const init = {}
       for (const r of REFS) {
@@ -486,7 +554,7 @@ function ReferencesSection({ ip, setIp, search }) {
 
   if (!hasMatch) return null
 
-  const stored = a._ipReferences || {}
+  const stored = a._references || {}
 
   return (
     <Card className="rounded-2xl">

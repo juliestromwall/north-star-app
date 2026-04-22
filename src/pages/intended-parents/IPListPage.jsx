@@ -196,7 +196,7 @@ export default function IPListPage() {
 
   // Add IP dialog state
   const [addOpen, setAddOpen] = useState(false)
-  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', state: '', hasPartner: false, ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' })
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', country: 'United States', state: '', hasPartner: false, ip2FirstName: '', ip2LastName: '', ip2Email: '', ip2Phone: '' })
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState(null)
 
@@ -518,14 +518,22 @@ export default function IPListPage() {
                 <Input type="tel" value={addForm.phone} onChange={e => setAddForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">State</Label>
+                <Label className="text-xs">Country</Label>
+                <Input value={addForm.country} onChange={e => setAddForm(f => ({ ...f, country: e.target.value }))} placeholder="United States" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{addForm.country?.toLowerCase().includes('united states') || !addForm.country ? 'State' : 'State / Province / Region'}</Label>
+              {(addForm.country?.toLowerCase().includes('united states') || !addForm.country) ? (
                 <Select value={addForm.state} onValueChange={v => setAddForm(f => ({ ...f, state: v }))}>
                   <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     {US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
-              </div>
+              ) : (
+                <Input value={addForm.state} onChange={e => setAddForm(f => ({ ...f, state: e.target.value }))} placeholder="Province / Region" />
+              )}
             </div>
 
             <div className="flex items-center justify-between rounded-lg border p-3">
