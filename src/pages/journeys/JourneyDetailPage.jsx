@@ -25,6 +25,7 @@ import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
+import { EscrowStatusCell, NotesCell, getEscrowStatus, escrowStatusUpdates } from '@/pages/expenses/ExpensesPage'
 import { ProfileTab as GCProfileTab, DocumentsTab } from '@/pages/surrogates/SurrogateDetailPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
@@ -478,7 +479,7 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onAdvanceDisbursement }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [customPayeeDraft, setCustomPayeeDraft] = useState('')
@@ -494,7 +495,6 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     let val = editVal
     if (editField === 'amount') val = parseFloat(editVal) || null
     if (editField === 'cc_last4') val = (editVal || '').replace(/\D/g, '').slice(-4) || null
-    if (editField === 'submitted_to_escrow') val = editVal === 'yes' || editVal === true
     onUpdate(exp.id, editField, val)
     setEditField(null)
   }
@@ -503,18 +503,6 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
 
   function renderCell(field, display, className = '') {
     if (editField === field) {
-      if (field === 'submitted_to_escrow') {
-        return (
-          <div className="flex items-center gap-1">
-            <select value={editVal ? 'yes' : 'no'} onChange={e => setEditVal(e.target.value === 'yes')} className="h-7 text-xs border rounded px-1.5 bg-white" autoFocus>
-              <option value="no">No</option>
-              <option value="yes">Yes</option>
-            </select>
-            <button onClick={saveEdit} className="text-green-600"><Check className="size-3" /></button>
-            <button onClick={() => setEditField(null)} className="text-stone-400"><X className="size-3" /></button>
-          </div>
-        )
-      }
       if (field === 'paid_to' && canChangePayee) {
         return (
           <div className="flex flex-col gap-1">
@@ -588,40 +576,33 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Hold for Payment</span>
     : (exp.paid_to || '—')
 
+  const rowGreen = !!(exp.disbursement_paid_at || exp.escrow_not_needed)
   return (
-    <tr className={`border-b border-stone-100 hover:bg-stone-50/50 ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : ''}`}>
-      <td className="px-4 py-3 text-sm">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
-      <td className="px-4 py-3 text-sm font-medium">{renderCell('amount', fmtCurrency(exp.amount))}</td>
-      <td className="px-4 py-3 text-sm">{renderCell('paid_to', paidToDisplay)}</td>
-      <td className="px-4 py-3 text-sm">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
-      <td className="px-4 py-3 text-sm">{renderCell('submitted_to_escrow', exp.submitted_to_escrow ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-stone-400">No</span>)}</td>
-      <td className="px-4 py-3 text-sm">
-        {exp.disbursement_paid_at ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-            <Check className="size-2.5" /> Paid {formatDate(exp.disbursement_paid_at)}
-          </span>
-        ) : exp.disbursement_requested_at ? (
-          <div className="flex flex-col gap-1 items-start">
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-              Requested {formatDate(exp.disbursement_requested_at)}
-            </span>
-            {typeof onAdvanceDisbursement === 'function' && !exp.reconciled && (
-              <button onClick={() => onAdvanceDisbursement(exp.id, 'paid')} className="text-[10px] text-emerald-700 hover:underline">Mark Disb. Paid</button>
-            )}
+    <tr className={`border-b border-stone-100 hover:bg-stone-50/50 ${rowGreen ? 'bg-emerald-50/60' : ''}`}>
+      <td className="px-4 py-3 text-sm align-top">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
+      <td className="px-4 py-3 text-sm font-medium align-top">{renderCell('amount', fmtCurrency(exp.amount))}</td>
+      <td className="px-4 py-3 text-sm align-top">{renderCell('paid_to', paidToDisplay)}</td>
+      <td className="px-4 py-3 text-sm align-top">{renderCell('cc_last4', exp.cc_last4 ? <span className="font-mono text-stone-500">••••{exp.cc_last4}</span> : '—')}</td>
+      <td className="px-4 py-3 text-sm text-stone-500 align-top">
+        {editField === 'notes' ? renderCell('notes', exp.notes || '—') : (
+          <div onDoubleClick={() => !exp.reconciled && startEdit('notes', exp.notes)} title={exp.reconciled ? '' : 'Double-click to edit'}>
+            <NotesCell value={exp.notes} />
           </div>
-        ) : typeof onAdvanceDisbursement === 'function' && !exp.reconciled ? (
-          <button onClick={() => onAdvanceDisbursement(exp.id, 'request')} className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition-colors">Submit Request</button>
-        ) : '—'}
+        )}
       </td>
-      <td className="px-4 py-3 text-sm text-stone-500">{renderCell('notes', exp.notes || '—')}</td>
-      <td className="px-3 py-3 text-center">
+      <td className="px-3 py-3 text-center align-top">
         {exp.attachment_url ? (
           <button onClick={() => onPreview(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
             <Eye className="size-4" />
           </button>
         ) : (
-          <button onClick={() => fileRef.current?.click()} className="text-stone-300 hover:text-abc-indigo transition-colors" title="Add attachment">
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="relative inline-flex items-center text-stone-300 hover:text-abc-indigo transition-colors"
+            title="Add attachment"
+          >
             <Paperclip className="size-3.5" />
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center size-3 rounded-full bg-stone-100 text-stone-500 text-[8px] font-bold leading-none border border-stone-200">+</span>
           </button>
         )}
         <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={async e => {
@@ -639,7 +620,7 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
           e.target.value = ''
         }} />
       </td>
-      <td className="px-4 py-3 text-center">
+      <td className="px-4 py-3 text-center align-top">
         {exp.reconciled ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
             <Check className="size-2.5" /> Reconciled
@@ -652,7 +633,15 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
           <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
         )}
       </td>
-      <td className="px-2 py-3">
+      <td className="px-4 py-3 align-top">
+        <EscrowStatusCell
+          exp={exp}
+          reconciled={!!exp.reconciled}
+          onSetStatus={onSetEscrowStatus}
+          onMarkPaid={onMarkDisbursementPaid}
+        />
+      </td>
+      <td className="px-2 py-3 align-top">
         {!exp.reconciled && (
           <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
             <Trash2 className="size-3.5" />
@@ -1851,21 +1840,23 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     }
   }
 
-  async function handleAdvanceDisbursement(id, step) {
+  async function handleSetEscrowStatus(id, status) {
+    const updates = escrowStatusUpdates(status, {
+      userEmail: currentUser?.email || '',
+      nowIso: new Date().toISOString(),
+    })
+    const updated = await updateExpense(id, updates)
+    if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
+  }
+
+  async function handleMarkDisbursementPaid(id) {
     const now = new Date().toISOString()
     const who = currentUser?.email || ''
     const row = expenses.find(e => e.id === id)
-    const updates = {}
-    if (step === 'request') {
+    const updates = { disbursement_paid_at: now, disbursement_paid_by: who }
+    if (row && !row.disbursement_requested_at) {
       updates.disbursement_requested_at = now
       updates.disbursement_requested_by = who
-    } else if (step === 'paid') {
-      updates.disbursement_paid_at = now
-      updates.disbursement_paid_by = who
-      if (row && !row.disbursement_requested_at) {
-        updates.disbursement_requested_at = now
-        updates.disbursement_requested_by = who
-      }
     }
     const updated = await updateExpense(id, updates)
     if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
@@ -2024,13 +2015,15 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 )}
               </>
             )}
-            <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
-              <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
-              <button onClick={() => setNewDisbursementRequested(v => !v)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequested ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
-                {newDisbursementRequested ? 'Yes' : 'No'}
-              </button>
-            </div>
+            {newExpense.escrow_opened && newExpense.submitted_to_escrow && (
+              <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+                <label className="text-[11px] text-stone-400 font-medium">Disbursement already requested?</label>
+                <button onClick={() => setNewDisbursementRequested(v => !v)}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${newDisbursementRequested ? 'bg-blue-100 text-blue-700' : 'bg-stone-100 text-stone-500'}`}>
+                  {newDisbursementRequested ? 'Yes' : 'No'}
+                </button>
+              </div>
+            )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => { setAddOpen(false); setLineItems([emptyLineItem()]) }}>Cancel</Button>
               <Button size="sm" onClick={handleAdd} disabled={saving || total <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
@@ -2077,17 +2070,16 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Amount</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Paid To</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Escrow Opened</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Disbursement</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Notes</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[220px]">Notes</th>
                     <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Submitted to Escrow</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onAdvanceDisbursement={handleAdvanceDisbursement} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} />
                   ))}
                 </tbody>
               </table>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus, Mail, DollarSign } from 'lucide-react'
+import { Check, X, Search, ArrowUpDown, CheckCircle2, Eye, AlertCircle, Loader2, Plus, Mail, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
 import PageHeader from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -34,9 +34,51 @@ const COLUMNS = [
   { key: 'amount', label: 'Amount', format: 'currency' },
   { key: 'paid_to', label: 'Paid To' },
   { key: 'cc_last4', label: 'CC Last 4', format: 'cc4' },
-  { key: 'submitted_to_escrow', label: 'Escrow Opened', format: 'yesno' },
-  { key: 'notes', label: 'Notes' },
 ]
+
+// Derive the 4-way disposition (not_funded | yes | not_needed | paid) from
+// the boolean / timestamp fields on a row. Priority: not_needed > paid > yes > not_funded.
+export function getEscrowStatus(exp) {
+  if (exp.escrow_not_needed) return 'not_needed'
+  if (exp.disbursement_paid_at) return 'paid'
+  if (exp.submitted_to_escrow) return 'yes'
+  return 'not_funded'
+}
+
+// Map a selected option back to the DB updates needed to land in that state.
+export function escrowStatusUpdates(next, { userEmail, nowIso }) {
+  if (next === 'not_funded') {
+    return {
+      submitted_to_escrow: false,
+      escrow_not_needed: false,
+      disbursement_requested_at: null,
+      disbursement_requested_by: null,
+      disbursement_paid_at: null,
+      disbursement_paid_by: null,
+    }
+  }
+  if (next === 'yes') {
+    return {
+      submitted_to_escrow: true,
+      escrow_not_needed: false,
+      disbursement_requested_at: nowIso,
+      disbursement_requested_by: userEmail,
+      disbursement_paid_at: null,
+      disbursement_paid_by: null,
+    }
+  }
+  if (next === 'not_needed') {
+    return {
+      submitted_to_escrow: false,
+      escrow_not_needed: true,
+      disbursement_requested_at: null,
+      disbursement_requested_by: null,
+      disbursement_paid_at: null,
+      disbursement_paid_by: null,
+    }
+  }
+  return {}
+}
 
 function CellValue({ col, value }) {
   if (value === null || value === undefined || value === '') return <span className="text-stone-300">—</span>
@@ -105,7 +147,108 @@ function EditableCell({ col, value, onSave }) {
   )
 }
 
-function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail, onAdvanceDisbursement }) {
+// Collapsed/expanded long-notes cell. Two-line clamp by default;
+// click to expand. Tiny chevron appears only when the content actually
+// overflows two lines.
+export function NotesCell({ value }) {
+  const [open, setOpen] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const ref = (el) => {
+    if (!el) return
+    // detect overflow post-mount
+    const overflowing = el.scrollHeight - el.clientHeight > 1
+    if (overflowing !== overflows) setOverflows(overflowing)
+  }
+  if (!value) return <span className="text-stone-300">—</span>
+  return (
+    <div className="max-w-[360px]">
+      <p
+        ref={ref}
+        className={`text-[11px] leading-snug whitespace-pre-wrap break-words text-stone-600 ${open ? '' : 'line-clamp-2'}`}
+      >
+        {value}
+      </p>
+      {(overflows || open) && (
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-stone-400 hover:text-abc-indigo"
+        >
+          {open ? <><ChevronUp className="size-3" /> Less</> : <><ChevronDown className="size-3" /> More</>}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// Inline dropdown for the 3-state escrow disposition. "Paid" is a terminal
+// display state that the admin can still undo.
+export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid }) {
+  const status = getEscrowStatus(exp)
+
+  const pill = (variant, label) => {
+    const colors = {
+      not_funded: 'text-stone-500 bg-stone-100 border-stone-200',
+      yes: 'text-blue-700 bg-blue-50 border-blue-200',
+      not_needed: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+      paid: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    }
+    return (
+      <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors[variant]}`}>
+        {variant === 'paid' && <CheckCircle2 className="size-2.5" />}
+        {label}
+      </span>
+    )
+  }
+
+  if (reconciled) {
+    if (status === 'paid') return pill('paid', `Paid ${formatDate(exp.disbursement_paid_at)}`)
+    if (status === 'not_needed') return pill('not_needed', 'Not Needed')
+    if (status === 'yes') return pill('yes', 'Yes')
+    return pill('not_funded', 'Escrow Not Funded')
+  }
+
+  if (status === 'paid') {
+    return (
+      <div className="flex flex-col gap-1 items-start">
+        {pill('paid', `Paid ${formatDate(exp.disbursement_paid_at)}`)}
+        <button
+          onClick={() => onSetStatus(exp.id, 'yes')}
+          className="text-[10px] text-stone-400 hover:text-stone-600 hover:underline"
+        >
+          Undo Paid
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1 items-start">
+      <select
+        value={status}
+        onChange={e => onSetStatus(exp.id, e.target.value)}
+        className={`h-6 text-[10px] border rounded px-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-abc-indigo ${
+          status === 'not_needed' ? 'text-emerald-700 border-emerald-200 bg-emerald-50' :
+          status === 'yes' ? 'text-blue-700 border-blue-200 bg-blue-50' :
+          'text-stone-500 border-stone-200'
+        }`}
+      >
+        <option value="not_funded">Escrow Not Funded</option>
+        <option value="yes">Yes</option>
+        <option value="not_needed">Not Needed</option>
+      </select>
+      {status === 'yes' && (
+        <button
+          onClick={() => onMarkPaid(exp.id)}
+          className="text-[10px] text-emerald-700 hover:underline"
+        >
+          Mark as Paid
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onReconcile, showReconcile, currentUser, onExpenseUpdate, onViewEmail, onSetEscrowStatus, onMarkDisbursementPaid }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [reconcileId, setReconcileId] = useState(null)
   const [showTaskForm, setShowTaskForm] = useState(false)
@@ -236,22 +379,25 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 dark:bg-[#1a1a24] z-20 min-w-[200px] border-r border-stone-200 dark:border-[#2a2a38]">
                 Case
               </th>
-              {COLUMNS.map((col, i) => (
-                <th key={col.key} className={`text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : 'border-r border-stone-100 dark:border-[#2a2a38]'}`}>
+              {COLUMNS.map((col) => (
+                <th key={col.key} className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                   {col.label}
                 </th>
               ))}
-              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
-                Disbursement
+              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38] min-w-[220px]">
+                Notes
               </th>
-              <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-l border-stone-100 dark:border-[#2a2a38]">
+              <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                 Doc
               </th>
               {showReconcile && (
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 dark:border-[#2a2a38]">
                   Reconcile
                 </th>
               )}
+              <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap min-w-[180px]">
+                Submitted to Escrow
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -263,9 +409,10 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
               const caseManager = j.caseManager || '—'
               const caseHref = isPreMatch ? `/surrogates/${exp.surrogate_id}` : `/journeys/${exp.journey_id}`
 
+              const rowGreen = !!(exp.disbursement_paid_at || exp.escrow_not_needed)
               return (
-                <tr key={exp.id} className={`border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50 ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : ''}`}>
-                  <td className={`px-5 py-3.5 sticky left-0 z-20 border-r border-stone-200 dark:border-[#2a2a38] ${exp.disbursement_paid_at ? 'bg-emerald-50/60' : 'bg-white dark:bg-[#1a1a24]'}`}>
+                <tr key={exp.id} className={`border-b border-stone-100 dark:border-[#2a2a38] hover:bg-stone-50/50 ${rowGreen ? 'bg-emerald-50/60' : ''}`}>
+                  <td className={`px-5 py-3.5 sticky left-0 z-20 border-r border-stone-200 dark:border-[#2a2a38] ${rowGreen ? 'bg-emerald-50/60' : 'bg-white dark:bg-[#1a1a24]'}`}>
                     <div className="flex items-center gap-2">
                       <Link to={caseHref} className="font-semibold text-[#283693] dark:text-[#c0c8f0] hover:underline text-sm">
                         {caseName}
@@ -282,8 +429,8 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       <p className="text-[10px] text-stone-400 mt-0.5">{caseManager}</p>
                     )}
                   </td>
-                  {COLUMNS.map((col, i) => (
-                    <td key={col.key} className={`px-4 py-3 ${i < COLUMNS.length - 1 ? 'border-r border-stone-100 dark:border-[#2a2a38]' : 'border-r border-stone-100 dark:border-[#2a2a38]'}`}>
+                  {COLUMNS.map((col) => (
+                    <td key={col.key} className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38]">
                       <EditableCell
                         col={col}
                         value={exp[col.key]}
@@ -291,23 +438,10 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       />
                     </td>
                   ))}
-                  <td className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38]">
-                    {exp.disbursement_paid_at ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.disbursement_paid_at)}
-                      </span>
-                    ) : exp.disbursement_requested_at ? (
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                          Requested {formatDate(exp.disbursement_requested_at)}
-                        </span>
-                        <button onClick={() => onAdvanceDisbursement(exp.id, 'paid')} className="text-[10px] text-emerald-700 hover:underline">Mark Disb. Paid</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => onAdvanceDisbursement(exp.id, 'request')} className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition-colors">Submit Request</button>
-                    )}
+                  <td className="px-4 py-3 border-r border-stone-100 dark:border-[#2a2a38] align-top">
+                    <NotesCell value={exp.notes} />
                   </td>
-                  <td className="px-3 py-3 text-center border-l border-stone-100 dark:border-[#2a2a38]">
+                  <td className="px-3 py-3 text-center border-r border-stone-100 dark:border-[#2a2a38]">
                     <div className="inline-flex items-center gap-2 justify-center">
                       {exp.attachment_url ? (
                         <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
@@ -332,7 +466,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                     </div>
                   </td>
                   {showReconcile && (
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center border-r border-stone-100 dark:border-[#2a2a38]">
                       <button
                         onClick={() => setReconcileId(exp.id)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
@@ -342,6 +476,14 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       </button>
                     </td>
                   )}
+                  <td className="px-4 py-3 align-top">
+                    <EscrowStatusCell
+                      exp={exp}
+                      reconciled={!!exp.reconciled}
+                      onSetStatus={onSetEscrowStatus}
+                      onMarkPaid={onMarkDisbursementPaid}
+                    />
+                  </td>
                 </tr>
               )
             })}
@@ -574,29 +716,40 @@ export default function ExpensesPage() {
     }
   }
 
-  async function handleAdvanceDisbursement(expenseId, step) {
+  async function handleSetEscrowStatus(expenseId, status) {
+    try {
+      const updates = escrowStatusUpdates(status, {
+        userEmail: currentUser?.email || '',
+        nowIso: new Date().toISOString(),
+      })
+      const updated = await updateExpense(expenseId, updates)
+      if (updated) {
+        setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, ...updated } : e))
+      }
+    } catch (err) {
+      console.error('Failed to change escrow status:', err)
+    }
+  }
+
+  async function handleMarkDisbursementPaid(expenseId) {
     try {
       const now = new Date().toISOString()
       const who = currentUser?.email || ''
       const row = expenses.find(e => e.id === expenseId)
-      const updates = {}
-      if (step === 'request') {
+      const updates = {
+        disbursement_paid_at: now,
+        disbursement_paid_by: who,
+      }
+      if (row && !row.disbursement_requested_at) {
         updates.disbursement_requested_at = now
         updates.disbursement_requested_by = who
-      } else if (step === 'paid') {
-        updates.disbursement_paid_at = now
-        updates.disbursement_paid_by = who
-        if (row && !row.disbursement_requested_at) {
-          updates.disbursement_requested_at = now
-          updates.disbursement_requested_by = who
-        }
       }
       const updated = await updateExpense(expenseId, updates)
       if (updated) {
         setExpenses(prev => prev.map(e => e.id === expenseId ? { ...e, ...updated } : e))
       }
     } catch (err) {
-      console.error('Failed to advance disbursement:', err)
+      console.error('Failed to mark disbursement paid:', err)
     }
   }
 
@@ -728,7 +881,8 @@ export default function ExpensesPage() {
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
                 onViewEmail={handleViewEmail}
-                onAdvanceDisbursement={handleAdvanceDisbursement}
+                onSetEscrowStatus={handleSetEscrowStatus}
+                onMarkDisbursementPaid={handleMarkDisbursementPaid}
               />
             </CardContent>
           </Card>
@@ -762,7 +916,8 @@ export default function ExpensesPage() {
                 currentUser={currentUser}
                 onExpenseUpdate={(id, updated) => setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e))}
                 onViewEmail={handleViewEmail}
-                onAdvanceDisbursement={handleAdvanceDisbursement}
+                onSetEscrowStatus={handleSetEscrowStatus}
+                onMarkDisbursementPaid={handleMarkDisbursementPaid}
               />
             </CardContent>
           </Card>
