@@ -72,7 +72,9 @@ function formatPhone(value) {
 
 function isValidPhone(value) {
   if (!value) return false
-  return /^\d{3}-\d{3}-\d{4}$/.test(value)
+  // Accept any 10-digit phone regardless of formatting:
+  // "1234567890", "123-456-7890", "(123) 456-7890" all valid.
+  return value.toString().replace(/\D/g, '').length === 10
 }
 
 function isValidEmail(value) {
@@ -1199,9 +1201,24 @@ function SocialMediaForm({ data, onSave, saving, quizData, userEmail, readOnly, 
 // Intended Parent Application Forms
 // ─────────────────────────────────────────────────────────
 
+// Generic auto-save hook for IP forms — debounces saves so we don't
+// hammer the DB on every keystroke.
+function useAutoSave(form, onSave, sectionKey, readOnly, hydrated) {
+  const timer = useRef(null)
+  useEffect(() => {
+    if (!onSave || readOnly || !hydrated) return
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      onSave(sectionKey, form, { silent: true })
+    }, 1500)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [form, onSave, sectionKey, readOnly, hydrated])
+}
+
 // ── IP Contact Information ──────────────────────────────
 function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle, hasPartner }) {
   const [form, setForm] = useState({})
+  const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
     const a = quizData || {}
     const init = {
@@ -1209,7 +1226,8 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
       ip1LastName: data?.ip1LastName || a.primaryLastName || '',
       ip1Dob: data?.ip1Dob || a.primaryDob || '',
       ip1Email: data?.ip1Email || a.email || '',
-      ip1Phone: data?.ip1Phone || a.phone || '',
+      ip1Phone: formatPhone(data?.ip1Phone || a.phone || ''),
+      country: data?.country || a.country || 'United States',
       street: data?.street || a.street || '',
       city: data?.city || a.city || '',
       state: data?.state || a.stateProv || '',
@@ -1218,15 +1236,17 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
       ip2LastName: data?.ip2LastName || a.ip2LastName || '',
       ip2Dob: data?.ip2Dob || a.ip2Dob || '',
       ip2Email: data?.ip2Email || a.ip2Email || '',
-      ip2Phone: data?.ip2Phone || a.ip2Phone || '',
+      ip2Phone: formatPhone(data?.ip2Phone || a.ip2Phone || ''),
       preferredContact: data?.preferredContact || '',
     }
     setForm(init)
+    setHydrated(true)
   }, [data, quizData])
+  useAutoSave(form, onSave, '_ipContact', readOnly, hydrated)
 
   const requiredKeys = [
     'ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone',
-    'street','city','state','zipCode','preferredContact',
+    'country','street','city','state','zipCode','preferredContact',
   ]
   if (hasPartner) requiredKeys.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
   const allFilled = requiredKeys.every(k => {
@@ -1286,15 +1306,23 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
 
           <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Home Address</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1 sm:col-span-2"><FieldLabel>Country <Req /></FieldLabel>
+              <Input value={form.country || ''} onChange={e => setForm(f => ({ ...f, country: e.target.value }))} placeholder="United States" />
+            </div>
             <div className="space-y-1 sm:col-span-2"><FieldLabel>Street Address <Req /></FieldLabel><Input value={form.street || ''} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>City <Req /></FieldLabel><Input value={form.city || ''} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>State <Req /></FieldLabel>
-              <Select value={form.state || ''} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="space-y-1">
+              <FieldLabel>{form.country?.toLowerCase().includes('united states') || !form.country ? 'State' : 'State / Province / Region'} <Req /></FieldLabel>
+              {(form.country?.toLowerCase().includes('united states') || !form.country) ? (
+                <Select value={form.state || ''} onValueChange={v => setForm(f => ({ ...f, state: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : (
+                <Input value={form.state || ''} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} placeholder="Province / Region" />
+              )}
             </div>
-            <div className="space-y-1"><FieldLabel>Zip Code <Req /></FieldLabel><Input value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
+            <div className="space-y-1"><FieldLabel>{form.country?.toLowerCase().includes('united states') || !form.country ? 'Zip Code' : 'Postal Code'} <Req /></FieldLabel><Input value={form.zipCode || ''} onChange={e => setForm(f => ({ ...f, zipCode: e.target.value }))} /></div>
           </div>
 
           <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Preferences</p>
@@ -1324,35 +1352,33 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
 // ── IP Clinic Information ────────────────────────────────
 function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onToggle }) {
   const [form, setForm] = useState({})
+  const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
     const a = quizData || {}
     const init = {
-      clinicName: data?.clinicName || a.reDoctorName ? '' : '',
+      clinicName: data?.clinicName || '',
       clinicStreet: data?.clinicStreet || '',
       clinicCity: data?.clinicCity || '',
       clinicState: data?.clinicState || '',
       clinicZip: data?.clinicZip || '',
-      clinicPhone: data?.clinicPhone || '',
+      clinicPhone: formatPhone(data?.clinicPhone || ''),
       reDoctorName: data?.reDoctorName || a.reDoctorName || '',
       reDoctorEmail: data?.reDoctorEmail || '',
-      reDoctorPhone: data?.reDoctorPhone || '',
+      reDoctorPhone: formatPhone(data?.reDoctorPhone || ''),
       nurseCoordinator: data?.nurseCoordinator || '',
       embryoCount: data?.embryoCount || '',
-      embryoDay: data?.embryoDay || '',
       embryosTested: data?.embryosTested || '',
       usingEggDonor: data?.usingEggDonor || (a.usingEggDonor === true ? 'yes' : a.usingEggDonor === false ? 'no' : ''),
       usingSpermDonor: data?.usingSpermDonor || (a.usingSpermDonor === true ? 'yes' : a.usingSpermDonor === false ? 'no' : ''),
-      anticipatedTransferDate: data?.anticipatedTransferDate || '',
-      hospitalName: data?.hospitalName || '',
-      hospitalCity: data?.hospitalCity || '',
-      hospitalState: data?.hospitalState || '',
     }
     setForm(init)
+    setHydrated(true)
   }, [data, quizData])
+  useAutoSave(form, onSave, '_ipClinic', readOnly, hydrated)
 
   const requiredKeys = [
     'clinicName','clinicPhone','reDoctorName','reDoctorPhone',
-    'embryoCount','embryoDay','embryosTested','usingEggDonor','usingSpermDonor',
+    'embryoCount','embryosTested','usingEggDonor','usingSpermDonor',
   ]
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
@@ -1411,19 +1437,6 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
           <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Embryos</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-1"><FieldLabel>How Many Embryos? <Req /></FieldLabel><Input value={form.embryoCount || ''} onChange={e => setForm(f => ({ ...f, embryoCount: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Day Frozen <Req /></FieldLabel>
-              <Select value={form.embryoDay || ''} onValueChange={v => setForm(f => ({ ...f, embryoDay: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">Day 3</SelectItem>
-                  <SelectItem value="5">Day 5</SelectItem>
-                  <SelectItem value="6">Day 6</SelectItem>
-                  <SelectItem value="7">Day 7</SelectItem>
-                  <SelectItem value="mixed">Mixed</SelectItem>
-                  <SelectItem value="undecided">Undecided</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-1"><FieldLabel>Genetically Tested? <Req /></FieldLabel>
               <Select value={form.embryosTested || ''} onValueChange={v => setForm(f => ({ ...f, embryosTested: v }))}>
                 <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
@@ -1452,19 +1465,6 @@ function IPClinicForm({ data, onSave, saving, quizData, readOnly, isOpen, onTogg
                   <SelectItem value="no">No</SelectItem>
                   <SelectItem value="undecided">Undecided</SelectItem>
                 </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1"><FieldLabel>Anticipated Transfer Date</FieldLabel><Input type="date" value={form.anticipatedTransferDate || ''} onChange={e => setForm(f => ({ ...f, anticipatedTransferDate: e.target.value }))} /></div>
-          </div>
-
-          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Delivery Hospital (Optional)</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div className="space-y-1"><FieldLabel>Hospital Name</FieldLabel><Input value={form.hospitalName || ''} onChange={e => setForm(f => ({ ...f, hospitalName: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.hospitalCity || ''} onChange={e => setForm(f => ({ ...f, hospitalCity: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>State</FieldLabel>
-              <Select value={form.hospitalState || ''} onValueChange={v => setForm(f => ({ ...f, hospitalState: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                <SelectContent>{US_STATES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
@@ -1518,9 +1518,10 @@ export default function PortalApplicationPage() {
     }
   }
 
-  async function handleSave(sectionKey, formData) {
+  async function handleSave(sectionKey, formData, opts = {}) {
+    const silent = !!opts.silent
     if (!caseId || !supabase) { console.error('Cannot save: no caseId or supabase', { caseId, supabase: !!supabase }); return }
-    setSaving(true)
+    if (!silent) setSaving(true)
     try {
       // Fresh read to avoid overwriting concurrent admin edits
       const { data: fresh } = await supabase.from('intake_submissions').select('answers').eq('id', caseId).single()
@@ -1529,7 +1530,16 @@ export default function PortalApplicationPage() {
       const { error } = await supabase.from('intake_submissions').update({ answers: updatedAnswers }).eq('id', caseId)
       if (error) throw error
       setAnswers(updatedAnswers)
-      // Advance to next section
+      // Silent auto-saves don't advance section or pop modals; they just persist.
+      // After silent save, still check if everything is complete and trigger submit modal.
+      if (silent) {
+        const allDone = sections.every(s => isSectionComplete(s.key, updatedAnswers))
+        if (allDone && !updatedAnswers._applicationSubmitted && !submitOpen) {
+          setSubmitOpen(true)
+        }
+        return
+      }
+      // Manual save: advance to next section
       const sectionOrder = sections.map(s => s.key)
       const currentIdx = sectionOrder.indexOf(sectionKey)
       const nextKey = sectionOrder[currentIdx + 1]
@@ -1540,7 +1550,6 @@ export default function PortalApplicationPage() {
         setActiveSection(null)
         // All saved — check if all complete and show submit
         setTimeout(() => {
-          // Re-check with updated answers
           const allDone = sections.every(s => isSectionComplete(s.key, updatedAnswers))
           if (allDone && !updatedAnswers._applicationSubmitted) {
             setSubmitOpen(true)
@@ -1549,9 +1558,9 @@ export default function PortalApplicationPage() {
       }
     } catch (err) {
       console.error('Save failed:', err)
-      alert('Failed to save. Please try again.')
+      if (!silent) alert('Failed to save. Please try again.')
     } finally {
-      setSaving(false)
+      if (!silent) setSaving(false)
     }
   }
 
@@ -1735,7 +1744,7 @@ export default function PortalApplicationPage() {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)
     }
     if (key === '_ipContact') {
-      const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','street','city','state','zipCode','preferredContact']
+      const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','country','street','city','state','zipCode','preferredContact']
       if (hasPartner) rk.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
       return rk.every(k => {
         const v = d[k]
@@ -1745,7 +1754,7 @@ export default function PortalApplicationPage() {
       })
     }
     if (key === '_ipClinic') {
-      const rk = ['clinicName','clinicPhone','reDoctorName','reDoctorPhone','embryoCount','embryoDay','embryosTested','usingEggDonor','usingSpermDonor']
+      const rk = ['clinicName','clinicPhone','reDoctorName','reDoctorPhone','embryoCount','embryosTested','usingEggDonor','usingSpermDonor']
       return rk.every(k => {
         const v = d[k]
         if (k.endsWith('Phone')) return isValidPhone(v)
@@ -1825,10 +1834,10 @@ export default function PortalApplicationPage() {
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit Your Application?</DialogTitle>
+            <DialogTitle>Application is 100% complete. Submit application?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-stone-600 leading-relaxed">
-            All application forms are complete. Once submitted, you will not be able to make changes. Our team will review your application and be in touch soon.
+            <strong>Once submitted, you won't be able to make any edits.</strong> Our team will review your application and reach out with any questions and next steps. If you need to make a change after submitting, please contact us and we can reopen it for you.
           </p>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>

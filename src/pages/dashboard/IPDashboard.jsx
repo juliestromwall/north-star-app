@@ -286,6 +286,46 @@ export default function IPDashboard() {
         <h1 className="text-2xl font-bold text-[#283693]">Welcome, {firstName}!</h1>
       </div>
 
+      {/* ── Complete Application card (when admin has released the app) ── */}
+      {caseData?.answers?._applicationAvailable && (
+        <Link to="/my-application" className="block">
+          <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm hover:shadow-md transition-all">
+            <div className={`h-1 ${caseData?.answers?._applicationSubmitted ? 'bg-emerald-500' : 'bg-[#283693]'}`} />
+            <div className="p-6">
+              <div className="flex items-center gap-5">
+                <div className={`flex items-center justify-center w-12 h-12 rounded-xl shrink-0 ${
+                  caseData?.answers?._applicationSubmitted ? 'bg-emerald-50' : 'bg-[#283693]/8'
+                }`}>
+                  {caseData?.answers?._applicationSubmitted
+                    ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    : <ClipboardList className="w-6 h-6 text-[#283693]" />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`font-semibold text-base ${caseData?.answers?._applicationSubmitted ? 'text-emerald-700' : 'text-[#283693]'}`}>
+                    {caseData?.answers?._applicationSubmitted ? 'Application Submitted' : 'You can now complete the remaining Application'}
+                  </p>
+                  <p className="text-sm text-stone-500 mt-1 leading-relaxed">
+                    {caseData?.answers?._applicationSubmitted
+                      ? `Submitted on ${new Date(caseData.answers._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. We will review and reach out for next steps!`
+                      : 'A few short forms to gather the rest of the information we need before next steps.'
+                    }
+                  </p>
+                </div>
+                {!caseData?.answers?._applicationSubmitted && (
+                  <Button className="rounded-xl gap-1.5 shrink-0 shadow-sm" style={{ backgroundColor: '#283693', color: '#fff' }}>
+                    Complete Application <ArrowRight className="w-4 h-4" />
+                  </Button>
+                )}
+                {caseData?.answers?._applicationSubmitted && (
+                  <ArrowRight className="w-5 h-5 shrink-0 text-emerald-400" />
+                )}
+              </div>
+            </div>
+          </div>
+        </Link>
+      )}
+
       {/* ── Welcome intro card (pre-submit) ── */}
       {!caseData?.answers?._profileSubmitted && (
         <div className="relative overflow-hidden rounded-2xl bg-white border border-stone-100 shadow-sm">
