@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2, Send,
+  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2, Send, FileCheck,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -58,6 +58,7 @@ export default function IPDetailPage() {
   const [portalStatus, setPortalStatus] = useState(null)
   const [invitingPartner, setInvitingPartner] = useState(false)
   const [partnerInviteResult, setPartnerInviteResult] = useState(null)
+  const [releasingApp, setReleasingApp] = useState(false)
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
@@ -232,36 +233,120 @@ export default function IPDetailPage() {
                 </Button>
               )}
               <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />
-              {/* Profile submission / approval status — read-only badge (action lives on the Profile tab) */}
+              {/* Profile submission / approval / application-release status */}
               {(() => {
-                const isApproved = !!ip.answers?._ipProfile?._approved
-                const isSubmittedLocked = ip.answers?._profileSubmitted && !ip.answers?._profileReleasedAt
-                const isReopened = ip.answers?._profileSubmitted && ip.answers?._profileReleasedAt && !isApproved
-                if (!isApproved && !isSubmittedLocked && !isReopened) return null
-                return (
-                  <div className="flex flex-col items-center gap-0.5">
-                    {isApproved ? (
+                const a = ip.answers || {}
+                const isApproved = !!a._ipProfile?._approved
+                const appSubmitted = !!a._applicationSubmitted
+                const appReleased = !!a._applicationAvailable
+                const profileSubmittedLocked = a._profileSubmitted && !a._profileReleasedAt && !isApproved
+                const profileReopened = a._profileSubmitted && a._profileReleasedAt && !isApproved
+
+                // Approved + app not yet released → show Release Application action button
+                if (isApproved && !appReleased) {
+                  return (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        disabled={releasingApp}
+                        onClick={async () => {
+                          const ip1FirstName = a.primaryFirstName || ''
+                          const ip2FirstName = a.ip2FirstName || ''
+                          const greetingNames = ip2FirstName ? `${ip1FirstName} & ${ip2FirstName}` : (ip1FirstName || ip.names || 'this IP')
+                          if (!window.confirm(`Release the application to ${greetingNames}? They'll get an email with a link to log in and complete the remaining forms.`)) return
+                          setReleasingApp(true)
+                          const adminName = currentUser?.name || currentUser?.email || ''
+                          try {
+                            const { supabase } = await import('@/lib/supabase')
+                            if (!supabase) throw new Error('No DB connection')
+                            const updatedAnswers = {
+                              ...a,
+                              _applicationAvailable: true,
+                              _applicationReleasedAt: new Date().toISOString(),
+                              _applicationReleasedBy: adminName,
+                            }
+                            const { error } = await supabase
+                              .from('intake_submissions')
+                              .update({ answers: updatedAnswers })
+                              .eq('id', ip.id)
+                            if (error) throw error
+                            setIp(prev => ({ ...prev, answers: updatedAnswers }))
+                            // Fire IP-side email (best effort)
+                            try {
+                              await fetch('/api/notify-ip-app-released', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  ip1Email: ip.email || a.email || '',
+                                  ip1FirstName,
+                                  ip2Email: a.ip2Email || '',
+                                  ip2FirstName,
+                                  adminName,
+                                }),
+                              })
+                            } catch (err) { console.error('IP app-released email failed:', err) }
+                          } catch (err) {
+                            alert(`Release failed: ${err.message || 'Unknown error'}`)
+                          } finally { setReleasingApp(false) }
+                        }}>
+                        {releasingApp ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                        {releasingApp ? 'Releasing...' : 'Release Application'}
+                      </Button>
+                      <span className="text-[10px] text-stone-400">Approved {a._ipProfile?._approvedAt ? new Date(a._ipProfile._approvedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                    </div>
+                  )
+                }
+                // App submitted → emerald status
+                if (appSubmitted) {
+                  return (
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                        <CheckCircle2 className="size-3" /> Profile Approved
+                        <FileCheck className="size-3" /> Application Submitted
                       </span>
-                    ) : isSubmittedLocked ? (
+                      {a._applicationSubmittedAt && (
+                        <span className="text-[10px] text-stone-400">Submitted {new Date(a._applicationSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      )}
+                    </div>
+                  )
+                }
+                // App released, awaiting submission
+                if (appReleased && !appSubmitted) {
+                  return (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
+                        <Send className="size-3" /> Application Released
+                      </span>
+                      {a._applicationReleasedAt && (
+                        <span className="text-[10px] text-stone-400">Released {new Date(a._applicationReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      )}
+                    </div>
+                  )
+                }
+                // Profile submitted, waiting for admin review
+                if (profileSubmittedLocked) {
+                  return (
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[10px] text-blue-600 font-medium flex items-center gap-1">
                         <Send className="size-3" /> Profile Submitted
                       </span>
-                    ) : (
+                      {a._profileSubmittedAt && (
+                        <span className="text-[10px] text-stone-400">Submitted {new Date(a._profileSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      )}
+                    </div>
+                  )
+                }
+                // Profile reopened
+                if (profileReopened) {
+                  return (
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="text-[10px] text-amber-600 font-medium">Profile reopened for edits</span>
-                    )}
-                    {isApproved && ip.answers?._ipProfile?._approvedAt && (
-                      <span className="text-[10px] text-stone-400">Approved {new Date(ip.answers._ipProfile._approvedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    )}
-                    {!isApproved && isSubmittedLocked && ip.answers?._profileSubmittedAt && (
-                      <span className="text-[10px] text-stone-400">Submitted {new Date(ip.answers._profileSubmittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    )}
-                    {isReopened && (
-                      <span className="text-[10px] text-stone-400">Released {new Date(ip.answers._profileReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    )}
-                  </div>
-                )
+                      <span className="text-[10px] text-stone-400">Released {new Date(a._profileReleasedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  )
+                }
+                return null
               })()}
               {/* Invite / Portal status — primary IP */}
               {portalStatus?.exists && portalStatus?.lastSignIn ? (

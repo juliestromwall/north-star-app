@@ -755,7 +755,6 @@ export default function IPProfileTab({ ip, onUpdate }) {
   const [previewPhotos, setPreviewPhotos] = useState([])
   const [approvalSaving, setApprovalSaving] = useState(false)
   const [reopening, setReopening] = useState(false)
-  const [releasingApp, setReleasingApp] = useState(false)
   const previewRef = useRef(null)
 
   // Sync localProfile when ip prop changes (e.g., navigating to a different IP)
@@ -838,39 +837,6 @@ export default function IPProfileTab({ ip, onUpdate }) {
     } catch {} finally { setReopening(false) }
   }
 
-  async function handleReleaseApplication() {
-    const ip1FirstName = answers.primaryFirstName || ''
-    const ip2FirstName = answers.ip2FirstName || ''
-    const greetingNames = ip2FirstName ? `${ip1FirstName} & ${ip2FirstName}` : (ip1FirstName || 'this IP')
-    if (!window.confirm(`Release the application to ${greetingNames}? They'll get an email with a link to log in and complete the remaining forms.`)) return
-    setReleasingApp(true)
-    const adminName = currentUser?.name || currentUser?.email || ''
-    try {
-      // Mark application available + persist who/when
-      await onUpdate({
-        ...answers,
-        _applicationAvailable: true,
-        _applicationReleasedAt: new Date().toISOString(),
-        _applicationReleasedBy: adminName,
-      })
-      // Send the email to IP1 (and IP2 if present)
-      try {
-        await fetch('/api/notify-ip-app-released', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ip1Email: answers.email || ip?.email || '',
-            ip1FirstName,
-            ip2Email: answers.ip2Email || '',
-            ip2FirstName,
-            adminName,
-          }),
-        })
-      } catch (err) {
-        console.error('IP app-released email failed:', err)
-      }
-    } catch {} finally { setReleasingApp(false) }
-  }
 
   function downloadPDF() {
     if (!previewOpen) {
@@ -975,23 +941,6 @@ export default function IPProfileTab({ ip, onUpdate }) {
               {approvalSaving ? <Loader2 className="size-3.5 animate-spin" /> : isApproved ? <ShieldX className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
               {isApproved ? 'Unapprove' : 'Approve'}
             </Button>
-            {isApproved && !answers._applicationAvailable && (
-              <Button
-                size="sm"
-                className="gap-1.5 rounded-full bg-[#283693] hover:bg-[#1f2c75] text-white"
-                onClick={handleReleaseApplication}
-                disabled={releasingApp}
-              >
-                {releasingApp ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-                {releasingApp ? 'Releasing...' : 'Release Application'}
-              </Button>
-            )}
-            {answers._applicationAvailable && !answers._applicationSubmitted && (
-              <span className="text-[11px] text-stone-400 italic px-2">Application released — awaiting IP submission</span>
-            )}
-            {answers._applicationSubmitted && (
-              <span className="text-[11px] text-emerald-600 font-medium px-2">Application Submitted</span>
-            )}
           </div>
         </CardHeader>
         {!previewOpen && (
