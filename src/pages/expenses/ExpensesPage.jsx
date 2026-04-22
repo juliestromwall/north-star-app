@@ -159,19 +159,19 @@ export function NotesCell({ value }) {
     const overflowing = el.scrollHeight - el.clientHeight > 1
     if (overflowing !== overflows) setOverflows(overflowing)
   }
-  if (!value) return <span className="text-stone-300">—</span>
+  if (!value) return null
   return (
-    <div className="max-w-[420px]">
+    <div className="flex items-start gap-1.5">
       <p
         ref={ref}
-        className={`text-[11px] leading-relaxed whitespace-pre-wrap break-words text-stone-600 ${open ? '' : 'line-clamp-2'}`}
+        className={`text-[11px] leading-snug whitespace-pre-wrap break-words text-stone-500 flex-1 min-w-0 ${open ? '' : 'line-clamp-1'}`}
       >
         {value}
       </p>
       {(overflows || open) && (
         <button
           onClick={() => setOpen(v => !v)}
-          className="mt-0.5 inline-flex items-center gap-0.5 text-[10px] text-stone-400 hover:text-abc-indigo"
+          className="shrink-0 inline-flex items-center gap-0.5 text-[10px] text-stone-400 hover:text-abc-indigo"
         >
           {open ? <><ChevronUp className="size-3" /> Less</> : <><ChevronDown className="size-3" /> More</>}
         </button>
@@ -372,7 +372,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
         </DialogContent>
       </Dialog>
 
-      <div className="p-4 sm:p-5 space-y-3">
+      <div className="divide-y divide-stone-100">
         {expenses.map(exp => {
           const isPreMatch = !exp.journey_id && exp.surrogate_id
           const j = journeyMap[exp.journey_id] || {}
@@ -386,104 +386,91 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
           return (
             <div
               key={exp.id}
-              className={`rounded-xl border transition-colors ${
-                rowGreen
-                  ? 'border-emerald-200 bg-emerald-50/50'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
+              className={`px-4 sm:px-5 py-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 lg:gap-5 items-start hover:bg-stone-50/60 transition-colors ${
+                rowGreen ? 'bg-emerald-50/50' : ''
               }`}
             >
-              <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
-                {/* Left column: case header + details + notes */}
-                <div className="space-y-3 min-w-0">
-                  {/* Header row: case + amount */}
-                  <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm leading-snug">
-                        {caseName}
-                      </Link>
-                      <p className="text-[10px] text-stone-400 mt-0.5">
-                        {isPreMatch ? 'Pre-match' : caseManager} · <EditableCell col={COLUMNS[0]} value={exp.expense_date} onSave={(v) => onSave(exp.id, 'expense_date', v)} />
-                      </p>
-                      {exp.paid_at && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full mt-1.5">
-                          <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}{exp.paid_by ? ` · ${getAdminName(exp.paid_by)}` : ''}
-                        </span>
+              {/* Left: case header + inline detail strip + collapsed notes */}
+              <div className="min-w-0 space-y-1.5">
+                {/* Top: case · amount · date */}
+                <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                  <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm leading-tight truncate">
+                    {caseName}
+                  </Link>
+                  <span className="text-sm font-bold text-stone-800 tabular-nums shrink-0">
+                    <EditableCell col={COLUMNS[1]} value={exp.amount} onSave={(v) => onSave(exp.id, 'amount', v)} />
+                  </span>
+                </div>
+
+                {/* Inline details strip */}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
+                  <span>{isPreMatch ? 'Pre-match' : caseManager}</span>
+                  <span className="text-stone-300">·</span>
+                  <EditableCell col={COLUMNS[0]} value={exp.expense_date} onSave={(v) => onSave(exp.id, 'expense_date', v)} />
+                  <span className="text-stone-300">·</span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-stone-400">To:</span>
+                    <EditableCell col={COLUMNS[2]} value={exp.paid_to} onSave={(v) => onSave(exp.id, 'paid_to', v)} />
+                  </span>
+                  <span className="text-stone-300">·</span>
+                  <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
+                  {(exp.attachment_url || (gmailMatch && onViewEmail)) && (
+                    <>
+                      <span className="text-stone-300">·</span>
+                      {exp.attachment_url ? (
+                        <button onClick={() => setPreviewUrl(exp.attachment_url)} className="inline-flex items-center gap-0.5 text-abc-indigo hover:underline" title="View attachment">
+                          <Eye className="size-3" /> View
+                        </button>
+                      ) : (
+                        <button onClick={() => onViewEmail(gmailMatch[1])} className="inline-flex items-center gap-0.5 text-stone-500 hover:text-abc-indigo" title="View linked email">
+                          <Mail className="size-3" /> Email
+                        </button>
                       )}
-                    </div>
-                    <div className="text-base font-bold text-stone-800 tabular-nums">
-                      <EditableCell col={COLUMNS[1]} value={exp.amount} onSave={(v) => onSave(exp.id, 'amount', v)} />
-                    </div>
-                  </div>
-
-                  {/* Details grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs pt-2 border-t border-stone-100">
-                    <div className="space-y-0.5 min-w-0">
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Paid To</p>
-                      <div className="text-stone-700">
-                        <EditableCell col={COLUMNS[2]} value={exp.paid_to} onSave={(v) => onSave(exp.id, 'paid_to', v)} />
-                      </div>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">CC Last 4</p>
-                      <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Attachment</p>
-                      <div className="flex items-center gap-2">
-                        {exp.attachment_url ? (
-                          <button onClick={() => setPreviewUrl(exp.attachment_url)} className="inline-flex items-center gap-1 text-[11px] text-abc-indigo hover:underline" title="View attachment">
-                            <Eye className="size-3.5" /> View
-                          </button>
-                        ) : gmailMatch && onViewEmail ? (
-                          <button onClick={() => onViewEmail(gmailMatch[1])} className="inline-flex items-center gap-1 text-[11px] text-stone-500 hover:text-abc-indigo" title="View linked email">
-                            <Mail className="size-3.5" /> Email
-                          </button>
-                        ) : (
-                          <span className="text-stone-300 text-[11px]">None</span>
-                        )}
-                        {j.gcPayPrefScreenshotUrl && (
-                          <button
-                            onClick={() => setPreviewUrl(j.gcPayPrefScreenshotUrl)}
-                            className="inline-flex items-center gap-1 text-[11px] text-pink-500 hover:text-pink-600"
-                            title="View surrogate's payment preference screenshot"
-                          >
-                            <Eye className="size-3.5" /> Pay pref
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Notes */}
-                  {exp.notes && (
-                    <div className="pt-2 border-t border-stone-100">
-                      <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold mb-1">Notes</p>
-                      <NotesCell value={exp.notes} />
-                    </div>
+                    </>
+                  )}
+                  {j.gcPayPrefScreenshotUrl && (
+                    <>
+                      <span className="text-stone-300">·</span>
+                      <button
+                        onClick={() => setPreviewUrl(j.gcPayPrefScreenshotUrl)}
+                        className="inline-flex items-center gap-0.5 text-pink-500 hover:text-pink-600"
+                        title="View surrogate's payment preference screenshot"
+                      >
+                        <Eye className="size-3" /> Pay pref
+                      </button>
+                    </>
+                  )}
+                  {exp.paid_at && (
+                    <>
+                      <span className="text-stone-300">·</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                        <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
+                      </span>
+                    </>
                   )}
                 </div>
 
-                {/* Right column: escrow status + reconcile */}
-                <div className="flex lg:flex-col items-start lg:items-stretch gap-3 lg:min-w-[200px] lg:max-w-[200px] lg:border-l lg:border-stone-100 lg:pl-4">
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Submitted to Escrow</p>
-                    <EscrowStatusCell
-                      exp={exp}
-                      reconciled={!!exp.reconciled}
-                      onSetStatus={onSetEscrowStatus}
-                      onMarkPaid={onMarkDisbursementPaid}
-                    />
-                  </div>
-                  {showReconcile && (
-                    <button
-                      onClick={() => setReconcileId(exp.id)}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
-                      title="Mark as reconciled"
-                    >
-                      <CheckCircle2 className="size-3.5" /> Reconcile
-                    </button>
-                  )}
-                </div>
+                {/* Notes (collapses to 1 line) */}
+                {exp.notes && <NotesCell value={exp.notes} />}
+              </div>
+
+              {/* Right: escrow status + reconcile */}
+              <div className="flex items-center gap-2 lg:min-w-[200px] lg:justify-end shrink-0">
+                <EscrowStatusCell
+                  exp={exp}
+                  reconciled={!!exp.reconciled}
+                  onSetStatus={onSetEscrowStatus}
+                  onMarkPaid={onMarkDisbursementPaid}
+                />
+                {showReconcile && (
+                  <button
+                    onClick={() => setReconcileId(exp.id)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors shrink-0"
+                    title="Mark as reconciled"
+                  >
+                    <CheckCircle2 className="size-3" /> Reconcile
+                  </button>
+                )}
               </div>
             </div>
           )
@@ -559,7 +546,7 @@ function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPai
   }
 
   return (
-    <div className="p-4 sm:p-5 space-y-3">
+    <div className="divide-y divide-stone-100">
       {expenses.map(exp => {
         const isPreMatch = !exp.journey_id && exp.surrogate_id
         const j = journeyMap[exp.journey_id] || {}
@@ -571,115 +558,91 @@ function ExpensesToPayTable({ expenses, journeyMap, surrogateMap = {}, onMarkPai
         return (
           <div
             key={exp.id}
-            className={`rounded-xl border transition-colors ${
-              isPaid
-                ? 'border-emerald-200 bg-emerald-50/50'
-                : 'border-stone-200 bg-white hover:border-stone-300'
+            className={`px-4 sm:px-5 py-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-3 lg:gap-5 items-start hover:bg-stone-50/60 transition-colors ${
+              isPaid ? 'bg-emerald-50/40' : ''
             }`}
           >
-            <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
-              {/* Left: case, details, notes */}
-              <div className="space-y-3 min-w-0">
-                {/* Header: case + amount */}
-                <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  <div className="min-w-0">
-                    <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm leading-snug">
-                      {caseName}
-                    </Link>
-                    <p className="text-[10px] text-stone-400 mt-0.5">
-                      {isPreMatch ? 'Pre-match' : (j.caseManager || '—')} · {formatDate(exp.expense_date)}
-                    </p>
-                  </div>
-                  <p className="text-base font-bold text-stone-800 tabular-nums">
-                    {formatCurrency(exp.amount)}
-                  </p>
-                </div>
-
-                {/* Details grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-xs pt-2 border-t border-stone-100">
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Pay To</p>
-                    <p className="text-stone-700">{exp.paid_to || <span className="text-stone-300">—</span>}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Pay Via</p>
-                    {exp.pay_via ? (
-                      <div className="flex items-center gap-1.5">
-                        <div>
-                          <p className="font-medium capitalize text-stone-700">{exp.pay_via}</p>
-                          {exp.pay_via_info && <p className="text-[10px] text-stone-400 break-all">{exp.pay_via_info}</p>}
-                        </div>
-                        {j.gcPayPrefScreenshotUrl && (
-                          <a
-                            href={j.gcPayPrefScreenshotUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-pink-400 hover:text-pink-600 transition-colors shrink-0"
-                            title="View surrogate's payment preference screenshot"
-                          >
-                            <Eye className="size-4" />
-                          </a>
-                        )}
-                      </div>
-                    ) : j.gcPayPrefScreenshotUrl ? (
-                      <a
-                        href={j.gcPayPrefScreenshotUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-pink-500 hover:text-pink-600 transition-colors text-[11px]"
-                      >
-                        <Eye className="size-3.5" /> View pay preference
-                      </a>
-                    ) : (
-                      <p className="text-stone-300">—</p>
-                    )}
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">CC Last 4</p>
-                    <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {exp.notes && (
-                  <div className="pt-2 border-t border-stone-100">
-                    <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold mb-1">Notes</p>
-                    <NotesCell value={exp.notes} />
-                  </div>
-                )}
+            <div className="min-w-0 space-y-1.5">
+              {/* Top: case · amount */}
+              <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                <Link to={caseHref} className="font-semibold text-[#283693] hover:underline text-sm leading-tight truncate">
+                  {caseName}
+                </Link>
+                <span className="text-sm font-bold text-stone-800 tabular-nums shrink-0">
+                  {formatCurrency(exp.amount)}
+                </span>
               </div>
 
-              {/* Right: action / paid state */}
-              <div className="flex lg:flex-col items-start lg:items-end gap-2 lg:min-w-[160px] lg:border-l lg:border-stone-100 lg:pl-4">
-                {isPaid ? (
+              {/* Inline details strip */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
+                <span>{isPreMatch ? 'Pre-match' : (j.caseManager || '—')}</span>
+                <span className="text-stone-300">·</span>
+                <span>{formatDate(exp.expense_date)}</span>
+                <span className="text-stone-300">·</span>
+                <span><span className="text-stone-400">To:</span> <span className="text-stone-700">{exp.paid_to || '—'}</span></span>
+                {exp.pay_via && (
                   <>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full">
-                      <CheckCircle2 className="size-3" /> Paid {formatDate(exp.paid_at)}
+                    <span className="text-stone-300">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="text-stone-400">Via:</span>
+                      <span className="text-stone-700 capitalize">{exp.pay_via}</span>
+                      {exp.pay_via_info && <span className="text-stone-400">({exp.pay_via_info})</span>}
                     </span>
-                    {exp.paid_by && <p className="text-[10px] text-stone-400">by {getAdminName(exp.paid_by)}</p>}
-                    {!exp.reconciled ? (
-                      <button
-                        onClick={() => onReconcile(exp.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors mt-1"
-                      >
-                        <CheckCircle2 className="size-3.5" /> Reconcile
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-emerald-600 font-medium">✓ Done</span>
-                    )}
                   </>
-                ) : (
+                )}
+                <span className="text-stone-300">·</span>
+                <CCLast4Inline value={exp.cc_last4} onSave={(v) => onSave(exp.id, 'cc_last4', v)} />
+                {j.gcPayPrefScreenshotUrl && (
                   <>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending</span>
-                    <button
-                      onClick={() => onMarkPaid(exp.id)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                    <span className="text-stone-300">·</span>
+                    <a
+                      href={j.gcPayPrefScreenshotUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-0.5 text-pink-500 hover:text-pink-600"
+                      title="Pay preference screenshot"
                     >
-                      <CheckCircle2 className="size-3.5" /> Mark Paid
-                    </button>
+                      <Eye className="size-3" /> Pay pref
+                    </a>
+                  </>
+                )}
+                {isPaid && (
+                  <>
+                    <span className="text-stone-300">·</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+                      <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}{exp.paid_by ? ` · ${getAdminName(exp.paid_by)}` : ''}
+                    </span>
                   </>
                 )}
               </div>
+
+              {/* Notes (collapses to 1 line) */}
+              {exp.notes && <NotesCell value={exp.notes} />}
+            </div>
+
+            <div className="flex items-center gap-2 lg:justify-end shrink-0">
+              {isPaid ? (
+                !exp.reconciled ? (
+                  <button
+                    onClick={() => onReconcile(exp.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                  >
+                    <CheckCircle2 className="size-3" /> Reconcile
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-emerald-600 font-medium">✓ Done</span>
+                )
+              ) : (
+                <>
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Pending</span>
+                  <button
+                    onClick={() => onMarkPaid(exp.id)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                  >
+                    <CheckCircle2 className="size-3" /> Mark Paid
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )
