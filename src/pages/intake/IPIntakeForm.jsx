@@ -471,24 +471,24 @@ export default function IPIntakeForm() {
         <YesNoGrid value={form.usingSpermDonor} onChange={v => set('usingSpermDonor', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
       </div>
       <div className="border-t border-stone-200 pt-4 mt-2" />
-      <div className="space-y-1.5">
-        <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Have you ever been arrested or convicted of a crime?</Label>
+      <div>
+        <p className="text-sm font-medium text-stone-800 mb-2">Have you ever been arrested or convicted of a crime?</p>
         <YesNoGrid value={form.primaryCriminalHistory} onChange={v => set('primaryCriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
         {form.primaryCriminalHistory === true && (
-          <div className="pt-2">
-            <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please describe</Label>
-            <textarea value={form.primaryCriminalHistoryDetails} onChange={e => set('primaryCriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
+          <div className="space-y-1.5 pt-3">
+            <p className="text-sm font-medium text-stone-800">Please describe</p>
+            <textarea value={form.primaryCriminalHistoryDetails} onChange={e => set('primaryCriminalHistoryDetails', e.target.value)} rows={3} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
           </div>
         )}
       </div>
       {isCouple && (
-        <div className="space-y-1.5 pt-2">
-          <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Has your spouse/partner ever been arrested or convicted of a crime?</Label>
+        <div>
+          <p className="text-sm font-medium text-stone-800 mb-2">Has your spouse/partner ever been arrested or convicted of a crime?</p>
           <YesNoGrid value={form.ip2CriminalHistory} onChange={v => set('ip2CriminalHistory', v)} yesLabel="Yes" noLabel="No" accentColor={IP_COLOR} accentFg={IP_FG} />
           {form.ip2CriminalHistory === true && (
-            <div className="pt-2">
-              <Label className="text-xs text-stone-500 uppercase tracking-wide font-semibold">Please describe</Label>
-              <textarea value={form.ip2CriminalHistoryDetails} onChange={e => set('ip2CriminalHistoryDetails', e.target.value)} rows={3} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
+            <div className="space-y-1.5 pt-3">
+              <p className="text-sm font-medium text-stone-800">Please describe</p>
+              <textarea value={form.ip2CriminalHistoryDetails} onChange={e => set('ip2CriminalHistoryDetails', e.target.value)} rows={3} className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm" />
             </div>
           )}
         </div>
