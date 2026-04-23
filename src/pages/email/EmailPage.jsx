@@ -271,13 +271,17 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
     setSaving(true)
     try {
       const { insertExpense } = await import('@/lib/db')
+      const submitted = !!aiData.submittedToEscrow
+      const nowIso = new Date().toISOString()
       await insertExpense({
         journey_id: aiData.caseId,
         expense_date: aiData.expense_date || new Date().toISOString().split('T')[0],
         amount: parseFloat(aiData.amount) || 0,
         paid_to: aiData.paid_to || '',
         cc_last4: aiData.cc_last4 || '',
-        submitted_to_escrow: false,
+        submitted_to_escrow: submitted,
+        disbursement_requested_at: submitted ? nowIso : null,
+        disbursement_requested_by: submitted ? (userName || null) : null,
         notes: `${aiData.description || ''}${aiData.notes ? '\n' + aiData.notes : ''}\n\n📧 Email: ${email?.subject || ''} (Gmail ID: ${email?.id || ''})`,
       })
       setSaved(true)
@@ -349,6 +353,36 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
                 <div className="flex justify-between items-center"><span className="text-stone-500">Notes</span><input className="text-right font-medium bg-transparent border-b border-dashed border-amber-300 outline-none w-60" value={aiData.notes || ''} onChange={e => setAiData(d => ({ ...d, notes: e.target.value }))} /></div>
                 <div className="flex items-center gap-1.5 text-xs text-stone-400 mt-1"><Mail className="size-3" /> Linked to: {email?.subject}</div>
               </div>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-white px-4 py-3">
+              <p className="text-xs font-semibold text-stone-600 mb-2">Did you submit this to escrow?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAiData(d => ({ ...d, submittedToEscrow: true }))}
+                  className={`flex-1 h-8 text-xs font-medium rounded-md border transition-colors ${
+                    aiData.submittedToEscrow === true
+                      ? 'bg-[#283693] text-white border-[#283693]'
+                      : 'bg-white text-stone-600 border-stone-300 hover:border-[#283693]'
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiData(d => ({ ...d, submittedToEscrow: false }))}
+                  className={`flex-1 h-8 text-xs font-medium rounded-md border transition-colors ${
+                    aiData.submittedToEscrow === false || aiData.submittedToEscrow === undefined
+                      ? 'bg-stone-600 text-white border-stone-600'
+                      : 'bg-white text-stone-600 border-stone-300 hover:border-stone-500'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+              <p className="text-[10px] text-stone-400 mt-1.5">
+                If no, the row will show as {'"'}Escrow Funded{'"'} once the case{"'"}s Escrow checklist step is complete.
+              </p>
             </div>
             <p className="text-[10px] text-stone-400 text-center">Review and edit the fields above, then confirm to save the expense.</p>
             <DialogFooter>

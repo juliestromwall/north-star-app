@@ -274,6 +274,19 @@ export function getChecklistSteps(userType, stageId) {
   return config[userType]?.[stageId]?.steps || []
 }
 
+/** Journey's "Escrow" checklist step is marked Complete?
+ *  Used to derive the "Escrow Funded" display state on expense rows.
+ *  Match is by step label (case-insensitive === 'escrow') against the
+ *  journey-oversight step config; tracking lives in journey_data._checklistTracking.
+ */
+export function isJourneyEscrowFunded(journey) {
+  const tracking = journey?.journey_data?._checklistTracking || {}
+  const steps = getChecklistSteps('gc', 'journey-oversight')
+  const escrowStep = steps.find(s => (s.label || '').trim().toLowerCase() === 'escrow')
+  if (!escrowStep) return false
+  return tracking[escrowStep.id]?.status === 'complete'
+}
+
 /** Get milestones for a specific user type + stage */
 export function getChecklistMilestones(userType, stageId) {
   const config = getChecklistConfig()

@@ -35,7 +35,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
-import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -413,7 +413,7 @@ function JourneyMilestoneTimeline({ journey }) {
 }
 
 // ── Checklist Tab (uses shared TrackingTable) ─
-function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
+function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
   const steps = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
@@ -470,6 +470,24 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
               }
               try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
             }
+
+            // Escrow funded — remind the case's assigned admin to submit expenses.
+            if (lbl === 'escrow' || (lbl.includes('escrow') && !lbl.includes('close'))) {
+              const ipName = ipCase?.names || journey?.ip_name || 'Intended Parents'
+              const assignee = journey.assigned_to || null
+              try {
+                await createCaseTask({
+                  title: `Escrow Funded for ${ipName} & ${sName} - Submit Expenses to Escrow`,
+                  due_date: logDt,
+                  priority: 'low',
+                  assigned_to: assignee,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Escrow funded auto-task failed:', err) }
+            }
           }
         }}
       />
@@ -479,7 +497,7 @@ function JourneyChecklistTab({ journey, gcCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid, escrowFunded = false }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [customPayeeDraft, setCustomPayeeDraft] = useState('')
@@ -639,6 +657,7 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
           reconciled={!!exp.reconciled}
           onSetStatus={onSetEscrowStatus}
           onMarkPaid={onMarkDisbursementPaid}
+          escrowFunded={escrowFunded}
         />
       </td>
       <td className="px-2 py-3 align-top">
@@ -1682,7 +1701,7 @@ export function formatLineItemsAsNotes(items) {
     .join('\n')
 }
 
-export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel, onExpensesChanged }) {
+export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel, onExpensesChanged, escrowFunded = false }) {
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -2072,7 +2091,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} escrowFunded={escrowFunded} />
                   ))}
                 </tbody>
               </table>
@@ -3009,19 +3028,21 @@ export default function JourneyDetailPage() {
                   {jd.escrowBalanceUpdatedAt && <span className="text-[10px] text-stone-400 ml-1">({formatDate(jd.escrowBalanceUpdatedAt)})</span>}
                 </span>
                 <span className="text-stone-500 flex items-center gap-1.5">Escrow Close Date: <EditableTileInline value={jd.escrowClosingDate} onSave={v => updateField('escrowClosingDate', v)} type="date" placeholder="Set date" className="text-stone-800" /></span>
-                {unpaidExpenseCount > 0 && (
+                {/* Hidden until the expense logic is finalized — restore by removing the `false && `:
+                {false && unpaidExpenseCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                     <DollarSign className="size-3" /> {unpaidExpenseCount} pending
                   </span>
                 )}
+                {false && escrowAwaitingPaidCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full" title="Submitted to escrow but disbursement not yet paid">
+                    <DollarSign className="size-3" /> {escrowAwaitingPaidCount} awaiting disbursement
+                  </span>
+                )}
+                */}
                 {needsEscrowSubmitCount > 0 && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full" title="Expenses on the tracker that haven't been submitted to escrow yet">
                     <DollarSign className="size-3" /> {needsEscrowSubmitCount} to submit
-                  </span>
-                )}
-                {escrowAwaitingPaidCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full" title="Submitted to escrow but disbursement not yet paid">
-                    <DollarSign className="size-3" /> {escrowAwaitingPaidCount} awaiting disbursement
                   </span>
                 )}
                 {holdExpenseCount > 0 && (
@@ -3323,7 +3344,7 @@ export default function JourneyDetailPage() {
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
           {/* Checklist */}
-          <JourneyChecklistTab journey={journey} gcCase={gcCase} onUpdate={async (updates) => {
+          <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
@@ -3396,7 +3417,7 @@ export default function JourneyDetailPage() {
           <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
-          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} />
+          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} escrowFunded={isJourneyEscrowFunded(journey)} />
         </TabsContent>
         <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
         <TabsContent value="emails" className="mt-4">

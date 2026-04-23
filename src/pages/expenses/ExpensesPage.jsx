@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { fetchAllExpenses, updateExpense, createCaseTask } from '@/lib/db'
+import { isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { getGoogleStatus, getEmail, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
@@ -36,13 +37,16 @@ const COLUMNS = [
   { key: 'cc_last4', label: 'CC Last 4', format: 'cc4' },
 ]
 
-// Derive the 4-way disposition (not_funded | yes | not_needed | paid) from
-// the boolean / timestamp fields on a row. Priority: not_needed > paid > yes > not_funded.
-export function getEscrowStatus(exp) {
+// Derive the 5-way disposition (not_funded | funded | yes | not_needed | paid) from
+// the boolean / timestamp fields on a row plus the journey's Escrow-checklist flag.
+// Priority: not_needed > paid > yes > funded > not_funded. "funded" is a display-only
+// state — admins don't pick it from the dropdown; it auto-appears when the journey's
+// Escrow checklist step is complete and the row hasn't been submitted yet.
+export function getEscrowStatus(exp, escrowFunded = false) {
   if (exp.escrow_not_needed) return 'not_needed'
   if (exp.disbursement_paid_at) return 'paid'
   if (exp.submitted_to_escrow) return 'yes'
-  return 'not_funded'
+  return escrowFunded ? 'funded' : 'not_funded'
 }
 
 // Map a selected option back to the DB updates needed to land in that state.
@@ -202,14 +206,16 @@ export function NotesCell({ value }) {
   )
 }
 
-// Inline dropdown for the 3-state escrow disposition. "Paid" is a terminal
-// display state that the admin can still undo.
-export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid }) {
-  const status = getEscrowStatus(exp)
+// Inline dropdown for the escrow disposition. "Paid" is a terminal display state
+// that the admin can still undo. "Funded" is also display-only — shown when the
+// journey's Escrow checklist step is complete but this row hasn't been submitted.
+export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid, escrowFunded = false }) {
+  const status = getEscrowStatus(exp, escrowFunded)
 
   const pill = (variant, label) => {
     const colors = {
       not_funded: 'text-stone-500 bg-stone-100 border-stone-200',
+      funded: 'text-purple-700 bg-purple-50 border-purple-200',
       yes: 'text-blue-700 bg-blue-50 border-blue-200',
       not_needed: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       paid: 'text-emerald-700 bg-emerald-50 border-emerald-200',
@@ -226,6 +232,7 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid }) {
     if (status === 'paid') return pill('paid', `Paid ${formatDate(exp.disbursement_paid_at)}`)
     if (status === 'not_needed') return pill('not_needed', 'Not Needed')
     if (status === 'yes') return pill('yes', 'Yes')
+    if (status === 'funded') return pill('funded', 'Escrow Funded')
     return pill('not_funded', 'Escrow Not Funded')
   }
 
@@ -243,18 +250,22 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid }) {
     )
   }
 
+  // Dropdown value: "funded" is derived, so the underlying DB state is still
+  // "not_funded" — the SELECT still exposes three choices, not four.
+  const selectValue = status === 'funded' ? 'not_funded' : status
   return (
     <div className="flex flex-col gap-1 items-start">
       <select
-        value={status}
+        value={selectValue}
         onChange={e => onSetStatus(exp.id, e.target.value)}
         className={`h-7 text-[11px] font-medium border rounded-md pl-2 pr-6 bg-white focus:outline-none focus:ring-1 focus:ring-abc-indigo min-w-[160px] ${
           status === 'not_needed' ? 'text-emerald-700 border-emerald-200 bg-emerald-50' :
           status === 'yes' ? 'text-blue-700 border-blue-200 bg-blue-50' :
+          status === 'funded' ? 'text-purple-700 border-purple-200 bg-purple-50' :
           'text-stone-500 border-stone-200'
         }`}
       >
-        <option value="not_funded">Escrow Not Funded</option>
+        <option value="not_funded">{escrowFunded ? 'Escrow Funded' : 'Escrow Not Funded'}</option>
         <option value="yes">Yes</option>
         <option value="not_needed">Not Needed</option>
       </select>
@@ -513,6 +524,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                       reconciled={!!exp.reconciled}
                       onSetStatus={onSetEscrowStatus}
                       onMarkPaid={onMarkDisbursementPaid}
+                      escrowFunded={!!(journeyMap[exp.journey_id]?.escrowFunded)}
                     />
                   </td>
                 </tr>
@@ -748,6 +760,7 @@ export default function ExpensesPage() {
             caseManager: getAdminName(j.assigned_to),
             assignedTo: j.assigned_to,
             gcPayPrefScreenshotUrl: gcPayPrefMap[j.gc_case_id] || null,
+            escrowFunded: isJourneyEscrowFunded(j),
           }
         }
 
