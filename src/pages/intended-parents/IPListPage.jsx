@@ -180,7 +180,7 @@ export default function IPListPage() {
   const [ipAvatars, setIpAvatars] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [stageFilter, setStageFilter] = useState('all')
+  const [stageFilter, setStageFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
   const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
   const [view, setView] = useState('tile')
@@ -272,7 +272,10 @@ export default function IPListPage() {
       else if (ownerFilter === 'unassigned') { if (ip.assignedTo) return false }
       else if (ownerFilter !== 'all') { if (ip.assignedTo !== ownerFilter) return false }
       // Stage filter
-      if (stageFilter !== 'all') {
+      if (stageFilter === 'active') {
+        const stage = allStageStatuses[ip.id]?.stage || 'pre-qualification'
+        if (['holding', 'withdrawn'].includes(stage)) return false
+      } else if (stageFilter !== 'all') {
         const ss = allStageStatuses[ip.id]
         if ((ss?.stage || 'pre-qualification') !== stageFilter) return false
       }
@@ -302,12 +305,12 @@ export default function IPListPage() {
       {/* Hero stats — click to filter by stage */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => { setStageFilter('all'); setOwnerFilter('all') }}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'all' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => { setStageFilter('active'); setOwnerFilter('all') }}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ips.length}</p>
-          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">All Cases</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ips.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !['holding', 'withdrawn'].includes(st) }).length}</p>
+          <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {IP_STAGES.filter(s => !s.hidden).map(stage => (
           <button
