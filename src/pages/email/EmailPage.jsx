@@ -616,8 +616,10 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                 />
               </div>
               <div className="max-h-64 overflow-y-auto py-1">
-                {filteredLabels.length === 0 && !canCreate && (
-                  <p className="px-3 py-2 text-xs text-stone-400">No labels match.</p>
+                {filteredLabels.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-stone-400">
+                    {userLabels.length === 0 ? 'No labels yet — create your first one below.' : 'No labels match.'}
+                  </p>
                 )}
                 {filteredLabels.map(label => {
                   const applied = currentLabels.includes(label.id)
@@ -635,16 +637,31 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                   )
                 })}
               </div>
-              {canCreate && (
-                <button
-                  onClick={handleCreate}
-                  disabled={creatingLabel}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium"
-                >
-                  {creatingLabel ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                  Create new: <span className="font-semibold">{labelSearch.trim()}</span>
-                </button>
-              )}
+              {/* Always-visible "Create new" footer. When the search box has
+                  text, it becomes "Create new: {text}" — when empty, it
+                  prompts for a name inline. */}
+              <button
+                onClick={async () => {
+                  let name = labelSearch.trim()
+                  if (!name) {
+                    name = (window.prompt('New label name:') || '').trim()
+                    if (!name) return
+                  }
+                  if (exactMatch) return
+                  setCreatingLabel(true)
+                  try {
+                    await onCreateLabel?.(name, true)
+                    setLabelSearch('')
+                  } finally {
+                    setCreatingLabel(false)
+                  }
+                }}
+                disabled={creatingLabel || exactMatch}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {creatingLabel ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                {canCreate ? <>Create new: <span className="font-semibold">{labelSearch.trim()}</span></> : exactMatch ? 'Label already exists' : 'Create new label'}
+              </button>
             </div>
           )}
         </div>
