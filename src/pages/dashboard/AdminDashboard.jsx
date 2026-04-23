@@ -1026,10 +1026,12 @@ export default function AdminDashboard() {
                             <tr
                               key={j.id}
                               className="border-b last:border-0 hover:bg-stone-50/50 cursor-pointer"
-                              style={outline ? { boxShadow: `inset 4px 0 0 ${outline}` } : undefined}
                               onClick={() => window.location.href = `/journeys/${j.id}`}
                             >
-                              <td className="px-4 py-3">
+                              <td
+                                className="px-4 py-3"
+                                style={outline ? { boxShadow: `inset 4px 0 0 ${outline}` } : undefined}
+                              >
                                 <div className="flex items-center gap-2">
                                   <ProfileAvatar name={ip?.names || '?'} size="sm" />
                                   <span className="font-medium text-stone-800">{ip?.names || '—'}</span>
