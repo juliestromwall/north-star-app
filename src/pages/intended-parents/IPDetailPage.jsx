@@ -61,6 +61,7 @@ export default function IPDetailPage() {
   const [partnerInviteResult, setPartnerInviteResult] = useState(null)
   const [releasingApp, setReleasingApp] = useState(false)
   const [showReleaseModal, setShowReleaseModal] = useState(false)
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false)
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
@@ -528,10 +529,15 @@ export default function IPDetailPage() {
                           style={stageStatus.stage === stage.id ? { color: stage.color, backgroundColor: stage.color + '10' } : {}}
                           onClick={e => {
                             e.stopPropagation()
+                            setStageOpen(false)
+                            // Withdrawn revokes portal access — confirm with admin first.
+                            if (stage.id === 'withdrawn' && stageStatus.stage !== 'withdrawn') {
+                              setShowWithdrawConfirm(true)
+                              return
+                            }
                             const newStatus = getDefaultStatus(stage.id, 'ip')
                             setSurrogateStageStatus(ip.id, stage.id, newStatus)
                             setStageStatus({ stage: stage.id, status: newStatus })
-                            setStageOpen(false)
                           }}
                         >
                           <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: stage.color }}>{i + 1}</span>
@@ -861,6 +867,40 @@ export default function IPDetailPage() {
                 }}>
                 {releasingApp ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                 {releasingApp ? 'Sending...' : 'Release & Send Email'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw stage confirmation — revokes portal access */}
+      <Dialog open={showWithdrawConfirm} onOpenChange={setShowWithdrawConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700">
+              <Milestone className="size-5" />
+              Move {ip?.names || 'this IP'} to Withdrawn?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Withdrawn IPs <strong>will lose access to the portal immediately on their next login attempt.</strong> Both the primary IP{ip?.ip2Email ? ' and the partner' : ''} will be blocked from signing in.
+            </p>
+            <p className="text-sm text-stone-500 leading-relaxed">
+              You can move them back to an active stage at any time to restore access.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowWithdrawConfirm(false)}>Cancel</Button>
+              <Button
+                size="sm"
+                className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => {
+                  const newStatus = getDefaultStatus('withdrawn', 'ip')
+                  setSurrogateStageStatus(ip.id, 'withdrawn', newStatus)
+                  setStageStatus({ stage: 'withdrawn', status: newStatus })
+                  setShowWithdrawConfirm(false)
+                }}>
+                <Milestone className="size-3.5" /> Move to Withdrawn
               </Button>
             </div>
           </div>
