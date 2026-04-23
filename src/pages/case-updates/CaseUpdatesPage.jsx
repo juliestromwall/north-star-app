@@ -440,7 +440,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
             <table className="text-xs border-collapse w-full">
               <thead>
                 <tr className="bg-stone-50/80 border-b border-stone-200">
-                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[160px] border-r border-stone-100">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[160px] border-r border-stone-100">
                     Checklist Steps
                   </th>
                   {filtered.map(s => {
@@ -459,7 +459,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             stage={stageLabel} status={ss.status}
                             checklistSteps={sheetRows} tracking={allTracking[s.id]}
                           />
-                          <JourneyUpdateButton caseId={s.id} caseType="surrogate" caseName={s.name} compact hideIfEmpty />
+                          <JourneyUpdateButton caseId={s.id} caseType="surrogate" caseName={s.name} compact />
                           <AppointmentsBadge caseId={s.id} caseType="surrogate" caseName={s.name} />
                         </div>
                       </th>
@@ -473,7 +473,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                   if (row.type === 'info_row' && row.source === 'surrogate') {
                     return (
                       <tr key={row.id} className="border-b border-stone-100 bg-stone-50/30">
-                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50/30 z-10 border-r border-stone-100 text-center">
+                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50 z-10 border-r border-stone-100 text-center">
                           <span className="text-[10px] uppercase tracking-wider">{row.label}</span>
                         </td>
                         {filtered.map(s => {
@@ -734,7 +734,7 @@ function IPUpdatesSheet({ ips }) {
             <table className="text-xs border-collapse w-full">
               <thead>
                 <tr className="bg-stone-50/80 border-b border-stone-200">
-                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[140px] border-r border-stone-100">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[140px] border-r border-stone-100">
                     Checklist Steps
                   </th>
                   {filtered.map(ip => {
@@ -920,7 +920,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
             <table className="text-xs border-collapse w-full">
               <thead>
                 <tr className="bg-stone-50/80 border-b border-stone-200">
-                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50/80 z-10 min-w-[160px] border-r border-stone-100">
+                  <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-10 min-w-[160px] border-r border-stone-100">
                     Checklist Steps
                   </th>
                   {filtered.map(j => {
@@ -1000,7 +1000,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                   if (isInfoRow) {
                     return (
                       <tr key={step.id} className="border-b border-stone-100 bg-stone-50/30">
-                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50/30 z-10 border-r border-stone-100 text-center">
+                        <td className="px-4 py-2 font-medium text-stone-500 sticky left-0 bg-stone-50 z-10 border-r border-stone-100 text-center">
                           <span className="text-[10px] uppercase tracking-wider">{step.label}</span>
                         </td>
                         {filtered.map(j => {
