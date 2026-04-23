@@ -81,7 +81,20 @@ function saveStagesToSupabase(stages) {
     console.warn('[stageStatusStore] stage status save blocked — stages not loaded from Supabase yet')
     return
   }
-  setAppConfig(SUPABASE_STAGES_KEY, stages).catch(() => {})
+  ;(async () => {
+    const nextLocalStages = stages && typeof stages === 'object' ? stages : {}
+    const remoteResult = await getAppConfigStrict(SUPABASE_STAGES_KEY)
+    const remoteStages = remoteResult.ok && remoteResult.value && typeof remoteResult.value === 'object'
+      ? remoteResult.value
+      : {}
+    // Preserve any stage/status entries that exist remotely but are missing
+    // from the local cache. This prevents a stale tab with a partial map from
+    // overwriting the full shared production map.
+    const mergedStages = { ...remoteStages, ...nextLocalStages }
+    _stagesCache = mergedStages
+    saveStagesToLS(mergedStages)
+    await setAppConfig(SUPABASE_STAGES_KEY, mergedStages).catch(() => {})
+  })().catch(() => {})
 }
 
 // ── Migration: flat config → typed config ─────────────────
