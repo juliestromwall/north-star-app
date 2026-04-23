@@ -24,6 +24,19 @@ export async function getAppConfig(key) {
   return result.data?.config_value ?? null
 }
 
+export async function getAppConfigStrict(key) {
+  if (!supabase) return { ok: false, value: null, error: 'Supabase is not configured' }
+  const result = await withTimeout(
+    () => supabase.from('app_config').select('config_value').eq('config_key', key).single()
+  )
+  if (!result) return { ok: false, value: null, error: 'Request failed or timed out' }
+  if (result.error) {
+    if (result.error.code === 'PGRST116') return { ok: true, value: null, error: null }
+    return { ok: false, value: null, error: result.error.message || 'Supabase error' }
+  }
+  return { ok: true, value: result.data?.config_value ?? null, error: null }
+}
+
 export async function setAppConfig(key, value) {
   const result = await withTimeout(
     () => supabase.from('app_config').upsert(

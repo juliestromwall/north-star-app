@@ -17,10 +17,10 @@ if (localStorage.getItem('abc_dark_mode') === 'true') {
 // Pre-load shared configs from Supabase BEFORE mounting React. This closes
 // the race condition where components could read defaults from the sync
 // fallback and accidentally overwrite real Supabase data on the next save.
-// stageStatuses is fired in parallel and not awaited (less risk).
-loadStageStatuses().catch(() => {})
-
-loadChecklistConfig()
+Promise.all([
+  loadStageStatuses(),
+  loadChecklistConfig(),
+])
   .catch(() => {}) // save() guard handles failure case
   .finally(() => {
     createRoot(document.getElementById('root')).render(

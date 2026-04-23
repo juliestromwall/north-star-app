@@ -576,7 +576,7 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
     ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Hold for Payment</span>
     : (exp.paid_to || '—')
 
-  const rowGreen = !!(exp.disbursement_paid_at || exp.escrow_not_needed)
+  const rowGreen = !!(exp.paid_at || exp.disbursement_paid_at || exp.escrow_not_needed)
   return (
     <tr className={`border-b border-stone-100 hover:bg-stone-50/50 ${rowGreen ? 'bg-emerald-50/60' : ''}`}>
       <td className="px-4 py-3 text-sm align-top">{renderCell('expense_date', formatDate(exp.expense_date) || '—')}</td>
@@ -626,8 +626,8 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
             <Check className="size-2.5" /> Reconciled
           </span>
         ) : exp.paid_at ? (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
-            <Check className="size-2.5" /> Paid
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            <Check className="size-2.5" /> ABC Paid
           </span>
         ) : (
           <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>

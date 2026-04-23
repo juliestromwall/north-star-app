@@ -1,5 +1,5 @@
 import { SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE } from './constants'
-import { getAppConfig, setAppConfig } from './db'
+import { getAppConfigStrict, setAppConfig } from './db'
 
 const CONFIG_KEY = 'abc_status_config'
 const STAGES_KEY = 'abc_surrogate_stages'
@@ -30,6 +30,8 @@ const DEFAULT_GC_STATUSES = {
 // Module-level caches
 let _configCache = null
 let _stagesCache = null
+let _configLoaded = false
+let _stagesLoaded = false
 
 // ── localStorage helpers ──────────────────────────────────
 
@@ -67,10 +69,18 @@ function clearLS() {
 // ── Supabase fire-and-forget saves ────────────────────────
 
 function saveConfigToSupabase(config) {
+  if (!_configLoaded) {
+    console.warn('[stageStatusStore] status config save blocked — config not loaded from Supabase yet')
+    return
+  }
   setAppConfig(SUPABASE_CONFIG_KEY, config).catch(() => {})
 }
 
 function saveStagesToSupabase(stages) {
+  if (!_stagesLoaded) {
+    console.warn('[stageStatusStore] stage status save blocked — stages not loaded from Supabase yet')
+    return
+  }
   setAppConfig(SUPABASE_STAGES_KEY, stages).catch(() => {})
 }
 
@@ -102,47 +112,45 @@ function migrateConfig(config) {
 // ── Async loader (call on app startup) ────────────────────
 
 export async function loadStageStatuses() {
-  try {
-    const [remoteConfig, remoteStages] = await Promise.all([
-      getAppConfig(SUPABASE_CONFIG_KEY),
-      getAppConfig(SUPABASE_STAGES_KEY),
-    ])
+  const [configResult, stagesResult] = await Promise.all([
+    getAppConfigStrict(SUPABASE_CONFIG_KEY),
+    getAppConfigStrict(SUPABASE_STAGES_KEY),
+  ])
 
-    if (remoteConfig) {
-      _configCache = migrateConfig(remoteConfig)
-      // Save back if migrated
-      if (!remoteConfig.gc) saveConfigToSupabase(_configCache)
+  if (configResult.ok) {
+    if (configResult.value) {
+      _configCache = migrateConfig(configResult.value)
+      _configLoaded = true
+      // Save back only after a confirmed remote load.
+      if (!configResult.value.gc) saveConfigToSupabase(_configCache)
       saveConfigToLS(_configCache)
     } else {
       const localConfig = loadConfigFromLS()
-      if (localConfig) {
-        _configCache = migrateConfig(localConfig)
-        saveConfigToSupabase(_configCache)
-      } else {
-        _configCache = migrateConfig(null)
-        saveConfigToSupabase(_configCache)
-      }
+      _configCache = migrateConfig(localConfig)
+      _configLoaded = true
+      saveConfigToSupabase(_configCache)
+      saveConfigToLS(_configCache)
     }
-
-    if (remoteStages) {
-      _stagesCache = remoteStages
-      saveStagesToLS(remoteStages)
-    } else {
-      const localStages = loadStagesFromLS()
-      if (localStages) {
-        _stagesCache = localStages
-        saveStagesToSupabase(localStages)
-      } else {
-        _stagesCache = {}
-        saveStagesToSupabase(_stagesCache)
-      }
-    }
-
-    clearLS()
-  } catch {
+  } else {
+    // Render from local/default data if needed, but do not allow saves.
     _configCache = migrateConfig(loadConfigFromLS())
-    _stagesCache = loadStagesFromLS() || {}
+    _configLoaded = false
   }
+
+  if (stagesResult.ok) {
+    const localStages = loadStagesFromLS()
+    const hasRemoteStages = !!stagesResult.value
+    _stagesCache = stagesResult.value || localStages || {}
+    _stagesLoaded = true
+    if (!hasRemoteStages) saveStagesToSupabase(_stagesCache)
+    saveStagesToLS(_stagesCache)
+  } else {
+    // Render from local/default data if needed, but do not allow saves.
+    _stagesCache = loadStagesFromLS() || {}
+    _stagesLoaded = false
+  }
+
+  if (_configLoaded && _stagesLoaded) clearLS()
 }
 
 // ── Config (available statuses per stage) ──────────────────
