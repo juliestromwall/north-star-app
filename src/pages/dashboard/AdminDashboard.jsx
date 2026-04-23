@@ -82,6 +82,44 @@ function NoteReplyBlock({ note, currentUser, onReplied }) {
   )
 }
 
+function getAppointmentCaseInfo(event) {
+  const caseIdProp = event.extendedProperties?.private?.caseId || ''
+  const caseType = event.extendedProperties?.private?.caseType || ''
+  const caseId = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
+  return { caseId, caseType }
+}
+
+function isAppointmentForAdmin(event, { surrogates, ips, journeys, adminEmail }) {
+  if (!adminEmail) return false
+  const { caseId, caseType } = getAppointmentCaseInfo(event)
+  if (!caseId || !caseType) return false
+
+  const normalizedType = caseType === 'gc' ? 'surrogate' : caseType
+  const caseIdStr = String(caseId)
+  const activeJourneys = (journeys || []).filter(isJourneyActive)
+
+  if (normalizedType === 'journey') {
+    const journey = activeJourneys.find(j => String(j.id) === caseIdStr)
+    return journey?.assigned_to === adminEmail
+  }
+
+  if (normalizedType === 'surrogate') {
+    const journey = activeJourneys.find(j => String(j.gc_case_id) === caseIdStr)
+    if (journey) return journey.assigned_to === adminEmail
+    const surrogate = (surrogates || []).find(s => String(s.id) === caseIdStr)
+    return surrogate?.assignedTo === adminEmail
+  }
+
+  if (normalizedType === 'ip') {
+    const journey = activeJourneys.find(j => String(j.ip_case_id) === caseIdStr)
+    if (journey) return journey.assigned_to === adminEmail
+    const ip = (ips || []).find(i => String(i.id) === caseIdStr)
+    return ip?.assignedTo === adminEmail
+  }
+
+  return false
+}
+
 export default function AdminDashboard() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
   const showAllCases = isSuperAdmin || isMasterAdmin
@@ -193,6 +231,7 @@ export default function AdminDashboard() {
           const all = results.flat()
           const seen = new Set()
           const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+            .filter(e => isAppointmentForAdmin(e, { surrogates: gcs || [], ips: allIps || [], journeys: js || [], adminEmail: currentUser?.email }))
             .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''))
           setEvents(deduped)
 
@@ -232,7 +271,7 @@ export default function AdminDashboard() {
 
     // Fetch published admin notes from Supabase
     fetchActiveAdminNotes().then(notes => setAdminNotes(notes || [])).catch(() => {})
-  }, [])
+  }, [currentUser?.id, currentUser?.email])
 
 
   // Build cases — super/master admins see all, others see only assigned
@@ -320,9 +359,7 @@ export default function AdminDashboard() {
 
   // Appointment follow-up and notes helpers
   function getEventCaseInfo(event) {
-    const caseIdProp = event.extendedProperties?.private?.caseId || ''
-    const ct = event.extendedProperties?.private?.caseType || ''
-    const cid = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
+    const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(event)
     const configKey = ct && cid ? `appt_notes_${ct}_${cid}` : null
     const caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
     const caseLink = ct === 'journey' ? `/journeys/${cid}` : ct === 'ip' ? `/intended-parents/${cid}` : ct === 'surrogate' ? `/surrogates/${cid}` : ''
@@ -1156,4 +1193,3 @@ export default function AdminDashboard() {
     </div>
   )
 }
-
