@@ -229,7 +229,7 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid, esc
   }
 
   if (reconciled) {
-    if (status === 'paid') return pill('paid', `Paid ${formatDate(exp.disbursement_paid_at)}`)
+    if (status === 'paid') return pill('paid', `Reimbursed ${formatDate(exp.disbursement_paid_at)}`)
     if (status === 'not_needed') return pill('not_needed', 'Not Needed')
     if (status === 'yes') return pill('yes', 'Yes')
     if (status === 'funded') return pill('funded', 'Escrow Funded')
@@ -239,12 +239,12 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid, esc
   if (status === 'paid') {
     return (
       <div className="flex flex-col gap-1 items-start">
-        {pill('paid', `Paid ${formatDate(exp.disbursement_paid_at)}`)}
+        {pill('paid', `Reimbursed ${formatDate(exp.disbursement_paid_at)}`)}
         <button
           onClick={() => onSetStatus(exp.id, 'yes')}
           className="text-[10px] text-stone-400 hover:text-stone-600 hover:underline"
         >
-          Undo Paid
+          Undo Reimbursed
         </button>
       </div>
     )
@@ -274,7 +274,7 @@ export function EscrowStatusCell({ exp, reconciled, onSetStatus, onMarkPaid, esc
           onClick={() => onMarkPaid(exp.id)}
           className="text-[10px] text-emerald-700 hover:underline"
         >
-          Mark as Paid
+          Mark as Reimbursed
         </button>
       )}
     </div>
@@ -453,7 +453,7 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                     />
                     {exp.paid_at && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full mt-1.5">
-                        <CheckCircle2 className="size-2.5" /> Paid {formatDate(exp.paid_at)}
+                        <CheckCircle2 className="size-2.5" /> ABC Paid {formatDate(exp.paid_at)}
                       </span>
                     )}
                   </td>
