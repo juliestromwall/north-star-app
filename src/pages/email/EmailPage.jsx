@@ -3,6 +3,7 @@ import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
 import {
   listEmails, getEmail, modifyEmail, getAttachment, listLabels, getLabel,
+  createLabel, trashMessage,
   getGoogleStatus, parseEmailHeaders, parseEmailBody, parseEmailAttachments,
   connectGoogle,
 } from '@/lib/google'
@@ -26,6 +27,7 @@ import {
   Inbox, CheckCircle2, Download, Tag, Lock,
   SendHorizonal, FileText, AlertTriangle,
   MailPlus, Clock, ChevronRight, Users, Info, MessageSquare, ShoppingBag, Megaphone, ChevronDown,
+  Plus, Check, ShieldAlert,
 } from 'lucide-react'
 
 // ── System folder config ────────────────────────────────
@@ -511,10 +513,46 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
 
 // ── Email Detail View ───────────────────────────────────
 
-function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onForward, onArchive, onTrash }) {
+function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onForward, onArchive, onTrash, onMarkUnread, onReportSpam, onToggleLabel, onCreateLabel, userLabels = [] }) {
   const { isMasterAdmin } = useRole()
   const [logOpen, setLogOpen] = useState(false)
   const [downloading, setDownloading] = useState(null)
+  const [labelMenuOpen, setLabelMenuOpen] = useState(false)
+  const [labelSearch, setLabelSearch] = useState('')
+  const [creatingLabel, setCreatingLabel] = useState(false)
+  const labelMenuRef = useRef(null)
+
+  // Close the Label-as menu on outside click / Escape
+  useEffect(() => {
+    if (!labelMenuOpen) return
+    const onDown = (e) => {
+      if (labelMenuRef.current && !labelMenuRef.current.contains(e.target)) setLabelMenuOpen(false)
+    }
+    const onKey = (e) => { if (e.key === 'Escape') setLabelMenuOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [labelMenuOpen])
+
+  const currentLabels = Array.isArray(email?.labelIds) ? email.labelIds : []
+  const filteredLabels = userLabels.filter(l => !labelSearch.trim() || (l.name || '').toLowerCase().includes(labelSearch.trim().toLowerCase()))
+  const exactMatch = userLabels.some(l => (l.name || '').toLowerCase() === labelSearch.trim().toLowerCase())
+  const canCreate = labelSearch.trim().length > 0 && !exactMatch
+
+  const handleCreate = async () => {
+    const name = labelSearch.trim()
+    if (!name) return
+    setCreatingLabel(true)
+    try {
+      await onCreateLabel?.(name, true)
+      setLabelSearch('')
+    } finally {
+      setCreatingLabel(false)
+    }
+  }
 
   const handleDownloadAttachment = async (att) => {
     setDownloading(att.attachmentId)
@@ -551,9 +589,65 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
         <Button variant="ghost" size="icon-sm" onClick={onArchive} title="Archive" className="size-8">
           <Archive className="size-4" />
         </Button>
+        <Button variant="ghost" size="icon-sm" onClick={onReportSpam} title="Report spam" className="size-8">
+          <ShieldAlert className="size-4" />
+        </Button>
         <Button variant="ghost" size="icon-sm" onClick={onTrash} title="Delete" className="size-8">
           <Trash2 className="size-4" />
         </Button>
+        <Button variant="ghost" size="icon-sm" onClick={onMarkUnread} title="Mark as unread" className="size-8">
+          <Mail className="size-4" />
+        </Button>
+        <div className="relative" ref={labelMenuRef}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setLabelMenuOpen(o => !o)} title="Label as" className="size-8">
+            <Tag className="size-4" />
+          </Button>
+          {labelMenuOpen && (
+            <div className="absolute z-30 top-9 left-0 w-72 bg-white border rounded-lg shadow-lg overflow-hidden">
+              <div className="px-3 py-2 border-b">
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Label as:</p>
+                <Input
+                  autoFocus
+                  value={labelSearch}
+                  onChange={e => setLabelSearch(e.target.value)}
+                  placeholder="Search or create…"
+                  className="h-8 text-sm"
+                  onKeyDown={e => { if (e.key === 'Enter' && canCreate) { e.preventDefault(); handleCreate() } }}
+                />
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {filteredLabels.length === 0 && !canCreate && (
+                  <p className="px-3 py-2 text-xs text-stone-400">No labels match.</p>
+                )}
+                {filteredLabels.map(label => {
+                  const applied = currentLabels.includes(label.id)
+                  return (
+                    <button
+                      key={label.id}
+                      onClick={() => onToggleLabel?.(label.id, !applied)}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-stone-50 text-left"
+                    >
+                      <span className={`size-4 rounded border flex items-center justify-center ${applied ? 'bg-[#283693] border-[#283693]' : 'border-stone-300'}`}>
+                        {applied && <Check className="size-3 text-white" />}
+                      </span>
+                      <span className="flex-1 truncate">{label.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              {canCreate && (
+                <button
+                  onClick={handleCreate}
+                  disabled={creatingLabel}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium"
+                >
+                  {creatingLabel ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  Create new: <span className="font-semibold">{labelSearch.trim()}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="ml-auto flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={onReply} className="gap-1.5">
             <Reply className="size-4" /> Reply
@@ -1049,9 +1143,58 @@ export default function EmailPage() {
 
   const handleTrash = async () => {
     if (!selectedEmail || !userId) return
-    await modifyEmail(userId, selectedEmail.id, { addLabels: ['TRASH'], removeLabels: ['INBOX'] }).catch(() => {})
+    await trashMessage(userId, selectedEmail.id).catch(() => {})
     setSelectedEmail(null)
     fetchMessages(searchQuery, null, activeFolder)
+  }
+
+  // Mark the current message unread (Gmail: add UNREAD back, drop it from
+  // whatever folder the admin is viewing so it returns to the top of Inbox).
+  const handleMarkUnread = async () => {
+    if (!selectedEmail || !userId) return
+    await modifyEmail(userId, selectedEmail.id, { addLabels: ['UNREAD'] }).catch(() => {})
+    setSelectedEmail(null)
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
+  // Report spam: tell Gmail to train its classifier on this message.
+  const handleReportSpam = async () => {
+    if (!selectedEmail || !userId) return
+    await modifyEmail(userId, selectedEmail.id, { addLabels: ['SPAM'], removeLabels: ['INBOX'] }).catch(() => {})
+    setSelectedEmail(null)
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
+  // Toggle a user label on the currently-selected message. Updates local
+  // selectedEmail so the "Label as…" checkboxes flip immediately.
+  const handleToggleLabel = async (labelId, shouldAdd) => {
+    if (!selectedEmail || !userId) return
+    const patch = shouldAdd ? { addLabels: [labelId] } : { removeLabels: [labelId] }
+    await modifyEmail(userId, selectedEmail.id, patch).catch(() => {})
+    setSelectedEmail(prev => {
+      if (!prev) return prev
+      const current = Array.isArray(prev.labelIds) ? prev.labelIds : []
+      const next = shouldAdd
+        ? Array.from(new Set([...current, labelId]))
+        : current.filter(id => id !== labelId)
+      return { ...prev, labelIds: next }
+    })
+  }
+
+  // Create a new user label, then optionally apply it to the open message.
+  const handleCreateLabel = async (name, applyImmediately = true) => {
+    if (!userId || !name?.trim()) return null
+    const created = await createLabel(userId, name.trim()).catch(err => { alert('Could not create label: ' + (err.message || 'Unknown error')); return null })
+    if (!created) return null
+    // Refresh sidebar labels
+    setUserLabels(prev => {
+      const next = [...prev, created].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      return next
+    })
+    if (applyImmediately && selectedEmail) {
+      await handleToggleLabel(created.id, true)
+    }
+    return created
   }
 
   const handleToggleSelect = (id) => {
@@ -1131,6 +1274,11 @@ export default function EmailPage() {
             onForward={handleForward}
             onArchive={handleArchive}
             onTrash={handleTrash}
+            onMarkUnread={handleMarkUnread}
+            onReportSpam={handleReportSpam}
+            onToggleLabel={handleToggleLabel}
+            onCreateLabel={handleCreateLabel}
+            userLabels={userLabels}
           />
         </div>
       ) : (

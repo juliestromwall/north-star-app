@@ -347,6 +347,47 @@ export async function createGmailDraft(userId, { to, subject, body, cc, bcc, att
   return data
 }
 
+/**
+ * Create a new Gmail label on the user's account.
+ * `labelListVisibility: 'labelShow'` + `messageListVisibility: 'show'` makes
+ * it appear both in the sidebar and on message rows, matching what you'd get
+ * clicking "Create label" in Gmail's UI.
+ */
+export async function createLabel(userId, name) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        labelListVisibility: 'labelShow',
+        messageListVisibility: 'show',
+      }),
+    }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to create label')
+  return data
+}
+
+/**
+ * Move a message to Trash via the dedicated Gmail endpoint. More reliable
+ * than modifyEmail({ addLabels: ['TRASH'] }) — the server-side trash action
+ * also clears INBOX and a bunch of other category labels automatically.
+ */
+export async function trashMessage(userId, messageId) {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/trash`,
+    { method: 'POST', headers: { Authorization: `Bearer ${token}` } }
+  )
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error?.message || 'Failed to trash message')
+  return data
+}
+
 /** Modify email labels (e.g., mark read/unread, archive) */
 export async function modifyEmail(userId, messageId, { addLabels = [], removeLabels = [] }) {
   const token = await getAccessToken(userId)
