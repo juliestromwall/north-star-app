@@ -27,7 +27,7 @@ import {
   Inbox, CheckCircle2, Download, Tag, Lock,
   SendHorizonal, FileText, AlertTriangle,
   MailPlus, Clock, ChevronRight, Users, Info, MessageSquare, ShoppingBag, Megaphone, ChevronDown,
-  Plus, Check, ShieldAlert,
+  Plus, Check, ShieldAlert, FolderInput,
 } from 'lucide-react'
 
 // ── System folder config ────────────────────────────────
@@ -534,7 +534,7 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
 
 // ── Email Detail View ───────────────────────────────────
 
-function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onForward, onArchive, onTrash, onMarkUnread, onReportSpam, onToggleLabel, onCreateLabel, userLabels = [] }) {
+function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onForward, onArchive, onTrash, onMarkUnread, onReportSpam, onToggleLabel, onCreateLabel, onMoveTo, userLabels = [] }) {
   const { isMasterAdmin } = useRole()
   const [logOpen, setLogOpen] = useState(false)
   const [downloading, setDownloading] = useState(null)
@@ -542,6 +542,10 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
   const [labelSearch, setLabelSearch] = useState('')
   const [creatingLabel, setCreatingLabel] = useState(false)
   const labelMenuRef = useRef(null)
+  const [moveMenuOpen, setMoveMenuOpen] = useState(false)
+  const [moveSearch, setMoveSearch] = useState('')
+  const [movingCreating, setMovingCreating] = useState(false)
+  const moveMenuRef = useRef(null)
 
   // Close the Label-as menu on outside click / Escape
   useEffect(() => {
@@ -558,10 +562,28 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
     }
   }, [labelMenuOpen])
 
+  // Close the Move-to menu on outside click / Escape
+  useEffect(() => {
+    if (!moveMenuOpen) return
+    const onDown = (e) => {
+      if (moveMenuRef.current && !moveMenuRef.current.contains(e.target)) setMoveMenuOpen(false)
+    }
+    const onKey = (e) => { if (e.key === 'Escape') setMoveMenuOpen(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [moveMenuOpen])
+
   const currentLabels = Array.isArray(email?.labelIds) ? email.labelIds : []
   const filteredLabels = userLabels.filter(l => !labelSearch.trim() || (l.name || '').toLowerCase().includes(labelSearch.trim().toLowerCase()))
   const exactMatch = userLabels.some(l => (l.name || '').toLowerCase() === labelSearch.trim().toLowerCase())
   const canCreate = labelSearch.trim().length > 0 && !exactMatch
+
+  const moveFilteredLabels = userLabels.filter(l => !moveSearch.trim() || (l.name || '').toLowerCase().includes(moveSearch.trim().toLowerCase()))
+  const moveExactMatch = userLabels.some(l => (l.name || '').toLowerCase() === moveSearch.trim().toLowerCase())
 
   const handleCreate = async () => {
     const name = labelSearch.trim()
@@ -572,6 +594,28 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
       setLabelSearch('')
     } finally {
       setCreatingLabel(false)
+    }
+  }
+
+  const handleMoveCreate = async () => {
+    let name = moveSearch.trim()
+    if (!name) {
+      name = (window.prompt('New label name:') || '').trim()
+      if (!name) return
+    }
+    if (moveExactMatch) return
+    setMovingCreating(true)
+    try {
+      // Create label WITHOUT applying it, then move to it so the flow is
+      // a single addLabels+removeLabels INBOX step (matches Gmail).
+      const created = await onCreateLabel?.(name, false)
+      if (created?.id) {
+        setMoveMenuOpen(false)
+        setMoveSearch('')
+        await onMoveTo?.(created.id)
+      }
+    } finally {
+      setMovingCreating(false)
     }
   }
 
@@ -610,6 +654,68 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
         <Button variant="ghost" size="icon-sm" onClick={onArchive} title="Archive" className="size-8">
           <Archive className="size-4" />
         </Button>
+        <div className="relative" ref={moveMenuRef}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setMoveMenuOpen(o => !o)} title="Move to" className="size-8">
+            <FolderInput className="size-4" />
+          </Button>
+          {moveMenuOpen && (
+            <div className="absolute z-30 top-9 left-0 w-72 bg-white border rounded-lg shadow-lg overflow-hidden">
+              <div className="px-3 py-2 border-b">
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Move to:</p>
+                <Input
+                  autoFocus
+                  value={moveSearch}
+                  onChange={e => setMoveSearch(e.target.value)}
+                  placeholder="Search labels…"
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="max-h-56 overflow-y-auto py-1">
+                {moveFilteredLabels.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-stone-400">
+                    {userLabels.length === 0 ? 'No labels yet — create one below.' : 'No labels match.'}
+                  </p>
+                )}
+                {moveFilteredLabels.map(label => (
+                  <button
+                    key={label.id}
+                    onClick={() => { setMoveMenuOpen(false); setMoveSearch(''); onMoveTo?.(label.id) }}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-stone-50 text-left"
+                  >
+                    <FolderInput className="size-3.5 text-stone-400 shrink-0" />
+                    <span className="flex-1 truncate">{label.name}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="border-t">
+                <button
+                  onClick={() => { setMoveMenuOpen(false); setMoveSearch(''); onMoveTo?.('SPAM') }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-stone-50 text-left"
+                >
+                  <ShieldAlert className="size-3.5 text-red-500 shrink-0" />
+                  <span className="flex-1">Spam</span>
+                </button>
+                <button
+                  onClick={() => { setMoveMenuOpen(false); setMoveSearch(''); onMoveTo?.('TRASH') }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-stone-50 text-left"
+                >
+                  <Trash2 className="size-3.5 text-stone-400 shrink-0" />
+                  <span className="flex-1">Trash</span>
+                </button>
+              </div>
+              <button
+                onClick={handleMoveCreate}
+                disabled={movingCreating || moveExactMatch}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border-t hover:bg-stone-50 text-[#283693] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {movingCreating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                {moveSearch.trim() && !moveExactMatch
+                  ? <>Create new: <span className="font-semibold">{moveSearch.trim()}</span></>
+                  : moveExactMatch ? 'Label already exists' : 'Create new label'}
+              </button>
+            </div>
+          )}
+        </div>
         <Button variant="ghost" size="icon-sm" onClick={onReportSpam} title="Report spam" className="size-8">
           <ShieldAlert className="size-4" />
         </Button>
@@ -1218,6 +1324,26 @@ export default function EmailPage() {
     fetchMessages(searchQuery, null, activeFolder)
   }
 
+  // Gmail "Move to": apply one label (or Spam/Trash) and strip INBOX in a
+  // single step. target is a label ID ('SPAM', 'TRASH', or a user label).
+  const handleMoveTo = async (target) => {
+    if (!selectedEmail || !userId || !target) return
+    try {
+      if (target === 'TRASH') {
+        await trashMessage(userId, selectedEmail.id)
+      } else if (target === 'SPAM') {
+        await modifyEmail(userId, selectedEmail.id, { addLabels: ['SPAM'], removeLabels: ['INBOX'] })
+      } else {
+        await modifyEmail(userId, selectedEmail.id, { addLabels: [target], removeLabels: ['INBOX'] })
+      }
+    } catch (err) {
+      alert('Could not move email: ' + (err?.message || 'Unknown error'))
+      return
+    }
+    setSelectedEmail(null)
+    fetchMessages(searchQuery, null, activeFolder)
+  }
+
   // Toggle a label on the currently-selected message. Updates local
   // selectedEmail on success so chips + "Label as…" checkboxes flip
   // immediately; surfaces an alert if the Gmail API rejects the change.
@@ -1357,6 +1483,7 @@ export default function EmailPage() {
             onReportSpam={handleReportSpam}
             onToggleLabel={handleToggleLabel}
             onCreateLabel={handleCreateLabel}
+            onMoveTo={handleMoveTo}
             userLabels={userLabels}
           />
         </div>
