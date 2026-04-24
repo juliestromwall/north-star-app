@@ -75,10 +75,16 @@ export const FORM_TEMPLATES = {
     layoutMode: 'doc-first',
     signerRole: 'gc',
     pages: [{ id: 'p1', title: 'HIPAA Privacy Acknowledgment', gcSignatures: [{ id: 'sig_gc_p1' }] }],
-    fields: [
-      { id: 'streetAddress', label: 'Street Address', type: 'text', required: true },
-      { id: 'cityStateZip', label: 'City, State, Zip', type: 'text', required: true },
-    ],
+    fields: [],
+  },
+  release_hipaa_admin: {
+    id: 'release_hipaa_admin',
+    title: 'HIPAA Authorization — Agency Countersign',
+    description: 'HIPAA Privacy Acknowledgment — Agency Representative Countersignature',
+    layoutMode: 'doc-first',
+    signerRole: 'admin',
+    pages: [{ id: 'p1', title: 'HIPAA Privacy Acknowledgment', adminSignatures: [{ id: 'sig_admin_p1' }] }],
+    fields: [],
   },
   release_general_psych_single_gc: {
     id: 'release_general_psych_single_gc',
@@ -172,7 +178,7 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
     if (forPdf) {
       return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
     }
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;cursor:text;">${val || '(click to fill)'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${val || '&nbsp;'}</span>`
   }
 
   function sig(id) {
@@ -184,7 +190,10 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
       return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#283693;">${val.name || ''}</span>`
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:200px;">&nbsp;</span>'
-    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;color:#ed148c;font-style:italic;cursor:pointer;">${val?.name || '(click to sign)'}</span>`
+    if (val?.name) {
+      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+    }
+    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
   }
 
   function date() {
@@ -315,7 +324,7 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
     let val = values[id] || ''
     if (id === 'fullName') val = fullName
     if (forPdf) return `<span style="display:inline-block;min-width:${width};border-bottom:1px solid #333;padding:2px 4px;font-weight:500;">${val || '&nbsp;'.repeat(8)}</span>`
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;cursor:text;">${val || '(click to fill)'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:${width};border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${val || '&nbsp;'}</span>`
   }
   function sig(id) {
     const val = signatures[id]
@@ -324,7 +333,10 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
       return `<span style="font-family:serif;font-style:italic;font-size:18px;color:#283693;">${val.name || ''}</span>`
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:200px;">&nbsp;</span>'
-    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;color:#ed148c;font-style:italic;cursor:pointer;">${val?.name || '(click to sign)'}</span>`
+    if (val?.name) {
+      return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+    }
+    return `<span data-sig-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
   }
   function date() { return `<span style="font-weight:500;">${today}</span>` }
 
@@ -463,9 +475,12 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
     }
     if (forPdf) return '<span style="border-bottom:1px solid #333;display:inline-block;min-width:180px;">&nbsp;</span>'
     if (!isActive) {
-      return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #ccc;padding:2px 4px;color:#999;font-size:10px;font-style:italic;">(signed separately)</span>`
+      return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #ccc;padding:2px 4px;">&nbsp;</span>`
     }
-    return `<span data-sig-id="${sigId}" style="display:inline-block;min-width:180px;border-bottom:2px dashed #ed148c;padding:2px 4px;color:#ed148c;font-style:italic;cursor:pointer;">${val?.name || '(click to sign)'}</span>`
+    if (val?.name) {
+      return `<span style="display:inline-block;min-width:180px;border-bottom:1px solid #999;padding:2px 4px;font-family:serif;font-style:italic;color:#283693;">${val.name}</span>`
+    }
+    return `<span data-sig-id="${sigId}" style="display:inline-block;min-width:180px;border-bottom:2px dashed #ed148c;padding:2px 4px;">&nbsp;</span>`
   }
   function initInline(initId, forRole) {
     const isActive = forRole === signerRole
@@ -492,23 +507,25 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
   function textField(id, placeholder = '') {
     const v = values[id] || ''
     if (forPdf) return `<span style="display:inline-block;min-width:200px;border-bottom:1px solid #333;padding:2px 4px;">${v || '&nbsp;'.repeat(8)}</span>`
-    return `<span data-field-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;cursor:text;">${v || placeholder || '(click to fill)'}</span>`
+    return `<span data-field-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${v || '&nbsp;'}</span>`
   }
 
   const headerEWM = `
-    <div style="text-align:center;font-size:11px;color:#333;line-height:1.25;margin-bottom:12px;">
-      <div>www.fertilitycounselingcenter.com</div>
-      <div>3151 Airway, Suite A-2 &middot; Costa Mesa, California 92626</div>
-      <div>Phone: (949) 307-6208 &middot; Fax: (949) 574-4887</div>
+    <div style="text-align:center;font-size:11px;color:#333;line-height:1.3;margin-bottom:12px;text-decoration:none;">
+      <div style="text-decoration:none;">www.fertilitycounselingcenter.com</div>
+      <div style="text-decoration:none;">3151 Airway, Suite A-2 &middot; Costa Mesa, California 92626</div>
+      <div style="text-decoration:none;">Phone: (949) 307-6208 &middot; Fax: (949) 574-4887</div>
     </div>`
 
   const wrap = (inner) => `
-<div style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.55; color: #000; max-width: 720px; margin: 0 auto;">
+<div style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.55; color: #000; max-width: 720px; margin: 0 auto; text-decoration: none;">
 ${inner}
 </div>`
 
-  // ── HIPAA ──
-  if (template.id === 'release_hipaa_gc' && pageId === 'p1') {
+  // ── HIPAA (shared between surrogate copy and agency countersign) ──
+  if ((template.id === 'release_hipaa_gc' || template.id === 'release_hipaa_admin') && pageId === 'p1') {
+    const addressLine = [values.streetAddress, values.cityStateZip].filter(Boolean).join(', ')
+    const adminName = values.adminName || ''
     return wrap(`
   <div style="text-align:center;margin-bottom:16px;">
     <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">HIPAA PRIVACY ACKNOWLEDGMENT AND CONSENT</h1>
@@ -534,20 +551,21 @@ ${inner}
       </tr>
       <tr>
         <td style="padding:8px 0;"><strong>Surrogate Name:</strong> ${nameVal(gcName)}</td>
-        <td style="padding:8px 0;"><strong>Email:</strong> ${values.gcEmail ? `<span>${values.gcEmail}</span>` : `<span style="color:#999;">—</span>`}</td>
+        <td style="padding:8px 0;"><strong>Email:</strong> ${values.gcEmail ? `<span>${values.gcEmail}</span>` : `<span style="color:#999;">&nbsp;</span>`}</td>
       </tr>
       <tr>
-        <td style="padding:8px 0;"><strong>Street Address:</strong><br/>${textField('streetAddress', 'Street address')}</td>
-        <td style="padding:8px 0;"><strong>City, State, Zip:</strong><br/>${textField('cityStateZip', 'City, State, Zip')}</td>
+        <td style="padding:8px 0;" colspan="2"><strong>Address:</strong> ${addressLine ? `<span>${addressLine}</span>` : `<span style="display:inline-block;min-width:400px;border-bottom:1px solid #333;">&nbsp;</span>`}</td>
       </tr>
     </table>
     <div style="margin-top:20px;padding-top:14px;border-top:1px dashed #ccc;">
-      <p style="font-size:11px;color:#555;margin:0 0 6px;"><strong>Agency / Organization Representative</strong> (signed at ABC office):</p>
+      <p style="font-size:11px;color:#555;margin:0 0 8px;"><strong>Agency / Organization Representative</strong></p>
       <table style="width:100%;font-size:12px;">
         <tr>
-          <td style="padding:6px 0;"><strong>Name:</strong> <span style="display:inline-block;min-width:200px;border-bottom:1px solid #333;">&nbsp;</span></td>
-          <td style="padding:6px 0;"><strong>Signature:</strong> <span style="display:inline-block;min-width:180px;border-bottom:1px solid #333;">&nbsp;</span></td>
-          <td style="padding:6px 0;"><strong>Date:</strong> <span style="display:inline-block;min-width:100px;border-bottom:1px solid #333;">&nbsp;</span></td>
+          <td style="padding:6px 0;width:60%;"><strong>Signature:</strong><br/>${sigInline('sig_admin_p1', 'admin')}</td>
+          <td style="padding:6px 0;"><strong>Date:</strong><br/>${dateVal('admin')}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;" colspan="2"><strong>Name:</strong> ${adminName ? `<span>${adminName}</span>` : `<span style="display:inline-block;min-width:250px;border-bottom:1px solid #333;">&nbsp;</span>`}</td>
         </tr>
       </table>
     </div>

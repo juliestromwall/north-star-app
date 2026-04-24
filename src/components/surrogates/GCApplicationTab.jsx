@@ -12,6 +12,7 @@ import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileCons
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
 import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
+import { getAdminStaff } from '@/data/mock/users'
 
 const US_STATES = [
   'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
@@ -1563,6 +1564,8 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       {(!searchLower || 'release form'.includes(searchLower) || 'background waiver'.includes(searchLower)) && (() => {
         const partnerName = [answers?._application?.spouseFirstName, answers?._application?.spouseLastName].filter(Boolean).join(' ')
         const partnerEmail = answers?._application?.spouseEmail
+        const adminEmail = surrogate?.assignedTo || ''
+        const adminName = adminEmail ? (getAdminStaff().find(a => a.email === adminEmail)?.name || adminEmail.split('@')[0]) : ''
         return (
           <Card id="app-sec-waivers">
             <CardHeader>
@@ -1582,6 +1585,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">HIPAA</p>
                 <div className="space-y-2">
                   <SendFormTemplateButton templateId="release_hipaa_gc" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="release_hipaa_admin" surrogate={surrogate} adminName={adminName} adminEmail={adminEmail} />
                 </div>
               </div>
               <div>

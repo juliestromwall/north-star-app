@@ -25,7 +25,7 @@ async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken })
   }
 }
 
-export default function SendFormTemplateButton({ templateId, surrogate, partnerName, partnerEmail }) {
+export default function SendFormTemplateButton({ templateId, surrogate, partnerName, partnerEmail, adminName, adminEmail }) {
   const [sending, setSending] = useState(false)
   const [resending, setResending] = useState(false)
   const [result, setResult] = useState(null)
@@ -68,8 +68,13 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
   if (!template) return null
 
   const isPartner = template.signerRole === 'partner'
-  const signerName = isPartner ? (partnerName || 'Partner') : (surrogate?.name || '')
-  const signerEmail = isPartner ? (partnerEmail || '') : (surrogate?.email || '')
+  const isAdmin = template.signerRole === 'admin'
+  const signerName = isAdmin ? (adminName || 'Agency Representative')
+    : isPartner ? (partnerName || 'Partner')
+    : (surrogate?.name || '')
+  const signerEmail = isAdmin ? (adminEmail || '')
+    : isPartner ? (partnerEmail || '')
+    : (surrogate?.email || '')
 
   // Already signed (status can be 'signed', 'completed', or 'partially_signed' if multi-signer)
   const signedStatuses = ['signed', 'completed', 'partially_signed']
@@ -119,7 +124,11 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
   async function handleSend() {
     if (!signerEmail) {
-      alert(isPartner ? 'Partner email is required. Please add it in the Confidential section.' : 'Surrogate email is missing.')
+      alert(
+        isAdmin ? 'This case has no assigned admin yet. Assign one in the surrogate header before sending.' :
+        isPartner ? 'Partner email is required. Please add it in the Confidential section.' :
+        'Surrogate email is missing.'
+      )
       return
     }
 

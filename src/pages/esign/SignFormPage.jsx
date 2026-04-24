@@ -174,6 +174,7 @@ export default function SignFormPage() {
         if (partnerFull) prefill.partnerName = partnerFull
         if (streetLine) prefill.streetAddress = streetLine
         if (cityStateZipLine) prefill.cityStateZip = cityStateZipLine
+        if (role === 'admin' && signer.name) prefill.adminName = signer.name
       }
 
       if (Object.keys(prefill).length) {
@@ -211,6 +212,9 @@ export default function SignFormPage() {
         } else if (mySigner.role === 'partner') {
           requiredSigIds.push(...(page.partnerSignatures || []).map(s => s.id))
           requiredInitIds.push(...(page.partnerInitials || []).map(s => s.id))
+        } else if (mySigner.role === 'admin') {
+          requiredSigIds.push(...(page.adminSignatures || []).map(s => s.id))
+          requiredInitIds.push(...(page.adminInitials || []).map(s => s.id))
         }
       }
     } else {
@@ -274,13 +278,79 @@ export default function SignFormPage() {
         overlay.innerHTML = '<p style="color:#283693;font-size:18px;font-weight:600;">Generating PDF...</p>'
         document.body.appendChild(overlay)
 
-        // Page 1: filled form
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
+        const pageWidth = 8.5, pageHeight = 11
+
+        // Doc-first: render each template page as its own PDF page so content
+        // doesn't get sliced through mid-paragraph the way a single tall image does.
+        if (isDocFirst) {
+          const pagesArr = template.pages || []
+          let pdfHasPage = false
+          for (let p = 0; p < pagesArr.length; p++) {
+            const page = pagesArr[p]
+            const pageDiv = document.createElement('div')
+            pageDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
+            pageDiv.innerHTML = generateReleasePageHtml(page.id, template, fieldValues, signatures, initials, {
+              forPdf: true,
+              signerRole: mySigner.role,
+              signerName: mySigner.name,
+            })
+            document.body.appendChild(pageDiv)
+            await new Promise(r => setTimeout(r, 200))
+            const c = await html2canvas(pageDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+            document.body.removeChild(pageDiv)
+            const img = c.toDataURL('image/jpeg', 0.95)
+            const imgH = (c.height * pageWidth) / c.width
+            if (pdfHasPage) pdf.addPage()
+            pdfHasPage = true
+            // If a single template page spills beyond one letter page, chunk it.
+            let yOffLocal = 0
+            while (yOffLocal < imgH) {
+              if (yOffLocal > 0) pdf.addPage()
+              pdf.addImage(img, 'JPEG', 0, -yOffLocal, pageWidth, imgH)
+              yOffLocal += pageHeight
+            }
+          }
+
+          // Audit trail on its own page
+          const page2 = document.createElement('div')
+          page2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
+          page2.innerHTML = auditHtml
+          document.body.appendChild(page2)
+          await new Promise(r => setTimeout(r, 200))
+          const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+          document.body.removeChild(page2)
+          document.body.removeChild(overlay)
+          pdf.addPage()
+          const img2 = canvas2.toDataURL('image/jpeg', 0.95)
+          const img2Height = (canvas2.height * pageWidth) / canvas2.width
+          pdf.addImage(img2, 'JPEG', 0, 0, pageWidth, img2Height)
+
+          const pdfBlob = pdf.output('blob')
+          const pdfPath = `documents/signed_form_${doc.id}_${Date.now()}.pdf`
+          await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
+          const { data: pdfUrl } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+          if (pdfUrl?.publicUrl && doc.case_id) {
+            await supabase.from('case_documents').insert({
+              surrogate_id: doc.case_id,
+              category: 'e-signature',
+              file_name: `[Signed] ${doc.title}.pdf`,
+              file_type: 'application/pdf',
+              storage_path: pdfPath,
+              public_url: pdfUrl.publicUrl,
+              uploaded_by: 'System (E-Sign)',
+            })
+          }
+          setDone(true)
+          return
+        }
+
+        // Original background-waiver path (single tall form + audit)
         const page1 = document.createElement('div')
         page1.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:20px 40px;'
         page1.innerHTML = filledHtml
         document.body.appendChild(page1)
 
-        // Page 2: audit trail
         const page2 = document.createElement('div')
         page2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
         page2.innerHTML = auditHtml
@@ -294,9 +364,6 @@ export default function SignFormPage() {
         document.body.removeChild(page1)
         document.body.removeChild(page2)
         document.body.removeChild(overlay)
-
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' })
-        const pageWidth = 8.5, pageHeight = 11
 
         const img1 = canvas1.toDataURL('image/jpeg', 0.95)
         const img1Height = (canvas1.height * pageWidth) / canvas1.width
@@ -467,8 +534,14 @@ export default function SignFormPage() {
               signerRole: mySigner.role,
               signerName: mySigner.name,
             })
-            const mySigs = mySigner.role === 'gc' ? (page.gcSignatures || []) : (page.partnerSignatures || [])
-            const myInits = mySigner.role === 'gc' ? (page.gcInitials || []) : (page.partnerInitials || [])
+            const mySigs = mySigner.role === 'gc' ? (page.gcSignatures || [])
+              : mySigner.role === 'partner' ? (page.partnerSignatures || [])
+              : mySigner.role === 'admin' ? (page.adminSignatures || [])
+              : []
+            const myInits = mySigner.role === 'gc' ? (page.gcInitials || [])
+              : mySigner.role === 'partner' ? (page.partnerInitials || [])
+              : mySigner.role === 'admin' ? (page.adminInitials || [])
+              : []
             return (
               <Card key={page.id} className="mb-5">
                 <CardContent className="p-4 sm:p-6 space-y-4">
@@ -508,17 +581,7 @@ export default function SignFormPage() {
                       <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h4>
                       {mySigs.map(sig => (
                         <div key={sig.id}>
-                          {signatures[sig.id] ? (
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <CheckCircle2 className="size-4 text-green-500 shrink-0" />
-                              {signatures[sig.id].type === 'drawn' && signatures[sig.id].image ? (
-                                <img src={signatures[sig.id].image} alt="signature" style={{ height: 32 }} />
-                              ) : (
-                                <span className="text-sm font-serif italic text-[#283693]">{signatures[sig.id].name || 'Signed'}</span>
-                              )}
-                              <button onClick={() => setActiveSigId(sig.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
-                            </div>
-                          ) : activeSigId === sig.id ? (
+                          {activeSigId === sig.id ? (
                             <div>
                               <SignaturePad
                                 value={signatures[sig.id]}
@@ -529,6 +592,16 @@ export default function SignFormPage() {
                                 signerName={mySigner.name}
                               />
                               <button onClick={() => setActiveSigId(null)} className="text-xs text-stone-400 hover:underline mt-1">Done</button>
+                            </div>
+                          ) : signatures[sig.id] ? (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+                              {signatures[sig.id].type === 'drawn' && signatures[sig.id].image ? (
+                                <img src={signatures[sig.id].image} alt="signature" style={{ height: 32 }} />
+                              ) : (
+                                <span className="text-sm font-serif italic text-[#283693]">{signatures[sig.id].name || 'Signed'}</span>
+                              )}
+                              <button onClick={() => setActiveSigId(sig.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
                             </div>
                           ) : (
                             <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5 transition-colors">
