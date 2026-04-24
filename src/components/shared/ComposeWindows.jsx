@@ -22,7 +22,7 @@ import {
   Send, Paperclip, X, Loader2, Minus, Maximize2, Minimize2, Trash2,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
-  FolderOpen, Search, FileText, Smile,
+  FolderOpen, Search, FileText, Smile, Wand2, Sparkles, RotateCw,
 } from 'lucide-react'
 
 const EMOJI_SET = [
@@ -77,6 +77,175 @@ function fileSizeLabel(bytes) {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / 1048576).toFixed(1)} MB`
+}
+
+// Turn plain-text output from the AI ("paragraph one\n\nparagraph two") into
+// HTML TipTap can set as content. Empty paragraphs are dropped.
+function plainTextToHtml(text) {
+  if (!text) return ''
+  const paragraphs = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+  return paragraphs.map(p => {
+    // Preserve single line breaks within a paragraph as <br>
+    const withBreaks = p.split(/\n/).map(line => line.replace(/</g, '&lt;').replace(/>/g, '&gt;')).join('<br>')
+    return `<p>${withBreaks}</p>`
+  }).join('')
+}
+
+// ── Help Me Write panel (Gmail-style AI draft/refine) ────
+function HelpMeWriteButton({ editor, draft, senderName }) {
+  const [open, setOpen] = useState(false)
+  const [stage, setStage] = useState('idle') // idle | generating | review
+  const [prompt, setPrompt] = useState('')
+  const [refineText, setRefineText] = useState('')
+  const [generated, setGenerated] = useState('')
+  const [error, setError] = useState('')
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  const reset = () => { setStage('idle'); setPrompt(''); setRefineText(''); setGenerated(''); setError('') }
+
+  const recipientName = (() => {
+    const to = (draft?.to || '').trim()
+    if (!to) return ''
+    const first = to.split(',')[0].trim()
+    const nameMatch = first.match(/^"?([^"<]+?)"?\s*<.+>/)
+    if (nameMatch) return nameMatch[1].trim()
+    return first.includes('@') ? first.split('@')[0] : first
+  })()
+
+  // Plain-text extraction from the TipTap editor for refine context
+  const currentBodyText = editor?.getText() || ''
+
+  const callApi = async (mode, userPrompt) => {
+    setStage('generating')
+    setError('')
+    try {
+      const res = await fetch('/api/ai/compose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: userPrompt,
+          recipient: recipientName,
+          subject: draft?.subject || '',
+          currentBody: mode === 'refine' ? generated : currentBodyText,
+          mode,
+          senderName: senderName || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Request failed')
+      setGenerated(data.draft || '')
+      setStage('review')
+    } catch (err) {
+      setError(err.message || 'Could not generate draft')
+      setStage('idle')
+    }
+  }
+
+  const handleGenerate = () => {
+    if (!prompt.trim()) return
+    callApi('draft', prompt.trim())
+  }
+
+  const handleRefine = () => {
+    if (!refineText.trim()) return
+    callApi('refine', refineText.trim())
+    setRefineText('')
+  }
+
+  const handleInsert = () => {
+    if (!editor || !generated) return
+    editor.commands.setContent(plainTextToHtml(generated))
+    setOpen(false)
+    reset()
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => setOpen(o => !o)}
+        className="size-7 text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10"
+        title="Help me write"
+      >
+        <Wand2 className="size-3.5" />
+      </Button>
+      {open && (
+        <div className="absolute bottom-9 left-0 z-50 bg-white border border-stone-200 rounded-xl shadow-lg w-[360px] overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#283693]/5 to-[#ed148c]/5 border-b">
+            <Sparkles className="size-4 text-[#283693]" />
+            <p className="text-xs font-semibold text-[#283693]">Help me write</p>
+            <button type="button" onClick={() => { setOpen(false); reset() }} className="ml-auto text-stone-400 hover:text-stone-600">
+              <X className="size-3.5" />
+            </button>
+          </div>
+
+          {stage === 'idle' && (
+            <div className="p-3">
+              <textarea
+                autoFocus
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleGenerate() } }}
+                placeholder="What would you like to write? (e.g. 'polite follow-up about the intake paperwork')"
+                className="w-full h-20 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#283693]/30 focus:border-[#283693]/40 resize-none"
+              />
+              {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-[10px] text-stone-400">⌘+Enter to generate</p>
+                <Button size="sm" onClick={handleGenerate} disabled={!prompt.trim()} className="h-7 gap-1.5 text-xs bg-[#283693] hover:bg-[#283693]/90">
+                  <Wand2 className="size-3" /> Generate
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {stage === 'generating' && (
+            <div className="p-6 flex flex-col items-center justify-center gap-2 text-xs text-stone-500">
+              <Loader2 className="size-5 animate-spin text-[#283693]" />
+              Drafting…
+            </div>
+          )}
+
+          {stage === 'review' && (
+            <div className="p-3">
+              <div className="text-xs text-stone-700 whitespace-pre-wrap border border-stone-200 rounded-md p-2 max-h-56 overflow-y-auto bg-stone-50/50">
+                {generated}
+              </div>
+              <div className="mt-2">
+                <textarea
+                  value={refineText}
+                  onChange={e => setRefineText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleRefine() } }}
+                  placeholder="Refine: make it shorter, more formal, add a deadline, etc."
+                  className="w-full h-14 text-xs p-2 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-[#283693]/30 focus:border-[#283693]/40 resize-none"
+                />
+                {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <Button size="sm" variant="outline" onClick={reset} className="h-7 text-xs gap-1" title="Start over with a new prompt">
+                    <RotateCw className="size-3" /> Start over
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleRefine} disabled={!refineText.trim()} className="h-7 text-xs gap-1">
+                    <Sparkles className="size-3" /> Refine
+                  </Button>
+                  <Button size="sm" onClick={handleInsert} className="h-7 text-xs gap-1 bg-[#283693] hover:bg-[#283693]/90 ml-auto">
+                    Insert
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ── Formatting Toolbar ──────────────────────────────────
@@ -712,6 +881,7 @@ function ComposeWindow({ draft, index }) {
           <Button variant="ghost" size="icon-sm" onClick={() => fileRef.current?.click()} className="size-7" title="Attach file">
             <Paperclip className="size-3.5" />
           </Button>
+          <HelpMeWriteButton editor={editor} draft={draft} senderName={currentUser?.name} />
           <EmojiPickerButton editor={editor} />
           {draft.caseId && (
             <Button variant="ghost" size="sm" onClick={openDocPicker} className="h-7 gap-1 text-[10px] text-stone-500 hover:text-[#283693]" title="Attach from case documents">
