@@ -32,12 +32,36 @@ export default function AdminCasesSummaryPage() {
   const { currentUser } = useRole()
   const [searchParams] = useSearchParams()
 
-  // Master/Super admins can ?admin=email; everyone else summarizes themselves.
+  // Two modes:
+  //   ?team=1                    → master/super team summary across all
+  //                                non-intake admins (Desiree, Emily, Stacie,
+  //                                + the requesting master admin)
+  //   ?admin=<email> | (default) → single-admin summary
+  const isTeam = searchParams.get('team') === '1'
   const targetEmail = (searchParams.get('admin') || currentUser?.email || '').toLowerCase()
   const targetName = useMemo(() => {
+    if (isTeam) return 'Team'
     const staff = getAdminStaff().find(a => a.email?.toLowerCase() === targetEmail)
     return staff?.name || (targetEmail === currentUser?.email?.toLowerCase() ? currentUser?.name : targetEmail)
-  }, [targetEmail, currentUser])
+  }, [targetEmail, isTeam, currentUser])
+
+  // For team mode: the list of admin emails to summarize. Skips the requesting
+  // master admin's own email (the endpoint adds it back automatically) and
+  // skips Jennifer Rose (intake-only).
+  const teamEmails = useMemo(() => {
+    if (!isTeam) return null
+    return getAdminStaff()
+      .filter(a => a.email !== 'intake@abcsurrogacy.com')
+      .filter(a => a.email !== currentUser?.email)
+      .map(a => a.email)
+  }, [isTeam, currentUser])
+
+  // Lookup so the endpoint can label each case with its assignee's name.
+  const adminNameByEmail = useMemo(() => {
+    const m = {}
+    for (const a of getAdminStaff()) m[a.email.toLowerCase()] = a.name
+    return m
+  }, [])
 
   const [summary, setSummary] = useState(null)
   const [generatedAt, setGeneratedAt] = useState(null)
@@ -52,7 +76,10 @@ export default function AdminCasesSummaryPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    getAppConfig(`admin_summary_${targetEmail}`).then(cached => {
+    const cacheKey = isTeam
+      ? `admin_summary_team_${(currentUser?.email || '').toLowerCase()}`
+      : `admin_summary_${targetEmail}`
+    getAppConfig(cacheKey).then(cached => {
       if (cancelled) return
       if (cached?.summary) {
         setSummary(cached.summary)
@@ -62,7 +89,7 @@ export default function AdminCasesSummaryPage() {
       setLoading(false)
     }).catch(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [targetEmail])
+  }, [targetEmail, isTeam, currentUser?.email])
 
   async function regenerate() {
     setGenerating(true); setError(null)
@@ -70,7 +97,15 @@ export default function AdminCasesSummaryPage() {
       const res = await fetch('/api/ai/admin-cases-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminEmail: targetEmail, adminName: targetName }),
+        body: JSON.stringify({
+          adminEmail: currentUser?.email || targetEmail,
+          adminName: currentUser?.name || targetName,
+          teamEmails: isTeam ? teamEmails : undefined,
+          adminNameByEmail,
+          // For single-admin mode pointing at someone else, override the
+          // primary email so the endpoint targets that admin's cases.
+          ...(isTeam ? {} : { adminEmail: targetEmail, adminName: targetName }),
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate summary')
@@ -110,10 +145,12 @@ export default function AdminCasesSummaryPage() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#283693] mt-2 flex items-center gap-2">
               <Sparkles className="size-7 text-[#ed148c]" />
-              Workload summary
+              {isTeam ? 'Team workload summary' : 'Workload summary'}
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              For <span className="font-semibold text-stone-700">{targetName || targetEmail}</span>
+              {isTeam
+                ? <>For <span className="font-semibold text-stone-700">{(teamEmails?.length || 0) + 1} admins</span> ({currentUser?.name?.split(' ')[0]} + team)</>
+                : <>For <span className="font-semibold text-stone-700">{targetName || targetEmail}</span></>}
               {caseCount !== null && <span> · {caseCount} active case{caseCount === 1 ? '' : 's'}</span>}
               {generatedAt && <span> · generated {formatRelative(generatedAt)}</span>}
             </p>
@@ -209,6 +246,8 @@ export default function AdminCasesSummaryPage() {
                         const html = escape(trimmed)
                           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                           .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">$1</a>')
+                          // _italic_ sub-headings used for team-mode admin grouping
+                          .replace(/(^|[\s>])_([^_]+)_(?=[\s.,!?:;)\]]|$)/g, '$1<em class="text-stone-500 font-semibold not-italic uppercase tracking-wider text-xs">$2</em>')
                         return (
                           <p key={j} className={`flex items-start gap-2 ${isWarning ? 'text-amber-800 font-medium' : ''}`}>
                             <span className="text-stone-300 mt-1 shrink-0">•</span>

@@ -1006,9 +1006,14 @@ export default function AdminDashboard() {
                 title="Pick whose cases to summarize"
               >
                 <option value={currentUser?.email || ''}>My cases</option>
-                {getAdminStaff().filter(a => a.email !== currentUser?.email).map(a => (
-                  <option key={a.email} value={a.email}>{a.name}'s cases</option>
-                ))}
+                <option value="__team__">Team summary (Desiree, Emily, Stacie)</option>
+                {getAdminStaff()
+                  .filter(a => a.email !== currentUser?.email)
+                  // Jennifer Rose is intake-only — never include her in admin summaries.
+                  .filter(a => a.email !== 'intake@abcsurrogacy.com')
+                  .map(a => (
+                    <option key={a.email} value={a.email}>{a.name}'s cases</option>
+                  ))}
               </select>
             )}
             <Button
@@ -1017,11 +1022,16 @@ export default function AdminDashboard() {
               style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
               onClick={() => {
                 const target = (showAllCases ? summaryAdminEmail : currentUser?.email) || ''
-                window.open(`/dashboard/cases-summary?admin=${encodeURIComponent(target)}`, '_blank', 'noopener,noreferrer')
+                const url = target === '__team__'
+                  ? `/dashboard/cases-summary?team=1`
+                  : `/dashboard/cases-summary?admin=${encodeURIComponent(target)}`
+                window.open(url, '_blank', 'noopener,noreferrer')
               }}
             >
               <Sparkles className="size-4" />
-              Summarize {showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases
+              {summaryAdminEmail === '__team__'
+                ? 'Summarize Team'
+                : `Summarize ${showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases`}
             </Button>
             <div className="flex items-center border rounded-md shrink-0">
               <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-9" onClick={() => setCaseView('grid')}>

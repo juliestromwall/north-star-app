@@ -83,26 +83,75 @@ async function runSummary(context) {
     })
   }
 
-  const { adminEmail, adminName } = await context.request.json()
-  if (!adminEmail) {
-    return new Response(JSON.stringify({ error: 'Missing adminEmail' }), {
+  const body = await context.request.json()
+  const { adminEmail, adminName } = body
+  // Optional team mode: when teamEmails is a non-empty array we summarize
+  // multiple admins at once and label each case with its assignee. The
+  // requesting admin's own cases get included automatically — they get to
+  // see their full oversight picture.
+  const teamEmails = Array.isArray(body.teamEmails) && body.teamEmails.length > 0
+    ? Array.from(new Set([...body.teamEmails, adminEmail].filter(Boolean).map(e => e.toLowerCase())))
+    : null
+  if (!adminEmail && !teamEmails) {
+    return new Response(JSON.stringify({ error: 'Missing adminEmail (or teamEmails)' }), {
       status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
+  // Also accept a name lookup so we can label cases with their assignee.
+  // Frontend passes this; we fall back to the email local-part if missing.
+  const adminNameByEmail = (body.adminNameByEmail && typeof body.adminNameByEmail === 'object')
+    ? Object.fromEntries(Object.entries(body.adminNameByEmail).map(([k, v]) => [k.toLowerCase(), v]))
+    : {}
+  const nameFor = (email) => {
+    if (!email) return 'Unassigned'
+    const lower = email.toLowerCase()
+    if (adminNameByEmail[lower]) return adminNameByEmail[lower]
+    if (lower === adminEmail?.toLowerCase()) return adminName || lower.split('@')[0]
+    return lower.split('@')[0]
+  }
 
   // ── 1. Fetch admin's assigned cases ──────────────────────
-  const emailParam = encodeURIComponent(adminEmail)
-  const intakes = await sb(env, `intake_submissions?assigned_to=eq.${emailParam}&select=id,intake_type,applicant_name,applicant_email,status,submitted_at,answers&order=submitted_at.desc`)
-  const journeys = await sb(env, `matched_journeys?assigned_to=eq.${emailParam}&select=*&order=created_at.desc`)
+  // Build an assigned_to filter that supports either single-admin or team mode.
+  const inList = (arr) => `(${arr.map(e => `"${e}"`).join(',')})`
+  const intakeFilter = teamEmails
+    ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
+    : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
+  const journeyFilter = teamEmails
+    ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
+    : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
+
+  const [intakes, assignedJourneys] = await Promise.all([
+    sb(env, `intake_submissions?${intakeFilter}&select=id,intake_type,applicant_name,applicant_email,status,submitted_at,assigned_to,answers&order=submitted_at.desc`),
+    sb(env, `matched_journeys?${journeyFilter}&select=*&order=created_at.desc`),
+  ])
+
+  // Also pull matched_journeys where this admin is the journey_manager (a
+  // separate concept from assigned_to — Julie/Nicole oversee active matches
+  // even when day-to-day case work belongs to someone else). Search by
+  // first-name substring on journey_data.journeyManager since values are
+  // stored as plain strings like "Julie" or "Nicole - lead".
+  const firstNamesToMatch = teamEmails
+    ? [] // skip in team mode — caller's cases are already in the assignment filter
+    : (adminName ? [adminName.split(' ')[0].toLowerCase()] : [])
+  let managerJourneys = []
+  if (firstNamesToMatch.length > 0) {
+    const orParts = firstNamesToMatch.map(n => `journey_data->>journeyManager.ilike.*${n}*`).join(',')
+    managerJourneys = await sb(env, `matched_journeys?or=(${encodeURIComponent(orParts)})&select=*&order=created_at.desc`)
+  }
+  // De-dupe assignedJourneys + managerJourneys by id
+  const journeyMap = new Map()
+  for (const j of [...assignedJourneys, ...managerJourneys]) journeyMap.set(j.id, j)
+  const journeys = Array.from(journeyMap.values())
 
   // Stage statuses live in app_config under config_key='surrogate_stages'
   const stageCfg = await sb(env, `app_config?config_key=eq.surrogate_stages&select=config_value`)
   const stageStatusMap = stageCfg?.[0]?.config_value || {}
 
   if (intakes.length === 0 && journeys.length === 0) {
+    const who = teamEmails ? `the team (${teamEmails.length} admins)` : (adminName || adminEmail)
     return new Response(JSON.stringify({
       success: true,
-      summary: `**No assigned cases**\n\nNothing's currently assigned to ${adminName || adminEmail}. When cases are assigned, click "Regenerate" to refresh this view.`,
+      summary: `**No assigned cases**\n\nNothing's currently assigned to ${who}. When cases are assigned, click "Regenerate" to refresh this view.`,
       caseCount: 0,
     }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
   }
@@ -221,6 +270,7 @@ async function runSummary(context) {
       id: caseId,
       name: intake.applicant_name || a.firstName || 'Unknown',
       url: isIP ? `/intended-parents/${caseId}` : `/surrogates/${caseId}`,
+      assignedAdmin: nameFor(intake.assigned_to),
       email: intake.applicant_email,
       stage, status,
       submittedAt: intake.submitted_at?.split('T')[0],
@@ -314,6 +364,11 @@ async function runSummary(context) {
       id: j.id,
       name: journeyName,
       url: `/journeys/${j.id}`,
+      // Show whoever is doing the day-to-day work as the case admin; surface
+      // the journey manager separately so master/super admins recognize their
+      // own oversight cases.
+      assignedAdmin: nameFor(j.assigned_to),
+      journeyManager: jd.journeyManager || null,
       gcName,
       ipName,
       stage: j.status || 'unknown',
@@ -337,9 +392,18 @@ async function runSummary(context) {
   const totalOverdueTasks = caseSignals.reduce((s, c) => s + (c.overdueTasks || 0), 0)
   const totalFlagged = caseSignals.filter(c => c.flags?.length > 0).length
 
-  const systemPrompt = `You are an experienced surrogacy case manager helping ${adminName || adminEmail} review their full workload.
+  const isTeamMode = !!teamEmails
+  const audience = isTeamMode
+    ? `${adminName || adminEmail} reviewing the team workload (${teamEmails.length} admins)`
+    : (adminName || adminEmail)
 
-You will receive structured signals (NOT raw data) for each case the admin owns. Each case includes a "name" and a "url" — ALWAYS reference cases as a markdown link in the form [Name](url) so the admin can click straight to the case page. For matched journeys, the name format is "Surrogate & IP" (e.g. "Marissa Hawkins & The Garcia Family"). NEVER use the raw numeric ID.
+  const systemPrompt = `You are an experienced surrogacy case manager helping ${audience}.
+
+You will receive structured signals (NOT raw data) for each case. Each case includes a "name", a "url", and an "assignedAdmin" (the staff member doing the day-to-day work). For journeys, "journeyManager" may also be set — that's the master admin overseeing the match. ALWAYS reference cases as a markdown link in the form [Name](url) so it's one click to the case page. For matched journeys, the name format is "Surrogate & IP" (e.g. "Marissa Hawkins & The Garcia Family"). NEVER use the raw numeric ID.
+
+${isTeamMode
+  ? `TEAM MODE: cases are spread across multiple admins. Within each section below, GROUP bullets by assignedAdmin using a sub-heading like "_Stacie Adler_" on its own line, then the bullets for that admin's cases. Sort sub-headings alphabetically by admin first name. If only one admin has items in a section, you can skip the sub-heading.`
+  : `Each bullet should subtly note the assignee at the end like "(Stacie)" so the reader sees who owns the case. Skip the parenthetical if the assignee matches the requesting admin.`}
 
 Format using these sections in order, each with **bold header** on its own line:
 
@@ -353,7 +417,7 @@ Anything time-sensitive on matched journeys: babies due soon (especially within 
 Cases that haven't been touched recently. Flag anyone past 7 days, prioritize 14+ days. Mention last email subject if it implies an open thread.
 
 **📋 Workflow Bottlenecks**
-Cases blocked at a gate the admin controls (profile awaiting approval, application not released yet, intake review not logged, checklist steps marked needed/pending).
+Cases blocked at a gate (profile awaiting approval, application not released yet, intake review not logged, checklist steps marked needed/pending).
 
 **💰 Expense / Escrow Items**
 Journeys with expenses not yet submitted to escrow, or unreconciled balances. Skip if none.
@@ -362,13 +426,13 @@ Journeys with expenses not yet submitted to escrow, or unreconciled balances. Sk
 ONE LINE summarizing how many cases are humming along normally. Don't list each one; just a count + a confidence note.
 
 Rules:
-- ALWAYS link case references: [Name](url). The admin should be able to one-click to any case from this summary.
+- ALWAYS link case references: [Name](url). The reader should be able to one-click to any case.
 - Never invent details. Only surface what's in the signals provided.
 - Bullet points (- prefix), 1-2 sentences each. Each bullet leads with the case link.
 - If a section has no items, write a single short line like "Nothing flagged right now." — don't pad.
-- Total length ≤ ~700 words.`
+- Total length ≤ ~900 words.`
 
-  const userPrompt = `Workload signals for ${adminName || adminEmail} (${totalCases} active case${totalCases === 1 ? '' : 's'} — ${stalledCases.length} stalled, ${totalOverdueTasks} overdue tasks, ${totalFlagged} with workflow flags):
+  const userPrompt = `Workload signals for ${audience} (${totalCases} active case${totalCases === 1 ? '' : 's'} — ${stalledCases.length} stalled, ${totalOverdueTasks} overdue tasks, ${totalFlagged} with workflow flags):
 
 ${JSON.stringify(caseSignals, null, 2)}`
 
@@ -410,7 +474,9 @@ ${JSON.stringify(caseSignals, null, 2)}`
           Prefer: 'resolution=merge-duplicates',
         },
         body: JSON.stringify({
-          config_key: `admin_summary_${adminEmail.toLowerCase()}`,
+          config_key: isTeamMode
+            ? `admin_summary_team_${(adminEmail || teamEmails[0]).toLowerCase()}`
+            : `admin_summary_${adminEmail.toLowerCase()}`,
           config_value: { summary, generatedAt, caseCount: totalCases, caseSignals },
         }),
       })
