@@ -171,14 +171,14 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
 
 export default function MatchedJourneysPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
-  const canSeeAll = isSuperAdmin || isMasterAdmin
+  const canSeeAll = true
   const [journeys, setJourneys] = useState([])
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const [gcAvatars, setGcAvatars] = useState({}) // gc_case_id → url
   const [ipAvatars, setIpAvatars] = useState({}) // ip_case_id → url

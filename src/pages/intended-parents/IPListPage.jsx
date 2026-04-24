@@ -182,7 +182,7 @@ function formatPhone(val) {
 
 export default function IPListPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
-  const canSeeAll = isSuperAdmin || isMasterAdmin
+  const canSeeAll = true
   const [ips, setIps] = useState([])
   const [allStageStatuses, setAllStageStatuses] = useState({})
   const [recordTrackingMap, setRecordTrackingMap] = useState({})
@@ -191,7 +191,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 

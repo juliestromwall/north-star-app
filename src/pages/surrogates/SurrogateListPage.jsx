@@ -329,11 +329,11 @@ export default function SurrogateListPage() {
   const [addSuccess, setAddSuccess] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('active')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
-  const canSeeAll = isSuperAdmin || isMasterAdmin
+  const canSeeAll = isSuperAdmin || isMasterAdmin || isAdmin || ADMIN_ROLES.includes(currentUser?.role)
 
   const [avatarUrls, setAvatarUrls] = useState({})
   const [lastLogins, setLastLogins] = useState({}) // email → lastSignIn
