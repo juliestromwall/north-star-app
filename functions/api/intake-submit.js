@@ -6,9 +6,9 @@ const corsHeaders = {
 
 const MIN_FORM_TIME_SECONDS = 15
 const RAPID_FILL_MAX_COUNT = 10
-const MIN_FIELD_CHANGES = 5
+const MIN_FIELD_CHANGES = 4
 const RECENT_WINDOW_HOURS = 24
-const MAX_SUBMISSIONS_PER_IP = 3
+const MAX_SUBMISSIONS_PER_IP = 8
 const MAX_SUBMISSIONS_PER_EMAIL = 2
 
 function json(body, status = 200) {

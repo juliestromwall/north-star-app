@@ -101,6 +101,7 @@ export default function IPIntakeForm() {
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const startTimeRef = useRef(Date.now())
   const maxStepRef = useRef(1)
   useIframeHeightReporter()
@@ -180,11 +181,18 @@ export default function IPIntakeForm() {
   async function handleSubmit() {
     if (submitting) return
     setSubmitting(true)
+    setSubmitError(null)
     const botCheck = validateSubmission()
     if (!botCheck.ok) {
+      if (['turnstile_required', 'too_few_interactions'].includes(botCheck.reason)) {
+        setSubmitError('Please review the form and submit again.')
+        setSubmitting(false)
+        return
+      }
       navigate('/apply/confirmation', {
         state: { qualified: false, dqReasons: [], type: 'ip', name: form.primaryFirstName, email: form.email, tracking: {}, answers: form },
       })
+      setSubmitting(false)
       return
     }
 
@@ -236,9 +244,15 @@ export default function IPIntakeForm() {
       })
       const result = await res.json().catch(() => ({}))
       if (result.accepted === false) {
+        if (['turnstile_failed', 'rate_limited_ip', 'duplicate_email_recent', 'too_few_interactions'].includes(result.reason)) {
+          setSubmitError('We could not verify the submission. Please try again in a moment.')
+          setSubmitting(false)
+          return
+        }
         navigate('/apply/confirmation', {
           state: { qualified: false, dqReasons: [], type: 'ip', name: form.primaryFirstName, email: form.email, tracking: {}, answers: form },
         })
+        setSubmitting(false)
         return
       }
     } catch {
@@ -268,6 +282,7 @@ export default function IPIntakeForm() {
     navigate('/apply/confirmation', {
       state: { qualified, dqReasons, type: 'ip', name: form.primaryFirstName, email: form.email, tracking, answers: form },
     })
+    setSubmitting(false)
   }
 
   const MILESTONES = [null, null, null, 'Halfway there!', 'Almost done!', 'Last step!']
@@ -276,7 +291,7 @@ export default function IPIntakeForm() {
     milestone: MILESTONES[s], nextDisabled: !stepValid[s] || (s === 1 && checking),
     onBack: s === 1 ? undefined : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : s === 1 ? handleStep1Next : () => setStep(s + 1),
-    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'Submit application' : 'Continue',
+    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? (submitting ? 'Submitting...' : 'Submit application') : 'Continue',
   })
 
   // Step 1 — Primary applicant
@@ -526,6 +541,7 @@ export default function IPIntakeForm() {
           className="rounded-xl min-h-[80px] resize-none"
         />
       </div>
+      {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
       <TurnstileWidget onToken={setTurnstileToken} />
       <HoneypotField value={honeypotValue} onChange={setHoneypotValue} />
     </QuizShell>

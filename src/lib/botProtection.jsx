@@ -8,10 +8,12 @@ const MIN_FORM_TIME_SECONDS = 15
 // Track rapid field changes — bots fill forms inhumanly fast
 const RAPID_FILL_THRESHOLD_MS = 30  // < 30ms between field changes = suspicious
 const RAPID_FILL_MAX_COUNT = 10      // 10+ rapid fills in a row = bot
-const MIN_FIELD_CHANGES = 5
+const MIN_FIELD_CHANGES = 4
 
 function parseBrowser(ua) {
+  const isIOS = /iphone|ipad|ipod/i.test(ua)
   if (/edg\//i.test(ua)) return 'Edge'
+  if (isIOS && /crios|fxios|safari/i.test(ua)) return 'Safari'
   if (/chrome|crios/i.test(ua) && !/edg/i.test(ua)) return 'Chrome'
   if (/firefox|fxios/i.test(ua)) return 'Firefox'
   if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari'

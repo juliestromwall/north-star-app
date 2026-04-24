@@ -55,6 +55,8 @@ export default function SurrogateIntakeForm() {
   const { state: navState } = useLocation()
   const prefill = navState?.prefill || {}
   const [step, setStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const startTimeRef = useRef(Date.now())
   const maxStepRef = useRef(1)
   useIframeHeightReporter()
@@ -117,13 +119,21 @@ export default function SurrogateIntakeForm() {
   }
 
   async function handleSubmit() {
-    // Bot protection — silently reject without revealing why
+    if (submitting) return
+    setSubmitting(true)
+    setSubmitError(null)
+
     const botCheck = validateSubmission()
     if (!botCheck.ok) {
-      // Fake success: bots think they submitted, but nothing happens
+      if (['turnstile_required', 'too_few_interactions'].includes(botCheck.reason)) {
+        setSubmitError('Please review the form and submit again.')
+        setSubmitting(false)
+        return
+      }
       navigate('/apply/confirmation', {
         state: { qualified: false, dqReasons: [], type: 'gc', name: form.firstName, email: form.email, tracking: {}, answers: form },
       })
+      setSubmitting(false)
       return
     }
 
@@ -177,9 +187,15 @@ export default function SurrogateIntakeForm() {
       })
       const result = await res.json().catch(() => ({}))
       if (result.accepted === false) {
+        if (['turnstile_failed', 'rate_limited_ip', 'duplicate_email_recent', 'too_few_interactions'].includes(result.reason)) {
+          setSubmitError('We could not verify the submission. Please try again in a moment.')
+          setSubmitting(false)
+          return
+        }
         navigate('/apply/confirmation', {
           state: { qualified: false, dqReasons: [], type: 'gc', name: form.firstName, email: form.email, tracking: {}, answers: form },
         })
+        setSubmitting(false)
         return
       }
     } catch {
@@ -220,6 +236,7 @@ export default function SurrogateIntakeForm() {
         answers: form,
       },
     })
+    setSubmitting(false)
   }
 
   const MILESTONES = [null, null, null, 'Halfway there!', 'Almost done!', 'Last step!']
@@ -230,7 +247,7 @@ export default function SurrogateIntakeForm() {
     nextDisabled: !stepValid[s] || (s === 1 && checking),
     onBack: s === 1 ? () => navigate('/surrogatequiz') : () => setStep(s - 1),
     onNext: s === 5 ? handleSubmit : s === 1 ? handleStep1Next : () => setStep(s + 1),
-    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? 'See if I qualify' : 'Continue',
+    nextLabel: s === 1 && checking ? 'Checking...' : s === 5 ? (submitting ? 'Submitting...' : 'See if I qualify') : 'Continue',
   })
 
   // Step 1 — Contact info
@@ -443,6 +460,7 @@ export default function SurrogateIntakeForm() {
           I understand that if approved, a background check is part of the standard screening process.
         </label>
       </div>
+      {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
       <TurnstileWidget onToken={setTurnstileToken} />
       <HoneypotField value={honeypotValue} onChange={setHoneypotValue} />
     </QuizShell>
