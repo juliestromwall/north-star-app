@@ -164,8 +164,11 @@ export default function AdminDashboard() {
   const toggleTaskExpanded = (t) => setTaskExpansions(prev => ({ ...prev, [t.id]: !getTaskExpanded(t) }))
   const [caseView, setCaseView] = useState('grid')
   const [caseSearch, setCaseSearch] = useState('')
-  // For master/super admins picking whose cases to summarize. Default = current user.
-  const [summaryAdminEmail, setSummaryAdminEmail] = useState(currentUser?.email || '')
+  // For master/super admins picking whose cases to view + summarize. The
+  // selected scope filters the case lists below AND drives the AI summary
+  // target. Default '__all__' preserves the legacy "see everything" behavior
+  // for super/master admins.
+  const [summaryAdminEmail, setSummaryAdminEmail] = useState('__all__')
   // getAdminStaff() reads from a module-level array that loadAdminUsers()
   // populates async on AppLayout mount. If we render before that fetch
   // resolves, the picker dropdown only shows "My cases". Bump this whenever
@@ -300,16 +303,43 @@ export default function AdminDashboard() {
   const HIDDEN_IP_STAGES = new Set(['holding', 'withdrawn'])
   const HIDDEN_JOURNEY_STATUSES = new Set(['Complete'])
 
+  // Resolve the dropdown selection to a Set of admin emails to scope the
+  // dashboard to. null = no scoping (show everyone).
+  const scopedEmails = useMemo(() => {
+    if (!showAllCases) return new Set([(myEmail || '').toLowerCase()])
+    if (!summaryAdminEmail || summaryAdminEmail === '__all__') return null
+    if (summaryAdminEmail === '__team__') {
+      // Mirror AdminCasesSummaryPage's team logic: every admin EXCEPT intake;
+      // for master admins the requester is included but other masters are not.
+      const myRole = currentUser?.role
+      return new Set(
+        getAdminStaff()
+          .filter(a => a.email !== 'intake@abcsurrogacy.com')
+          .filter(a => {
+            if (myRole === 'master_admin' && a.role === 'master_admin' && a.email?.toLowerCase() !== (myEmail || '').toLowerCase()) return false
+            return true
+          })
+          .map(a => (a.email || '').toLowerCase())
+      )
+    }
+    return new Set([summaryAdminEmail.toLowerCase()])
+  }, [showAllCases, summaryAdminEmail, currentUser?.role, myEmail, adminListVersion])
+
+  const inScope = (assignedEmail) => {
+    if (!scopedEmails) return true
+    return scopedEmails.has((assignedEmail || '').toLowerCase())
+  }
+
   const visibleJourneys = journeys.filter(j => isJourneyActive(j) && !HIDDEN_JOURNEY_STATUSES.has(j.status))
-  const allMyJourneys = showAllCases ? visibleJourneys : visibleJourneys.filter(j => j.assigned_to === myEmail)
+  const allMyJourneys = visibleJourneys.filter(j => inScope(j.assigned_to))
   const allMySurrogates = surrogates.filter(s => {
-    if (!(showAllCases || s.assignedTo === myEmail)) return false
+    if (!inScope(s.assignedTo)) return false
     if (matchedGcIds.has(s.id)) return false
     const ss = getSurrogateStageStatus(s.id)
     return !HIDDEN_GC_STAGES.has(ss?.stage)
   })
   const allMyIPs = ips.filter(ip => {
-    if (!(showAllCases || ip.assignedTo === myEmail)) return false
+    if (!inScope(ip.assignedTo)) return false
     if (matchedIpIds.has(ip.id)) return false
     const ss = getSurrogateStageStatus(ip.id)
     return !HIDDEN_IP_STAGES.has(ss?.stage)
@@ -1003,10 +1033,11 @@ export default function AdminDashboard() {
                 value={summaryAdminEmail}
                 onChange={e => setSummaryAdminEmail(e.target.value)}
                 className="h-10 text-sm border border-stone-200 rounded-xl px-3 bg-white outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 shrink-0"
-                title="Pick whose cases to summarize"
+                title="Filter cases (and pick whose to summarize)"
               >
+                <option value="__all__">All cases</option>
                 <option value={currentUser?.email || ''}>My cases</option>
-                <option value="__team__">Team summary (Desiree, Emily, Stacie)</option>
+                <option value="__team__">Team (Desiree, Emily, Stacie)</option>
                 {getAdminStaff()
                   .filter(a => a.email !== currentUser?.email)
                   // Jennifer Rose is intake-only — never include her in admin summaries.
@@ -1021,15 +1052,18 @@ export default function AdminDashboard() {
               className="h-10 gap-1.5 shrink-0 text-white"
               style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
               onClick={() => {
-                const target = (showAllCases ? summaryAdminEmail : currentUser?.email) || ''
-                const url = target === '__team__'
+                // For "__all__" (no specific scope) the AI summary falls back
+                // to a team summary — summarizing literally every case is too
+                // broad, so we treat "All" the same as "Team" for the summary.
+                const sel = showAllCases ? summaryAdminEmail : currentUser?.email
+                const url = (sel === '__team__' || sel === '__all__')
                   ? `/dashboard/cases-summary?team=1`
-                  : `/dashboard/cases-summary?admin=${encodeURIComponent(target)}`
+                  : `/dashboard/cases-summary?admin=${encodeURIComponent(sel || '')}`
                 window.open(url, '_blank', 'noopener,noreferrer')
               }}
             >
               <Sparkles className="size-4" />
-              {summaryAdminEmail === '__team__'
+              {(summaryAdminEmail === '__team__' || summaryAdminEmail === '__all__')
                 ? 'Summarize Team'
                 : `Summarize ${showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases`}
             </Button>
