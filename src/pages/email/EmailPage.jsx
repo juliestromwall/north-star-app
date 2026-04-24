@@ -124,6 +124,27 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
+// System label IDs that should never appear as a chip on an opened email —
+// either they're status flags (UNREAD/IMPORTANT), location-only (SENT/DRAFT),
+// have their own UI (STARRED), or are Gmail-managed category tabs.
+const CHIP_HIDDEN_LABEL_IDS = new Set([
+  'UNREAD', 'IMPORTANT', 'STARRED', 'SENT', 'DRAFT', 'SPAM', 'TRASH',
+  'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES',
+  'CATEGORY_PROMOTIONS', 'CATEGORY_FORUMS', 'CATEGORY_PURCHASES',
+])
+
+const SYSTEM_LABEL_NAMES = {
+  INBOX: 'Inbox', STARRED: 'Starred', SENT: 'Sent', DRAFT: 'Drafts',
+  SPAM: 'Spam', TRASH: 'Trash', UNREAD: 'Unread', IMPORTANT: 'Important',
+}
+
+function labelNameOf(labelId, userLabels = []) {
+  if (SYSTEM_LABEL_NAMES[labelId]) return SYSTEM_LABEL_NAMES[labelId]
+  const found = userLabels.find(l => l.id === labelId)
+  if (found?.name) return found.name
+  return labelId.replace('CATEGORY_', '').replace(/_/g, ' ')
+}
+
 // ── Not Connected State ─────────────────────────────────
 
 function NotConnectedState({ userId }) {
@@ -703,18 +724,33 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
             <span className="text-xs text-muted-foreground shrink-0">{formatFullDate(email.date)}</span>
           </div>
 
-          {email.labelIds?.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {email.labelIds
-                .filter(l => !['UNREAD', 'IMPORTANT', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_PROMOTIONS', 'CATEGORY_FORUMS'].includes(l))
-                .map(label => (
-                  <span key={label} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                    {label.replace('CATEGORY_', '').replace(/_/g, ' ')}
-                  </span>
-                ))
-              }
-            </div>
-          )}
+          {(() => {
+            const visibleLabels = (email.labelIds || []).filter(l => !CHIP_HIDDEN_LABEL_IDS.has(l))
+            if (visibleLabels.length === 0) return null
+            return (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {visibleLabels.map(labelId => {
+                  const name = labelNameOf(labelId, userLabels)
+                  return (
+                    <span
+                      key={labelId}
+                      className="inline-flex items-center gap-1 text-[10px] font-medium pl-2 pr-1 py-0.5 rounded-full bg-[#283693]/10 text-[#283693]"
+                    >
+                      {name}
+                      <button
+                        type="button"
+                        onClick={() => onToggleLabel?.(labelId, false)}
+                        className="rounded-full hover:bg-[#283693]/20 p-0.5 transition-colors"
+                        title={`Remove "${name}"`}
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           {email.attachments?.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-5 pb-4 border-b">
@@ -1182,12 +1218,18 @@ export default function EmailPage() {
     fetchMessages(searchQuery, null, activeFolder)
   }
 
-  // Toggle a user label on the currently-selected message. Updates local
-  // selectedEmail so the "Label as…" checkboxes flip immediately.
+  // Toggle a label on the currently-selected message. Updates local
+  // selectedEmail on success so chips + "Label as…" checkboxes flip
+  // immediately; surfaces an alert if the Gmail API rejects the change.
   const handleToggleLabel = async (labelId, shouldAdd) => {
     if (!selectedEmail || !userId) return
     const patch = shouldAdd ? { addLabels: [labelId] } : { removeLabels: [labelId] }
-    await modifyEmail(userId, selectedEmail.id, patch).catch(() => {})
+    try {
+      await modifyEmail(userId, selectedEmail.id, patch)
+    } catch (err) {
+      alert('Could not update label: ' + (err?.message || 'Unknown error'))
+      return
+    }
     setSelectedEmail(prev => {
       if (!prev) return prev
       const current = Array.isArray(prev.labelIds) ? prev.labelIds : []
