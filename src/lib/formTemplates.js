@@ -510,12 +510,21 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
     return `<span data-field-id="${id}" style="display:inline-block;min-width:200px;border-bottom:2px solid #283693;padding:2px 4px;color:#283693;font-weight:500;">${v || '&nbsp;'}</span>`
   }
 
+  const logoOrigin = typeof window !== 'undefined' ? window.location.origin : ''
   const headerEWM = `
-    <div style="text-align:center;font-size:11px;color:#333;line-height:1.3;margin-bottom:12px;text-decoration:none;">
-      <div style="text-decoration:none;">www.fertilitycounselingcenter.com</div>
-      <div style="text-decoration:none;">3151 Airway, Suite A-2 &middot; Costa Mesa, California 92626</div>
-      <div style="text-decoration:none;">Phone: (949) 307-6208 &middot; Fax: (949) 574-4887</div>
-    </div>`
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;text-decoration:none;">
+      <tr>
+        <td style="vertical-align:middle;width:60%;padding:0;">
+          <img src="${logoOrigin}/fcc-logo.png" alt="Fertility Counseling Center" style="max-height:46px;width:auto;display:block;" />
+        </td>
+        <td style="vertical-align:middle;text-align:right;font-size:10px;color:#333;line-height:1.35;padding:0;text-decoration:none;">
+          <div style="text-decoration:none;">www.fertilitycounselingcenter.com</div>
+          <div style="text-decoration:none;">3151 Airway, Suite A-2</div>
+          <div style="text-decoration:none;">Costa Mesa, California 92626</div>
+          <div style="text-decoration:none;">Phone: (949) 307-6208 &middot; Fax: (949) 574-4887</div>
+        </td>
+      </tr>
+    </table>`
 
   const wrap = (inner) => `
 <div style="font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.55; color: #000; max-width: 720px; margin: 0 auto; text-decoration: none;">
@@ -629,15 +638,17 @@ ${inner}
     if (pageId === 'ew1') {
       return wrap(`
   ${headerEWM}
-  <h2 style="font-size:14px;font-weight:700;color:#283693;text-align:center;margin:4px 0 12px;">INFORMED CONSENT TO PARTICIPATE IN TELEMEDICINE/TELEHEALTH SERVICES</h2>
-  <p>I (We) <strong>${nameVal(gcName)}</strong>${isEWPartnered ? ` and <strong>${nameVal(partnerName)}</strong>` : ''} hereby consent to participate in telemedicine (video-conferencing or phone) with Ellen Winters Miller (EWM).</p>
-  <p>I understand that "telemedicine/telehealth services" can include a practice of health care delivery, diagnosis, consultation, treatment, psychological testing, transfer of medical data and education using interactive audio, video or data communication.</p>
-  <p>While I am receiving services via telemedicine, I will be notified as to who is in the room.</p>
-  <p>I understand my participation in telemedicine is voluntary; that I may refuse to participate or decide to stop my participation at any time and that, at this time, there are no known risks involved with receiving my care this way.</p>
-  <p>Although I may sign other forms regarding Release of Information, I understand that the laws that protect confidentiality and privacy of my medical information also apply to telemedicine. There are both mandatory and permissible expectations to confidentiality, including, but not limited to reporting child, elder and dependent adult abuse; expressed threats of violence towards an ascertainable victim (including myself); and where I make my mental or emotional state an issue on a legal proceeding.</p>
-  <p>I understand that there are risks and consequences from telemedicine, including, but not limited to the possibility that the transmissions of my information could be disrupted or distorted by technical failures; unauthorized persons could interrupt the transmission of my medical information; and/or unauthorized persons could access the electronic storage of my medical information.</p>
-  <p>I understand that if a mental health testing instrument is administered to me electronically, my identity will be confirmed with a photo ID and that all testing modalities will adhere to those accepted by the test publishers.</p>
-  <p>I have read this document and I hereby consent to participate in receiving services via telemedicine/telehealth services under the terms described above.</p>
+  <h2 style="font-size:13px;font-weight:700;color:#000;text-align:center;margin:8px 0 12px;line-height:1.3;">INFORMED CONSENT TO<br/>PARTICIPATE IN TELEMEDICINE/TELEHEALTH SERVICES</h2>
+  <p style="margin:8px 0;">I (We) <strong>${nameVal(gcName)}</strong>${isEWPartnered ? ` and <strong>${nameVal(partnerName)}</strong>` : ''} hereby consent to participate in telemedicine (video-conferencing or phone) with Ellen Winters Miller (EWM).</p>
+  <ul style="margin:6px 0 10px 0;padding-left:22px;">
+    <li style="margin-bottom:6px;">I understand that &ldquo;telemedicine/telehealth services&rdquo; can include a practice of health care delivery, diagnosis, consultation, treatment, psychological testing, transfer of medical data and education using interactive audio, video or data communication.</li>
+    <li style="margin-bottom:6px;">While I am receiving services via telemedicine, I will be notified as to who is in the room.</li>
+    <li style="margin-bottom:6px;">I understand my participation in telemedicine is voluntary; that I may refuse to participate or decide to stop my participation at any time and that, at this time, there are no known risks involved with receiving my care this way.</li>
+    <li style="margin-bottom:6px;">Although I may sign other forms regarding Release of Information, I understand that the laws that protect confidentiality and privacy of my medical information also apply to telemedicine. There are both mandatory and permissible expectations to confidentiality, including, but not limited to reporting child, elder and dependent adult abuse; expressed threats of violence towards an ascertainable victim (including myself); and where I make my mental or emotional state an issue on a legal proceeding.</li>
+    <li style="margin-bottom:6px;">I understand that there are risks and consequences from telemedicine, including, but not limited to the possibility that the transmissions of my information could be disrupted or distorted by technical failures; unauthorized persons could interrupt the transmission of my medical information; and/or unauthorized persons could access the electronic storage of my medical information.</li>
+    <li style="margin-bottom:6px;">I understand that if a mental health testing instrument is administered to me electronically, my identity will be confirmed with a photo ID and that all testing modalities will adhere to those accepted by the test publishers.</li>
+  </ul>
+  <p style="margin:10px 0;">I have read this document and I hereby consent to participate in receiving services via telemedicine/telehealth services under the terms described above.</p>
   <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:18px;border-top:1px solid #ccc;padding-top:10px;">
     <tr>
       <td style="padding:8px 0;">${nameVal(gcName)}<br/><span style="font-size:10px;color:#666;">Participant Printed Name</span></td>
@@ -651,7 +662,7 @@ ${inner}
     if (pageId === 'ew2') {
       return wrap(`
   ${headerEWM}
-  <h2 style="font-size:14px;font-weight:700;color:#283693;text-align:center;margin:4px 0 12px;">RELEASE OF INFORMATION, LIABILITY &amp; NOTICE OF PRIVACY</h2>
+  <h2 style="font-size:13px;font-weight:700;color:#000;text-align:center;margin:8px 0 12px;line-height:1.3;">RELEASE OF INFORMATION, LIABILITY &amp; NOTICE OF PRIVACY</h2>
   <p>I (We) <strong>${nameVal(gcName)}</strong>${isEWPartnered ? ` and <strong>${nameVal(partnerName)}</strong>` : ''} agree to participate in a psycho-educational session or mental health screening (including psychological testing, if indicated) exclusively for the purposes of being an:</p>
   <p style="padding-left:20px;">☐ egg donor &nbsp;&nbsp; ☐ embryo donor &nbsp;&nbsp; ☐ sperm donor &nbsp;&nbsp; <strong>☒ gestational carrier (surrogate)</strong></p>
   <p>I (We) understand that my participation in this assessment is considered voluntary, non-diagnostic, and non-therapeutic and is conducted in partial completion of a third-party parenting contract and not subject to usual Notice of Privacy Practices. I (We) consent to EWM to disclose the following information:</p>
@@ -681,7 +692,7 @@ ${inner}
     if (pageId === 'ew3') {
       return wrap(`
   ${headerEWM}
-  <h2 style="font-size:14px;font-weight:700;color:#283693;text-align:center;margin:4px 0 12px;">INFORMED CONSENT FOR PARTICIPANTS IN THIRD PARTY ASSISTED REPRODUCTION</h2>
+  <h2 style="font-size:13px;font-weight:700;color:#000;text-align:center;margin:8px 0 12px;line-height:1.3;">INFORMED CONSENT FOR PARTICIPANTS IN<br/>THIRD PARTY ASSISTED REPRODUCTION</h2>
   <p>It is impossible to state with any degree of certainty or specificity the implications of your participation in a program where you will be the (please check all that apply):</p>
   <p style="padding-left:20px;">☐ Egg Donor &nbsp;&nbsp; ☐ Sperm Donor &nbsp;&nbsp; ☐ Embryo Donor &nbsp;&nbsp; <strong>☒ Gestational Carrier (Surrogate)</strong></p>
   <p>You will be having a consultation or psycho-educational session with Ellen Winters Miller, a California licensed mental health professional. This may include a discussion of your family history, potential personality difficulties and pathology that may make you an appropriate or inappropriate candidate. This session is based on the guidelines established by the American Society of Reproductive Medicine. Additionally, a discussion regarding your thoughts and feelings related to your role as a potential participant will occur, so that you can make a responsible and informed decision regarding becoming one.</p>
@@ -708,7 +719,7 @@ ${inner}
     if (pageId === 'ew4') {
       return wrap(`
   ${headerEWM}
-  <h2 style="font-size:14px;font-weight:700;color:#283693;text-align:center;margin:4px 0 12px;">RELEASE OF INFORMATION</h2>
+  <h2 style="font-size:13px;font-weight:700;color:#000;text-align:center;margin:8px 0 12px;line-height:1.3;">RELEASE OF INFORMATION</h2>
   <p>I, (We) <strong>${nameVal(gcName)}</strong>${isEWPartnered ? `<br/>and <strong>${nameVal(partnerName)}</strong>` : ''}</p>
   <p>will be speaking with Ellen Winters Miller, M.A., L.M.F.T. (EWM) at the request of <strong>${agencyName}</strong>.</p>
   <p>I (We) understand that:</p>
@@ -739,7 +750,7 @@ ${inner}
       // Surrogate-only — only rendered for single or for GC copy of partnered
       return wrap(`
   ${headerEWM}
-  <h2 style="font-size:14px;font-weight:700;color:#283693;text-align:center;margin:4px 0 12px;">REFERRAL FOR PSYCHOLOGICAL TESTING AND RELEASE OF INFORMATION</h2>
+  <h2 style="font-size:13px;font-weight:700;color:#000;text-align:center;margin:8px 0 12px;line-height:1.3;">REFERRAL FOR PSYCHOLOGICAL TESTING AND<br/>RELEASE OF INFORMATION</h2>
   <p>I, <strong>${nameVal(gcName)}</strong> (Name of Prospective Gestational Candidate), understand that, at the request of <strong>${agencyName}</strong>, I am completing the Minnesota Multiphasic Personality Inventory-2 (MMPI) or the Personality Assessment Inventory (PAI). The interpretative results and narrative report from this testing will be issued to Ellen Winters Miller.</p>
   <p>By signing this document, I understand that Ellen Winters Miller may release information regarding the treatment considerations and suitability to be a gestational carrier, egg donor or sperm donor as reflected by this testing to the Agency/medical personnel/specific intended parents with whom I may be matched and to whom it may be relevant. She will NOT be releasing my responses on the testing instrument or the actual report to the Agency/medical personnel/specific intended parents with whom I may be matched or to myself.</p>
   <p>I acknowledge that I am a willing participant in this examination and that neither Ellen Winters Miller, nor anyone else in a program with which she is associated, has acted in a coercive manner or pressured me to participate in any way.</p>
