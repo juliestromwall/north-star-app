@@ -1230,6 +1230,7 @@ export default function EmailPage() {
       alert('Could not update label: ' + (err?.message || 'Unknown error'))
       return
     }
+    const msgId = selectedEmail.id
     setSelectedEmail(prev => {
       if (!prev) return prev
       const current = Array.isArray(prev.labelIds) ? prev.labelIds : []
@@ -1237,6 +1238,25 @@ export default function EmailPage() {
         ? Array.from(new Set([...current, labelId]))
         : current.filter(id => id !== labelId)
       return { ...prev, labelIds: next }
+    })
+    // Mirror the label change into the inbox list and drop the row if its
+    // new labels no longer match the folder the admin is viewing — e.g.
+    // removing "Inbox" while viewing the Inbox should remove the email
+    // from the list, not leave it lingering until a refresh.
+    setMessages(prev => {
+      const next = prev.map(m => {
+        if (m.id !== msgId) return m
+        const current = Array.isArray(m.labelIds) ? m.labelIds : []
+        const updated = shouldAdd
+          ? Array.from(new Set([...current, labelId]))
+          : current.filter(id => id !== labelId)
+        return { ...m, labelIds: updated }
+      })
+      // Only apply the folder filter when the user is browsing a folder
+      // (not running a free-text search — search results can legitimately
+      // span labels).
+      if (searchQuery) return next
+      return next.filter(m => (m.labelIds || []).includes(activeFolder))
     })
   }
 
