@@ -1690,10 +1690,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                 <>
                   <PVField label="Spouse/partner's occupation" value={employment.partnerOccupation} fp="employment.partnerOccupation" />
                   <PVField label="Hours/days spouse or partner works each week" value={employment.partnerWorkHours} fp="employment.partnerWorkHours" />
-                  <PVGrid cols={2}>
-                    <PVField label="Spouse/partner's hourly rate" value={employment.partnerHourlyRate} fp="employment.partnerHourlyRate" />
-                    <PVField label="Spouse/partner's weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
-                  </PVGrid>
+                  <PVField label="Spouse/partner's weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
                 </>
               )}
             </>
@@ -2519,10 +2516,7 @@ function EmploymentSection({ v, u, profile }) {
               <>
                 <TextField label="Spouse/partner's occupation" value={v(s, 'partnerOccupation')} onChange={u(s, 'partnerOccupation')} />
                 <TextAreaField label="What hours and days does your spouse/partner work each week?" value={v(s, 'partnerWorkHours')} onChange={u(s, 'partnerWorkHours')} rows={2} placeholder="e.g. Mon-Fri, 8am-5pm" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <HourlyRateField label="Spouse/partner's hourly rate" value={v(s, 'partnerHourlyRate')} onChange={u(s, 'partnerHourlyRate')} />
-                  <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
-                </div>
+                <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
               </>
             )}
           </div>

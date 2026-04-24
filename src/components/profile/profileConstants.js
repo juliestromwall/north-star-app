@@ -122,7 +122,6 @@ export const FIELD_LABELS = {
   partnerEmployed: 'Is your spouse/partner employed?',
   partnerOccupation: "Spouse/partner's occupation",
   partnerWorkHours: 'What hours and days does your spouse/partner work each week?',
-  partnerHourlyRate: "Spouse/partner's hourly rate",
   partnerWeeklyIncome: "Spouse/partner's approximate weekly income",
   governmentAssistance: 'Do you receive any government assistance (WIC, food stamps)?',
   governmentAssistanceDetails: 'Please explain',

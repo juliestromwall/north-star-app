@@ -2933,7 +2933,6 @@ const CONDITIONAL_FIELDS = {
   // Hide partner employment detail fields when partner is not employed
   partnerOccupation: { parent: 'partnerEmployed', showWhen: 'yes' },
   partnerWorkHours: { parent: 'partnerEmployed', showWhen: 'yes' },
-  partnerHourlyRate: { parent: 'partnerEmployed', showWhen: 'yes' },
   partnerWeeklyIncome: { parent: 'partnerEmployed', showWhen: 'yes' },
   diseaseHistoryDetails: { parent: 'diseaseHistory', showWhen: '_array_has_value' },
   // Experienced Surrogate — hide details when previousSurrogate is 'no'
@@ -3000,7 +2999,7 @@ const PROFILE_SECTIONS = [
   { key: 'employment', title: 'Employment Information', fields: [
     'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
     'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
-    'partnerEmployed', 'partnerOccupation', 'partnerWorkHours', 'partnerHourlyRate', 'partnerWeeklyIncome',
+    'partnerEmployed', 'partnerOccupation', 'partnerWorkHours', 'partnerWeeklyIncome',
     'governmentAssistance', 'governmentAssistanceDetails',
     'healthInsurance', 'insuranceType'
   ] },
@@ -3073,12 +3072,29 @@ function countSectionFilled(data, section) {
     familyMentalHealthDetails: { parent: 'familyMentalHealth', show: 'yes' },
     domesticViolenceDetails: { parent: 'domesticViolence', show: 'yes' },
     diseaseHistoryDetails: { parent: 'diseaseHistory', show: 'yes' },
-    vaccinationReasons: { parent: 'openToVaccinations', show: 'no' },
+    vaccinesNotWilling: { parent: 'openToVaccinations', show: 'no' },
     governmentAssistanceDetails: { parent: 'governmentAssistance', show: 'yes' },
     cvsAmnioDetails: { parent: 'cvsAmnio', show: 'no' },
     lifestyleChangesDetails: { parent: 'lifestyleChanges', show: 'yes' },
     ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', show: 'No' },
     currentlyInSchoolDetails: { parent: 'currentlyInSchool', show: 'yes' },
+    // Hopes & Wishes follow-ups
+    transferAnotherStateDetails: { parent: 'transferAnotherState', show: 'no' },
+    conditionsWontTerminateDetails: { parent: 'conditionsWontTerminate', show: 'yes' },
+    carryTwins: { parent: 'embryosToTransfer', show: '1' },
+    // Employment — hide surrogate's employment details when not employed
+    employmentIndustry: { parent: 'currentlyEmployed', show: 'yes' },
+    workHours: { parent: 'currentlyEmployed', show: 'yes' },
+    occupation: { parent: 'currentlyEmployed', show: 'yes' },
+    lengthAtEmployer: { parent: 'currentlyEmployed', show: 'yes' },
+    hourlyRate: { parent: 'currentlyEmployed', show: 'yes' },
+    weeklyIncome: { parent: 'currentlyEmployed', show: 'yes' },
+    // Employment — partner detail fields gated by partnerEmployed
+    partnerOccupation: { parent: 'partnerEmployed', show: 'yes' },
+    partnerWorkHours: { parent: 'partnerEmployed', show: 'yes' },
+    partnerWeeklyIncome: { parent: 'partnerEmployed', show: 'yes' },
+    // Employment — insurance type gated by has-insurance
+    insuranceType: { parent: 'healthInsurance', show: 'yes' },
     // Partner fields — skip if not in a relationship
     partnerName: { parent: 'maritalStatus', show: '_partner' },
     partnerDob: { parent: 'maritalStatus', show: '_partner' },
@@ -3086,8 +3102,6 @@ function countSectionFilled(data, section) {
     relationshipLength: { parent: 'maritalStatus', show: '_partner' },
     monogamous: { parent: 'maritalStatus', show: '_partner' },
     sexualPartners: { parent: 'maritalStatus', show: '_partner' },
-    partnerOccupation: { parent: 'maritalStatus', show: '_partner' },
-    partnerWeeklyIncome: { parent: 'maritalStatus', show: '_partner' },
     partnerFdaTests: { parent: 'maritalStatus', show: '_partner' },
     partnerAgreesTermination: { parent: 'maritalStatus', show: '_partner' },
     // Experienced Surrogate — skip details when previousSurrogate is 'no'
@@ -4503,7 +4517,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   // Hourly-rate fields auto-format last two digits as cents (e.g. typing
   // "1640" renders "$16.40"). Mirrors the HourlyRateField on the surrogate
   // side so admins and surrogates see the same stored value.
-  const HOURLY_RATE_FIELDS = new Set(['hourlyRate', 'partnerHourlyRate'])
+  const HOURLY_RATE_FIELDS = new Set(['hourlyRate'])
 
   // Textarea fields (multi-line text)
   const TEXTAREA_FIELDS = new Set([
