@@ -130,7 +130,10 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       const formToken = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
 
-      const docTitle = `Background Check Release Form - ${signerName}`
+      const isReleaseForm = template.layoutMode === 'doc-first'
+      const docTitle = isReleaseForm
+        ? `${template.title} - ${signerName}`
+        : `Background Check Release Form - ${signerName}`
 
       const doc = await createDocument({
         templateId: null,

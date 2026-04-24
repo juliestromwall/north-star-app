@@ -1559,23 +1559,51 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <div id="app-sec-payment"><PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-social"><SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
 
-      {/* Background Waivers */}
-      {(!searchLower || 'background waiver'.includes(searchLower)) && (
-        <Card id="app-sec-waivers">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Shield className="size-4 text-[#283693]" /> Background Waivers
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
-            <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate}
-              partnerName={[answers?._application?.spouseFirstName, answers?._application?.spouseLastName].filter(Boolean).join(' ')}
-              partnerEmail={answers?._application?.spouseEmail}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* Release Forms */}
+      {(!searchLower || 'release form'.includes(searchLower) || 'background waiver'.includes(searchLower)) && (() => {
+        const partnerName = [answers?._application?.spouseFirstName, answers?._application?.spouseLastName].filter(Boolean).join(' ')
+        const partnerEmail = answers?._application?.spouseEmail
+        return (
+          <Card id="app-sec-waivers">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Shield className="size-4 text-[#283693]" /> Release Forms
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Background Check</p>
+                <div className="space-y-2">
+                  <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">HIPAA</p>
+                <div className="space-y-2">
+                  <SendFormTemplateButton templateId="release_hipaa_gc" surrogate={surrogate} />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">General Psych Release</p>
+                <div className="space-y-2">
+                  <SendFormTemplateButton templateId="release_general_psych_single_gc" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="release_general_psych_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Ellen Winters Psych Release</p>
+                <div className="space-y-2">
+                  <SendFormTemplateButton templateId="release_ellen_winters_single_gc" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} />
+                  <SendFormTemplateButton templateId="release_ellen_winters_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { logAuditEvent, signDocument } from '@/lib/esign'
-import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateIPBackgroundWaiverHtml, generateAuditTrailHtml } from '@/lib/formTemplates'
+import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateIPBackgroundWaiverHtml, generateAuditTrailHtml, generateReleasePageHtml, generateReleaseFormHtml } from '@/lib/formTemplates'
 
 // ── Signature Pad ──
 function SignaturePad({ value, onChange, signerName }) {
@@ -75,6 +75,7 @@ export default function SignFormPage() {
   const [mySigner, setMySigner] = useState(null)
   const [fieldValues, setFieldValues] = useState({})
   const [signatures, setSignatures] = useState({})
+  const [initials, setInitials] = useState({})
   const [activeSigId, setActiveSigId] = useState(null)
   const [signing, setSigning] = useState(false)
   const [done, setDone] = useState(false)
@@ -155,6 +156,26 @@ export default function SignFormPage() {
       if (lastName) prefill.lastName = lastName
       if (phone) prefill.phone = phone
       if (dob) prefill.dob = dob
+
+      // Release forms (doc-first layout) — prefill the shared person/address context
+      const tpl = FORM_TEMPLATES[JSON.parse(doc.document_hash || '{}').templateId]
+      if (tpl?.layoutMode === 'doc-first') {
+        const gcFirstName = a.firstName || ''
+        const gcLastName = a.lastName || ''
+        const gcFull = [gcFirstName, gcLastName].filter(Boolean).join(' ').trim()
+        const partnerFirstName = app.spouseFirstName || ''
+        const partnerLastName = app.spouseLastName || ''
+        const partnerFull = [partnerFirstName, partnerLastName].filter(Boolean).join(' ').trim()
+        const confidential = a._confidential || {}
+        const streetLine = [confidential.streetAddress, confidential.aptNumber].filter(Boolean).join(' ').trim()
+        const cityStateZipLine = [confidential.city, [confidential.state, confidential.zipCode].filter(Boolean).join(' ')].filter(Boolean).join(', ').trim()
+        if (gcFull) prefill.gcName = gcFull
+        if (a.email) prefill.gcEmail = a.email
+        if (partnerFull) prefill.partnerName = partnerFull
+        if (streetLine) prefill.streetAddress = streetLine
+        if (cityStateZipLine) prefill.cityStateZip = cityStateZipLine
+      }
+
       if (Object.keys(prefill).length) {
         setFieldValues(prev => ({ ...prefill, ...prev }))
       }
@@ -170,33 +191,68 @@ export default function SignFormPage() {
   async function handleSubmit() {
     if (!doc || !mySigner || !template || signing) return
 
+    const isDocFirst = template.layoutMode === 'doc-first'
+
     // Validate required fields
-    const missing = template.fields.filter(f => f.required && !fieldValues[f.id])
+    const missing = (template.fields || []).filter(f => f.required && !fieldValues[f.id])
     if (missing.length > 0) {
       alert(`Please fill in: ${missing.map(f => f.label).join(', ')}`)
       return
     }
-    const unsignedSigs = template.signatures.filter(s => !signatures[s.id])
+
+    // Gather required sig/initials ids based on layout
+    let requiredSigIds = []
+    let requiredInitIds = []
+    if (isDocFirst) {
+      for (const page of (template.pages || [])) {
+        if (mySigner.role === 'gc') {
+          requiredSigIds.push(...(page.gcSignatures || []).map(s => s.id))
+          requiredInitIds.push(...(page.gcInitials || []).map(s => s.id))
+        } else if (mySigner.role === 'partner') {
+          requiredSigIds.push(...(page.partnerSignatures || []).map(s => s.id))
+          requiredInitIds.push(...(page.partnerInitials || []).map(s => s.id))
+        }
+      }
+    } else {
+      requiredSigIds = (template.signatures || []).map(s => s.id)
+    }
+
+    const unsignedSigs = requiredSigIds.filter(id => !signatures[id])
     if (unsignedSigs.length > 0) {
-      alert(`Please sign: ${unsignedSigs.map(s => s.label).join(', ')}`)
+      alert(`Please sign all signature slots (${unsignedSigs.length} remaining).`)
+      return
+    }
+    const missingInits = requiredInitIds.filter(id => !(initials[id] || '').trim())
+    if (missingInits.length > 0) {
+      alert(`Please enter your initials on all required slots (${missingInits.length} remaining).`)
       return
     }
 
     setSigning(true)
     try {
       // Generate filled PDF HTML
-      const generateHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
-      const filledHtml = generateHtml(fieldValues, signatures, {
-        signerName: mySigner.name,
-        signerEmail: mySigner.email,
-        forPdf: true,
-      })
+      let filledHtml
+      if (isDocFirst) {
+        filledHtml = generateReleaseFormHtml(template, fieldValues, signatures, initials, {
+          forPdf: true,
+          signerRole: mySigner.role,
+          signerName: mySigner.name,
+        })
+      } else {
+        const generateHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+        filledHtml = generateHtml(fieldValues, signatures, {
+          signerName: mySigner.name,
+          signerEmail: mySigner.email,
+          forPdf: true,
+        })
+      }
       const auditHtml = generateAuditTrailHtml(mySigner.name, mySigner.email, signatures)
 
       // Sign the document
       const signatureData = {
         type: 'form_template',
         fieldValues,
+        initials,
         signatures: Object.fromEntries(
           Object.entries(signatures).map(([k, v]) => [k, { type: v.type, name: v.name }])
         ),
@@ -276,9 +332,10 @@ export default function SignFormPage() {
         console.error('PDF failed:', pdfErr)
       }
 
-      // Auto-create task for the assigned case manager to request the background check
+      // Auto-create task for the assigned case manager to request the background check.
+      // Only fires for the background-waiver templates — release forms skip this.
       try {
-        if (doc.case_id) {
+        if (doc.case_id && !isDocFirst) {
           const { data: caseRow } = await supabase
             .from('intake_submissions')
             .select('assigned_to')
@@ -368,6 +425,150 @@ export default function SignFormPage() {
       </Card>
     </div>
   )
+
+  // ── Doc-first Release Forms (stacked pages with inline signatures) ──
+  if (template.layoutMode === 'doc-first') {
+    const pages = template.pages || []
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+        <div className="max-w-3xl mx-auto py-6 px-3 sm:px-6">
+          <div className="text-center mb-6">
+            <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-3" />
+            <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">{template.title}</h1>
+            <p className="text-xs sm:text-sm text-stone-500 mt-1">
+              Signed in as {mySigner.name} ({mySigner.email}) &middot; {pages.length} page{pages.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+
+          {/* Optional surrogate-provided fields (e.g. address on HIPAA) */}
+          {(template.fields || []).length > 0 && (
+            <Card className="mb-5">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-3">Your information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {template.fields.map(f => (
+                    <div key={f.id} className={`space-y-1 ${f.type === 'textarea' ? 'sm:col-span-2' : ''}`}>
+                      <label className="block text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+                      <Input
+                        value={fieldValues[f.id] || ''}
+                        onChange={e => updateField(f.id, e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {pages.map((page, i) => {
+            const pageHtml = generateReleasePageHtml(page.id, template, fieldValues, signatures, initials, {
+              forPdf: false,
+              signerRole: mySigner.role,
+              signerName: mySigner.name,
+            })
+            const mySigs = mySigner.role === 'gc' ? (page.gcSignatures || []) : (page.partnerSignatures || [])
+            const myInits = mySigner.role === 'gc' ? (page.gcInitials || []) : (page.partnerInitials || [])
+            return (
+              <Card key={page.id} className="mb-5">
+                <CardContent className="p-4 sm:p-6 space-y-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xs font-bold text-white bg-[#283693] rounded-full size-7 flex items-center justify-center">{i + 1}</span>
+                    <div>
+                      <p className="font-semibold text-stone-800 text-sm sm:text-base">{page.title}</p>
+                      <p className="text-[11px] text-stone-400">Page {i + 1} of {pages.length}</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 sm:p-5 bg-white max-h-[420px] overflow-y-auto text-xs sm:text-sm"
+                    dangerouslySetInnerHTML={{ __html: pageHtml }}
+                  />
+
+                  {/* Initials for this page */}
+                  {myInits.length > 0 && (
+                    <div className="space-y-2 pt-3 border-t">
+                      <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your initials</h4>
+                      {myInits.map(init => (
+                        <div key={init.id} className="flex items-center gap-3">
+                          <label className="text-xs font-medium text-stone-500 min-w-[120px]">Initials</label>
+                          <Input
+                            value={initials[init.id] || ''}
+                            onChange={e => setInitials(prev => ({ ...prev, [init.id]: e.target.value.slice(0, 4).toUpperCase() }))}
+                            placeholder="ABC"
+                            maxLength={4}
+                            className="h-10 w-24 font-serif italic text-center"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Signatures for this page */}
+                  {mySigs.length > 0 && (
+                    <div className="space-y-3 pt-3 border-t">
+                      <h4 className="text-xs font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h4>
+                      {mySigs.map(sig => (
+                        <div key={sig.id}>
+                          {signatures[sig.id] ? (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+                              {signatures[sig.id].type === 'drawn' && signatures[sig.id].image ? (
+                                <img src={signatures[sig.id].image} alt="signature" style={{ height: 32 }} />
+                              ) : (
+                                <span className="text-sm font-serif italic text-[#283693]">{signatures[sig.id].name || 'Signed'}</span>
+                              )}
+                              <button onClick={() => setActiveSigId(sig.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
+                            </div>
+                          ) : activeSigId === sig.id ? (
+                            <div>
+                              <SignaturePad
+                                value={signatures[sig.id]}
+                                onChange={val => {
+                                  setSignatures(prev => ({ ...prev, [sig.id]: val }))
+                                  if (val?.type === 'drawn') setActiveSigId(null)
+                                }}
+                                signerName={mySigner.name}
+                              />
+                              <button onClick={() => setActiveSigId(null)} className="text-xs text-stone-400 hover:underline mt-1">Done</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setActiveSigId(sig.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5 transition-colors">
+                              Click to sign
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+
+          <div className="flex flex-col items-center gap-3 pt-2 pb-10">
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input type="checkbox" id="agree-docfirst" className="size-4 accent-[#283693]" />
+              <span>I agree that my electronic signature is legally binding</span>
+            </label>
+            <Button
+              onClick={() => {
+                const agreed = document.getElementById('agree-docfirst')?.checked
+                if (!agreed) { alert('Please agree to the terms before submitting.'); return }
+                handleSubmit()
+              }}
+              disabled={signing}
+              size="lg"
+              className="gap-2 w-full sm:w-auto sm:px-10"
+              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+            >
+              {signing ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
+              {signing ? 'Submitting...' : 'Sign & Submit'}
+            </Button>
+            <p className="text-[10px] text-stone-400 text-center">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── Form Filling ──
   const generatePreviewHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
