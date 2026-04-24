@@ -79,6 +79,7 @@ export default function SignFormPage() {
   const [activeSigId, setActiveSigId] = useState(null)
   const [signing, setSigning] = useState(false)
   const [done, setDone] = useState(false)
+  const [validationError, setValidationError] = useState(null)
 
   // Load document by token
   useEffect(() => {
@@ -191,13 +192,14 @@ export default function SignFormPage() {
 
   async function handleSubmit() {
     if (!doc || !mySigner || !template || signing) return
+    setValidationError(null)
 
     const isDocFirst = template.layoutMode === 'doc-first'
 
     // Validate required fields
     const missing = (template.fields || []).filter(f => f.required && !fieldValues[f.id])
     if (missing.length > 0) {
-      alert(`Please fill in: ${missing.map(f => f.label).join(', ')}`)
+      setValidationError(`Please fill in: ${missing.map(f => f.label).join(', ')}`)
       return
     }
 
@@ -223,12 +225,12 @@ export default function SignFormPage() {
 
     const unsignedSigs = requiredSigIds.filter(id => !signatures[id])
     if (unsignedSigs.length > 0) {
-      alert(`Please sign all signature slots (${unsignedSigs.length} remaining).`)
+      setValidationError(`Please sign all signature slots (${unsignedSigs.length} remaining).`)
       return
     }
     const missingInits = requiredInitIds.filter(id => !(initials[id] || '').trim())
     if (missingInits.length > 0) {
-      alert(`Please enter your initials on all required slots (${missingInits.length} remaining).`)
+      setValidationError(`Please enter your initials on all required slots (${missingInits.length} remaining).`)
       return
     }
 
@@ -487,7 +489,7 @@ export default function SignFormPage() {
 
       setDone(true)
     } catch (err) {
-      alert('Failed to submit: ' + err.message)
+      setValidationError(`Failed to submit: ${err.message || 'Unknown error'}`)
     } finally {
       setSigning(false)
     }
@@ -679,13 +681,23 @@ export default function SignFormPage() {
 
           <div className="flex flex-col items-center gap-3 pt-2 pb-10">
             <label className="flex items-center gap-2 text-sm text-stone-700">
-              <input type="checkbox" id="agree-docfirst" className="size-4 accent-[#283693]" />
+              <input type="checkbox" id="agree-docfirst" className="size-4 accent-[#283693]" onChange={() => setValidationError(null)} />
               <span>I agree that my electronic signature is legally binding</span>
             </label>
+
+            {/* In-platform validation banner (replaces browser alert) */}
+            {validationError && (
+              <div role="alert" className="w-full max-w-md flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                <svg className="size-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 7v4m0 3h.01" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+                <div className="flex-1 whitespace-pre-line">{validationError}</div>
+                <button onClick={() => setValidationError(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+              </div>
+            )}
+
             <Button
               onClick={() => {
                 const agreed = document.getElementById('agree-docfirst')?.checked
-                if (!agreed) { alert('Please agree to the terms before submitting.'); return }
+                if (!agreed) { setValidationError('Please agree to the terms before submitting.'); return }
                 handleSubmit()
               }}
               disabled={signing}
@@ -735,6 +747,15 @@ export default function SignFormPage() {
             {signing ? 'Submitting...' : 'Sign & Submit'}
           </Button>
         </div>
+
+        {/* In-platform validation banner (replaces browser alert) */}
+        {validationError && (
+          <div role="alert" className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <svg className="size-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 7v4m0 3h.01" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+            <div className="flex-1 whitespace-pre-line">{validationError}</div>
+            <button onClick={() => setValidationError(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+          </div>
+        )}
 
         {/* Form fields panel */}
         <Card className="mb-6">

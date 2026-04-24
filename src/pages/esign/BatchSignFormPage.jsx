@@ -80,6 +80,7 @@ export default function BatchSignFormPage() {
   const [signedDocIds, setSignedDocIds] = useState(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [allDone, setAllDone] = useState(false)
+  const [validationError, setValidationError] = useState(null)
 
   // Load all docs with this batchToken
   useEffect(() => {
@@ -179,11 +180,17 @@ export default function BatchSignFormPage() {
     }))
   }
 
+  /**
+   * Validate + sign the currently-active doc.
+   * Returns { ok: true } on success; { ok: false, error } on validation fail.
+   * Callers MUST check `ok` — otherwise advancing to the next doc would
+   * skip a doc that was never actually signed.
+   */
   async function signCurrentDoc() {
     const doc = docs[activeIdx]
-    if (!doc || !mySigner) return
+    if (!doc || !mySigner) return { ok: false, error: 'No active document' }
     const template = templates[doc.id]
-    if (!template) return
+    if (!template) return { ok: false, error: 'Template not recognized' }
 
     const state = stateByDoc[doc.id] || { fieldValues: {}, signatures: {}, initials: {} }
     const { fieldValues, signatures, initials } = state
@@ -210,11 +217,17 @@ export default function BatchSignFormPage() {
     }
 
     const missingFields = (template.fields || []).filter(f => f.required && !fieldValues[f.id])
-    if (missingFields.length) { alert(`Please fill: ${missingFields.map(f => f.label).join(', ')}`); return }
+    if (missingFields.length) {
+      return { ok: false, error: `Please fill in: ${missingFields.map(f => f.label).join(', ')}` }
+    }
     const unsigned = requiredSigIds.filter(id => !signatures[id])
-    if (unsigned.length) { alert(`Please sign all ${requiredSigIds.length} slot(s).`); return }
+    if (unsigned.length) {
+      return { ok: false, error: `Please sign all signature slots (${unsigned.length} remaining).` }
+    }
     const missingInits = requiredInitIds.filter(id => !(initials[id] || '').trim())
-    if (missingInits.length) { alert(`Please enter your initials on all ${requiredInitIds.length} slot(s).`); return }
+    if (missingInits.length) {
+      return { ok: false, error: `Please enter your initials on all required slots (${missingInits.length} remaining).` }
+    }
 
     try {
       // Build filled HTML (matches SignFormPage)
@@ -361,25 +374,38 @@ export default function BatchSignFormPage() {
       }
 
       setSignedDocIds(prev => new Set([...prev, doc.id]))
+      return { ok: true }
     } catch (err) {
-      alert('Failed to submit: ' + err.message)
-      throw err
+      return { ok: false, error: `Failed to submit: ${err.message || 'Unknown error'}` }
     }
   }
 
   async function handleSignCurrent() {
     if (submitting) return
+    setValidationError(null)
+    // Require the agreement checkbox before attempting submission
+    const activeDocNow = docs[activeIdx]
+    if (!activeDocNow) return
+    const agreed = document.getElementById(`agree-${activeDocNow.id}`)?.checked
+    if (!agreed) {
+      setValidationError('Please agree to the terms before submitting.')
+      return
+    }
     setSubmitting(true)
     try {
-      await signCurrentDoc()
-      // Advance or finish
+      const res = await signCurrentDoc()
+      if (!res?.ok) {
+        setValidationError(res?.error || 'Could not submit this document.')
+        return
+      }
+      // Only advance when the current doc was actually signed
       if (activeIdx < docs.length - 1) {
         setActiveIdx(activeIdx + 1)
         setActiveSigId(null)
       } else {
         setAllDone(true)
       }
-    } catch {} finally { setSubmitting(false) }
+    } finally { setSubmitting(false) }
   }
 
   // ── Render ──
@@ -669,21 +695,28 @@ export default function BatchSignFormPage() {
         {/* Bottom actions: sign current, advance */}
         <div className="flex flex-col items-center gap-3 pt-2 pb-10">
           <label className="flex items-center gap-2 text-sm text-stone-700">
-            <input type="checkbox" id={`agree-${activeDoc.id}`} className="size-4 accent-[#283693]" />
+            <input type="checkbox" id={`agree-${activeDoc.id}`} className="size-4 accent-[#283693]" onChange={() => setValidationError(null)} />
             <span>I agree that my electronic signature is legally binding</span>
           </label>
+
+          {/* In-platform validation banner (replaces browser alert). Stays
+              visible until the signer fixes the issue — NO silent dismissal. */}
+          {validationError && (
+            <div role="alert" className="w-full max-w-md flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <svg className="size-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L1 21h22L12 2zm0 7v4m0 3h.01" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+              <div className="flex-1 whitespace-pre-line">{validationError}</div>
+              <button onClick={() => setValidationError(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
             {activeIdx > 0 && (
-              <Button variant="outline" onClick={() => { setActiveIdx(activeIdx - 1); setActiveSigId(null) }} className="gap-1">
+              <Button variant="outline" onClick={() => { setValidationError(null); setActiveIdx(activeIdx - 1); setActiveSigId(null) }} className="gap-1">
                 <ChevronLeft className="size-4" /> Back
               </Button>
             )}
             <Button
-              onClick={() => {
-                const agreed = document.getElementById(`agree-${activeDoc.id}`)?.checked
-                if (!agreed) { alert('Please agree to the terms before submitting.'); return }
-                handleSignCurrent()
-              }}
+              onClick={handleSignCurrent}
               disabled={submitting || alreadySignedHere}
               size="lg"
               className="gap-2 flex-1 sm:flex-none sm:px-8"
