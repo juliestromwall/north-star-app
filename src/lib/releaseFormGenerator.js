@@ -13,11 +13,19 @@ const PROVIDER_TYPES = {
 
 /**
  * Extract unique providers from clinic/hospital form data
- * Returns array of { type, clinicName, doctorName, phone, address, pregnancyNum }
+ * Returns array of { type, clinicName, doctorName, phone, address, pregnancyNum, deliveryDates }
+ * deliveryDates collects every pregnancy date associated with this provider so
+ * the release form can auto-render one "Dates of Service" range per pregnancy.
  */
 export function extractProviders(clinicData) {
-  const providers = []
-  const seen = new Set()
+  const providerMap = new Map()
+
+  const addOrMerge = (key, base, pregDate) => {
+    if (!providerMap.has(key)) {
+      providerMap.set(key, { ...base, deliveryDates: [] })
+    }
+    if (pregDate) providerMap.get(key).deliveryDates.push(pregDate)
+  }
 
   for (const [i, p] of (clinicData.pregnancies || []).entries()) {
     const pregNum = i + 1
@@ -29,41 +37,56 @@ export function extractProviders(clinicData) {
     // OB / Prenatal
     if (p.obClinicName) {
       const key = `ob_${p.obClinicName.toLowerCase().trim()}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        providers.push({ type: 'ob', clinicName: p.obClinicName, doctorName: p.obDoctorName, phone: p.obPhone, address: p.obAddress, pregnancyNum: pregNum })
-      }
+      addOrMerge(key, { type: 'ob', clinicName: p.obClinicName, doctorName: p.obDoctorName, phone: p.obPhone, address: p.obAddress, pregnancyNum: pregNum }, p.date)
     }
 
     // Hospital
     if (p.hospitalName && !isNonDelivery) {
       const key = `hospital_${p.hospitalName.toLowerCase().trim()}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        providers.push({ type: 'hospital', clinicName: p.hospitalName, doctorName: '', phone: p.hospitalPhone, address: p.hospitalAddress, pregnancyNum: pregNum })
-      }
+      addOrMerge(key, { type: 'hospital', clinicName: p.hospitalName, doctorName: '', phone: p.hospitalPhone, address: p.hospitalAddress, pregnancyNum: pregNum }, p.date)
     }
 
     // MFM
     if ((p.sawMFM === 'yes' || p.sawMFM === true) && p.mfmClinicName) {
       const key = `mfm_${p.mfmClinicName.toLowerCase().trim()}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        providers.push({ type: 'mfm', clinicName: p.mfmClinicName, doctorName: p.mfmDoctorName, phone: p.mfmPhone, address: p.mfmAddress, pregnancyNum: pregNum })
-      }
+      addOrMerge(key, { type: 'mfm', clinicName: p.mfmClinicName, doctorName: p.mfmDoctorName, phone: p.mfmPhone, address: p.mfmAddress, pregnancyNum: pregNum }, p.date)
     }
 
     // IVF
     if ((p.wasIVF === 'yes' || p.wasIVF === true || p.wasSurrogacy === 'yes' || p.wasSurrogacy === true) && p.ivfClinicName) {
       const key = `ivf_${p.ivfClinicName.toLowerCase().trim()}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        providers.push({ type: 'ivf', clinicName: p.ivfClinicName, doctorName: p.ivfDoctorName, phone: p.ivfPhone, address: p.ivfAddress, pregnancyNum: pregNum })
-      }
+      addOrMerge(key, { type: 'ivf', clinicName: p.ivfClinicName, doctorName: p.ivfDoctorName, phone: p.ivfPhone, address: p.ivfAddress, pregnancyNum: pregNum }, p.date)
     }
   }
 
-  return providers
+  return Array.from(providerMap.values())
+}
+
+/**
+ * Format "Dates of Service" string for a provider.
+ * For each recorded pregnancy date, produces a range of (date - 1 year) through
+ * today, formatted as MM/DD/YYYY-MM/DD/YYYY. Multiple pregnancies are joined
+ * with ", ". Returns an empty string if no dates are known.
+ */
+function formatDatesOfService(deliveryDates = []) {
+  if (!deliveryDates.length) return ''
+  const fmt = (d) => {
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return `${mm}/${dd}/${yyyy}`
+  }
+  const today = new Date()
+  const ranges = []
+  for (const iso of deliveryDates) {
+    if (!iso) continue
+    // Parse the HTML date input (YYYY-MM-DD) as local time to avoid timezone drift
+    const [y, m, d] = iso.split('-').map(Number)
+    if (!y || !m || !d) continue
+    const start = new Date(y - 1, m - 1, d)
+    ranges.push(`${fmt(start)}-${fmt(today)}`)
+  }
+  return ranges.join(', ')
 }
 
 /**
@@ -119,6 +142,9 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
       <tr>
         <td style="padding: 2px 0;"><strong>Phone:</strong> ${provider.phone || '_______________'}</td>
         <td style="padding: 2px 0;"><strong>Address:</strong> ${provider.address || '_______________'}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding: 2px 0;"><strong>Dates of Service:</strong> ${formatDatesOfService(provider.deliveryDates) || '_______________'}</td>
       </tr>
     </table>
   </div>
