@@ -91,11 +91,25 @@ export async function onRequestPost(context) {
   `
 
   try {
+    // Plain-text alternative — Outlook/Microsoft spam filters often reject
+    // HTML-only mail. Resend passes both parts to the recipient.
+    const textBody = `Hi ${firstName},
+
+ABC Surrogacy has sent you a ${formTitle || 'document'} that requires your signature.
+
+Review and sign: ${formUrl}
+
+If you have any questions, reply to this email or contact us at info@abcsurrogacy.com.
+
+— Abundant Beginnings Company, LLC
+abcsurrogacy.com`
+
     const payload = {
       from: `${fromDisplay} <${fromAddress}>`,
       to: [signerEmail],
       subject: `ABC Surrogacy — Please sign: ${formTitle || 'Document'}`,
       html: htmlBody,
+      text: textBody,
     }
     if (replyToAddress) payload.reply_to = replyToAddress
     const res = await fetch('https://api.resend.com/emails', {
