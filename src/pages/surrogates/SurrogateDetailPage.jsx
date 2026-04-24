@@ -2913,14 +2913,28 @@ const CONDITIONAL_FIELDS = {
   counselingDetails: { parent: 'counselingTherapy', showWhen: 'yes' },
   familyMentalHealthDetails: { parent: 'familyMentalHealth', showWhen: 'yes' },
   domesticViolenceDetails: { parent: 'domesticViolence', showWhen: 'yes' },
-  vaccinationReasons: { parent: 'openToVaccinations', showWhen: 'no' },
+  vaccinesNotWilling: { parent: 'openToVaccinations', showWhen: 'no' },
   governmentAssistanceDetails: { parent: 'governmentAssistance', showWhen: 'yes' },
   insuranceType: { parent: 'healthInsurance', showWhen: 'yes' },
   currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
   lifestyleChangesDetails: { parent: 'lifestyleChanges', showWhen: 'yes' },
   ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
   cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
-  conditionsWontTerminate: { parent: 'willingnessToTerminate', showWhen: 'yes' },
+  transferAnotherStateDetails: { parent: 'transferAnotherState', showWhen: 'no' },
+  conditionsWontTerminateDetails: { parent: 'conditionsWontTerminate', showWhen: 'yes' },
+  carryTwins: { parent: 'embryosToTransfer', showWhen: '1' },
+  // Hide surrogate's own employment detail fields when she's not employed
+  employmentIndustry: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  workHours: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  occupation: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  lengthAtEmployer: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  hourlyRate: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  weeklyIncome: { parent: 'currentlyEmployed', showWhen: 'yes' },
+  // Hide partner employment detail fields when partner is not employed
+  partnerOccupation: { parent: 'partnerEmployed', showWhen: 'yes' },
+  partnerWorkHours: { parent: 'partnerEmployed', showWhen: 'yes' },
+  partnerHourlyRate: { parent: 'partnerEmployed', showWhen: 'yes' },
+  partnerWeeklyIncome: { parent: 'partnerEmployed', showWhen: 'yes' },
   diseaseHistoryDetails: { parent: 'diseaseHistory', showWhen: '_array_has_value' },
   // Experienced Surrogate — hide details when previousSurrogate is 'no'
   surrogacyTimes: { parent: 'previousSurrogate', showWhen: 'yes' },
@@ -2981,12 +2995,12 @@ const PROFILE_SECTIONS = [
     'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds',
     'allergies', 'medicalConditions',
     'surgeries', 'diseaseHistory', 'diseaseHistoryDetails',
-    'openToVaccinations', 'lastPap'
+    'openToVaccinations', 'vaccinesNotWilling', 'lastPap'
   ] },
   { key: 'employment', title: 'Employment Information', fields: [
     'currentlyEmployed', 'employmentIndustry', 'workHours', 'occupation',
     'lengthAtEmployer', 'hourlyRate', 'weeklyIncome',
-    'partnerOccupation', 'partnerWeeklyIncome',
+    'partnerEmployed', 'partnerOccupation', 'partnerWorkHours', 'partnerHourlyRate', 'partnerWeeklyIncome',
     'governmentAssistance', 'governmentAssistanceDetails',
     'healthInsurance', 'insuranceType'
   ] },
@@ -3003,15 +3017,19 @@ const PROFILE_SECTIONS = [
   ] },
   { key: 'hopesWishes', title: 'Journey Hopes & Wishes', fields: [
     'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
-    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges',
+    'threeTransferAttempts', 'reduceCaffeine', 'lifestyleChanges', 'lifestyleChangesDetails',
     'pumpBreastmilk',
     'idealIPs', 'preferredCommunication', 'ipInvolvement',
     'ipsAtAppointments', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers', 'ipsCantAttend',
-    'ipsWithChildren', 'openLGBTQ', 'openSingleIP', 'transferAnotherState', 'ipsOutsideUS',
+    'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
+    'transferAnotherState', 'transferAnotherStateDetails',
+    'ipsOutsideUS',
     'childCareTraveling',
     'whenReadyToBegin', 'postBirthRelationship',
-    'cvsAmnio', 'cvsAmnioDetails', 'willingnessToTerminate',
-    'partnerAgreesTermination', 'conditionsWontTerminate',
+    'cvsAmnio', 'cvsAmnioDetails',
+    'willingnessToTerminate',
+    'partnerAgreesTermination',
+    'conditionsWontTerminate', 'conditionsWontTerminateDetails',
     'embryosToTransfer', 'carryTwins',
     'desiredCompensation', 'additionalComments'
   ] },
@@ -4446,11 +4464,11 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
     'counselingTherapy', 'familyMentalHealth', 'domesticViolence',
     'openToVaccinations', 'covidVaccine', 'covidVaccineWilling', 'hadCovid', 'covidBooster', 'covidBoosterWilling',
-    'currentlyEmployed', 'governmentAssistance', 'healthInsurance', 'currentlyInSchool', 'previousSurrogate',
+    'currentlyEmployed', 'partnerEmployed', 'governmentAssistance', 'healthInsurance', 'currentlyInSchool', 'previousSurrogate',
     'threeTransferAttempts', 'reduceCaffeine',
     'ipsWithChildren', 'openLGBTQ', 'openSingleIP',
     'transferAnotherState', 'ipsOutsideUS', 'cvsAmnio', 'partnerAgreesTermination',
-    'carryTwins', 'compensationNegotiable',
+    'conditionsWontTerminate', 'carryTwins', 'compensationNegotiable',
   ])
 
   // Dropdown fields with their options
@@ -4463,7 +4481,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     contraceptiveMethod: ['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other'],
     homeOwnership: ['Own', 'Rent', 'Other'],
     religionImportance: ['Not Important', 'Somewhat Important', 'Important', 'Very Important'],
-    insuranceType: ['Employer-sponsored insurance (my own employer)', 'Employer-sponsored insurance (spouse / partner)', 'Employer-sponsored insurance (through parent)', 'Individual / private plan', 'ACA Policy', 'Military / VA coverage', 'Other'],
+    insuranceType: ['Employer-sponsored insurance (my own employer)', 'Employer-sponsored insurance (spouse / partner)', 'Employer-sponsored insurance (through parent)', 'Individual / private plan', 'ACA Policy', 'Military / VA coverage', 'State funded insurance', 'Other'],
     educationLevel: ['Some High School', 'High School Diploma / GED', 'Some College', 'Associate Degree', "Bachelor's Degree", "Master's Degree", 'Doctorate', 'Vocational / Trade School', 'Other'],
     preferredCommunication: ['Text', 'Email', 'Phone Calls', 'FaceTime / Video Calls', 'Mix of Everything'],
     ipInvolvement: ['Very Involved', 'Moderately Involved', 'Occasional Check-ins', 'Minimal'],
@@ -4480,7 +4498,12 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   // Currency fields
-  const CURRENCY_FIELDS = new Set(['desiredCompensation', 'hourlyRate', 'weeklyIncome', 'partnerWeeklyIncome'])
+  const CURRENCY_FIELDS = new Set(['desiredCompensation', 'weeklyIncome', 'partnerWeeklyIncome'])
+
+  // Hourly-rate fields auto-format last two digits as cents (e.g. typing
+  // "1640" renders "$16.40"). Mirrors the HourlyRateField on the surrogate
+  // side so admins and surrogates see the same stored value.
+  const HOURLY_RATE_FIELDS = new Set(['hourlyRate', 'partnerHourlyRate'])
 
   // Textarea fields (multi-line text)
   const TEXTAREA_FIELDS = new Set([
@@ -4496,15 +4519,15 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'mentalHealthDetails', 'mentalHealthHospDetails', 'mentalHealthMedDetails',
     'counselingDetails', 'familyMentalHealthDetails', 'domesticViolenceDetails',
     'nonPrescriptionMeds', 'prescriptionMeds', 'currentMeds', 'allergies', 'medicalConditions',
-    'surgeries', 'diseaseHistoryDetails', 'vaccinationReasons', 'lastPap',
+    'surgeries', 'diseaseHistoryDetails', 'vaccinesNotWilling', 'lastPap',
     'childrenSpecialNeedsDetails', 'criminalHistoryDetails', 'travelPlansDetails',
-    'employmentIndustry', 'governmentAssistanceDetails',
+    'employmentIndustry', 'partnerWorkHours', 'governmentAssistanceDetails',
     'hobbies', 'dreamTravel', 'personality', 'currentlyInSchoolDetails', 'overallExperience',
     'reasonForSurrogacy', 'compensationUse', 'surrogacyFit', 'supportSystem',
     'lifestyleChanges', 'lifestyleChangesDetails', 'idealIPs', 'ipsAtAppointmentsDetails', 'deliveryRoomOthers',
     'postBirthRelationship',
     'ipsCantAttend', 'childCareTraveling', 'cvsAmnioDetails', 'willingnessToTerminate',
-    'conditionsWontTerminate', 'additionalComments',
+    'transferAnotherStateDetails', 'conditionsWontTerminateDetails', 'additionalComments',
   ])
 
   const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
@@ -4617,6 +4640,25 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
           {labelRow}
           <input className={inputClass} value={formatCurrency(val)} placeholder="$0" disabled={isApproved}
             onChange={e => { const digits = e.target.value.replace(/[^0-9]/g, ''); updateEditField(field, digits ? '$' + Number(digits).toLocaleString('en-US') : '') }} />
+        </div>
+      )
+    }
+
+    // Hourly-rate fields — last two digits = cents
+    if (HOURLY_RATE_FIELDS.has(field)) {
+      const formatHourly = (v) => {
+        const digits = String(v).replace(/[^0-9]/g, '')
+        if (!digits) return ''
+        const padded = digits.padStart(3, '0')
+        const dollars = padded.slice(0, -2)
+        const cents = padded.slice(-2)
+        return '$' + Number(dollars).toLocaleString('en-US') + '.' + cents
+      }
+      return (
+        <div key={field} className={`space-y-1 ${hidden ? 'opacity-50' : ''}`}>
+          {labelRow}
+          <input className={inputClass} value={formatHourly(val)} placeholder="$0.00" disabled={isApproved}
+            onChange={e => { const digits = e.target.value.replace(/[^0-9]/g, ''); updateEditField(field, digits ? formatHourly(digits) : '') }} />
         </div>
       )
     }
