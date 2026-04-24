@@ -1580,7 +1580,9 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Background Check</p>
                 <div className="space-y-2">
                   <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                  {hasPartner && (
+                    <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                  )}
                 </div>
               </div>
               <div>
