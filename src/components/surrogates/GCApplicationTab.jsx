@@ -1591,8 +1591,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">HIPAA</p>
                 <div className="space-y-2">
-                  <SendFormTemplateButton templateId="release_hipaa_gc" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="release_hipaa_admin" surrogate={surrogate} adminName={adminName} adminEmail={adminEmail} />
+                  <SendFormTemplateButton templateId="release_hipaa" surrogate={surrogate} adminName={adminName} adminEmail={adminEmail} />
                 </div>
               </div>
               <div>

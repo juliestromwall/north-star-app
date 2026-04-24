@@ -128,6 +128,22 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
     )
   }
 
+  // Resolve the full signer list for this template. For multi-signer templates
+  // (partnered releases, HIPAA with admin countersign), walk signerRoles and
+  // map each role to name/email from the surrounding props.
+  function resolveSigners() {
+    if (template.multiSigner) {
+      const roles = template.signerRoles || ['gc', 'partner']
+      return roles.map(role => {
+        if (role === 'gc') return { role, name: surrogate?.name || '', email: surrogate?.email || '', status: 'pending' }
+        if (role === 'partner') return { role, name: partnerName || '', email: partnerEmail || '', status: 'pending' }
+        if (role === 'admin') return { role, name: adminName || 'Agency Representative', email: adminEmail || '', status: 'pending' }
+        return { role, name: '', email: '', status: 'pending' }
+      })
+    }
+    return [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }]
+  }
+
   async function handleSend() {
     if (!signerEmail) {
       alert(
@@ -138,12 +154,14 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       return
     }
 
-    // Partnered psych templates consolidate the two signers onto a single
-    // esign_documents row so the final merged PDF has both signatures (no
-    // more duplicate PDFs per signer in the case folder).
     if (template.multiSigner) {
-      if (!partnerEmail || !partnerName) {
-        alert('Partner name and email are required for partnered release forms. Please add them in the Confidential section first.')
+      const signers = resolveSigners()
+      const missing = signers.find(s => !s.email)
+      if (missing) {
+        const lbl = missing.role === 'admin' ? 'Assigned admin email'
+          : missing.role === 'partner' ? 'Partner email'
+          : 'Surrogate email'
+        alert(`${lbl} is required for this release. Please add it before sending.`)
         return
       }
     }
@@ -155,19 +173,14 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       const formToken = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('')
 
+      const signers = resolveSigners()
+
       const isReleaseForm = template.layoutMode === 'doc-first'
       const docTitle = isReleaseForm
         ? (template.multiSigner
-            ? `${template.title} - ${surrogate?.name || ''} & ${partnerName || 'Partner'}`
+            ? `${template.title} - ${surrogate?.name || ''}`
             : `${template.title} - ${signerName}`)
         : `Background Check Release Form - ${signerName}`
-
-      const signers = template.multiSigner
-        ? [
-            { role: 'gc', name: surrogate?.name || '', email: surrogate?.email || '', status: 'pending' },
-            { role: 'partner', name: partnerName, email: partnerEmail, status: 'pending' },
-          ]
-        : [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }]
 
       const doc = await createDocument({
         templateId: null,
@@ -188,14 +201,9 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       await sendDocument(doc.id)
 
-      // Send email(s). For multi-signer templates, both signers get a link
+      // Send email(s). For multi-signer templates, every signer gets a link
       // to the same form — SignFormPage role-filters which slots they see.
-      const emailRecipients = template.multiSigner
-        ? [
-            { name: surrogate?.name || '', email: surrogate?.email || '' },
-            { name: partnerName, email: partnerEmail },
-          ]
-        : [{ name: signerName, email: signerEmail }]
+      const emailRecipients = signers.map(s => ({ name: s.name, email: s.email }))
 
       for (const recipient of emailRecipients) {
         if (!recipient.email) continue

@@ -68,6 +68,28 @@ export const FORM_TEMPLATES = {
 
   // ── Release Forms (doc-first layout: document at top, signatures below) ──
 
+  // Unified HIPAA — surrogate and agency admin sign the SAME document so the
+  // signed PDF files to the case folder only after both have signed. Admin
+  // and gc each get an email with their own link; SignFormPage role-filters
+  // so each signer sees only their own signature slot.
+  release_hipaa: {
+    id: 'release_hipaa',
+    title: 'HIPAA Authorization',
+    description: 'HIPAA Privacy Acknowledgment and Consent',
+    layoutMode: 'doc-first',
+    signerRole: 'gc', // primary (email/label fallback), both roles listed below
+    multiSigner: true,
+    signerRoles: ['gc', 'admin'],
+    pages: [{
+      id: 'p1',
+      title: 'HIPAA Privacy Acknowledgment',
+      gcSignatures: [{ id: 'sig_gc_p1' }],
+      adminSignatures: [{ id: 'sig_admin_p1' }],
+    }],
+    fields: [],
+  },
+  // Legacy — kept so in-flight docs created before the HIPAA merge continue
+  // to render. New sends use `release_hipaa` above.
   release_hipaa_gc: {
     id: 'release_hipaa_gc',
     title: 'HIPAA Authorization',
