@@ -46,6 +46,15 @@ function getAdminName(email) {
   return user ? user.name : email
 }
 
+const INACTIVE_GC_STAGES = new Set(['holding', 'not-qualified', 'withdrawn'])
+
+function getInactiveCaseAccent(stage) {
+  if (stage === 'withdrawn') return '#dc2626'
+  if (stage === 'not-qualified') return '#92400e'
+  if (stage === 'holding') return '#78716c'
+  return null
+}
+
 // ── GTPAL Calculation ──────────────────────────────────────
 function getGTPAL(profileData) {
   const ph = profileData?.pregnancyHistory
@@ -192,10 +201,12 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
   const submitted = timeAgo(surrogate.submittedAt)
 
   const isNew = stageStatus.stage === 'pre-qualification' && stageStatus.status === 'New'
+  const inactiveAccent = getInactiveCaseAccent(stageStatus.stage)
 
   return (
     <Card
       className="group relative transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 rounded-2xl cursor-pointer border-stone-200/80"
+      style={inactiveAccent ? { borderColor: inactiveAccent, boxShadow: `inset 4px 0 0 ${inactiveAccent}` } : undefined}
       onClick={() => navigate(`/surrogates/${surrogate.id}`)}
     >
       {isNew && (
@@ -317,8 +328,8 @@ export default function SurrogateListPage() {
   const [addError, setAddError] = useState(null)
   const [addSuccess, setAddSuccess] = useState(false)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
+  const [statusFilter, setStatusFilter] = useState('active')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -412,8 +423,11 @@ export default function SurrogateListPage() {
         s.location.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase())
       const surrogateStage = allStageStatuses[s.id]?.stage || 'pre-qualification'
-      const inactiveStages = ['holding', 'not-qualified', 'withdrawn']
-      const matchesStatus = statusFilter === 'all' ? true : statusFilter === 'active' ? !inactiveStages.includes(surrogateStage) : surrogateStage === statusFilter
+      const matchesStatus = statusFilter === 'all'
+        ? true
+        : statusFilter === 'active'
+          ? (!INACTIVE_GC_STAGES.has(surrogateStage) || (!!search && matchesSearch))
+          : surrogateStage === statusFilter
       return matchesSearch && matchesStatus
     })
   }, [surrogates, search, statusFilter, ownerFilter, currentUser.email])
@@ -484,11 +498,11 @@ export default function SurrogateListPage() {
       {/* Hero stats — click to filter */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => { setStatusFilter('active'); setOwnerFilter('all') }}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => setStatusFilter('active')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{surrogates.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !['holding', 'not-qualified', 'withdrawn'].includes(st) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !INACTIVE_GC_STAGES.has(st) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {SURROGATE_STAGES.filter(s => !s.hidden).map(stage => (
@@ -620,13 +634,14 @@ export default function SurrogateListPage() {
                 const gtpal = getGTPAL(profiles[surrogate.email])
                 const ss = allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }
                 const rowIsNew = ss.stage === 'pre-qualification' && ss.status === 'New'
+                const inactiveAccent = getInactiveCaseAccent(ss.stage)
                 return (
                   <TableRow
                     key={surrogate.id}
                     className={`cursor-pointer relative ${rowIsNew ? 'bg-pink-50/40 hover:bg-pink-50/70' : 'hover:bg-stone-50/80'}`}
                     onClick={() => navigate(`/surrogates/${surrogate.id}`)}
                   >
-                    <TableCell>
+                    <TableCell style={inactiveAccent ? { boxShadow: `inset 4px 0 0 ${inactiveAccent}` } : undefined}>
                       <div className="flex items-center gap-3">
                         <ProfileAvatar name={surrogate.name} avatar={avatarUrls?.[surrogate.id]} size="sm" />
                         <span className="font-semibold text-stone-800">{surrogate.name}</span>

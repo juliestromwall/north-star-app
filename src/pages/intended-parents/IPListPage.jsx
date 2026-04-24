@@ -23,6 +23,14 @@ import { getRecordTrackingBatch } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
 import { mockUsers, getAdminStaff } from '@/data/mock/users'
 
+const INACTIVE_IP_STAGES = new Set(['holding', 'withdrawn'])
+
+function getInactiveCaseAccent(stage) {
+  if (stage === 'withdrawn') return '#dc2626'
+  if (stage === 'holding') return '#78716c'
+  return null
+}
+
 export function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -101,9 +109,10 @@ export function IPTileCard({ ip, stageStatus, recordTracking, avatarUrl }) {
   const ss = stageStatus || { stage: 'pre-qualification', status: 'New' }
   const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
   const assignedAdmin = ip.assignedTo ? getAdminStaff().find(a => a.email === ip.assignedTo)?.name : null
+  const inactiveAccent = getInactiveCaseAccent(ss.stage)
   return (
     <Link to={`/intended-parents/${ip.id}`}>
-      <Card className="transition-shadow hover:shadow-md h-full relative">
+      <Card className="transition-shadow hover:shadow-md h-full relative" style={inactiveAccent ? { borderColor: inactiveAccent, boxShadow: `inset 4px 0 0 ${inactiveAccent}` } : undefined}>
         {isNew && (
           <div className="absolute top-3 right-3 z-10">
             <span className="relative flex size-3">
@@ -182,7 +191,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(isSuperAdmin || isMasterAdmin ? 'all' : 'mine')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -274,7 +283,11 @@ export default function IPListPage() {
       // Stage filter
       if (stageFilter === 'active') {
         const stage = allStageStatuses[ip.id]?.stage || 'pre-qualification'
-        if (['holding', 'withdrawn'].includes(stage)) return false
+        if (INACTIVE_IP_STAGES.has(stage) && !(search && (
+          ip.names.toLowerCase().includes(search.toLowerCase()) ||
+          ip.email.toLowerCase().includes(search.toLowerCase()) ||
+          (ip.location || '').toLowerCase().includes(search.toLowerCase())
+        ))) return false
       } else if (stageFilter !== 'all') {
         const ss = allStageStatuses[ip.id]
         if ((ss?.stage || 'pre-qualification') !== stageFilter) return false
@@ -305,11 +318,11 @@ export default function IPListPage() {
       {/* Hero stats — click to filter by stage */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <button
-          onClick={() => { setStageFilter('active'); setOwnerFilter('all') }}
-          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' && ownerFilter === 'all' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          onClick={() => setStageFilter('active')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ips.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !['holding', 'withdrawn'].includes(st) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !INACTIVE_IP_STAGES.has(st) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {IP_STAGES.filter(s => !s.hidden).map(stage => (
@@ -397,9 +410,10 @@ export default function IPListPage() {
             const ss = allStageStatuses[ip.id] || { stage: 'pre-qualification', status: 'New' }
             const isNew = ss.stage === 'pre-qualification' && ss.status === 'New'
             const assignedAdmin = ip.assignedTo ? getAdminStaff().find(a => a.email === ip.assignedTo)?.name : null
+            const inactiveAccent = getInactiveCaseAccent(ss.stage)
             return (
             <Link key={ip.id} to={`/intended-parents/${ip.id}`}>
-              <Card className="transition-shadow hover:shadow-md h-full relative">
+              <Card className="transition-shadow hover:shadow-md h-full relative" style={inactiveAccent ? { borderColor: inactiveAccent, boxShadow: `inset 4px 0 0 ${inactiveAccent}` } : undefined}>
                 {isNew && (
                   <div className="absolute top-3 right-3 z-10">
                     <span className="relative flex size-3">
@@ -468,13 +482,16 @@ export default function IPListPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(ip => (
+              {filtered.map(ip => {
+                const stage = allStageStatuses[ip.id]?.stage || 'pre-qualification'
+                const inactiveAccent = getInactiveCaseAccent(stage)
+                return (
                 <TableRow
                   key={ip.id}
                   className="cursor-pointer"
                   onClick={() => navigate(`/intended-parents/${ip.id}`)}
                 >
-                  <TableCell>
+                  <TableCell style={inactiveAccent ? { boxShadow: `inset 4px 0 0 ${inactiveAccent}` } : undefined}>
                     <div className="flex items-center gap-3">
                       <ProfileAvatar name={ip.names} avatar={ipAvatars[ip.id]} size="sm" />
                       <div>
@@ -489,7 +506,7 @@ export default function IPListPage() {
                   <TableCell>{ip.hasFrozenEmbryos === true ? 'Yes' : ip.hasFrozenEmbryos === false ? 'No' : '—'}</TableCell>
                   <TableCell className="text-stone-500">{new Date(ip.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </Card>
