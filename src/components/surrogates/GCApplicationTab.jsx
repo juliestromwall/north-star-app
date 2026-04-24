@@ -322,6 +322,7 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
         // Spouse/Partner
         hasSpouse: saved.hasSpouse ?? '',
         spouseFirstName: saved.spouseFirstName || '',
+        spouseLastName: saved.spouseLastName || '',
         spouseDob: saved.spouseDob || '',
         spouseEmail: saved.spouseEmail || '',
         spousePhone: saved.spousePhone || '',
@@ -432,6 +433,7 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
               {showSpouse && (
                 <>
                   <div className="space-y-1"><FieldLabel>Spouse/Partner First Name</FieldLabel><Input value={form.spouseFirstName} onChange={e => set('spouseFirstName', e.target.value)} /></div>
+                  <div className="space-y-1"><FieldLabel>Spouse/Partner Last Name</FieldLabel><Input value={form.spouseLastName} onChange={e => set('spouseLastName', e.target.value)} /></div>
                   <div className="space-y-1"><FieldLabel>Spouse/Partner Date of Birth</FieldLabel><Input type="date" value={form.spouseDob} onChange={e => set('spouseDob', e.target.value)} /></div>
                   <div className="space-y-1"><FieldLabel>Spouse/Partner Email</FieldLabel><Input type="email" value={form.spouseEmail} onChange={e => set('spouseEmail', e.target.value)} /></div>
                   <div className="space-y-1"><FieldLabel>Spouse/Partner Phone</FieldLabel><Input value={form.spousePhone} onChange={e => set('spousePhone', e.target.value)} /></div>
@@ -444,6 +446,7 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
               {showSpouse && (
                 <>
                   <ReadField label="Spouse/Partner First Name" value={stored.spouseFirstName} />
+                  <ReadField label="Spouse/Partner Last Name" value={stored.spouseLastName} />
                   <ReadField label="Spouse/Partner DOB" value={stored.spouseDob} />
                   <ReadField label="Spouse/Partner Email" value={stored.spouseEmail} />
                   <ReadField label="Spouse/Partner Phone" value={stored.spousePhone} />

@@ -162,7 +162,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
       'fullLegalName','maidenName','dob','ssn4','religion',
       'street','city','state','zipCode',
       'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
-      'hasSpouse','spouseFirstName','spouseDob','spouseEmail','spousePhone',
+      'hasSpouse','spouseFirstName','spouseLastName','spouseDob','spouseEmail','spousePhone',
       'emergencyName','emergencyPhone','emergencyRelationship',
     ]
     const init = {}
@@ -172,7 +172,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
 
   const hasSpouse = form.hasSpouse === 'yes' || form.hasSpouse === true
   const hasInsurance = form.hasInsurance === 'yes' || form.hasInsurance === true
-  const SPOUSE_KEYS = ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone']
+  const SPOUSE_KEYS = ['spouseFirstName', 'spouseLastName', 'spouseDob', 'spouseEmail', 'spousePhone']
   const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
 
   const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
@@ -295,6 +295,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
             <div className="space-y-1"><FieldLabel>Do you have a spouse/partner? <Req /></FieldLabel><YesNoButtons value={form.hasSpouse} onChange={v => setForm(f => ({ ...f, hasSpouse: v }))} /></div>
             {hasSpouse && <>
               <div className="space-y-1"><FieldLabel>Spouse/Partner First Name <Req /></FieldLabel><Input value={form.spouseFirstName || ''} onChange={e => setForm(f => ({ ...f, spouseFirstName: e.target.value }))} /></div>
+              <div className="space-y-1"><FieldLabel>Spouse/Partner Last Name <Req /></FieldLabel><Input value={form.spouseLastName || ''} onChange={e => setForm(f => ({ ...f, spouseLastName: e.target.value }))} /></div>
               <div className="space-y-1"><FieldLabel>Spouse/Partner DOB <Req /></FieldLabel><Input type="date" value={form.spouseDob || ''} onChange={e => setForm(f => ({ ...f, spouseDob: e.target.value }))} /></div>
               <div className="space-y-1"><FieldLabel>Spouse/Partner Email <Req /></FieldLabel><Input type="email" value={form.spouseEmail || ''} onChange={e => setForm(f => ({ ...f, spouseEmail: e.target.value }))} placeholder="name@example.com" /></div>
               <div className="space-y-1"><FieldLabel>Spouse/Partner Phone <Req /></FieldLabel><Input type="tel" value={form.spousePhone || ''} onChange={e => setForm(f => ({ ...f, spousePhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
@@ -1759,7 +1760,7 @@ export default function PortalApplicationPage() {
         'hasInsurance',
         ...(hi ? ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone'] : []),
         'hasSpouse',
-        ...(hs ? ['spouseFirstName', 'spouseDob', 'spouseEmail', 'spousePhone'] : []),
+        ...(hs ? ['spouseFirstName', 'spouseLastName', 'spouseDob', 'spouseEmail', 'spousePhone'] : []),
         'emergencyName', 'emergencyPhone', 'emergencyRelationship',
       ]
       return required.every(k => {
