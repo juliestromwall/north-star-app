@@ -45,14 +45,25 @@ export default function AdminCasesSummaryPage() {
     return staff?.name || (targetEmail === currentUser?.email?.toLowerCase() ? currentUser?.name : targetEmail)
   }, [targetEmail, isTeam, currentUser])
 
-  // For team mode: the list of admin emails to summarize. Skips the requesting
-  // master admin's own email (the endpoint adds it back automatically) and
-  // skips Jennifer Rose (intake-only).
+  // For team mode: the list of admin emails to summarize. Skips:
+  //   - Jennifer Rose (intake@abcsurrogacy.com) — intake-only, not on team
+  //   - The requesting admin's own email (endpoint auto-adds it back)
+  //   - OTHER master admins — Julie shouldn't see Nicole's cases in her team
+  //     summary and vice versa. Master admins are peers, not reports, so they
+  //     don't belong in each other's "team performance" view.
   const teamEmails = useMemo(() => {
     if (!isTeam) return null
+    const myEmail = currentUser?.email?.toLowerCase()
+    const myRole = currentUser?.role
     return getAdminStaff()
       .filter(a => a.email !== 'intake@abcsurrogacy.com')
-      .filter(a => a.email !== currentUser?.email)
+      .filter(a => a.email?.toLowerCase() !== myEmail)
+      .filter(a => {
+        // If the requester is a master admin, drop other master admins.
+        // Super admins keep full visibility (they oversee everyone).
+        if (myRole === 'master_admin' && a.role === 'master_admin') return false
+        return true
+      })
       .map(a => a.email)
   }, [isTeam, currentUser])
 
@@ -64,6 +75,7 @@ export default function AdminCasesSummaryPage() {
   }, [])
 
   const [summary, setSummary] = useState(null)
+  const [dashboard, setDashboard] = useState(null)
   const [generatedAt, setGeneratedAt] = useState(null)
   const [caseCount, setCaseCount] = useState(null)
   const [stats, setStats] = useState(null)
@@ -81,11 +93,10 @@ export default function AdminCasesSummaryPage() {
       : `admin_summary_${targetEmail}`
     getAppConfig(cacheKey).then(cached => {
       if (cancelled) return
-      if (cached?.summary) {
-        setSummary(cached.summary)
-        setGeneratedAt(cached.generatedAt)
-        setCaseCount(cached.caseCount ?? null)
-      }
+      if (cached?.dashboard) setDashboard(cached.dashboard)
+      if (cached?.summary) setSummary(cached.summary)
+      if (cached?.generatedAt) setGeneratedAt(cached.generatedAt)
+      if (cached?.caseCount != null) setCaseCount(cached.caseCount)
       setLoading(false)
     }).catch(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -109,7 +120,8 @@ export default function AdminCasesSummaryPage() {
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate summary')
-      setSummary(data.summary)
+      setSummary(data.summary || null)
+      setDashboard(data.dashboard || null)
       setGeneratedAt(data.generatedAt)
       setCaseCount(data.caseCount ?? null)
       setStats(data.stats || null)
@@ -204,11 +216,11 @@ export default function AdminCasesSummaryPage() {
           </Card>
         )}
 
-        {!loading && !summary && !error && (
+        {!loading && !summary && !dashboard && !error && (
           <Card className="rounded-2xl">
             <CardContent className="py-16 text-center">
               <Sparkles className="size-10 text-stone-300 mx-auto" />
-              <p className="text-sm text-stone-500 mt-3">No summary yet for this admin. Click <strong>Generate Summary</strong> above to create one.</p>
+              <p className="text-sm text-stone-500 mt-3">No summary yet. Click <strong>Generate Summary</strong> above to create one.</p>
             </CardContent>
           </Card>
         )}
@@ -221,7 +233,12 @@ export default function AdminCasesSummaryPage() {
           </Card>
         )}
 
-        {!loading && summary && (
+        {/* Dashboard view (team mode) — urgent panel + per-admin cards */}
+        {!loading && dashboard && (
+          <DashboardView dashboard={dashboard} />
+        )}
+
+        {!loading && !dashboard && summary && (
           <div className="space-y-4">
             {sections.length > 0 ? sections.map((sec, i) => {
               const { Icon, accent } = sectionStyle(sec.title)
@@ -274,6 +291,129 @@ export default function AdminCasesSummaryPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Team-mode dashboard view ────────────────────────────────
+//
+// dashboard shape (from the AI):
+//   { urgent: [{ name, url, owner, reason }],
+//     byAdmin: [{ adminName, totals, milestones, communication, workflow, expenses }] }
+
+function CaseLine({ name, url, note, owner, ownerHidden }) {
+  return (
+    <div className="flex items-start gap-2 text-sm leading-relaxed">
+      <span className="text-stone-300 mt-0.5 shrink-0">•</span>
+      <div className="min-w-0">
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">
+          {name}
+        </a>
+        {owner && !ownerHidden && <span className="text-stone-400 text-xs ml-1.5">({owner})</span>}
+        {note && <span className="text-stone-600"> — {note}</span>}
+      </div>
+    </div>
+  )
+}
+
+const CATEGORY_META = {
+  milestones:    { label: 'Upcoming Milestones', Icon: Baby,        color: 'text-pink-700' },
+  communication: { label: 'Communication Gaps',  Icon: MessageSquare, color: 'text-amber-700' },
+  workflow:      { label: 'Workflow Bottlenecks', Icon: ListChecks,  color: 'text-blue-700' },
+  expenses:      { label: 'Expense / Escrow',    Icon: DollarSign,   color: 'text-violet-700' },
+}
+
+function AdminCard({ admin }) {
+  const totals = admin.totals || {}
+  const cats = ['milestones', 'communication', 'workflow', 'expenses']
+    .map(k => ({ key: k, items: Array.isArray(admin[k]) ? admin[k] : [] }))
+    .filter(c => c.items.length > 0)
+
+  return (
+    <Card className="rounded-2xl border-stone-100">
+      <CardContent className="py-5 space-y-4">
+        <div className="flex items-baseline justify-between border-b border-stone-100 pb-2">
+          <h3 className="text-base font-bold text-[#283693]">{admin.adminName}</h3>
+          <div className="text-xs text-stone-500 flex items-center gap-3 shrink-0">
+            {totals.cases != null && <span><strong className="text-stone-700">{totals.cases}</strong> cases</span>}
+            {totals.overdueTasks > 0 && <span className="text-rose-600"><strong>{totals.overdueTasks}</strong> overdue</span>}
+            {totals.healthy > 0 && <span className="text-emerald-600">{totals.healthy} healthy</span>}
+          </div>
+        </div>
+
+        {cats.length === 0 ? (
+          <p className="text-sm text-emerald-700 flex items-center gap-1.5">
+            <CheckCircle2 className="size-4" /> Nothing flagged — caseload is healthy.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {cats.map(({ key, items }) => {
+              const meta = CATEGORY_META[key]
+              const Icon = meta.Icon
+              return (
+                <div key={key}>
+                  <div className={`flex items-center gap-1.5 mb-1.5 ${meta.color}`}>
+                    <Icon className="size-3.5" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider">{meta.label}</span>
+                  </div>
+                  <div className="space-y-1 pl-1">
+                    {items.map((it, i) => (
+                      <CaseLine key={i} name={it.name} url={it.url} note={it.note} ownerHidden />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function DashboardView({ dashboard }) {
+  const urgent = Array.isArray(dashboard.urgent) ? dashboard.urgent : []
+  const admins = Array.isArray(dashboard.byAdmin) ? dashboard.byAdmin : []
+
+  return (
+    <div className="space-y-6">
+      {/* Urgent panel — cross-team alerts at the top */}
+      {urgent.length > 0 && (
+        <Card className="rounded-2xl border-2 border-rose-200 bg-rose-50/40">
+          <CardContent className="py-5">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-100 text-rose-800 mb-3">
+              <AlertTriangle className="size-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Needs Immediate Attention</span>
+            </div>
+            <div className="space-y-2">
+              {urgent.map((u, i) => (
+                <CaseLine key={i} name={u.name} url={u.url} note={u.reason} owner={u.owner} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Per-admin breakouts */}
+      {admins.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {admins.map((a, i) => <AdminCard key={i} admin={a} />)}
+        </div>
+      )}
+
+      {urgent.length === 0 && admins.length === 0 && (
+        <Card className="rounded-2xl">
+          <CardContent className="py-12 text-center">
+            <CheckCircle2 className="size-10 text-emerald-300 mx-auto" />
+            <p className="text-sm text-stone-500 mt-3">All quiet — nothing flagged across the team right now.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <p className="text-xs text-stone-400 text-center pt-2">
+        Generated by AI from case activity signals. Always verify before acting.
+      </p>
     </div>
   )
 }

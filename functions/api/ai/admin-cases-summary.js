@@ -397,40 +397,71 @@ async function runSummary(context) {
     ? `${adminName || adminEmail} reviewing the team workload (${teamEmails.length} admins)`
     : (adminName || adminEmail)
 
-  const systemPrompt = `You are an experienced surrogacy case manager helping ${audience}.
+  // In team mode we output a STRUCTURED JSON dashboard (urgent panel + per-
+  // admin breakouts). In single-admin mode we output the existing markdown
+  // sections. The frontend detects which by checking response shape.
+  const systemPrompt = isTeamMode ? `You are an experienced surrogacy case manager helping ${audience}.
 
-You will receive structured signals (NOT raw data) for each case. Each case includes a "name", a "url", and an "assignedAdmin" (the staff member doing the day-to-day work). For journeys, "journeyManager" may also be set — that's the master admin overseeing the match. ALWAYS reference cases as a markdown link in the form [Name](url) so it's one click to the case page. For matched journeys, the name format is "Surrogate & IP" (e.g. "Marissa Hawkins & The Garcia Family"). NEVER use the raw numeric ID.
+You will receive structured signals for each case. Each case includes "name", "url", and "assignedAdmin" (the staff member doing the day-to-day work).
 
-${isTeamMode
-  ? `TEAM MODE: cases are spread across multiple admins. Within each section below, GROUP bullets by assignedAdmin using a sub-heading like "_Stacie Adler_" on its own line, then the bullets for that admin's cases. Sort sub-headings alphabetically by admin first name. If only one admin has items in a section, you can skip the sub-heading.`
-  : `Each bullet should subtly note the assignee at the end like "(Stacie)" so the reader sees who owns the case. Skip the parenthetical if the assignee matches the requesting admin.`}
+Output a single JSON object — NO prose before or after, NO markdown code fence — matching this schema EXACTLY:
+
+{
+  "urgent": [
+    { "name": "Marissa Hawkins & The Smith Family", "url": "/journeys/45", "owner": "Stacie Adler", "reason": "Past due by 12 days; delivery not logged" }
+  ],
+  "byAdmin": [
+    {
+      "adminName": "Desiree Melchiori",
+      "totals": { "cases": 8, "stalled": 2, "overdueTasks": 1, "healthy": 5 },
+      "milestones": [{ "name": "...", "url": "...", "note": "Heartbeat scan window — beta was 21 days ago" }],
+      "communication": [{ "name": "...", "url": "...", "note": "No contact in 18 days — last email \\"Re: clinic question\\"" }],
+      "workflow": [{ "name": "...", "url": "...", "note": "Profile submitted, awaiting admin approval" }],
+      "expenses": [{ "name": "...", "url": "...", "note": "3 expenses not yet submitted to escrow" }]
+    }
+  ]
+}
+
+Rules:
+- "urgent" is the top-of-dashboard cross-team alert panel. Only include the MOST critical items: birth imminent (≤14 days), overdue tasks, contact silence ≥21 days, hard workflow blocks. Cap at 8 entries. Each "owner" is the assignedAdmin name. Sort by severity (births/overdue first).
+- "byAdmin" — one entry per distinct assignedAdmin in the signals. SORT alphabetically by adminName. Use the FULL display name from assignedAdmin. Each admin's category arrays should hold 1-3 sentences per case, NOT a bullet list — just objects with name/url/note.
+- Names: use the case's "name" field verbatim (already formatted like "Marissa Hawkins & The Smith Family" for journeys). NEVER use the numeric id.
+- URLs: use the case's "url" field verbatim.
+- "note" should be ONE concise sentence with the action signal — what's wrong / what's coming up. Don't pad.
+- Empty categories: omit the key entirely OR set to []. The renderer hides empty sections.
+- "totals.healthy" is per-admin count of their cases not appearing in any of their categories.
+- Output ONLY the JSON. Nothing else.` : `You are an experienced surrogacy case manager helping ${audience}.
+
+You will receive structured signals (NOT raw data) for each case. Each case includes a "name", a "url", and an "assignedAdmin". For journeys, "journeyManager" may also be set. ALWAYS reference cases as a markdown link [Name](url). NEVER use the raw numeric ID.
+
+Each bullet should subtly note the assignee at the end like "(Stacie)" if the case isn't owned by the requesting admin. Skip the parenthetical otherwise.
 
 Format using these sections in order, each with **bold header** on its own line:
 
 **🚨 Needs Immediate Attention**
-Cases with overdue tasks, contact silence 14+ days, or stuck workflow gates. Lead with the most urgent.
+Cases with overdue tasks, contact silence 14+ days, or stuck workflow gates.
 
 **🤰 Upcoming Milestones**
-Anything time-sensitive on matched journeys: babies due soon (especially within 4 weeks — call out anything inside 2 weeks as 🚨), transfers scheduled in the next 3 weeks, beta tests expected, heartbeat scan windows opening, second betas pending. Pull from each journey's "milestones" array.
+Time-sensitive items on matched journeys: due soon (call <14 days as 🚨), transfers scheduled, betas expected, heartbeat scan windows. Pull from each journey's "milestones" array.
 
 **💬 Communication Gaps**
-Cases that haven't been touched recently. Flag anyone past 7 days, prioritize 14+ days. Mention last email subject if it implies an open thread.
+Cases not touched recently. Flag past 7 days, prioritize 14+ days.
 
 **📋 Workflow Bottlenecks**
-Cases blocked at a gate (profile awaiting approval, application not released yet, intake review not logged, checklist steps marked needed/pending).
+Cases blocked at a gate (profile awaiting approval, application not released, intake review not logged, checklist gaps).
 
 **💰 Expense / Escrow Items**
-Journeys with expenses not yet submitted to escrow, or unreconciled balances. Skip if none.
+Journeys with expenses not yet submitted to escrow. Skip if none.
 
 **✅ Healthy Cases**
-ONE LINE summarizing how many cases are humming along normally. Don't list each one; just a count + a confidence note.
+ONE LINE summarizing how many cases are humming along normally.
 
 Rules:
-- ALWAYS link case references: [Name](url). The reader should be able to one-click to any case.
-- Never invent details. Only surface what's in the signals provided.
-- Bullet points (- prefix), 1-2 sentences each. Each bullet leads with the case link.
-- If a section has no items, write a single short line like "Nothing flagged right now." — don't pad.
-- Total length ≤ ~900 words.`
+- ALWAYS link case references: [Name](url).
+- Never invent details.
+- Bullet points (- prefix), 1-2 sentences each.
+- Empty section: single short line like "Nothing flagged right now."
+- Total length ≤ ~700 words.`
 
   const userPrompt = `Workload signals for ${audience} (${totalCases} active case${totalCases === 1 ? '' : 's'} — ${stalledCases.length} stalled, ${totalOverdueTasks} overdue tasks, ${totalFlagged} with workflow flags):
 
@@ -460,8 +491,34 @@ ${JSON.stringify(caseSignals, null, 2)}`
       })
     }
 
-    const summary = aiData.content?.[0]?.text || 'No summary generated.'
+    const rawText = aiData.content?.[0]?.text || ''
     const generatedAt = new Date().toISOString()
+
+    // In team mode the model is asked for JSON. Parse it so the client can
+    // render a dashboard layout. If parsing fails, fall back to returning
+    // the raw text as a `summary` field — the page will render whatever
+    // shape it gets.
+    let dashboard = null
+    let summary = null
+    if (isTeamMode) {
+      try {
+        // Strip code fences if Claude wrapped the JSON despite instructions.
+        const cleaned = rawText
+          .replace(/^\s*```(?:json)?\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .trim()
+        dashboard = JSON.parse(cleaned)
+      } catch (err) {
+        console.error('Failed to parse team-mode JSON, falling back to text:', err)
+        summary = rawText
+      }
+    } else {
+      summary = rawText
+    }
+
+    const cacheValue = { generatedAt, caseCount: totalCases, caseSignals }
+    if (dashboard) cacheValue.dashboard = dashboard
+    if (summary) cacheValue.summary = summary
 
     // ── 5. Cache in app_config ─────────────────────────────
     try {
@@ -477,17 +534,17 @@ ${JSON.stringify(caseSignals, null, 2)}`
           config_key: isTeamMode
             ? `admin_summary_team_${(adminEmail || teamEmails[0]).toLowerCase()}`
             : `admin_summary_${adminEmail.toLowerCase()}`,
-          config_value: { summary, generatedAt, caseCount: totalCases, caseSignals },
+          config_value: cacheValue,
         }),
       })
     } catch (err) {
       console.error('Failed to cache admin summary:', err)
-      // non-fatal — summary is still returned to the client
     }
 
     return new Response(JSON.stringify({
       success: true,
       summary,
+      dashboard,
       generatedAt,
       caseCount: totalCases,
       stats: {
