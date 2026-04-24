@@ -7,7 +7,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getAllChecklistSteps, getChecklistMilestones, deriveParentStatus } from '@/lib/checklistStore'
 import { SURROGATE_STAGES, IP_STAGES } from '@/lib/constants'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Circle, ChevronDown, X, Sparkles, Loader2, CalendarDays, Clock, FileText, CheckCircle, Eye, Pencil, Check } from 'lucide-react'
+import { CheckCircle2, Circle, ChevronDown, X, Sparkles, Loader2, CalendarDays, Clock, FileText, CheckCircle, Eye, Pencil, Check, Search } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
@@ -377,6 +377,7 @@ export default function CaseUpdatesPage() {
   const [ips, setIps] = useState([])
   const [journeys, setJourneys] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
@@ -397,29 +398,72 @@ export default function CaseUpdatesPage() {
   const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id) && (showAll || s.assignedTo === myEmail)), [surrogates, matchedGcIds, showAll, myEmail])
   const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id) && (showAll || ip.assignedTo === myEmail)), [ips, matchedIpIds, showAll, myEmail])
 
+  // Apply search filter on top of admin scoping. Matches against any of the
+  // names we display per row (surrogate name, IP names, or — for journeys —
+  // the linked gc/ip names).
+  const q = search.trim().toLowerCase()
+  const searchedSurrogates = useMemo(() => {
+    if (!q) return unmatchedSurrogates
+    return unmatchedSurrogates.filter(s => (s.name || '').toLowerCase().includes(q))
+  }, [unmatchedSurrogates, q])
+  const searchedIps = useMemo(() => {
+    if (!q) return unmatchedIps
+    return unmatchedIps.filter(i => (i.names || '').toLowerCase().includes(q))
+  }, [unmatchedIps, q])
+  const visibleJourneys = useMemo(() => {
+    const scoped = showAll ? journeys : journeys.filter(j => j.assigned_to === myEmail)
+    if (!q) return scoped
+    return scoped.filter(j => {
+      const gc = surrogates.find(s => s.id === j.gc_case_id)
+      const ip = ips.find(i => i.id === j.ip_case_id)
+      const blob = `${gc?.name || ''} ${ip?.names || ''}`.toLowerCase()
+      return blob.includes(q)
+    })
+  }, [journeys, surrogates, ips, showAll, myEmail, q])
+
   if (loading) return <div className="p-6 text-center text-stone-400">Loading...</div>
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader title="Case Updates" subtitle="Track screening progress and case status across all case types" />
 
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name…"
+          className="pl-9 pr-9"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+            aria-label="Clear search"
+            type="button"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+
       <Tabs defaultValue="surrogates">
         <TabsList>
-          <TabsTrigger value="surrogates">Surrogates</TabsTrigger>
-          <TabsTrigger value="ips">Intended Parents</TabsTrigger>
-          <TabsTrigger value="journeys">Matched Journeys</TabsTrigger>
+          <TabsTrigger value="surrogates">Surrogates{q ? ` (${searchedSurrogates.length})` : ''}</TabsTrigger>
+          <TabsTrigger value="ips">Intended Parents{q ? ` (${searchedIps.length})` : ''}</TabsTrigger>
+          <TabsTrigger value="journeys">Matched Journeys{q ? ` (${visibleJourneys.length})` : ''}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="surrogates" className="mt-4">
-          <SurrogateUpdatesSheet surrogates={unmatchedSurrogates} />
+          <SurrogateUpdatesSheet surrogates={searchedSurrogates} />
         </TabsContent>
 
         <TabsContent value="ips" className="mt-4">
-          <IPUpdatesSheet ips={unmatchedIps} />
+          <IPUpdatesSheet ips={searchedIps} />
         </TabsContent>
 
         <TabsContent value="journeys" className="mt-4">
-          <JourneyUpdatesSheet journeys={showAll ? journeys : journeys.filter(j => j.assigned_to === myEmail)} surrogates={surrogates} ips={ips} />
+          <JourneyUpdatesSheet journeys={visibleJourneys} surrogates={surrogates} ips={ips} />
         </TabsContent>
       </Tabs>
     </div>
