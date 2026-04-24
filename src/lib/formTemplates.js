@@ -501,7 +501,7 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
  * Returns HTML string.
  */
 export function generateReleasePageHtml(pageId, template, values = {}, signatures = {}, initials = {}, options = {}) {
-  const { forPdf = false, signerRole = 'gc', signerName = '' } = options
+  const { forPdf = false, signerRole = 'gc', signerName = '', signerDates = {} } = options
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const gcName = values.gcName || ''
   const partnerName = values.partnerName || ''
@@ -540,9 +540,18 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
   }
   function dateVal(forRole) {
     const isActive = forRole === signerRole
-    if (forPdf && isActive) return `<span style="font-weight:500;">${today}</span>`
-    if (forPdf) return `<span style="border-bottom:1px solid #333;display:inline-block;min-width:100px;">&nbsp;</span>`
+    // In the final PDF, each role's date = the date that role actually signed.
+    // signerDates is populated from doc.signers[].signedAt by the caller so prior
+    // signers keep their original dates when a later signer regenerates the PDF.
+    if (forPdf) {
+      const storedDate = signerDates[forRole]
+      if (storedDate) return `<span style="font-weight:500;">${storedDate}</span>`
+      if (isActive) return `<span style="font-weight:500;">${today}</span>`
+      return `<span style="border-bottom:1px solid #333;display:inline-block;min-width:100px;">&nbsp;</span>`
+    }
     if (isActive) return `<span style="font-weight:500;color:#283693;">${today}</span>`
+    const storedDate = signerDates[forRole]
+    if (storedDate) return `<span style="font-weight:500;color:#666;">${storedDate}</span>`
     return `<span style="color:#999;font-size:10px;">—</span>`
   }
   function textField(id, placeholder = '') {
@@ -572,8 +581,8 @@ export function generateReleasePageHtml(pageId, template, values = {}, signature
 ${inner}
 </div>`
 
-  // ── HIPAA (shared between surrogate copy and agency countersign) ──
-  if ((template.id === 'release_hipaa_gc' || template.id === 'release_hipaa_admin') && pageId === 'p1') {
+  // ── HIPAA (unified two-signer doc + legacy single-signer copies) ──
+  if ((template.id === 'release_hipaa' || template.id === 'release_hipaa_gc' || template.id === 'release_hipaa_admin') && pageId === 'p1') {
     const addressLine = [values.streetAddress, values.cityStateZip].filter(Boolean).join(', ')
     const adminName = values.adminName || ''
     return wrap(`

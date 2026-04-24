@@ -277,7 +277,11 @@ export default function SignFormPage() {
       const mergedSignatures = { ...signatures }
       const mergedInitials = { ...initials }
       const mergedFieldValues = { ...fieldValues }
+      const signerDates = {}
       for (const s of (updated.signers || [])) {
+        if (s.signedAt && s.role) {
+          signerDates[s.role] = new Date(s.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        }
         if (s.email?.toLowerCase() === mySigner.email?.toLowerCase()) continue
         if (s.formSignatures) {
           for (const [k, v] of Object.entries(s.formSignatures)) {
@@ -302,6 +306,7 @@ export default function SignFormPage() {
           forPdf: true,
           signerRole: mySigner.role,
           signerName: mySigner.name,
+          signerDates,
         })
       }
 
@@ -336,6 +341,7 @@ export default function SignFormPage() {
               forPdf: true,
               signerRole: mySigner.role,
               signerName: mySigner.name,
+              signerDates,
             })
             document.body.appendChild(pageDiv)
             await new Promise(r => setTimeout(r, 200))

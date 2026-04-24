@@ -246,7 +246,11 @@ export default function BatchSignFormPage() {
         const mergedSigs = { ...signatures }
         const mergedInits = { ...initials }
         const mergedFields = { ...fieldValues }
+        const signerDates = {}
         for (const s of (updated.signers || [])) {
+          if (s.signedAt && s.role) {
+            signerDates[s.role] = new Date(s.signedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+          }
           if (s.email?.toLowerCase() === mySigner.email?.toLowerCase()) continue
           if (s.formSignatures) for (const [k, v] of Object.entries(s.formSignatures)) if (!mergedSigs[k]) mergedSigs[k] = v
           if (s.formInitials) for (const [k, v] of Object.entries(s.formInitials)) if (!mergedInits[k]) mergedInits[k] = v
@@ -255,7 +259,7 @@ export default function BatchSignFormPage() {
 
         if (isDocFirst) {
           filledHtml = generateReleaseFormHtml(template, mergedFields, mergedSigs, mergedInits, {
-            forPdf: true, signerRole: mySigner.role, signerName: mySigner.name,
+            forPdf: true, signerRole: mySigner.role, signerName: mySigner.name, signerDates,
           })
         }
 
@@ -276,7 +280,7 @@ export default function BatchSignFormPage() {
               const pageDiv = document.createElement('div')
               pageDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
               pageDiv.innerHTML = generateReleasePageHtml(page.id, template, mergedFields, mergedSigs, mergedInits, {
-                forPdf: true, signerRole: mySigner.role, signerName: mySigner.name,
+                forPdf: true, signerRole: mySigner.role, signerName: mySigner.name, signerDates,
               })
               document.body.appendChild(pageDiv)
               await new Promise(r => setTimeout(r, 200))
