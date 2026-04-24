@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { signerName, signerEmail, formTitle, formUrl } = await context.request.json()
+  const { signerName, signerEmail, formTitle, formUrl, senderName, senderEmail } = await context.request.json()
 
   if (!signerEmail || !formUrl) {
     return new Response(JSON.stringify({ error: 'Missing signerEmail or formUrl' }), {
@@ -31,6 +31,17 @@ export async function onRequestPost(context) {
   }
 
   const firstName = (signerName || '').split(' ')[0] || 'there'
+
+  // Resolve the From + Reply-To. If the sending admin is on the verified
+  // domain (@abcsurrogacy.com), send directly as them — otherwise fall back
+  // to the default noreply and use Reply-To so replies still reach the admin.
+  const cleanSenderEmail = (senderEmail || '').trim().toLowerCase()
+  const senderOnABCDomain = cleanSenderEmail.endsWith('@abcsurrogacy.com')
+  const fromAddress = senderOnABCDomain ? cleanSenderEmail : fromEmail
+  const fromDisplay = senderName
+    ? `${senderName} (ABC Surrogacy)`
+    : 'ABC Surrogacy'
+  const replyToAddress = cleanSenderEmail || null
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -80,15 +91,17 @@ export async function onRequestPost(context) {
   `
 
   try {
+    const payload = {
+      from: `${fromDisplay} <${fromAddress}>`,
+      to: [signerEmail],
+      subject: `ABC Surrogacy — Please sign: ${formTitle || 'Document'}`,
+      html: htmlBody,
+    }
+    if (replyToAddress) payload.reply_to = replyToAddress
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: `ABC Surrogacy <${fromEmail}>`,
-        to: [signerEmail],
-        subject: `ABC Surrogacy — Please sign: ${formTitle || 'Document'}`,
-        html: htmlBody,
-      }),
+      body: JSON.stringify(payload),
     })
     const data = await res.json()
     if (!res.ok) {

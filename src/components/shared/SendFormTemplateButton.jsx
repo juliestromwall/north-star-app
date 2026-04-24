@@ -5,13 +5,13 @@ import { useRole } from '@/context/RoleContext'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
 
-async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken }) {
+async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken, senderName, senderEmail }) {
   const formUrl = `${window.location.origin}/e-signature/form/${formToken}`
   try {
     const res = await fetch('/api/send-esign-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ signerName, signerEmail, formTitle, formUrl }),
+      body: JSON.stringify({ signerName, signerEmail, formTitle, formUrl, senderName, senderEmail }),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data.success === false) {
@@ -102,7 +102,13 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
           onClick={async () => {
             if (!existingDoc.formToken || !signerEmail) return
             setResending(true)
-            const emailRes = await sendEsignEmail({ signerName, signerEmail, formTitle: template.title, formToken: existingDoc.formToken })
+            const emailRes = await sendEsignEmail({
+              signerName, signerEmail,
+              formTitle: template.title,
+              formToken: existingDoc.formToken,
+              senderName: currentUser?.name,
+              senderEmail: currentUser?.email,
+            })
             setResending(false)
             if (emailRes.success) {
               setResult({ resent: true })
@@ -164,7 +170,13 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       await sendDocument(doc.id)
 
       // Send the actual email
-      const emailRes = await sendEsignEmail({ signerName, signerEmail, formTitle: docTitle, formToken })
+      const emailRes = await sendEsignEmail({
+        signerName, signerEmail,
+        formTitle: docTitle,
+        formToken,
+        senderName: currentUser?.name,
+        senderEmail: currentUser?.email,
+      })
       if (!emailRes.success) {
         setExistingDoc({ status: 'pending', formToken })
         setResult({ error: `Document created but email failed: ${emailRes.error}` })
