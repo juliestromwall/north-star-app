@@ -81,8 +81,18 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
         {/* Milestones */}
         {(() => {
           const milestones = getChecklistMilestones('gc', j.stage)
+          const tracking = j.journey_data?._checklistTracking || {}
+          let completed = 0
+          const milestoneData = milestones.map(ms => {
+            const stepIds = ms.stepIds || []
+            const relevantSteps = stepIds.filter(id => tracking[id]?.status || !id.startsWith('_'))
+            const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => tracking[id]?.status === 'complete' || tracking[id]?.status === 'na')
+            const anyStarted = relevantSteps.some(id => tracking[id]?.status && tracking[id].status !== 'not_started')
+            const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+            if (allComplete) completed++
+            return { ...ms, status }
+          })
           const total = milestones.length
-          const completed = 0
           const pct = total > 0 ? (completed / total) * 100 : 0
           return total > 0 ? (
             <div className="px-4 py-1.5 border-t border-stone-100 space-y-1">
@@ -94,10 +104,10 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
               </div>
               <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
-                {milestones.map(ms => (
+                {milestoneData.map(ms => (
                   <div key={ms.id} className="flex items-center gap-0.5">
-                    <Circle className="size-2.5 text-stone-300 shrink-0" />
-                    <span className="text-[9px] text-stone-400 whitespace-nowrap">{ms.label}</span>
+                    <Circle className={`size-2.5 shrink-0 ${ms.status === 'complete' ? 'text-emerald-500 fill-emerald-500' : ms.status === 'in_progress' ? 'text-amber-500 fill-amber-500' : 'text-stone-300'}`} />
+                    <span className={`text-[9px] whitespace-nowrap ${ms.status === 'complete' ? 'text-emerald-600' : ms.status === 'in_progress' ? 'text-amber-600' : 'text-stone-400'}`}>{ms.label}</span>
                   </div>
                 ))}
               </div>
