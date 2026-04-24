@@ -78,7 +78,7 @@ const HISTORY_FIELDS = [
   { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
-  { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS },
+  { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS, fullWidth: true },
   { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
   { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
 ]
