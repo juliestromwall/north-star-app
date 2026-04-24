@@ -1566,6 +1566,8 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
         const partnerEmail = answers?._application?.spouseEmail
         const adminEmail = surrogate?.assignedTo || ''
         const adminName = adminEmail ? (getAdminStaff().find(a => a.email === adminEmail)?.name || adminEmail.split('@')[0]) : ''
+        const maritalStatus = (profileData?.personal?.maritalStatus || answers?.maritalStatus || '').toLowerCase().trim()
+        const hasPartner = !!partnerName.trim() || ['married', 'in a relationship', 'domestic partnership', 'partnered'].includes(maritalStatus)
         return (
           <Card id="app-sec-waivers">
             <CardHeader>
@@ -1591,17 +1593,27 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">General Psych Release</p>
                 <div className="space-y-2">
-                  <SendFormTemplateButton templateId="release_general_psych_single_gc" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="release_general_psych_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                  {hasPartner ? (
+                    <>
+                      <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} />
+                      <SendFormTemplateButton templateId="release_general_psych_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                    </>
+                  ) : (
+                    <SendFormTemplateButton templateId="release_general_psych_single_gc" surrogate={surrogate} />
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Ellen Winters Psych Release</p>
                 <div className="space-y-2">
-                  <SendFormTemplateButton templateId="release_ellen_winters_single_gc" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} />
-                  <SendFormTemplateButton templateId="release_ellen_winters_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                  {hasPartner ? (
+                    <>
+                      <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} />
+                      <SendFormTemplateButton templateId="release_ellen_winters_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
+                    </>
+                  ) : (
+                    <SendFormTemplateButton templateId="release_ellen_winters_single_gc" surrogate={surrogate} />
+                  )}
                 </div>
               </div>
             </CardContent>
