@@ -23,7 +23,7 @@ import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
   LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
-  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw, Search,
+  ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw, Search, Sparkles,
 } from 'lucide-react'
 
 // Renders the reply list + reply form for an admin note. Visibility rules are
@@ -163,6 +163,8 @@ export default function AdminDashboard() {
   const toggleTaskExpanded = (t) => setTaskExpansions(prev => ({ ...prev, [t.id]: !getTaskExpanded(t) }))
   const [caseView, setCaseView] = useState('grid')
   const [caseSearch, setCaseSearch] = useState('')
+  // For master/super admins picking whose cases to summarize. Default = current user.
+  const [summaryAdminEmail, setSummaryAdminEmail] = useState(currentUser?.email || '')
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
@@ -978,6 +980,31 @@ export default function AdminDashboard() {
                 className="h-10 w-full pl-10 pr-4 text-sm border border-stone-200 rounded-xl bg-white outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
               />
             </div>
+            {showAllCases && (
+              <select
+                value={summaryAdminEmail}
+                onChange={e => setSummaryAdminEmail(e.target.value)}
+                className="h-10 text-sm border border-stone-200 rounded-xl px-3 bg-white outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 shrink-0"
+                title="Pick whose cases to summarize"
+              >
+                <option value={currentUser?.email || ''}>My cases</option>
+                {getAdminStaff().filter(a => a.email !== currentUser?.email).map(a => (
+                  <option key={a.email} value={a.email}>{a.name}'s cases</option>
+                ))}
+              </select>
+            )}
+            <Button
+              size="sm"
+              className="h-10 gap-1.5 shrink-0 text-white"
+              style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+              onClick={() => {
+                const target = (showAllCases ? summaryAdminEmail : currentUser?.email) || ''
+                window.open(`/dashboard/cases-summary?admin=${encodeURIComponent(target)}`, '_blank', 'noopener,noreferrer')
+              }}
+            >
+              <Sparkles className="size-4" />
+              Summarize {showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases
+            </Button>
             <div className="flex items-center border rounded-md shrink-0">
               <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-9" onClick={() => setCaseView('grid')}>
                 <LayoutGrid className="size-4" />

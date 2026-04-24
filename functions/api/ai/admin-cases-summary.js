@@ -1,0 +1,303 @@
+// Cloudflare Pages Function — POST /api/ai/admin-cases-summary
+//
+// Aggregates ALL cases assigned to an admin (surrogates, IPs, journeys),
+// computes gap signals per case (days since last contact, open tasks,
+// checklist gaps, etc.), and asks Claude to produce a workload-overview
+// summary highlighting where the admin's attention is needed.
+//
+// Auth model: caller passes adminEmail. Frontend gates "summarize someone
+// else" to master/super admins via UI; server trusts the email it gets.
+// Service-role Supabase calls bypass RLS so the admin sees everything for
+// their assigned cases.
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+export async function onRequestOptions() {
+  return new Response(null, { headers: corsHeaders })
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+const today = () => new Date().toISOString().split('T')[0]
+const daysAgo = (iso) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return null
+  return Math.floor((Date.now() - d.getTime()) / DAY_MS)
+}
+
+async function sb(env, path) {
+  const url = (env.SUPABASE_URL || env.VITE_SUPABASE_URL) + '/rest/v1/' + path
+  const res = await fetch(url, {
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  })
+  if (!res.ok) {
+    console.error('Supabase error', path, res.status, await res.text())
+    return []
+  }
+  return res.json()
+}
+
+export async function onRequestPost(context) {
+  const { env } = context
+  const apiKey = env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
+  const { adminEmail, adminName } = await context.request.json()
+  if (!adminEmail) {
+    return new Response(JSON.stringify({ error: 'Missing adminEmail' }), {
+      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
+  // ── 1. Fetch admin's assigned cases ──────────────────────
+  const emailParam = encodeURIComponent(adminEmail)
+  const intakes = await sb(env, `intake_submissions?assigned_to=eq.${emailParam}&select=id,intake_type,applicant_name,applicant_email,status,submitted_at,answers&order=submitted_at.desc`)
+  const journeys = await sb(env, `matched_journeys?assigned_to=eq.${emailParam}&select=*&order=created_at.desc`)
+
+  // Stage statuses live in app_config under config_key='surrogate_stages'
+  const stageCfg = await sb(env, `app_config?config_key=eq.surrogate_stages&select=config_value`)
+  const stageStatusMap = stageCfg?.[0]?.config_value || {}
+
+  if (intakes.length === 0 && journeys.length === 0) {
+    return new Response(JSON.stringify({
+      success: true,
+      summary: `**No assigned cases**\n\nNothing's currently assigned to ${adminName || adminEmail}. When cases are assigned, click "Regenerate" to refresh this view.`,
+      caseCount: 0,
+    }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+  }
+
+  // Filter out archived journeys + closed/withdrawn intakes for the active workload view
+  const activeJourneys = journeys.filter(j => !j.journey_data?._archivedAt && j.status !== 'Complete')
+  const matchedGcIds = new Set(activeJourneys.map(j => j.gc_case_id))
+  const matchedIpIds = new Set(activeJourneys.map(j => j.ip_case_id))
+  const standaloneIntakes = intakes.filter(i => {
+    const stage = stageStatusMap?.[i.id]?.stage
+    if (['withdrawn', 'not-qualified', 'holding'].includes(stage)) return false
+    if (i.intake_type === 'gc' && matchedGcIds.has(i.id)) return false
+    if (i.intake_type === 'ip' && matchedIpIds.has(i.id)) return false
+    return true
+  })
+
+  // ── 2. Per-case gap signals (compact, no raw dumps) ──────
+  // Build one signal record per case so the prompt stays small even with 30+ cases.
+  // Cap activity samples to ~3 items per case.
+
+  const caseSignals = []
+
+  for (const intake of standaloneIntakes) {
+    const caseId = intake.id
+    const isIP = intake.intake_type === 'ip'
+    const stage = stageStatusMap?.[caseId]?.stage || 'pre-qualification'
+    const status = stageStatusMap?.[caseId]?.status || 'New'
+    const a = intake.answers || {}
+
+    // Pull recent activity in parallel (cap each list small to keep payload tight)
+    const [emails, tasks, notes] = await Promise.all([
+      sb(env, `case_emails?case_id=eq.${caseId}&select=date,direction,subject,from_address,snippet,tags&order=date.desc&limit=5`),
+      sb(env, `case_tasks?case_id=eq.${caseId}&select=title,status,priority,due_date,description,created_at&order=created_at.desc&limit=20`),
+      sb(env, `case_notes?surrogate_id=eq.${caseId}&select=created_at,content&order=created_at.desc&limit=3`),
+    ])
+
+    const openTasks = tasks.filter(t => t.status !== 'complete' && t.status !== 'completed')
+    const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today())
+
+    const lastEmailDate = emails[0]?.date
+    const lastNoteDate = notes[0]?.created_at
+    const lastTaskActivity = tasks[0]?.created_at
+    const lastTouch = [lastEmailDate, lastNoteDate, lastTaskActivity].filter(Boolean).sort().pop()
+
+    // Profile / application gates — surface gaps in the workflow itself
+    const flags = []
+    if (isIP) {
+      if (a._profileSubmitted && !a._ipProfile?._approved && !a._profileReleasedAt) flags.push('IP profile awaiting admin approval')
+      if (a._ipProfile?._approved && !a._applicationAvailable) flags.push('Profile approved but application not yet released')
+      if (a._applicationAvailable && !a._applicationSubmitted) flags.push('Application released to IP but not yet submitted')
+    } else {
+      if (a._profileSubmitted && !a._profileApproved && !a._profileReleasedAt) flags.push('Surrogate profile awaiting admin approval')
+      if (a._applicationSubmitted && stage === 'pre-qualification') flags.push('Application submitted but case still in pre-qualification')
+    }
+    if (!a._reviewedAt && stage === 'pre-qualification') flags.push('Initial intake review not yet logged')
+
+    // Checklist: scan _recordTracking for steps that are still "needed" / "pending"
+    const tracking = a._recordTracking || {}
+    const incompleteSteps = Object.entries(tracking)
+      .filter(([_, v]) => v?.status && !['complete', 'completed', 'n/a', 'na'].includes(String(v.status).toLowerCase()))
+      .map(([k, v]) => `${k}=${v.status}`)
+      .slice(0, 8)
+
+    caseSignals.push({
+      kind: isIP ? 'IP' : 'Surrogate',
+      id: caseId,
+      name: intake.applicant_name || a.firstName || 'Unknown',
+      email: intake.applicant_email,
+      stage, status,
+      submittedAt: intake.submitted_at?.split('T')[0],
+      lastTouchDays: daysAgo(lastTouch),
+      lastEmailDays: daysAgo(lastEmailDate),
+      lastNoteDays: daysAgo(lastNoteDate),
+      lastEmailSubject: emails[0]?.subject || null,
+      openTasks: openTasks.length,
+      overdueTasks: overdueTasks.length,
+      overdueTaskTitles: overdueTasks.slice(0, 3).map(t => `${t.title} (due ${t.due_date})`),
+      noteCount: notes.length,
+      flags,
+      incompleteSteps,
+    })
+  }
+
+  for (const j of activeJourneys) {
+    const jd = j.journey_data || {}
+    const [emails, tasks, expenses] = await Promise.all([
+      sb(env, `case_emails?case_id=eq.${j.id}&select=date,direction,subject&order=date.desc&limit=5`),
+      sb(env, `case_tasks?case_id=eq.${j.id}&select=title,status,priority,due_date&order=created_at.desc&limit=20`),
+      sb(env, `journey_expenses?journey_id=eq.${j.id}&select=expense_date,amount,paid_to,reconciled,paid_at,disbursement_requested_at,disbursement_paid_at,pay_to_type&order=expense_date.desc&limit=10`),
+    ])
+
+    const openTasks = tasks.filter(t => t.status !== 'complete' && t.status !== 'completed')
+    const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today())
+    const unpaidExpenses = expenses.filter(e => !e.paid_at && e.pay_to_type !== 'hold')
+    const unrequestedExpenses = expenses.filter(e => !e.disbursement_requested_at && !e.paid_at && e.pay_to_type !== 'hold')
+
+    const lastEmailDate = emails[0]?.date
+    const lastTouch = [lastEmailDate, tasks[0]?.created_at, expenses[0]?.expense_date].filter(Boolean).sort().pop()
+
+    const flags = []
+    if (jd.heartbeat_confirmed && !jd._heartbeatTaskFired) flags.push('Heartbeat confirmed — verify follow-up tasks fired')
+    if (j.status === 'Active' && unrequestedExpenses.length > 0) flags.push(`${unrequestedExpenses.length} expense(s) not yet submitted to escrow`)
+
+    caseSignals.push({
+      kind: 'Journey',
+      id: j.id,
+      name: jd.gc_name && jd.ip_name ? `${jd.gc_name} × ${jd.ip_name}` : (jd.gc_name || jd.ip_name || `Journey #${j.id}`),
+      stage: j.status || 'unknown',
+      status: jd.pregnancy_status || jd.transfer_status || '',
+      lastTouchDays: daysAgo(lastTouch),
+      lastEmailDays: daysAgo(lastEmailDate),
+      lastEmailSubject: emails[0]?.subject || null,
+      openTasks: openTasks.length,
+      overdueTasks: overdueTasks.length,
+      overdueTaskTitles: overdueTasks.slice(0, 3).map(t => `${t.title} (due ${t.due_date})`),
+      unpaidExpenses: unpaidExpenses.length,
+      unrequestedExpenses: unrequestedExpenses.length,
+      flags,
+    })
+  }
+
+  // ── 3. Build prompt ──────────────────────────────────────
+  const totalCases = caseSignals.length
+  const stalledCases = caseSignals.filter(c => c.lastTouchDays === null || c.lastTouchDays >= 14)
+  const totalOverdueTasks = caseSignals.reduce((s, c) => s + (c.overdueTasks || 0), 0)
+  const totalFlagged = caseSignals.filter(c => c.flags?.length > 0).length
+
+  const systemPrompt = `You are an experienced surrogacy case manager helping ${adminName || adminEmail} review their full workload.
+
+You will receive structured signals (NOT raw data) for each case the admin owns. Your job is to produce a punchy, scannable workload summary that surfaces where the admin's attention is needed RIGHT NOW.
+
+Format using these sections, each with **bold header** on its own line:
+
+**🚨 Needs Immediate Attention**
+Cases with overdue tasks, no contact in 14+ days, or stuck workflow gates. Be specific — name the case and what's wrong.
+
+**💬 Communication Gaps**
+Cases that haven't been touched recently. Flag anyone past 7 days, prioritize 14+ days. Mention last email subject if it implies an open thread.
+
+**📋 Workflow Bottlenecks**
+Cases blocked at a gate the admin controls (profile awaiting approval, application not released yet, intake review not logged, checklist steps marked needed/pending).
+
+**💰 Expense / Escrow Items**
+Journeys with expenses not yet submitted to escrow, or unreconciled balances. Skip if none.
+
+**✅ Healthy Cases**
+ONE LINE summarizing how many cases are humming along normally — recently touched, no overdue work, no gates blocking. Don't list each one; just a count + a confidence note.
+
+Rules:
+- Never invent details. Only surface what's in the signals provided.
+- Use case names + IDs (e.g. "Jane Smith #45") so the admin can jump straight there.
+- Bullet points (- prefix), 1-2 sentences each.
+- If a section has no items, write a single short line like "Nothing flagged right now." — don't pad.
+- Total length ≤ ~600 words.`
+
+  const userPrompt = `Workload signals for ${adminName || adminEmail} (${totalCases} active case${totalCases === 1 ? '' : 's'} — ${stalledCases.length} stalled, ${totalOverdueTasks} overdue tasks, ${totalFlagged} with workflow flags):
+
+${JSON.stringify(caseSignals, null, 2)}`
+
+  // ── 4. Call Claude ───────────────────────────────────────
+  try {
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+      }),
+    })
+
+    const aiData = await aiRes.json()
+    if (!aiRes.ok) {
+      return new Response(JSON.stringify({ error: aiData.error?.message || 'Claude API error' }), {
+        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    const summary = aiData.content?.[0]?.text || 'No summary generated.'
+    const generatedAt = new Date().toISOString()
+
+    // ── 5. Cache in app_config ─────────────────────────────
+    try {
+      await fetch(`${env.SUPABASE_URL || env.VITE_SUPABASE_URL}/rest/v1/app_config`, {
+        method: 'POST',
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify({
+          config_key: `admin_summary_${adminEmail.toLowerCase()}`,
+          config_value: { summary, generatedAt, caseCount: totalCases, caseSignals },
+        }),
+      })
+    } catch (err) {
+      console.error('Failed to cache admin summary:', err)
+      // non-fatal — summary is still returned to the client
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      summary,
+      generatedAt,
+      caseCount: totalCases,
+      stats: {
+        stalled: stalledCases.length,
+        overdueTasks: totalOverdueTasks,
+        flagged: totalFlagged,
+      },
+    }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message || 'Failed to call AI' }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+}

@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
 import DashboardRouter from './pages/dashboard/DashboardRouter'
+import AdminCasesSummaryPage from './pages/dashboard/AdminCasesSummaryPage'
 import FormsListPage from './pages/forms/FormsListPage'
 import FormBuilderPage from './pages/forms/FormBuilderPage'
 import FormSubmissionPage from './pages/forms/FormSubmissionPage'
@@ -93,6 +94,7 @@ export default function App() {
       {/* Authenticated app */}
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<DashboardRouter />} />
+        <Route path="/dashboard/cases-summary" element={<AdminCasesSummaryPage />} />
         <Route path="/forms" element={<FormsListPage />} />
         <Route path="/forms/builder" element={<FormBuilderPage />} />
         <Route path="/forms/builder/:formId" element={<FormBuilderPage />} />
