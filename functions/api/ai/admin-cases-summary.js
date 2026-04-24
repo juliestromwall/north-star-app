@@ -119,10 +119,42 @@ async function runSummary(context) {
     return true
   })
 
-  // ── 2. Per-case gap signals (compact, no raw dumps) ──────
-  // Build one signal record per case so the prompt stays small even with 30+ cases.
-  // Cap activity samples to ~3 items per case.
+  // ── 2. Bulk-fetch all activity data in 4 batched IN-clause queries ──
+  // Cloudflare Workers cap each invocation at 50 subrequests on the free
+  // plan / 1000 on paid. Fetching per-case (3 reqs * N cases) blows past
+  // that for any admin with >15 cases. Doing IN clauses keeps the
+  // subrequest count constant (~8) regardless of caseload.
 
+  const allCaseIds = [
+    ...standaloneIntakes.map(i => i.id),
+    ...activeJourneys.map(j => j.id),
+  ]
+  const journeyIds = activeJourneys.map(j => j.id)
+  const inClause = (ids) => `(${ids.join(',')})`
+
+  const [allEmails, allTasks, allNotes, allExpenses] = await Promise.all([
+    allCaseIds.length === 0 ? [] : sb(env, `case_emails?case_id=in.${inClause(allCaseIds)}&select=case_id,date,direction,subject&order=date.desc&limit=500`),
+    allCaseIds.length === 0 ? [] : sb(env, `case_tasks?case_id=in.${inClause(allCaseIds)}&select=case_id,title,status,priority,due_date,created_at&order=created_at.desc&limit=500`),
+    allCaseIds.length === 0 ? [] : sb(env, `case_notes?surrogate_id=in.${inClause(allCaseIds)}&select=surrogate_id,created_at&order=created_at.desc&limit=300`),
+    journeyIds.length === 0 ? [] : sb(env, `journey_expenses?journey_id=in.${inClause(journeyIds)}&select=journey_id,expense_date,paid_at,disbursement_requested_at,pay_to_type&order=expense_date.desc&limit=500`),
+  ])
+
+  // Group by case_id / surrogate_id / journey_id
+  const groupBy = (rows, key) => {
+    const m = new Map()
+    for (const r of rows) {
+      const k = r[key]
+      if (!m.has(k)) m.set(k, [])
+      m.get(k).push(r)
+    }
+    return m
+  }
+  const emailsByCase   = groupBy(allEmails, 'case_id')
+  const tasksByCase    = groupBy(allTasks, 'case_id')
+  const notesByCase    = groupBy(allNotes, 'surrogate_id')
+  const expensesByJny  = groupBy(allExpenses, 'journey_id')
+
+  // ── 3. Build one signal record per case ──────────────────
   const caseSignals = []
 
   for (const intake of standaloneIntakes) {
@@ -132,12 +164,9 @@ async function runSummary(context) {
     const status = stageStatusMap?.[caseId]?.status || 'New'
     const a = intake.answers || {}
 
-    // Pull recent activity in parallel (cap each list small to keep payload tight)
-    const [emails, tasks, notes] = await Promise.all([
-      sb(env, `case_emails?case_id=eq.${caseId}&select=date,direction,subject,from_address,snippet,tags&order=date.desc&limit=5`),
-      sb(env, `case_tasks?case_id=eq.${caseId}&select=title,status,priority,due_date,description,created_at&order=created_at.desc&limit=20`),
-      sb(env, `case_notes?surrogate_id=eq.${caseId}&select=created_at,content&order=created_at.desc&limit=3`),
-    ])
+    const emails = emailsByCase.get(caseId) || []
+    const tasks  = tasksByCase.get(caseId) || []
+    const notes  = notesByCase.get(caseId) || []
 
     const openTasks = tasks.filter(t => t.status !== 'complete' && t.status !== 'completed')
     const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today())
@@ -188,11 +217,9 @@ async function runSummary(context) {
 
   for (const j of activeJourneys) {
     const jd = j.journey_data || {}
-    const [emails, tasks, expenses] = await Promise.all([
-      sb(env, `case_emails?case_id=eq.${j.id}&select=date,direction,subject&order=date.desc&limit=5`),
-      sb(env, `case_tasks?case_id=eq.${j.id}&select=title,status,priority,due_date&order=created_at.desc&limit=20`),
-      sb(env, `journey_expenses?journey_id=eq.${j.id}&select=expense_date,amount,paid_to,reconciled,paid_at,disbursement_requested_at,disbursement_paid_at,pay_to_type&order=expense_date.desc&limit=10`),
-    ])
+    const emails   = emailsByCase.get(j.id) || []
+    const tasks    = tasksByCase.get(j.id) || []
+    const expenses = expensesByJny.get(j.id) || []
 
     const openTasks = tasks.filter(t => t.status !== 'complete' && t.status !== 'completed')
     const overdueTasks = openTasks.filter(t => t.due_date && t.due_date < today())
