@@ -391,6 +391,11 @@ export default function SignFormPage() {
               uploaded_by: 'System (E-Sign)',
             })
           }
+          // Auto-task for the assigned admin once the whole batch completes.
+          try {
+            const { maybeCreateSigningCompletionTask } = await import('@/lib/batchCompletionTask')
+            await maybeCreateSigningCompletionTask(updated)
+          } catch (taskErr) { console.error('Batch completion task failed:', taskErr) }
           setDone(true)
           return
         }
@@ -457,6 +462,11 @@ export default function SignFormPage() {
             uploaded_by: 'System (E-Sign)',
           })
         }
+        // Auto-task for the assigned admin once the whole batch completes.
+        try {
+          const { maybeCreateSigningCompletionTask } = await import('@/lib/batchCompletionTask')
+          await maybeCreateSigningCompletionTask(updated)
+        } catch (taskErr) { console.error('Batch completion task failed:', taskErr) }
       } catch (pdfErr) {
         console.error('PDF failed:', pdfErr)
       }

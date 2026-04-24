@@ -628,6 +628,15 @@ export default function SignDocumentPage() {
         }
       }
 
+      // Auto-task for clinic/hospital/OB release docs once fully signed.
+      // Fires only on status==='completed', so multi-signer docs wait for all.
+      if (updated?.status === 'completed' && updated?.case_id) {
+        try {
+          const { maybeCreateSigningCompletionTask } = await import('@/lib/batchCompletionTask')
+          await maybeCreateSigningCompletionTask(updated)
+        } catch (taskErr) { console.error('Completion task failed:', taskErr) }
+      }
+
       setDoc(updated)
       setSigned(true)
     } catch (err) {
