@@ -12,6 +12,7 @@ import { FOLLOW_UP_FIELDS, FIELD_LABELS } from '@/components/profile/profileCons
 import { useRole } from '@/context/RoleContext'
 import { ADMIN_ROLES } from '@/lib/constants'
 import SendFormTemplateButton from '@/components/shared/SendFormTemplateButton'
+import ReleaseFormsSection from '@/components/surrogates/ReleaseFormsSection'
 import { getAdminStaff } from '@/data/mock/users'
 
 const US_STATES = [
@@ -1563,7 +1564,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
       <div id="app-sec-payment"><PaymentPreferenceSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
       <div id="app-sec-social"><SocialMediaSection surrogate={surrogate} answers={answers} onSaved={handleSaved} search={searchLower} /></div>
 
-      {/* Release Forms */}
+      {/* Release Forms — batch send with per-template checkboxes */}
       {(!searchLower || 'release form'.includes(searchLower) || 'background waiver'.includes(searchLower)) && (() => {
         const partnerName = [answers?._application?.spouseFirstName, answers?._application?.spouseLastName].filter(Boolean).join(' ')
         const partnerEmail = answers?._application?.spouseEmail
@@ -1572,50 +1573,14 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
         const maritalStatus = (profileData?.personal?.maritalStatus || answers?.maritalStatus || '').toLowerCase().trim()
         const hasPartner = !!partnerName.trim() || ['married', 'in a relationship', 'domestic partnership', 'partnered'].includes(maritalStatus)
         return (
-          <Card id="app-sec-waivers">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Shield className="size-4 text-[#283693]" /> Release Forms
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Background Check</p>
-                <div className="space-y-2">
-                  <SendFormTemplateButton templateId="gc_background_waiver" surrogate={surrogate} />
-                  {hasPartner && (
-                    <SendFormTemplateButton templateId="partner_background_waiver" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">HIPAA</p>
-                <div className="space-y-2">
-                  <SendFormTemplateButton templateId="release_hipaa" surrogate={surrogate} adminName={adminName} adminEmail={adminEmail} />
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">General Psych Release</p>
-                <div className="space-y-2">
-                  {hasPartner ? (
-                    <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
-                  ) : (
-                    <SendFormTemplateButton templateId="release_general_psych_single_gc" surrogate={surrogate} />
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Ellen Winters Psych Release</p>
-                <div className="space-y-2">
-                  {hasPartner ? (
-                    <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
-                  ) : (
-                    <SendFormTemplateButton templateId="release_ellen_winters_single_gc" surrogate={surrogate} />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ReleaseFormsSection
+            surrogate={surrogate}
+            hasPartner={hasPartner}
+            partnerName={partnerName}
+            partnerEmail={partnerEmail}
+            adminName={adminName}
+            adminEmail={adminEmail}
+          />
         )
       })()}
     </div>

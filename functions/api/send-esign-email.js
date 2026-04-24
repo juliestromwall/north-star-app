@@ -22,7 +22,7 @@ export async function onRequestPost(context) {
     })
   }
 
-  const { signerName, signerEmail, formTitle, formUrl, senderName, senderEmail } = await context.request.json()
+  const { signerName, signerEmail, formTitle, formTitles, formUrl, senderName, senderEmail } = await context.request.json()
 
   if (!signerEmail || !formUrl) {
     return new Response(JSON.stringify({ error: 'Missing signerEmail or formUrl' }), {
@@ -31,6 +31,20 @@ export async function onRequestPost(context) {
   }
 
   const firstName = (signerName || '').split(' ')[0] || 'there'
+
+  // Batch mode: if an array of titles is provided, render a bulleted list
+  // (one email covering multiple forms). Otherwise render the single-title
+  // copy like the original one-off flow.
+  const isBatch = Array.isArray(formTitles) && formTitles.length > 1
+  const primaryTitle = isBatch
+    ? `${formTitles.length} documents`
+    : (formTitles?.[0] || formTitle || 'form')
+  const formListHtml = isBatch
+    ? `<ul style="margin:0;padding-left:18px;font-size:15px;color:#44403c;line-height:1.8;">${formTitles.map(t => `<li>${t}</li>`).join('')}</ul>`
+    : ''
+  const formListText = isBatch
+    ? formTitles.map(t => `  • ${t}`).join('\n') + '\n\n'
+    : ''
 
   // Resolve the From + Reply-To. If the sending admin is on the verified
   // domain (@abcsurrogacy.com), send directly as them — otherwise fall back
@@ -67,13 +81,16 @@ export async function onRequestPost(context) {
             Hi ${firstName},
           </p>
           <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
-            ABC Surrogacy has sent you a <strong>${formTitle || 'form'}</strong> that requires your signature. Please click the button below to review and sign.
+            ${isBatch
+              ? `ABC Surrogacy has sent you the following documents that require your signature. Click the button below to review and sign all of them in one session.`
+              : `ABC Surrogacy has sent you a <strong>${primaryTitle}</strong> that requires your signature. Please click the button below to review and sign.`}
           </p>
+          ${formListHtml}
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
           <a href="${formUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
-            Review & Sign
+            ${isBatch ? `Review & Sign (${formTitles.length})` : 'Review & Sign'}
           </a>
         </div>
 
@@ -93,9 +110,20 @@ export async function onRequestPost(context) {
   try {
     // Plain-text alternative — Outlook/Microsoft spam filters often reject
     // HTML-only mail. Resend passes both parts to the recipient.
-    const textBody = `Hi ${firstName},
+    const textBody = isBatch
+      ? `Hi ${firstName},
 
-ABC Surrogacy has sent you a ${formTitle || 'document'} that requires your signature.
+ABC Surrogacy has sent you ${formTitles.length} documents that require your signature:
+
+${formListText}Review and sign all: ${formUrl}
+
+If you have any questions, reply to this email or contact us at info@abcsurrogacy.com.
+
+— Abundant Beginnings Company, LLC
+abcsurrogacy.com`
+      : `Hi ${firstName},
+
+ABC Surrogacy has sent you a ${primaryTitle} that requires your signature.
 
 Review and sign: ${formUrl}
 
@@ -104,10 +132,14 @@ If you have any questions, reply to this email or contact us at info@abcsurrogac
 — Abundant Beginnings Company, LLC
 abcsurrogacy.com`
 
+    const subject = isBatch
+      ? `ABC Surrogacy — Please sign: ${formTitles.length} documents`
+      : `ABC Surrogacy — Please sign: ${primaryTitle}`
+
     const payload = {
       from: `${fromDisplay} <${fromAddress}>`,
       to: [signerEmail],
-      subject: `ABC Surrogacy — Please sign: ${formTitle || 'Document'}`,
+      subject,
       html: htmlBody,
       text: textBody,
     }
