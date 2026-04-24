@@ -261,7 +261,49 @@ export default function SignFormPage() {
           Object.entries(signatures).map(([k, v]) => [k, { type: v.type, name: v.name }])
         ),
       }
-      await signDocument(doc.id, mySigner.email, signatureData)
+      const updated = await signDocument(doc.id, mySigner.email, signatureData)
+
+      // Multi-signer forms (e.g. Partnered releases): don't file to the case's
+      // Signed Documents folder until ALL parties have signed. Partial signings
+      // would otherwise leave duplicate/incomplete PDFs in the folder.
+      const allSignersDone = updated?.status === 'completed'
+      if (!allSignersDone) {
+        setDone(true)
+        return
+      }
+
+      // Merge previous signers' stored sigs/initials/fieldValues so the final
+      // PDF renders EVERYONE's marks, not just this last signer's.
+      const mergedSignatures = { ...signatures }
+      const mergedInitials = { ...initials }
+      const mergedFieldValues = { ...fieldValues }
+      for (const s of (updated.signers || [])) {
+        if (s.email?.toLowerCase() === mySigner.email?.toLowerCase()) continue
+        if (s.formSignatures) {
+          for (const [k, v] of Object.entries(s.formSignatures)) {
+            if (!mergedSignatures[k]) mergedSignatures[k] = v
+          }
+        }
+        if (s.formInitials) {
+          for (const [k, v] of Object.entries(s.formInitials)) {
+            if (!mergedInitials[k]) mergedInitials[k] = v
+          }
+        }
+        if (s.fieldValues) {
+          for (const [k, v] of Object.entries(s.fieldValues)) {
+            if (mergedFieldValues[k] === undefined || mergedFieldValues[k] === '') mergedFieldValues[k] = v
+          }
+        }
+      }
+
+      // Rebuild filled HTML with the merged state so all signers show in the PDF
+      if (isDocFirst) {
+        filledHtml = generateReleaseFormHtml(template, mergedFieldValues, mergedSignatures, mergedInitials, {
+          forPdf: true,
+          signerRole: mySigner.role,
+          signerName: mySigner.name,
+        })
+      }
 
       // Upload signed HTML
       const signedBlob = new Blob([filledHtml + auditHtml], { type: 'text/html' })
@@ -290,7 +332,7 @@ export default function SignFormPage() {
             const page = pagesArr[p]
             const pageDiv = document.createElement('div')
             pageDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:40px;'
-            pageDiv.innerHTML = generateReleasePageHtml(page.id, template, fieldValues, signatures, initials, {
+            pageDiv.innerHTML = generateReleasePageHtml(page.id, template, mergedFieldValues, mergedSignatures, mergedInitials, {
               forPdf: true,
               signerRole: mySigner.role,
               signerName: mySigner.name,

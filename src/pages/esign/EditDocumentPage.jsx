@@ -42,7 +42,7 @@ export default function EditDocumentPage() {
   // Send dialog
   const [showSend, setShowSend] = useState(false)
   const [sending, setSending] = useState(false)
-  const [sendForm, setSendForm] = useState({ caseType: prefillCaseType, caseId: prefillCaseId, signers: [], note: '' })
+  const [sendForm, setSendForm] = useState({ caseType: prefillCaseType, caseId: prefillCaseId, signers: [], note: '', recipientTitle: '' })
   const [cases, setCases] = useState({ gc: [], ip: [] })
   const [caseSearch, setCaseSearch] = useState('')
   const [caseDropdownOpen, setCaseDropdownOpen] = useState(false)
@@ -314,6 +314,8 @@ export default function EditDocumentPage() {
         createdBy: currentUser.name,
       })
 
+      const recipientTitle = (sendForm.recipientTitle || '').trim() || docTitle || 'Document'
+
       // Store metadata
       if (doc) {
         await updateDocument(doc.id, {
@@ -324,6 +326,7 @@ export default function EditDocumentPage() {
             fields,
             pdfPath,
             htmlPath,
+            recipientTitle, // what the signer sees (falls back to docTitle)
           }),
         })
       }
@@ -340,7 +343,7 @@ export default function EditDocumentPage() {
         try {
           await sendEmail(userId, {
             to: signer.email,
-            subject: `Please sign: ${docTitle || 'Document'}`,
+            subject: `Please sign: ${recipientTitle}`,
             body: `
               <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -350,7 +353,7 @@ export default function EditDocumentPage() {
                 <p>Hi ${signer.name || ''},</p>
                 <p><strong>${currentUser?.name || 'ABC Surrogacy'}</strong> has sent you a document to sign:</p>
                 <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                  <p style="font-weight: 600; margin: 0;">${docTitle || 'Document'}</p>
+                  <p style="font-weight: 600; margin: 0;">${recipientTitle}</p>
                   ${sendForm.note ? `<p style="color: #444; font-size: 13px; margin: 8px 0 0; white-space: pre-line;">${sendForm.note}</p>` : ''}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
@@ -589,6 +592,19 @@ export default function EditDocumentPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Display Name for Signer (optional)</Label>
+              <Input
+                value={sendForm.recipientTitle}
+                onChange={e => setSendForm(prev => ({ ...prev, recipientTitle: e.target.value }))}
+                placeholder={docTitle ? `Defaults to "${docTitle}"` : 'What the signer sees in the email'}
+                className="text-sm"
+              />
+              <p className="text-[11px] text-stone-400">
+                Override what the recipient sees in the email and on the signing page. The internal title in your Signed Documents folder stays unchanged.
+              </p>
             </div>
 
             <div className="space-y-1">

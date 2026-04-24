@@ -248,6 +248,10 @@ export async function signDocument(docId, signerEmail, signatureData) {
         signatureImage: signatureData.type === 'drawn' ? signatureData.image : null,
         fieldValues: signatureData.fieldValues || {},
         placeholderValues: signatureData.placeholderValues || {},
+        // form-template (release form) per-slot state so multi-signer docs
+        // can rebuild the full signed PDF when the last signer completes
+        formSignatures: signatureData.signatures || null,
+        formInitials: signatureData.initials || null,
       }
     }
     return s

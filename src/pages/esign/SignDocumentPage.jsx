@@ -16,28 +16,43 @@ function InlineSignaturePad({ value, onChange, signerName }) {
   const [mode, setMode] = useState('typed')
   const canvasRef = useRef(null)
   const drawingRef = useRef(false)
+  const hasDrawnRef = useRef(false)
   const modeRef = useRef(mode)
   modeRef.current = mode
 
+  // Map pointer to canvas-internal coords. Canvas has fixed internal dims
+  // (width/height attrs) but CSS stretches it; on desktop the rendered width
+  // can differ from the internal width — without scaling, strokes clip/miss.
+  function pointerToCanvas(e) {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    }
+  }
+
   useEffect(() => {
-    // Track mouse on window so drawing continues outside canvas
     function handleMove(e) {
       if (!drawingRef.current) return
       const canvas = canvasRef.current
       if (!canvas) return
       const ctx = canvas.getContext('2d')
-      const rect = canvas.getBoundingClientRect()
-      const x = Math.max(0, Math.min(canvas.width, (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left))
-      const y = Math.max(0, Math.min(canvas.height, (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top))
+      const { x, y } = pointerToCanvas(e)
       ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a1a2e'
       ctx.lineTo(x, y)
       ctx.stroke()
+      hasDrawnRef.current = true
     }
     function handleUp() {
       if (!drawingRef.current) return
       drawingRef.current = false
-      // Only save drawn signature if we're actually in draw mode
-      if (canvasRef.current && modeRef.current === 'drawn') {
+      if (canvasRef.current && modeRef.current === 'drawn' && hasDrawnRef.current) {
         onChange({ type: 'drawn', image: canvasRef.current.toDataURL('image/png'), name: signerName })
       }
     }
@@ -59,12 +74,17 @@ function InlineSignaturePad({ value, onChange, signerName }) {
     if (!canvas) return
     drawingRef.current = true
     const ctx = canvas.getContext('2d')
-    const rect = canvas.getBoundingClientRect()
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top
+    const { x, y } = pointerToCanvas(e)
     ctx.beginPath()
     ctx.moveTo(x, y)
+    // draw a tiny dot so a single click still produces a visible mark (and triggers save on mouseup)
+    ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
+    ctx.lineTo(x + 0.1, y + 0.1)
+    ctx.stroke()
+    hasDrawnRef.current = true
   }
+
+  const savedDrawn = value?.type === 'drawn' && !!value?.image
 
   return (
     <span className="block align-middle my-2 w-full max-w-[340px]">
@@ -83,18 +103,24 @@ function InlineSignaturePad({ value, onChange, signerName }) {
           </span>
         ) : (
           <span className="block">
-            <span className="rounded-lg border-2 border-stone-200 bg-white relative block overflow-hidden" style={{ cursor: 'crosshair' }}>
+            <span className={`rounded-lg border-2 bg-white relative block overflow-hidden transition-colors ${savedDrawn ? 'border-emerald-300' : 'border-stone-200'}`} style={{ cursor: 'crosshair' }}>
               <canvas ref={canvasRef} width={320} height={120} className="w-full touch-none block"
                 onMouseDown={startDraw}
                 onTouchStart={startDraw} />
               <span className="absolute bottom-3 left-4 right-4 h-px bg-stone-200" />
               <span className="absolute bottom-1 left-4 text-[9px] text-stone-300">Sign above this line</span>
+              {savedDrawn && (
+                <span className="absolute top-1.5 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-semibold">
+                  <CheckCircle2 className="size-3" /> Saved
+                </span>
+              )}
             </span>
             <span className="flex justify-between mt-2">
               <button onClick={() => {
                 const canvas = canvasRef.current;
-                if (canvas) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); onChange(null) }
+                if (canvas) { canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height); hasDrawnRef.current = false; onChange(null) }
               }} className="text-xs text-stone-400 hover:text-red-500 transition-colors">Clear signature</button>
+              {!savedDrawn && <span className="text-[10px] text-stone-400">Draw your signature above</span>}
             </span>
           </span>
         )}
@@ -111,15 +137,25 @@ function InitialsPad({ value, onChange, optional }) {
   const modeRef = useRef(mode)
   modeRef.current = mode
 
+  function pointerToCanvas(e) {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    }
+  }
+
   useEffect(() => {
     function handleMove(e) {
       if (!drawingRef.current || modeRef.current !== 'drawn') return
       const canvas = canvasRef.current
       if (!canvas) return
       const ctx = canvas.getContext('2d')
-      const rect = canvas.getBoundingClientRect()
-      const x = (e.clientX || e.touches?.[0]?.clientX || 0) - rect.left
-      const y = (e.clientY || e.touches?.[0]?.clientY || 0) - rect.top
+      const { x, y } = pointerToCanvas(e)
       ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1a1a2e'
       ctx.lineTo(x, y); ctx.stroke()
     }
@@ -135,6 +171,15 @@ function InitialsPad({ value, onChange, optional }) {
     return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); window.removeEventListener('touchmove', handleMove); window.removeEventListener('touchend', handleUp) }
   }, [onChange])
 
+  function startDraw(e) {
+    e.preventDefault()
+    drawingRef.current = true
+    const ctx = canvasRef.current.getContext('2d')
+    const { x, y } = pointerToCanvas(e)
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }
+
   return (
     <span className="inline-block align-middle my-1">
       <span className={`border-2 border-dashed rounded-lg p-2 inline-block ${optional ? 'border-stone-200 bg-stone-50/50' : 'border-purple-300 bg-purple-50/50'}`} style={{ minWidth: 120 }}>
@@ -148,8 +193,8 @@ function InitialsPad({ value, onChange, optional }) {
         ) : (
           <span className="block">
             <canvas ref={canvasRef} width={100} height={40} className="w-full border border-stone-200 rounded bg-white touch-none block cursor-crosshair"
-              onMouseDown={e => { e.preventDefault(); drawingRef.current = true; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top) }}
-              onTouchStart={e => { e.preventDefault(); drawingRef.current = true; const ctx = canvasRef.current.getContext('2d'); const rect = canvasRef.current.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top) }} />
+              onMouseDown={startDraw}
+              onTouchStart={startDraw} />
             <button onClick={() => { const c = canvasRef.current; if (c) { c.getContext('2d').clearRect(0, 0, c.width, c.height); onChange('') } }} className="text-[8px] text-stone-400 hover:text-red-500 mt-0.5">Clear</button>
           </span>
         )}
@@ -206,38 +251,38 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
   return (
     <div>
       <style>{`
-        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; max-width: 100%; overflow-wrap: break-word; word-break: break-word; overflow-x: hidden; }
-        .signing-doc * { max-width: 100% !important; box-sizing: border-box; }
+        .signing-doc { font-family: 'Arial', sans-serif; font-size: 14px; line-height: 1.6; color: #1a1a2e; max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
         .signing-doc > div, .signing-doc > body, .signing-doc [style*="margin-left"], .signing-doc [style*="padding-left"] { margin-left: 0 !important; padding-left: 0 !important; margin-right: 0 !important; padding-right: 0 !important; }
-        .signing-doc table { table-layout: fixed; width: 100% !important; }
+        .signing-doc table { border-collapse: collapse; width: 100%; table-layout: auto; }
         .signing-doc td { overflow-wrap: break-word; }
         .signing-doc p { margin: 0.4em 0; }
         .signing-doc ul { list-style: disc; padding-left: 1.5em; }
         .signing-doc ol { list-style: decimal; padding-left: 1.5em; }
         .signing-doc li { margin: 0.3em 0; }
-        .signing-doc table { border-collapse: collapse; width: 100%; }
         .signing-doc td, .signing-doc th { border: 1px solid #ddd; padding: 6px 10px; }
         .signing-doc img { max-width: 100%; height: auto; }
         .signing-doc a { color: #283693; }
         @media (max-width: 640px) {
           .signing-doc { font-size: 13px; }
-          .signing-doc table,
-          .signing-doc tbody,
-          .signing-doc tr,
-          .signing-doc td,
-          .signing-doc th {
+          /* Keep multi-column tables (Payment Structure etc.) intact — let them
+             scroll horizontally instead of stacking into blocks, which scrambles
+             the header→cell pairing and overlaps the colored row backgrounds. */
+          .signing-doc table {
             display: block;
-            width: 100% !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
           }
-          .signing-doc td,
-          .signing-doc th {
-            border-left: 0;
-            border-right: 0;
-            padding: 8px 0;
+          .signing-doc table > tbody,
+          .signing-doc table > thead,
+          .signing-doc table > tfoot {
+            display: table;
+            width: 100%;
+            min-width: max-content;
           }
-          .signing-doc tr:first-child td,
-          .signing-doc tr:first-child th {
-            border-top: 0;
+          .signing-doc td, .signing-doc th {
+            white-space: normal;
+            min-width: 120px;
           }
           .signing-doc [style*="display:flex"][style*="justify-content:space-between"] {
             display: block !important;
@@ -640,6 +685,13 @@ export default function SignDocumentPage() {
     )
   }
 
+  // Pull signer-facing title from metadata if the admin set one; fallback to internal title.
+  let signerFacingTitle = doc?.title
+  try {
+    const meta = JSON.parse(doc?.document_hash || '{}')
+    if (meta?.recipientTitle) signerFacingTitle = meta.recipientTitle
+  } catch {}
+
   // Email verification gate
   if (!verified) {
     return (
@@ -647,7 +699,7 @@ export default function SignDocumentPage() {
         <Card className="max-w-md rounded-2xl"><CardContent className="py-8 space-y-6">
           <div className="text-center">
             <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 mx-auto mb-4" />
-            <h2 className="text-xl font-bold">{doc.title}</h2>
+            <h2 className="text-xl font-bold">{signerFacingTitle}</h2>
             <p className="text-sm text-stone-500 mt-1">Sent {doc.sent_at ? new Date(doc.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</p>
           </div>
           <div className="space-y-3">
@@ -682,7 +734,7 @@ export default function SignDocumentPage() {
         {/* Header */}
         <div className="text-center">
           <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-14 mx-auto mb-2" />
-          <h1 className="text-xl font-bold text-[#283693]">{doc.title}</h1>
+          <h1 className="text-xl font-bold text-[#283693]">{signerFacingTitle}</h1>
           <p className="text-xs text-stone-400 mt-1">
             Signing as: <span className="font-semibold">{mySigner.name}</span> ({mySigner.role})
           </p>
