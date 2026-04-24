@@ -220,6 +220,34 @@ function CurrencyField({ label, value, onChange, className = '' }) {
   )
 }
 
+// Hourly rate with automatic decimal placement — typing "1640" shows "$16.40",
+// "850" → "$8.50", "10500" → "$105.00". Stripping digits means admins can't
+// accidentally desync the cents portion from the displayed value.
+function HourlyRateField({ label, value, onChange, className = '' }) {
+  const formatHourly = (val) => {
+    const digits = String(val).replace(/[^0-9]/g, '')
+    if (!digits) return ''
+    const cents = digits.padStart(3, '0')
+    const dollars = cents.slice(0, -2)
+    const cc = cents.slice(-2)
+    return '$' + Number(dollars).toLocaleString('en-US') + '.' + cc
+  }
+  const handleChange = (raw) => {
+    const digits = raw.replace(/[^0-9]/g, '')
+    onChange(digits ? formatHourly(digits) : '')
+  }
+  return (
+    <Field label={label} className={className}>
+      <Input
+        value={formatHourly(value)}
+        onChange={e => handleChange(e.target.value)}
+        placeholder="$0.00"
+        className="bg-white"
+      />
+    </Field>
+  )
+}
+
 const HOUSEHOLD_RELATIONSHIPS = [
   'Spouse', 'Partner', 'Son', 'Daughter', 'Stepson', 'Stepdaughter',
   'Mother', 'Father', 'Sibling', 'Cousin', 'Aunt', 'Uncle',
@@ -1633,7 +1661,10 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           </div>
           <div className="mt-4 pt-4 border-t border-gray-50 space-y-2">
             <PVYesNo label="Are you open to vaccinations if recommended by the clinic?" value={health.openToVaccinations} fp="health.openToVaccinations" />
-            <PVField label="When was your last pap smear?" value={health.lastPap} fp="health.lastPap" />
+            {health.openToVaccinations === 'no' && health.vaccinesNotWilling && (
+              <PVField label="Vaccines not willing to receive" value={health.vaccinesNotWilling} fp="health.vaccinesNotWilling" />
+            )}
+            <PVField label="When was your most recent Pap test completed and results?" value={health.lastPap} fp="health.lastPap" />
           </div>
         </PVSection>
 
@@ -1653,10 +1684,19 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             </>
           )}
           {hasPartner && (
-            <PVGrid cols={2}>
-              <PVField label="Spouse/partner's occupation" value={employment.partnerOccupation} fp="employment.partnerOccupation" />
-              <PVField label="Spouse/partner's weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
-            </PVGrid>
+            <>
+              <PVYesNo label="Is your spouse/partner employed?" value={employment.partnerEmployed} fp="employment.partnerEmployed" />
+              {employment.partnerEmployed === 'yes' && (
+                <>
+                  <PVField label="Spouse/partner's occupation" value={employment.partnerOccupation} fp="employment.partnerOccupation" />
+                  <PVField label="Hours/days spouse or partner works each week" value={employment.partnerWorkHours} fp="employment.partnerWorkHours" />
+                  <PVGrid cols={2}>
+                    <PVField label="Spouse/partner's hourly rate" value={employment.partnerHourlyRate} fp="employment.partnerHourlyRate" />
+                    <PVField label="Spouse/partner's weekly income" value={employment.partnerWeeklyIncome} fp="employment.partnerWeeklyIncome" />
+                  </PVGrid>
+                </>
+              )}
+            </>
           )}
           <PVYesNo label="Do you receive any government assistance (WIC, food stamps)?" value={employment.governmentAssistance} fp="employment.governmentAssistance" />
           {employment.governmentAssistance === 'yes' && employment.governmentAssistanceDetails && <PVField label="Please explain" value={employment.governmentAssistanceDetails} fp="employment.governmentAssistanceDetails" />}
@@ -1734,11 +1774,22 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVYesNo label="Are you open to matching with LGBTQ+ individual/couples?" value={hopes.openLGBTQ} fp="hopesWishes.openLGBTQ" />
             <PVYesNo label="Are you willing to match with a single Intended Parent?" value={hopes.openSingleIP} fp="hopesWishes.openSingleIP" />
             <PVYesNo label="Are you willing to have the embryo transfer in another state?" value={hopes.transferAnotherState} fp="hopesWishes.transferAnotherState" />
+            {hopes.transferAnotherState === 'no' && hopes.transferAnotherStateDetails && (
+              <PVField label="Please explain" value={hopes.transferAnotherStateDetails} fp="hopesWishes.transferAnotherStateDetails" />
+            )}
             <PVYesNo label="Are you willing to match with Intended Parents who live outside of the U.S.?" value={hopes.ipsOutsideUS} fp="hopesWishes.ipsOutsideUS" />
             <PVYesNo label="If recommended by a physician, would you be willing to undergo CVS, amniocentesis or other diagnostic testing?" value={hopes.cvsAmnio} fp="hopesWishes.cvsAmnio" />
             {hopes.cvsAmnio === 'no' && hopes.cvsAmnioDetails && <PVField label="Please explain" value={hopes.cvsAmnioDetails} fp="hopesWishes.cvsAmnioDetails" />}
-            <PVYesNo label="If you only prefer to transfer 1 embryo and the embryo splits, would you be in agreement to carry twins?" value={hopes.carryTwins} fp="hopesWishes.carryTwins" />
+            <PVField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={hopes.willingnessToTerminate} fp="hopesWishes.willingnessToTerminate" />
             {hasPartner && <PVYesNo label="Would your spouse or support person support the decision for termination?" value={hopes.partnerAgreesTermination} fp="hopesWishes.partnerAgreesTermination" />}
+            <PVYesNo label="Are there any specific conditions where you would not terminate a pregnancy?" value={hopes.conditionsWontTerminate} fp="hopesWishes.conditionsWontTerminate" />
+            {hopes.conditionsWontTerminate === 'yes' && hopes.conditionsWontTerminateDetails && (
+              <PVField label="Please explain" value={hopes.conditionsWontTerminateDetails} fp="hopesWishes.conditionsWontTerminateDetails" />
+            )}
+            <PVField label="How many embryos are you in agreement to transfer at a time?" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
+            {hopes.embryosToTransfer === '1' && (
+              <PVYesNo label="If the 1 transferred embryo splits, would you be in agreement to carrying twins?" value={hopes.carryTwins} fp="hopesWishes.carryTwins" />
+            )}
           </div>
           <div className="space-y-3 mt-4 pt-4 border-t border-gray-50">
             <PVField label="Describe your ideal intended parent(s) for whom you would like to be a surrogate" value={hopes.idealIPs} fp="hopesWishes.idealIPs" />
@@ -1746,12 +1797,9 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVField label="How much involvement from the Intended Parents do you want during the pregnancy?" value={hopes.ipInvolvement} fp="hopesWishes.ipInvolvement" />
             <PVField label="When are you ready to begin?" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
             <PVField label="Ideal relationship with Intended Parent(s) post birth" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
-            <PVField label="How many embryos are you in agreement to transfer at a time?" value={hopes.embryosToTransfer} fp="hopesWishes.embryosToTransfer" />
             <PVField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={hopes.deliveryRoomOthers} fp="hopesWishes.deliveryRoomOthers" />
             <PVField label="How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?" value={hopes.ipsCantAttend} fp="hopesWishes.ipsCantAttend" />
             <PVField label="Who will care for your child(ren) when you need to travel for surrogacy?" value={hopes.childCareTraveling} fp="hopesWishes.childCareTraveling" />
-            <PVField label="Willingness to terminate for a serious genetic or medical condition and follow IP(s) direction and doctor recommendation?" value={hopes.willingnessToTerminate} fp="hopesWishes.willingnessToTerminate" />
-            <PVField label="Are there any specific conditions where you would not terminate a pregnancy? Please explain." value={hopes.conditionsWontTerminate} fp="hopesWishes.conditionsWontTerminate" />
           </div>
         </PVSection>
 
@@ -2359,7 +2407,10 @@ function HealthSection({ v, u }) {
       )}
 
       <YesNoField label="Are you open to vaccinations if recommended by the clinic?" value={v(s, 'openToVaccinations')} onChange={u(s, 'openToVaccinations')} />
-      <TextAreaField label="When was your last pap smear?" value={v(s, 'lastPap')} onChange={u(s, 'lastPap')} rows={2} placeholder="Date and any relevant results" />
+      {v(s, 'openToVaccinations') === 'no' && (
+        <TextAreaField label="Please explain which vaccines you are not willing to receive" value={v(s, 'vaccinesNotWilling')} onChange={u(s, 'vaccinesNotWilling')} rows={2} />
+      )}
+      <TextAreaField label="When was your most recent Pap test completed and results?" value={v(s, 'lastPap')} onChange={u(s, 'lastPap')} rows={2} placeholder="Date and any relevant results" />
     </div>
   )
 }
@@ -2453,7 +2504,7 @@ function EmploymentSection({ v, u, profile }) {
           <TextField label="What specifically is your occupation/position?" value={v(s, 'occupation')} onChange={u(s, 'occupation')} />
           <TextField label="How long have you worked for your current employer?" value={v(s, 'lengthAtEmployer')} onChange={u(s, 'lengthAtEmployer')} placeholder="e.g. 2 years" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <TextField label="What is your earned hourly rate?" value={v(s, 'hourlyRate')} onChange={u(s, 'hourlyRate')} placeholder="$" />
+            <HourlyRateField label="What is your earned hourly rate?" value={v(s, 'hourlyRate')} onChange={u(s, 'hourlyRate')} />
             <TextField label="What is your approximate weekly income?" value={v(s, 'weeklyIncome')} onChange={u(s, 'weeklyIncome')} placeholder="$" />
           </div>
         </>
@@ -2463,8 +2514,17 @@ function EmploymentSection({ v, u, profile }) {
         <div className="p-4 rounded-xl bg-[#faf8f5] border border-gray-200">
           <h4 className="font-medium text-[#283693] mb-3">Spouse/Partner Employment</h4>
           <div className="space-y-4">
-            <TextField label="Spouse/partner's occupation" value={v(s, 'partnerOccupation')} onChange={u(s, 'partnerOccupation')} />
-            <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
+            <YesNoField label="Is your spouse/partner employed?" value={v(s, 'partnerEmployed')} onChange={u(s, 'partnerEmployed')} />
+            {v(s, 'partnerEmployed') === 'yes' && (
+              <>
+                <TextField label="Spouse/partner's occupation" value={v(s, 'partnerOccupation')} onChange={u(s, 'partnerOccupation')} />
+                <TextAreaField label="What hours and days does your spouse/partner work each week?" value={v(s, 'partnerWorkHours')} onChange={u(s, 'partnerWorkHours')} rows={2} placeholder="e.g. Mon-Fri, 8am-5pm" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <HourlyRateField label="Spouse/partner's hourly rate" value={v(s, 'partnerHourlyRate')} onChange={u(s, 'partnerHourlyRate')} />
+                  <TextField label="Spouse/partner's approximate weekly income" value={v(s, 'partnerWeeklyIncome')} onChange={u(s, 'partnerWeeklyIncome')} placeholder="$" />
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2484,6 +2544,7 @@ function EmploymentSection({ v, u, profile }) {
             'Individual / private plan',
             'ACA Policy',
             'Military / VA coverage',
+            'State funded insurance',
             'Other',
           ]} />
       )}
@@ -2678,6 +2739,9 @@ function HopesWishesSection({ v, u, profile }) {
         <YesNoField label="Are you open to matching with LGBTQ+ individual/couples?" value={v(s, 'openLGBTQ')} onChange={u(s, 'openLGBTQ')} />
         <YesNoField label="Are you willing to match with a single Intended Parent?" value={v(s, 'openSingleIP')} onChange={u(s, 'openSingleIP')} />
         <YesNoField label="Are you willing to have the embryo transfer in another state?" value={v(s, 'transferAnotherState')} onChange={u(s, 'transferAnotherState')} />
+        {v(s, 'transferAnotherState') === 'no' && (
+          <TextAreaField label="Please explain" value={v(s, 'transferAnotherStateDetails')} onChange={u(s, 'transferAnotherStateDetails')} rows={2} />
+        )}
         <YesNoField label="Are you willing to match with Intended Parents who live outside of the U.S.?" value={v(s, 'ipsOutsideUS')} onChange={u(s, 'ipsOutsideUS')} />
         <TextAreaField label="Who will care for your child(ren) when you need to travel for surrogacy?" value={v(s, 'childCareTraveling')} onChange={u(s, 'childCareTraveling')} rows={2} />
       </div>
@@ -2699,10 +2763,15 @@ function HopesWishesSection({ v, u, profile }) {
           {hasPartner && (
             <YesNoField label="Would your spouse or support person support the decision for termination?" value={v(s, 'partnerAgreesTermination')} onChange={u(s, 'partnerAgreesTermination')} />
           )}
-          <TextAreaField label="Are there any specific conditions where you would not terminate a pregnancy? Please explain." value={v(s, 'conditionsWontTerminate')} onChange={u(s, 'conditionsWontTerminate')} rows={2} />
+          <YesNoField label="Are there any specific conditions where you would not terminate a pregnancy?" value={v(s, 'conditionsWontTerminate')} onChange={u(s, 'conditionsWontTerminate')} />
+          {v(s, 'conditionsWontTerminate') === 'yes' && (
+            <TextAreaField label="Please explain" value={v(s, 'conditionsWontTerminateDetails')} onChange={u(s, 'conditionsWontTerminateDetails')} rows={2} />
+          )}
           <SelectField label="How many embryos are you in agreement to transfer at a time?" value={v(s, 'embryosToTransfer')} onChange={u(s, 'embryosToTransfer')}
             options={['1', '2', 'Doctor recommendation', 'Open to discussion']} />
-          <YesNoField label="If you only prefer to transfer 1 embryo and the embryo splits, would you be in agreement to carry twins?" value={v(s, 'carryTwins')} onChange={u(s, 'carryTwins')} />
+          {v(s, 'embryosToTransfer') === '1' && (
+            <YesNoField label="If the 1 transferred embryo splits, would you be in agreement to carrying twins?" value={v(s, 'carryTwins')} onChange={u(s, 'carryTwins')} />
+          )}
         </div>
       </div>
 
