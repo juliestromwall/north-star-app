@@ -8,6 +8,16 @@ const MIN_FORM_TIME_SECONDS = 15
 // Track rapid field changes — bots fill forms inhumanly fast
 const RAPID_FILL_THRESHOLD_MS = 30  // < 30ms between field changes = suspicious
 const RAPID_FILL_MAX_COUNT = 10      // 10+ rapid fills in a row = bot
+const MIN_FIELD_CHANGES = 5
+
+function parseBrowser(ua) {
+  if (/edg\//i.test(ua)) return 'Edge'
+  if (/chrome|crios/i.test(ua) && !/edg/i.test(ua)) return 'Chrome'
+  if (/firefox|fxios/i.test(ua)) return 'Firefox'
+  if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari'
+  if (/opera|opr/i.test(ua)) return 'Opera'
+  return 'Other'
+}
 
 /**
  * Hook that provides multi-layer bot protection for intake forms.
@@ -26,8 +36,11 @@ export function useBotProtection(startTimeRef) {
   const lastFieldChangeRef = useRef(Date.now())
   const rapidFillCountRef = useRef(0)
   const maxRapidFillRef = useRef(0)
+  const fieldChangeCountRef = useRef(0)
+  const browserRef = useRef(typeof navigator !== 'undefined' ? parseBrowser(navigator.userAgent || '') : 'Other')
 
   const trackFieldChange = useCallback(() => {
+    fieldChangeCountRef.current++
     const now = Date.now()
     const delta = now - lastFieldChangeRef.current
     if (delta < RAPID_FILL_THRESHOLD_MS) {
@@ -42,15 +55,39 @@ export function useBotProtection(startTimeRef) {
   }, [])
 
   const validateSubmission = useCallback(() => {
-    // 1. Time-based check — form completed too fast
     const elapsed = (Date.now() - startTimeRef.current) / 1000
+    if (honeypotValue?.trim()) {
+      return { ok: false, reason: 'honeypot' }
+    }
+
     if (elapsed < MIN_FORM_TIME_SECONDS) {
       return { ok: false, reason: 'too_fast' }
     }
 
-    // Rapid-fill, honeypot, Turnstile all disabled — Safari mobile false positives
+    if (maxRapidFillRef.current >= RAPID_FILL_MAX_COUNT) {
+      return { ok: false, reason: 'rapid_fill' }
+    }
+
+    if (fieldChangeCountRef.current < MIN_FIELD_CHANGES) {
+      return { ok: false, reason: 'too_few_interactions' }
+    }
+
+    if (TURNSTILE_SITE_KEY && browserRef.current !== 'Safari' && !turnstileToken) {
+      return { ok: false, reason: 'turnstile_required' }
+    }
+
     return { ok: true, reason: null }
-  }, [startTimeRef])
+  }, [honeypotValue, startTimeRef, turnstileToken])
+
+  const getBotCheckPayload = useCallback(() => ({
+    honeypotValue,
+    turnstileToken,
+    elapsedSeconds: Math.round((Date.now() - startTimeRef.current) / 1000),
+    fieldChangeCount: fieldChangeCountRef.current,
+    maxRapidFillCount: maxRapidFillRef.current,
+    browser: browserRef.current,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent || '' : '',
+  }), [honeypotValue, startTimeRef, turnstileToken])
 
   return {
     honeypotValue,
@@ -59,6 +96,7 @@ export function useBotProtection(startTimeRef) {
     validateSubmission,
     turnstileToken,
     setTurnstileToken,
+    getBotCheckPayload,
   }
 }
 

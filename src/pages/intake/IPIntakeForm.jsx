@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getIPDisqualifications } from '@/data/mock/intakeSubmissions'
-import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
+import { checkEmailExists } from '@/lib/db'
 import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProtection.jsx'
 import { useIframeHeightReporter, scrollParentToIframeTop } from '@/lib/embed'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
@@ -129,7 +129,7 @@ export default function IPIntakeForm() {
 
   const {
     honeypotValue, setHoneypotValue, trackFieldChange,
-    validateSubmission, setTurnstileToken,
+    validateSubmission, setTurnstileToken, getBotCheckPayload,
   } = useBotProtection(startTimeRef)
 
   const set = (field, value) => {
@@ -202,7 +202,12 @@ export default function IPIntakeForm() {
     }
     const qualified = dqReasons.length === 0
     try {
-      await insertIntakeSubmission({
+      const res = await fetch('/api/intake-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bot: getBotCheckPayload(),
+          submission: {
         intake_type: 'ip',
         qualified,
         status: qualified ? 'qualified' : 'disqualified',
@@ -226,7 +231,16 @@ export default function IPIntakeForm() {
         resolved_source: tracking.resolvedSource || null,
         referrer: document.referrer || null,
         user_agent: navigator.userAgent || null,
+          },
+        }),
       })
+      const result = await res.json().catch(() => ({}))
+      if (result.accepted === false) {
+        navigate('/apply/confirmation', {
+          state: { qualified: false, dqReasons: [], type: 'ip', name: form.primaryFirstName, email: form.email, tracking: {}, answers: form },
+        })
+        return
+      }
     } catch {
       // Keep applicant flow moving even if persistence fails
     }

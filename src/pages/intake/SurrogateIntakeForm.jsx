@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGCDisqualifications } from '@/data/mock/intakeSubmissions'
-import { insertIntakeSubmission, checkEmailExists } from '@/lib/db'
+import { checkEmailExists } from '@/lib/db'
 import { useBotProtection, HoneypotField, TurnstileWidget } from '@/lib/botProtection.jsx'
 import { QuizShell, ChoiceCard, YesNoGrid } from './QuizShell'
 import { useIframeHeightReporter, scrollParentToIframeTop } from '@/lib/embed'
@@ -79,7 +79,7 @@ export default function SurrogateIntakeForm() {
 
   const {
     honeypotValue, setHoneypotValue, trackFieldChange,
-    validateSubmission, setTurnstileToken,
+    validateSubmission, setTurnstileToken, getBotCheckPayload,
   } = useBotProtection(startTimeRef)
 
   const set = (field, value) => {
@@ -142,7 +142,12 @@ export default function SurrogateIntakeForm() {
     }
     const qualified = dqReasons.length === 0
     try {
-      await insertIntakeSubmission({
+      const res = await fetch('/api/intake-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bot: getBotCheckPayload(),
+          submission: {
         intake_type: 'gc',
         qualified,
         status: qualified ? 'qualified' : 'disqualified',
@@ -167,7 +172,16 @@ export default function SurrogateIntakeForm() {
         resolved_source: tracking.resolvedSource || null,
         referrer: document.referrer || null,
         user_agent: navigator.userAgent || null,
+          },
+        }),
       })
+      const result = await res.json().catch(() => ({}))
+      if (result.accepted === false) {
+        navigate('/apply/confirmation', {
+          state: { qualified: false, dqReasons: [], type: 'gc', name: form.firstName, email: form.email, tracking: {}, answers: form },
+        })
+        return
+      }
     } catch {
       // Keep applicant flow moving even if persistence fails
     }
