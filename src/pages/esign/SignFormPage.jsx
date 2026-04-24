@@ -376,6 +376,10 @@ export default function SignFormPage() {
     signerEmail: mySigner.email,
     forPdf: false,
   })
+  const getFieldLayoutClass = (field) => {
+    if (field.type === 'radio' || field.id === 'phone') return 'sm:col-span-2'
+    return ''
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
@@ -402,18 +406,18 @@ export default function SignFormPage() {
         <Card className="mb-6">
           <CardContent className="p-4 sm:p-6">
             <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider mb-4">Fill in your information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-4">
               {template.fields.map(f => {
                 if (f.type === 'radio') {
                   return (
-                    <div key={f.id} className="col-span-2 space-y-1">
-                      <label className="text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
-                      <div className="flex gap-4">
+                    <div key={f.id} className="space-y-2 sm:col-span-2">
+                      <label className="block text-xs font-medium leading-tight text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
                         {f.options.map(opt => (
-                          <label key={opt} className="flex items-center gap-2 cursor-pointer text-sm">
+                          <label key={opt} className="flex items-start gap-2 cursor-pointer text-sm leading-tight">
                             <input type="radio" name={f.id} checked={fieldValues[f.id] === opt}
                               onChange={() => updateField(f.id, opt)}
-                              className="accent-[#283693]" />
+                              className="mt-0.5 accent-[#283693]" />
                             {opt === 'yes' ? 'Yes — receive a copy' : 'No — do not receive a copy'}
                           </label>
                         ))}
@@ -423,12 +427,12 @@ export default function SignFormPage() {
                 }
                 if (f.type === 'select') {
                   return (
-                    <div key={f.id} className="space-y-1">
-                      <label className="text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+                    <div key={f.id} className={`min-w-0 space-y-2 ${getFieldLayoutClass(f)}`}>
+                      <label className="block text-xs font-medium leading-tight text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
                       <select
                         value={fieldValues[f.id] || ''}
                         onChange={e => updateField(f.id, e.target.value)}
-                        className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white"
+                        className="block h-10 w-full min-w-0 rounded-md border border-stone-200 bg-white px-3 text-sm"
                       >
                         <option value="">Select…</option>
                         {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -437,8 +441,8 @@ export default function SignFormPage() {
                   )
                 }
                 return (
-                  <div key={f.id} className="space-y-1">
-                    <label className="text-xs font-medium text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
+                  <div key={f.id} className={`min-w-0 space-y-2 ${getFieldLayoutClass(f)}`}>
+                    <label className="block text-xs font-medium leading-tight text-stone-500">{f.label} {f.required && <span className="text-red-400">*</span>}</label>
                     <Input
                       type={f.type === 'date' ? 'date' : 'text'}
                       value={fieldValues[f.id] || ''}
@@ -455,7 +459,7 @@ export default function SignFormPage() {
                       }}
                       placeholder={f.id === 'ssn' ? 'xxx-xx-xxxx' : undefined}
                       maxLength={f.id === 'ssn' ? 11 : undefined}
-                      className="h-9"
+                      className="h-10 w-full min-w-0"
                     />
                   </div>
                 )
