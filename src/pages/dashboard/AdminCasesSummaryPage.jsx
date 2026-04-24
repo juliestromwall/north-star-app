@@ -3,13 +3,14 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Sparkles, Loader2, RefreshCw, ArrowLeft, AlertTriangle, CheckCircle2, Clock, MessageSquare, ListChecks, DollarSign } from 'lucide-react'
+import { Sparkles, Loader2, RefreshCw, ArrowLeft, AlertTriangle, CheckCircle2, Clock, MessageSquare, ListChecks, DollarSign, Baby } from 'lucide-react'
 import { getAppConfig } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
 // ── Section header → icon + accent ──
 const SECTION_META = [
   { match: /immediate attention|attention/i, Icon: AlertTriangle, accent: 'text-rose-700 bg-rose-50 border-rose-200' },
+  { match: /upcoming milestones?|milestones?|pregnancy|birth/i, Icon: Baby, accent: 'text-pink-700 bg-pink-50 border-pink-200' },
   { match: /communication gaps?/i, Icon: MessageSquare, accent: 'text-amber-700 bg-amber-50 border-amber-200' },
   { match: /workflow bottlenecks?/i, Icon: ListChecks, accent: 'text-blue-700 bg-blue-50 border-blue-200' },
   { match: /expense|escrow/i, Icon: DollarSign, accent: 'text-violet-700 bg-violet-50 border-violet-200' },
@@ -198,10 +199,14 @@ export default function AdminCasesSummaryPage() {
                       {sec.body.split('\n').map((line, j) => {
                         const trimmed = line.replace(/^[-•*]\s*/, '').trim()
                         if (!trimmed) return null
-                        const isWarning = /overdue|stalled|missing|urgent|critical|⚠/i.test(trimmed)
-                        // Bold any "Name #ID" references for scannability
-                        const html = trimmed
+                        const isWarning = /overdue|stalled|missing|urgent|critical|⚠|🚨/i.test(trimmed)
+                        // Escape HTML, then turn markdown into safe HTML:
+                        //   **bold** → <strong>, [text](/path) → <a target=_blank>,
+                        //   #ID → bolded indigo (legacy fallback if Claude forgets the link)
+                        const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        const html = escape(trimmed)
                           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">$1</a>')
                           .replace(/(#\d+)/g, '<strong class="text-[#283693]">$1</strong>')
                         return (
                           <p key={j} className={`flex items-start gap-2 ${isWarning ? 'text-amber-800 font-medium' : ''}`}>

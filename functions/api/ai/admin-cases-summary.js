@@ -199,6 +199,7 @@ async function runSummary(context) {
       kind: isIP ? 'IP' : 'Surrogate',
       id: caseId,
       name: intake.applicant_name || a.firstName || 'Unknown',
+      url: isIP ? `/intended-parents/${caseId}` : `/surrogates/${caseId}`,
       email: intake.applicant_email,
       stage, status,
       submittedAt: intake.submitted_at?.split('T')[0],
@@ -229,16 +230,70 @@ async function runSummary(context) {
     const lastEmailDate = emails[0]?.date
     const lastTouch = [lastEmailDate, tasks[0]?.created_at, expenses[0]?.expense_date].filter(Boolean).sort().pop()
 
+    // ── Pregnancy / transfer milestones ──
+    // journey_data shape: dueDate (top), delivered, pregnant, babies, _transfers[]
+    // Each transfer: { date, betaResult, betaDate, betaValue, needsSecondBeta, heartbeatConfirmed, heartbeatDate }
+    const transfers = jd._transfers || []
+    const latestTransfer = transfers[transfers.length - 1] || null
+    const milestones = []
+    const daysUntil = (iso) => {
+      if (!iso) return null
+      const d = new Date(iso + (iso.includes('T') ? '' : 'T12:00:00'))
+      return Math.floor((d.getTime() - Date.now()) / DAY_MS)
+    }
+
+    if (jd.delivered) {
+      milestones.push(`Babies delivered ${jd.deliveryDate || ''}`.trim())
+    } else if (jd.dueDate) {
+      const d = daysUntil(jd.dueDate)
+      if (d !== null) {
+        if (d < 0) milestones.push(`Past due date by ${-d} days (${jd.dueDate}) — verify delivery logged`)
+        else if (d <= 14) milestones.push(`🚨 Due in ${d} days (${jd.dueDate}) — birth imminent`)
+        else if (d <= 28) milestones.push(`Due in ${d} days (${jd.dueDate}) — final stretch`)
+        else if (d <= 84) milestones.push(`Due in ${d} days (${jd.dueDate}) — third trimester`)
+        else milestones.push(`Due ${jd.dueDate} (${d} days out)`)
+      }
+    }
+
+    if (latestTransfer) {
+      const tDays = daysUntil(latestTransfer.date)
+      if (tDays !== null && tDays > 0 && tDays <= 21 && !latestTransfer.betaResult) {
+        milestones.push(`Transfer scheduled in ${tDays} days (${latestTransfer.date})`)
+      }
+      if (tDays !== null && tDays >= -21 && tDays <= 0 && !latestTransfer.betaResult) {
+        // post-transfer waiting on beta — first beta typically 9-14 days after transfer
+        const expectedBeta = -tDays >= 9 ? 'overdue' : `expected in ~${9 - (-tDays)}-${14 - (-tDays)} days`
+        milestones.push(`First beta ${expectedBeta} (transfer was ${latestTransfer.date})`)
+      }
+      if (latestTransfer.betaResult === 'positive' && latestTransfer.needsSecondBeta) {
+        milestones.push(`Second beta pending (1st was positive on ${latestTransfer.betaDate || 'unknown'})`)
+      }
+      if (latestTransfer.betaResult === 'positive' && !latestTransfer.heartbeatConfirmed && latestTransfer.betaDate) {
+        const sinceBeta = daysAgo(latestTransfer.betaDate)
+        if (sinceBeta !== null && sinceBeta >= 14 && sinceBeta <= 35) {
+          milestones.push(`Heartbeat scan window — positive beta was ${sinceBeta} days ago`)
+        }
+      }
+    }
+
     const flags = []
     if (jd.heartbeat_confirmed && !jd._heartbeatTaskFired) flags.push('Heartbeat confirmed — verify follow-up tasks fired')
     if (j.status === 'Active' && unrequestedExpenses.length > 0) flags.push(`${unrequestedExpenses.length} expense(s) not yet submitted to escrow`)
 
+    const journeyName = jd.gc_name && jd.ip_name
+      ? `${jd.gc_name} & ${jd.ip_name}`
+      : (jd.gc_name || jd.ip_name || `Journey ${j.id}`)
+
     caseSignals.push({
       kind: 'Journey',
       id: j.id,
-      name: jd.gc_name && jd.ip_name ? `${jd.gc_name} × ${jd.ip_name}` : (jd.gc_name || jd.ip_name || `Journey #${j.id}`),
+      name: journeyName,
+      url: `/journeys/${j.id}`,
+      gcName: jd.gc_name || null,
+      ipName: jd.ip_name || null,
       stage: j.status || 'unknown',
       status: jd.pregnancy_status || jd.transfer_status || '',
+      milestones,
       lastTouchDays: daysAgo(lastTouch),
       lastEmailDays: daysAgo(lastEmailDate),
       lastEmailSubject: emails[0]?.subject || null,
@@ -259,12 +314,15 @@ async function runSummary(context) {
 
   const systemPrompt = `You are an experienced surrogacy case manager helping ${adminName || adminEmail} review their full workload.
 
-You will receive structured signals (NOT raw data) for each case the admin owns. Your job is to produce a punchy, scannable workload summary that surfaces where the admin's attention is needed RIGHT NOW.
+You will receive structured signals (NOT raw data) for each case the admin owns. Each case includes a "name" and a "url" — ALWAYS reference cases as a markdown link in the form [Name](url) so the admin can click straight to the case page. For matched journeys, the name format is "Surrogate & IP" (e.g. "Marissa Hawkins & The Garcia Family"). NEVER use the raw numeric ID.
 
-Format using these sections, each with **bold header** on its own line:
+Format using these sections in order, each with **bold header** on its own line:
 
 **🚨 Needs Immediate Attention**
-Cases with overdue tasks, no contact in 14+ days, or stuck workflow gates. Be specific — name the case and what's wrong.
+Cases with overdue tasks, contact silence 14+ days, or stuck workflow gates. Lead with the most urgent.
+
+**🤰 Upcoming Milestones**
+Anything time-sensitive on matched journeys: babies due soon (especially within 4 weeks — call out anything inside 2 weeks as 🚨), transfers scheduled in the next 3 weeks, beta tests expected, heartbeat scan windows opening, second betas pending. Pull from each journey's "milestones" array.
 
 **💬 Communication Gaps**
 Cases that haven't been touched recently. Flag anyone past 7 days, prioritize 14+ days. Mention last email subject if it implies an open thread.
@@ -276,14 +334,14 @@ Cases blocked at a gate the admin controls (profile awaiting approval, applicati
 Journeys with expenses not yet submitted to escrow, or unreconciled balances. Skip if none.
 
 **✅ Healthy Cases**
-ONE LINE summarizing how many cases are humming along normally — recently touched, no overdue work, no gates blocking. Don't list each one; just a count + a confidence note.
+ONE LINE summarizing how many cases are humming along normally. Don't list each one; just a count + a confidence note.
 
 Rules:
+- ALWAYS link case references: [Name](url). The admin should be able to one-click to any case from this summary.
 - Never invent details. Only surface what's in the signals provided.
-- Use case names + IDs (e.g. "Jane Smith #45") so the admin can jump straight there.
-- Bullet points (- prefix), 1-2 sentences each.
+- Bullet points (- prefix), 1-2 sentences each. Each bullet leads with the case link.
 - If a section has no items, write a single short line like "Nothing flagged right now." — don't pad.
-- Total length ≤ ~600 words.`
+- Total length ≤ ~700 words.`
 
   const userPrompt = `Workload signals for ${adminName || adminEmail} (${totalCases} active case${totalCases === 1 ? '' : 's'} — ${stalledCases.length} stalled, ${totalOverdueTasks} overdue tasks, ${totalFlagged} with workflow flags):
 
