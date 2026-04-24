@@ -13,7 +13,7 @@ const US_STATES = [
 // Shared fields used for all background waivers — single source of truth, populates both sections
 const BACKGROUND_WAIVER_FIELDS = [
   { id: 'firstName', label: 'First Name', type: 'text', required: true },
-  { id: 'middleName', label: 'Middle Name', type: 'text', required: true },
+  { id: 'middleName', label: 'Middle Name', type: 'text', required: false },
   { id: 'lastName', label: 'Last Name', type: 'text', required: true },
   { id: 'phone', label: 'Contact Phone Number(s)', type: 'text', required: true },
   { id: 'ssn', label: 'Social Security Number', type: 'text', required: true },
@@ -207,7 +207,7 @@ export const FORM_TEMPLATES = {
  * Used for both preview (interactive) and PDF (filled values).
  */
 export function generateBackgroundWaiverHtml(values = {}, signatures = {}, options = {}) {
-  const { signerName = '', signerEmail = '', forPdf = false } = options
+  const { signerName = '', signerEmail = '', forPdf = false, section = null } = options
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
   // Derive full name from parts
@@ -245,9 +245,10 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
   const checkYes = forPdf ? (wantCopy === 'yes' ? '☑' : '☐') : `<span data-field-id="wantCopy" data-value="yes" style="cursor:pointer;font-size:16px;">${wantCopy === 'yes' ? '☑' : '☐'}</span>`
   const checkNo = forPdf ? (wantCopy === 'no' ? '☑' : '☐') : `<span data-field-id="wantCopy" data-value="no" style="cursor:pointer;font-size:16px;">${wantCopy === 'no' ? '☑' : '☐'}</span>`
 
-  return `
-<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">
+  const wrapperOpen = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">`
+  const wrapperClose = `</div>`
 
+  const introHtml = `
   <div style="text-align:center;margin-bottom:20px;">
     <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
@@ -273,9 +274,9 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
 
   <p style="font-size:10px;color:#555;">Any criminal background information obtained may be made available to you during regular business hours. You may either personally inspect the files upon furnishing proper identification and/or request to receive a copy of your file relating to your criminal history for a fee not to exceed the actual cost of copying. You may also obtain a summary of the information by telephone if you have made a written request. See Civil Code § 1786.10 and § 1786.22.</p>
 
-  <p style="font-size:10px;color:#555;">The investigator will explain any information furnished to you as a result of the criminal background investigation. He/she will also provide a written explanation of any coded information contained in their files. You may be permitted to be accompanied by one other person of your choosing in personally inspecting the files.</p>
+  <p style="font-size:10px;color:#555;">The investigator will explain any information furnished to you as a result of the criminal background investigation. He/she will also provide a written explanation of any coded information contained in their files. You may be permitted to be accompanied by one other person of your choosing in personally inspecting the files.</p>`
 
-  <!-- SECTION 1: Applicant Info + First Signature -->
+  const section1Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
     <table style="width:100%;font-size:11px;border-collapse:collapse;">
       <tr>
@@ -295,9 +296,9 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
       <div><strong>Applicant's Signature:</strong><br/>${sig('sig1')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-  <!-- SECTION 2: Authorization -->
+  const section2Html = `
   <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
     <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
@@ -312,9 +313,9 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
       <div><strong>Applicant's Signature:</strong><br/>${sig('sig2')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-  <!-- SECTION 3: Driving Record Consent -->
+  const section3Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
     <h3 style="font-size:12px;font-weight:700;color:#283693;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
     <p style="font-size:10px;color:#666;margin:0 0 8px;">RCS Investigations & Consulting, LLC — #6002048</p>
@@ -345,9 +346,16 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
       <div><strong>Signature:</strong><br/>${sig('sig3')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-</div>`
+  // When a specific section is requested, return only that section (used by the
+  // PDF generator to render each section on its own page — prevents html2canvas
+  // from slicing a section mid-box when the full document crosses page bounds).
+  if (section === 1) return `${wrapperOpen}${introHtml}${section1Html}${wrapperClose}`
+  if (section === 2) return `${wrapperOpen}${section2Html}${wrapperClose}`
+  if (section === 3) return `${wrapperOpen}${section3Html}${wrapperClose}`
+
+  return `${wrapperOpen}${introHtml}${section1Html}${section2Html}${section3Html}${wrapperClose}`
 }
 
 /**
@@ -355,7 +363,7 @@ export function generateBackgroundWaiverHtml(values = {}, signatures = {}, optio
  * Different language from GC version — criminal/civil/DMV only, matching process.
  */
 export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, options = {}) {
-  const { signerName = '', forPdf = false } = options
+  const { signerName = '', forPdf = false, section = null } = options
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 
   // Derive full name from parts
@@ -385,9 +393,10 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
   const checkYes = forPdf ? (wantCopy === 'yes' ? '☑' : '☐') : `<span data-field-id="wantCopy" data-value="yes" style="cursor:pointer;font-size:16px;">${wantCopy === 'yes' ? '☑' : '☐'}</span>`
   const checkNo = forPdf ? (wantCopy === 'no' ? '☑' : '☐') : `<span data-field-id="wantCopy" data-value="no" style="cursor:pointer;font-size:16px;">${wantCopy === 'no' ? '☑' : '☐'}</span>`
 
-  return `
-<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">
+  const wrapperOpen = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 11px; line-height: 1.5; color: #000; max-width: 700px; margin: 0 auto;">`
+  const wrapperClose = `</div>`
 
+  const introHtml = `
   <div style="text-align:center;margin-bottom:20px;">
     <h1 style="font-size:16px;font-weight:700;margin:0;color:#283693;">DISCLOSURE AUTHORIZATION AND RELEASE</h1>
     <p style="font-size:10px;color:#666;margin:4px 0 0;">California Civil Code § 1786.16; 15 U.S.C. 1681(b)</p>
@@ -412,9 +421,9 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
 
   <p style="font-size:10px;color:#555;">Any criminal background information obtained may be made available to you during regular business hours. You may either personally inspect the files upon furnishing proper identification and/or request to receive a copy of your file relating to your criminal history for a fee not to exceed the actual cost of copying. You may also obtain a summary of the information by telephone if you have made a written request. See Civil Code § 1786.10 and § 1786.22.</p>
 
-  <p style="font-size:10px;color:#555;">The investigator will explain any information furnished to you as a result of the criminal background investigation. He/she will also provide a written explanation of any coded information contained in their files. You may be permitted to be accompanied by one other person of your choosing in personally inspecting the files.</p>
+  <p style="font-size:10px;color:#555;">The investigator will explain any information furnished to you as a result of the criminal background investigation. He/she will also provide a written explanation of any coded information contained in their files. You may be permitted to be accompanied by one other person of your choosing in personally inspecting the files.</p>`
 
-  <!-- SECTION 1 -->
+  const section1Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
     <table style="width:100%;font-size:11px;border-collapse:collapse;">
       <tr>
@@ -434,9 +443,9 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
       <div><strong>Applicant's Signature:</strong><br/>${sig('sig1')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-  <!-- SECTION 2 -->
+  const section2Html = `
   <div style="border:1px solid #283693;border-radius:8px;padding:16px;margin:16px 0;">
     <p style="font-size:10px;color:#666;margin:0 0 8px;">California Civil Code § 1786.16(b)(i)</p>
     <p>I, <strong>${fullName || signerName || '_______________'}</strong>, have been advised that Abundant Beginnings Co. will be requesting an investigative consumer report regarding me.</p>
@@ -451,9 +460,9 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
       <div><strong>Applicant's Signature:</strong><br/>${sig('sig2')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-  <!-- SECTION 3: Driving Record -->
+  const section3Html = `
   <div style="background:#fafafa;border:1px solid #e5e5e5;border-radius:8px;padding:16px;margin:16px 0;">
     <h3 style="font-size:12px;font-weight:700;color:#283693;margin:0 0 8px;">SIGNED CONSENT TO PROCURE DRIVING RECORD</h3>
     <p style="font-size:10px;color:#666;margin:0 0 8px;">RCS Investigations & Consulting, LLC — #6002048</p>
@@ -483,9 +492,13 @@ export function generateIPBackgroundWaiverHtml(values = {}, signatures = {}, opt
       <div><strong>Signature:</strong><br/>${sig('sig3')}</div>
       <div><strong>Date:</strong> ${date()}</div>
     </div>
-  </div>
+  </div>`
 
-</div>`
+  if (section === 1) return `${wrapperOpen}${introHtml}${section1Html}${wrapperClose}`
+  if (section === 2) return `${wrapperOpen}${section2Html}${wrapperClose}`
+  if (section === 3) return `${wrapperOpen}${section3Html}${wrapperClose}`
+
+  return `${wrapperOpen}${introHtml}${section1Html}${section2Html}${section3Html}${wrapperClose}`
 }
 
 // ── Release Forms HTML Generators ────────────────────────────────────────

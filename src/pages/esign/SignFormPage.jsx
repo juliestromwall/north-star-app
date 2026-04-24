@@ -393,34 +393,46 @@ export default function SignFormPage() {
           return
         }
 
-        // Original background-waiver path (single tall form + audit)
-        const page1 = document.createElement('div')
-        page1.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:20px 40px;'
-        page1.innerHTML = filledHtml
-        document.body.appendChild(page1)
-
-        const page2 = document.createElement('div')
-        page2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
-        page2.innerHTML = auditHtml
-        document.body.appendChild(page2)
-
-        await new Promise(r => setTimeout(r, 800))
-
-        const canvas1 = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-        const canvas2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-
-        document.body.removeChild(page1)
-        document.body.removeChild(page2)
-        document.body.removeChild(overlay)
-
-        const img1 = canvas1.toDataURL('image/jpeg', 0.95)
-        const img1Height = (canvas1.height * pageWidth) / canvas1.width
-        let yOff = 0
-        while (yOff < img1Height) {
-          if (yOff > 0) pdf.addPage()
-          pdf.addImage(img1, 'JPEG', 0, -yOff, pageWidth, img1Height)
-          yOff += pageHeight
+        // Background-waiver path — render each section (intro+sig1, sig2, sig3)
+        // as its own PDF page so we don't slice through the middle of a section.
+        const genHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+        let pdfHasPage = false
+        for (const sec of [1, 2, 3]) {
+          const sectionHtml = genHtml(fieldValues, signatures, {
+            signerName: mySigner.name,
+            signerEmail: mySigner.email,
+            forPdf: true,
+            section: sec,
+          })
+          const sectionDiv = document.createElement('div')
+          sectionDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:20px 40px;'
+          sectionDiv.innerHTML = sectionHtml
+          document.body.appendChild(sectionDiv)
+          await new Promise(r => setTimeout(r, 200))
+          const c = await html2canvas(sectionDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+          document.body.removeChild(sectionDiv)
+          const img = c.toDataURL('image/jpeg', 0.95)
+          const imgH = (c.height * pageWidth) / c.width
+          if (pdfHasPage) pdf.addPage()
+          pdfHasPage = true
+          // Single section should fit on one page; chunk defensively just in case
+          let yOff = 0
+          while (yOff < imgH) {
+            if (yOff > 0) pdf.addPage()
+            pdf.addImage(img, 'JPEG', 0, -yOff, pageWidth, imgH)
+            yOff += pageHeight
+          }
         }
+
+        // Audit trail on its own page
+        const auditDiv = document.createElement('div')
+        auditDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
+        auditDiv.innerHTML = auditHtml
+        document.body.appendChild(auditDiv)
+        await new Promise(r => setTimeout(r, 200))
+        const canvas2 = await html2canvas(auditDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+        document.body.removeChild(auditDiv)
+        document.body.removeChild(overlay)
 
         pdf.addPage()
         const img2 = canvas2.toDataURL('image/jpeg', 0.95)

@@ -308,23 +308,35 @@ export default function BatchSignFormPage() {
             const auditImg = auditCanvas.toDataURL('image/jpeg', 0.95)
             pdf.addImage(auditImg, 'JPEG', 0, 0, pageWidth, (auditCanvas.height * pageWidth) / auditCanvas.width)
           } else {
-            // Background waiver single-sig: one combined render
-            const page1 = document.createElement('div')
-            page1.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:20px 40px;'
-            page1.innerHTML = filledHtml
-            document.body.appendChild(page1)
-            const page2 = document.createElement('div')
-            page2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
-            page2.innerHTML = auditHtml
-            document.body.appendChild(page2)
-            await new Promise(r => setTimeout(r, 600))
-            const c1 = await html2canvas(page1, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-            const c2 = await html2canvas(page2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-            document.body.removeChild(page1); document.body.removeChild(page2)
-            const i1 = c1.toDataURL('image/jpeg', 0.95)
-            const i1H = (c1.height * pageWidth) / c1.width
-            let y = 0
-            while (y < i1H) { if (y > 0) pdf.addPage(); pdf.addImage(i1, 'JPEG', 0, -y, pageWidth, i1H); y += pageHeight }
+            // Background waiver — render each section as its own PDF page to
+            // avoid html2canvas slicing through the middle of a section box.
+            const genHtml = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+            let bgPdfHasPage = false
+            for (const sec of [1, 2, 3]) {
+              const sHtml = genHtml(fieldValues, signatures, {
+                signerName: mySigner.name, signerEmail: mySigner.email, forPdf: true, section: sec,
+              })
+              const sDiv = document.createElement('div')
+              sDiv.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99998;padding:20px 40px;'
+              sDiv.innerHTML = sHtml
+              document.body.appendChild(sDiv)
+              await new Promise(r => setTimeout(r, 200))
+              const sc = await html2canvas(sDiv, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+              document.body.removeChild(sDiv)
+              const si = sc.toDataURL('image/jpeg', 0.95)
+              const siH = (sc.height * pageWidth) / sc.width
+              if (bgPdfHasPage) pdf.addPage()
+              bgPdfHasPage = true
+              let sy = 0
+              while (sy < siH) { if (sy > 0) pdf.addPage(); pdf.addImage(si, 'JPEG', 0, -sy, pageWidth, siH); sy += pageHeight }
+            }
+            const auditDiv2 = document.createElement('div')
+            auditDiv2.style.cssText = 'position:fixed;top:0;left:0;width:816px;background:white;z-index:99997;'
+            auditDiv2.innerHTML = auditHtml
+            document.body.appendChild(auditDiv2)
+            await new Promise(r => setTimeout(r, 200))
+            const c2 = await html2canvas(auditDiv2, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+            document.body.removeChild(auditDiv2)
             pdf.addPage()
             const i2 = c2.toDataURL('image/jpeg', 0.95)
             pdf.addImage(i2, 'JPEG', 0, 0, pageWidth, (c2.height * pageWidth) / c2.width)
