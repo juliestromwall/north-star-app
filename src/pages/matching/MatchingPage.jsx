@@ -19,6 +19,19 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fet
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion, isJourneyActive } from '@/lib/matching'
 
+// Stages eligible to share profiles from. Order = display order.
+const ELIGIBLE_MATCHING_STAGES = ['pre-qualification', 'screening', 'matching']
+const STAGE_SECTION_LABEL = {
+  'pre-qualification': 'Intake',
+  'screening': 'Screening',
+  'matching': 'Matching',
+}
+const STAGE_DOT_COLOR = {
+  'pre-qualification': '#ed148c',
+  'screening': '#c4219a',
+  'matching': '#9b2ea7',
+}
+
 // ── Searchable Picker (used for Create Match dialog) ──
 function SearchablePicker({ label, placeholder, value, options, onSelect }) {
   const [query, setQuery] = useState('')
@@ -145,16 +158,16 @@ export default function MatchingPage() {
           }).catch(() => {})
         }
 
-        // Load share history for matching GCs
-        const matchingGcs = gcs.filter(g => getSurrogateStageStatus(g.id).stage === 'matching')
-        const sharePromises = matchingGcs.map(g => fetchSharesForCase(g.id).then(shares => [g.id, shares]))
+        // Load share history + questions for ALL eligible GCs (intake, screening,
+        // matching). Profiles can be shared from any of these stages now.
+        const eligibleGcs = gcs.filter(g => ELIGIBLE_MATCHING_STAGES.includes(getSurrogateStageStatus(g.id).stage))
+        const sharePromises = eligibleGcs.map(g => fetchSharesForCase(g.id).then(shares => [g.id, shares]))
         Promise.all(sharePromises).then(results => {
           const map = {}
           results.forEach(([id, shares]) => { if (shares.length > 0) map[id] = shares })
           setShareHistory(map)
         }).catch(() => {})
-        // Load questions for matching GCs
-        const qPromises = matchingGcs.map(g => fetchMatchQuestions({ caseId: g.id }).then(qs => [g.id, qs]))
+        const qPromises = eligibleGcs.map(g => fetchMatchQuestions({ caseId: g.id }).then(qs => [g.id, qs]))
         Promise.all(qPromises).then(results => {
           const map = {}
           results.forEach(([id, qs]) => { if (qs.length > 0) map[id] = qs })
@@ -165,19 +178,28 @@ export default function MatchingPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const matchingGCs = useMemo(() => {
-    return surrogates.filter(s => getSurrogateStageStatus(s.id).stage === 'matching')
+  const eligibleGCs = useMemo(() => {
+    return surrogates.filter(s => ELIGIBLE_MATCHING_STAGES.includes(getSurrogateStageStatus(s.id).stage))
   }, [surrogates])
 
   // Only active (non-archived) journeys block cases from the matching pipeline
   const activeJourneysForFilter = journeys.filter(isJourneyActive)
   const matchedGcIds = new Set(activeJourneysForFilter.map(j => j.gc_case_id))
   const matchedIpIds = new Set(activeJourneysForFilter.map(j => j.ip_case_id))
-  // Hide already-matched cases from the pipeline
-  const unmatchedGCs = matchingGCs.filter(s => !matchedGcIds.has(s.id))
+  const unmatchedGCs = eligibleGCs.filter(s => !matchedGcIds.has(s.id))
   const unmatchedIPs = ips.filter(i => !matchedIpIds.has(i.id))
   const filteredGCs = unmatchedGCs.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()))
   const filteredIPs = unmatchedIPs.filter(i => !search || (i.names || '').toLowerCase().includes(search.toLowerCase()))
+
+  // Group GCs by stage so each stage gets its own section header
+  const gcsByStage = useMemo(() => {
+    const groups = { 'pre-qualification': [], 'screening': [], 'matching': [] }
+    for (const s of filteredGCs) {
+      const stage = getSurrogateStageStatus(s.id).stage
+      if (groups[stage]) groups[stage].push(s)
+    }
+    return groups
+  }, [filteredGCs])
 
   async function handleCreateMatch() {
     if (!createForm.gcId || !createForm.ipId) return
@@ -224,16 +246,72 @@ export default function MatchingPage() {
         <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search surrogates or intended parents..." className="pl-9" />
       </div>
 
-      {/* Surrogates in Matching */}
+      {/* Surrogates — grouped by stage. Intake + Screening use a compact card
+          (less profile data exists yet) and Matching keeps the full card. */}
+      {filteredGCs.length === 0 && (
+        <p className="text-sm text-stone-400">No surrogates currently available to share.</p>
+      )}
+
+      {/* Intake + Screening (compact) */}
+      {['pre-qualification', 'screening'].map(stageKey => {
+        const list = gcsByStage[stageKey]
+        if (!list?.length) return null
+        return (
+          <div key={stageKey}>
+            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <span className="size-2 rounded-full" style={{ backgroundColor: STAGE_DOT_COLOR[stageKey] }} />
+              Surrogates in {STAGE_SECTION_LABEL[stageKey]} ({list.length})
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {list.map(gc => {
+                const ss = getSurrogateStageStatus(gc.id)
+                const profile = profileMap[gc.id]
+                const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
+                return (
+                  <Card key={gc.id} className="rounded-xl hover:shadow-md transition-shadow">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <ProfileAvatar name={gc.name} avatar={avatarUrl || profile?.personal?.profilePhotoUrl} size="md" className="ring-2 ring-white shadow-sm" />
+                        <div className="flex-1 min-w-0">
+                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#283693] truncate block">{gc.name}</Link>
+                          {gc.location && <p className="text-[10px] text-stone-500 flex items-center gap-1 truncate"><MapPin className="size-2.5" />{gc.location}</p>}
+                          <div className="mt-0.5"><StageBadge stage={ss.stage} status={ss.status} /></div>
+                        </div>
+                      </div>
+                      {(gc.age || gc.bmi) && (
+                        <div className="flex items-center gap-2 text-[10px] text-stone-500">
+                          {gc.age && <span>Age {gc.age}</span>}
+                          {gc.bmi && <span>BMI {gc.bmi}</span>}
+                        </div>
+                      )}
+                      <div className="flex gap-1.5 pt-1">
+                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#283693', color: '#fff' }}
+                          onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
+                          <Send className="size-3" /> Share
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-[11px] h-7 px-2" asChild>
+                          <Link to={`/surrogates/${gc.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+
+      {/* Surrogates in Matching (full card, unchanged) */}
       <div>
         <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="size-2 rounded-full bg-pink-500" /> Surrogates in Matching Stage ({filteredGCs.length})
+          <span className="size-2 rounded-full bg-pink-500" /> Surrogates in Matching Stage ({gcsByStage.matching.length})
         </h3>
-        {filteredGCs.length === 0 ? (
+        {gcsByStage.matching.length === 0 ? (
           <p className="text-sm text-stone-400">No surrogates currently in the Matching stage.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredGCs.map(gc => {
+            {gcsByStage.matching.map(gc => {
               const ss = getSurrogateStageStatus(gc.id)
               const profile = profileMap[gc.id]
               const gtpal = getGTPAL(profile)
