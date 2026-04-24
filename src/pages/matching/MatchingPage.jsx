@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Heart, Users, Baby, Send, Search, ArrowRight, MapPin, Stethoscope, ChevronDown, Eye, Clock, MessageSquare, Calendar } from 'lucide-react'
+import { Plus, Heart, Users, Baby, Send, Search, ArrowRight, MapPin, Stethoscope, ChevronDown, Eye, Clock, MessageSquare, Calendar, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,8 +15,9 @@ import EmptyState from '@/components/shared/EmptyState'
 import ShareProfileDialog from '@/components/shared/ShareProfileDialog'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { useRole } from '@/context/RoleContext'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails, getPortraitPhotoUrl } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails, getPortraitPhotoUrl, getRecordTrackingBatch } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
+import { getChecklistMilestones, getChecklistSteps, deriveParentStatus } from '@/lib/checklistStore'
 import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion, isJourneyActive } from '@/lib/matching'
 
 // Stages eligible to share profiles from. Order = display order.
@@ -30,6 +31,62 @@ const STAGE_DOT_COLOR = {
   'pre-qualification': '#ed148c',
   'screening': '#c4219a',
   'matching': '#9b2ea7',
+}
+
+// Compute per-stage milestone progress for a surrogate from their record tracking.
+// Mirrors the logic used for matched-journey cards on /journeys.
+function getStageMilestoneProgress(stageId, tracking = {}) {
+  const milestones = getChecklistMilestones('gc', stageId)
+  if (!milestones.length) return null
+  const baseSteps = getChecklistSteps('gc', stageId)
+  const caseSubtasks = Object.entries(tracking)
+    .filter(([, v]) => v?._isCaseSubtask && !v?._deleted)
+    .map(([id, v]) => ({ id, parentId: v._parentId, label: v._label || id }))
+  const allSteps = [...baseSteps, ...caseSubtasks]
+  const getStepStatus = (stepId) => {
+    const step = allSteps.find(s => s.id === stepId)
+    if (!step) return null
+    const children = allSteps.filter(s => s.parentId === stepId)
+    if (children.length > 0) return deriveParentStatus(children, tracking) || 'not_started'
+    return tracking[stepId]?.status || 'not_started'
+  }
+  let completed = 0
+  const data = milestones.map(ms => {
+    const statuses = (ms.stepIds || []).map(getStepStatus).filter(s => s !== null)
+    const allComplete = statuses.length > 0 && statuses.every(s => s === 'complete' || s === 'na' || s === 'partial_complete')
+    const anyStarted = statuses.some(s => s && s !== 'not_started')
+    const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allComplete) completed++
+    return { id: ms.id, label: ms.label, status }
+  })
+  return { data, completed, total: milestones.length }
+}
+
+// Inline milestone strip — shared by cards on the matching page
+function MilestoneStrip({ stageId, tracking }) {
+  const progress = getStageMilestoneProgress(stageId, tracking || {})
+  if (!progress || progress.total === 0) return null
+  const { data, completed, total } = progress
+  const pct = (completed / total) * 100
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[9px] text-stone-400 uppercase tracking-wider font-semibold">
+        <span>Milestones</span>
+        <span>{completed}/{total}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #283693, #ed148c)' }} />
+      </div>
+      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+        {data.map(ms => (
+          <div key={ms.id} className="flex items-center gap-0.5">
+            <Circle className={`size-2.5 shrink-0 ${ms.status === 'complete' ? 'text-emerald-500 fill-emerald-500' : ms.status === 'in_progress' ? 'text-amber-500 fill-amber-500' : 'text-stone-300'}`} />
+            <span className={`text-[9px] whitespace-nowrap ${ms.status === 'complete' ? 'text-emerald-600' : ms.status === 'in_progress' ? 'text-amber-600' : 'text-stone-400'}`}>{ms.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // ── Searchable Picker (used for Create Match dialog) ──
@@ -115,6 +172,7 @@ export default function MatchingPage() {
   const [profileMap, setProfileMap] = useState({})
   const [shareHistory, setShareHistory] = useState({}) // { caseId: [shares] }
   const [questionHistory, setQuestionHistory] = useState({}) // { caseId: [questions] }
+  const [trackingMap, setTrackingMap] = useState({}) // { caseId: _recordTracking }
 
   const [shareTarget, setShareTarget] = useState(null)
   const [matchNotesTarget, setMatchNotesTarget] = useState(null) // { id, answers }
@@ -161,6 +219,14 @@ export default function MatchingPage() {
         // Load share history + questions for ALL eligible GCs (intake, screening,
         // matching). Profiles can be shared from any of these stages now.
         const eligibleGcs = gcs.filter(g => ELIGIBLE_MATCHING_STAGES.includes(getSurrogateStageStatus(g.id).stage))
+
+        // Load per-surrogate checklist tracking for milestone display on cards
+        if (eligibleGcs.length) {
+          getRecordTrackingBatch(eligibleGcs.map(g => g.id)).then(map => {
+            if (map) setTrackingMap(map)
+          }).catch(() => {})
+        }
+
         const sharePromises = eligibleGcs.map(g => fetchSharesForCase(g.id).then(shares => [g.id, shares]))
         Promise.all(sharePromises).then(results => {
           const map = {}
@@ -243,17 +309,70 @@ export default function MatchingPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search surrogates or intended parents..." className="pl-9" />
+        <Input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search for profile to share — type to find Intake surrogates too..." className="pl-9" />
       </div>
 
-      {/* Surrogates — grouped by stage. Intake + Screening use a compact card
-          (less profile data exists yet) and Matching keeps the full card. */}
-      {filteredGCs.length === 0 && (
-        <p className="text-sm text-stone-400">No surrogates currently available to share.</p>
+      {/* Default view = Screening + Matching only. Intake surrogates are hidden
+          until the admin types in the search box (so they're discoverable but
+          don't clutter the default queue). */}
+      {(!search.trim() && (gcsByStage.screening.length + gcsByStage.matching.length) === 0) && (
+        <p className="text-sm text-stone-400">No surrogates in Screening or Matching. Type a name above to search Intake too.</p>
       )}
 
-      {/* Intake + Screening (compact) */}
-      {['pre-qualification', 'screening'].map(stageKey => {
+      {/* Intake — only shown when actively searching */}
+      {search.trim() && gcsByStage['pre-qualification'].length > 0 && (() => {
+        const stageKey = 'pre-qualification'
+        const list = gcsByStage[stageKey]
+        if (false) return null
+        return (
+          <div key={stageKey}>
+            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <span className="size-2 rounded-full" style={{ backgroundColor: STAGE_DOT_COLOR[stageKey] }} />
+              Surrogates in {STAGE_SECTION_LABEL[stageKey]} ({list.length}) <span className="text-[10px] font-normal text-stone-400 normal-case tracking-normal">— search results</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {list.map(gc => {
+                const ss = getSurrogateStageStatus(gc.id)
+                const profile = profileMap[gc.id]
+                const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
+                return (
+                  <Card key={gc.id} className="rounded-xl hover:shadow-md transition-shadow">
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <ProfileAvatar name={gc.name} avatar={avatarUrl || profile?.personal?.profilePhotoUrl} size="md" className="ring-2 ring-white shadow-sm" />
+                        <div className="flex-1 min-w-0">
+                          <Link to={`/surrogates/${gc.id}`} className="text-xs font-bold hover:text-[#283693] truncate block">{gc.name}</Link>
+                          {gc.location && <p className="text-[10px] text-stone-500 flex items-center gap-1 truncate"><MapPin className="size-2.5" />{gc.location}</p>}
+                          <div className="mt-0.5"><StageBadge stage={ss.stage} status={ss.status} /></div>
+                        </div>
+                      </div>
+                      {(gc.age || gc.bmi) && (
+                        <div className="flex items-center gap-2 text-[10px] text-stone-500">
+                          {gc.age && <span>Age {gc.age}</span>}
+                          {gc.bmi && <span>BMI {gc.bmi}</span>}
+                        </div>
+                      )}
+                      <div className="flex gap-1.5 pt-1">
+                        <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#283693', color: '#fff' }}
+                          onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
+                          <Send className="size-3" /> Share
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-[11px] h-7 px-2" asChild>
+                          <Link to={`/surrogates/${gc.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Screening (compact card with milestones) */}
+      {['screening'].map(stageKey => {
         const list = gcsByStage[stageKey]
         if (!list?.length) return null
         return (
@@ -284,6 +403,7 @@ export default function MatchingPage() {
                           {gc.bmi && <span>BMI {gc.bmi}</span>}
                         </div>
                       )}
+                      <MilestoneStrip stageId={ss.stage} tracking={trackingMap[gc.id]} />
                       <div className="flex gap-1.5 pt-1">
                         <Button size="sm" className="gap-1 text-[11px] flex-1 h-7 px-2" style={{ backgroundColor: '#283693', color: '#fff' }}
                           onClick={() => setShareTarget({ id: gc.id, type: 'gc', name: gc.name })}>
@@ -371,6 +491,9 @@ export default function MatchingPage() {
                     <div className="flex items-center gap-3 text-xs text-stone-500">
                       <span className="flex items-center gap-1"><Heart className="size-3" />{profile?.personal?.maritalStatus || gc.maritalStatus || '—'}</span>
                     </div>
+
+                    {/* Milestones — at-a-glance progress through the matching stage */}
+                    <MilestoneStrip stageId={ss.stage} tracking={trackingMap[gc.id]} />
 
                     {/* Match Notes */}
                     <MatchNotesPreview
