@@ -12,8 +12,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
+import { normalizeApptNotes } from '@/components/shared/CaseCalendarWidget'
 import StageBadge from '@/components/shared/StageBadge'
 import { getAppConfig, setAppConfig } from '@/lib/db'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
@@ -43,6 +45,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
   const [apptMeta, setApptMeta] = useState({})
   const [notesModal, setNotesModal] = useState(null)
   const [noteText, setNoteText] = useState('')
+  const [noteDate, setNoteDate] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [count, setCount] = useState(null)
 
@@ -80,14 +83,34 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
     } catch {}
   }
 
-  async function handleSaveNotes() {
-    if (!notesModal) return
+  async function handleAppendNote() {
+    if (!notesModal || !noteText.trim()) return
     setSavingNote(true)
     try {
-      const meta = { ...apptMeta, [notesModal.id]: { ...(apptMeta[notesModal.id] || {}), notes: noteText, notesBy: currentUser?.name || 'Admin', notesAt: new Date().toISOString() } }
+      const existing = normalizeApptNotes(apptMeta[notesModal.id])
+      const newEntry = {
+        id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        body: noteText.trim(),
+        date: noteDate || new Date().toISOString().split('T')[0],
+        by: currentUser?.name || 'Admin',
+        at: new Date().toISOString(),
+      }
+      const notesEntries = [...existing.filter(e => e.id !== 'legacy'), ...existing.filter(e => e.id === 'legacy'), newEntry]
+        .sort((a, b) => (a.at || a.date || '').localeCompare(b.at || b.date || ''))
+      const meta = {
+        ...apptMeta,
+        [notesModal.id]: {
+          ...(apptMeta[notesModal.id] || {}),
+          notesEntries,
+          notes: notesEntries[notesEntries.length - 1]?.body || '',
+          notesBy: newEntry.by,
+          notesAt: newEntry.at,
+        },
+      }
       setApptMeta(meta)
       await setAppConfig(`appt_notes_${caseType}_${caseId}`, meta)
-      setNotesModal(null); setNoteText('')
+      setNoteText('')
+      setNoteDate(new Date().toISOString().split('T')[0])
     } catch {} finally { setSavingNote(false) }
   }
 
@@ -120,14 +143,23 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                 const eventDate = startDt.substring(0, 10)
                 const isPast = eventDate < todayStr
                 const isAllDay = !!event.start?.date && !event.start?.dateTime
-                const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+                const rawTitle = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+                const title = rawTitle.replace(/^✅\s*/, '')
                 const meta = apptMeta[event.id] || {}
-                const isFollowedUp = meta.followedUp || title.startsWith('✅')
+                const isFollowedUp = meta.followedUp || /^✅/.test(rawTitle)
+                const noteEntries = normalizeApptNotes(meta)
                 return (
                   <div key={event.id} className={`rounded-lg border px-3 py-2.5 ${isPast ? 'border-stone-100' : 'border-[#283693]/20 bg-[#283693]/5'}`}>
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${isPast ? 'text-stone-600' : 'text-[#283693]'}`}>{title}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className={`text-sm font-medium ${isPast ? 'text-stone-600' : 'text-[#283693]'}`}>{title}</p>
+                          {isFollowedUp && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold border border-emerald-200">
+                              <CheckCircle2 className="size-2.5" /> Followed Up
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
                           <span>{formatDate(startDt)}</span>
                           {!isAllDay && event.start?.dateTime && (
@@ -138,26 +170,28 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
                           )}
                           {isPast && <span className="text-stone-300">Past</span>}
                           {!isPast && eventDate === todayStr && <span className="text-[#283693] font-semibold">Today</span>}
-                          {isFollowedUp && (
-                            <span className="text-emerald-600 font-semibold flex items-center gap-0.5">
-                              <CheckCircle2 className="size-2.5" /> Followed Up
-                              {meta.followedUpBy && <span className="text-stone-400 font-normal">by {meta.followedUpBy}</span>}
-                            </span>
-                          )}
+                          {isFollowedUp && meta.followedUpBy && <span className="text-stone-400">by {meta.followedUpBy}</span>}
                         </div>
-                        {meta.notes && (
-                          <div className="mt-1.5 text-xs text-stone-600 bg-stone-50 rounded px-2 py-1.5 border-l-2 border-[#283693]/30">
-                            {meta.notes}
-                            {meta.notesBy && <p className="text-[10px] text-stone-400 mt-1">— {meta.notesBy}, {meta.notesAt ? formatDate(meta.notesAt) : ''}</p>}
+                        {noteEntries.length > 0 && (
+                          <div className="mt-1.5 space-y-1">
+                            {noteEntries.map(e => (
+                              <div key={e.id} className="text-xs text-stone-600 bg-stone-50 rounded px-2 py-1.5 border-l-2 border-[#283693]/30">
+                                <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
+                                  <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
+                                  <span>{e.by}</span>
+                                </div>
+                                <p className="whitespace-pre-line">{e.body}</p>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
                       <button
-                        onClick={() => { setNotesModal(event); setNoteText(meta.notes || '') }}
+                        onClick={() => { setNotesModal(event); setNoteText(''); setNoteDate(new Date().toISOString().split('T')[0]) }}
                         className="text-[9px] text-stone-400 hover:text-[#283693] flex items-center gap-0.5 shrink-0 mt-0.5"
                       >
                         <FileText className="size-3" />
-                        {meta.notes ? 'Edit' : 'Note'}
+                        {noteEntries.length > 0 ? 'Add Another' : 'Add Note'}
                       </button>
                     </div>
                   </div>
@@ -168,20 +202,55 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
         </DialogContent>
       </Dialog>
 
-      {/* Notes sub-modal */}
-      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
-        <DialogContent className="max-w-md">
+      {/* Notes sub-modal — multi-entry */}
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText(''); setNoteDate('') } }}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="size-4 text-[#283693]" /> Appointment Notes
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm font-medium text-stone-700">{notesModal?.summary?.includes(' — ') ? notesModal.summary.split(' — ')[0] : notesModal?.summary}</p>
-          <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this appointment..." rows={4} />
+          <p className="text-sm font-semibold text-stone-700">
+            {(notesModal?.summary?.includes(' — ') ? notesModal.summary.split(' — ')[0] : notesModal?.summary || '').replace(/^✅\s*/, '')}
+          </p>
+
+          {(() => {
+            const entries = normalizeApptNotes(apptMeta[notesModal?.id])
+            if (entries.length === 0) return null
+            return (
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Previous Notes</p>
+                {entries.map(e => (
+                  <div key={e.id} className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700">
+                    <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
+                      <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
+                      <span>{e.by}</span>
+                    </div>
+                    <p className="whitespace-pre-line">{e.body}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          <div className="space-y-2 pt-2 border-t">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Add Another Note</p>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-500">Note Date</label>
+              <Input
+                type="date"
+                value={noteDate || new Date().toISOString().split('T')[0]}
+                onChange={e => setNoteDate(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Type your follow-up note..." rows={4} />
+          </div>
+
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveNotes} disabled={savingNote}>
-              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save
+            <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
+              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save Note
             </Button>
           </DialogFooter>
         </DialogContent>

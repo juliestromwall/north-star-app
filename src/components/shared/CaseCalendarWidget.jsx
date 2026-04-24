@@ -23,6 +23,29 @@ function isToday(dateStr) {
 
 const APPT_NOTES_KEY_PREFIX = 'appt_notes_'
 
+/**
+ * Normalize an appointment-meta `notes` field into a list of entries.
+ * Legacy shape was a single string at `meta.notes` plus `meta.notesBy/notesAt`.
+ * New shape is `meta.notesEntries` = [{ id, body, date, by, at }, ...].
+ * Returned list is OLDEST → NEWEST so callers can render top-to-bottom directly.
+ */
+export function normalizeApptNotes(meta) {
+  if (!meta) return []
+  if (Array.isArray(meta.notesEntries) && meta.notesEntries.length) {
+    return [...meta.notesEntries].sort((a, b) => (a.at || a.date || '').localeCompare(b.at || b.date || ''))
+  }
+  if (typeof meta.notes === 'string' && meta.notes.trim()) {
+    return [{
+      id: 'legacy',
+      body: meta.notes,
+      date: (meta.notesAt || '').slice(0, 10) || null,
+      by: meta.notesBy || '',
+      at: meta.notesAt || null,
+    }]
+  }
+  return []
+}
+
 export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const { currentUser } = useRole()
   const userId = currentUser?.userId || currentUser?.id
@@ -37,6 +60,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [apptMeta, setApptMeta] = useState({}) // { eventId: { followedUp, followedUpBy, followedUpAt, notes } }
   const [notesModal, setNotesModal] = useState(null) // event being noted
   const [noteText, setNoteText] = useState('')
+  const [noteDate, setNoteDate] = useState('') // date attached to the note being added
   const [savingNote, setSavingNote] = useState(false)
   const [followingUp, setFollowingUp] = useState(null)
 
@@ -178,14 +202,35 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     finally { setFollowingUp(null) }
   }
 
-  async function handleSaveNotes() {
-    if (!notesModal) return
+  async function handleAppendNote() {
+    if (!notesModal || !noteText.trim()) return
     setSavingNote(true)
     try {
-      const meta = { ...apptMeta, [notesModal.id]: { ...(apptMeta[notesModal.id] || {}), notes: noteText, notesBy: currentUser?.name || 'Admin', notesAt: new Date().toISOString() } }
+      const existing = normalizeApptNotes(apptMeta[notesModal.id])
+      const newEntry = {
+        id: `n_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        body: noteText.trim(),
+        date: noteDate || new Date().toISOString().split('T')[0],
+        by: currentUser?.name || 'Admin',
+        at: new Date().toISOString(),
+      }
+      const notesEntries = [...existing.filter(e => e.id !== 'legacy'), ...existing.filter(e => e.id === 'legacy'), newEntry]
+        .sort((a, b) => (a.at || a.date || '').localeCompare(b.at || b.date || ''))
+      const meta = {
+        ...apptMeta,
+        [notesModal.id]: {
+          ...(apptMeta[notesModal.id] || {}),
+          notesEntries,
+          // Keep legacy fields in sync (latest note) for backwards compatibility
+          notes: notesEntries[notesEntries.length - 1]?.body || '',
+          notesBy: newEntry.by,
+          notesAt: newEntry.at,
+        },
+      }
       await saveApptMeta(meta)
-      setNotesModal(null)
+      // Clear input so admin can add another, but keep modal open so they can see history
       setNoteText('')
+      setNoteDate(new Date().toISOString().split('T')[0])
     } catch {} finally { setSavingNote(false) }
   }
 
@@ -204,7 +249,10 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   if (loading) return <div className="text-center py-8 text-stone-400 text-sm">Loading appointments...</div>
 
   function getDisplayTitle(event) {
-    return event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+    const raw = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+    // Strip the legacy ✅ prefix — the followed-up state is shown as a styled
+    // badge in the UI now instead of an emoji prepended to the title.
+    return raw.replace(/^✅\s*/, '')
   }
 
   function EventRow({ event, isPast }) {
@@ -213,13 +261,23 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
     const today = isToday(startDt)
     const meta = apptMeta[event.id] || {}
     const title = getDisplayTitle(event)
-    const isFollowedUp = meta.followedUp || title.startsWith('✅')
+    // Detect via the meta flag OR the legacy ✅ prefix on the calendar title
+    const isFollowedUp = meta.followedUp || /^✅/.test(event.summary || '')
+    const noteEntries = normalizeApptNotes(meta)
+    const latestNote = noteEntries[noteEntries.length - 1]
 
     return (
       <div className={`rounded-lg border px-3 py-2 ${isPast ? 'opacity-60' : today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
         <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
-            <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>{title}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>{title}</p>
+              {isFollowedUp && (
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-semibold border border-emerald-200">
+                  <CheckCircle2 className="size-2.5" /> Followed Up
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
               <span>{formatDate(startDt)}</span>
               {!isAllDay && event.start?.dateTime && (
@@ -230,10 +288,10 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
                 </span>
               )}
               {today && <span className="text-[#283693] font-semibold">Today</span>}
-              {isFollowedUp && <span className="text-emerald-600 font-semibold">Followed Up</span>}
+              {noteEntries.length > 1 && <span className="text-stone-400">{noteEntries.length} notes</span>}
             </div>
-            {meta.notes && (
-              <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 120)}{meta.notes.length > 120 ? '...' : ''}</p>
+            {latestNote && (
+              <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{latestNote.body.slice(0, 120)}{latestNote.body.length > 120 ? '...' : ''}</p>
             )}
           </div>
           <div className="flex flex-col gap-1 shrink-0 items-end">
@@ -254,11 +312,11 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
               </button>
             )}
             <button
-              onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
+              onClick={() => { setNotesModal(event); setNoteText(''); setNoteDate(new Date().toISOString().split('T')[0]) }}
               className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
             >
               <FileText className="size-2.5" />
-              {meta.notes ? 'Edit Notes' : 'Add Notes'}
+              {noteEntries.length > 0 ? 'Add Another Note' : 'Add Note'}
             </button>
           </div>
         </div>
@@ -320,25 +378,69 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
         </div>
       )}
 
-      {/* Appointment Notes Modal */}
-      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText('') } }}>
-        <DialogContent className="max-w-md">
+      {/* Appointment Notes Modal — multi-entry */}
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText(''); setNoteDate('') } }}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="size-4 text-[#283693]" />
               Appointment Notes
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-stone-600 font-medium">{getDisplayTitle(notesModal || {})}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-stone-700 font-semibold">{getDisplayTitle(notesModal || {})}</p>
+            {(apptMeta[notesModal?.id]?.followedUp || /^✅/.test(notesModal?.summary || '')) && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold border border-emerald-200">
+                <CheckCircle2 className="size-3" /> Followed Up
+              </span>
+            )}
+          </div>
           <p className="text-xs text-stone-400">{notesModal?.start?.dateTime ? formatDate(notesModal.start.dateTime) : notesModal?.start?.date ? formatDate(notesModal.start.date) : ''}</p>
-          <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add notes about this appointment..." rows={4} />
-          {apptMeta[notesModal?.id]?.notesBy && (
-            <p className="text-[10px] text-stone-400">Last edited by {apptMeta[notesModal?.id].notesBy} on {apptMeta[notesModal?.id].notesAt ? formatDate(apptMeta[notesModal.id].notesAt) : ''}</p>
-          )}
+
+          {/* Prior notes — oldest → newest, top to bottom */}
+          {(() => {
+            const entries = normalizeApptNotes(apptMeta[notesModal?.id])
+            if (entries.length === 0) return null
+            return (
+              <div className="space-y-2 pt-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Previous Notes</p>
+                {entries.map(e => (
+                  <div key={e.id} className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700">
+                    <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
+                      <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
+                      <span>{e.by}</span>
+                    </div>
+                    <p className="whitespace-pre-line">{e.body}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* New note input */}
+          <div className="space-y-2 pt-2 border-t">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Add Another Note</p>
+            <div className="space-y-1">
+              <label className="text-[11px] text-stone-500">Note Date</label>
+              <Input
+                type="date"
+                value={noteDate || new Date().toISOString().split('T')[0]}
+                onChange={e => setNoteDate(e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <Textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="Type your follow-up note..."
+              rows={4}
+            />
+          </div>
+
           <DialogFooter>
-            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
-            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveNotes} disabled={savingNote}>
-              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Save Notes
+            <DialogClose asChild><Button variant="outline" size="sm">Done</Button></DialogClose>
+            <Button size="sm" className="gap-1" style={{ backgroundColor: '#283693' }} onClick={handleAppendNote} disabled={savingNote || !noteText.trim()}>
+              {savingNote ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Save Note
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,15 +466,16 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
 }
 
 function AddAppointmentDialog({ open, onOpenChange, onSave, initialData, editMode, calendars = [], defaultCalId = 'primary' }) {
-  const [form, setForm] = useState({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: false, calendarId: defaultCalId })
+  const [form, setForm] = useState({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: true, calendarId: defaultCalId })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setForm({ title: initialData.title || '', date: initialData.date || new Date().toISOString().split('T')[0], startTime: initialData.startTime || '09:00', endTime: initialData.endTime || '10:00', description: initialData.description || '', allDay: initialData.allDay || false, calendarId: defaultCalId })
+        setForm({ title: initialData.title || '', date: initialData.date || '', startTime: initialData.startTime || '09:00', endTime: initialData.endTime || '10:00', description: initialData.description || '', allDay: initialData.allDay ?? true, calendarId: defaultCalId })
       } else {
-        setForm({ title: '', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '10:00', description: '', allDay: false, calendarId: defaultCalId })
+        // New appointment defaults: empty date (forces user to pick) + All Day on
+        setForm({ title: '', date: '', startTime: '09:00', endTime: '10:00', description: '', allDay: true, calendarId: defaultCalId })
       }
     }
   }, [open])
