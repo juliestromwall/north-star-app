@@ -18,6 +18,7 @@ import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { JourneyTileCard, journeyManagerOutlineColor } from '@/pages/journeys/MatchedJourneysPage'
 import { SurrogateCard } from '@/pages/surrogates/SurrogateListPage'
 import { IPTileCard } from '@/pages/intended-parents/IPListPage'
+import { AdminNotesSection } from '@/pages/SettingsPage'
 import { formatDate } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import {
@@ -966,6 +967,15 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Admin Notes management — master/super admins only */}
+      {(isSuperAdmin || isMasterAdmin) && (
+        <Card className="rounded-2xl border-stone-100">
+          <CardContent className="py-5">
+            <AdminNotesSection />
+          </CardContent>
+        </Card>
+      )}
 
       {/* My Cases — separated by type */}
       <div>

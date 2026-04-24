@@ -189,7 +189,7 @@ const TARGETABLE_USERS = [
   { id: 'u7', name: 'Jennifer Rose', role: ROLES.ADMIN },
 ]
 
-function AdminNotesSection() {
+export function AdminNotesSection() {
   const { currentUser } = useRole()
   const [notes, setNotes] = useState([])
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -1613,8 +1613,6 @@ export default function SettingsPage() {
       <AdminProfileSection />
       <div className="border-t border-stone-200" />
       <GoogleIntegrationSection />
-      <div className="border-t border-stone-200" />
-      <AdminNotesSection />
       <div className="border-t border-stone-200" />
       <UserManagementSection />
       <div className="border-t border-stone-200" />

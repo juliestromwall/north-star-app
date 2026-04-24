@@ -45,15 +45,40 @@ async function sb(env, path) {
 }
 
 export async function onRequestPost(context) {
+  // Outer try/catch so ANY failure returns JSON instead of letting Cloudflare
+  // serve its default HTML 500 page (which causes "Unexpected token '<'" on
+  // the client). Without this, anything that throws before our normal
+  // try/catch — env-var access, JSON.parse of the request body, undefined
+  // helper — bubbles up as HTML.
+  try {
+    return await runSummary(context)
+  } catch (err) {
+    console.error('admin-cases-summary fatal:', err)
+    return new Response(JSON.stringify({
+      error: err?.message || 'Server error generating summary',
+      stack: err?.stack ? String(err.stack).split('\n').slice(0, 4).join('\n') : null,
+    }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } })
+  }
+}
+
+async function runSummary(context) {
   const { env } = context
   const apiKey = env.ANTHROPIC_API_KEY
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
+    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured in Cloudflare Pages env' }), {
       status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
-  if (!env.SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }), {
+  if (!supabaseUrl) {
+    return new Response(JSON.stringify({ error: 'SUPABASE_URL not configured in Cloudflare Pages env' }), {
+      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+  if (!serviceKey) {
+    return new Response(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured in Cloudflare Pages env' }), {
       status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
