@@ -12,7 +12,7 @@ import StageBadge, { JourneyStatusPill } from '@/components/shared/StageBadge'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourneys } from '@/lib/matching'
-import { getChecklistMilestones } from '@/lib/checklistStore'
+import { getChecklistMilestones, getChecklistSteps, deriveParentStatus } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig, getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
@@ -33,6 +33,37 @@ const STATUS_PRIORITY = [
 
 // The only people who can be Journey Manager
 export const JOURNEY_MANAGERS = ['Julie Allgood', 'Nicole Lawson']
+
+function getJourneyMilestoneProgress(stageId, tracking = {}) {
+  const milestones = getChecklistMilestones('gc', stageId)
+  const baseSteps = getChecklistSteps('gc', stageId)
+  const caseSubtasks = Object.entries(tracking)
+    .filter(([, val]) => val?._isCaseSubtask && !val?._deleted)
+    .map(([id, val]) => ({ id, parentId: val._parentId, label: val._label || id }))
+  const allSteps = [...baseSteps, ...caseSubtasks]
+
+  const getStepStatus = (stepId) => {
+    const step = allSteps.find(s => s.id === stepId)
+    if (!step) return null
+    const children = allSteps.filter(s => s.parentId === stepId)
+    if (children.length > 0) return deriveParentStatus(children, tracking) || 'not_started'
+    return tracking[stepId]?.status || 'not_started'
+  }
+
+  let completed = 0
+  const milestoneData = milestones.map(ms => {
+    const statuses = (ms.stepIds || [])
+      .map(getStepStatus)
+      .filter(status => status !== null)
+    const allComplete = statuses.length > 0 && statuses.every(status => status === 'complete' || status === 'na' || status === 'partial_complete')
+    const anyStarted = statuses.some(status => status && status !== 'not_started')
+    const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allComplete) completed++
+    return { ...ms, status }
+  })
+
+  return { milestoneData, completed, total: milestones.length }
+}
 
 // Outline color by Journey Manager: Julie → indigo, Nicole → coral
 export function journeyManagerOutlineColor(j) {
@@ -80,19 +111,8 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
         </div>
         {/* Milestones */}
         {(() => {
-          const milestones = getChecklistMilestones('gc', j.stage)
           const tracking = j.journey_data?._checklistTracking || {}
-          let completed = 0
-          const milestoneData = milestones.map(ms => {
-            const stepIds = ms.stepIds || []
-            const relevantSteps = stepIds.filter(id => tracking[id]?.status || !id.startsWith('_'))
-            const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => tracking[id]?.status === 'complete' || tracking[id]?.status === 'na')
-            const anyStarted = relevantSteps.some(id => tracking[id]?.status && tracking[id].status !== 'not_started')
-            const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
-            if (allComplete) completed++
-            return { ...ms, status }
-          })
-          const total = milestones.length
+          const { milestoneData, completed, total } = getJourneyMilestoneProgress(j.stage, tracking)
           const pct = total > 0 ? (completed / total) * 100 : 0
           return total > 0 ? (
             <div className="px-4 py-1.5 border-t border-stone-100 space-y-1">

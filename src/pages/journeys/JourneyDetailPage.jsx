@@ -35,7 +35,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
-import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -46,6 +46,37 @@ import { JOURNEY_MANAGERS } from '@/pages/journeys/MatchedJourneysPage'
 import ConfettiBurst, { useConfetti } from '@/components/effects/ConfettiBurst'
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
+
+function getJourneyMilestoneProgress(stageId, tracking = {}) {
+  const milestones = getChecklistMilestones('gc', stageId)
+  const baseSteps = getChecklistSteps('gc', stageId)
+  const caseSubtasks = Object.entries(tracking)
+    .filter(([, val]) => val?._isCaseSubtask && !val?._deleted)
+    .map(([id, val]) => ({ id, parentId: val._parentId, label: val._label || id }))
+  const allSteps = [...baseSteps, ...caseSubtasks]
+
+  const getStepStatus = (stepId) => {
+    const step = allSteps.find(s => s.id === stepId)
+    if (!step) return null
+    const children = allSteps.filter(s => s.parentId === stepId)
+    if (children.length > 0) return deriveParentStatus(children, tracking) || 'not_started'
+    return tracking[stepId]?.status || 'not_started'
+  }
+
+  let completed = 0
+  const milestoneData = milestones.map(ms => {
+    const statuses = (ms.stepIds || [])
+      .map(getStepStatus)
+      .filter(status => status !== null)
+    const allComplete = statuses.length > 0 && statuses.every(status => status === 'complete' || status === 'na' || status === 'partial_complete')
+    const anyStarted = statuses.some(status => status && status !== 'not_started')
+    const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
+    if (allComplete) completed++
+    return { ...ms, status, stepCount: ms.stepIds?.length || 0 }
+  })
+
+  return { milestoneData, completed, total: milestones.length }
+}
 
 // ── Currency with cents ─────────────────────────────────
 function CurrencyInput({ value, onChange, className = '' }) {
@@ -337,20 +368,8 @@ function ChecklistHistory({ history }) {
 // ── Journey Milestone Timeline ─
 function JourneyMilestoneTimeline({ journey }) {
   const stageId = journey.stage || 'journey-oversight'
-  const milestones = getChecklistMilestones('gc', stageId)
   const tracking = journey.journey_data?._checklistTracking || {}
-
-  let completed = 0
-  const milestoneData = milestones.map(ms => {
-    const stepIds = ms.stepIds || []
-    const relevantSteps = stepIds.filter(id => tracking[id]?.status || !id.startsWith('_'))
-    const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => tracking[id]?.status === 'complete' || tracking[id]?.status === 'na')
-    const anyStarted = relevantSteps.some(id => tracking[id]?.status && tracking[id].status !== 'not_started')
-    const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
-    if (allComplete) completed++
-    return { ...ms, status, stepCount: stepIds.length }
-  })
-  const total = milestones.length
+  const { milestoneData, completed, total } = getJourneyMilestoneProgress(stageId, tracking)
 
   const getGradientColor = (index) => {
     if (total <= 1) return '#ed148c'
