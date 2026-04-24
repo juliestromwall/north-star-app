@@ -67,8 +67,8 @@ function InlineSignaturePad({ value, onChange, signerName }) {
   }
 
   return (
-    <span className="inline-block align-middle my-2">
-      <span className="border-2 border-dashed border-[#283693]/30 rounded-xl p-4 bg-[#283693]/5 inline-block" style={{ minWidth: 340 }}>
+    <span className="block align-middle my-2 w-full max-w-[340px]">
+      <span className="border-2 border-dashed border-[#283693]/30 rounded-xl p-4 bg-[#283693]/5 block w-full">
         <span className="flex gap-2 mb-3">
           <button onClick={() => { setMode('typed'); onChange(value?.name ? { type: 'typed', name: value.name } : null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'typed' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Type Signature</button>
           <button onClick={() => { setMode('drawn'); onChange(null) }} className={`text-xs px-3 py-1 rounded-full font-medium transition-all ${mode === 'drawn' ? 'bg-[#283693] text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Draw Signature</button>
@@ -219,6 +219,44 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
         .signing-doc td, .signing-doc th { border: 1px solid #ddd; padding: 6px 10px; }
         .signing-doc img { max-width: 100%; height: auto; }
         .signing-doc a { color: #283693; }
+        @media (max-width: 640px) {
+          .signing-doc { font-size: 13px; }
+          .signing-doc table,
+          .signing-doc tbody,
+          .signing-doc tr,
+          .signing-doc td,
+          .signing-doc th {
+            display: block;
+            width: 100% !important;
+          }
+          .signing-doc td,
+          .signing-doc th {
+            border-left: 0;
+            border-right: 0;
+            padding: 8px 0;
+          }
+          .signing-doc tr:first-child td,
+          .signing-doc tr:first-child th {
+            border-top: 0;
+          }
+          .signing-doc [style*="display:flex"][style*="justify-content:space-between"] {
+            display: block !important;
+          }
+          .signing-doc [data-field-id],
+          .signing-doc [data-sig-id] {
+            display: block !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            margin-top: 4px;
+          }
+          .signing-doc input[type="text"],
+          .signing-doc input[type="email"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            display: block !important;
+            margin: 4px 0 !important;
+          }
+        }
       `}</style>
       <div className="signing-doc">
         {parts.map((part, i) => {
