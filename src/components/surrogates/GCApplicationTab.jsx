@@ -1596,10 +1596,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">General Psych Release</p>
                 <div className="space-y-2">
                   {hasPartner ? (
-                    <>
-                      <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} />
-                      <SendFormTemplateButton templateId="release_general_psych_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
-                    </>
+                    <SendFormTemplateButton templateId="release_general_psych_partnered_gc" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
                   ) : (
                     <SendFormTemplateButton templateId="release_general_psych_single_gc" surrogate={surrogate} />
                   )}
@@ -1609,10 +1606,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">Ellen Winters Psych Release</p>
                 <div className="space-y-2">
                   {hasPartner ? (
-                    <>
-                      <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} />
-                      <SendFormTemplateButton templateId="release_ellen_winters_partnered_partner" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
-                    </>
+                    <SendFormTemplateButton templateId="release_ellen_winters_partnered_gc" surrogate={surrogate} partnerName={partnerName} partnerEmail={partnerEmail} />
                   ) : (
                     <SendFormTemplateButton templateId="release_ellen_winters_single_gc" surrogate={surrogate} />
                   )}

@@ -138,6 +138,16 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
       return
     }
 
+    // Partnered psych templates consolidate the two signers onto a single
+    // esign_documents row so the final merged PDF has both signatures (no
+    // more duplicate PDFs per signer in the case folder).
+    if (template.multiSigner) {
+      if (!partnerEmail || !partnerName) {
+        alert('Partner name and email are required for partnered release forms. Please add them in the Confidential section first.')
+        return
+      }
+    }
+
     setSending(true)
     setResult(null)
     try {
@@ -147,15 +157,24 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       const isReleaseForm = template.layoutMode === 'doc-first'
       const docTitle = isReleaseForm
-        ? `${template.title} - ${signerName}`
+        ? (template.multiSigner
+            ? `${template.title} - ${surrogate?.name || ''} & ${partnerName || 'Partner'}`
+            : `${template.title} - ${signerName}`)
         : `Background Check Release Form - ${signerName}`
+
+      const signers = template.multiSigner
+        ? [
+            { role: 'gc', name: surrogate?.name || '', email: surrogate?.email || '', status: 'pending' },
+            { role: 'partner', name: partnerName, email: partnerEmail, status: 'pending' },
+          ]
+        : [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }]
 
       const doc = await createDocument({
         templateId: null,
         caseId: surrogate.id,
         caseType: 'surrogate',
         title: docTitle,
-        signers: [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }],
+        signers,
         filePath: null,
         createdBy: currentUser?.name || 'Admin',
       })
@@ -169,18 +188,29 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       await sendDocument(doc.id)
 
-      // Send the actual email
-      const emailRes = await sendEsignEmail({
-        signerName, signerEmail,
-        formTitle: docTitle,
-        formToken,
-        senderName: currentUser?.name,
-        senderEmail: currentUser?.email,
-      })
-      if (!emailRes.success) {
-        setExistingDoc({ status: 'pending', formToken })
-        setResult({ error: `Document created but email failed: ${emailRes.error}` })
-        return
+      // Send email(s). For multi-signer templates, both signers get a link
+      // to the same form — SignFormPage role-filters which slots they see.
+      const emailRecipients = template.multiSigner
+        ? [
+            { name: surrogate?.name || '', email: surrogate?.email || '' },
+            { name: partnerName, email: partnerEmail },
+          ]
+        : [{ name: signerName, email: signerEmail }]
+
+      for (const recipient of emailRecipients) {
+        if (!recipient.email) continue
+        const emailRes = await sendEsignEmail({
+          signerName: recipient.name, signerEmail: recipient.email,
+          formTitle: docTitle,
+          formToken,
+          senderName: currentUser?.name,
+          senderEmail: currentUser?.email,
+        })
+        if (!emailRes.success) {
+          setExistingDoc({ status: 'pending', formToken })
+          setResult({ error: `Document created but email to ${recipient.email} failed: ${emailRes.error}` })
+          return
+        }
       }
 
       setExistingDoc({ status: 'pending', formToken })

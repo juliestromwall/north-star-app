@@ -95,15 +95,28 @@ export const FORM_TEMPLATES = {
     pages: [{ id: 'p1', title: 'Psychological Evaluation Release', gcSignatures: [{ id: 'sig_gc_p1' }] }],
     fields: [],
   },
+  // Single merged template for partnered General Psych — has BOTH gc and
+  // partner signature slots on the shared page. One esign_documents row
+  // is created with two signers; SignFormPage's role filter (line 210-218
+  // in that file) shows each signer only their own slots.
   release_general_psych_partnered_gc: {
     id: 'release_general_psych_partnered_gc',
-    title: 'General Psych Release (Partnered) — Surrogate',
-    description: 'Psychological Evaluation Release — Partnered (Surrogate Copy)',
+    title: 'General Psych Release (Partnered)',
+    description: 'Psychological Evaluation Release — Partnered',
     layoutMode: 'doc-first',
     signerRole: 'gc',
-    pages: [{ id: 'p1', title: 'Psychological Evaluation Release', gcSignatures: [{ id: 'sig_gc_p1' }] }],
+    multiSigner: true,
+    pages: [{
+      id: 'p1',
+      title: 'Psychological Evaluation Release',
+      gcSignatures: [{ id: 'sig_gc_p1' }],
+      partnerSignatures: [{ id: 'sig_partner_p1' }],
+    }],
     fields: [],
   },
+  // Kept as a legacy alias so any in-flight document referencing this
+  // template ID continues to render. New sends use the merged template
+  // above — see SendFormTemplateButton.handleSend.
   release_general_psych_partnered_partner: {
     id: 'release_general_psych_partnered_partner',
     title: 'General Psych Release (Partnered) — Partner',
@@ -128,17 +141,23 @@ export const FORM_TEMPLATES = {
     ],
     fields: [],
   },
+  // Single merged template for partnered Ellen Winters. Pages ew1-ew4 have
+  // BOTH gc and partner slots so one doc serves both signers. Page ew5
+  // (Referral for Psychological Testing) is surrogate-only — no partner
+  // slot — so the partner's SignFormPage pass will show no required
+  // signatures on that page and they can skip through it.
   release_ellen_winters_partnered_gc: {
     id: 'release_ellen_winters_partnered_gc',
-    title: 'Ellen Winters Psych Release (Partnered) — Surrogate',
-    description: 'Fertility Counseling Center Release Forms — Partnered (Surrogate Copy)',
+    title: 'Ellen Winters Psych Release (Partnered)',
+    description: 'Fertility Counseling Center Release Forms — Partnered',
     layoutMode: 'doc-first',
     signerRole: 'gc',
+    multiSigner: true,
     pages: [
-      { id: 'ew1', title: 'Informed Consent to Telemedicine', gcSignatures: [{ id: 'sig_gc_ew1' }] },
-      { id: 'ew2', title: 'Release of Information, Liability & Notice of Privacy', gcSignatures: [{ id: 'sig_gc_ew2' }], gcInitials: [{ id: 'init_gc_ew2' }] },
-      { id: 'ew3', title: 'Informed Consent for Third Party Assisted Reproduction', gcSignatures: [{ id: 'sig_gc_ew3' }] },
-      { id: 'ew4', title: 'Release of Information (Ellen Winters Miller)', gcSignatures: [{ id: 'sig_gc_ew4' }] },
+      { id: 'ew1', title: 'Informed Consent to Telemedicine', gcSignatures: [{ id: 'sig_gc_ew1' }], partnerSignatures: [{ id: 'sig_partner_ew1' }] },
+      { id: 'ew2', title: 'Release of Information, Liability & Notice of Privacy', gcSignatures: [{ id: 'sig_gc_ew2' }], gcInitials: [{ id: 'init_gc_ew2' }], partnerSignatures: [{ id: 'sig_partner_ew2' }], partnerInitials: [{ id: 'init_partner_ew2' }] },
+      { id: 'ew3', title: 'Informed Consent for Third Party Assisted Reproduction', gcSignatures: [{ id: 'sig_gc_ew3' }], partnerSignatures: [{ id: 'sig_partner_ew3' }] },
+      { id: 'ew4', title: 'Release of Information (Ellen Winters Miller)', gcSignatures: [{ id: 'sig_gc_ew4' }], partnerSignatures: [{ id: 'sig_partner_ew4' }] },
       { id: 'ew5', title: 'Referral for Psychological Testing', gcSignatures: [{ id: 'sig_gc_ew5' }], gcInitials: [{ id: 'init_gc_ew5' }] },
     ],
     fields: [],
