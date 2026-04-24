@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil, History, CheckCircle2, FileText } from 'lucide-react'
+import { Plus, CalendarDays, Clock, Trash2, Loader2, Pencil, History, CheckCircle2, FileText, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -63,6 +63,10 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
   const [noteDate, setNoteDate] = useState('') // date attached to the note being added
   const [savingNote, setSavingNote] = useState(false)
   const [followingUp, setFollowingUp] = useState(null)
+  // Editing an existing note entry
+  const [editingId, setEditingId] = useState(null)
+  const [editText, setEditText] = useState('')
+  const [editDate, setEditDate] = useState('')
 
   useEffect(() => {
     if (!caseId || !userId) { setLoading(false); return }
@@ -200,6 +204,37 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       await saveApptMeta(meta)
     } catch (err) { alert('Failed: ' + err.message) }
     finally { setFollowingUp(null) }
+  }
+
+  async function handleSaveEdit() {
+    if (!notesModal || !editingId || !editText.trim()) return
+    setSavingNote(true)
+    try {
+      const existing = normalizeApptNotes(apptMeta[notesModal.id])
+      // If we're editing a legacy single-string note, give it a real id so future edits stay stable
+      const newId = editingId === 'legacy' ? `n_${Date.now()}_legacy` : editingId
+      const notesEntries = existing.map(e => e.id === editingId ? {
+        ...e,
+        id: newId,
+        body: editText.trim(),
+        date: editDate || e.date || (e.at || '').slice(0, 10) || new Date().toISOString().split('T')[0],
+        editedBy: currentUser?.name || 'Admin',
+        editedAt: new Date().toISOString(),
+      } : e)
+        .sort((a, b) => (a.at || a.date || '').localeCompare(b.at || b.date || ''))
+      const meta = {
+        ...apptMeta,
+        [notesModal.id]: {
+          ...(apptMeta[notesModal.id] || {}),
+          notesEntries,
+          notes: notesEntries[notesEntries.length - 1]?.body || '',
+        },
+      }
+      await saveApptMeta(meta)
+      setEditingId(null)
+      setEditText('')
+      setEditDate('')
+    } catch {} finally { setSavingNote(false) }
   }
 
   async function handleAppendNote() {
@@ -379,7 +414,7 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       )}
 
       {/* Appointment Notes Modal — multi-entry */}
-      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText(''); setNoteDate('') } }}>
+      <Dialog open={!!notesModal} onOpenChange={v => { if (!v) { setNotesModal(null); setNoteText(''); setNoteDate(''); setEditingId(null); setEditText(''); setEditDate('') } }}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -397,22 +432,56 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
           </div>
           <p className="text-xs text-stone-400">{notesModal?.start?.dateTime ? formatDate(notesModal.start.dateTime) : notesModal?.start?.date ? formatDate(notesModal.start.date) : ''}</p>
 
-          {/* Prior notes — oldest → newest, top to bottom */}
+          {/* Prior notes — oldest → newest, top to bottom. Each entry has an inline edit mode. */}
           {(() => {
             const entries = normalizeApptNotes(apptMeta[notesModal?.id])
             if (entries.length === 0) return null
             return (
               <div className="space-y-2 pt-1">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Previous Notes</p>
-                {entries.map(e => (
-                  <div key={e.id} className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700">
-                    <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
-                      <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
-                      <span>{e.by}</span>
+                {entries.map(e => {
+                  const isEditing = editingId === e.id
+                  if (isEditing) {
+                    return (
+                      <div key={e.id} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 px-3 py-2 space-y-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] text-stone-500">Note Date</label>
+                          <Input type="date" value={editDate} onChange={ev => setEditDate(ev.target.value)} className="h-8 text-xs" />
+                        </div>
+                        <Textarea value={editText} onChange={ev => setEditText(ev.target.value)} rows={3} className="text-xs" />
+                        <div className="flex justify-end gap-1.5">
+                          <Button variant="outline" size="sm" className="h-7 text-[11px] gap-1" onClick={() => { setEditingId(null); setEditText(''); setEditDate('') }}>
+                            <X className="size-3" /> Cancel
+                          </Button>
+                          <Button size="sm" className="h-7 text-[11px] gap-1" style={{ backgroundColor: '#283693' }} onClick={handleSaveEdit} disabled={savingNote || !editText.trim()}>
+                            {savingNote ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />} Save
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={e.id} className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700">
+                      <div className="flex items-center justify-between text-[10px] text-stone-400 mb-0.5">
+                        <span className="font-medium text-stone-500">{e.date ? formatDate(e.date) : (e.at ? formatDate(e.at) : '')}</span>
+                        <div className="flex items-center gap-2">
+                          <span>{e.by}</span>
+                          <button
+                            onClick={() => { setEditingId(e.id); setEditText(e.body); setEditDate(e.date || (e.at || '').slice(0, 10) || '') }}
+                            className="text-stone-400 hover:text-[#283693]"
+                            title="Edit note"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="whitespace-pre-line">{e.body}</p>
+                      {e.editedBy && (
+                        <p className="text-[9px] text-stone-400 italic mt-1">edited by {e.editedBy}{e.editedAt ? ` on ${formatDate(e.editedAt)}` : ''}</p>
+                      )}
                     </div>
-                    <p className="whitespace-pre-line">{e.body}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )
           })()}
