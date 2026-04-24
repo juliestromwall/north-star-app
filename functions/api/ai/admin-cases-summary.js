@@ -130,14 +130,35 @@ async function runSummary(context) {
     ...activeJourneys.map(j => j.id),
   ]
   const journeyIds = activeJourneys.map(j => j.id)
+  // For naming journeys we need the GC and IP applicant_name even when those
+  // intake rows aren't assigned to this admin (the admin owns the JOURNEY,
+  // not the underlying intakes). Batch-fetch them up front.
+  const journeyPersonIds = Array.from(new Set([
+    ...activeJourneys.map(j => j.gc_case_id),
+    ...activeJourneys.map(j => j.ip_case_id),
+  ].filter(Boolean)))
   const inClause = (ids) => `(${ids.join(',')})`
 
-  const [allEmails, allTasks, allNotes, allExpenses] = await Promise.all([
+  const [allEmails, allTasks, allNotes, allExpenses, journeyPeople] = await Promise.all([
     allCaseIds.length === 0 ? [] : sb(env, `case_emails?case_id=in.${inClause(allCaseIds)}&select=case_id,date,direction,subject&order=date.desc&limit=500`),
     allCaseIds.length === 0 ? [] : sb(env, `case_tasks?case_id=in.${inClause(allCaseIds)}&select=case_id,title,status,priority,due_date,created_at&order=created_at.desc&limit=500`),
     allCaseIds.length === 0 ? [] : sb(env, `case_notes?surrogate_id=in.${inClause(allCaseIds)}&select=surrogate_id,created_at&order=created_at.desc&limit=300`),
     journeyIds.length === 0 ? [] : sb(env, `journey_expenses?journey_id=in.${inClause(journeyIds)}&select=journey_id,expense_date,paid_at,disbursement_requested_at,pay_to_type&order=expense_date.desc&limit=500`),
+    journeyPersonIds.length === 0 ? [] : sb(env, `intake_submissions?id=in.${inClause(journeyPersonIds)}&select=id,intake_type,applicant_name,answers`),
   ])
+
+  // GC/IP name lookup — prefer applicant_name; fall back to first+last from answers
+  const personById = new Map()
+  for (const p of journeyPeople) {
+    let name = p.applicant_name?.trim()
+    if (!name) {
+      const a = p.answers || {}
+      name = (p.intake_type === 'ip'
+        ? [a.primaryFirstName, a.primaryLastName].filter(Boolean).join(' ')
+        : [a.firstName, a.lastName].filter(Boolean).join(' ')).trim()
+    }
+    personById.set(p.id, name || `Case ${p.id}`)
+  }
 
   // Group by case_id / surrogate_id / journey_id
   const groupBy = (rows, key) => {
@@ -280,17 +301,21 @@ async function runSummary(context) {
     if (jd.heartbeat_confirmed && !jd._heartbeatTaskFired) flags.push('Heartbeat confirmed — verify follow-up tasks fired')
     if (j.status === 'Active' && unrequestedExpenses.length > 0) flags.push(`${unrequestedExpenses.length} expense(s) not yet submitted to escrow`)
 
-    const journeyName = jd.gc_name && jd.ip_name
-      ? `${jd.gc_name} & ${jd.ip_name}`
-      : (jd.gc_name || jd.ip_name || `Journey ${j.id}`)
+    // Prefer denormalized journey_data names; fall back to looking up the
+    // applicant_name on the linked intake rows.
+    const gcName = jd.gc_name || personById.get(j.gc_case_id) || null
+    const ipName = jd.ip_name || personById.get(j.ip_case_id) || null
+    const journeyName = gcName && ipName
+      ? `${gcName} & ${ipName}`
+      : (gcName || ipName || `Journey ${j.id}`)
 
     caseSignals.push({
       kind: 'Journey',
       id: j.id,
       name: journeyName,
       url: `/journeys/${j.id}`,
-      gcName: jd.gc_name || null,
-      ipName: jd.ip_name || null,
+      gcName,
+      ipName,
       stage: j.status || 'unknown',
       status: jd.pregnancy_status || jd.transfer_status || '',
       milestones,

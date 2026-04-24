@@ -200,14 +200,15 @@ export default function AdminCasesSummaryPage() {
                         const trimmed = line.replace(/^[-•*]\s*/, '').trim()
                         if (!trimmed) return null
                         const isWarning = /overdue|stalled|missing|urgent|critical|⚠|🚨/i.test(trimmed)
-                        // Escape HTML, then turn markdown into safe HTML:
-                        //   **bold** → <strong>, [text](/path) → <a target=_blank>,
-                        //   #ID → bolded indigo (legacy fallback if Claude forgets the link)
+                        // Escape HTML, then turn markdown into safe HTML.
+                        // Important: the link replacement injects a class attribute
+                        // containing `#283693`, so we must NOT run a generic /#\d+/
+                        // regex afterwards — it would match the color literal inside
+                        // the class string and corrupt the HTML.
                         const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                         const html = escape(trimmed)
                           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                           .replace(/\[([^\]]+)\]\((\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#283693] underline decoration-[#283693]/30 hover:decoration-[#283693]">$1</a>')
-                          .replace(/(#\d+)/g, '<strong class="text-[#283693]">$1</strong>')
                         return (
                           <p key={j} className={`flex items-start gap-2 ${isWarning ? 'text-amber-800 font-medium' : ''}`}>
                             <span className="text-stone-300 mt-1 shrink-0">•</span>
