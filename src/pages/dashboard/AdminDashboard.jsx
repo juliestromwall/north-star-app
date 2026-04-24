@@ -11,7 +11,7 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchMyTasks, fetchMyCom
 import { updateEvent } from '@/lib/google'
 import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 import { getAccessToken } from '@/lib/google'
-import { getAdminStaff } from '@/data/mock/users'
+import { getAdminStaff, loadAdminUsers } from '@/data/mock/users'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import StageBadge, { JourneyStatusPill } from '@/components/shared/StageBadge'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
@@ -166,6 +166,14 @@ export default function AdminDashboard() {
   const [caseSearch, setCaseSearch] = useState('')
   // For master/super admins picking whose cases to summarize. Default = current user.
   const [summaryAdminEmail, setSummaryAdminEmail] = useState(currentUser?.email || '')
+  // getAdminStaff() reads from a module-level array that loadAdminUsers()
+  // populates async on AppLayout mount. If we render before that fetch
+  // resolves, the picker dropdown only shows "My cases". Bump this whenever
+  // the load finishes so the dropdown re-renders with the full admin list.
+  const [adminListVersion, setAdminListVersion] = useState(0)
+  useEffect(() => {
+    loadAdminUsers().then(() => setAdminListVersion(v => v + 1)).catch(() => {})
+  }, [])
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
