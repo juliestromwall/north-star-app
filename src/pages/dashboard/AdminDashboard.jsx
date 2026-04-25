@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRole } from '@/context/RoleContext'
 import { supabase } from '@/lib/supabase'
 import PageHeader from '@/components/shared/PageHeader'
@@ -308,6 +308,10 @@ export default function AdminDashboard() {
   const scopedEmails = useMemo(() => {
     if (!showAllCases) return new Set([(myEmail || '').toLowerCase()])
     if (!summaryAdminEmail || summaryAdminEmail === '__all__') return null
+    // Journey-manager portfolio views don't filter the dashboard My Cases
+    // list — they only affect what the AI summary button generates. Treat
+    // them as no-scope here so the dashboard stays visible.
+    if (summaryAdminEmail.startsWith('__journeyManager:')) return null
     if (summaryAdminEmail === '__team__') {
       // Mirror AdminCasesSummaryPage's team logic: every admin EXCEPT intake;
       // for master admins the requester is included but other masters are not.
@@ -1037,7 +1041,12 @@ export default function AdminDashboard() {
               >
                 <option value="__all__">All cases</option>
                 <option value={currentUser?.email || ''}>My cases</option>
-                <option value="__team__">Team (Desiree, Emily, Stacie)</option>
+                {/* Master-admin journey-portfolio views — pulls every matched
+                    journey where journey_data.journeyManager matches, grouped
+                    by the day-to-day assigned admin. Affects AI summary only;
+                    the dashboard list still shows the user's selected scope. */}
+                <option value="__journeyManager:julie">Julie's Journeys</option>
+                <option value="__journeyManager:nicole">Nicole's Journeys</option>
                 {getAdminStaff()
                   .filter(a => a.email !== currentUser?.email)
                   // Jennifer Rose is intake-only — never include her in admin summaries.
@@ -1052,20 +1061,26 @@ export default function AdminDashboard() {
               className="h-10 gap-1.5 shrink-0 text-white"
               style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
               onClick={() => {
-                // For "__all__" (no specific scope) the AI summary falls back
-                // to a team summary — summarizing literally every case is too
-                // broad, so we treat "All" the same as "Team" for the summary.
                 const sel = showAllCases ? summaryAdminEmail : currentUser?.email
-                const url = (sel === '__team__' || sel === '__all__')
-                  ? `/dashboard/cases-summary?team=1`
-                  : `/dashboard/cases-summary?admin=${encodeURIComponent(sel || '')}`
+                let url
+                if (sel?.startsWith('__journeyManager:')) {
+                  const name = sel.split(':')[1]
+                  url = `/dashboard/cases-summary?journeyManager=${encodeURIComponent(name)}`
+                } else if (sel === '__team__' || sel === '__all__') {
+                  // Fallback for legacy team option (still in dashboard scope filter).
+                  url = `/dashboard/cases-summary?team=1`
+                } else {
+                  url = `/dashboard/cases-summary?admin=${encodeURIComponent(sel || '')}`
+                }
                 window.open(url, '_blank', 'noopener,noreferrer')
               }}
             >
               <Sparkles className="size-4" />
-              {(summaryAdminEmail === '__team__' || summaryAdminEmail === '__all__')
-                ? 'Summarize Team'
-                : `Summarize ${showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases`}
+              {summaryAdminEmail?.startsWith('__journeyManager:')
+                ? `Summarize ${summaryAdminEmail.split(':')[1].replace(/^./, c => c.toUpperCase())}'s Journeys`
+                : (summaryAdminEmail === '__team__' || summaryAdminEmail === '__all__')
+                  ? 'Summarize Team'
+                  : `Summarize ${showAllCases && summaryAdminEmail !== currentUser?.email ? 'Their' : 'My'} Cases`}
             </Button>
             <div className="flex items-center border rounded-md shrink-0">
               <Button variant={caseView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none size-9" onClick={() => setCaseView('grid')}>
