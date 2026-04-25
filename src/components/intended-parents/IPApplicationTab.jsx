@@ -37,7 +37,15 @@ function SelectField({ value, onValueChange, options, placeholder = 'Select...' 
     <SelectUI value={value || ''} onValueChange={onValueChange}>
       <SelectTriggerUI className="h-9 text-sm bg-white"><SelectValueUI placeholder={placeholder} /></SelectTriggerUI>
       <SelectContentUI>
-        {options.map(opt => <SelectItemUI key={opt} value={opt}>{opt}</SelectItemUI>)}
+        {options.map((opt) => {
+          const optionValue = typeof opt === 'string' ? opt : opt.value
+          const optionLabel = typeof opt === 'string' ? opt : opt.label
+          return (
+            <SelectItemUI key={optionValue} value={optionValue}>
+              {optionLabel}
+            </SelectItemUI>
+          )
+        })}
       </SelectContentUI>
     </SelectUI>
   )
