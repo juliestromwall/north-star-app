@@ -355,7 +355,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     setExpandedStep(step.id); setAddingLogFor(null)
                   }
                 }}
-                className={`group relative cursor-pointer ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#283693]/[0.02]' : ''} ${hasChildren ? 'bg-stone-50/40' : ''} transition-colors`}
+                className={`group relative cursor-pointer ${isDeactivated ? 'opacity-35' : ''} ${
+                  isComplete ? 'bg-emerald-50/70 hover:bg-emerald-50' :
+                  isExpanded ? 'bg-[#283693]/[0.02]' :
+                  hasChildren ? 'bg-stone-50/40' : ''
+                } transition-colors`}
               >
                 {/* Left accent bar */}
                 {isComplete && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-green-400 rounded-r" />}
@@ -371,16 +375,44 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                   )}
                   {/* Indent guide for subtasks */}
                   {isSubtask && <CornerDownRight className="size-3 text-stone-300 shrink-0 -ml-4" />}
-                  {/* Status circle */}
-                  {isDeactivated ? (
-                    <div className="size-5 rounded-full bg-stone-200 shrink-0 flex items-center justify-center"><X className="size-3 text-stone-400" /></div>
-                  ) : isComplete ? (
-                    <div className="size-5 rounded-full bg-green-500 shrink-0 flex items-center justify-center shadow-sm shadow-green-200"><Check className="size-3 text-white" /></div>
-                  ) : currentStatus !== 'not_started' ? (
-                    <div className="size-5 rounded-full border-2 border-[#283693] shrink-0 flex items-center justify-center"><div className="size-2 rounded-full bg-[#283693]" /></div>
-                  ) : (
-                    <div className="size-5 rounded-full border-2 border-stone-200 shrink-0 group-hover:border-stone-300 transition-colors" />
-                  )}
+                  {/* Status circle — for leaf rows it's the PRIMARY toggle: click to
+                      complete or re-open. Parent rows show a derived state (not clickable). */}
+                  {(() => {
+                    const canToggle = !hasChildren && !isDeactivated
+                    const handleToggle = (e) => {
+                      e.stopPropagation()
+                      if (!canToggle) return
+                      if (isComplete) reopen(step.id); else quickComplete(step.id)
+                    }
+                    const baseClass = 'size-5 rounded-full shrink-0 flex items-center justify-center transition-all'
+                    const toggleClass = canToggle ? 'cursor-pointer hover:scale-110' : ''
+                    if (isDeactivated) {
+                      return <div className={`${baseClass} bg-stone-200`}><X className="size-3 text-stone-400" /></div>
+                    }
+                    if (isComplete) {
+                      return (
+                        <button onClick={handleToggle} title={canToggle ? 'Click to re-open' : undefined}
+                          className={`${baseClass} ${toggleClass} bg-green-500 shadow-sm shadow-green-200 hover:bg-green-600`}>
+                          <Check className="size-3 text-white" />
+                        </button>
+                      )
+                    }
+                    if (currentStatus !== 'not_started') {
+                      return (
+                        <button onClick={handleToggle} title={canToggle ? 'Click to mark complete' : undefined}
+                          className={`${baseClass} ${toggleClass} border-2 border-[#283693] hover:bg-[#283693]/10`}>
+                          <div className="size-2 rounded-full bg-[#283693]" />
+                        </button>
+                      )
+                    }
+                    return (
+                      <button onClick={handleToggle} title={canToggle ? 'Click to mark complete' : undefined}
+                        className={`${baseClass} ${toggleClass} border-2 border-stone-200 hover:border-emerald-400 hover:bg-emerald-50`}>
+                        {/* Empty by default; reveals a faint check on hover for affordance */}
+                        <Check className={`size-3 text-emerald-500 ${canToggle ? 'opacity-0 group-hover:opacity-50' : 'opacity-0'}`} />
+                      </button>
+                    )
+                  })()}
 
                   {/* Label */}
                   <div className="flex-1 min-w-0">
@@ -446,60 +478,47 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     )}
                   </div>
 
-                  {/* Right column: status + quick-action buttons */}
+                  {/* Right column: meta inline for completed rows; status pill otherwise */}
                   <div className="shrink-0 flex items-center gap-2">
-                    {step.logType === 'date_completed' && currentStatus === 'complete' ? (
-                      <span className="text-[11px] font-semibold text-emerald-600">{lastEntry?.date ? formatDate(lastEntry.date) : 'Done'}</span>
+                    {isComplete && lastEntry ? (
+                      // Completed → show date + author inline (the green row already says "complete")
+                      <span className="text-[11px] text-emerald-700/80 font-medium">
+                        {lastEntry.date ? formatDate(lastEntry.date) : ''}
+                        {lastEntry.by ? ` · ${lastEntry.by}` : ''}
+                      </span>
                     ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
                       <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
                     ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-medium text-stone-600 max-w-[120px] truncate">{data._textValue || currentStatus}</span>
-                        {isComplete && <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />}
-                      </div>
+                      <span className="text-[11px] font-medium text-stone-600 max-w-[120px] truncate">{data._textValue || currentStatus}</span>
                     ) : (
                       <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
                     )}
 
-                    {/* Quick Complete / Re-open — leaf rows only, no date_completed (it has its own UI) */}
-                    {!hasChildren && !isDeactivated && step.logType !== 'date_completed' && (
-                      isComplete ? (
-                        <button onClick={(e) => { e.stopPropagation(); reopen(step.id) }}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-amber-600 bg-white hover:bg-amber-50 px-2 py-1 rounded-full border border-stone-200 hover:border-amber-200 transition-colors"
-                          title="Re-open this task">
-                          <X className="size-3" /> Re-open
-                        </button>
-                      ) : (
-                        <button onClick={(e) => { e.stopPropagation(); quickComplete(step.id) }}
-                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1 rounded-full transition-colors shadow-sm"
-                          title="Mark complete with today's date">
-                          <Check className="size-3" /> Complete
-                        </button>
-                      )
-                    )}
-
-                    {/* + Log — leaf rows, opens the log form for date/note */}
-                    {!hasChildren && !isDeactivated && (
-                      <button onClick={(e) => { e.stopPropagation(); openAddLog(step.id) }}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#283693] bg-white hover:bg-[#283693]/5 px-2 py-1 rounded-full border border-stone-200 hover:border-[#283693]/30 transition-colors"
-                        title="Add a log entry with date + note">
-                        <Plus className="size-3" /> Log
-                      </button>
-                    )}
-
-                    {!hasChildren && currentStatus !== 'na' && history.length > 0 && (
+                    {/* Just a chevron — expanded view holds Log + Edit + History */}
+                    {!hasChildren && currentStatus !== 'na' && (
                       <ChevronDown className={`size-4 text-stone-300 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* ── History entries ── */}
-              {isExpanded && history.length > 0 && (
+              {/* ── Expanded section: history + actions ── */}
+              {isExpanded && !hasChildren && (
                 <div className="bg-stone-50/80 border-t border-stone-100">
-                  <div className="px-6 py-2">
-                    <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider mb-1">History</p>
-                  </div>
+                  {history.length > 0 && (
+                    <div className="px-6 pt-2.5 pb-1 flex items-center justify-between">
+                      <p className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">History</p>
+                      {/* Actions live inside the expanded view, not on the row, so the row stays clean */}
+                      <div className="flex items-center gap-2">
+                        {!isAddingLog && !isDeactivated && (
+                          <button onClick={() => openAddLog(step.id)}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-[#283693] hover:bg-[#283693]/5 px-2 py-1 rounded">
+                            <Plus className="size-3" /> Add log entry
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {history.map((entry, i) => {
                     const isEditing = editingLog?.stepId === step.id && editingLog?.index === i
                     if (isEditing) {
@@ -535,6 +554,16 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       </div>
                     )
                   })}
+                  {/* Empty state: no history yet — offer the "Add log entry" affordance here too */}
+                  {history.length === 0 && !isAddingLog && !isDeactivated && (
+                    <div className="px-6 py-3 flex items-center justify-between">
+                      <p className="text-[11px] text-stone-400 italic">No log entries yet.</p>
+                      <button onClick={() => openAddLog(step.id)}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#283693] hover:bg-[#283693]/5 px-2 py-1 rounded">
+                        <Plus className="size-3" /> Add log entry
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
