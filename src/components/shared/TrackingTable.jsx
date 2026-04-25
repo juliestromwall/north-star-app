@@ -18,6 +18,9 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
   const [logDate, setLogDate] = useState('')
   const [addingCaseSubtask, setAddingCaseSubtask] = useState(null) // parentId currently adding to
   const [caseSubtaskLabel, setCaseSubtaskLabel] = useState('')
+  // Parents with subtasks are collapsible. Track which are explicitly toggled
+  // by the user; default = collapsed when fully complete, expanded otherwise.
+  const [collapsedParents, setCollapsedParents] = useState({})
 
   // Extract case-specific subtasks embedded in tracking data. These are
   // per-case subtasks added from the case page (not the global template).
@@ -229,6 +232,47 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     setEditingLog(null)
   }
 
+  // One-click "Mark Complete" — appends a complete entry with today's date and
+  // no note. The "+ Log" button is for when the admin wants a date/note.
+  function quickComplete(stepId) {
+    const current = tracking[stepId] || { history: [] }
+    const today = new Date().toISOString().split('T')[0]
+    const entry = { status: 'complete', date: today, note: null, by: currentUserName || 'Admin' }
+    updateStep(stepId, {
+      status: 'complete',
+      history: [...(current.history || []), entry],
+    })
+    const step = allSteps.find(s => s.id === stepId)
+    if (onStatusLog) onStatusLog({ stepId, stepLabel: step?.label || stepId, status: 'complete', by: currentUserName, date: today })
+  }
+
+  // Re-open a completed step — appends an in_progress entry so history still
+  // shows the completion happened, but the step is no longer green.
+  function reopen(stepId) {
+    const current = tracking[stepId] || { history: [] }
+    const today = new Date().toISOString().split('T')[0]
+    const entry = { status: 'in_progress', date: today, note: 'Re-opened', by: currentUserName || 'Admin' }
+    updateStep(stepId, {
+      status: 'in_progress',
+      history: [...(current.history || []), entry],
+    })
+  }
+
+  // Default collapse state for a parent: collapsed when every child is
+  // complete or N/A, expanded otherwise. User toggle overrides.
+  function isParentCollapsed(parentId, children) {
+    if (collapsedParents[parentId] !== undefined) return collapsedParents[parentId]
+    if (!children?.length) return false
+    return children.every(c => {
+      const st = tracking[c.id]?.status
+      return st === 'complete' || st === 'partial_complete' || st === 'na'
+    })
+  }
+  function toggleCollapse(parentId, children) {
+    const cur = isParentCollapsed(parentId, children)
+    setCollapsedParents(prev => ({ ...prev, [parentId]: !cur }))
+  }
+
   function getStatusLabel(statusId) {
     if (statusId === 'followed_up') return 'Followed Up'
     return statuses.find(s => s.id === statusId)?.label || statusId
@@ -273,6 +317,11 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
         {renderableSteps.map((step, stepIdx) => {
           const isSubtask = step._depth > 0
           const hasChildren = !isSubtask && step._children && step._children.length > 0
+          // Hide subtasks of collapsed parents
+          if (isSubtask) {
+            const parent = renderableSteps.find(s => s._children?.some(c => c.id === step.id))
+            if (parent && isParentCollapsed(parent.id, parent._children)) return null
+          }
           const data = tracking[step.id] || {}
           const history = data.history || []
           const storedStatus = data.status || 'not_started'
@@ -282,26 +331,47 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
           const lastEntry = history.length > 0 ? history[history.length - 1] : null
           const isExpanded = expandedStep === step.id
           const isAddingLog = addingLogFor === step.id
-          const rowClickable = !hasChildren
+          const collapsed = hasChildren ? isParentCollapsed(step.id, step._children) : false
+          // Subtask completion for parent badge
+          const childCompleteCount = hasChildren
+            ? step._children.filter(c => {
+                const st = tracking[c.id]?.status
+                return st === 'complete' || st === 'partial_complete'
+              }).length
+            : 0
 
           return (
             <React.Fragment key={step.id ?? stepIdx}>
               {/* ── Step Row ── */}
               <div
                 onClick={() => {
-                  if (!rowClickable) return
-                  if (isExpanded) { setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('') }
-                  else { openAddLog(step.id) }
+                  // Parent with subtasks: click body toggles collapse.
+                  // Leaf row: click body toggles history view (does NOT open the log form;
+                  //   that's the "+ Log" button — prevents accidental duplicate logs).
+                  if (hasChildren) { toggleCollapse(step.id, step._children); return }
+                  if (isExpanded) {
+                    setExpandedStep(null); setAddingLogFor(null); setLogStatus(''); setLogNote('')
+                  } else {
+                    setExpandedStep(step.id); setAddingLogFor(null)
+                  }
                 }}
-                className={`group relative ${rowClickable ? 'cursor-pointer' : ''} ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#283693]/[0.02]' : ''} transition-colors`}
+                className={`group relative cursor-pointer ${isDeactivated ? 'opacity-35' : ''} ${isExpanded ? 'bg-[#283693]/[0.02]' : ''} ${hasChildren ? 'bg-stone-50/40' : ''} transition-colors`}
               >
                 {/* Left accent bar */}
                 {isComplete && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-green-400 rounded-r" />}
                 {!isComplete && !isDeactivated && currentStatus !== 'not_started' && !isSubtask && <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#283693] rounded-r" />}
 
-                <div className={`flex items-center gap-3 px-5 py-3 ${isSubtask ? 'pl-12' : 'pl-6'}`}>
-                  {/* Checkbox / icon */}
+                <div className={`flex items-center gap-3 ${isSubtask ? 'pl-12 pr-5 py-2.5' : 'pl-6 pr-5 py-3.5'}`}>
+                  {/* Collapse chevron for parents with children */}
+                  {hasChildren && (
+                    <button onClick={e => { e.stopPropagation(); toggleCollapse(step.id, step._children) }}
+                      className="text-stone-400 hover:text-[#283693] -ml-1.5 shrink-0" title={collapsed ? 'Expand' : 'Collapse'}>
+                      <ChevronDown className={`size-4 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
+                    </button>
+                  )}
+                  {/* Indent guide for subtasks */}
                   {isSubtask && <CornerDownRight className="size-3 text-stone-300 shrink-0 -ml-4" />}
+                  {/* Status circle */}
                   {isDeactivated ? (
                     <div className="size-5 rounded-full bg-stone-200 shrink-0 flex items-center justify-center"><X className="size-3 text-stone-400" /></div>
                   ) : isComplete ? (
@@ -322,18 +392,22 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         <button onClick={() => setEditingLabel(null)} className="p-1 text-stone-400 hover:bg-stone-100 rounded"><X className="size-3.5" /></button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-sm font-semibold ${isDeactivated ? 'text-stone-300 line-through' : isComplete ? 'text-stone-500' : 'text-stone-800'} ${step.logType === 'text' ? 'cursor-text' : ''}`}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`${isSubtask ? 'text-sm font-medium' : 'text-base font-bold'} ${isDeactivated ? 'text-stone-300 line-through' : isComplete ? 'text-stone-500' : 'text-stone-800'} ${step.logType === 'text' ? 'cursor-text' : ''}`}
                           onClick={e => { if (step.logType !== 'text') return; e.stopPropagation(); setEditingLabel(step.id); setLabelValue(data.customLabel || step.label) }}
                           title={step.logType === 'text' ? 'Click to rename' : undefined}>
                           {data.customLabel || step.label}
                         </span>
                         {step.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${step.badge.color}`}>{step.badge.label}</span>}
-                        {hasChildren && <span className="text-[10px] text-stone-400">({step._children.length})</span>}
+                        {hasChildren && (
+                          <span className="text-[11px] font-semibold text-stone-500 bg-white border border-stone-200 px-2 py-0.5 rounded-full">
+                            {childCompleteCount}/{step._children.length}
+                          </span>
+                        )}
                         {/* + subtask (next to label) */}
                         {!isSubtask && !isDeactivated && (
                           <button onClick={(e) => { e.stopPropagation(); setAddingCaseSubtask(addingCaseSubtask === step.id ? null : step.id); setCaseSubtaskLabel('') }}
-                            className="p-0.5 text-stone-200 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Add subtask">
+                            className="p-0.5 text-stone-300 hover:text-[#283693] hover:bg-[#283693]/5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Add subtask">
                             <Plus className="size-3.5" />
                           </button>
                         )}
@@ -342,15 +416,13 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                           <button onClick={(e) => {
                             e.stopPropagation()
                             if (isDeactivated) {
-                              // Reactivate — restore previous status or not_started, no log entry
                               const lastReal = [...history].reverse().find(h => h.status !== 'na' && !h._deactivate)
                               updateStep(step.id, { status: lastReal?.status || 'not_started' })
                             } else {
-                              // Deactivate — just set status, no log entry
                               updateStep(step.id, { status: 'na' })
                             }
                           }}
-                            className={`p-0.5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100 ${isDeactivated ? 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50' : 'text-stone-200 hover:text-stone-400 hover:bg-stone-100'}`}
+                            className={`p-0.5 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100 ${isDeactivated ? 'text-stone-400 hover:text-emerald-600 hover:bg-emerald-50' : 'text-stone-300 hover:text-stone-500 hover:bg-stone-100'}`}
                             title={isDeactivated ? 'Reactivate' : 'Deactivate (N/A)'}>
                             {isDeactivated ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
                           </button>
@@ -358,7 +430,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         {/* Delete case subtask */}
                         {isSubtask && step._isCaseSubtask && (
                           <button onClick={(e) => { e.stopPropagation(); deleteCaseSubtask(step.id) }}
-                            className="p-0.5 text-stone-200 hover:text-red-500 hover:bg-red-50 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Remove subtask">
+                            className="p-0.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors shrink-0 opacity-0 group-hover:opacity-100" title="Remove subtask">
                             <Trash2 className="size-3" />
                           </button>
                         )}
@@ -374,15 +446,10 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     )}
                   </div>
 
-                  {/* Status badge */}
+                  {/* Right column: status + quick-action buttons */}
                   <div className="shrink-0 flex items-center gap-2">
                     {step.logType === 'date_completed' && currentStatus === 'complete' ? (
                       <span className="text-[11px] font-semibold text-emerald-600">{lastEntry?.date ? formatDate(lastEntry.date) : 'Done'}</span>
-                    ) : step.logType === 'date_completed' && currentStatus !== 'complete' && currentStatus !== 'na' ? (
-                      <button onClick={(e) => { e.stopPropagation(); const today = new Date().toISOString().split('T')[0]; const entry = { status: 'complete', date: today, note: '', by: currentUserName }; updateStep(step.id, { ...data, status: 'complete', history: [...history, entry] }) }}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1 rounded-full transition-colors shadow-sm">
-                        <Check className="size-3" /> Complete
-                      </button>
                     ) : step.logType === 'dropdown' && (data.optionLabel || lastEntry?.optionLabel) && currentStatus !== 'not_started' ? (
                       <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{data.optionLabel || lastEntry?.optionLabel}</span>
                     ) : step.logType === 'text' && currentStatus !== 'na' && currentStatus !== 'not_started' ? (
@@ -394,7 +461,33 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full border ${statusColor(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
                     )}
 
-                    {!hasChildren && currentStatus !== 'na' && (
+                    {/* Quick Complete / Re-open — leaf rows only, no date_completed (it has its own UI) */}
+                    {!hasChildren && !isDeactivated && step.logType !== 'date_completed' && (
+                      isComplete ? (
+                        <button onClick={(e) => { e.stopPropagation(); reopen(step.id) }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-amber-600 bg-white hover:bg-amber-50 px-2 py-1 rounded-full border border-stone-200 hover:border-amber-200 transition-colors"
+                          title="Re-open this task">
+                          <X className="size-3" /> Re-open
+                        </button>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); quickComplete(step.id) }}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 px-2.5 py-1 rounded-full transition-colors shadow-sm"
+                          title="Mark complete with today's date">
+                          <Check className="size-3" /> Complete
+                        </button>
+                      )
+                    )}
+
+                    {/* + Log — leaf rows, opens the log form for date/note */}
+                    {!hasChildren && !isDeactivated && (
+                      <button onClick={(e) => { e.stopPropagation(); openAddLog(step.id) }}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#283693] bg-white hover:bg-[#283693]/5 px-2 py-1 rounded-full border border-stone-200 hover:border-[#283693]/30 transition-colors"
+                        title="Add a log entry with date + note">
+                        <Plus className="size-3" /> Log
+                      </button>
+                    )}
+
+                    {!hasChildren && currentStatus !== 'na' && history.length > 0 && (
                       <ChevronDown className={`size-4 text-stone-300 transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                     )}
                   </div>
@@ -425,14 +518,19 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                       )
                     }
                     return (
-                      <div key={`h-${i}`} className="group/entry px-6 py-1.5 flex items-center gap-3 text-xs hover:bg-stone-100/50 transition-colors">
+                      <div
+                        key={`h-${i}`}
+                        onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }}
+                        className="px-6 py-1.5 flex items-center gap-3 text-xs hover:bg-stone-100/70 cursor-pointer transition-colors"
+                        title="Click to edit"
+                      >
                         <span className={`shrink-0 font-medium ${statusColor(entry.status).split(' ')[0]}`}>{entry.optionLabel || getStatusLabel(entry.status)}</span>
                         <span className="text-stone-400 shrink-0">{formatDate(entry.date)}</span>
                         {entry.note && <span className="text-stone-500 truncate">{entry.note}</span>}
                         <span className="text-stone-300 ml-auto shrink-0">{entry.by}</span>
-                        <span className="opacity-0 group-hover/entry:opacity-100 transition-opacity flex gap-1 shrink-0">
-                          <button onClick={() => { setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="p-0.5 text-stone-300 hover:text-[#283693]"><Pencil className="size-3" /></button>
-                          <button onClick={() => deleteLog(step.id, i)} className="p-0.5 text-stone-300 hover:text-red-500"><Trash2 className="size-3" /></button>
+                        <span className="flex gap-1 shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); setEditingLog({ stepId: step.id, index: i }); setEditStatus(entry.status); setEditNote(entry.note || ''); setEditDate(entry.date || '') }} className="p-0.5 text-stone-400 hover:text-[#283693]" title="Edit log"><Pencil className="size-3" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteLog(step.id, i) }} className="p-0.5 text-stone-400 hover:text-red-500" title="Delete log"><Trash2 className="size-3" /></button>
                         </span>
                       </div>
                     )
