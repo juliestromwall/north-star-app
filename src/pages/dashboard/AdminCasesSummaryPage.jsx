@@ -32,18 +32,26 @@ export default function AdminCasesSummaryPage() {
   const { currentUser } = useRole()
   const [searchParams] = useSearchParams()
 
-  // Two modes:
-  //   ?team=1                    → master/super team summary across all
-  //                                non-intake admins (Desiree, Emily, Stacie,
-  //                                + the requesting master admin)
+  // Three modes:
+  //   ?journeyManager=<name>     → all matched journeys where journey_data
+  //                                .journeyManager ilike's the name (e.g.
+  //                                "julie", "nicole"). Grouped by assigned
+  //                                admin in the dashboard view.
+  //   ?team=1                    → legacy team summary (kept for back-compat)
   //   ?admin=<email> | (default) → single-admin summary
-  const isTeam = searchParams.get('team') === '1'
+  const journeyManagerName = (searchParams.get('journeyManager') || '').toLowerCase().trim()
+  const isJourneyManagerMode = !!journeyManagerName
+  const isTeam = searchParams.get('team') === '1' || isJourneyManagerMode
   const targetEmail = (searchParams.get('admin') || currentUser?.email || '').toLowerCase()
   const targetName = useMemo(() => {
+    if (isJourneyManagerMode) {
+      // Capitalize first letter for display ("Nicole's Journeys")
+      return journeyManagerName.replace(/^./, c => c.toUpperCase()) + "'s Journeys"
+    }
     if (isTeam) return 'Team'
     const staff = getAdminStaff().find(a => a.email?.toLowerCase() === targetEmail)
     return staff?.name || (targetEmail === currentUser?.email?.toLowerCase() ? currentUser?.name : targetEmail)
-  }, [targetEmail, isTeam, currentUser])
+  }, [targetEmail, isTeam, isJourneyManagerMode, journeyManagerName, currentUser])
 
   // For team mode: the list of admin emails to summarize. Skips:
   //   - Jennifer Rose (intake@abcsurrogacy.com) — intake-only, not on team
@@ -88,9 +96,11 @@ export default function AdminCasesSummaryPage() {
     let cancelled = false
     setLoading(true)
     setError(null)
-    const cacheKey = isTeam
-      ? `admin_summary_team_${(currentUser?.email || '').toLowerCase()}`
-      : `admin_summary_${targetEmail}`
+    const cacheKey = isJourneyManagerMode
+      ? `admin_summary_journeys_${journeyManagerName}`
+      : isTeam
+        ? `admin_summary_team_${(currentUser?.email || '').toLowerCase()}`
+        : `admin_summary_${targetEmail}`
     getAppConfig(cacheKey).then(cached => {
       if (cancelled) return
       if (cached?.dashboard) setDashboard(cached.dashboard)
@@ -100,23 +110,34 @@ export default function AdminCasesSummaryPage() {
       setLoading(false)
     }).catch(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [targetEmail, isTeam, currentUser?.email])
+  }, [targetEmail, isTeam, isJourneyManagerMode, journeyManagerName, currentUser?.email])
 
   async function regenerate() {
     setGenerating(true); setError(null)
     try {
+      const payload = isJourneyManagerMode
+        ? {
+            adminEmail: currentUser?.email || '',
+            adminName: currentUser?.name || '',
+            journeyManager: journeyManagerName,
+            adminNameByEmail,
+          }
+        : isTeam
+          ? {
+              adminEmail: currentUser?.email || targetEmail,
+              adminName: currentUser?.name || targetName,
+              teamEmails,
+              adminNameByEmail,
+            }
+          : {
+              adminEmail: targetEmail,
+              adminName: targetName,
+              adminNameByEmail,
+            }
       const res = await fetch('/api/ai/admin-cases-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminEmail: currentUser?.email || targetEmail,
-          adminName: currentUser?.name || targetName,
-          teamEmails: isTeam ? teamEmails : undefined,
-          adminNameByEmail,
-          // For single-admin mode pointing at someone else, override the
-          // primary email so the endpoint targets that admin's cases.
-          ...(isTeam ? {} : { adminEmail: targetEmail, adminName: targetName }),
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate summary')
@@ -157,12 +178,14 @@ export default function AdminCasesSummaryPage() {
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#283693] mt-2 flex items-center gap-2">
               <Sparkles className="size-7 text-[#ed148c]" />
-              {isTeam ? 'Team workload summary' : 'Workload summary'}
+              {isJourneyManagerMode ? targetName : isTeam ? 'Team workload summary' : 'Workload summary'}
             </h1>
             <p className="text-sm text-stone-500 mt-1">
-              {isTeam
-                ? <>For <span className="font-semibold text-stone-700">{(teamEmails?.length || 0) + 1} admins</span> ({currentUser?.name?.split(' ')[0]} + team)</>
-                : <>For <span className="font-semibold text-stone-700">{targetName || targetEmail}</span></>}
+              {isJourneyManagerMode
+                ? <>Matched journeys managed by <span className="font-semibold text-stone-700">{journeyManagerName.replace(/^./, c => c.toUpperCase())}</span>, grouped by case admin</>
+                : isTeam
+                  ? <>For <span className="font-semibold text-stone-700">{(teamEmails?.length || 0) + 1} admins</span> ({currentUser?.name?.split(' ')[0]} + team)</>
+                  : <>For <span className="font-semibold text-stone-700">{targetName || targetEmail}</span></>}
               {caseCount !== null && <span> · {caseCount} active case{caseCount === 1 ? '' : 's'}</span>}
               {generatedAt && <span> · generated {formatRelative(generatedAt)}</span>}
             </p>

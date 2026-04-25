@@ -85,15 +85,19 @@ async function runSummary(context) {
 
   const body = await context.request.json()
   const { adminEmail, adminName } = body
-  // Optional team mode: when teamEmails is a non-empty array we summarize
-  // multiple admins at once and label each case with its assignee. The
-  // requesting admin's own cases get included automatically — they get to
-  // see their full oversight picture.
+  // Three modes:
+  //   journeyManager: all matched_journeys where journey_data.journeyManager
+  //                   ilike's the given name. Skips standalone intakes
+  //                   (they're not journeys). Output grouped by assigned admin.
+  //   team:           teamEmails array → multi-admin assignment-based view.
+  //   single:         adminEmail only.
+  const journeyManagerName = (body.journeyManager || '').toLowerCase().trim()
+  const isJourneyManagerMode = !!journeyManagerName
   const teamEmails = Array.isArray(body.teamEmails) && body.teamEmails.length > 0
     ? Array.from(new Set([...body.teamEmails, adminEmail].filter(Boolean).map(e => e.toLowerCase())))
     : null
-  if (!adminEmail && !teamEmails) {
-    return new Response(JSON.stringify({ error: 'Missing adminEmail (or teamEmails)' }), {
+  if (!adminEmail && !teamEmails && !isJourneyManagerMode) {
+    return new Response(JSON.stringify({ error: 'Missing adminEmail (or teamEmails / journeyManager)' }), {
       status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
@@ -111,47 +115,60 @@ async function runSummary(context) {
   }
 
   // ── 1. Fetch admin's assigned cases ──────────────────────
-  // Build an assigned_to filter that supports either single-admin or team mode.
   const inList = (arr) => `(${arr.map(e => `"${e}"`).join(',')})`
-  const intakeFilter = teamEmails
-    ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
-    : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
-  const journeyFilter = teamEmails
-    ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
-    : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
 
-  const [intakes, assignedJourneys] = await Promise.all([
-    sb(env, `intake_submissions?${intakeFilter}&select=id,intake_type,applicant_name,applicant_email,status,submitted_at,assigned_to,answers&order=submitted_at.desc`),
-    sb(env, `matched_journeys?${journeyFilter}&select=*&order=created_at.desc`),
-  ])
+  let intakes = []
+  let journeys = []
 
-  // Also pull matched_journeys where this admin is the journey_manager (a
-  // separate concept from assigned_to — Julie/Nicole oversee active matches
-  // even when day-to-day case work belongs to someone else). Search by
-  // first-name substring on journey_data.journeyManager since values are
-  // stored as plain strings like "Julie" or "Nicole - lead".
-  const firstNamesToMatch = teamEmails
-    ? [] // skip in team mode — caller's cases are already in the assignment filter
-    : (adminName ? [adminName.split(' ')[0].toLowerCase()] : [])
-  let managerJourneys = []
-  if (firstNamesToMatch.length > 0) {
-    const orParts = firstNamesToMatch.map(n => `journey_data->>journeyManager.ilike.*${n}*`).join(',')
-    managerJourneys = await sb(env, `matched_journeys?or=(${encodeURIComponent(orParts)})&select=*&order=created_at.desc`)
+  if (isJourneyManagerMode) {
+    // Journey-portfolio view: every matched journey where journey_data
+    // .journeyManager ilike's the given name. Skip intakes — by design.
+    const filter = `journey_data->>journeyManager.ilike.*${encodeURIComponent(journeyManagerName)}*`
+    journeys = await sb(env, `matched_journeys?${filter}&select=*&order=created_at.desc`)
+  } else {
+    // Single-admin or team mode: fetch by assigned_to.
+    const intakeFilter = teamEmails
+      ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
+      : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
+    const journeyFilter = teamEmails
+      ? `assigned_to=in.${encodeURIComponent(inList(teamEmails))}`
+      : `assigned_to=eq.${encodeURIComponent(adminEmail)}`
+
+    const [intakeRows, assignedJourneys] = await Promise.all([
+      sb(env, `intake_submissions?${intakeFilter}&select=id,intake_type,applicant_name,applicant_email,status,submitted_at,assigned_to,answers&order=submitted_at.desc`),
+      sb(env, `matched_journeys?${journeyFilter}&select=*&order=created_at.desc`),
+    ])
+    intakes = intakeRows
+
+    // For single-admin mode, also pull matched_journeys where this admin is
+    // the journey_manager (separate concept from assigned_to — Julie/Nicole
+    // oversee active matches even when day-to-day work belongs to others).
+    const firstNamesToMatch = teamEmails
+      ? []
+      : (adminName ? [adminName.split(' ')[0].toLowerCase()] : [])
+    let managerJourneys = []
+    if (firstNamesToMatch.length > 0) {
+      const orParts = firstNamesToMatch.map(n => `journey_data->>journeyManager.ilike.*${n}*`).join(',')
+      managerJourneys = await sb(env, `matched_journeys?or=(${encodeURIComponent(orParts)})&select=*&order=created_at.desc`)
+    }
+    const journeyMap = new Map()
+    for (const j of [...assignedJourneys, ...managerJourneys]) journeyMap.set(j.id, j)
+    journeys = Array.from(journeyMap.values())
   }
-  // De-dupe assignedJourneys + managerJourneys by id
-  const journeyMap = new Map()
-  for (const j of [...assignedJourneys, ...managerJourneys]) journeyMap.set(j.id, j)
-  const journeys = Array.from(journeyMap.values())
 
   // Stage statuses live in app_config under config_key='surrogate_stages'
   const stageCfg = await sb(env, `app_config?config_key=eq.surrogate_stages&select=config_value`)
   const stageStatusMap = stageCfg?.[0]?.config_value || {}
 
   if (intakes.length === 0 && journeys.length === 0) {
-    const who = teamEmails ? `the team (${teamEmails.length} admins)` : (adminName || adminEmail)
+    const who = isJourneyManagerMode
+      ? `${managerDisplay}'s journey portfolio`
+      : teamEmails
+        ? `the team (${teamEmails.length} admins)`
+        : (adminName || adminEmail)
     return new Response(JSON.stringify({
       success: true,
-      summary: `**No assigned cases**\n\nNothing's currently assigned to ${who}. When cases are assigned, click "Regenerate" to refresh this view.`,
+      summary: `**No matched journeys**\n\nNothing's currently in ${who}. Click "Regenerate" to refresh.`,
       caseCount: 0,
     }), { headers: { 'Content-Type': 'application/json', ...corsHeaders } })
   }
@@ -392,10 +409,18 @@ async function runSummary(context) {
   const totalOverdueTasks = caseSignals.reduce((s, c) => s + (c.overdueTasks || 0), 0)
   const totalFlagged = caseSignals.filter(c => c.flags?.length > 0).length
 
-  const isTeamMode = !!teamEmails
-  const audience = isTeamMode
-    ? `${adminName || adminEmail} reviewing the team workload (${teamEmails.length} admins)`
-    : (adminName || adminEmail)
+  // "Team mode" here just means we render the structured JSON dashboard
+  // layout (urgent panel + per-admin cards). True for both teamEmails and
+  // journeyManager modes.
+  const isTeamMode = !!teamEmails || isJourneyManagerMode
+  const managerDisplay = isJourneyManagerMode
+    ? journeyManagerName.replace(/^./, c => c.toUpperCase())
+    : null
+  const audience = isJourneyManagerMode
+    ? `${managerDisplay} reviewing journeys she manages, grouped by case admin`
+    : teamEmails
+      ? `${adminName || adminEmail} reviewing the team workload (${teamEmails.length} admins)`
+      : (adminName || adminEmail)
 
   // In team mode we output a STRUCTURED JSON dashboard (urgent panel + per-
   // admin breakouts). In single-admin mode we output the existing markdown
@@ -531,9 +556,11 @@ ${JSON.stringify(caseSignals, null, 2)}`
           Prefer: 'resolution=merge-duplicates',
         },
         body: JSON.stringify({
-          config_key: isTeamMode
-            ? `admin_summary_team_${(adminEmail || teamEmails[0]).toLowerCase()}`
-            : `admin_summary_${adminEmail.toLowerCase()}`,
+          config_key: isJourneyManagerMode
+            ? `admin_summary_journeys_${journeyManagerName}`
+            : teamEmails
+              ? `admin_summary_team_${(adminEmail || teamEmails[0]).toLowerCase()}`
+              : `admin_summary_${adminEmail.toLowerCase()}`,
           config_value: cacheValue,
         }),
       })
