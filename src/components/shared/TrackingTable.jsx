@@ -4,7 +4,7 @@ import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight, Plus, Tras
 import { formatDate } from '@/lib/utils'
 import { normalizeOptions, deriveParentStatus } from '@/lib/checklistStore'
 
-export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog, milestones = [], noHeader = false, noCard = false }) {
+export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog, milestones = [] }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
   const [logStatus, setLogStatus] = useState('')
   const [logNote, setLogNote] = useState('')
@@ -322,29 +322,21 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
 
   const pct = totalActive > 0 ? Math.round((completeCount / totalActive) * 100) : 0
 
-  // When `noCard`/`noHeader` are set, the parent (e.g. the column-layout
-  // wrapper) provides its own outer container + progress bar. Falls back to
-  // the legacy Card+header rendering otherwise.
-  const Wrapper = noCard ? 'div' : Card
-  const wrapperClass = noCard ? '' : 'rounded-2xl border-0 shadow-sm overflow-hidden'
-
   return (
-    <Wrapper className={wrapperClass}>
+    <Card className="rounded-2xl border-0 shadow-sm overflow-hidden">
       {/* Header + progress */}
-      {!noHeader && (
-        <div className="px-6 pt-5 pb-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-bold text-stone-800">{title}</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-stone-400">{pct}%</span>
-              <span className="text-sm font-bold text-[#283693]">{completeCount}<span className="text-stone-300 font-normal">/{totalActive}</span></span>
-            </div>
-          </div>
-          <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+      <div className="px-6 pt-5 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-bold text-stone-800">{title}</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-stone-400">{pct}%</span>
+            <span className="text-sm font-bold text-[#283693]">{completeCount}<span className="text-stone-300 font-normal">/{totalActive}</span></span>
           </div>
         </div>
-      )}
+        <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${pct}%`, background: pct === 100 ? '#22c55e' : 'linear-gradient(90deg, #283693, #ed148c)' }} />
+        </div>
+      </div>
 
       {/* Steps list */}
       <div>
@@ -696,6 +688,6 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
           )
         })}
       </div>
-    </Wrapper>
+    </Card>
   )
 }
