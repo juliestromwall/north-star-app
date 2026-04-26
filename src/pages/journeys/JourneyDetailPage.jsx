@@ -5,7 +5,7 @@ import {
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
   Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
-  MoreVertical,
+  MoreHorizontal,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -3051,20 +3051,27 @@ export default function JourneyDetailPage() {
                   and the tandem partner shortcut into one button so the hero
                   isn't overwhelmed with chips. The "matched on" date moves
                   into the menu header so it's available on demand. */}
-              <div className="shrink-0">
+              <div className="shrink-0 flex items-center gap-2">
+                {/* Status pills sit OUTSIDE the actions trigger so the trigger
+                    stays a clean circular icon while still surfacing key state. */}
+                {jd._archivedAt && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
+                    <Check className="size-2.5" /> Archived
+                  </span>
+                )}
+                {!jd._archivedAt && partnerJourney && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                    <Users className="size-2.5" /> Tandem
+                  </span>
+                )}
                 <div className="relative">
-                  <Button variant="outline" size="sm" onClick={() => setActionsOpen(!actionsOpen)} className="gap-1.5 text-xs">
-                    <MoreVertical className="size-3.5" /> Actions
-                    {jd._archivedAt && (
-                      <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
-                        <Check className="size-2.5" /> Archived
-                      </span>
-                    )}
-                    {!jd._archivedAt && partnerJourney && (
-                      <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
-                        <Users className="size-2.5" /> Tandem
-                      </span>
-                    )}
+                  <Button
+                    size="icon"
+                    title="Journey actions"
+                    onClick={() => setActionsOpen(!actionsOpen)}
+                    className="size-8 rounded-full bg-white border border-stone-200 text-stone-500 hover:text-stone-700 hover:bg-stone-50"
+                  >
+                    <MoreHorizontal className="size-4" />
                   </Button>
                   {actionsOpen && (
                     <>
