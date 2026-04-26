@@ -208,10 +208,10 @@ export default function IPDetailPage() {
             </div>
 
             {/* Contact buttons */}
-            <div className="flex gap-2 shrink-0">
+            <div className="flex gap-1.5 shrink-0">
               {ip.phone && (
-                <Button size="sm" className="gap-1.5" asChild>
-                  <a href={`sms:${ip.phone}`}><MessageSquare className="size-3.5" /> Text</a>
+                <Button size="icon" title="Text" className="size-8 rounded-full" asChild>
+                  <a href={`sms:${ip.phone}`}><MessageSquare className="size-3.5" /></a>
                 </Button>
               )}
               {ip.email && (() => {
@@ -222,8 +222,8 @@ export default function IPDetailPage() {
                 const emailLabel = ip2Name ? `Email ${ip1Name} & ${ip2Name}` : `Email ${ip1Name || 'IP'}`
                 return (
                   <div className="relative">
-                    <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
-                      <Mail className="size-3.5" /> Email
+                    <Button size="icon" title="Email" className="size-8 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                      <Mail className="size-3.5" />
                     </Button>
                     {emailMenuOpen && (
                       <div className="absolute z-20 top-full right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border py-1.5">
@@ -241,8 +241,8 @@ export default function IPDetailPage() {
                 )
               })()}
               {ip.phone && (
-                <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                  <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /> Call</a>
+                <Button size="icon" title="Call" className="size-8 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" asChild>
+                  <a href={`tel:${ip.phone}`}><Phone className="size-3.5" /></a>
                 </Button>
               )}
               <JourneyUpdateButton caseId={ip.id} caseType="ip" caseName={ip.names} />

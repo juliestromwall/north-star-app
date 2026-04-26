@@ -3274,22 +3274,22 @@ export default function JourneyDetailPage() {
                   <p className="text-xs font-semibold text-pink-400 uppercase tracking-widest">Surrogate</p>
                   <div className="flex gap-1.5">
                     {gcCase.phone && (
-                      <Button variant={gcCase.preferredContact === 'Text' ? 'default' : 'outline'} size="sm"
-                        className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                      <Button size="icon" title={gcCase.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => setSmsConfirm({ phone: gcCase.phone, name: gcCase.name, party: 'gc' })}>
-                        <MessageSquare className="size-3" /> Text
+                        <MessageSquare className="size-3" />
                       </Button>
                     )}
-                    <Button variant={gcCase.preferredContact === 'Email' ? 'default' : 'outline'} size="sm"
-                      className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                    <Button size="icon" title={gcCase.preferredContact === 'Email' ? 'Email (preferred)' : 'Email'}
+                      className={`size-7 rounded-full ${gcCase.preferredContact === 'Email' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                       onClick={() => setEmailConfirm({ name: gcCase.name, email: gcCase.email, caseId: journey.id, party: 'gc' })}>
-                      <Mail className="size-3" /> Email
+                      <Mail className="size-3" />
                     </Button>
                     {gcCase.phone && (
-                      <Button variant={gcCase.preferredContact === 'Phone' ? 'default' : 'outline'} size="sm"
-                        className={`gap-1 rounded-full text-xs h-7 px-2.5 ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                      <Button size="icon" title={gcCase.preferredContact === 'Phone' ? 'Call (preferred)' : 'Call'}
+                        className={`size-7 rounded-full ${gcCase.preferredContact === 'Phone' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                         onClick={() => toggleGcFlip('phone')}>
-                        <Phone className="size-3" /> Call
+                        <Phone className="size-3" />
                       </Button>
                     )}
                   </div>
@@ -3367,22 +3367,22 @@ export default function JourneyDetailPage() {
                   <p className="text-xs font-semibold text-[#283693]/50 uppercase tracking-widest">Intended Parent{ipCase.type === 'Couple' ? 's' : ''}</p>
                   <div className="flex gap-1.5">
                     {ipCase.phone && (
-                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
+                      <Button size="icon" title="Text" className="size-7 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
                         onClick={() => setSmsConfirm({ phone: ipCase.phone, name: ipCase.ip1Name || ipCase.names, party: 'ip' })}>
-                        <MessageSquare className="size-3" /> Text
+                        <MessageSquare className="size-3" />
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
+                    <Button size="icon" title="Email" className="size-7 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
                       onClick={() => {
                         const emails = [ipCase.email, ipCase.ip2Email].filter(Boolean).join(', ')
                         setEmailConfirm({ name: ipCase.names, email: emails, caseId: journey.id, party: 'ip' })
                       }}>
-                      <Mail className="size-3" /> Email
+                      <Mail className="size-3" />
                     </Button>
                     {allPhones && (
-                      <Button variant="outline" size="sm" className="gap-1 rounded-full text-xs h-7 px-2.5"
+                      <Button size="icon" title="Call" className="size-7 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50"
                         onClick={() => toggleIpFlip('phone')}>
-                        <Phone className="size-3" /> Call
+                        <Phone className="size-3" />
                       </Button>
                     )}
                   </div>

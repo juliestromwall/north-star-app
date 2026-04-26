@@ -664,23 +664,23 @@ export default function SurrogateDetailPage() {
               )}
               {surrogate.phone && (
                 <Button
-                  variant={surrogate.preferredContact === 'Text' ? 'default' : 'outline'}
-                  size="sm"
-                  className={`gap-1.5 ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0' : ''}`}
+                  size="icon"
+                  title={surrogate.preferredContact === 'Text' ? 'Text (preferred)' : 'Text'}
+                  className={`size-8 rounded-full ${surrogate.preferredContact === 'Text' ? 'bg-gradient-to-r from-[#ed148c] to-[#283693] text-white border-0 shadow-md' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'}`}
                   onClick={() => { setSmsOpen(true); setSmsResult(null); setSmsMessage('') }}
                 >
-                  <MessageSquare className="size-3.5" /> Text
+                  <MessageSquare className="size-3.5" />
                 </Button>
               )}
               <div className="relative">
                 {surrogate.preferredContact === 'Email' ? (
-                  <Button size="sm" className="gap-1.5 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
+                  <Button size="icon" title="Email (preferred)" className="size-8 rounded-full text-white shadow-md" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
                     onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
-                    <Mail className="size-3.5" /> Email ★
+                    <Mail className="size-3.5" />
                   </Button>
                 ) : (
-                  <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
-                    <Mail className="size-3.5" /> Email
+                  <Button size="icon" title="Email" className="size-8 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" onClick={() => setEmailMenuOpen(!emailMenuOpen)}>
+                    <Mail className="size-3.5" />
                   </Button>
                 )}
                 {emailMenuOpen && (
@@ -2792,16 +2792,17 @@ function CopyFlipButton({ icon: Icon, label, value, flipped, onFlip, preferred }
   if (!flipped) {
     return preferred ? (
       <Button
-        size="sm"
-        className="gap-1.5 rounded-full text-white shadow-md"
+        size="icon"
+        title={`${label} (preferred)`}
+        className="size-8 rounded-full text-white shadow-md"
         style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}
         onClick={onFlip}
       >
-        <Icon className="size-3.5" /> {label} ★
+        <Icon className="size-3.5" />
       </Button>
     ) : (
-      <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={onFlip}>
-        <Icon className="size-3.5" /> {label}
+      <Button size="icon" title={label} className="size-8 rounded-full bg-white border border-stone-200 text-stone-600 hover:bg-stone-50" onClick={onFlip}>
+        <Icon className="size-3.5" />
       </Button>
     )
   }
