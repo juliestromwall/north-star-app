@@ -35,7 +35,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney, unlinkTandemJourney } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
@@ -2424,8 +2424,6 @@ export default function JourneyDetailPage() {
   // only surfaces an existing pairing and offers an unlink path.
   const [partnerJourney, setPartnerJourney] = useState(null)
   const [partnerGcName, setPartnerGcName] = useState('')
-  const [tandemSaving, setTandemSaving] = useState(false)
-  const [unlinkTandemOpen, setUnlinkTandemOpen] = useState(false)
 
   async function handleSendSMS() {
     if (!smsMessage.trim() || !smsOpen?.phone) return
@@ -2517,22 +2515,9 @@ export default function JourneyDetailPage() {
     load()
   }, [id])
 
-  async function handleUnlinkTandem() {
-    if (!journey?.id) return
-    setTandemSaving(true)
-    try {
-      await unlinkTandemJourney(journey.id)
-      const refreshed = await fetchMatchedJourney(journey.id)
-      if (refreshed) setJourney(refreshed)
-      setPartnerJourney(null)
-      setPartnerGcName('')
-      setUnlinkTandemOpen(false)
-    } catch (err) {
-      alert('Could not unlink tandem: ' + (err?.message || 'Unknown error'))
-    } finally {
-      setTandemSaving(false)
-    }
-  }
+  // handleUnlinkTandem removed — unlinking is no longer surfaced from the
+  // journey page. The lib helper unlinkTandemJourney() is still available
+  // if we ever want to expose it elsewhere (e.g. /matching admin tools).
 
   async function updateField(key, value) {
     const jd = { ...(journey.journey_data || {}), [key]: value }
@@ -2790,24 +2775,7 @@ export default function JourneyDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Tandem unlink confirmation */}
-      <Dialog open={unlinkTandemOpen} onOpenChange={(v) => !tandemSaving && setUnlinkTandemOpen(v)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-stone-800">Unlink Tandem Pair</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-stone-600">
-            This will remove the tandem link between this journey and <strong>{partnerGcName}</strong>'s journey. Both journeys remain active and unchanged — only the pairing is cleared.
-          </p>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={() => setUnlinkTandemOpen(false)} disabled={tandemSaving}>Cancel</Button>
-            <Button size="sm" onClick={handleUnlinkTandem} disabled={tandemSaving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
-              {tandemSaving ? <Loader2 className="size-3 animate-spin" /> : null}
-              {tandemSaving ? 'Unlinking...' : 'Unlink'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Tandem unlink dialog removed — tandem link is no longer breakable from this page. */}
 
       {/* Add Expense Dialog (hero-level) */}
       <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
@@ -3083,48 +3051,42 @@ export default function JourneyDetailPage() {
                 </div>
                 <AISummaryButton caseId={journey.id} caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} caseType="journey" stage={stageObj.label} status={journey.status} journeyData={jd} />
                 <JourneyUpdateButton caseId={journey.id} caseType="journey" caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} />
-                {/* Tandem journey indicator (admin-only — surrogate never sees this).
-                    Tandem pairs are created from /matching → "+ Tandem Surrogacy".
-                    Once linked, this badge surfaces the partner journey here. */}
-                {partnerJourney && (
-                  <div className="inline-flex items-center gap-0 rounded-full text-xs font-semibold border bg-violet-50 border-violet-200 text-violet-700">
-                    <button
-                      onClick={() => navigate(`/journeys/${partnerJourney.id}`)}
-                      title={`Open tandem partner journey · ${partnerGcName}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 hover:bg-violet-100 rounded-l-full"
-                    >
-                      <Users className="size-3.5" /> Tandem · {partnerGcName}
-                    </button>
-                    <button
-                      onClick={() => setUnlinkTandemOpen(true)}
-                      title="Unlink tandem"
-                      className="px-2 py-1 hover:bg-violet-100 rounded-r-full border-l border-violet-200 text-violet-500 hover:text-violet-700"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </div>
-                )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
-                {jd._archivedAt ? (
-                  <div className="inline-flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
-                      <Check className="size-3" /> Archived
-                    </span>
-                    <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setUnarchiveOpen(true)}>
-                      <ArrowLeft className="size-3" /> Unarchive
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setArchiveOpen(true)}>
-                      <Check className="size-3" /> Archive Journey
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
-                      <X className="size-3" /> Break Match
-                    </Button>
-                  </>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
+                  {jd._archivedAt ? (
+                    <div className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
+                        <Check className="size-3" /> Archived
+                      </span>
+                      <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setUnarchiveOpen(true)}>
+                        <ArrowLeft className="size-3" /> Unarchive
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setArchiveOpen(true)}>
+                        <Check className="size-3" /> Archive Journey
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
+                        <X className="size-3" /> Break Match
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {/* Tandem partner — admin-only navigation, sits BELOW the Break Match row.
+                    Unlink intentionally not exposed: tandem links aren't broken from this page. */}
+                {!jd._archivedAt && partnerJourney && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/journeys/${partnerJourney.id}`)}
+                    title={`Open tandem partner journey · ${partnerGcName}`}
+                    className="text-xs text-violet-700 hover:text-violet-800 hover:bg-violet-50 border-violet-200 gap-1"
+                  >
+                    <Users className="size-3" /> Tandem · {partnerGcName}
+                  </Button>
                 )}
               </div>
             </div>
