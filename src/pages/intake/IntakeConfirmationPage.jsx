@@ -31,6 +31,7 @@ export default function IntakeConfirmationPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPw, setShowPw]                   = useState(false)
   const [pwSaved, setPwSaved]                 = useState(false)
+  const [resetEmailSent, setResetEmailSent]   = useState(false)
   const [signupError, setSignupError]         = useState(null)
   const [signingUp, setSigningUp]             = useState(false)
   const { fire, ref: confettiRef } = useConfetti()
@@ -90,6 +91,7 @@ export default function IntakeConfirmationPage() {
     if (!pwValid) return
     setSigningUp(true)
     setSignupError(null)
+    setResetEmailSent(false)
     try {
       if (supabase) {
         // Try signUp first (normal flow)
@@ -107,22 +109,19 @@ export default function IntakeConfirmationPage() {
           // If already registered (e.g. admin invited them), try signing in and updating password
           if (error.message.includes('already')) {
             try {
-              // Use the reset password API to set their password
-              const res = await fetch('/api/set-password', {
+              const res = await fetch('/api/reset-password-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, name, role: type === 'gc' ? 'surrogate' : 'intended_parent' }),
+                body: JSON.stringify({ email }),
               })
               const data = await res.json()
               if (data.success) {
-                // Sign them in
-                await supabase.auth.signInWithPassword({ email, password })
-                setPwSaved(true)
+                setResetEmailSent(true)
                 setSigningUp(false)
                 return
               }
             } catch {}
-            setSignupError('Account setup failed. Please use the password reset link from your email, or contact info@abcsurrogacy.com.')
+            setSignupError('We could not send your secure password setup email. Please use the password reset link from your email, or contact info@abcsurrogacy.com.')
             setSigningUp(false)
             return
           }
@@ -295,6 +294,26 @@ export default function IntakeConfirmationPage() {
                 style={{ backgroundColor: '#283693', color: '#fff' }}
               >
                 Continue to my portal
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : resetEmailSent ? (
+            <div className="text-center py-3 space-y-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 mx-auto">
+                <Mail className="w-6 h-6 text-[#283693]" />
+              </div>
+              <div>
+                <p className="font-semibold text-stone-800 text-lg">Check your email</p>
+                <p className="text-sm text-stone-600 mt-1">
+                  We sent a secure password setup link to <span className="font-medium">{email}</span>. Use that link to finish creating your portal password.
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate('/login')}
+                variant="outline"
+                className="w-full h-12 rounded-xl text-[15px] font-semibold gap-2"
+              >
+                Go to login
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
