@@ -23,6 +23,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Highlighter,
   List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
   FolderOpen, Search, FileText, Smile, Wand2, Sparkles, RotateCw,
+  Sparkle, Scissors, FileEdit, Briefcase,
 } from 'lucide-react'
 
 const EMOJI_SET = [
@@ -126,6 +127,11 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
     setStage('generating')
     setError('')
     try {
+      // For quick-action modes (polish/shorten/elaborate/formalize) and refine,
+      // we operate on the latest body — the generated draft if we're in
+      // review stage, otherwise whatever the user has typed in the editor.
+      const opOnExistingBody = mode === 'refine' || ['polish', 'shorten', 'elaborate', 'formalize'].includes(mode)
+      const bodyForApi = opOnExistingBody && stage === 'review' ? generated : currentBodyText
       const res = await fetch('/api/ai/compose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +139,7 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
           prompt: userPrompt,
           recipient: recipientName,
           subject: draft?.subject || '',
-          currentBody: mode === 'refine' ? generated : currentBodyText,
+          currentBody: bodyForApi,
           mode,
           senderName: senderName || '',
         }),
@@ -159,6 +165,17 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
     setRefineText('')
   }
 
+  // Gmail-style quick actions — operate on whatever's currently in the editor
+  // (or the last generated draft if we're in the review stage).
+  const handleQuickAction = (mode) => {
+    const body = stage === 'review' ? generated : currentBodyText
+    if (!body?.trim()) {
+      setError('Type or generate something first, then refine it.')
+      return
+    }
+    callApi(mode, '')
+  }
+
   const handleInsert = () => {
     if (!editor || !generated) return
     editor.commands.setContent(plainTextToHtml(generated))
@@ -181,11 +198,36 @@ function HelpMeWriteButton({ editor, draft, senderName }) {
         <div className="absolute bottom-9 left-0 z-50 bg-white border border-stone-200 rounded-xl shadow-lg w-[360px] overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#283693]/5 to-[#ed148c]/5 border-b">
             <Sparkles className="size-4 text-[#283693]" />
-            <p className="text-xs font-semibold text-[#283693]">Help me write</p>
+            <p className="text-xs font-semibold text-[#283693]">Help me refine</p>
             <button type="button" onClick={() => { setOpen(false); reset() }} className="ml-auto text-stone-400 hover:text-stone-600">
               <X className="size-3.5" />
             </button>
           </div>
+
+          {/* Gmail-style quick actions — visible in idle + review stages */}
+          {(stage === 'idle' || stage === 'review') && (
+            <div className="px-2 py-1.5 border-b border-stone-100 bg-stone-50/40">
+              {[
+                { mode: 'polish',    label: 'Polish',    Icon: Sparkle },
+                { mode: 'formalize', label: 'Formalize', Icon: Briefcase },
+                { mode: 'elaborate', label: 'Elaborate', Icon: FileEdit },
+                { mode: 'shorten',   label: 'Shorten',   Icon: Scissors },
+              ].map(({ mode, label, Icon }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleQuickAction(mode)}
+                  className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md text-xs text-stone-700 hover:bg-white hover:text-[#283693] transition-colors text-left"
+                >
+                  <Icon className="size-3.5 text-[#ed148c]" />
+                  <span>{label}</span>
+                </button>
+              ))}
+              <div className="border-t border-stone-100 mt-1 pt-1">
+                <p className="text-[10px] uppercase tracking-wider text-stone-400 px-2 py-1 font-semibold">Or write from scratch</p>
+              </div>
+            </div>
+          )}
 
           {stage === 'idle' && (
             <div className="p-3">

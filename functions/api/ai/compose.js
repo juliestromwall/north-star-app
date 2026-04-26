@@ -24,7 +24,23 @@ export async function onRequestPost(context) {
 
   const { prompt, recipient, subject, currentBody, mode = 'draft', senderName } = await context.request.json()
 
-  if (!prompt?.trim()) {
+  // Quick-action refine modes (mirror Gmail's "Help me refine" menu) — they
+  // operate on the current body without needing a free-form prompt.
+  const QUICK_ACTIONS = {
+    polish:    { needsBody: true,  label: 'Polish' },
+    shorten:   { needsBody: true,  label: 'Shorten' },
+    elaborate: { needsBody: true,  label: 'Elaborate' },
+    formalize: { needsBody: true,  label: 'Formalize' },
+  }
+  const isQuickAction = !!QUICK_ACTIONS[mode]
+
+  if (isQuickAction) {
+    if (!currentBody?.trim()) {
+      return new Response(JSON.stringify({ error: `${QUICK_ACTIONS[mode].label} needs an existing draft to work with` }), {
+        status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+  } else if (!prompt?.trim()) {
     return new Response(JSON.stringify({ error: 'Missing prompt' }), {
       status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
@@ -46,12 +62,25 @@ OUTPUT RULES:
   if (subject) contextLines.push(`Subject: ${subject}`)
   if (senderName) contextLines.push(`Sender (you): ${senderName}`)
 
+  // Per-mode instruction copy. Kept tight — Claude does the heavy lifting.
+  const QUICK_INSTRUCTIONS = {
+    polish:    'Polish this draft — fix grammar, clarity, and flow. Preserve the meaning, intent, and approximate length. Keep the warm-but-professional tone. Do not add new content or remove substantive points.',
+    shorten:   'Shorten this draft significantly while keeping every key point. Aim for roughly half the length. Tighten sentences, cut filler, but keep the warm tone.',
+    elaborate: 'Expand and elaborate on this draft. Add helpful context, gently flesh out brief points, and improve completeness without changing the intent or adding made-up facts. Keep the warm-but-professional tone.',
+    formalize: 'Rewrite this draft in a more formal, polished business tone. Less colloquial, more measured. Keep meaning and length similar. Avoid stiff legalese — still warm, just more formal.',
+  }
+
+  const ctxBlock = contextLines.length ? contextLines.join('\n') + '\n\n' : ''
+  const bodyBlock = `Here is the current draft:\n\n"""\n${(currentBody || '').slice(0, 8000)}\n"""\n\n`
+
   let userPrompt
-  if (mode === 'refine' && currentBody) {
-    userPrompt = `${contextLines.length ? contextLines.join('\n') + '\n\n' : ''}Here is the current draft:\n\n"""\n${currentBody.slice(0, 8000)}\n"""\n\nRefine it based on this instruction: ${prompt.trim()}\n\nReturn the revised email body only.`
+  if (isQuickAction) {
+    userPrompt = `${ctxBlock}${bodyBlock}${QUICK_INSTRUCTIONS[mode]}\n\nReturn ONLY the revised email body — no preamble, no commentary.`
+  } else if (mode === 'refine' && currentBody) {
+    userPrompt = `${ctxBlock}${bodyBlock}Refine it based on this instruction: ${prompt.trim()}\n\nReturn the revised email body only.`
   } else {
     const hasBody = currentBody && currentBody.trim()
-    userPrompt = `${contextLines.length ? contextLines.join('\n') + '\n\n' : ''}${hasBody ? `Existing draft so far:\n\n"""\n${currentBody.slice(0, 8000)}\n"""\n\n` : ''}Write a new email body with this instruction: ${prompt.trim()}\n\nReturn only the email body text.`
+    userPrompt = `${ctxBlock}${hasBody ? `Existing draft so far:\n\n"""\n${currentBody.slice(0, 8000)}\n"""\n\n` : ''}Write a new email body with this instruction: ${prompt.trim()}\n\nReturn only the email body text.`
   }
 
   try {
