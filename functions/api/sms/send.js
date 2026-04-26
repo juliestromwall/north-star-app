@@ -1,8 +1,10 @@
+import { getAuthorizedUser, isStaffRole } from '../_auth'
+
 // Cloudflare Pages Function — POST /api/sms/send
 // Sends an SMS via Twilio. Credentials stored in env vars.
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
 
   // CORS headers
   const corsHeaders = {
@@ -12,7 +14,17 @@ export async function onRequestPost(context) {
   }
 
   try {
-    const { to, message, from } = await context.request.json()
+    const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+    const caller = supabaseUrl && serviceKey ? await getAuthorizedUser(request, supabaseUrl, serviceKey) : null
+    if (!caller || !isStaffRole(caller.role)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    const { to, message, from } = await request.json()
 
     if (!to || !message) {
       return new Response(JSON.stringify({ error: 'Missing "to" or "message"' }), {

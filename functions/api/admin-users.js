@@ -1,3 +1,5 @@
+import { getAuthorizedUser, isAdminRole, json } from './_auth'
+
 // Cloudflare Pages Function — GET /api/admin-users
 // Lists all admin/master_admin/super_admin users from Supabase Auth
 
@@ -12,14 +14,17 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestGet(context) {
-  const { env } = context
+  const { env, request } = context
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY', users: [] }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY', users: [] }, 500, corsHeaders)
+  }
+
+  const caller = await getAuthorizedUser(request, supabaseUrl, serviceKey)
+  if (!caller || !isAdminRole(caller.role)) {
+    return json({ error: 'Unauthorized', users: [] }, 401, corsHeaders)
   }
 
   try {
@@ -29,9 +34,7 @@ export async function onRequestGet(context) {
     const data = await res.json()
 
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: data.msg || data.message || 'Auth API error', status: res.status, users: [] }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: data.msg || data.message || 'Auth API error', status: res.status, users: [] }, res.status, corsHeaders)
     }
 
     const allUsers = data.users || []
@@ -73,12 +76,8 @@ export async function onRequestGet(context) {
       } catch { /* best-effort */ }
     }
 
-    return new Response(JSON.stringify(admins), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json(admins, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message, users: [] }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message, users: [] }, 500, corsHeaders)
   }
 }

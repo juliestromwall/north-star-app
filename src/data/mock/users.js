@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/authHeaders'
+
 // Admin users — loaded from Supabase Auth via /api/admin-users
 // Falls back to hardcoded list if API is unavailable
 // Call loadAdminUsers() on app init to populate from live data
@@ -10,7 +12,8 @@ export function getAdminStaff() {
 
 export async function loadAdminUsers() {
   try {
-    const res = await fetch('/api/admin-users')
+    const headers = await getAuthHeaders()
+    const res = await fetch('/api/admin-users', { headers })
     const data = await res.json()
     const users = Array.isArray(data) ? data : (data.users || data)
     if (Array.isArray(users) && users.length > 0) {

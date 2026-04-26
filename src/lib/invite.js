@@ -1,4 +1,5 @@
 import { sendEmail } from './google'
+import { getAuthHeaders } from './authHeaders'
 
 /**
  * Invite a user to the portal.
@@ -11,9 +12,10 @@ import { sendEmail } from './google'
  */
 export async function inviteUser(userId, { email, name, role, portalType }) {
   // 1. Create user + get reset link
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
   const res = await fetch('/api/invite', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ email, name, role }),
   })
   const result = await res.json()

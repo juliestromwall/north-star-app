@@ -1,3 +1,5 @@
+import { getAuthorizedUser, isAdminRole, json } from './_auth'
+
 // Cloudflare Pages Function — POST /api/send-esign-email
 // Sends e-sign form link to signer
 
@@ -12,22 +14,29 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!resendKey) {
-    return new Response(JSON.stringify({ error: 'Missing RESEND_API_KEY' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing RESEND_API_KEY' }, 400, corsHeaders)
   }
 
-  const { signerName, signerEmail, formTitle, formTitles, formUrl, senderName, senderEmail } = await context.request.json()
+  if (!supabaseUrl || !serviceKey) {
+    return json({ error: 'Missing Supabase auth config' }, 500, corsHeaders)
+  }
+
+  const caller = await getAuthorizedUser(request, supabaseUrl, serviceKey)
+  if (!caller || !isAdminRole(caller.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
+  const { signerName, signerEmail, formTitle, formTitles, formUrl, senderName, senderEmail } = await request.json()
 
   if (!signerEmail || !formUrl) {
-    return new Response(JSON.stringify({ error: 'Missing signerEmail or formUrl' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing signerEmail or formUrl' }, 400, corsHeaders)
   }
 
   const firstName = (signerName || '').split(' ')[0] || 'there'
@@ -151,16 +160,10 @@ abcsurrogacy.com`
     })
     const data = await res.json()
     if (!res.ok) {
-      return new Response(JSON.stringify({ success: false, error: data }), {
-        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ success: false, error: data }, 500, corsHeaders)
     }
-    return new Response(JSON.stringify({ success: true, id: data.id }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ success: true, id: data.id }, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ success: false, error: err.message }, 500, corsHeaders)
   }
 }

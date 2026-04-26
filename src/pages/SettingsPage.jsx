@@ -27,6 +27,7 @@ import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, C
 import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 import { getAppConfig, setAppConfig, uploadProfilePhoto } from '@/lib/db'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 
 const US_TIMEZONES = [
@@ -1087,9 +1088,10 @@ function UserManagementSection() {
     if (editingId) {
       // Persist to Supabase Auth
       try {
+        const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
         const res = await fetch('/api/update-admin', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ userId: editingId, name: form.name.trim(), email: form.email.trim(), role: form.role }),
         })
         const data = await res.json()

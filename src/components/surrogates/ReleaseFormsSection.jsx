@@ -7,6 +7,7 @@ import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
 import { useRole } from '@/context/RoleContext'
 import { sendReleaseFormsBatch } from '@/lib/releaseFormBatch'
+import { getAuthHeaders } from '@/lib/authHeaders'
 
 /**
  * Resolve which templates to offer based on marital status, in display order.
@@ -33,9 +34,10 @@ function resolveTemplateRows({ hasPartner }) {
 
 async function sendSingleResendEmail({ formToken, formTitle, recipientName, recipientEmail, senderName, senderEmail }) {
   const formUrl = `${window.location.origin}/e-signature/form/${formToken}`
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
   const res = await fetch('/api/send-esign-email', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       signerName: recipientName,
       signerEmail: recipientEmail,
@@ -147,9 +149,10 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
       const formUrl = batchToken
         ? `${window.location.origin}/e-signature/batch/${batchToken}`
         : `${window.location.origin}/e-signature/form/${formToken}`
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       await fetch('/api/send-esign-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           signerName: signer.name,
           signerEmail: signer.email,

@@ -1,3 +1,5 @@
+import { getAuthorizedUser, json } from './_auth'
+
 // Cloudflare Pages Function — POST /api/update-admin
 // Updates an admin user's name, email, or role in Supabase Auth
 
@@ -12,17 +14,21 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing Supabase config' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing Supabase config' }, 400, corsHeaders)
   }
 
-  const { userId, oldEmail, name, email, role } = await context.request.json()
+  const caller = await getAuthorizedUser(request, supabaseUrl, serviceKey)
+  const callerRole = String(caller?.role || '').toLowerCase()
+  if (!caller || !['super_admin', 'master_admin', 'office_admin'].includes(callerRole)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
+  const { userId, oldEmail, name, email, role } = await request.json()
 
   let targetUserId = userId
 
@@ -39,9 +45,7 @@ export async function onRequestPost(context) {
   }
 
   if (!targetUserId) {
-    return new Response(JSON.stringify({ error: 'userId is required (or user not found by oldEmail)' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'userId is required (or user not found by oldEmail)' }, 400, corsHeaders)
   }
 
   try {
@@ -70,17 +74,11 @@ export async function onRequestPost(context) {
     const data = await res.json()
 
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: data.msg || data.message || 'Failed to update user' }), {
-        status: res.status, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: data.msg || data.message || 'Failed to update user' }, res.status, corsHeaders)
     }
 
-    return new Response(JSON.stringify({ success: true, user: { id: data.id, name: data.user_metadata?.full_name, email: data.email, role: data.user_metadata?.role } }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ success: true, user: { id: data.id, name: data.user_metadata?.full_name, email: data.email, role: data.user_metadata?.role } }, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }

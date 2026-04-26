@@ -9,6 +9,7 @@
  */
 import { FORM_TEMPLATES } from './formTemplates'
 import { supabase } from './supabase'
+import { getAuthHeaders } from './authHeaders'
 
 function randomToken(bytes = 16) {
   return Array.from(crypto.getRandomValues(new Uint8Array(bytes)), b => b.toString(16).padStart(2, '0')).join('')
@@ -42,9 +43,10 @@ function docTitleForTemplate(template, ctx) {
 
 async function sendBatchEmail({ recipientName, recipientEmail, formTitles, batchUrl, senderName, senderEmail }) {
   try {
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
     const res = await fetch('/api/send-esign-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         signerName: recipientName,
         signerEmail: recipientEmail,

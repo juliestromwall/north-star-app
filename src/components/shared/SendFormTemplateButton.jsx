@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button'
 import { useRole } from '@/context/RoleContext'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
+import { getAuthHeaders } from '@/lib/authHeaders'
 
 async function sendEsignEmail({ signerName, signerEmail, formTitle, formToken, senderName, senderEmail }) {
   const formUrl = `${window.location.origin}/e-signature/form/${formToken}`
   try {
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
     const res = await fetch('/api/send-esign-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ signerName, signerEmail, formTitle, formUrl, senderName, senderEmail }),
     })
     const data = await res.json().catch(() => ({}))

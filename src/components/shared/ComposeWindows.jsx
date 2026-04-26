@@ -15,6 +15,7 @@ import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments } fro
 import { fetchMatchedJourneys } from '@/lib/matching'
 import { EMAIL_TAGS } from '@/lib/emailTags'
 import { Button } from '@/components/ui/button'
+import ConfirmDialog from '@/components/ui/confirm-dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -517,6 +518,7 @@ function ComposeWindow({ draft, index }) {
   const userId = currentUser?.id
   const [sending, setSending] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false)
   const [cases, setCases] = useState(null)
   const [compact, setCompact] = useState(false) // false = big, true = small
   const fileRef = useRef(null)
@@ -751,8 +753,11 @@ function ComposeWindow({ draft, index }) {
   }
 
   const handleDiscard = () => {
+    // If the draft is empty, nothing to confirm — just close. Otherwise show
+    // the in-app confirm dialog (no more browser-native confirm).
     if (draft.to || draft.subject || editor?.getText()?.trim()) {
-      if (!confirm('Discard this draft?')) return
+      setDiscardConfirmOpen(true)
+      return
     }
     closeDraft(draft.id)
   }
@@ -1049,6 +1054,15 @@ function ComposeWindow({ draft, index }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={discardConfirmOpen}
+        onOpenChange={setDiscardConfirmOpen}
+        title="Discard this draft?"
+        message="Your draft will be permanently deleted."
+        confirmLabel="Discard"
+        onConfirm={() => closeDraft(draft.id)}
+      />
     </div>
   )
 }

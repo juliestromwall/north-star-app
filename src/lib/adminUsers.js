@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './authHeaders'
+
 // Shared admin users fetcher with caching
 // Replaces hardcoded mockUsers for admin staff lists
 
@@ -12,7 +14,8 @@ export async function fetchAdminUsers() {
   }
   _loading = true
   try {
-    const res = await fetch('/api/admin-users')
+    const headers = await getAuthHeaders()
+    const res = await fetch('/api/admin-users', { headers })
     const data = await res.json()
     _cache = Array.isArray(data) ? data : []
   } catch {

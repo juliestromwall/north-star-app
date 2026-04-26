@@ -1,3 +1,5 @@
+import { getAuthorizedUser, isAdminRole, json } from './_auth'
+
 // Cloudflare Pages Function — POST /api/invite
 // Creates a Supabase auth user and generates a password reset link
 
@@ -12,26 +14,25 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
   const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'SUPABASE_SERVICE_ROLE_KEY not configured' }, 500, corsHeaders)
   }
 
-  const { email, name, role } = await context.request.json()
-  const origin = new URL(context.request.url).origin
+  const caller = await getAuthorizedUser(request, supabaseUrl, serviceKey)
+  if (!caller || !isAdminRole(caller.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
+  const { email, name, role } = await request.json()
+  const origin = new URL(request.url).origin
   const resetRedirect = `${origin}/reset-password`
 
   if (!email) {
-    return new Response(JSON.stringify({ error: 'Email is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Email is required' }, 400, corsHeaders)
   }
 
   try {
@@ -40,12 +41,9 @@ export async function onRequestPost(context) {
       headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
     })
     const listData = await listRes.json()
-    const existing = (listData.users || []).find(u => u.email?.toLowerCase() === email.toLowerCase())
+      const existing = (listData.users || []).find(u => u.email?.toLowerCase() === email.toLowerCase())
     if (existing) {
-      return new Response(JSON.stringify({ error: 'User already has an account' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: 'User already has an account' }, 400, corsHeaders)
     }
 
     // 2. Create user with temp password
@@ -87,17 +85,12 @@ export async function onRequestPost(context) {
       resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent(resetRedirect)
     }
 
-    return new Response(JSON.stringify({
+    return json({
       success: true,
       userId: createData.id,
       resetLink,
-    }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    }, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message || 'Failed to create invite' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message || 'Failed to create invite' }, 500, corsHeaders)
   }
 }

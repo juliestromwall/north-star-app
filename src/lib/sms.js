@@ -1,12 +1,15 @@
+import { getAuthHeaders } from './authHeaders'
+
 // ── SMS Helper ──────────────────────────────────────────
 // Frontend helpers for the /api/sms/ Cloudflare Pages Functions
 
 export async function sendSMS(to, message, from = null) {
   const body = { to, message }
   if (from) body.from = from
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
   const res = await fetch('/api/sms/send', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
   })
   const data = await res.json()

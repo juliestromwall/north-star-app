@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useRole } from '@/context/RoleContext'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
@@ -2616,9 +2617,10 @@ function ContactTab({ surrogate, setSurrogate, quizAnswers, setQuizAnswers }) {
             await sb.from('surrogate_profiles').update({ email: newEmail, updated_at: new Date().toISOString() }).eq('email', oldEmail)
           }
           // Update Supabase Auth user email via API
+          const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
           await fetch('/api/update-admin', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ email: newEmail, oldEmail, name: newName, role: 'surrogate' }),
           }).catch(() => {})
         } catch (err) { console.error('Failed to sync email change:', err) }

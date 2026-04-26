@@ -1,3 +1,5 @@
+import { getAuthorizedUser, isStaffRole } from '../_auth'
+
 // Cloudflare Pages Function — POST /api/fax/send
 // Sends a fax via SRFax API
 
@@ -8,10 +10,20 @@ const corsHeaders = {
 }
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
 
   try {
-    const { to, fileName, fileContent, coverPage, coverSubject, coverMessage, coverToName, coverOrganization, coverFromName, additionalFiles } = await context.request.json()
+    const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+    const caller = supabaseUrl && serviceKey ? await getAuthorizedUser(request, supabaseUrl, serviceKey) : null
+    if (!caller || !isStaffRole(caller.role)) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    const { to, fileName, fileContent, coverPage, coverSubject, coverMessage, coverToName, coverOrganization, coverFromName, additionalFiles } = await request.json()
 
     if (!to || !fileContent) {
       return new Response(JSON.stringify({ error: 'Missing "to" or "fileContent"' }), {
