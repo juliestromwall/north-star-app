@@ -35,7 +35,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
@@ -2136,6 +2136,8 @@ function NotesTab({ journeyId, currentUser }) {
   const [filter, setFilter] = useState('shared')
   const [newContent, setNewContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editContent, setEditContent] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -2156,6 +2158,29 @@ function NotesTab({ journeyId, currentUser }) {
     if (!confirm('Delete this note permanently?')) return
     await deleteJourneyNote(id).catch(() => {})
     setNotes(prev => prev.filter(n => n.id !== id))
+  }
+
+  function startEdit(note) {
+    setEditingNoteId(note.id)
+    setEditContent(note.content)
+  }
+
+  function cancelEdit() {
+    setEditingNoteId(null)
+    setEditContent('')
+  }
+
+  async function handleSaveEdit() {
+    if (!editContent || editContent === '<p></p>') return
+    setSaving(true)
+    try {
+      const updated = await updateJourneyNote(editingNoteId, editContent)
+      setNotes(prev => prev.map(n => n.id === editingNoteId
+        ? { ...n, content: editContent, updated_at: updated?.updated_at || new Date().toISOString() }
+        : n))
+      setEditingNoteId(null)
+      setEditContent('')
+    } catch {} finally { setSaving(false) }
   }
 
   const NOTE_TYPES = [
@@ -2183,19 +2208,41 @@ function NotesTab({ journeyId, currentUser }) {
         <EmptyState title="No notes yet" description={`Add a note above.`} />
       ) : (
         <div className="space-y-3">
-          {notes.map(note => (
-            <Card key={note.id} className="rounded-2xl"><CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#283693]' : 'bg-[#283693]'}`}>
-                  {note.note_type === 'gc' ? 'GC' : note.note_type === 'ip' ? 'IP' : 'SHARED'}
-                </span>
-                <span className="text-xs text-stone-400">{note.created_by}</span>
-                <span className="text-xs text-stone-300">{new Date(note.created_at).toLocaleString()}</span>
-                <button onClick={() => handleDelete(note.id)} className="ml-auto text-xs text-stone-300 hover:text-red-500">Delete</button>
-              </div>
-              <RichTextDisplay content={note.content} />
-            </CardContent></Card>
-          ))}
+          {notes.map(note => {
+            const isEditing = editingNoteId === note.id
+            const wasEdited = note.updated_at && note.created_at && note.updated_at !== note.created_at
+            return (
+              <Card key={note.id} className="rounded-2xl"><CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded text-white ${note.note_type === 'gc' ? 'bg-pink-500' : note.note_type === 'ip' ? 'bg-[#283693]' : 'bg-[#283693]'}`}>
+                    {note.note_type === 'gc' ? 'GC' : note.note_type === 'ip' ? 'IP' : 'SHARED'}
+                  </span>
+                  <span className="text-xs text-stone-400">{note.created_by}</span>
+                  <span className="text-xs text-stone-300">{new Date(note.created_at).toLocaleString()}</span>
+                  {wasEdited && <span className="text-[10px] text-stone-300 italic">(edited)</span>}
+                  {!isEditing && (
+                    <div className="ml-auto flex items-center gap-2">
+                      <button onClick={() => startEdit(note)} className="text-xs text-stone-300 hover:text-[#283693]">Edit</button>
+                      <button onClick={() => handleDelete(note.id)} className="text-xs text-stone-300 hover:text-red-500">Delete</button>
+                    </div>
+                  )}
+                </div>
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <RichTextEditor content={editContent} onChange={setEditContent} />
+                    <div className="flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={saving}>Cancel</Button>
+                      <Button size="sm" onClick={handleSaveEdit} disabled={saving || !editContent || editContent === '<p></p>'} style={{ backgroundColor: '#283693', color: '#fff' }}>
+                        {saving ? 'Saving...' : 'Save'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <RichTextDisplay content={note.content} />
+                )}
+              </CardContent></Card>
+            )
+          })}
         </div>
       )}
     </div>
