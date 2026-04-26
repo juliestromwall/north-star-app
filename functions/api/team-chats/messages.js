@@ -2,10 +2,33 @@
 // GET ?groupId=xxx: Fetch messages for a group (oldest first)
 // POST: Send a message and SMS-notify other group members
 
+import { getAuthorizedUser, isStaffRole, json } from '../_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+async function fetchGroupForMember(supabaseUrl, serviceKey, groupId, memberId) {
+  const groupRes = await fetch(
+    `${supabaseUrl}/rest/v1/team_chat_groups?id=eq.${groupId}&select=id,name,member_ids&limit=1`,
+    {
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+      },
+    }
+  )
+  const groupData = await groupRes.json().catch(() => [])
+  const group = Array.isArray(groupData) ? groupData[0] : null
+  if (!groupRes.ok) {
+    return { error: groupData?.message || 'Failed to fetch group', status: groupRes.status, group: null }
+  }
+  if (!group || !Array.isArray(group.member_ids) || !group.member_ids.includes(memberId)) {
+    return { error: 'Forbidden', status: 403, group: null }
+  }
+  return { error: null, status: 200, group }
 }
 
 export async function onRequestOptions() {
@@ -18,10 +41,12 @@ export async function onRequestGet(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing Supabase config' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing Supabase config' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   try {
@@ -29,10 +54,12 @@ export async function onRequestGet(context) {
     const groupId = url.searchParams.get('groupId')
 
     if (!groupId) {
-      return new Response(JSON.stringify({ error: 'Missing groupId' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: 'Missing groupId' }, 400, corsHeaders)
+    }
+
+    const { error: groupError, status: groupStatus } = await fetchGroupForMember(supabaseUrl, serviceKey, groupId, requester.id)
+    if (groupError) {
+      return json({ error: groupError }, groupStatus, corsHeaders)
     }
 
     const res = await fetch(
@@ -47,20 +74,12 @@ export async function onRequestGet(context) {
     const messages = await res.json()
 
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: messages.message || 'Failed to fetch messages' }), {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: messages.message || 'Failed to fetch messages' }, res.status, corsHeaders)
     }
 
-    return new Response(JSON.stringify({ messages: messages || [] }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ messages: messages || [] }, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }
 
@@ -70,21 +89,32 @@ export async function onRequestPost(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing Supabase config' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing Supabase config' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   try {
-    const { groupId, senderId, senderName, senderPhone, body, memberPhones } = await context.request.json()
+    const { groupId, senderPhone, body, memberPhones } = await context.request.json()
 
-    if (!groupId || !senderId || !body) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+    if (!groupId || !body) {
+      return json({ error: 'Missing required fields' }, 400, corsHeaders)
     }
+
+    const { error: groupError, status: groupStatus, group } = await fetchGroupForMember(supabaseUrl, serviceKey, groupId, requester.id)
+    if (groupError) {
+      return json({ error: groupError }, groupStatus, corsHeaders)
+    }
+
+    const senderId = requester.id
+    const senderName =
+      requester.user?.user_metadata?.full_name ||
+      requester.user?.user_metadata?.name ||
+      requester.email?.split('@')[0] ||
+      'Unknown'
 
     // Insert message into team_chat_messages
     const insertRes = await fetch(
@@ -108,29 +138,12 @@ export async function onRequestPost(context) {
     const inserted = await insertRes.json()
 
     if (!insertRes.ok) {
-      return new Response(JSON.stringify({ error: inserted.message || 'Failed to insert message' }), {
-        status: insertRes.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: inserted.message || 'Failed to insert message' }, insertRes.status, corsHeaders)
     }
 
     const message = Array.isArray(inserted) ? inserted[0] : inserted
 
-    // Fetch the group to get its name for SMS context
-    let groupName = 'Team Chat'
-    try {
-      const groupRes = await fetch(
-        `${supabaseUrl}/rest/v1/team_chat_groups?id=eq.${groupId}&select=name&limit=1`,
-        {
-          headers: {
-            Authorization: `Bearer ${serviceKey}`,
-            apikey: serviceKey,
-          },
-        }
-      )
-      const groupData = await groupRes.json()
-      if (groupData?.[0]?.name) groupName = groupData[0].name
-    } catch {}
+    const groupName = group?.name || 'Team Chat'
 
     // Send SMS to other group members
     const accountSid = env.TWILIO_ACCOUNT_SID
@@ -144,7 +157,7 @@ export async function onRequestPost(context) {
 
       // Send to each member except the sender
       const smsPromises = memberPhones
-        .filter(m => m.id !== senderId && m.phone)
+        .filter(m => group.member_ids.includes(m.id) && m.id !== senderId && m.phone)
         .map(async (member) => {
           try {
             let cleanTo = member.phone.replace(/[^\d+]/g, '')
@@ -172,13 +185,8 @@ export async function onRequestPost(context) {
       await Promise.allSettled(smsPromises)
     }
 
-    return new Response(JSON.stringify(message), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json(message, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }

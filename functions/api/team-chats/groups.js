@@ -1,10 +1,12 @@
 // Cloudflare Pages Function — POST /api/team-chats/groups
 // Creates a new team chat group
 
+import { getAuthorizedUser, isStaffRole, json } from '../_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -17,27 +19,24 @@ export async function onRequestPost(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing Supabase config' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing Supabase config' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   try {
-    const { name, memberIds, createdBy } = await context.request.json()
+    const { name, memberIds } = await context.request.json()
 
     if (!name || !memberIds || memberIds.length === 0) {
-      return new Response(JSON.stringify({ error: 'Missing name or memberIds' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: 'Missing name or memberIds' }, 400, corsHeaders)
     }
 
-    if (memberIds.length > 10) {
-      return new Response(JSON.stringify({ error: 'Maximum 10 members per group' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+    const normalizedMemberIds = Array.from(new Set([...memberIds, requester.id].filter(Boolean)))
+    if (normalizedMemberIds.length > 10) {
+      return json({ error: 'Maximum 10 members per group' }, 400, corsHeaders)
     }
 
     const res = await fetch(
@@ -52,29 +51,21 @@ export async function onRequestPost(context) {
         },
         body: JSON.stringify({
           name,
-          member_ids: memberIds,
-          created_by: createdBy || null,
+          member_ids: normalizedMemberIds,
+          created_by: requester.id,
         }),
       }
     )
     const data = await res.json()
 
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: data.message || 'Failed to create group' }), {
-        status: res.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: data.message || 'Failed to create group' }, res.status, corsHeaders)
     }
 
     const group = Array.isArray(data) ? data[0] : data
 
-    return new Response(JSON.stringify(group), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json(group, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }

@@ -1,10 +1,12 @@
 // Cloudflare Pages Function — GET /api/team-chats/list
 // Returns all team chat groups with their latest message
 
+import { getAuthorizedUser, isStaffRole, json } from '../_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -17,10 +19,12 @@ export async function onRequestGet(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   try {
@@ -37,15 +41,14 @@ export async function onRequestGet(context) {
     const groups = await groupsRes.json()
 
     if (!groupsRes.ok) {
-      return new Response(JSON.stringify({ error: groups.message || 'Failed to fetch groups' }), {
-        status: groupsRes.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: groups.message || 'Failed to fetch groups' }, groupsRes.status, corsHeaders)
     }
+
+    const visibleGroups = (groups || []).filter(group => Array.isArray(group.member_ids) && group.member_ids.includes(requester.id))
 
     // For each group, fetch latest message
     const groupsWithMessages = await Promise.all(
-      (groups || []).map(async (group) => {
+      visibleGroups.map(async (group) => {
         try {
           const msgRes = await fetch(
             `${supabaseUrl}/rest/v1/team_chat_messages?group_id=eq.${group.id}&order=sent_at.desc&limit=1`,
@@ -80,13 +83,8 @@ export async function onRequestGet(context) {
       return new Date(bTime) - new Date(aTime)
     })
 
-    return new Response(JSON.stringify({ groups: groupsWithMessages }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ groups: groupsWithMessages }, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }

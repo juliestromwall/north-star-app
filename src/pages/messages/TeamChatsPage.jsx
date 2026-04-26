@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import PageHeader from '@/components/shared/PageHeader'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import { useRole } from '@/context/RoleContext'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import { fetchAdminPhones } from '@/lib/sms'
 
 // ── Helpers ──
@@ -77,7 +78,8 @@ export default function TeamChatsPage() {
   // ── Load groups ──
   const loadGroups = useCallback(async () => {
     try {
-      const res = await fetch('/api/team-chats/list')
+      const headers = await getAuthHeaders()
+      const res = await fetch('/api/team-chats/list', { headers })
       const data = await res.json()
       if (data.groups) setGroups(data.groups)
     } catch {}
@@ -90,7 +92,8 @@ export default function TeamChatsPage() {
   const loadMessages = useCallback(async (groupId) => {
     if (!groupId) return
     try {
-      const res = await fetch(`/api/team-chats/messages?groupId=${groupId}`)
+      const headers = await getAuthHeaders()
+      const res = await fetch(`/api/team-chats/messages?groupId=${groupId}`, { headers })
       const data = await res.json()
       if (data.messages) setMessages(data.messages)
     } catch {}
@@ -141,13 +144,12 @@ export default function TeamChatsPage() {
       .filter(Boolean)
 
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       const res = await fetch('/api/team-chats/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           groupId: selectedGroupId,
-          senderId: currentUser.id,
-          senderName: currentUser.name,
           senderPhone,
           body,
           memberPhones,
@@ -173,13 +175,13 @@ export default function TeamChatsPage() {
   // ── Create group ──
   const handleCreateGroup = async (name, memberIds) => {
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
       const res = await fetch('/api/team-chats/groups', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           name,
           memberIds,
-          createdBy: currentUser.id,
         }),
       })
       const group = await res.json()

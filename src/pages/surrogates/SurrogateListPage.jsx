@@ -20,6 +20,7 @@ import { getChecklistMilestones } from '@/lib/checklistStore'
 import EmptyState from '@/components/shared/EmptyState'
 import { getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { useRole } from '@/context/RoleContext'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import { fetchSurrogatesFromIntake, assignSurrogateToAdmin, adminAddSurrogate, fetchAllSurrogateProfiles, getAppConfig } from '@/lib/db'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -399,7 +400,8 @@ export default function SurrogateListPage() {
         // Fetch last login dates
         const emails = filtered.map(s => s.email).filter(Boolean)
         if (emails.length) {
-          fetch('/api/user-status-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ emails }) })
+          getAuthHeaders({ 'Content-Type': 'application/json' })
+            .then(headers => fetch('/api/user-status-batch', { method: 'POST', headers, body: JSON.stringify({ emails }) }))
             .then(r => r.json()).then(setLastLogins).catch(() => {})
         }
       })

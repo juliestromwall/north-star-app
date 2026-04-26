@@ -1,10 +1,12 @@
 // Cloudflare Pages Function — POST /api/user-status-batch
 // Returns last sign-in for multiple emails at once
 
+import { getAuthorizedUser, isStaffRole, json } from './_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -17,16 +19,17 @@ export async function onRequestPost(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({}), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({}, 200, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   const { emails } = await context.request.json()
   if (!emails || !emails.length) {
-    return new Response(JSON.stringify({}), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({}, 200, corsHeaders)
   }
 
   try {
@@ -48,12 +51,8 @@ export async function onRequestPost(context) {
       }
     }
 
-    return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json(result, 200, corsHeaders)
   } catch {
-    return new Response(JSON.stringify({}), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({}, 200, corsHeaders)
   }
 }

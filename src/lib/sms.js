@@ -35,7 +35,8 @@ export async function fetchSMSMessages(contactNumber, numbers = []) {
 
 /** Fetch admin phone numbers from the admin-phones API. */
 export async function fetchAdminPhones() {
-  const res = await fetch('/api/admin-phones')
+  const headers = await getAuthHeaders()
+  const res = await fetch('/api/admin-phones', { headers })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Failed to fetch admin phones')
   return data

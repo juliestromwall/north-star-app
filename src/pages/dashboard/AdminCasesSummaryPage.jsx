@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Sparkles, Loader2, RefreshCw, ArrowLeft, AlertTriangle, CheckCircle2, Clock, MessageSquare, ListChecks, DollarSign, Baby } from 'lucide-react'
 import { getAppConfig } from '@/lib/db'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import { getAdminStaff } from '@/data/mock/users'
 
 // ── Section header → icon + accent ──
@@ -136,7 +137,7 @@ export default function AdminCasesSummaryPage() {
             }
       const res = await fetch('/api/ai/admin-cases-summary', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       })
       const data = await res.json()

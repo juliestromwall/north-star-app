@@ -10,10 +10,12 @@
 // Service-role Supabase calls bypass RLS so the admin sees everything for
 // their assigned cases.
 
+import { getAuthorizedUser, isAdminRole, json } from '../_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -83,6 +85,11 @@ async function runSummary(context) {
     })
   }
 
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isAdminRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
   const body = await context.request.json()
   const { adminEmail, adminName } = body
   // Three modes:
@@ -100,6 +107,15 @@ async function runSummary(context) {
     return new Response(JSON.stringify({ error: 'Missing adminEmail (or teamEmails / journeyManager)' }), {
       status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
+  }
+  const requesterEmail = (requester.email || '').toLowerCase()
+  const requestedAdminEmail = (adminEmail || '').toLowerCase()
+  const isPrivilegedSummaryViewer = ['super_admin', 'master_admin'].includes(String(requester.role || '').toLowerCase())
+  if (!isJourneyManagerMode && requestedAdminEmail && requestedAdminEmail !== requesterEmail && !isPrivilegedSummaryViewer) {
+    return json({ error: 'Forbidden' }, 403, corsHeaders)
+  }
+  if (teamEmails && !isPrivilegedSummaryViewer) {
+    return json({ error: 'Forbidden' }, 403, corsHeaders)
   }
   // Also accept a name lookup so we can label cases with their assignee.
   // Frontend passes this; we fall back to the email local-part if missing.

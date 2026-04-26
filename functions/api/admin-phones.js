@@ -1,10 +1,12 @@
 // Cloudflare Pages Function — GET /api/admin-phones
 // Returns admin users that have a Twilio phone configured in app_config
 
+import { getAuthorizedUser, isStaffRole, json } from './_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -17,10 +19,12 @@ export async function onRequestGet(context) {
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isStaffRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
   }
 
   try {
@@ -37,10 +41,7 @@ export async function onRequestGet(context) {
     const prefsData = await prefsRes.json()
 
     if (!prefsRes.ok) {
-      return new Response(JSON.stringify({ error: prefsData.message || 'Failed to fetch app_config' }), {
-        status: prefsRes.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: prefsData.message || 'Failed to fetch app_config' }, prefsRes.status, corsHeaders)
     }
 
     // Build a map of userId -> twilioPhone from prefs
@@ -59,9 +60,7 @@ export async function onRequestGet(context) {
 
     // If no phones configured, return empty
     if (Object.keys(phoneMap).length === 0) {
-      return new Response(JSON.stringify([]), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json([], 200, corsHeaders)
     }
 
     // Fetch admin users from Supabase Auth
@@ -74,10 +73,7 @@ export async function onRequestGet(context) {
     const usersData = await usersRes.json()
 
     if (!usersRes.ok) {
-      return new Response(JSON.stringify({ error: usersData.msg || usersData.message || 'Auth API error' }), {
-        status: usersRes.status,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: usersData.msg || usersData.message || 'Auth API error' }, usersRes.status, corsHeaders)
     }
 
     const allUsers = usersData.users || []
@@ -94,13 +90,8 @@ export async function onRequestGet(context) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json(result, 200, corsHeaders)
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500, corsHeaders)
   }
 }
