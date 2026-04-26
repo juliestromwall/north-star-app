@@ -5,6 +5,7 @@ import {
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
   Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
+  MoreVertical,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -2357,6 +2358,7 @@ export default function JourneyDetailPage() {
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
   const [profileView, setProfileView] = useState('gc')
   const [breakOpen, setBreakOpen] = useState(false)
   const [breakReason, setBreakReason] = useState('')
@@ -3045,42 +3047,71 @@ export default function JourneyDetailPage() {
                 <AISummaryButton caseId={journey.id} caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} caseType="journey" stage={stageObj.label} status={journey.status} journeyData={jd} />
                 <JourneyUpdateButton caseId={journey.id} caseType="journey" caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} />
               </div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
-                  {jd._archivedAt ? (
-                    <div className="inline-flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200" title={`Archived ${fmtDate(jd._archivedAt)}${jd._archivedBy ? ' by ' + jd._archivedBy : ''}`}>
-                        <Check className="size-3" /> Archived
+              {/* Actions dropdown — collapses Archive / Unarchive / Break Match
+                  and the tandem partner shortcut into one button so the hero
+                  isn't overwhelmed with chips. The "matched on" date moves
+                  into the menu header so it's available on demand. */}
+              <div className="shrink-0">
+                <div className="relative">
+                  <Button variant="outline" size="sm" onClick={() => setActionsOpen(!actionsOpen)} className="gap-1.5 text-xs">
+                    <MoreVertical className="size-3.5" /> Actions
+                    {jd._archivedAt && (
+                      <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
+                        <Check className="size-2.5" /> Archived
                       </span>
-                      <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setUnarchiveOpen(true)}>
-                        <ArrowLeft className="size-3" /> Unarchive
-                      </Button>
-                    </div>
-                  ) : (
+                    )}
+                    {!jd._archivedAt && partnerJourney && (
+                      <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">
+                        <Users className="size-2.5" /> Tandem
+                      </span>
+                    )}
+                  </Button>
+                  {actionsOpen && (
                     <>
-                      <Button variant="outline" size="sm" className="text-xs text-[#283693] hover:text-[#283693] hover:bg-[#283693]/10 gap-1" onClick={() => setArchiveOpen(true)}>
-                        <Check className="size-3" /> Archive Journey
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-xs text-red-500 hover:text-red-700 hover:bg-red-50 gap-1" onClick={() => setBreakOpen(true)}>
-                        <X className="size-3" /> Break Match
-                      </Button>
+                      <div className="fixed inset-0 z-10" onClick={() => setActionsOpen(false)} />
+                      <div className="absolute z-20 top-full right-0 mt-1 w-60 bg-white rounded-xl shadow-xl border py-1.5">
+                        <div className="px-3 py-2 border-b border-stone-100 space-y-0.5">
+                          <p className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Journey</p>
+                          <p className="text-xs text-stone-500">Matched {fmtDate(journey.created_at)}</p>
+                          {jd._archivedAt && (
+                            <p className="text-[11px] text-stone-400">Archived {fmtDate(jd._archivedAt)}{jd._archivedBy ? ` · ${jd._archivedBy}` : ''}</p>
+                          )}
+                        </div>
+                        {jd._archivedAt ? (
+                          <button
+                            onClick={() => { setUnarchiveOpen(true); setActionsOpen(false) }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-[#283693]"
+                          >
+                            <ArrowLeft className="size-3.5" /> Unarchive Journey
+                          </button>
+                        ) : (
+                          <>
+                            {partnerJourney && (
+                              <button
+                                onClick={() => { navigate(`/journeys/${partnerJourney.id}`); setActionsOpen(false) }}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-violet-700"
+                              >
+                                <Users className="size-3.5" /> Open tandem · {partnerGcName}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { setArchiveOpen(true); setActionsOpen(false) }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-stone-700"
+                            >
+                              <Check className="size-3.5 text-stone-400" /> Archive Journey
+                            </button>
+                            <button
+                              onClick={() => { setBreakOpen(true); setActionsOpen(false) }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
+                            >
+                              <X className="size-3.5" /> Break Match
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
-                {/* Tandem partner — admin-only navigation, sits BELOW the Break Match row.
-                    Unlink intentionally not exposed: tandem links aren't broken from this page. */}
-                {!jd._archivedAt && partnerJourney && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/journeys/${partnerJourney.id}`)}
-                    title={`Open tandem partner journey · ${partnerGcName}`}
-                    className="text-xs text-violet-700 hover:text-violet-800 hover:bg-violet-50 border-violet-200 gap-1"
-                  >
-                    <Users className="size-3" /> Tandem · {partnerGcName}
-                  </Button>
-                )}
               </div>
             </div>
 
