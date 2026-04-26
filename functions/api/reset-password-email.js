@@ -1,10 +1,94 @@
 // Cloudflare Pages Function — POST /api/reset-password-email
 // Sends branded password reset email via Resend
 
+const RATE_LIMIT_KEY = 'password_reset_rate_limit'
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
+const MAX_REQUESTS_PER_IP = 5
+const MAX_REQUESTS_PER_EMAIL = 3
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders },
+  })
+}
+
+async function sha256Hex(value) {
+  if (!value) return null
+  const bytes = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+function getRequestIp(request) {
+  return request.headers.get('CF-Connecting-IP')
+    || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+    || ''
+}
+
+async function getRateLimitState(supabaseUrl, serviceKey) {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/app_config?config_key=eq.${RATE_LIMIT_KEY}&select=config_value&limit=1`,
+    { headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey } },
+  )
+  if (!res.ok) return { byIp: {}, byEmail: {} }
+  const rows = await res.json().catch(() => [])
+  return rows?.[0]?.config_value || { byIp: {}, byEmail: {} }
+}
+
+async function saveRateLimitState(supabaseUrl, serviceKey, state) {
+  await fetch(`${supabaseUrl}/rest/v1/app_config?on_conflict=config_key`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates',
+    },
+    body: JSON.stringify({
+      config_key: RATE_LIMIT_KEY,
+      config_value: state,
+      updated_at: new Date().toISOString(),
+    }),
+  }).catch(() => {})
+}
+
+function pruneRateLimitState(state, now = Date.now()) {
+  const cutoff = now - RATE_LIMIT_WINDOW_MS
+  const pruneMap = (map = {}) =>
+    Object.fromEntries(
+      Object.entries(map).map(([key, timestamps]) => [
+        key,
+        Array.isArray(timestamps) ? timestamps.filter((ts) => Number(ts) >= cutoff) : [],
+      ]).filter(([, timestamps]) => timestamps.length > 0),
+    )
+
+  return {
+    byIp: pruneMap(state?.byIp),
+    byEmail: pruneMap(state?.byEmail),
+  }
+}
+
+function isRateLimited(state, ipHash, emailHash) {
+  const ipCount = ipHash ? (state.byIp?.[ipHash]?.length || 0) : 0
+  const emailCount = emailHash ? (state.byEmail?.[emailHash]?.length || 0) : 0
+  return ipCount >= MAX_REQUESTS_PER_IP || emailCount >= MAX_REQUESTS_PER_EMAIL
+}
+
+function recordRateLimitHit(state, ipHash, emailHash, now = Date.now()) {
+  const next = {
+    byIp: { ...(state.byIp || {}) },
+    byEmail: { ...(state.byEmail || {}) },
+  }
+  if (ipHash) next.byIp[ipHash] = [...(next.byIp[ipHash] || []), now]
+  if (emailHash) next.byEmail[emailHash] = [...(next.byEmail[emailHash] || []), now]
+  return next
 }
 
 export async function onRequestOptions() {
@@ -12,38 +96,44 @@ export async function onRequestOptions() {
 }
 
 export async function onRequestPost(context) {
-  const { env } = context
+  const { env, request } = context
   const supabaseUrl = env.SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
 
-  const { email } = await context.request.json()
+  const { email } = await request.json()
   if (!email) {
-    return new Response(JSON.stringify({ error: 'Missing email' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing email' }, 400)
   }
 
   // 1. Check user exists
   if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: 'Not configured' }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Not configured' }, 500)
   }
 
   try {
+    const normalizedEmail = String(email || '').trim().toLowerCase()
+    const ipHash = await sha256Hex(getRequestIp(request))
+    const emailHash = await sha256Hex(normalizedEmail)
+    const rateLimitState = pruneRateLimitState(await getRateLimitState(supabaseUrl, serviceKey).catch(() => ({ byIp: {}, byEmail: {} })))
+
+    if (isRateLimited(rateLimitState, ipHash, emailHash)) {
+      return json({ success: true })
+    }
+
     const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`, {
       headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey },
     })
     const listData = await listRes.json()
-    const user = (listData.users || []).find(u => u.email?.toLowerCase() === email.toLowerCase())
+    const user = (listData.users || []).find(u => u.email?.toLowerCase() === normalizedEmail)
+
+    const nextRateLimitState = recordRateLimitHit(rateLimitState, ipHash, emailHash)
+    await saveRateLimitState(supabaseUrl, serviceKey, nextRateLimitState)
 
     if (!user) {
       // Don't reveal if user exists — just say "sent"
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ success: true })
     }
 
     const firstName = user.user_metadata?.full_name?.split(' ')[0] || 'there'
@@ -70,9 +160,7 @@ export async function onRequestPost(context) {
 
     if (!resetLink) {
       console.error('generate_link response:', JSON.stringify(linkData))
-      return new Response(JSON.stringify({ error: 'Failed to generate reset link', debug: linkData?.msg || linkData?.error || 'unknown' }), {
-        status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      })
+      return json({ error: 'Failed to generate reset link', debug: linkData?.msg || linkData?.error || 'unknown' }, 500)
     }
 
     // 3. Send branded email via Resend
@@ -139,13 +227,9 @@ export async function onRequestPost(context) {
       if (!res.ok) console.error('Resend failed:', data)
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ success: true })
   } catch (err) {
     console.error('Reset password email failed:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: err.message }, 500)
   }
 }
