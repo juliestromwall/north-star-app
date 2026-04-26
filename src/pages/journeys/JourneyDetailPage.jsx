@@ -20,7 +20,6 @@ import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTa
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
-import JourneyChecklistCards from '@/components/journeys/JourneyChecklistCards'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
@@ -432,31 +431,7 @@ function JourneyMilestoneTimeline({ journey }) {
   )
 }
 
-// ── Journey Updates Panel (placeholder — UX TBD with admin) ──
-function JourneyUpdatesPanel({ journey, gcCase, ipCase }) {
-  return (
-    <div className="rounded-2xl border border-stone-100 overflow-hidden">
-      <div className="px-5 pt-5 pb-4 bg-gradient-to-r from-[#ed148c]/[0.04] to-[#283693]/[0.04] border-b border-stone-100">
-        <h3 className="text-base font-bold text-stone-800 flex items-center gap-2">
-          Journey Updates
-        </h3>
-        <p className="text-[11px] text-stone-400 mt-1">
-          Notes, milestones, and case-wide updates for this journey
-        </p>
-      </div>
-      <div className="p-5">
-        <div className="rounded-xl border-2 border-dashed border-stone-200 bg-stone-50/40 p-8 text-center">
-          <p className="text-sm font-medium text-stone-500 mb-1">Coming soon</p>
-          <p className="text-xs text-stone-400">
-            UX TBD — this panel will hold journey-wide updates separate from the per-task checklist log.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Checklist Tab (card-based UI grouped by stage milestones) ─
+// ── Checklist Tab — full-width TrackingTable with profile-style stage headers ─
 function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
@@ -529,34 +504,17 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
           }
   }
 
-  // Wrap onUpdate so we can fire auto-tasks whenever a step transitions to complete.
-  // The new card UI calls onUpdate directly instead of going through onStatusLog.
-  async function handleUpdateWithAutoTasks(stepId, updates) {
-    const prevStatus = tracking[stepId]?.status
-    await handleUpdate(stepId, updates)
-    if (updates.status === 'complete' && prevStatus !== 'complete') {
-      const step = steps.find(s => s.id === stepId)
-      const lbl = step?.label || (tracking[stepId]?._label) || stepId
-      const lastEntry = (updates.history || [])[updates.history.length - 1]
-      fireAutoTasks({
-        stepLabel: lbl,
-        status: 'complete',
-        optionLabel: updates.optionLabel || lastEntry?.optionLabel,
-        date: lastEntry?.date,
-      }).catch(() => {})
-    }
-  }
-
   return (
     <div>
-      <JourneyChecklistCards
+      <TrackingTable
         title={`${stageObj.label} Checklist`}
         steps={steps}
         milestones={milestones}
         statuses={CHECKLIST_STEP_STATUSES}
         tracking={tracking}
-        onUpdate={handleUpdateWithAutoTasks}
+        onUpdate={handleUpdate}
         currentUserName={currentUser.name}
+        onStatusLog={fireAutoTasks}
       />
       <ChecklistHistory history={journey.journey_data?._checklistHistory} />
     </div>
@@ -3410,19 +3368,11 @@ export default function JourneyDetailPage() {
             <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
-
-          {/* Two-column: Journey Checklist (left) + Journey Updates (right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-            <div>
-              <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
-                const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
-                if (updated) setJourney(updated)
-              }} />
-            </div>
-            <div>
-              <JourneyUpdatesPanel journey={journey} gcCase={gcCase} ipCase={ipCase} />
-            </div>
-          </div>
+          {/* Checklist — full width */}
+          <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
+            const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
+            if (updated) setJourney(updated)
+          }} />
         </TabsContent>
 
         {/* Checklist tab removed — now in Overview */}

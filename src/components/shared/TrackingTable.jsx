@@ -4,7 +4,7 @@ import { Check, X, ChevronDown, CheckCircle2, Clock, CornerDownRight, Plus, Tras
 import { formatDate } from '@/lib/utils'
 import { normalizeOptions, deriveParentStatus } from '@/lib/checklistStore'
 
-export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog }) {
+export default function TrackingTable({ steps, statuses, tracking, onUpdate, title, currentUserName, onStatusLog, milestones = [] }) {
   const [addingLogFor, setAddingLogFor] = useState(null)
   const [logStatus, setLogStatus] = useState('')
   const [logNote, setLogNote] = useState('')
@@ -70,6 +70,32 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
     }
     return result
   }, [allSteps])
+
+  // Build a map of which step ids should have a profile-style stage header
+  // rendered ABOVE them. Subtasks never trigger headers — they belong with
+  // their parent's section. Steps not referenced by any milestone fall into
+  // an implicit "Other" group at the end (only labeled if non-empty).
+  const headerForStepId = useMemo(() => {
+    if (!milestones || milestones.length === 0) return {}
+    const milestoneByStepId = {}
+    milestones.forEach((ms, idx) => {
+      for (const sid of (ms.stepIds || [])) milestoneByStepId[sid] = { idx, ...ms }
+    })
+    const map = {}
+    let lastMsId = undefined
+    for (const step of renderableSteps) {
+      if (step._depth > 0) continue
+      const ms = milestoneByStepId[step.id]
+      const msId = ms?.id || '_other'
+      if (msId !== lastMsId) {
+        const idx = ms ? ms.idx : milestones.length
+        const label = ms?.label || 'Other'
+        map[step.id] = { number: idx + 1, label }
+        lastMsId = msId
+      }
+    }
+    return map
+  }, [renderableSteps, milestones])
 
   // Progress count: only top-level steps count toward the bar.
   const topLevelSteps = allSteps.filter(s => !s.parentId)
@@ -313,7 +339,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
       </div>
 
       {/* Steps list */}
-      <div className="divide-y divide-stone-100">
+      <div>
         {renderableSteps.map((step, stepIdx) => {
           const isSubtask = step._depth > 0
           const hasChildren = !isSubtask && step._children && step._children.length > 0
@@ -322,6 +348,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
             const parent = renderableSteps.find(s => s._children?.some(c => c.id === step.id))
             if (parent && isParentCollapsed(parent.id, parent._children)) return null
           }
+          const sectionHeader = headerForStepId[step.id]
           const data = tracking[step.id] || {}
           const history = data.history || []
           const storedStatus = data.status || 'not_started'
@@ -342,6 +369,18 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
 
           return (
             <React.Fragment key={step.id ?? stepIdx}>
+              {/* Profile-style stage header (e.g. Medical Evaluation, Legal Clearance) — */}
+              {/* mirrors the SurrogateProfilePage PVSection look: big pink number + serif title */}
+              {sectionHeader && (
+                <div className={`flex items-baseline gap-4 px-5 ${stepIdx === 0 ? 'pt-2' : 'pt-8'} pb-3 mb-1 border-b-2 border-[#ed148c]/20 bg-stone-50/30`}>
+                  <span className="text-3xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums shrink-0">
+                    {String(sectionHeader.number).padStart(2, '0')}
+                  </span>
+                  <h3 className="text-lg font-heading font-black text-[#283693] tracking-tight leading-tight">
+                    {sectionHeader.label}
+                  </h3>
+                </div>
+              )}
               {/* ── Step Row ── */}
               <div
                 onClick={() => {
@@ -355,7 +394,7 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                     setExpandedStep(step.id); setAddingLogFor(null)
                   }
                 }}
-                className={`group relative cursor-pointer ${isDeactivated ? 'opacity-35' : ''} ${
+                className={`group relative cursor-pointer ${stepIdx > 0 && !sectionHeader ? 'border-t border-stone-100' : ''} ${isDeactivated ? 'opacity-35' : ''} ${
                   isComplete ? 'bg-emerald-50/70 hover:bg-emerald-50' :
                   isExpanded ? 'bg-[#283693]/[0.02]' :
                   hasChildren ? 'bg-stone-50/40' : ''
