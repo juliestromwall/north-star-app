@@ -172,6 +172,62 @@ export async function fetchMatchedJourney(id) {
   return data
 }
 
+// Return all ACTIVE matched journeys for a given IP case. Used by the tandem
+// linking flow so admin can pick from a list of this IP's other journeys.
+export async function fetchActiveJourneysByIpCaseId(ipCaseId) {
+  if (!supabase || !ipCaseId) return []
+  const { data, error } = await supabase
+    .from('matched_journeys')
+    .select('*')
+    .eq('ip_case_id', ipCaseId)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return (data || []).filter(isActiveMatchedJourney)
+}
+
+// Link two matched_journeys rows as a tandem pair (one IP, two surrogates).
+// Writes the pointer on BOTH rows so either side resolves to the other. Both
+// rows must reference the same ip_case_id — caller's responsibility to enforce.
+export async function linkTandemJourneys(journeyIdA, journeyIdB) {
+  if (!supabase || !journeyIdA || !journeyIdB || journeyIdA === journeyIdB) return null
+  const nowIso = new Date().toISOString()
+  const [resA, resB] = await Promise.all([
+    supabase.from('matched_journeys')
+      .update({ tandem_partner_journey_id: journeyIdB, updated_at: nowIso })
+      .eq('id', journeyIdA)
+      .select()
+      .single(),
+    supabase.from('matched_journeys')
+      .update({ tandem_partner_journey_id: journeyIdA, updated_at: nowIso })
+      .eq('id', journeyIdB)
+      .select()
+      .single(),
+  ])
+  if (resA.error || resB.error) throw resA.error || resB.error
+  return { a: resA.data, b: resB.data }
+}
+
+// Clear the tandem link on both sides. Pass either journey id — we look up
+// its current partner and null both pointers.
+export async function unlinkTandemJourney(journeyId) {
+  if (!supabase || !journeyId) return
+  const { data: row } = await supabase
+    .from('matched_journeys')
+    .select('id, tandem_partner_journey_id')
+    .eq('id', journeyId)
+    .single()
+  if (!row) return
+  const partnerId = row.tandem_partner_journey_id
+  const nowIso = new Date().toISOString()
+  const updates = [
+    supabase.from('matched_journeys').update({ tandem_partner_journey_id: null, updated_at: nowIso }).eq('id', journeyId),
+  ]
+  if (partnerId) {
+    updates.push(supabase.from('matched_journeys').update({ tandem_partner_journey_id: null, updated_at: nowIso }).eq('id', partnerId))
+  }
+  await Promise.all(updates)
+}
+
 export async function updateMatchedJourney(id, updates) {
   if (!supabase) return null
   const { data, error } = await supabase

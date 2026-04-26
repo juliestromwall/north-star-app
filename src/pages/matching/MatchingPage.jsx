@@ -18,7 +18,7 @@ import { useRole } from '@/context/RoleContext'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getProfilePhotoUrls, fetchSurrogateProfilesByEmails, getPortraitPhotoUrl, getRecordTrackingBatch } from '@/lib/db'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getChecklistMilestones, getChecklistSteps, deriveParentStatus } from '@/lib/checklistStore'
-import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion, isJourneyActive } from '@/lib/matching'
+import { createMatchedJourney, fetchMatchedJourneys, fetchSharesForCase, fetchMatchQuestions, answerMatchQuestion, isJourneyActive, linkTandemJourneys } from '@/lib/matching'
 
 // Stages eligible to share profiles from. Order = display order.
 const ELIGIBLE_MATCHING_STAGES = ['pre-qualification', 'screening', 'matching']
@@ -179,6 +179,12 @@ export default function MatchingPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState({ gcId: '', ipId: '' })
   const [creating, setCreating] = useState(false)
+  // Tandem Surrogacy: pick an IP whose existing journey gets a second
+  // surrogate paired in. Only IPs with exactly one active journey AND no
+  // tandem partner yet are eligible.
+  const [showTandem, setShowTandem] = useState(false)
+  const [tandemForm, setTandemForm] = useState({ ipId: '', gcId: '' })
+  const [creatingTandem, setCreatingTandem] = useState(false)
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
@@ -285,6 +291,49 @@ export default function MatchingPage() {
     } finally { setCreating(false) }
   }
 
+  // IPs eligible for a tandem add-on: exactly one active, non-archived journey
+  // and that journey has no tandem partner yet. (We don't allow >2 surrogates
+  // per IP.)
+  const tandemEligibleIpIds = useMemo(() => {
+    const counts = new Map()
+    const sample = new Map() // ipId -> the journey row, used for tandem-partner check
+    for (const j of activeJourneysForFilter) {
+      counts.set(j.ip_case_id, (counts.get(j.ip_case_id) || 0) + 1)
+      if (!sample.has(j.ip_case_id)) sample.set(j.ip_case_id, j)
+    }
+    const eligible = new Set()
+    for (const [ipId, count] of counts) {
+      if (count === 1 && !sample.get(ipId)?.tandem_partner_journey_id) eligible.add(ipId)
+    }
+    return eligible
+  }, [activeJourneysForFilter])
+
+  async function handleCreateTandem() {
+    if (!tandemForm.gcId || !tandemForm.ipId) return
+    const existingJourney = activeJourneysForFilter.find(j => j.ip_case_id === Number(tandemForm.ipId))
+    if (!existingJourney) {
+      alert('Could not find the IP\'s existing active journey. Refresh and try again.')
+      return
+    }
+    setCreatingTandem(true)
+    try {
+      // 1) Create the second journey (same IP, second surrogate)
+      const newJourney = await createMatchedJourney({
+        gcCaseId: Number(tandemForm.gcId),
+        ipCaseId: Number(tandemForm.ipId),
+        assignedTo: currentUser.email,
+        createdBy: currentUser.name,
+      })
+      // 2) Link it as tandem partner of the existing journey
+      await linkTandemJourneys(newJourney.id, existingJourney.id)
+      setShowTandem(false)
+      setTandemForm({ ipId: '', gcId: '' })
+      navigate(`/journeys/${newJourney.id}`)
+    } catch (err) {
+      alert('Failed: ' + (err.message || 'Unknown error'))
+    } finally { setCreatingTandem(false) }
+  }
+
   if (loading) return <div className="text-center py-12 text-stone-400">Loading...</div>
 
   return (
@@ -292,7 +341,15 @@ export default function MatchingPage() {
       <PageHeader
         title="Matching Pipeline"
         subtitle={`${unmatchedGCs.length} surrogates ready · ${unmatchedIPs.length} intended parents`}
-        actions={<Button className="gap-1.5" onClick={() => setShowCreate(true)}><Plus className="size-4" /> Create Match</Button>}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-1.5" onClick={() => setShowTandem(true)} disabled={tandemEligibleIpIds.size === 0}
+              title={tandemEligibleIpIds.size === 0 ? 'No matched IPs available for tandem (need an IP with one active journey and no tandem partner yet)' : 'Add a second surrogate to an already-matched IP'}>
+              <Users className="size-4" /> Tandem Surrogacy
+            </Button>
+            <Button className="gap-1.5" onClick={() => setShowCreate(true)}><Plus className="size-4" /> Create Match</Button>
+          </div>
+        }
       />
 
       {/* Stats */}
@@ -660,6 +717,42 @@ export default function MatchingPage() {
             <Button onClick={handleCreateMatch} disabled={creating || !createForm.gcId || !createForm.ipId}
               className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
               {creating ? 'Creating...' : 'Create Match'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tandem Surrogacy Dialog — pick an already-matched IP, then add a
+          second surrogate to them. Creates a new journey and pairs it as the
+          tandem partner of the IP's existing journey. */}
+      <Dialog open={showTandem} onOpenChange={(v) => !creatingTandem && setShowTandem(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="size-5 text-violet-600" /> Tandem Surrogacy
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-violet-50 border border-violet-200 p-3 text-xs text-stone-600">
+              Pick an IP who is <strong>already matched</strong> with one surrogate, then add a second surrogate. This creates a new journey and pairs it with the IP's existing journey as a tandem. Surrogates won't see the link — admin-only.
+            </div>
+            <SearchablePicker
+              label="Intended Parent (already matched)"
+              placeholder="Search matched IPs..."
+              value={tandemForm.ipId}
+              options={ips.filter(i => tandemEligibleIpIds.has(i.id)).map(i => ({ id: i.id, label: i.names, sub: i.location || '' }))}
+              onSelect={(id) => setTandemForm(f => ({ ...f, ipId: id }))}
+            />
+            <SearchablePicker
+              label="Second Surrogate"
+              placeholder="Search unmatched surrogates..."
+              value={tandemForm.gcId}
+              options={surrogates.filter(s => !matchedGcIds.has(s.id)).map(s => ({ id: s.id, label: s.name, sub: s.location || '' }))}
+              onSelect={(id) => setTandemForm(f => ({ ...f, gcId: id }))}
+            />
+            <Button onClick={handleCreateTandem} disabled={creatingTandem || !tandemForm.gcId || !tandemForm.ipId}
+              className="w-full gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {creatingTandem ? 'Creating tandem...' : 'Create Tandem Match'}
             </Button>
           </div>
         </DialogContent>

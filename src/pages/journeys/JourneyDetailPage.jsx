@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Component } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
@@ -35,7 +35,7 @@ import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
-import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
+import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney, unlinkTandemJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
@@ -2355,6 +2355,7 @@ function ProfilesTabContent({ profileView, gcCase, setGcCase, gcProfileData, set
 // ── Main Page ───────────────────────────────────────────
 export default function JourneyDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { currentUser } = useRole()
   const [journey, setJourney] = useState(null)
   const [gcCase, setGcCase] = useState(null)
@@ -2416,6 +2417,15 @@ export default function JourneyDetailPage() {
   const toggleGcFlip = (key) => setGcFlip(prev => ({ ...prev, [key]: !prev[key] }))
   const toggleIpFlip = (key) => setIpFlip(prev => ({ ...prev, [key]: !prev[key] }))
   const { openDraft } = useDrafts()
+
+  // ── Tandem journey state (admin-only) ──
+  // partnerJourney is the full row of the linked tandem partner; null if none.
+  // Tandem pairs are CREATED from /matching → "+ Tandem Surrogacy". This page
+  // only surfaces an existing pairing and offers an unlink path.
+  const [partnerJourney, setPartnerJourney] = useState(null)
+  const [partnerGcName, setPartnerGcName] = useState('')
+  const [tandemSaving, setTandemSaving] = useState(false)
+  const [unlinkTandemOpen, setUnlinkTandemOpen] = useState(false)
 
   async function handleSendSMS() {
     if (!smsMessage.trim() || !smsOpen?.phone) return
@@ -2490,10 +2500,39 @@ export default function JourneyDetailPage() {
         if (j.ip_case_id) {
           getPortraitPhotoUrl(`ip-${j.ip_case_id}`).then(url => { if (url) setIpPortraitUrl(url) }).catch(() => {})
         }
+        // Resolve tandem partner journey + partner GC's display name (admin-only).
+        if (j.tandem_partner_journey_id) {
+          fetchMatchedJourney(j.tandem_partner_journey_id).then(partner => {
+            if (!partner) return
+            setPartnerJourney(partner)
+            const partnerGc = gcs.find(g => g.id === partner.gc_case_id)
+            setPartnerGcName(partnerGc?.name || `Surrogate #${partner.gc_case_id}`)
+          }).catch(() => {})
+        } else {
+          setPartnerJourney(null)
+          setPartnerGcName('')
+        }
       } catch {} finally { setLoading(false) }
     }
     load()
   }, [id])
+
+  async function handleUnlinkTandem() {
+    if (!journey?.id) return
+    setTandemSaving(true)
+    try {
+      await unlinkTandemJourney(journey.id)
+      const refreshed = await fetchMatchedJourney(journey.id)
+      if (refreshed) setJourney(refreshed)
+      setPartnerJourney(null)
+      setPartnerGcName('')
+      setUnlinkTandemOpen(false)
+    } catch (err) {
+      alert('Could not unlink tandem: ' + (err?.message || 'Unknown error'))
+    } finally {
+      setTandemSaving(false)
+    }
+  }
 
   async function updateField(key, value) {
     const jd = { ...(journey.journey_data || {}), [key]: value }
@@ -2747,6 +2786,25 @@ export default function JourneyDetailPage() {
                 {unarchiving ? 'Unarchiving...' : 'Unarchive Journey'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tandem unlink confirmation */}
+      <Dialog open={unlinkTandemOpen} onOpenChange={(v) => !tandemSaving && setUnlinkTandemOpen(v)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-stone-800">Unlink Tandem Pair</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            This will remove the tandem link between this journey and <strong>{partnerGcName}</strong>'s journey. Both journeys remain active and unchanged — only the pairing is cleared.
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setUnlinkTandemOpen(false)} disabled={tandemSaving}>Cancel</Button>
+            <Button size="sm" onClick={handleUnlinkTandem} disabled={tandemSaving} className="gap-1" style={{ backgroundColor: '#283693', color: '#fff' }}>
+              {tandemSaving ? <Loader2 className="size-3 animate-spin" /> : null}
+              {tandemSaving ? 'Unlinking...' : 'Unlink'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -3025,6 +3083,27 @@ export default function JourneyDetailPage() {
                 </div>
                 <AISummaryButton caseId={journey.id} caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} caseType="journey" stage={stageObj.label} status={journey.status} journeyData={jd} />
                 <JourneyUpdateButton caseId={journey.id} caseType="journey" caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} />
+                {/* Tandem journey indicator (admin-only — surrogate never sees this).
+                    Tandem pairs are created from /matching → "+ Tandem Surrogacy".
+                    Once linked, this badge surfaces the partner journey here. */}
+                {partnerJourney && (
+                  <div className="inline-flex items-center gap-0 rounded-full text-xs font-semibold border bg-violet-50 border-violet-200 text-violet-700">
+                    <button
+                      onClick={() => navigate(`/journeys/${partnerJourney.id}`)}
+                      title={`Open tandem partner journey · ${partnerGcName}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 hover:bg-violet-100 rounded-l-full"
+                    >
+                      <Users className="size-3.5" /> Tandem · {partnerGcName}
+                    </button>
+                    <button
+                      onClick={() => setUnlinkTandemOpen(true)}
+                      title="Unlink tandem"
+                      className="px-2 py-1 hover:bg-violet-100 rounded-r-full border-l border-violet-200 text-violet-500 hover:text-violet-700"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-stone-400">Matched {fmtDate(journey.created_at)}</span>
