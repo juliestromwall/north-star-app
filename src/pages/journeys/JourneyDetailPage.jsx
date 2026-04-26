@@ -20,6 +20,7 @@ import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTa
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
+import JourneyChecklistColumns from '@/components/journeys/JourneyChecklistColumns'
 import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
 import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
@@ -506,8 +507,8 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 
   return (
     <div>
-      <TrackingTable
-        title={`${stageObj.label} Checklist`}
+      <JourneyChecklistColumns
+        title="Journey Progress"
         steps={steps}
         milestones={milestones}
         statuses={CHECKLIST_STEP_STATUSES}
@@ -3363,12 +3364,12 @@ export default function JourneyDetailPage() {
         ]} />
 
         <TabsContent value="overview" className="mt-4 space-y-6">
-          <JourneyMilestoneTimeline journey={journey} />
+          {/* Milestones timeline removed — Journey Progress bar now lives at the top of the checklist */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
             <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
           </div>
-          {/* Checklist — full width */}
+          {/* Checklist — full width, 3-column layout (Med/Legal/Transfer) + Pregnancy below */}
           <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
