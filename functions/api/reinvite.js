@@ -1,10 +1,12 @@
 // Cloudflare Pages Function — POST /api/reinvite
 // Sends branded portal invite email via Resend (for existing users who haven't logged in)
 
+import { getAuthorizedUser, isAdminRole, json } from './_auth'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
 export async function onRequestOptions() {
@@ -18,11 +20,18 @@ export async function onRequestPost(context) {
   const resendKey = env.RESEND_API_KEY
   const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
 
+  if (!supabaseUrl || !serviceKey) {
+    return json({ error: 'Not configured' }, 500, corsHeaders)
+  }
+
+  const requester = await getAuthorizedUser(context.request, supabaseUrl, serviceKey)
+  if (!requester || !isAdminRole(requester.role)) {
+    return json({ error: 'Unauthorized' }, 401, corsHeaders)
+  }
+
   const { email, firstName } = await context.request.json()
   if (!email) {
-    return new Response(JSON.stringify({ error: 'Missing email' }), {
-      status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders },
-    })
+    return json({ error: 'Missing email' }, 400, corsHeaders)
   }
 
   const origin = new URL(context.request.url).origin
@@ -32,24 +41,22 @@ export async function onRequestPost(context) {
   const name = firstName || 'there'
 
   // Generate a fresh reset link
-  if (supabaseUrl && serviceKey) {
-    try {
-      const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'recovery', email, redirect_to: resetRedirect }),
-      })
-      const linkData = await linkRes.json()
-      resetLink = linkData?.properties?.action_link || linkData?.action_link || null
-      if (!resetLink && linkData?.properties?.hashed_token) {
-        resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent(resetRedirect)}`
-      }
-      if (resetLink && !resetLink.includes('redirect_to')) {
-        resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent(resetRedirect)
-      }
-    } catch (err) {
-      console.error('Reset link generation failed:', err)
+  try {
+    const linkRes = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'recovery', email, redirect_to: resetRedirect }),
+    })
+    const linkData = await linkRes.json()
+    resetLink = linkData?.properties?.action_link || linkData?.action_link || null
+    if (!resetLink && linkData?.properties?.hashed_token) {
+      resetLink = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=recovery&redirect_to=${encodeURIComponent(resetRedirect)}`
     }
+    if (resetLink && !resetLink.includes('redirect_to')) {
+      resetLink += (resetLink.includes('?') ? '&' : '?') + 'redirect_to=' + encodeURIComponent(resetRedirect)
+    }
+  } catch (err) {
+    console.error('Reset link generation failed:', err)
   }
 
   // Send branded portal invite email
@@ -123,7 +130,5 @@ export async function onRequestPost(context) {
     }
   }
 
-  return new Response(JSON.stringify({ success: true }), {
-    headers: { 'Content-Type': 'application/json', ...corsHeaders },
-  })
+  return json({ success: true }, 200, corsHeaders)
 }

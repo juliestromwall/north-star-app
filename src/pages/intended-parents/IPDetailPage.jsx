@@ -20,6 +20,7 @@ import IPProfileTab from '@/components/intended-parents/IPProfileTab'
 import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
 import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
+import { getAuthHeaders } from '@/lib/authHeaders'
 import { IP_STAGES, IP_STAGE_LABELS } from '@/lib/constants'
 import { getSurrogateStageStatus, setSurrogateStageStatus, getStatusesForStage, getDefaultStatus } from '@/lib/stageStatusStore'
 import { fetchIPsFromIntake, updateIntakeSubmission, assignSurrogateToAdmin, getPortraitPhotoUrl } from '@/lib/db'
@@ -106,11 +107,13 @@ export default function IPDetailPage() {
   // Check portal status
   useEffect(() => {
     if (ip?.email) {
-      fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ip.email }) })
+      getAuthHeaders({ 'Content-Type': 'application/json' })
+        .then(headers => fetch('/api/user-status', { method: 'POST', headers, body: JSON.stringify({ email: ip.email }) }))
         .then(r => r.json()).then(setPortalStatus).catch(() => {})
     }
     if (ip?.ip2Email) {
-      fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: ip.ip2Email }) })
+      getAuthHeaders({ 'Content-Type': 'application/json' })
+        .then(headers => fetch('/api/user-status', { method: 'POST', headers, body: JSON.stringify({ email: ip.ip2Email }) }))
         .then(r => r.json()).then(setPortalStatus2).catch(() => {})
     }
   }, [ip?.email, ip?.ip2Email])

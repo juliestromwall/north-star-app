@@ -500,7 +500,8 @@ export default function SurrogateDetailPage() {
   // Check portal status (has account / last login)
   useEffect(() => {
     if (surrogate?.email) {
-      fetch('/api/user-status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: surrogate.email }) })
+      getAuthHeaders({ 'Content-Type': 'application/json' })
+        .then(headers => fetch('/api/user-status', { method: 'POST', headers, body: JSON.stringify({ email: surrogate.email }) }))
         .then(r => r.json()).then(setPortalStatus).catch(() => {})
     }
   }, [surrogate?.email])
@@ -726,7 +727,7 @@ export default function SurrogateDetailPage() {
                         // Resend portal invite email
                         const res = await fetch('/api/reinvite', {
                           method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: await getAuthHeaders({ 'Content-Type': 'application/json' }),
                           body: JSON.stringify({ email: surrogate.email, firstName: surrogate.name?.split(' ')[0] || '' }),
                         })
                         const result = await res.json()
