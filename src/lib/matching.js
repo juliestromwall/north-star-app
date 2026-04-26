@@ -328,66 +328,27 @@ export async function unarchiveJourney(journeyId, { unarchivedBy, gcCaseId, ipCa
 //   admin can see the linkage from either side.
 export async function startNewCaseFromJourney({ fromCaseId, journeyId, createdBy }) {
   if (!supabase) return null
-
-  const { data: oldCase, error: getErr } = await supabase
-    .from('intake_submissions')
-    .select('*')
-    .eq('id', fromCaseId)
-    .single()
-  if (getErr || !oldCase) throw getErr || new Error('Source case not found')
-
-  const nowIso = new Date().toISOString()
-  const newAnswers = {
-    ...(oldCase.answers || {}),
-    _continuedFromCaseId: fromCaseId,
-    _continuedFromJourneyId: journeyId || null,
-    _continuedAt: nowIso,
-    _continuedBy: createdBy || null,
+  const { data: authData } = await supabase.auth.getSession()
+  const token = authData?.session?.access_token
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 
-  const newSubmission = {
-    intake_type: oldCase.intake_type,
-    status: oldCase.status || 'qualified',
-    qualified: oldCase.qualified !== false,
-    applicant_name: oldCase.applicant_name,
-    applicant_email: oldCase.applicant_email,
-    applicant_phone: oldCase.applicant_phone,
-    answers: newAnswers,
-    submitted_at: nowIso,
-    assigned_to: oldCase.assigned_to,
-    referral_partner: oldCase.referral_partner,
-    state_region: oldCase.state_region,
-    dq_reasons: Array.isArray(oldCase.dq_reasons) ? oldCase.dq_reasons : [],
+  const res = await fetch('/api/start-new-case', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      fromCaseId,
+      journeyId,
+      createdBy,
+    }),
+  })
+  const payload = await res.json().catch(() => null)
+  if (!res.ok || !payload?.ok) {
+    throw new Error(payload?.error || 'Failed to start new case')
   }
-
-  const { data, error } = await supabase
-    .from('intake_submissions')
-    .insert(newSubmission)
-    .select()
-    .single()
-  if (error) throw error
-
-  // Mark the originating journey so the old case page can link to the new case.
-  if (journeyId) {
-    const { data: oldJourney } = await supabase
-      .from('matched_journeys')
-      .select('journey_data')
-      .eq('id', journeyId)
-      .single()
-    if (oldJourney) {
-      const updatedJd = {
-        ...(oldJourney.journey_data || {}),
-        _newCaseStartedId: data.id,
-        _newCaseStartedAt: nowIso,
-        _newCaseStartedBy: createdBy || null,
-      }
-      await supabase.from('matched_journeys')
-        .update({ journey_data: updatedJd })
-        .eq('id', journeyId)
-    }
-  }
-
-  return data
+  return payload.data || null
 }
 
 export async function breakMatch(journeyId, { reason, brokenBy, gcCaseId, ipCaseId, gcName, ipName }) {
