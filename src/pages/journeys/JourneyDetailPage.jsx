@@ -513,10 +513,11 @@ function MilestoneFormView({ stageId, tracking, onUpdate, onStatusLog, currentUs
         </div>
       </div>
 
-      <div className="rounded-2xl border border-stone-200 bg-white p-5">
+      <div className="rounded-2xl border border-stone-200 bg-white p-6">
         {selected && (
           <MilestoneFormPane
             milestone={selected}
+            milestoneNumber={milestonesWithProgress.findIndex(m => m.id === selected.id) + 1}
             tracking={tracking}
             onUpdate={onUpdate}
             onStatusLog={onStatusLog}
@@ -581,18 +582,26 @@ function MilestoneRailRow({ milestone, selected, expanded, tracking, onSelect, o
   )
 }
 
-function MilestoneFormPane({ milestone, tracking, onUpdate, onStatusLog, currentUserName }) {
+function MilestoneFormPane({ milestone, tracking, onUpdate, onStatusLog, currentUserName, milestoneNumber }) {
   const ms = milestone
   return (
-    <div className="space-y-5">
-      <div>
-        <h3 className="text-xl font-semibold text-stone-800">{ms.label}</h3>
-        <p className="text-xs text-stone-400 mt-1">{ms.completedCount} of {ms.totalCount} steps complete</p>
+    <div>
+      {/* Magazine-style header to match the profile aesthetic */}
+      <div className="flex items-baseline gap-4 mb-5 pb-3 border-b-2 border-[#ed148c]/20">
+        <span className="text-4xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums">
+          {String(milestoneNumber || 1).padStart(2, '0')}
+        </span>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xl font-heading font-black text-[#283693] tracking-tight leading-tight">{ms.label}</h3>
+          <p className="text-[11px] text-stone-400 mt-0.5 uppercase tracking-wider font-semibold">
+            {ms.completedCount} of {ms.totalCount} complete
+          </p>
+        </div>
       </div>
       {ms.steps.length === 0 ? (
         <p className="text-sm text-stone-400">No steps in this milestone.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {ms.steps.map(step => (
             <StepFormRow
               key={step.id}
@@ -609,6 +618,18 @@ function MilestoneFormPane({ milestone, tracking, onUpdate, onStatusLog, current
   )
 }
 
+// Format a relative time like "5m ago", "2h ago", "3d ago".
+function formatRelativeTime(iso) {
+  if (!iso) return ''
+  const then = new Date(iso).getTime()
+  const now = Date.now()
+  const sec = Math.max(0, Math.floor((now - then) / 1000))
+  if (sec < 60) return 'just now'
+  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
+  return `${Math.floor(sec / 86400)}d ago`
+}
+
 function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
   const status = entry.status || 'not_started'
   const isComplete = status === 'complete'
@@ -617,8 +638,12 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
   const done = isComplete || isSkipped || isNa
   const [noteOpen, setNoteOpen] = useState(false)
   const [noteDraft, setNoteDraft] = useState(entry.note || '')
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const log = Array.isArray(entry.log) ? entry.log : []
+  const lastLog = log[log.length - 1]
 
   function setStatus(newStatus, extra = {}) {
+    if (newStatus === status) return // no-op click on already-active status
     const updates = { status: newStatus, ...extra }
     if (newStatus === 'complete' && !entry.completed_at) {
       updates.completed_at = new Date().toISOString()
@@ -628,6 +653,14 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
       updates.skipped_at = new Date().toISOString()
       updates.skipped_by = currentUserName
     }
+    // Append to per-step audit log so admins can see who changed what when.
+    const newLog = [...log, {
+      status: newStatus,
+      from: status,
+      changed_at: new Date().toISOString(),
+      changed_by: currentUserName,
+    }]
+    updates.log = newLog
     onUpdate(step.id, updates)
     if (newStatus === 'complete' && onStatusLog) {
       onStatusLog({ stepLabel: step.label, status: newStatus, date: new Date().toISOString().split('T')[0] })
@@ -639,50 +672,56 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
     setNoteOpen(false)
   }
 
+  // Profile-card aesthetic: white bg, soft border, uppercase label, larger value.
+  const cardBg = isSkipped ? 'bg-amber-50/40 border-amber-100'
+    : isComplete ? 'bg-emerald-50/30 border-emerald-100'
+    : isNa ? 'bg-stone-50/60 border-stone-100'
+    : 'bg-white border-stone-200'
+
   return (
-    <div className={`rounded-xl border p-4 transition-colors ${done ? 'border-stone-100 bg-stone-50/40' : 'border-stone-200 bg-white'}`}>
+    <div className={`rounded-lg border px-4 py-3 transition-colors ${cardBg}`}>
       <div className="flex items-start gap-3">
         <button
           onClick={() => setStatus(isComplete ? 'not_started' : 'complete')}
-          className={`mt-0.5 size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-            isComplete ? 'bg-[#283693] border-[#283693] text-white' :
-            isSkipped ? 'bg-amber-50 border-amber-400 text-amber-500' :
-            isNa ? 'bg-stone-100 border-stone-300 text-stone-400' :
+          className={`mt-1 size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+            isComplete ? 'bg-emerald-500 border-emerald-500 text-white' :
+            isSkipped ? 'bg-amber-100 border-amber-400 text-amber-600' :
+            isNa ? 'bg-stone-200 border-stone-300 text-stone-500' :
             'bg-white border-stone-300 hover:border-[#283693]'
           }`}
           title={isComplete ? 'Mark not started' : 'Mark complete'}
         >
-          {isComplete && <Check className="size-3.5" />}
-          {isSkipped && <X className="size-3" />}
-          {isNa && <Circle className="size-2.5 fill-current" />}
+          {isComplete && <Check className="size-3" strokeWidth={3} />}
+          {isSkipped && <X className="size-2.5" strokeWidth={3} />}
+          {isNa && <Circle className="size-1.5 fill-current" />}
         </button>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className={`text-sm font-medium ${done ? 'text-stone-500' : 'text-stone-800'}`}>{step.label}</p>
+          {/* Profile-style label row */}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <p className={`text-[13px] font-semibold ${done ? 'text-stone-500' : 'text-stone-800'} leading-snug`}>{step.label}</p>
             {isSkipped && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                Skipped{entry.skipped_by ? ` · ${entry.skipped_by}` : ''}
-              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600">Skipped{entry.skipped_by ? ` · ${entry.skipped_by}` : ''}</span>
             )}
-            {isNa && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">Not needed</span>
-            )}
+            {isNa && <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Not needed</span>}
             {isComplete && entry.completed_by && (
-              <span className="text-[10px] text-stone-400">by {entry.completed_by}</span>
+              <span className="text-[10px] uppercase tracking-wider text-emerald-600 font-medium">Complete · {entry.completed_by}</span>
             )}
           </div>
 
-          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-            {CHECKLIST_STEP_STATUSES.filter(s => !['complete', 'note'].includes(s.id)).map(s => {
+          {/* Status pills */}
+          <div className="mt-2 flex items-center gap-1 flex-wrap">
+            {CHECKLIST_STEP_STATUSES.filter(s => !['note'].includes(s.id)).map(s => {
               const active = status === s.id
               const isWarning = s.id === 'skipped'
+              const isDone = s.id === 'complete'
               return (
                 <button
                   key={s.id}
                   onClick={() => setStatus(s.id)}
-                  className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                  className={`text-[10.5px] px-2 py-0.5 rounded-full border transition-colors ${
                     active
-                      ? isWarning ? 'bg-amber-100 border-amber-300 text-amber-700 font-semibold'
+                      ? isWarning ? 'bg-amber-500 border-amber-500 text-white font-semibold'
+                        : isDone ? 'bg-emerald-500 border-emerald-500 text-white font-semibold'
                         : 'bg-[#283693] border-[#283693] text-white font-semibold'
                       : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
                   }`}
@@ -693,6 +732,32 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
             })}
           </div>
 
+          {/* Last-updated line */}
+          {lastLog && (
+            <div className="mt-1.5 flex items-center gap-2">
+              <p className="text-[10px] text-stone-400">
+                Last update: {lastLog.changed_by || 'Unknown'} · {formatRelativeTime(lastLog.changed_at)}
+              </p>
+              {log.length > 1 && (
+                <button onClick={() => setHistoryOpen(!historyOpen)} className="text-[10px] text-[#283693] hover:underline">
+                  {historyOpen ? 'Hide history' : `View history (${log.length})`}
+                </button>
+              )}
+            </div>
+          )}
+          {historyOpen && log.length > 0 && (
+            <ul className="mt-1.5 ml-3 space-y-0.5 border-l-2 border-stone-200 pl-3">
+              {[...log].reverse().map((l, i) => (
+                <li key={i} className="text-[10px] text-stone-500">
+                  <span className="font-semibold text-stone-700">{l.status?.replace(/_/g, ' ')}</span>
+                  {l.from && <span className="text-stone-400"> ← {l.from.replace(/_/g, ' ')}</span>}
+                  <span className="ml-1.5 text-stone-400">{l.changed_by || 'Unknown'} · {new Date(l.changed_at).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Note */}
           {noteOpen ? (
             <div className="mt-2 space-y-1.5">
               <Textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} rows={2} className="text-sm" placeholder="Internal note (visible to admin only)..." />
@@ -702,11 +767,11 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
               </div>
             </div>
           ) : entry.note ? (
-            <button onClick={() => { setNoteOpen(true); setNoteDraft(entry.note) }} className="mt-2 block text-xs text-stone-500 italic hover:text-stone-700 text-left">
-              {entry.note}
+            <button onClick={() => { setNoteOpen(true); setNoteDraft(entry.note) }} className="mt-1.5 block text-[11px] text-stone-500 italic hover:text-stone-700 text-left">
+              "{entry.note}"
             </button>
           ) : (
-            <button onClick={() => { setNoteOpen(true); setNoteDraft('') }} className="mt-2 text-[11px] text-stone-400 hover:text-[#283693]">+ Add note</button>
+            <button onClick={() => { setNoteOpen(true); setNoteDraft('') }} className="mt-1.5 text-[10px] text-stone-400 hover:text-[#283693]">+ Add note</button>
           )}
         </div>
       </div>
