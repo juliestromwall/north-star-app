@@ -187,23 +187,33 @@ function saveToSupabase(config) {
   setAppConfig(CONFIG_KEY, config).catch(() => {})
 }
 
-/** Load checklist config from Supabase into memory cache. Call on app startup. */
+/** Load checklist config from Supabase into memory cache. Call on app startup.
+ *
+ * This function MUST NEVER write back to Supabase on its own. Doing so
+ * caused a production data-loss incident: a stale-cached browser tab loaded
+ * the remote config, ensureDefaults decided some stages were "missing"
+ * (because DEFAULT_CHECKLISTS is a slim seed), filled them with empty
+ * arrays, and silently saved the result — wiping all admin-customized
+ * checklist templates. Saves only happen on explicit user action via the
+ * setter functions (which call save()).
+ */
 export async function loadChecklistConfig() {
   try {
     const remote = await getAppConfig(CONFIG_KEY)
     if (remote) {
-      let config = remote
-      let changed = migrateIfNeeded(config)
-      if (ensureDefaults(config)) changed = true
+      const config = remote
+      // In-memory normalization only — DO NOT save the result back.
+      migrateIfNeeded(config)
+      ensureDefaults(config)
       _cache = config
-      _loaded = true // ← unblock save() now that we have real data
+      _loaded = true // unblock save() so user-initiated changes can persist
       saveToLocalStorage(config)
-      if (changed) saveToSupabase(config)
-      // Keep localStorage as a safety net — do NOT clear it.
       return config
     }
 
-    // Supabase empty — check localStorage for migration
+    // Supabase empty — check localStorage for migration. We DO write back
+    // in this branch because there's no remote config to overwrite (this
+    // is the "first ever load" path, seeding from a previous tab).
     const local = loadFromLocalStorage()
     if (local) {
       migrateIfNeeded(local)
@@ -214,7 +224,8 @@ export async function loadChecklistConfig() {
       return local
     }
 
-    // Nothing anywhere — seed defaults
+    // Nothing anywhere — seed defaults. Same reasoning: empty remote means
+    // there's nothing to clobber.
     const defaults = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
     _cache = defaults
     _loaded = true
