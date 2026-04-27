@@ -23,11 +23,6 @@ import { getRecordTrackingBatch } from '@/lib/db'
 import StageBadge from '@/components/shared/StageBadge'
 import { mockUsers, getAdminStaff } from '@/data/mock/users'
 
-const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
-])
-
 const INACTIVE_IP_STAGES = new Set(['holding', 'withdrawn'])
 
 function getInactiveCaseAccent(stage) {
@@ -187,9 +182,6 @@ function formatPhone(val) {
 
 export default function IPListPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
-  const defaultOwnerFilter = isSuperAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
-    ? 'all'
-    : 'mine'
   const canSeeAll = true
   const [ips, setIps] = useState([])
   const [allStageStatuses, setAllStageStatuses] = useState({})
@@ -199,7 +191,7 @@ export default function IPListPage() {
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('active')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(defaultOwnerFilter)
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -210,10 +202,6 @@ export default function IPListPage() {
       if (data?.defaultView === 'list') setView('list')
     }).catch(() => {})
   }, [currentUser?.id])
-
-  useEffect(() => {
-    setOwnerFilter(defaultOwnerFilter)
-  }, [defaultOwnerFilter])
 
   // Add IP dialog state
   const [addOpen, setAddOpen] = useState(false)

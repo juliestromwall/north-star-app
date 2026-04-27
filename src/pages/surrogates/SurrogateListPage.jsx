@@ -29,11 +29,6 @@ import { getAdminStaff } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
 import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
 
-const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
-])
-
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
   'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
@@ -340,9 +335,6 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
 // ── Main Page ──────────────────────────────────────────────
 export default function SurrogateListPage() {
   const { currentUser, isAdmin, isSuperAdmin, isMasterAdmin } = useRole()
-  const defaultOwnerFilter = isSuperAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
-    ? 'all'
-    : 'mine'
   const [surrogates, setSurrogates] = useState([])
   const [profiles, setProfiles] = useState({})
   const [loading, setLoading] = useState(true)
@@ -353,7 +345,7 @@ export default function SurrogateListPage() {
   const [addSuccess, setAddSuccess] = useState(false)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('active')
-  const [ownerFilter, setOwnerFilter] = useState(defaultOwnerFilter)
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const navigate = useNavigate()
 
@@ -369,10 +361,6 @@ export default function SurrogateListPage() {
       if (data?.defaultView === 'list') setView('list')
     }).catch(() => {})
   }, [currentUser?.id])
-
-  useEffect(() => {
-    setOwnerFilter(defaultOwnerFilter)
-  }, [defaultOwnerFilter])
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])

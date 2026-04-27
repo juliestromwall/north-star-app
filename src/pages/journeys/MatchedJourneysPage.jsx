@@ -16,11 +16,6 @@ import { getChecklistMilestones, getChecklistSteps, deriveParentStatus } from '@
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig, getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
 
-const DEFAULT_ALL_CASE_EMAILS = new Set([
-  'julie@abcsurrogacy.com',
-  'nicole@abcsurrogacy.com',
-])
-
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
 
 // Order of status filter boxes, left to right. Any statuses present in data but
@@ -176,9 +171,6 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
 
 export default function MatchedJourneysPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
-  const defaultOwnerFilter = isSuperAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
-    ? 'all'
-    : 'mine'
   const canSeeAll = true
   const [journeys, setJourneys] = useState([])
   const [surrogates, setSurrogates] = useState([])
@@ -186,7 +178,7 @@ export default function MatchedJourneysPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [ownerFilter, setOwnerFilter] = useState(defaultOwnerFilter)
+  const [ownerFilter, setOwnerFilter] = useState('all')
   const [view, setView] = useState('tile')
   const [gcAvatars, setGcAvatars] = useState({}) // gc_case_id → url
   const [ipAvatars, setIpAvatars] = useState({}) // ip_case_id → url
@@ -198,10 +190,6 @@ export default function MatchedJourneysPage() {
       if (data?.defaultView === 'list') setView('list')
     }).catch(() => {})
   }, [currentUser?.id])
-
-  useEffect(() => {
-    setOwnerFilter(defaultOwnerFilter)
-  }, [defaultOwnerFilter])
 
   useEffect(() => {
     Promise.all([fetchMatchedJourneys(), fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
