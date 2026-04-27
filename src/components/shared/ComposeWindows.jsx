@@ -683,7 +683,6 @@ function ComposeWindow({ draft, index }) {
         cc: draft.cc || undefined,
         bcc: draft.bcc || undefined,
         attachments: draft.attachments,
-        from: (draft.senderName || draft.senderEmail) ? { displayName: draft.senderName, email: draft.senderEmail || currentUser?.email } : undefined,
       })
 
       // Cache recipients for autocomplete on next compose
@@ -742,7 +741,6 @@ function ComposeWindow({ draft, index }) {
           cc: draft.cc || undefined,
           bcc: draft.bcc || undefined,
           attachments: draft.attachments,
-          from: (draft.senderName || draft.senderEmail) ? { displayName: draft.senderName, email: draft.senderEmail || currentUser?.email } : undefined,
         })
       } catch (err) {
         console.error('Failed to save draft:', err)
