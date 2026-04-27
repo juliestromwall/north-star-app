@@ -49,6 +49,21 @@ function getAdminName(email) {
 
 const INACTIVE_GC_STAGES = new Set(['holding', 'not-qualified', 'withdrawn'])
 
+function normalizeCaseId(value) {
+  if (value == null) return null
+  return String(value)
+}
+
+function filterOutMatchedSurrogates(surrogates, journeys) {
+  const matchedGcIds = new Set(
+    (journeys || [])
+      .filter((journey) => isJourneyActive(journey))
+      .map((journey) => normalizeCaseId(journey.gc_case_id))
+      .filter(Boolean),
+  )
+  return (surrogates || []).filter((surrogate) => !matchedGcIds.has(normalizeCaseId(surrogate.id)))
+}
+
 function getInactiveCaseAccent(stage) {
   if (stage === 'withdrawn') return '#dc2626'
   if (stage === 'not-qualified') return '#92400e'
@@ -350,11 +365,9 @@ export default function SurrogateListPage() {
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])
       .then(([data, profileList, journeys]) => {
-        // Filter out matched surrogates
-        // Only *active* (non-archived) journeys block a surrogate from appearing in this list
-        const activeJourneys = (journeys || []).filter(isJourneyActive)
-        const matchedGcIds = new Set(activeJourneys.map(j => j.gc_case_id))
-        const filtered = (data || []).filter(s => !matchedGcIds.has(s.id))
+        // Hide surrogates whose current case already belongs to an active journey.
+        // A deliberate "Start New Case" duplicate remains visible because it gets a new case id.
+        const filtered = filterOutMatchedSurrogates(data, journeys)
         setSurrogates(filtered)
         const map = {}
         for (const p of (profileList || [])) {
@@ -447,8 +460,8 @@ export default function SurrogateListPage() {
         assignedTo: currentUser.email,
         referralPartner: addForm.referralPartner ? 'be_surrogacy' : null,
       })
-      const data = await fetchSurrogatesFromIntake()
-      setSurrogates(data || [])
+      const [data, journeys] = await Promise.all([fetchSurrogatesFromIntake(), fetchMatchedJourneys()])
+      setSurrogates(filterOutMatchedSurrogates(data, journeys))
       setAddOpen(false)
       setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
       setAddSuccess(true)
