@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useMemo, Component } from 'react'
+import { useState, useEffect, useRef, Component } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, Heart, Users, Baby, MapPin, Stethoscope, FileText,
   Milestone, Circle, UserCog, Mail, Phone, DollarSign, Droplets, Briefcase,
   Pencil, Save, Loader2, X, Crown, Copy, Check, Calendar, Home, MessageSquare,
-  Hospital, Building2, ChevronDown, ChevronRight, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
+  Hospital, Building2, ChevronDown, Printer, Scale, Plus, Trash2, Eye, Paperclip, HeartPulse, Sparkles, StickyNote,
   MoreHorizontal,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -432,289 +432,7 @@ function JourneyMilestoneTimeline({ journey }) {
   )
 }
 
-// ── Milestone Form View ─────────────────────────────────
-// New checklist UI: left rail of milestones (auto-collapsed when complete),
-// right pane shows the selected milestone's steps as a form. Each step row
-// has status controls + a Skip action. Skipped steps are recorded with
-// status='skipped' plus skipped_by/skipped_at metadata so we can audit who
-// bypassed what.
-function MilestoneFormView({ stageId, tracking, onUpdate, onStatusLog, currentUserName }) {
-  const milestones = useMemo(() => getChecklistMilestones('gc', stageId), [stageId])
-  const allSteps = useMemo(() => getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row'), [stageId])
-  const stepMap = useMemo(() => Object.fromEntries(allSteps.map(s => [s.id, s])), [allSteps])
-
-  const milestonesWithProgress = useMemo(() => {
-    const list = milestones.map(ms => {
-      const steps = (ms.stepIds || []).map(id => stepMap[id]).filter(Boolean)
-      const statuses = steps.map(s => tracking[s.id]?.status || 'not_started')
-      const hasSteps = statuses.length > 0
-      const allDone = hasSteps && statuses.every(st => ['complete', 'na', 'skipped'].includes(st))
-      const anyStarted = statuses.some(st => st !== 'not_started')
-      const status = allDone ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
-      const completedCount = statuses.filter(st => ['complete', 'na', 'skipped'].includes(st)).length
-      return { ...ms, steps, status, completedCount, totalCount: steps.length }
-    })
-    const inMilestones = new Set(milestones.flatMap(m => m.stepIds || []))
-    const orphans = allSteps.filter(s => !inMilestones.has(s.id))
-    if (orphans.length > 0) {
-      const statuses = orphans.map(s => tracking[s.id]?.status || 'not_started')
-      const allDone = statuses.every(st => ['complete', 'na', 'skipped'].includes(st))
-      const anyStarted = statuses.some(st => st !== 'not_started')
-      list.push({
-        id: '_other',
-        label: 'Other Steps',
-        steps: orphans,
-        status: allDone ? 'complete' : anyStarted ? 'in_progress' : 'not_started',
-        completedCount: statuses.filter(st => ['complete', 'na', 'skipped'].includes(st)).length,
-        totalCount: orphans.length,
-      })
-    }
-    return list
-  }, [milestones, allSteps, stepMap, tracking])
-
-  const defaultId = useMemo(() => {
-    const firstActive = milestonesWithProgress.find(m => m.status !== 'complete')
-    return firstActive?.id || milestonesWithProgress[0]?.id || null
-  }, [milestonesWithProgress])
-  const [selectedId, setSelectedId] = useState(defaultId)
-  useEffect(() => { if (!selectedId && defaultId) setSelectedId(defaultId) }, [defaultId, selectedId])
-
-  const [manualExpanded, setManualExpanded] = useState({})
-  function isExpanded(ms) {
-    if (manualExpanded[ms.id] !== undefined) return manualExpanded[ms.id]
-    return ms.status !== 'complete'
-  }
-  function toggleExpanded(ms) {
-    setManualExpanded(prev => ({ ...prev, [ms.id]: !isExpanded(ms) }))
-  }
-
-  const selected = milestonesWithProgress.find(m => m.id === selectedId) || milestonesWithProgress[0]
-
-  if (milestonesWithProgress.length === 0) {
-    return <p className="text-sm text-stone-400 text-center py-8">No milestones configured for this stage. Set them up in Settings.</p>
-  }
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-      <div className="relative">
-        <div className="absolute left-[15px] top-3 bottom-3 w-0.5 bg-stone-200" aria-hidden />
-        <div className="space-y-1.5 relative">
-          {milestonesWithProgress.map(ms => (
-            <MilestoneRailRow
-              key={ms.id}
-              milestone={ms}
-              selected={selectedId === ms.id}
-              expanded={isExpanded(ms)}
-              tracking={tracking}
-              onSelect={() => setSelectedId(ms.id)}
-              onToggle={() => toggleExpanded(ms)}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-stone-200 bg-white p-5">
-        {selected && (
-          <MilestoneFormPane
-            milestone={selected}
-            tracking={tracking}
-            onUpdate={onUpdate}
-            onStatusLog={onStatusLog}
-            currentUserName={currentUserName}
-          />
-        )}
-      </div>
-    </div>
-  )
-}
-
-function MilestoneRailRow({ milestone, selected, expanded, tracking, onSelect, onToggle }) {
-  const ms = milestone
-  const isComplete = ms.status === 'complete'
-  const isInProgress = ms.status === 'in_progress'
-  const dotClass = isComplete
-    ? 'bg-[#283693] border-[#283693] text-white'
-    : isInProgress
-      ? 'bg-white border-[#ed148c] text-[#ed148c]'
-      : 'bg-white border-stone-300 text-stone-300'
-
-  return (
-    <div className={`rounded-xl transition-colors ${selected ? 'bg-[#283693]/5 ring-1 ring-[#283693]/20' : ''}`}>
-      <div className="flex items-start gap-3 px-2 py-2">
-        <button
-          onClick={onSelect}
-          className={`mt-0.5 size-7 rounded-full border-[2.5px] flex items-center justify-center shrink-0 transition-all ${dotClass} ${selected ? 'scale-105' : ''}`}
-          title={`Open ${ms.label}`}
-        >
-          {isComplete && <Check className="size-3.5" />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <button onClick={onSelect} className={`block text-left text-sm font-semibold leading-tight ${selected ? 'text-[#283693]' : isComplete ? 'text-stone-700' : 'text-stone-800'} hover:text-[#283693]`}>
-            {ms.label}
-          </button>
-          <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-[10px] text-stone-400">{ms.completedCount}/{ms.totalCount} done</p>
-            {ms.totalCount > 0 && (
-              <button onClick={onToggle} className="text-[10px] text-stone-400 hover:text-stone-600" title={expanded ? 'Collapse' : 'Expand'}>
-                {expanded ? <ChevronDown className="size-3 inline" /> : <ChevronRight className="size-3 inline" />}
-              </button>
-            )}
-          </div>
-          {expanded && ms.steps.length > 0 && (
-            <ul className="mt-1.5 space-y-0.5">
-              {ms.steps.map(s => {
-                const st = tracking[s.id]?.status || 'not_started'
-                const done = st === 'complete' || st === 'na' || st === 'skipped'
-                return (
-                  <li key={s.id} className={`text-[11px] leading-tight ${done ? 'text-stone-400' : 'text-stone-600'}`}>
-                    <span className="text-stone-300 mr-1">–</span>
-                    {s.label}
-                    {st === 'skipped' && <span className="ml-1 text-[9px] uppercase tracking-wider text-amber-500">Skipped</span>}
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MilestoneFormPane({ milestone, tracking, onUpdate, onStatusLog, currentUserName }) {
-  const ms = milestone
-  return (
-    <div className="space-y-5">
-      <div>
-        <h3 className="text-xl font-semibold text-stone-800">{ms.label}</h3>
-        <p className="text-xs text-stone-400 mt-1">{ms.completedCount} of {ms.totalCount} steps complete</p>
-      </div>
-      {ms.steps.length === 0 ? (
-        <p className="text-sm text-stone-400">No steps in this milestone.</p>
-      ) : (
-        <div className="space-y-3">
-          {ms.steps.map(step => (
-            <StepFormRow
-              key={step.id}
-              step={step}
-              entry={tracking[step.id] || {}}
-              onUpdate={onUpdate}
-              onStatusLog={onStatusLog}
-              currentUserName={currentUserName}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
-  const status = entry.status || 'not_started'
-  const isComplete = status === 'complete'
-  const isSkipped = status === 'skipped'
-  const isNa = status === 'na'
-  const done = isComplete || isSkipped || isNa
-  const [noteOpen, setNoteOpen] = useState(false)
-  const [noteDraft, setNoteDraft] = useState(entry.note || '')
-
-  function setStatus(newStatus, extra = {}) {
-    const updates = { status: newStatus, ...extra }
-    if (newStatus === 'complete' && !entry.completed_at) {
-      updates.completed_at = new Date().toISOString()
-      updates.completed_by = currentUserName
-    }
-    if (newStatus === 'skipped') {
-      updates.skipped_at = new Date().toISOString()
-      updates.skipped_by = currentUserName
-    }
-    onUpdate(step.id, updates)
-    if (newStatus === 'complete' && onStatusLog) {
-      onStatusLog({ stepLabel: step.label, status: newStatus, date: new Date().toISOString().split('T')[0] })
-    }
-  }
-
-  function saveNote() {
-    onUpdate(step.id, { note: noteDraft })
-    setNoteOpen(false)
-  }
-
-  return (
-    <div className={`rounded-xl border p-4 transition-colors ${done ? 'border-stone-100 bg-stone-50/40' : 'border-stone-200 bg-white'}`}>
-      <div className="flex items-start gap-3">
-        <button
-          onClick={() => setStatus(isComplete ? 'not_started' : 'complete')}
-          className={`mt-0.5 size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
-            isComplete ? 'bg-[#283693] border-[#283693] text-white' :
-            isSkipped ? 'bg-amber-50 border-amber-400 text-amber-500' :
-            isNa ? 'bg-stone-100 border-stone-300 text-stone-400' :
-            'bg-white border-stone-300 hover:border-[#283693]'
-          }`}
-          title={isComplete ? 'Mark not started' : 'Mark complete'}
-        >
-          {isComplete && <Check className="size-3.5" />}
-          {isSkipped && <X className="size-3" />}
-          {isNa && <Circle className="size-2.5 fill-current" />}
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className={`text-sm font-medium ${done ? 'text-stone-500' : 'text-stone-800'}`}>{step.label}</p>
-            {isSkipped && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                Skipped{entry.skipped_by ? ` · ${entry.skipped_by}` : ''}
-              </span>
-            )}
-            {isNa && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">Not needed</span>
-            )}
-            {isComplete && entry.completed_by && (
-              <span className="text-[10px] text-stone-400">by {entry.completed_by}</span>
-            )}
-          </div>
-
-          <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-            {CHECKLIST_STEP_STATUSES.filter(s => !['complete', 'note'].includes(s.id)).map(s => {
-              const active = status === s.id
-              const isWarning = s.id === 'skipped'
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setStatus(s.id)}
-                  className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
-                    active
-                      ? isWarning ? 'bg-amber-100 border-amber-300 text-amber-700 font-semibold'
-                        : 'bg-[#283693] border-[#283693] text-white font-semibold'
-                      : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
-
-          {noteOpen ? (
-            <div className="mt-2 space-y-1.5">
-              <Textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} rows={2} className="text-sm" placeholder="Internal note (visible to admin only)..." />
-              <div className="flex gap-2 justify-end">
-                <button onClick={() => { setNoteOpen(false); setNoteDraft(entry.note || '') }} className="text-xs text-stone-500 hover:text-stone-700">Cancel</button>
-                <button onClick={saveNote} className="text-xs text-white bg-[#283693] px-3 py-1 rounded-full">Save note</button>
-              </div>
-            </div>
-          ) : entry.note ? (
-            <button onClick={() => { setNoteOpen(true); setNoteDraft(entry.note) }} className="mt-2 block text-xs text-stone-500 italic hover:text-stone-700 text-left">
-              {entry.note}
-            </button>
-          ) : (
-            <button onClick={() => { setNoteOpen(true); setNoteDraft('') }} className="mt-2 text-[11px] text-stone-400 hover:text-[#283693]">+ Add note</button>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Checklist Tab (milestone form view) ─
+// ── Checklist Tab (uses shared TrackingTable) ─
 function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
   const stageId = journey.stage || 'journey-oversight'
   const stageObj = JOURNEY_STAGES.find(s => s.id === stageId) || JOURNEY_STAGES[0]
@@ -738,63 +456,60 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
     pendingTrackingRef.current = null
   }
 
-  const handleStatusLog = async ({ stepLabel, status, optionLabel, date }) => {
-    if (status === 'complete') {
-      const julieEmail = 'julie@abcsurrogacy.com'
-      const sName = gcCase?.name || journey.gc_name || 'Surrogate'
-      const logDt = date || new Date().toISOString().split('T')[0]
-      const lbl = stepLabel.toLowerCase()
-      const ans = gcCase?.answers || {}
-      const src = ans.hearAboutUs || ''
-      const isRef = src.toLowerCase().includes('friend') || src.toLowerCase().includes('family')
-      const refName = ans.referralName || ans.hearAboutUsOther || 'Referrer'
-
-      if (lbl.includes('medical clearance')) {
-        if (isRef) {
-          try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-        }
-        try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-        try { await createCaseTask({ title: `${sName} Medically Cleared - Collect 3rd Agency Payment`, due_date: logDt, priority: 'high', assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com', created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-      }
-
-      if (lbl.includes('legal clearance')) {
-        if (isRef) {
-          try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-        }
-        try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
-      }
-
-      // Escrow funded — remind the case's assigned admin to submit expenses.
-      if (lbl === 'escrow' || (lbl.includes('escrow') && !lbl.includes('close'))) {
-        const ipName = ipCase?.names || journey?.ip_name || 'Intended Parents'
-        const assignee = journey.assigned_to || null
-        try {
-          await createCaseTask({
-            title: `Escrow Funded for ${ipName} & ${sName} - Submit Expenses to Escrow`,
-            due_date: logDt,
-            priority: 'low',
-            assigned_to: assignee,
-            created_by: currentUser?.email,
-            status: 'open',
-            case_id: journey.id,
-            case_type: 'journey',
-          })
-        } catch (err) { console.error('Escrow funded auto-task failed:', err) }
-      }
-    }
-  }
-
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[#283693]">{stageObj.label} Checklist</h3>
-      </div>
-      <MilestoneFormView
-        stageId={stageId}
+    <div>
+      <TrackingTable
+        title={`${stageObj.label} Checklist`}
+        steps={steps}
+        statuses={CHECKLIST_STEP_STATUSES}
         tracking={tracking}
         onUpdate={handleUpdate}
-        onStatusLog={handleStatusLog}
         currentUserName={currentUser.name}
+        onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
+          if (status === 'complete') {
+            const julieEmail = 'julie@abcsurrogacy.com'
+            const sName = gcCase?.name || journey.gc_name || 'Surrogate'
+            const logDt = date || new Date().toISOString().split('T')[0]
+            const lbl = stepLabel.toLowerCase()
+            const ans = gcCase?.answers || {}
+            const src = ans.hearAboutUs || ''
+            const isRef = src.toLowerCase().includes('friend') || src.toLowerCase().includes('family')
+            const refName = ans.referralName || ans.hearAboutUsOther || 'Referrer'
+
+            if (lbl.includes('medical clearance')) {
+              if (isRef) {
+                try { await createCaseTask({ title: `Pay 1st Referral Incentive to ${refName} for ${sName}'s Medical Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              }
+              try { await createCaseTask({ title: `Pay 1st Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              try { await createCaseTask({ title: `${sName} Medically Cleared - Collect 3rd Agency Payment`, due_date: logDt, priority: 'high', assigned_to: 'julie@abcsurrogacy.com,nicole@abcsurrogacy.com', created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+            }
+
+            if (lbl.includes('legal clearance')) {
+              if (isRef) {
+                try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+              }
+              try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
+            }
+
+            // Escrow funded — remind the case's assigned admin to submit expenses.
+            if (lbl === 'escrow' || (lbl.includes('escrow') && !lbl.includes('close'))) {
+              const ipName = ipCase?.names || journey?.ip_name || 'Intended Parents'
+              const assignee = journey.assigned_to || null
+              try {
+                await createCaseTask({
+                  title: `Escrow Funded for ${ipName} & ${sName} - Submit Expenses to Escrow`,
+                  due_date: logDt,
+                  priority: 'low',
+                  assigned_to: assignee,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Escrow funded auto-task failed:', err) }
+            }
+          }
+        }}
       />
       <ChecklistHistory history={journey.journey_data?._checklistHistory} />
     </div>
