@@ -13,6 +13,7 @@ import { sendEmail, createGmailDraft, fetchEmailContacts, addEmailContactToCache
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchCaseDocuments } from '@/lib/db'
 import { fetchMatchedJourneys } from '@/lib/matching'
+import { getAdminStaff } from '@/data/mock/users'
 import { EMAIL_TAGS } from '@/lib/emailTags'
 import { Button } from '@/components/ui/button'
 import ConfirmDialog from '@/components/ui/confirm-dialog'
@@ -676,6 +677,9 @@ function ComposeWindow({ draft, index }) {
       const htmlBody = draft.signatureHtml
         ? `${editorHtml}<br><div>--</div>${draft.signatureHtml}`
         : editorHtml
+      const adminSenderName = getAdminStaff().find((u) => u.email === currentUser?.email)?.name || ''
+      const resolvedSenderName = draft.senderName || adminSenderName || currentUser?.name || ''
+      const resolvedSenderEmail = draft.senderEmail || currentUser?.email || ''
       const result = await sendEmail(userId, {
         to: draft.to.trim(),
         subject: draft.subject,
@@ -683,6 +687,9 @@ function ComposeWindow({ draft, index }) {
         cc: draft.cc || undefined,
         bcc: draft.bcc || undefined,
         attachments: draft.attachments,
+        from: resolvedSenderEmail
+          ? { displayName: resolvedSenderName, email: resolvedSenderEmail }
+          : undefined,
       })
 
       // Cache recipients for autocomplete on next compose
@@ -697,9 +704,9 @@ function ComposeWindow({ draft, index }) {
             case_id: Number(draft.caseId) || draft.caseId,
             case_type: caseType,
             subject: draft.subject,
-            from_address: draft.senderName
-              ? `${draft.senderName} <${draft.senderEmail || currentUser?.email || ''}>`
-              : (draft.senderEmail || currentUser?.email || ''),
+            from_address: resolvedSenderName
+              ? `${resolvedSenderName} <${resolvedSenderEmail}>`
+              : resolvedSenderEmail,
             to_address: draft.to,
             date: new Date().toISOString(),
             snippet: (editor?.getText() || '').slice(0, 200),
@@ -734,6 +741,9 @@ function ComposeWindow({ draft, index }) {
         const htmlBody = draft.signatureHtml
           ? `${editorHtml}<br><div>--</div>${draft.signatureHtml}`
           : editorHtml
+        const adminSenderName = getAdminStaff().find((u) => u.email === currentUser?.email)?.name || ''
+        const resolvedSenderName = draft.senderName || adminSenderName || currentUser?.name || ''
+        const resolvedSenderEmail = draft.senderEmail || currentUser?.email || ''
         await createGmailDraft(userId, {
           to: draft.to,
           subject: draft.subject,
@@ -741,6 +751,9 @@ function ComposeWindow({ draft, index }) {
           cc: draft.cc || undefined,
           bcc: draft.bcc || undefined,
           attachments: draft.attachments,
+          from: resolvedSenderEmail
+            ? { displayName: resolvedSenderName, email: resolvedSenderEmail }
+            : undefined,
         })
       } catch (err) {
         console.error('Failed to save draft:', err)
