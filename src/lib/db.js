@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getAuthHeaders } from './authHeaders'
 
 // Wrap a Supabase call with timeout. Returns null if Supabase is not configured.
 async function withTimeout(buildQuery, ms = 12000) {
@@ -463,83 +464,27 @@ export async function updateReferralPartner(submissionId, partner) {
 }
 
 export async function adminAddSurrogate(surrogateData) {
-  if (!supabase) return null
-  const submission = {
-    intake_type: 'gc',
-    status: 'qualified',
-    qualified: true,
-    applicant_name: `${surrogateData.firstName} ${surrogateData.lastName}`.trim(),
-    applicant_email: surrogateData.email.trim().toLowerCase(),
-    applicant_phone: surrogateData.phone,
-    answers: {
-      firstName: surrogateData.firstName,
-      lastName: surrogateData.lastName,
-      email: surrogateData.email,
-      phone: surrogateData.phone,
-      state: surrogateData.state,
-      dob: surrogateData.dob,
-      applicationDate: surrogateData.applicationDate || null,
-    },
-    submitted_at: surrogateData.applicationDate
-      ? new Date(surrogateData.applicationDate + 'T00:00:00').toISOString()
-      : new Date().toISOString(),
-    assigned_to: surrogateData.assignedTo || null,
-    referral_partner: surrogateData.referralPartner || null,
-    state_region: surrogateData.state,
-    dq_reasons: [],
-  }
-  const { data, error } = await supabase
-    .from('intake_submissions')
-    .insert(submission)
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
+  const res = await fetch('/api/admin-add-case', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ caseType: 'gc', caseData: surrogateData }),
+  })
+  const payload = await res.json().catch(() => null)
+  if (!res.ok || !payload?.ok) throw new Error(payload?.error || 'Failed to create surrogate case')
+  return payload.data
 }
 
 export async function adminAddIP(ipData) {
-  if (!supabase) return null
-  const hasPartner = !!(ipData.ip2FirstName && ipData.ip2FirstName.trim())
-  const ip1Name = `${ipData.firstName} ${ipData.lastName}`.trim()
-  const ip2Name = hasPartner ? `${ipData.ip2FirstName} ${ipData.ip2LastName}`.trim() : ''
-  const submission = {
-    intake_type: 'ip',
-    status: 'qualified',
-    qualified: true,
-    applicant_name: hasPartner ? `${ip1Name} & ${ip2Name}` : ip1Name,
-    applicant_email: ipData.email.trim().toLowerCase(),
-    applicant_phone: ipData.phone,
-    answers: {
-      primaryFirstName: ipData.firstName,
-      primaryLastName: ipData.lastName,
-      email: ipData.email,
-      phone: ipData.phone,
-      country: ipData.country || 'United States',
-      city: ipData.city || '',
-      stateProv: ipData.state || '',
-      hasPartner: hasPartner ? 'yes' : 'no',
-      ...(hasPartner ? {
-        ip2FirstName: ipData.ip2FirstName,
-        ip2LastName: ipData.ip2LastName,
-        ip2Email: ipData.ip2Email || '',
-        ip2Phone: ipData.ip2Phone || '',
-      } : {}),
-      applicationDate: ipData.applicationDate || null,
-    },
-    submitted_at: ipData.applicationDate
-      ? new Date(ipData.applicationDate + 'T00:00:00').toISOString()
-      : new Date().toISOString(),
-    assigned_to: ipData.assignedTo || null,
-    state_region: ipData.state || '',
-    dq_reasons: [],
-  }
-  const { data, error } = await supabase
-    .from('intake_submissions')
-    .insert(submission)
-    .select()
-    .single()
-  if (error) throw error
-  return data
+  const headers = await getAuthHeaders({ 'Content-Type': 'application/json' })
+  const res = await fetch('/api/admin-add-case', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ caseType: 'ip', caseData: ipData }),
+  })
+  const payload = await res.json().catch(() => null)
+  if (!res.ok || !payload?.ok) throw new Error(payload?.error || 'Failed to create intended parent case')
+  return payload.data
 }
 
 export async function unassignSurrogate(submissionId) {
