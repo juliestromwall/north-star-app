@@ -668,7 +668,7 @@ function ComposeWindow({ draft, index }) {
   }
 
   const handleSend = async () => {
-    if (!draft.to.trim() || !userId) return
+    if (!draft.to.trim() || !userId || draft.senderInfoLoading) return
     setSending(true)
     try {
       const editorHtml = editor?.getHTML() || draft.body || '<p></p>'
@@ -916,10 +916,16 @@ function ComposeWindow({ draft, index }) {
           {(() => {
             const caseSelected = draft.caseId && draft.caseId !== '_none'
             const needsTag = caseSelected && !draft.emailTag
+            const sendDisabled = sending || !draft.to.trim() || needsTag || draft.senderInfoLoading
+            const sendTitle = draft.senderInfoLoading
+              ? 'Loading sender details from Gmail...'
+              : needsTag
+                ? 'Select a tag to log this email to the case'
+                : ''
             return (
-              <Button onClick={handleSend} disabled={sending || !draft.to.trim() || needsTag} size="sm" className="gap-1.5" title={needsTag ? 'Select a tag to log this email to the case' : ''}>
+              <Button onClick={handleSend} disabled={sendDisabled} size="sm" className="gap-1.5" title={sendTitle}>
                 {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
-                {needsTag ? 'Select a tag' : 'Send'}
+                {draft.senderInfoLoading ? 'Loading sender...' : needsTag ? 'Select a tag' : 'Send'}
               </Button>
             )
           })()}

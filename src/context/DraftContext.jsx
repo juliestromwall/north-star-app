@@ -71,6 +71,7 @@ export function DraftProvider({ children }) {
       caseType: caseType || '',
       minimized: false,
       showCcBcc: true,
+      senderInfoLoading: Boolean(userId),
     }
 
     setDrafts(prev => [...prev, draft])
@@ -85,9 +86,14 @@ export function DraftProvider({ children }) {
           signatureHtml: d.signatureHtml || info.signature || '',
           senderName: d.senderName || info.displayName || '',
           senderEmail: d.senderEmail || info.sendAsEmail || '',
+          senderInfoLoading: false,
         }
       }))
-    }).catch(() => {})
+    }).catch(() => {
+      setDrafts(prev => prev.map(d => (
+        d.id === id ? { ...d, senderInfoLoading: false } : d
+      )))
+    })
 
     return id
   }, [fetchSendAs])
