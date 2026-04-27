@@ -15,7 +15,10 @@ let _cache = null
 // real data with the defaults that the sync fallback returns.
 let _loaded = false
 
-// Default step statuses available for all checklists
+// Default step statuses available for all checklists.
+// 'skipped' is admin-only — captured when an admin explicitly bypasses
+// a step (different from 'na' which means "doesn't apply"). Both are
+// treated as terminal/done by deriveParentStatus + milestone progress.
 export const CHECKLIST_STEP_STATUSES = [
   { id: 'not_started', label: 'Not Started' },
   { id: 'requested', label: 'Requested' },
@@ -26,6 +29,7 @@ export const CHECKLIST_STEP_STATUSES = [
   { id: 'note', label: 'Note' },
   { id: 'complete', label: 'Complete' },
   { id: 'na', label: 'Not Needed' },
+  { id: 'skipped', label: 'Skipped' },
 ]
 
 /**
@@ -51,7 +55,7 @@ export function normalizeOptions(options) {
 export function deriveParentStatus(children, tracking) {
   if (!Array.isArray(children) || children.length === 0) return null
   const statuses = children.map(c => tracking?.[c.id]?.status || 'not_started')
-  const allDoneOrNa = statuses.every(s => s === 'complete' || s === 'na' || s === 'partial_complete')
+  const allDoneOrNa = statuses.every(s => s === 'complete' || s === 'na' || s === 'skipped' || s === 'partial_complete')
   if (allDoneOrNa) return 'complete'
   // Priority order — highest "active" wins
   const priority = ['reviewing', 'in_progress', 'requested', 'partial_received', 'records_received']
