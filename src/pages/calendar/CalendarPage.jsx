@@ -276,6 +276,7 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [selectedDayEvents, setSelectedDayEvents] = useState(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [editEvent, setEditEvent] = useState(null)
   const [deleting, setDeleting] = useState(false)
@@ -595,7 +596,15 @@ export default function CalendarPage() {
                       })}
                       {overflow && (
                         <button
-                          onClick={() => setSelectedEvent(dayEvents[MAX_VISIBLE_EVENTS])}
+                          onClick={() => setSelectedDayEvents({
+                            dateLabel: new Date(currentYear, currentMonth, cell.day).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric',
+                            }),
+                            events: dayEvents,
+                          })}
                           className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 cursor-pointer font-medium"
                         >
                           +{dayEvents.length - MAX_VISIBLE_EVENTS} more
@@ -680,6 +689,42 @@ export default function CalendarPage() {
                   Edit
                 </Button>
               </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Day Overflow Dialog */}
+      <Dialog open={!!selectedDayEvents} onOpenChange={open => { if (!open) setSelectedDayEvents(null) }}>
+        <DialogContent className="max-w-lg">
+          {selectedDayEvents && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedDayEvents.dateLabel}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {selectedDayEvents.events.map((ev) => {
+                  const style = getCalendarEventStyle(ev, calendars)
+                  return (
+                    <button
+                      key={ev.id}
+                      onClick={() => {
+                        setSelectedDayEvents(null)
+                        setSelectedEvent(ev)
+                      }}
+                      className="block w-full text-left rounded-lg border px-3 py-2 hover:opacity-80 transition-opacity"
+                      style={style}
+                    >
+                      <div className="text-sm font-medium">{ev.summary || '(No title)'}</div>
+                      <div className="text-xs opacity-80 mt-1">
+                        {ev.start?.date
+                          ? 'All day'
+                          : `${formatEventTime(ev)}${ev.end?.dateTime ? ` - ${new Date(ev.end.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : ''}`}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </>
           )}
         </DialogContent>
