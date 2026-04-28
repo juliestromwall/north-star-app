@@ -150,6 +150,27 @@ function isAppointmentForAdmin(event, { surrogates, ips, journeys, adminEmail, s
   return false
 }
 
+async function listDashboardCalendarEvents(token, calendarId, baseParams) {
+  const items = []
+  let pageToken = null
+  let pageCount = 0
+
+  do {
+    const params = new URLSearchParams(baseParams)
+    if (pageToken) params.set('pageToken', pageToken)
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) break
+    items.push(...(data?.items || []))
+    pageToken = data?.nextPageToken || null
+    pageCount += 1
+  } while (pageToken && pageCount < 10)
+
+  return items
+}
+
 export default function AdminDashboard() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
   const showAllCases = isSuperAdmin || isMasterAdmin
@@ -258,7 +279,7 @@ export default function AdminDashboard() {
         const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
         const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
         getAccessToken(userId).then(async token => {
-          const baseParams = { maxResults: '100', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax }
+          const baseParams = { maxResults: '250', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax }
           let calIds = ['primary']
           try {
             const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
@@ -267,9 +288,7 @@ export default function AdminDashboard() {
             if (apptCal) calIds.push(apptCal.id)
           } catch {}
           const results = await Promise.all(calIds.map(calId =>
-            fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?${new URLSearchParams(baseParams)}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }).then(r => r.json()).then(d => d?.items || []).catch(() => [])
+            listDashboardCalendarEvents(token, calId, baseParams).catch(() => [])
           ))
           const all = results.flat()
           const seen = new Set()
