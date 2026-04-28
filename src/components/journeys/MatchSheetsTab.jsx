@@ -258,6 +258,7 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
   const pd = profileData || {}
   const personal = pd.personal || {}
   const employment = pd.employment || {}
+  const hopes = pd.hopesWishes || {}
   const pregnancyHistory = pd.pregnancyHistory || {}
   const color = '#283693'
 
@@ -267,6 +268,18 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
   const gcDob = gcApp.dob || gcCase?.dob || ga.dob || personal.dob
   const ipHasPartner = a.hasPartner === true || a.hasPartner === 'yes'
+  const gcHasPartner = gcApp.hasSpouse === 'yes' || gcApp.hasSpouse === true
+  const gcPartnerName = [gcApp.spouseFirstName, gcApp.spouseLastName].filter(Boolean).join(' ').trim()
+  const gcPartnerDob = gcApp.spouseDob || ''
+  const gcPartnerEmail = gcApp.spouseEmail || ''
+  const gcPartnerPhone = gcApp.spousePhone || ''
+  const reClinicLocation = [jd.ivfCity, jd.ivfState].filter(Boolean).join(', ')
+  const deliveryHospitalLocation = [jd.deliveryHospitalCity, jd.deliveryHospitalState].filter(Boolean).join(', ')
+  const lostWagesDisplay = employment.currentlyEmployed === 'yes' || employment.currentlyEmployed === true ? 'Yes' : 'Not Employed'
+  const gcEmploymentDisplay = employment.currentlyEmployed === 'yes' || employment.currentlyEmployed === true ? 'Yes' : 'No'
+  const partnerEmploymentDisplay = gcHasPartner
+    ? ((employment.partnerEmployed === 'yes' || employment.partnerEmployed === true) ? 'Yes' : 'No')
+    : null
 
   return (
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
@@ -312,8 +325,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       <SectionTitle color={color} icon={Scale}>Intended Parents' Attorney</SectionTitle>
       <InfoGrid items={[
-        { label: 'Attorney Name', editable: true, value: <EditableValue field="ipAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." /> },
-        { label: 'Attorney Email', editable: true, value: <EditableValue field="ipAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
+        { label: 'Attorney Name', editable: true, value: <EditableValue field="ipAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." value={jd.ipAttorneyName} /> },
+        { label: 'Attorney Email', editable: true, value: <EditableValue field="ipAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." value={jd.ipAttorneyEmail} /> },
       ]} />
 
       {/* Surrogate — page 2 */}
@@ -335,14 +348,14 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
-      {(ga.maritalStatus === 'Married' || personal.maritalStatus === 'Married' || ga.maritalStatus === 'married' || ga.maritalStatus === 'Domestic Partnership') && (
+      {gcHasPartner && (
         <>
           <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
           <InfoGrid items={[
-            { label: 'Full Name', value: [personal.partnerFirstName || ga.partnerFirstName, personal.partnerLastName || ga.partnerLastName].filter(Boolean).join(' ') || personal.partnerName || '—' },
-            { label: 'Date of Birth', value: (() => { const dob = personal.partnerDob || ga.partnerDob; return `${formatDate(dob)}${dob && calcAge(dob) !== null ? ` (Age ${calcAge(dob)})` : ''}` })() },
-            { label: 'Email', value: personal.partnerEmail || ga.partnerEmail || '—' },
-            { label: 'Phone', value: formatPhone(personal.partnerPhone || ga.partnerPhone) },
+            { label: 'Full Name', value: gcPartnerName || '—' },
+            { label: 'Date of Birth', value: `${formatDate(gcPartnerDob)}${gcPartnerDob && calcAge(gcPartnerDob) !== null ? ` (Age ${calcAge(gcPartnerDob)})` : ''}` },
+            { label: 'Email', value: gcPartnerEmail || '—' },
+            { label: 'Phone', value: formatPhone(gcPartnerPhone) },
           ]} />
         </>
       )}
@@ -359,8 +372,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       <SectionTitle color="#ed148c" icon={Scale}>Surrogate's Attorney</SectionTitle>
       <InfoGrid items={[
-        { label: 'Attorney Name', editable: true, value: <EditableValue field="gcAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." /> },
-        { label: 'Attorney Email', editable: true, value: <EditableValue field="gcAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." /> },
+        { label: 'Attorney Name', editable: true, value: <EditableValue field="gcAttorneyName" msData={msData} onChange={onChange} placeholder="Enter attorney name..." value={jd.gcAttorneyName} /> },
+        { label: 'Attorney Email', editable: true, value: <EditableValue field="gcAttorneyEmail" msData={msData} onChange={onChange} placeholder="Enter attorney email..." value={jd.gcAttorneyEmail} /> },
       ]} />
 
       {/* Journey Details — page 3 */}
@@ -368,31 +381,31 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       <PartyBanner color="#723bb4" icon={FileText}>Journey Details</PartyBanner>
       <InfoGrid items={[
         { label: 'Escrow Account Holder', editable: true, value: <EditableValue field="escrowCompany" msData={msData} onChange={onChange} placeholder="SeedTrust Escrow, LLC" value="SeedTrust Escrow, LLC" /> },
-        { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="Enter amount..." /> },
-        { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin)} /> },
-        { label: 'Lost Wages Entitled', value: yesNo(jd.lostWages) },
-        { label: "Surrogate's Employment Status", value: employment.currentlyEmployed ? `Employed — ${employment.occupation || ''}` : 'Not Employed' },
-        { label: "Spouse/Partner's Employment Status", value: employment.partnerOccupation ? `Employed — ${employment.partnerOccupation}` : '—' },
-        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableSelect field="amnioTesting" msData={msData} onChange={onChange} options={['Only if Medically Necessary', 'Yes', 'No']} placeholder="Select..." /> },
-        { label: 'Number of Fetuses to Carry', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" /> },
-        { label: 'Willing to Carry Twins (Split)', editable: true, value: <EditableSelect field="willingTwins" msData={msData} onChange={onChange} placeholder="Select..." /> },
+        { label: 'Escrow to Be Funded', editable: true, value: <EditableValue field="escrowFunding" msData={msData} onChange={onChange} placeholder="$100,000" value="$100,000" /> },
+        { label: 'Minimum Balance Requirement', editable: true, value: <EditableValue field="escrowMinimum" msData={msData} onChange={onChange} placeholder="$10,000" value={fmtCurrency(jd.escrowMin) !== '—' ? fmtCurrency(jd.escrowMin) : '$10,000'} /> },
+        { label: 'Lost Wages Entitled', value: lostWagesDisplay },
+        { label: "Surrogate's Employment Status", value: gcEmploymentDisplay },
+        { label: "Spouse/Partner's Employment Status", value: gcHasPartner ? partnerEmploymentDisplay : '—' },
+        { label: 'Amnio / Invasive Testing', editable: true, value: <EditableSelect field="amnioTesting" msData={msData} onChange={onChange} options={['Only if Medically Necessary', 'Yes', 'No']} placeholder="Select..." value={hopes.cvsAmnio === 'yes' ? 'Yes' : hopes.cvsAmnio === 'no' ? 'No' : ''} /> },
+        { label: 'Number of Fetuses to Carry', editable: true, value: <EditableValue field="numberOfFetuses" msData={msData} onChange={onChange} placeholder="1" value={hopes.embryosToTransfer || ''} /> },
+        { label: 'Willing to Carry Twins (Split)', editable: true, value: <EditableSelect field="willingTwins" msData={msData} onChange={onChange} placeholder="Select..." value={hopes.carryTwins === 'yes' ? 'Yes' : hopes.carryTwins === 'no' ? 'No' : ''} /> },
         { label: 'Abort/Reduce for Medical Reason', editable: true, value: <EditableSelect field="abortReduce" msData={msData} onChange={onChange} options={['Any medical reason', 'Life-threatening only', 'No']} placeholder="Select..." /> },
-        { label: 'Psych Counseling', editable: true, value: <EditableSelect field="psychCounseling" msData={msData} onChange={onChange} options={['Required', 'Allowed', 'Not Required']} placeholder="Select..." /> },
+        { label: 'Psych Counseling', editable: true, value: <EditableSelect field="psychCounseling" msData={msData} onChange={onChange} options={['Required', 'Allowed', 'Not Required']} placeholder="Select..." value="Required" /> },
         { label: 'Psych Can Be Done Over the Phone', editable: true, value: <EditableSelect field="psychOverPhone" msData={msData} onChange={onChange} placeholder="Select..." /> },
         { label: 'Max Counseling Sessions', editable: true, value: <EditableValue field="maxCounselingSessions" msData={msData} onChange={onChange} placeholder="15" value="15" /> },
-        { label: 'Support Group Meetings Required', editable: true, value: <EditableSelect field="supportGroupMeetings" msData={msData} onChange={onChange} placeholder="Select..." /> },
+        { label: 'Support Group Meetings Required', editable: true, value: <EditableSelect field="supportGroupMeetings" msData={msData} onChange={onChange} options={['Yes', 'Optional']} placeholder="Select..." value="Optional" /> },
       ]} />
 
       <SectionTitle color="#723bb4" icon={Stethoscope}>IVF Physician</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'Name of IVF Physician', value: ipCase?.reDoctorName || '—' },
-        { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
+        { label: 'Name of IVF Physician', editable: true, value: <EditableValue field="ivfPhysicianName" msData={msData} onChange={onChange} placeholder="Enter physician name..." value={jd.ivfDoctor || jd.ivfClinic || ipCase?.reDoctorName || ''} /> },
+        { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." value={reClinicLocation} /> },
       ]} />
 
       <SectionTitle color="#723bb4" icon={Hospital}>Delivery Hospital</SectionTitle>
       <InfoGrid columns={1} items={[
-        { label: 'Hospital Name', editable: true, value: <EditableValue field="deliveryHospital" msData={msData} onChange={onChange} placeholder="Enter hospital name..." value={jd.hospital} /> },
-        { label: 'City, State', editable: true, value: <EditableValue field="deliveryHospitalLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
+        { label: 'Hospital Name', editable: true, value: <EditableValue field="deliveryHospital" msData={msData} onChange={onChange} placeholder="Enter hospital name..." value={jd.deliveryHospital || jd.hospital || ''} /> },
+        { label: 'City, State', editable: true, value: <EditableValue field="deliveryHospitalLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." value={deliveryHospitalLocation} /> },
       ]} />
 
       <ConfidentialFooter />
