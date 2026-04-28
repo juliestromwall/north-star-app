@@ -550,17 +550,19 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
         )}
       </div>
 
-      {/* Subtasks */}
+      {/* Subtasks — draggable within the parent group */}
       {(subtasks.length > 0 || addingSubtask) && (
         <div className="ml-6 mt-1.5 space-y-1 border-l-2 border-stone-100 pl-3">
-          {subtasks.map(sub => (
-            <SubtaskRow
-              key={sub.id}
-              subtask={sub}
-              onEdit={(updates) => onEditSubtask(sub.id, updates)}
-              onDelete={() => onDeleteSubtask(sub.id)}
-            />
-          ))}
+          <SortableContext items={subtasks.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            {subtasks.map(sub => (
+              <SubtaskRow
+                key={sub.id}
+                subtask={sub}
+                onEdit={(updates) => onEditSubtask(sub.id, updates)}
+                onDelete={() => onDeleteSubtask(sub.id)}
+              />
+            ))}
+          </SortableContext>
           {addingSubtask && (
             <div className="flex items-center gap-1.5 py-1">
               <CornerDownRight className="size-3 text-stone-300 shrink-0" />
@@ -594,42 +596,90 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
   )
 }
 
-// ── Subtask Row (label-only, no drag) ──────────────────────
+// ── Subtask Row (draggable, full edit incl. custom dropdowns) ──────
 
 function SubtaskRow({ subtask, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false)
-  const [label, setLabel] = useState(subtask.label)
+  const [editLabel, setEditLabel] = useState(subtask.label)
+  const [editLogType, setEditLogType] = useState(subtask.logType || 'status')
+  const [editOptions, setEditOptions] = useState(normalizeOptions(subtask.options))
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subtask.id })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   const save = () => {
-    if (label.trim() && label.trim() !== subtask.label) onEdit({ label: label.trim() })
+    const opts = editLogType === 'dropdown'
+      ? editOptions.filter(o => o.label.trim()).map(o => ({ label: o.label.trim(), mapsTo: o.mapsTo || 'in_progress' }))
+      : []
+    onEdit({ label: editLabel.trim() || subtask.label, logType: editLogType, options: opts })
     setEditing(false)
   }
-  const cancel = () => { setLabel(subtask.label); setEditing(false) }
+  const cancel = () => {
+    setEditLabel(subtask.label)
+    setEditLogType(subtask.logType || 'status')
+    setEditOptions(normalizeOptions(subtask.options))
+    setEditing(false)
+  }
+
+  const logType = subtask.logType || 'status'
 
   return (
-    <div className="flex items-center gap-1.5 group/sub py-0.5">
-      <CornerDownRight className="size-3 text-stone-300 shrink-0" />
-      {editing ? (
-        <>
-          <Input
-            value={label}
-            onChange={e => setLabel(e.target.value)}
-            className="h-7 text-xs flex-1"
-            autoFocus
-            onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') cancel() }}
-          />
-          <button onClick={save} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-3.5" /></button>
-          <button onClick={cancel} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-3.5" /></button>
-        </>
-      ) : (
-        <>
-          <span className="text-xs text-stone-600 flex-1">{subtask.label}</span>
-          <div className="flex items-center gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
-            <button onClick={() => { setLabel(subtask.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
-            <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+    <div ref={setNodeRef} style={style} className="group/sub py-0.5">
+      <div className="flex items-start gap-1.5">
+        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none mt-0.5" title="Drag to reorder">
+          <GripVertical className="size-3.5" />
+        </button>
+        <CornerDownRight className="size-3 text-stone-300 shrink-0 mt-1" />
+        {editing ? (
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={editLabel}
+                onChange={e => setEditLabel(e.target.value)}
+                className="h-7 text-xs flex-1"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter' && editLogType !== 'dropdown') save(); if (e.key === 'Escape') cancel() }}
+                placeholder="Subtask name"
+              />
+              <select value={editLogType} onChange={e => setEditLogType(e.target.value)} className="h-7 text-[10px] border rounded px-1.5 bg-white">
+                <option value="status">Status Dropdown</option>
+                <option value="text">Text Field</option>
+                <option value="dropdown">Custom Dropdown</option>
+                <option value="date_completed">Date Completed</option>
+              </select>
+            </div>
+            {editLogType === 'dropdown' && (
+              <DropdownOptionsEditor options={editOptions} onChange={setEditOptions} />
+            )}
+            <div className="flex gap-1">
+              <button onClick={save} className="p-1 rounded hover:bg-emerald-50 text-emerald-600"><Check className="size-3.5" /></button>
+              <button onClick={cancel} className="p-1 rounded hover:bg-stone-100 text-stone-400"><X className="size-3.5" /></button>
+            </div>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-stone-600">{subtask.label}</span>
+              {logType !== 'status' && (
+                <span className={`ml-2 text-[8px] font-semibold px-1 py-0.5 rounded-full ${LOG_TYPE_COLORS[logType] || ''}`}>
+                  {LOG_TYPE_LABELS[logType] || logType}
+                </span>
+              )}
+              {logType === 'dropdown' && subtask.options?.length > 0 && (
+                <span className="text-[9px] text-stone-400 ml-1">({normalizeOptions(subtask.options).map(o => o.label).join(', ')})</span>
+              )}
+            </div>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+              <button onClick={() => { setEditLabel(subtask.label); setEditLogType(subtask.logType || 'status'); setEditOptions(normalizeOptions(subtask.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+              <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -755,19 +805,47 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
   const handleDragEnd = (event) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    const oldIndex = topLevelSteps.findIndex(s => s.id === active.id)
-    const newIndex = topLevelSteps.findIndex(s => s.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-    const reorderedTop = arrayMove(topLevelSteps, oldIndex, newIndex)
-    // Rebuild full list: each parent followed by its children
-    const newSteps = []
-    for (const parent of reorderedTop) {
-      newSteps.push(parent)
-      const children = subtasksByParent[parent.id] || []
-      newSteps.push(...children)
+    const activeStep = steps.find(s => s.id === active.id)
+    const overStep = steps.find(s => s.id === over.id)
+    if (!activeStep || !overStep) return
+
+    // Subtask drag — reorder within the same parent group only.
+    if (activeStep.parentId && overStep.parentId === activeStep.parentId) {
+      const siblings = subtasksByParent[activeStep.parentId] || []
+      const oldIdx = siblings.findIndex(s => s.id === active.id)
+      const newIdx = siblings.findIndex(s => s.id === over.id)
+      if (oldIdx === -1 || newIdx === -1) return
+      const reordered = arrayMove(siblings, oldIdx, newIdx)
+      const newSteps = []
+      for (const parent of topLevelSteps) {
+        newSteps.push(parent)
+        if (parent.id === activeStep.parentId) {
+          newSteps.push(...reordered)
+        } else {
+          newSteps.push(...(subtasksByParent[parent.id] || []))
+        }
+      }
+      setChecklistSteps(userType, stage.id, newSteps)
+      onUpdate()
+      return
     }
-    setChecklistSteps(userType, stage.id, newSteps)
-    onUpdate()
+
+    // Top-level step drag — reorder parents (children move with their parent).
+    if (!activeStep.parentId && !overStep.parentId) {
+      const oldIndex = topLevelSteps.findIndex(s => s.id === active.id)
+      const newIndex = topLevelSteps.findIndex(s => s.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+      const reorderedTop = arrayMove(topLevelSteps, oldIndex, newIndex)
+      const newSteps = []
+      for (const parent of reorderedTop) {
+        newSteps.push(parent)
+        const children = subtasksByParent[parent.id] || []
+        newSteps.push(...children)
+      }
+      setChecklistSteps(userType, stage.id, newSteps)
+      onUpdate()
+    }
+    // Cross-parent or step↔subtask drags ignored — would change hierarchy.
   }
 
   const handleAddSubtask = (parentId, label) => {
