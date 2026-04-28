@@ -105,9 +105,7 @@ const MEDICAL_RECORD_STATUSES = [
 function getExistingMedicalRecordKeys(recordTracking = {}, screeningSteps = []) {
   const allStepIds = new Set(screeningSteps.map(s => s.id))
   return Object.keys(recordTracking).filter(k => {
-    if (!(k.startsWith('ob_records_') || k.startsWith('delivery_records_') || k.startsWith('ivf_records_') || k.startsWith('custom_record_'))) {
-      return false
-    }
+    if (!(k.startsWith('ob_records_') || k.startsWith('delivery_records_') || k.startsWith('ivf_records_') || k.startsWith('custom_record_'))) return false
     if (k.startsWith('custom_record_')) return true
     if (allStepIds.has(k)) return false
     const suffix = k.replace(/^(ob_records_|delivery_records_|ivf_records_)/, '')
@@ -117,6 +115,19 @@ function getExistingMedicalRecordKeys(recordTracking = {}, screeningSteps = []) 
   })
 }
 
+function getExpectedRecordKeysForPrefix(profileData, prefix) {
+  const pregnancies = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
+  const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+  const keys = []
+  for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+    if (prefix === 'ivf_records_') {
+      if (pregnancies[i]?.wasSurrogacy === 'yes') keys.push(`ivf_records_${i}`)
+    } else {
+      keys.push(`${prefix}${i}`)
+    }
+  }
+  return keys
+}
 function getMedicalRecordStepIds(profileData, recordTracking = {}, screeningSteps = []) {
   const pregnancies = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
   const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
@@ -370,6 +381,21 @@ export default function SurrogateDetailPage() {
     setRecordTracking(prev => ({ ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }))
   }
 
+  useEffect(() => {
+    if (!profileData) return
+    const screeningSteps = getChecklistSteps('gc', 'screening')
+    const expectedKeys = getMedicalRecordStepIds(profileData, recordTracking, screeningSteps).filter(k => !k.startsWith('custom_record_'))
+    const missing = expectedKeys.filter(k => !recordTracking[k])
+    if (missing.length === 0) return
+    setRecordTracking(prev => {
+      const next = { ...prev }
+      for (const key of missing) {
+        if (!next[key]) next[key] = { status: 'not_started', history: [] }
+      }
+      return next
+    })
+  }, [profileData, recordTracking])
+
   // Map medical record prefixes to checklist step label patterns
   const RECORD_PREFIXES = ['ob_records_', 'delivery_records_', 'ivf_records_', 'pap_']
   const PREFIX_LABELS = { 'ob_records_': 'ob records', 'delivery_records_': 'delivery records', 'ivf_records_': 'ivf records', 'pap_': 'pap' }
@@ -395,7 +421,7 @@ export default function SurrogateDetailPage() {
       // Real records: ob_records_0, ob_records_1 (short numeric suffix)
       // Checklist steps: ob_records, ob_records_1775016744351 (no suffix or long timestamp)
       const allStepIds = new Set(screeningSteps.map(s => s.id))
-      const recordKeys = Object.keys(recordTracking).filter(k => {
+      const existingKeys = Object.keys(recordTracking).filter(k => {
         if (!k.startsWith(prefix)) return false
         if (allStepIds.has(k)) return false
         // Exclude keys with timestamp suffixes (10+ digits) — those are checklist steps
@@ -403,6 +429,8 @@ export default function SurrogateDetailPage() {
         if (/^\d{10,}$/.test(suffix)) return false
         return true
       })
+      const expectedKeys = getExpectedRecordKeysForPrefix(profileData, prefix)
+      const recordKeys = [...new Set([...existingKeys, ...expectedKeys])]
       if (recordKeys.length === 0) continue
 
       // Separate active records from deactivated ones
