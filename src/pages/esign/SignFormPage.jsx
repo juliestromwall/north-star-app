@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { FileText, CheckCircle2, Loader2, Mail, Shield } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { logAuditEvent, signDocument } from '@/lib/esign'
 import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateIPBackgroundWaiverHtml, generateAuditTrailHtml, generateReleasePageHtml, generateReleaseFormHtml } from '@/lib/formTemplates'
+import PdfOverlaySigner from '@/components/esign/PdfOverlaySigner'
 
 // ── Signature Pad ──
 function SignaturePad({ value, onChange, signerName }) {
@@ -565,6 +566,19 @@ export default function SignFormPage() {
     </div>
   )
 
+  // ── PDF-overlay templates (e.g. Kaiser — picky facility, must use their PDF) ──
+  if (template.layoutMode === 'pdf-overlay') {
+    return <KaiserPdfOverlayBranch
+      doc={doc}
+      template={template}
+      mySigner={mySigner}
+      currentDocId={doc.id}
+      onDone={() => setDone(true)}
+      signing={signing}
+      setSigning={setSigning}
+    />
+  }
+
   // ── Doc-first Release Forms (stacked pages with inline signatures) ──
   if (template.layoutMode === 'doc-first') {
     const pages = template.pages || []
@@ -894,6 +908,123 @@ export default function SignFormPage() {
           <p className="text-[10px] text-stone-400 text-center mt-2">Electronically signed via ABC Surrogacy in accordance with the ESIGN Act.</p>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── PDF-overlay branch (Kaiser-style "must use their exact PDF" forms) ──
+// Wraps PdfOverlaySigner with the metadata-loading + filing logic that the
+// other release forms get from SignFormPage.handleSubmit. Kept here so the
+// signing UI stays inside SignFormPage and the route is unchanged.
+function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setSigning }) {
+  const [searchParams] = useSearchParams()
+  const calibrate = searchParams.get('calibrate') === '1'
+  const [gcCtx, setGcCtx] = useState(null)
+  const [adminValues, setAdminValues] = useState({})
+  const [submitError, setSubmitError] = useState(null)
+
+  // Pull GC context from the case's intake answers + admin pre-fill from doc metadata
+  useEffect(() => {
+    if (!doc?.case_id || !supabase) return
+    const meta = (() => { try { return JSON.parse(doc.document_hash || '{}') } catch { return {} } })()
+    setAdminValues(meta.adminValues || {})
+    supabase.from('intake_submissions').select('answers').eq('id', doc.case_id).single().then(({ data }) => {
+      const a = data?.answers || {}
+      const c = a._confidential || {}
+      const fullName = [a.firstName, a.lastName].filter(Boolean).join(' ').trim() || mySigner.name || ''
+      setGcCtx({
+        name: fullName,
+        dob: a.dob || '',
+        email: a.email || mySigner.email || '',
+        phone: a.phone || '',
+        street: [c.streetAddress, c.aptNumber].filter(Boolean).join(' ').trim(),
+        city: c.city || '',
+        state: c.state || '',
+        zipCode: c.zipCode || '',
+      })
+    })
+  }, [doc?.case_id])
+
+  async function handleSign({ blob, signatures }) {
+    if (signing) return
+    setSigning(true)
+    try {
+      // Sign the doc record (status, history). For Kaiser the placeholderValues
+      // double as a record of what got drawn onto the PDF.
+      const signatureData = {
+        type: 'pdf_overlay',
+        name: signatures?.signature?.name || mySigner.name || '',
+        image: signatures?.signature?.image || null,
+        fieldValues: {},
+        placeholderValues: {},
+      }
+      const updated = await signDocument(doc.id, mySigner.email, signatureData)
+
+      // Upload the baked PDF as the signed copy
+      const path = `documents/signed_kaiser_${doc.id}_${Date.now()}.pdf`
+      const upload = await supabase.storage.from('esign-documents').upload(path, blob, { contentType: 'application/pdf' })
+      if (upload?.error) throw upload.error
+      const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(path)
+
+      // File to the case's Signed Documents folder only when the doc is fully done.
+      // Kaiser is single-signer, so this happens immediately after the surrogate signs.
+      const allDone = updated?.status === 'completed'
+      if (allDone && urlData?.publicUrl && doc.case_id) {
+        await supabase.from('case_documents').insert({
+          surrogate_id: doc.case_id,
+          category: 'e-signature',
+          file_name: `[Signed] ${doc.title}.pdf`,
+          file_type: 'application/pdf',
+          storage_path: path,
+          public_url: urlData.publicUrl,
+          uploaded_by: 'System (E-Sign)',
+        })
+        try {
+          const { maybeCreateSigningCompletionTask } = await import('@/lib/batchCompletionTask')
+          await maybeCreateSigningCompletionTask(updated)
+        } catch (err) { console.error('Completion task failed:', err) }
+      }
+      onDone()
+    } catch (err) {
+      setSubmitError('Failed to submit: ' + (err.message || 'Unknown error'))
+    } finally { setSigning(false) }
+  }
+
+  if (!gcCtx) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-[#283693]" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white">
+      <div className="text-center pt-6">
+        <img src="/abc-logo.png" alt="ABC Surrogacy" className="h-10 sm:h-12 mx-auto mb-2" />
+        <h1 className="text-xl sm:text-2xl font-bold text-[#283693]">{template.title}</h1>
+        <p className="text-xs sm:text-sm text-stone-500 mt-1">
+          Signed in as {mySigner.name} ({mySigner.email})
+          {calibrate && <span className="ml-2 text-pink-600 font-semibold">· CALIBRATE MODE</span>}
+        </p>
+      </div>
+      {submitError && (
+        <div role="alert" className="max-w-3xl mx-auto px-4 mb-3">
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <span className="flex-1">{submitError}</span>
+            <button onClick={() => setSubmitError(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+          </div>
+        </div>
+      )}
+      <PdfOverlaySigner
+        template={template}
+        gcCtx={gcCtx}
+        adminValues={adminValues}
+        onSign={handleSign}
+        signing={signing}
+        signerName={mySigner.name}
+        calibrate={calibrate}
+      />
     </div>
   )
 }

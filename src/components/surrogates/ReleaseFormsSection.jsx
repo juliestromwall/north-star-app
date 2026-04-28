@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { Shield, Send, Loader2, CheckCircle2, Clock, RefreshCw, AlertCircle } from 'lucide-react'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +31,8 @@ function resolveTemplateRows({ hasPartner }) {
     section: 'Ellen Winters Psych Release',
     templateId: hasPartner ? 'release_ellen_winters_partnered_gc' : 'release_ellen_winters_single_gc',
   })
+  // Kaiser PHI Authorization (PDF-overlay — uses Kaiser's actual form)
+  rows.push({ section: 'Kaiser PHI Authorization', templateId: 'release_kaiser' })
   return rows
 }
 
@@ -109,7 +113,40 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
     })
   }
 
-  async function handleSendSelected() {
+  // Templates with adminFields need their pre-fill values gathered before send.
+  // Today only Kaiser uses this — but the dialog handles any number of fields
+  // across any number of templates so it scales naturally.
+  const [adminPrefillOpen, setAdminPrefillOpen] = useState(false)
+  const [adminPrefillValues, setAdminPrefillValues] = useState({}) // { [templateId]: { [fieldId]: value } }
+
+  function selectedAdminFieldTemplates() {
+    const out = []
+    for (const id of selected) {
+      const tpl = FORM_TEMPLATES[id]
+      if (tpl?.adminFields?.length) out.push(tpl)
+    }
+    return out
+  }
+
+  function handleSendSelectedClick() {
+    const needPrefill = selectedAdminFieldTemplates()
+    if (needPrefill.length > 0) {
+      // Initialize blank values for any unfilled admin fields
+      const init = {}
+      for (const tpl of needPrefill) {
+        init[tpl.id] = init[tpl.id] || {}
+        for (const f of (tpl.adminFields || [])) {
+          init[tpl.id][f.id] = adminPrefillValues[tpl.id]?.[f.id] || ''
+        }
+      }
+      setAdminPrefillValues(init)
+      setAdminPrefillOpen(true)
+      return
+    }
+    actuallySendSelected({})
+  }
+
+  async function actuallySendSelected(adminValuesByTemplate) {
     if (!selected.size) return
     setSending(true)
     setResult(null)
@@ -122,6 +159,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
       senderName: currentUser?.name,
       senderEmail: currentUser?.email,
       existingDocs,
+      adminValuesByTemplate,
     })
     setSending(false)
     if (res.success) {
@@ -132,6 +170,10 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
     } else {
       setResult({ type: 'error', msg: res.error || 'Batch send failed.' })
     }
+  }
+
+  async function handleSendSelected() {
+    return handleSendSelectedClick()
   }
 
   async function handleResend(templateId) {
@@ -290,6 +332,70 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
           </div>
         )}
       </CardContent>
+
+      {/* Admin pre-fill dialog (shown when a selected template has adminFields, e.g. Kaiser Step 1 date range) */}
+      <Dialog open={adminPrefillOpen} onOpenChange={(v) => !sending && setAdminPrefillOpen(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pre-fill before sending</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-stone-500">
+            One or more selected forms need admin-entered values before they go to the surrogate. These get baked onto the form so the surrogate sees them already filled in.
+          </p>
+          <div className="space-y-4">
+            {selectedAdminFieldTemplates().map(tpl => (
+              <div key={tpl.id} className="space-y-2 border-t pt-3 first:border-t-0 first:pt-0">
+                <p className="text-sm font-semibold text-stone-700">{tpl.title}</p>
+                {(tpl.adminFields || []).map(f => (
+                  <div key={f.id} className="space-y-1">
+                    <label className="text-xs font-medium text-stone-600">
+                      {f.label}{f.required && <span className="text-red-400 ml-0.5">*</span>}
+                    </label>
+                    <Input
+                      value={adminPrefillValues[tpl.id]?.[f.id] || ''}
+                      onChange={(e) => setAdminPrefillValues(prev => ({
+                        ...prev,
+                        [tpl.id]: { ...(prev[tpl.id] || {}), [f.id]: e.target.value },
+                      }))}
+                      placeholder={f.placeholder || ''}
+                      className="h-9"
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button
+              size="sm"
+              disabled={sending}
+              onClick={async () => {
+                // Validate required adminFields across all selected templates
+                const missing = []
+                for (const tpl of selectedAdminFieldTemplates()) {
+                  for (const f of (tpl.adminFields || [])) {
+                    if (f.required && !(adminPrefillValues[tpl.id]?.[f.id] || '').trim()) {
+                      missing.push(`${tpl.title}: ${f.label}`)
+                    }
+                  }
+                }
+                if (missing.length > 0) {
+                  setResult({ type: 'error', msg: 'Missing: ' + missing.join('; ') })
+                  return
+                }
+                setAdminPrefillOpen(false)
+                await actuallySendSelected(adminPrefillValues)
+              }}
+              className="gap-1.5"
+              style={{ backgroundColor: '#283693' }}
+            >
+              {sending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
+              {sending ? 'Sending…' : 'Send'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
