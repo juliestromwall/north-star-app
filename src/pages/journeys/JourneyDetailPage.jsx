@@ -367,7 +367,39 @@ function ChecklistHistory({ history }) {
   )
 }
 
-// ── Journey Milestone Timeline ─
+// ── Journey Progress Bar ─
+// Total step completion across the journey's current stage. Replaces the
+// big horizontal milestone-circle timeline at the top of the Overview tab.
+function JourneyProgressBar({ journey }) {
+  const stageId = journey.stage || 'journey-oversight'
+  const tracking = journey.journey_data?._checklistTracking || {}
+  const allSteps = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
+  const completed = allSteps.filter(s => {
+    const st = tracking[s.id]?.status
+    return st === 'complete' || st === 'na' || st === 'skipped'
+  }).length
+  const total = allSteps.length
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-base font-heading font-bold text-[#283693]">Journey Progress</h3>
+          <p className="text-[11px] text-stone-400 mt-0.5">{completed} of {total} steps complete</p>
+        </div>
+        <span className="text-3xl font-heading font-black text-[#ed148c] tabular-nums leading-none">{pct}%</span>
+      </div>
+      <div className="relative h-2.5 bg-stone-100 rounded-full overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#ed148c] to-[#283693] rounded-full transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ── Journey Milestone Timeline (unused on Overview now — kept for reference) ─
 function JourneyMilestoneTimeline({ journey }) {
   const stageId = journey.stage || 'journey-oversight'
   const tracking = journey.journey_data?._checklistTracking || {}
@@ -3476,6 +3508,7 @@ export default function JourneyDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Overview' },
+          { value: 'tasks', label: 'Tasks & Appts' },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
@@ -3488,16 +3521,22 @@ export default function JourneyDetailPage() {
         ]} />
 
         <TabsContent value="overview" className="mt-4 space-y-6">
-          <JourneyMilestoneTimeline journey={journey} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-          </div>
-          {/* Checklist */}
+          {/* Single progress bar replaces the milestone-circle timeline.
+              Calendar + Tasks moved to their own tab so the checklist is
+              the front-and-center artifact on Overview. */}
+          <JourneyProgressBar journey={journey} />
           <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
+        </TabsContent>
+
+        {/* Tasks & Appointments Tab */}
+        <TabsContent value="tasks" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+          </div>
         </TabsContent>
 
         {/* Checklist tab removed — now in Overview */}
