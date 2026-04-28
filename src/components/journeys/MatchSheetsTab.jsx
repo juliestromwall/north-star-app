@@ -251,7 +251,9 @@ function ConfidentialFooter() {
 
 function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
+  const ipContact = a._ipContact || {}
   const ga = gcCase?.answers || {}
+  const gcApp = ga._application || {}
   const jd = journey.journey_data || {}
   const pd = profileData || {}
   const personal = pd.personal || {}
@@ -263,7 +265,8 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
   const numPreg = parseInt(pregnancyHistory.numberOfPregnancies) || pregnancies.length
   const previousSurrogate = pregnancies.some(p => p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true)
 
-  const gcDob = gcCase?.dob || ga.dob || personal.dob
+  const gcDob = gcApp.dob || gcCase?.dob || ga.dob || personal.dob
+  const ipHasPartner = a.hasPartner === true || a.hasPartner === 'yes'
 
   return (
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
@@ -274,31 +277,31 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       <PartyLabel color={color}>Intended Parent #1</PartyLabel>
       <InfoGrid items={[
-        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim() },
-        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}` },
-        { label: 'Email', value: ipCase?.email },
-        { label: 'Phone', value: formatPhone(ipCase?.phone) },
+        { label: 'Full Name', value: `${ipContact.ip1FirstName || a.primaryFirstName || ''} ${ipContact.ip1LastName || a.primaryLastName || ''}`.trim() },
+        { label: 'Date of Birth', value: `${formatDate(ipContact.ip1Dob || a.primaryDob)}${(ipContact.ip1Dob || a.primaryDob) ? ` (Age ${calcAge(ipContact.ip1Dob || a.primaryDob)})` : ''}` },
+        { label: 'Email', value: ipContact.ip1Email || ipCase?.email },
+        { label: 'Phone', value: formatPhone(ipContact.ip1Phone || ipCase?.phone) },
       ]} />
 
-      {(a.hasPartner === true || a.hasPartner === 'yes') && (
+      {ipHasPartner && (
         <>
           <PartyLabel color={color}>Intended Parent #2</PartyLabel>
           <InfoGrid items={[
-            { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
-            { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
-            { label: 'Email', value: ipCase?.ip2Email },
-            { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
+            { label: 'Full Name', value: `${ipContact.ip2FirstName || a.ip2FirstName || ''} ${ipContact.ip2LastName || a.ip2LastName || ''}`.trim() },
+            { label: 'Date of Birth', value: `${formatDate(ipContact.ip2Dob || a.ip2Dob)}${(ipContact.ip2Dob || a.ip2Dob) ? ` (Age ${calcAge(ipContact.ip2Dob || a.ip2Dob)})` : ''}` },
+            { label: 'Email', value: ipContact.ip2Email || ipCase?.ip2Email },
+            { label: 'Phone', value: formatPhone(ipContact.ip2Phone || ipCase?.ip2Phone) },
           ]} />
         </>
       )}
 
       <SectionTitle color={color} icon={FileText}>Demographics</SectionTitle>
       <InfoGrid items={[
-        { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', '), span: 2 },
-        { label: 'City', value: a.city },
-        { label: 'State', value: a.stateProv },
-        { label: 'Zip Code', value: a.zipCode },
-        { label: 'Country', value: a.country || 'United States' },
+        { label: 'Street Address', value: [ipContact.street || a.street, a.street2].filter(Boolean).join(', '), span: 2 },
+        { label: 'City', value: ipContact.city || a.city },
+        { label: 'State', value: ipContact.state || a.stateProv },
+        { label: 'Zip Code', value: ipContact.zipCode || a.zipCode },
+        { label: 'Country', value: ipContact.country || a.country || 'United States' },
       ]} />
 
       <SectionTitle color={color} icon={EmbryoIcon}>Embryo Creation</SectionTitle>
@@ -319,14 +322,14 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
       <SectionTitle color="#ed148c" icon={FileText}>Demographics</SectionTitle>
       <InfoGrid items={[
-        { label: 'Full Name', value: gcCase?.name },
+        { label: 'Full Name', value: gcApp.fullLegalName || gcCase?.name },
         { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
-        { label: 'Street Address', value: personal.streetAddress || ga.streetAddress, span: 2 },
-        { label: 'City', value: ga.city || personal.city },
-        { label: 'State', value: ga.state || personal.state },
-        { label: 'Zip Code', value: personal.zipCode || ga.zipCode },
+        { label: 'Street Address', value: gcApp.street || personal.streetAddress || ga.streetAddress, span: 2 },
+        { label: 'City', value: gcApp.city || ga.city || personal.city },
+        { label: 'State', value: gcApp.state || ga.state || personal.state },
+        { label: 'Zip Code', value: gcApp.zipCode || personal.zipCode || ga.zipCode },
         { label: 'Country', value: 'United States' },
         { label: 'Relationship Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
