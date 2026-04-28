@@ -331,6 +331,13 @@ function ContactInfoSection({ ip, setIp, search }) {
       emergency2Name: saved.emergency2Name || '',
       emergency2Phone: saved.emergency2Phone || '',
       emergency2Email: saved.emergency2Email || '',
+      // Coerce intake-era booleans to 'yes'/'no' so the radios round-trip cleanly.
+      primaryCriminalHistory: (saved.primaryCriminalHistory ?? a.primaryCriminalHistory) === true || saved.primaryCriminalHistory === 'yes' || a.primaryCriminalHistory === 'yes' ? 'yes'
+        : (saved.primaryCriminalHistory ?? a.primaryCriminalHistory) === false || saved.primaryCriminalHistory === 'no' || a.primaryCriminalHistory === 'no' ? 'no' : '',
+      primaryCriminalHistoryDetails: saved.primaryCriminalHistoryDetails || a.primaryCriminalHistoryDetails || '',
+      ip2CriminalHistory: (saved.ip2CriminalHistory ?? a.ip2CriminalHistory) === true || saved.ip2CriminalHistory === 'yes' || a.ip2CriminalHistory === 'yes' ? 'yes'
+        : (saved.ip2CriminalHistory ?? a.ip2CriminalHistory) === false || saved.ip2CriminalHistory === 'no' || a.ip2CriminalHistory === 'no' ? 'no' : '',
+      ip2CriminalHistoryDetails: saved.ip2CriminalHistoryDetails || a.ip2CriminalHistoryDetails || '',
     })
   )
 
@@ -438,6 +445,42 @@ function ContactInfoSection({ ip, setIp, search }) {
             </div>
           </div>
         ))}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Background</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {editing ? (
+              <>
+                <div className="space-y-1"><FieldLabel>Have you ever been arrested or convicted of a crime?</FieldLabel>
+                  <SelectField value={form.primaryCriminalHistory} onValueChange={v => set('primaryCriminalHistory', v)} options={['yes','no']} />
+                </div>
+                {form.primaryCriminalHistory === 'yes' && (
+                  <div className="space-y-1 sm:col-span-2"><FieldLabel>Please describe</FieldLabel>
+                    <Input value={form.primaryCriminalHistoryDetails || ''} onChange={e => set('primaryCriminalHistoryDetails', e.target.value)} />
+                  </div>
+                )}
+                {hasPartner && (
+                  <>
+                    <div className="space-y-1"><FieldLabel>Has your spouse/partner ever been arrested or convicted of a crime?</FieldLabel>
+                      <SelectField value={form.ip2CriminalHistory} onValueChange={v => set('ip2CriminalHistory', v)} options={['yes','no']} />
+                    </div>
+                    {form.ip2CriminalHistory === 'yes' && (
+                      <div className="space-y-1 sm:col-span-2"><FieldLabel>Please describe</FieldLabel>
+                        <Input value={form.ip2CriminalHistoryDetails || ''} onChange={e => set('ip2CriminalHistoryDetails', e.target.value)} />
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <ReadField label="Arrested or convicted?" value={readVal('primaryCriminalHistory')} />
+                {readVal('primaryCriminalHistory') === 'yes' && <ReadField label="Details" value={readVal('primaryCriminalHistoryDetails')} />}
+                {hasPartner && <ReadField label="Spouse/partner arrested or convicted?" value={readVal('ip2CriminalHistory')} />}
+                {hasPartner && readVal('ip2CriminalHistory') === 'yes' && <ReadField label="Spouse/partner details" value={readVal('ip2CriminalHistoryDetails')} />}
+              </>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

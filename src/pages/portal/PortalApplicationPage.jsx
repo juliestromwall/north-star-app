@@ -1233,6 +1233,9 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
     const profile = a._ipProfile || {}
     const ip1Personal = profile.ip1?.personal || {}
     const ip2Personal = profile.ip2?.personal || {}
+    // Criminal history was collected on early intakes as booleans — coerce to
+    // 'yes'/'no' strings so the radios render and the application takes over.
+    const yn = v => (v === true || v === 'yes' ? 'yes' : v === false || v === 'no' ? 'no' : '')
     const init = {
       ip1FirstName: data?.ip1FirstName || a.primaryFirstName || '',
       ip1LastName: data?.ip1LastName || a.primaryLastName || '',
@@ -1256,12 +1259,23 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
       emergency2Name: data?.emergency2Name || '',
       emergency2Phone: formatPhone(data?.emergency2Phone || ''),
       emergency2Email: data?.emergency2Email || '',
+      primaryCriminalHistory: yn(data?.primaryCriminalHistory ?? a.primaryCriminalHistory),
+      primaryCriminalHistoryDetails: data?.primaryCriminalHistoryDetails || a.primaryCriminalHistoryDetails || '',
+      ip2CriminalHistory: yn(data?.ip2CriminalHistory ?? a.ip2CriminalHistory),
+      ip2CriminalHistoryDetails: data?.ip2CriminalHistoryDetails || a.ip2CriminalHistoryDetails || '',
     }
     setForm(init)
     setHydrated(true)
     didHydrate.current = true
   }, [data, quizData])
   useAutoSave(form, onSave, '_ipContact', readOnly, hydrated)
+
+  // If primaryCriminalHistory is 'yes', details required; if 'no', skip details.
+  function criminalValid(yn, details) {
+    if (yn !== 'yes' && yn !== 'no') return false
+    if (yn === 'yes' && !details?.toString().trim()) return false
+    return true
+  }
 
   const requiredKeys = [
     'ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone',
@@ -1270,23 +1284,29 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
     'emergency2Name','emergency2Phone','emergency2Email',
   ]
   if (hasPartner) requiredKeys.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
-  const allFilled = requiredKeys.every(k => {
+  const baseFilled = requiredKeys.every(k => {
     const v = form[k]
     if (k.includes('Phone')) return isValidPhone(v)
     if (k.includes('Email')) return isValidEmail(v)
     return v?.toString().trim()
   })
+  const allFilled = baseFilled
+    && criminalValid(form.primaryCriminalHistory, form.primaryCriminalHistoryDetails)
+    && (!hasPartner || criminalValid(form.ip2CriminalHistory, form.ip2CriminalHistoryDetails))
 
   function checkComplete(d) {
     if (!d) return false
     const rk = ['ip1FirstName','ip1LastName','ip1Dob','ip1Email','ip1Phone','street','city','state','zipCode','preferredContact']
     if (hasPartner) rk.push('ip2FirstName','ip2LastName','ip2Dob','ip2Email','ip2Phone')
-    return rk.every(k => {
+    const baseDone = rk.every(k => {
       const v = d[k]
       if (k.includes('Phone')) return isValidPhone(v)
       if (k.includes('Email')) return isValidEmail(v)
       return v?.toString().trim()
     })
+    return baseDone
+      && criminalValid(d.primaryCriminalHistory, d.primaryCriminalHistoryDetails)
+      && (!hasPartner || criminalValid(d.ip2CriminalHistory, d.ip2CriminalHistoryDetails))
   }
 
   return (
@@ -1376,6 +1396,34 @@ function IPContactForm({ data, onSave, saving, quizData, readOnly, isOpen, onTog
               </div>
             </div>
           ))}
+
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Background</p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <FieldLabel>Have you ever been arrested or convicted of a crime? <Req /></FieldLabel>
+              <YesNoButtons value={form.primaryCriminalHistory} onChange={v => setForm(f => ({ ...f, primaryCriminalHistory: v }))} />
+            </div>
+            {form.primaryCriminalHistory === 'yes' && (
+              <div className="space-y-1">
+                <FieldLabel>Please describe <Req /></FieldLabel>
+                <Textarea rows={3} value={form.primaryCriminalHistoryDetails || ''} onChange={e => setForm(f => ({ ...f, primaryCriminalHistoryDetails: e.target.value }))} />
+              </div>
+            )}
+            {hasPartner && (
+              <>
+                <div className="space-y-1.5 pt-2">
+                  <FieldLabel>Has your spouse/partner ever been arrested or convicted of a crime? <Req /></FieldLabel>
+                  <YesNoButtons value={form.ip2CriminalHistory} onChange={v => setForm(f => ({ ...f, ip2CriminalHistory: v }))} />
+                </div>
+                {form.ip2CriminalHistory === 'yes' && (
+                  <div className="space-y-1">
+                    <FieldLabel>Please describe <Req /></FieldLabel>
+                    <Textarea rows={3} value={form.ip2CriminalHistoryDetails || ''} onChange={e => setForm(f => ({ ...f, ip2CriminalHistoryDetails: e.target.value }))} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
           {!readOnly && !allFilled && <p className="text-xs text-red-400 pt-2">Please complete all required fields.</p>}
           {!readOnly && <Button size="sm" className="gap-1.5 mt-2" style={{ backgroundColor: '#283693' }} onClick={() => onSave('_ipContact', form)} disabled={saving || !allFilled}>
