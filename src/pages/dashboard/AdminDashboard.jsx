@@ -90,7 +90,8 @@ function getAppointmentCaseInfo(event) {
   return { caseId, caseType }
 }
 
-function isAppointmentForAdmin(event, { surrogates, ips, journeys, adminEmail }) {
+function isAppointmentForAdmin(event, { surrogates, ips, journeys, adminEmail, showAllCases }) {
+  if (showAllCases) return true
   if (!adminEmail) return false
   const { caseId, caseType } = getAppointmentCaseInfo(event)
   if (!caseId || !caseType) return false
@@ -245,7 +246,13 @@ export default function AdminDashboard() {
           const all = results.flat()
           const seen = new Set()
           const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
-            .filter(e => isAppointmentForAdmin(e, { surrogates: gcs || [], ips: allIps || [], journeys: js || [], adminEmail: currentUser?.email }))
+            .filter(e => isAppointmentForAdmin(e, {
+              surrogates: gcs || [],
+              ips: allIps || [],
+              journeys: js || [],
+              adminEmail: currentUser?.email,
+              showAllCases,
+            }))
             .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''))
           setEvents(deduped)
 
@@ -285,7 +292,7 @@ export default function AdminDashboard() {
 
     // Fetch published admin notes from Supabase
     fetchActiveAdminNotes().then(notes => setAdminNotes(notes || [])).catch(() => {})
-  }, [currentUser?.id, currentUser?.email])
+  }, [currentUser?.id, currentUser?.email, showAllCases])
 
 
   // Build cases — super/master admins see all, others see only assigned
