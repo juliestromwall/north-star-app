@@ -1071,8 +1071,14 @@ function GenerateReleaseFormsButton({ clinicData, surrogate, answers }) {
         return
       }
 
-      // Get patient info from confidential data
-      const confidentialData = answers?._confidential || {}
+      // Get patient info from confidential data, with application/profile fallbacks.
+      const applicationData = answers?._application || {}
+      const confidentialData = {
+        ...(answers?._confidential || {}),
+        dob: (answers?._confidential?.dob || clinicData?.dob || applicationData.dob || answers?.dob || ''),
+        maidenName: (answers?._confidential?.maidenName || applicationData.maidenName || ''),
+        ssn4: (answers?._confidential?.ssn4 || applicationData.ssn4 || ''),
+      }
       const patient = {
         name: confidentialData.fullLegalName || surrogate.name || '',
         email: surrogate.email || '',

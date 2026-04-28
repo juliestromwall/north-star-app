@@ -89,6 +89,16 @@ function formatDatesOfService(deliveryDates = []) {
   return ranges.join(', ')
 }
 
+function formatShortDate(value) {
+  if (!value) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value
+  const [y, m, d] = String(value).split('-').map(Number)
+  if (y && m && d) return `${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}/${y}`
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return ''
+  return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+}
+
 /**
  * Generate HIPAA-compliant release form HTML for a single provider
  */
@@ -96,6 +106,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   const typeInfo = PROVIDER_TYPES[provider.type] || PROVIDER_TYPES.ob
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const dob = formatShortDate(confidentialData?.dob)
 
   return `
 <div style="font-family: Arial, Helvetica, sans-serif; max-width: 800px; margin: 0 auto; color: #000; line-height: 1.35; font-size: 11px;">
@@ -114,7 +125,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
     <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
       <tr>
         <td style="padding: 2px 0; width: 50%;"><strong>Patient:</strong> ${patient.name || '{{Name:GC}}'}</td>
-        <td style="padding: 2px 0;"><strong>DOB:</strong> ${confidentialData?.dob || '___________'}</td>
+        <td style="padding: 2px 0;"><strong>DOB:</strong> ${dob || '___________'}</td>
       </tr>
       <tr>
         <td style="padding: 2px 0;"><strong>Other Name(s):</strong> ${confidentialData?.maidenName || 'N/A'}</td>
