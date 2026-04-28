@@ -1836,11 +1836,15 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     document.getElementById('doc-upload-input')?.click()
   }
 
+  // In matched view, default folder is "Journey" so uploads land in both
+  // the GC and IP files unless the user explicitly picks one side.
+  const defaultUploadCaseId = isMatchedView ? '__journey__' : surrogateId
+
   function stageFilesForAssignment(files, categoryId) {
     const staged = files.map(file => {
       const ext = file.name.split('.').pop().toLowerCase()
       const previewUrl = ['jpg','jpeg','png','gif','webp','pdf'].includes(ext) ? URL.createObjectURL(file) : null
-      return { file, name: file.name, category: categoryId || 'other', caseId: surrogateId, previewUrl, ext }
+      return { file, name: file.name, category: categoryId || 'other', caseId: defaultUploadCaseId, previewUrl, ext }
     })
     setZipFiles(staged)
   }
@@ -1916,7 +1920,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
         const mime = mimeMap[ext] || blob.type || 'application/octet-stream'
         const file = new window.File([blob], name, { type: mime })
         const previewUrl = ['jpg','jpeg','png','gif','webp','pdf'].includes(ext) ? URL.createObjectURL(file) : null
-        extracted.push({ file, name, category: defaultCategory || 'other', caseId: surrogateId, previewUrl, ext })
+        extracted.push({ file, name, category: defaultCategory || 'other', caseId: defaultUploadCaseId, previewUrl, ext })
       }
       if (extracted.length > 0) setZipFiles(extracted)
     } catch (err) {
