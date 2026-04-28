@@ -83,18 +83,46 @@ function NoteReplyBlock({ note, currentUser, onReplied }) {
   )
 }
 
-function getAppointmentCaseInfo(event) {
+function getAppointmentCaseInfo(event, { surrogates = [], ips = [], journeys = [] } = {}) {
   const caseIdProp = event.extendedProperties?.private?.caseId || ''
   const caseType = event.extendedProperties?.private?.caseType || ''
   const caseId = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
-  return { caseId, caseType }
+  if (caseId && caseType) return { caseId, caseType }
+
+  const text = [event.description, event.summary, event.location]
+    .filter(Boolean)
+    .join('\n')
+
+  const journeyLink = text.match(/\/journeys\/(\d+)/i)
+  if (journeyLink) return { caseId: journeyLink[1], caseType: 'journey' }
+
+  const surrogateLink = text.match(/\/surrogates\/(\d+)/i)
+  if (surrogateLink) return { caseId: surrogateLink[1], caseType: 'surrogate' }
+
+  const ipLink = text.match(/\/intended-parents\/(\d+)/i)
+  if (ipLink) return { caseId: ipLink[1], caseType: 'ip' }
+
+  const lower = text.toLowerCase()
+  const activeJourneys = journeys.filter(isJourneyActive)
+  const matchedJourney = activeJourneys.find(j =>
+    [j.label, j.gc_name, j.ip_name].some(v => v && lower.includes(String(v).toLowerCase()))
+  )
+  if (matchedJourney) return { caseId: String(matchedJourney.id), caseType: 'journey' }
+
+  const matchedSurrogate = surrogates.find(s => s.name && lower.includes(String(s.name).toLowerCase()))
+  if (matchedSurrogate) return { caseId: String(matchedSurrogate.id), caseType: 'surrogate' }
+
+  const matchedIp = ips.find(i => (i.names || i.name) && lower.includes(String(i.names || i.name).toLowerCase()))
+  if (matchedIp) return { caseId: String(matchedIp.id), caseType: 'ip' }
+
+  return { caseId: '', caseType: '' }
 }
 
 function isAppointmentForAdmin(event, { surrogates, ips, journeys, adminEmail, showAllCases }) {
+  const { caseId, caseType } = getAppointmentCaseInfo(event, { surrogates, ips, journeys })
+  if (!caseId || !caseType) return false
   if (showAllCases) return true
   if (!adminEmail) return false
-  const { caseId, caseType } = getAppointmentCaseInfo(event)
-  if (!caseId || !caseType) return false
 
   const normalizedType = caseType === 'gc' ? 'surrogate' : caseType
   const caseIdStr = String(caseId)
@@ -230,7 +258,7 @@ export default function AdminDashboard() {
         const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
         const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
         getAccessToken(userId).then(async token => {
-          const baseParams = { maxResults: '40', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax, privateExtendedProperty: 'abcCase=true' }
+          const baseParams = { maxResults: '100', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax }
           let calIds = ['primary']
           try {
             const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
@@ -259,10 +287,8 @@ export default function AdminDashboard() {
           // Load appointment metadata for all unique cases in these events
           const caseKeys = new Set()
           for (const e of deduped) {
-            const caseIdProp = e.extendedProperties?.private?.caseId || ''
-            const ct = e.extendedProperties?.private?.caseType || ''
-            if (caseIdProp && ct) {
-              const cid = caseIdProp.includes('_') ? caseIdProp.split('_').slice(1).join('_') : caseIdProp
+            const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(e, { surrogates: gcs || [], ips: allIps || [], journeys: js || [] })
+            if (cid && ct) {
               caseKeys.add(`appt_notes_${ct}_${cid}`)
             }
           }
@@ -411,9 +437,19 @@ export default function AdminDashboard() {
 
   // Appointment follow-up and notes helpers
   function getEventCaseInfo(event) {
-    const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(event)
+    const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(event, { surrogates, ips, journeys })
     const configKey = ct && cid ? `appt_notes_${ct}_${cid}` : null
-    const caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
+    const normalizedType = ct === 'gc' ? 'surrogate' : ct
+    let caseName = event.summary?.includes(' — ') ? event.summary.split(' — ').slice(1).join(' — ') : ''
+    if (!caseName && cid && normalizedType === 'journey') {
+      const journey = journeys.find(j => String(j.id) === String(cid))
+      caseName = journey?.label || journey?.gc_name || ''
+    } else if (!caseName && cid && normalizedType === 'surrogate') {
+      caseName = surrogates.find(s => String(s.id) === String(cid))?.name || ''
+    } else if (!caseName && cid && normalizedType === 'ip') {
+      const ip = ips.find(i => String(i.id) === String(cid))
+      caseName = ip?.names || ip?.name || ''
+    }
     const caseLink = ct === 'journey' ? `/journeys/${cid}` : ct === 'ip' ? `/intended-parents/${cid}` : ct === 'surrogate' ? `/surrogates/${cid}` : ''
     return { caseType: ct, caseId: cid, configKey, caseName, caseLink }
   }
