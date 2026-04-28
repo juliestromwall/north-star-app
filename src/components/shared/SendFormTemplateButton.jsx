@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { FileSignature, Loader2, CheckCircle2, Clock, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { useRole } from '@/context/RoleContext'
 import { FORM_TEMPLATES } from '@/lib/formTemplates'
 import { supabase } from '@/lib/supabase'
@@ -33,6 +35,11 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
   const [result, setResult] = useState(null)
   const [existingDoc, setExistingDoc] = useState(null) // { status, formToken, signedAt }
   const [checking, setChecking] = useState(true)
+  // Admin pre-fill dialog: opens BEFORE send when the template has adminFields
+  // (e.g. Kaiser PHI release wants admin to enter the Step 1 date range).
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false)
+  const [adminFieldValues, setAdminFieldValues] = useState({})
+  const [adminDialogError, setAdminDialogError] = useState(null)
   const { currentUser } = useRole()
 
   const template = FORM_TEMPLATES[templateId]
@@ -146,6 +153,22 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
     return [{ role: template.signerRole, name: signerName, email: signerEmail, status: 'pending' }]
   }
 
+  // Intercept Send when the template defines adminFields (e.g. Kaiser Step 1 date range).
+  // Opens the dialog first; the dialog's submit then calls actuallySend().
+  function handleSendClick() {
+    if ((template.adminFields || []).length > 0) {
+      // Pre-fill from any saved values on the existing pending doc, otherwise blank
+      setAdminFieldValues(prev => Object.keys(prev).length ? prev : Object.fromEntries((template.adminFields || []).map(f => [f.id, ''])))
+      setAdminDialogOpen(true)
+      return
+    }
+    actuallySend()
+  }
+
+  async function actuallySend() {
+    return handleSend()
+  }
+
   async function handleSend() {
     if (!signerEmail) {
       alert(
@@ -177,7 +200,7 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
 
       const signers = resolveSigners()
 
-      const isReleaseForm = template.layoutMode === 'doc-first'
+      const isReleaseForm = template.layoutMode === 'doc-first' || template.layoutMode === 'pdf-overlay'
       const docTitle = isReleaseForm
         ? (template.multiSigner
             ? `${template.title} - ${surrogate?.name || ''}`
@@ -194,10 +217,13 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
         createdBy: currentUser?.name || 'Admin',
       })
 
+      // Bake admin pre-fill values into the doc metadata so the signer
+      // sees them already on the PDF (e.g. Kaiser Step 1 date range).
       await updateDocument(doc.id, {
         document_hash: JSON.stringify({
           formToken,
           templateId: template.id,
+          ...(Object.keys(adminFieldValues).length > 0 ? { adminValues: adminFieldValues } : {}),
         }),
       })
 
@@ -253,15 +279,71 @@ export default function SendFormTemplateButton({ templateId, surrogate, partnerN
   if (checking) return null
 
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      onClick={handleSend}
-      disabled={sending}
-      className="gap-1.5 text-xs h-7"
-    >
-      {sending ? <Loader2 className="size-3 animate-spin" /> : <FileSignature className="size-3" />}
-      {sending ? 'Sending...' : `Send ${template.title}`}
-    </Button>
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleSendClick}
+        disabled={sending}
+        className="gap-1.5 text-xs h-7"
+      >
+        {sending ? <Loader2 className="size-3 animate-spin" /> : <FileSignature className="size-3" />}
+        {sending ? 'Sending...' : `Send ${template.title}`}
+      </Button>
+
+      {/* Admin pre-fill dialog (e.g. Kaiser Step 1 date range) */}
+      <Dialog open={adminDialogOpen} onOpenChange={(v) => !sending && setAdminDialogOpen(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send {template.title}</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-stone-500">
+            Fill in the fields below — they get pre-printed onto the PDF before it goes to the surrogate.
+          </p>
+          <div className="space-y-3">
+            {(template.adminFields || []).map(f => (
+              <div key={f.id} className="space-y-1">
+                <label className="text-xs font-medium text-stone-600">{f.label}{f.required && <span className="text-red-400 ml-0.5">*</span>}</label>
+                <Input
+                  value={adminFieldValues[f.id] || ''}
+                  onChange={(e) => { setAdminFieldValues(prev => ({ ...prev, [f.id]: e.target.value })); setAdminDialogError(null) }}
+                  placeholder={f.placeholder || ''}
+                  className="h-9"
+                />
+              </div>
+            ))}
+          </div>
+          {adminDialogError && (
+            <div role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <span className="flex-1">{adminDialogError}</span>
+              <button onClick={() => setAdminDialogError(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+            <Button
+              size="sm"
+              onClick={async () => {
+                // Validate required adminFields
+                const missing = (template.adminFields || []).filter(f => f.required && !(adminFieldValues[f.id] || '').trim())
+                if (missing.length > 0) {
+                  setAdminDialogError('Please fill in: ' + missing.map(f => f.label).join(', '))
+                  return
+                }
+                setAdminDialogError(null)
+                setAdminDialogOpen(false)
+                await actuallySend()
+              }}
+              disabled={sending}
+              className="gap-1.5"
+              style={{ backgroundColor: '#283693' }}
+            >
+              {sending ? <Loader2 className="size-3 animate-spin" /> : <FileSignature className="size-3" />}
+              {sending ? 'Sending…' : 'Send'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

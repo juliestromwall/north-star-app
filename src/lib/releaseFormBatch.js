@@ -73,7 +73,7 @@ async function sendBatchEmail({ recipientName, recipientEmail, formTitles, batch
  * @returns { success, error, batchToken, createdDocIds }
  */
 export async function sendReleaseFormsBatch(templateIds, ctx) {
-  const { surrogate, senderName, senderEmail, existingDocs = [] } = ctx
+  const { surrogate, senderName, senderEmail, existingDocs = [], adminValuesByTemplate = {} } = ctx
 
   if (!templateIds?.length) return { success: false, error: 'No templates selected' }
   if (!surrogate?.id) return { success: false, error: 'Missing surrogate case id' }
@@ -126,11 +126,13 @@ export async function sendReleaseFormsBatch(templateIds, ctx) {
       createdBy: senderName || 'Admin',
     })
 
+    const adminValues = adminValuesByTemplate[t.id] || null
     await updateDocument(doc.id, {
       document_hash: JSON.stringify({
         formToken,
         templateId: t.id,
         batchToken,
+        ...(adminValues ? { adminValues } : {}),
       }),
     })
 

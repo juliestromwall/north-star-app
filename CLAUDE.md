@@ -13,6 +13,7 @@ See `docs/PRODUCT.md` for terminology, user roles, and flows.
 | Design | ALWAYS read `DESIGN_RULES.md` before UI changes |
 | Features | Update `docs/FEATURES.md` after implementing features |
 | Product docs | Update `docs/PRODUCT.md` when adding roles, flows, or terminology |
+| **No browser dialogs** | Never use `alert()`, `confirm()`, or `prompt()`. All notifications, warnings, errors, confirmations, validation messages, and feedback MUST use in-app UI — `<Dialog>` for confirms/destructive actions, inline banners or toast-style components for notices/errors, and inline status text for field-level validation. Browser dialogs block the JS thread, can't be styled, leak past route changes, and have caused silent-success bugs (the user clicks OK and the flow proceeds as if validation passed). |
 
 ## Tech
 
