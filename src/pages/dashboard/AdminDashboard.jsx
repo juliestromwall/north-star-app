@@ -269,61 +269,59 @@ export default function AdminDashboard() {
           setProfileMap(byId)
         }).catch(() => {})
       }
-    }).finally(() => setLoading(false))
-
-    // Fetch calendar events: past 7 days + next 7 days
-    try {
-      const userId = currentUser?.id
-      if (userId) {
-        const now = new Date()
-        const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        getAccessToken(userId).then(async token => {
-          const baseParams = { maxResults: '250', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax }
-          let calIds = ['primary']
-          try {
-            const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
-            const calData = await calRes.json()
-            const apptCal = (calData.items || []).find(c => c.summary?.toLowerCase() === 'appointments')
-            if (apptCal) calIds.push(apptCal.id)
-          } catch {}
-          const results = await Promise.all(calIds.map(calId =>
-            listDashboardCalendarEvents(token, calId, baseParams).catch(() => [])
-          ))
-          const all = results.flat()
-          const seen = new Set()
-          const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
-            .filter(e => isAppointmentForAdmin(e, {
-              surrogates: gcs || [],
-              ips: allIps || [],
-              journeys: js || [],
-              adminEmail: currentUser?.email,
-              showAllCases,
-            }))
-            .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''))
-          setEvents(deduped)
-
-          // Load appointment metadata for all unique cases in these events
-          const caseKeys = new Set()
-          for (const e of deduped) {
-            const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(e, { surrogates: gcs || [], ips: allIps || [], journeys: js || [] })
-            if (cid && ct) {
-              caseKeys.add(`appt_notes_${ct}_${cid}`)
-            }
-          }
-          if (caseKeys.size > 0) {
-            const metaResults = await Promise.all([...caseKeys].map(key =>
-              getAppConfig(key).then(data => ({ key, data })).catch(() => ({ key, data: null }))
+      // Fetch calendar events: past 7 days + next 7 days
+      try {
+        const userId = currentUser?.id
+        if (userId) {
+          const now = new Date()
+          const timeMin = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          const timeMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          getAccessToken(userId).then(async token => {
+            const baseParams = { maxResults: '250', singleEvents: 'true', orderBy: 'startTime', timeMin, timeMax }
+            let calIds = ['primary']
+            try {
+              const calRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', { headers: { Authorization: `Bearer ${token}` } })
+              const calData = await calRes.json()
+              const apptCal = (calData.items || []).find(c => c.summary?.toLowerCase() === 'appointments')
+              if (apptCal) calIds.push(apptCal.id)
+            } catch {}
+            const results = await Promise.all(calIds.map(calId =>
+              listDashboardCalendarEvents(token, calId, baseParams).catch(() => [])
             ))
-            const merged = {}
-            for (const { key, data } of metaResults) {
-              if (data) Object.assign(merged, data)
+            const all = results.flat()
+            const seen = new Set()
+            const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
+              .filter(e => isAppointmentForAdmin(e, {
+                surrogates: gcs || [],
+                ips: allIps || [],
+                journeys: js || [],
+                adminEmail: currentUser?.email,
+                showAllCases,
+              }))
+              .sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || ''))
+            setEvents(deduped)
+
+            const caseKeys = new Set()
+            for (const e of deduped) {
+              const { caseId: cid, caseType: ct } = getAppointmentCaseInfo(e, { surrogates: gcs || [], ips: allIps || [], journeys: js || [] })
+              if (cid && ct) {
+                caseKeys.add(`appt_notes_${ct}_${cid}`)
+              }
             }
-            setApptMeta(merged)
-          }
-        }).catch(() => {})
-      }
-    } catch {}
+            if (caseKeys.size > 0) {
+              const metaResults = await Promise.all([...caseKeys].map(key =>
+                getAppConfig(key).then(data => ({ key, data })).catch(() => ({ key, data: null }))
+              ))
+              const merged = {}
+              for (const { data } of metaResults) {
+                if (data) Object.assign(merged, data)
+              }
+              setApptMeta(merged)
+            }
+          }).catch(() => {})
+        }
+      } catch {}
+    }).finally(() => setLoading(false))
 
     // Fetch quote of the day
     try {
