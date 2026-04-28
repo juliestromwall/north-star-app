@@ -41,7 +41,7 @@ import MilestoneFormView from '@/components/shared/MilestoneFormView'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask } from '@/lib/db'
+import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask, fetchCaseTasks } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
 import { JOURNEY_MANAGERS } from '@/pages/journeys/MatchedJourneysPage'
@@ -2393,6 +2393,7 @@ export default function JourneyDetailPage() {
   const [ipCase, setIpCase] = useState(null)
   const [loading, setLoading] = useState(true)
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  const [tasksDueTodayCount, setTasksDueTodayCount] = useState(0)
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -2506,6 +2507,15 @@ export default function JourneyDetailPage() {
         if (!j) { setLoading(false); return }
         setJourney(j)
         fetchJourneyExpenses(j.id).then(setJourneyExpenses).catch(() => {})
+        // Count tasks due today (open status, due_date matches today's date)
+        // for the blinking indicator on the Tasks & Appts tab.
+        fetchCaseTasks(j.id, 'journey').then(tasks => {
+          const todayIso = new Date().toISOString().split('T')[0]
+          const dueToday = (tasks || []).filter(t =>
+            t.status !== 'completed' && t.status !== 'cancelled' && t.due_date === todayIso
+          ).length
+          setTasksDueTodayCount(dueToday)
+        }).catch(() => {})
         const [gcs, ips] = await Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
         setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
         setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
@@ -3508,7 +3518,7 @@ export default function JourneyDetailPage() {
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Overview' },
-          { value: 'tasks', label: 'Tasks & Appts' },
+          { value: 'tasks', label: <span className="flex items-center gap-1.5">Tasks & Appts{tasksDueTodayCount > 0 && <span className="relative flex size-2" title={`${tasksDueTodayCount} task${tasksDueTodayCount === 1 ? '' : 's'} due today`}><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
