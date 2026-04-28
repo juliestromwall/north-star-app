@@ -53,6 +53,7 @@ import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
+import MilestoneFormView from '@/components/shared/MilestoneFormView'
 import QuickNote from '@/components/shared/QuickNote'
 import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import SortableTabsList from '@/components/shared/SortableTabsList'
@@ -1203,16 +1204,16 @@ export default function SurrogateDetailPage() {
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
-            const allSteps = getChecklistSteps('gc', currentStageId).filter(s => s.type !== 'info_row')
             return (
-              <TrackingTable
-                title={`${currentStageLabel} Checklist`}
-                steps={allSteps}
-                statuses={CHECKLIST_STEP_STATUSES}
-                tracking={recordTracking}
-                onUpdate={updateRecord}
-                currentUserName={currentUser.name}
-                onStatusLog={async ({ stepLabel, status, optionLabel, by, date }) => {
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-[#283693]">{currentStageLabel} Checklist</h3>
+                <MilestoneFormView
+                  userType="gc"
+                  stageId={currentStageId}
+                  tracking={recordTracking}
+                  onUpdate={updateRecord}
+                  currentUserName={currentUser.name}
+                  onStatusLog={async ({ stepLabel, status, optionLabel, by, date }) => {
                   // Auto-email when Records Summary is requested
                   if (status === 'requested' && stepLabel.toLowerCase().includes('records summary')) {
                     try {
@@ -1292,7 +1293,8 @@ export default function SurrogateDetailPage() {
                     }
                   }
                 }}
-              />
+                />
+              </div>
             )
           })()}
         </TabsContent>

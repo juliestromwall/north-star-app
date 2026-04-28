@@ -35,6 +35,7 @@ import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
+import MilestoneFormView from '@/components/shared/MilestoneFormView'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
@@ -703,16 +704,17 @@ export default function IPDetailPage() {
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Consultation'
-            const allSteps = getChecklistSteps('ip', currentStageId)
             return (
-              <TrackingTable
-                title={`${currentStageLabel} Checklist`}
-                steps={allSteps}
-                statuses={CHECKLIST_STEP_STATUSES}
-                tracking={recordTracking}
-                onUpdate={updateRecord}
-                currentUserName={currentUser.name}
-              />
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-[#283693]">{currentStageLabel} Checklist</h3>
+                <MilestoneFormView
+                  userType="ip"
+                  stageId={currentStageId}
+                  tracking={recordTracking}
+                  onUpdate={updateRecord}
+                  currentUserName={currentUser.name}
+                />
+              </div>
             )
           })()}
         </TabsContent>
