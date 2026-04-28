@@ -3064,6 +3064,17 @@ const PROFILE_SECTIONS = [
   ] },
 ]
 
+function normalizeStructuredList(value) {
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') {
+    return Object.keys(value)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(key => value[key])
+      .filter(Boolean)
+  }
+  return []
+}
+
 function countSectionFilled(data, section) {
   const sData = data?.[section.key] || {}
 
@@ -4371,9 +4382,8 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     const merged = { ...sectionData }
     const arrayFieldNames = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList']
     for (const f of sec.fields) {
-      if (!(f in merged)) {
-        merged[f] = arrayFieldNames.includes(f) ? [] : ''
-      }
+      if (arrayFieldNames.includes(f)) merged[f] = normalizeStructuredList(merged[f])
+      else if (!(f in merged)) merged[f] = ''
     }
     return merged
   }
@@ -5354,15 +5364,23 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                 .filter(f => isConditionalVisible(f, sectionData))
 
               const scalarFields = allFields.filter(f => {
-                const val = showEditLayout ? activeEditData[f] : sectionData[f]
+                const rawVal = showEditLayout ? activeEditData[f] : sectionData[f]
+                const val = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList'].includes(f)
+                  ? normalizeStructuredList(rawVal)
+                  : rawVal
                 return !(Array.isArray(val) && val.length > 0 && typeof val[0] === 'object')
               })
               const arrayFields = allFields.filter(f => {
-                const val = showEditLayout ? activeEditData[f] : sectionData[f]
+                const rawVal = showEditLayout ? activeEditData[f] : sectionData[f]
+                const val = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList'].includes(f)
+                  ? normalizeStructuredList(rawVal)
+                  : rawVal
                 return Array.isArray(val) && val.length > 0 && typeof val[0] === 'object'
               })
               const emptyArrayFields = showEditLayout ? allFields.filter(f => {
-                const val = activeEditData[f]
+                const val = ['pregnancies', 'householdMembers', 'journeys', 'complicationsList', 'diseaseHistory', 'healthConditionsList'].includes(f)
+                  ? normalizeStructuredList(activeEditData[f])
+                  : activeEditData[f]
                 return Array.isArray(val) && val.length === 0
               }) : []
 
@@ -5453,7 +5471,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                           <div key={field} className="pt-2">
                             <p className="text-muted-foreground mb-2">{formatFieldLabel(field)}</p>
                             <div className="space-y-2">
-                              {sectionData[field].map((item, i) => (
+                              {normalizeStructuredList(sectionData[field]).map((item, i) => (
                                 <div key={i} className="rounded-lg border border-gray-100 bg-gray-50/50 p-2.5">
                                   <span className="text-xs font-semibold text-[#283693]">#{i + 1}</span>
                                   <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
