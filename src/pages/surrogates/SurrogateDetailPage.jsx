@@ -1787,12 +1787,17 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
   const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
 
-  // Case-folder options (matched view shows folder picker when >1 option)
-  const caseFolderOptions = [
+  // Case-folder options (matched view shows folder picker when >1 option).
+  // The "Journey" option is a sentinel — at upload time it expands into one
+  // row per real case so the doc lives in both files (and survives a broken match).
+  const realCaseFolders = [
     { id: surrogateId, label: shortCaseLabel(caseLabels?.[surrogateId]) || 'Surrogate' },
     ...(additionalCaseIds || []).map(id => ({ id, label: shortCaseLabel(caseLabels?.[id]) || 'IP' })),
   ]
-  const isMatchedView = caseFolderOptions.length > 1
+  const isMatchedView = realCaseFolders.length > 1
+  const caseFolderOptions = isMatchedView
+    ? [...realCaseFolders, { id: '__journey__', label: 'Journey' }]
+    : realCaseFolders
 
   useEffect(() => {
     async function loadDocs() {
@@ -1844,18 +1849,23 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     const files = Array.from(e.target.files || [])
     const cat = uploadCategoryRef.current
     if (!files.length || !cat) return
+    // '__pick__' = top-level "Upload File" button: always stage so user picks
+    // category (and folder, if matched) inside the Assign Files dialog.
+    const pickInDialog = cat === '__pick__'
+    const stagingCategory = pickInDialog ? 'other' : cat
     // Check for zip files
     const zipFile = files.find(f => f.name.toLowerCase().endsWith('.zip') || f.type === 'application/zip')
     if (zipFile) {
-      await extractZip(zipFile, cat)
+      await extractZip(zipFile, stagingCategory)
       e.target.value = ''
       setUploading(false)
       setUploadCategory(null)
+      uploadCategoryRef.current = null
       return
     }
-    // In matched view, stage files so user can pick folder per file
-    if (isMatchedView) {
-      stageFilesForAssignment(files, cat)
+    // In matched view, OR when user clicked top-level Upload, stage files for the dialog.
+    if (isMatchedView || pickInDialog) {
+      stageFilesForAssignment(files, stagingCategory)
       e.target.value = ''
       setUploadCategory(null)
       uploadCategoryRef.current = null
@@ -1942,7 +1952,15 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
   async function uploadZipFiles() {
     if (!zipFiles) return
-    await uploadBatch(zipFiles, item => item.category, item => item.caseId)
+    // "Journey" expands to one upload per linked case so the doc lives in
+    // both files independently — survives if the match is later broken.
+    const realIds = realCaseFolders.map(f => f.id)
+    const expanded = zipFiles.flatMap(item =>
+      item.caseId === '__journey__'
+        ? realIds.map(cid => ({ ...item, caseId: cid }))
+        : [item]
+    )
+    await uploadBatch(expanded, item => item.category, item => item.caseId)
     setZipFiles(null)
   }
 
@@ -2173,6 +2191,10 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input placeholder="Search documents..." value={docSearch} onChange={e => setDocSearch(e.target.value)} className="pl-9" />
         </div>
+        <Button variant="outline" className="gap-1.5" disabled={uploading}
+          onClick={() => triggerUpload('__pick__')}>
+          <Upload className="size-4" /> Upload File
+        </Button>
         <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
           onClick={() => window.open(`/e-signature?caseType=gc&caseId=${surrogateId}`, '_blank')}>
           <FileText className="size-4" /> Send for Signature
