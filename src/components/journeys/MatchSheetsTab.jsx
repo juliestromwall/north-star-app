@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -79,10 +80,15 @@ function yesNo(val) {
 
 // ── Editable Field (inline in preview, plain text in PDF) ──
 
-function EditableValue({ value, field, msData, onChange, placeholder }) {
+function EditableValue({ value, field, msData, onChange, placeholder, displayPrefix }) {
   const [editing, setEditing] = useState(false)
   const val = msData?.[field] ?? value ?? ''
   const display = val || null
+  // Apply prefix only at display time (e.g. "Dr. ") and only when the stored
+  // value doesn't already include it. Edit mode shows the raw value.
+  const prefixed = display && displayPrefix && !/^dr\.?\s/i.test(String(display))
+    ? `${displayPrefix}${display}`
+    : display
 
   if (editing) {
     return (
@@ -105,7 +111,7 @@ function EditableValue({ value, field, msData, onChange, placeholder }) {
       style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: display ? '#1c1917' : '#a8a29e', borderBottom: display ? 'none' : '1px dashed #d6d3d1', paddingBottom: display ? 0 : 1, fontStyle: display ? 'normal' : 'italic' }}
       title="Click to edit"
     >
-      {display || (placeholder || 'Click to enter...')}
+      {prefixed || (placeholder || 'Click to enter...')}
     </span>
   )
 }
@@ -114,22 +120,44 @@ function EditableValue({ value, field, msData, onChange, placeholder }) {
 
 function EditableSelect({ value, field, msData, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState(null)
+  const triggerRef = useRef(null)
   const dropRef = useRef(null)
   const val = msData?.[field] ?? value ?? ''
   const display = val || null
   const opts = options || ['Yes', 'No']
 
+  function openDropdown() {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setCoords({ left: r.left, top: r.bottom + 2, minWidth: Math.max(180, r.width) })
+    }
+    setOpen(true)
+  }
+
   useEffect(() => {
     if (!open) return
-    function handleClick(e) { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false) }
+    function handleClick(e) {
+      if (dropRef.current?.contains(e.target)) return
+      if (triggerRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [open])
 
-  if (open) {
-    return (
-      <div ref={dropRef} style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', top: -4, left: 0, zIndex: 50, background: 'white', border: '1px solid #e7e5e4', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: 180, overflow: 'hidden' }}>
+  return (
+    <>
+      <span
+        ref={triggerRef}
+        onClick={openDropdown}
+        style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: display ? '#1c1917' : '#a8a29e', borderBottom: display ? 'none' : '1px dashed #d6d3d1', paddingBottom: display ? 0 : 1, fontStyle: display ? 'normal' : 'italic' }}
+        title="Click to select"
+      >
+        {display || (placeholder || 'Select...')}
+      </span>
+      {open && coords && createPortal(
+        <div ref={dropRef} style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999, background: 'white', border: '1px solid #e7e5e4', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: coords.minWidth, overflow: 'hidden' }}>
           {opts.map(o => (
             <div key={o} onClick={() => { onChange(field, o); setOpen(false) }}
               style={{ padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontWeight: val === o ? 600 : 400, color: val === o ? '#ed148c' : '#1c1917', backgroundColor: val === o ? '#ed148c10' : 'white' }}
@@ -137,19 +165,10 @@ function EditableSelect({ value, field, msData, onChange, options, placeholder }
               onMouseLeave={e => { e.target.style.backgroundColor = val === o ? '#ed148c10' : 'white' }}
             >{val === o ? '✓ ' : ''}{o}</div>
           ))}
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <span
-      onClick={() => setOpen(true)}
-      style={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, color: display ? '#1c1917' : '#a8a29e', borderBottom: display ? 'none' : '1px dashed #d6d3d1', paddingBottom: display ? 0 : 1, fontStyle: display ? 'normal' : 'italic' }}
-      title="Click to select"
-    >
-      {display || (placeholder || 'Select...')}
-    </span>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
@@ -397,9 +416,10 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
       ]} />
 
       <SectionTitle color="#723bb4" icon={Stethoscope}>IVF Physician</SectionTitle>
-      <InfoGrid columns={1} items={[
-        { label: 'Name of IVF Physician', editable: true, value: <EditableValue field="ivfPhysicianName" msData={msData} onChange={onChange} placeholder="Enter physician name..." value={jd.ivfDoctor || jd.ivfClinic || ipCase?.reDoctorName || ''} /> },
-        { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." value={reClinicLocation} /> },
+      <InfoGrid items={[
+        { label: 'Name of IVF Physician', editable: true, value: <EditableValue field="ivfPhysicianName" msData={msData} onChange={onChange} placeholder="Enter physician name..." displayPrefix="Dr. " value={jd.ivfDoctor || ipCase?.reDoctorName || ''} /> },
+        { label: 'IVF Clinic', editable: true, value: <EditableValue field="ivfClinicName" msData={msData} onChange={onChange} placeholder="Enter clinic name..." value={jd.ivfClinic || ''} /> },
+        { label: 'City, State of IVF Physician', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." value={reClinicLocation} />, span: 2 },
       ]} />
 
       <SectionTitle color="#723bb4" icon={Hospital}>Delivery Hospital</SectionTitle>
