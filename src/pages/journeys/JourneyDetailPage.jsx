@@ -2478,7 +2478,10 @@ export default function JourneyDetailPage() {
         if (gc?.email) {
           fetchIntakeByEmail(gc.email).then(answers => { if (answers) setGcQuizAnswers(answers) }).catch(() => {})
           fetchSurrogateProfileByEmail(gc.email).then(d => {
-            if (d?.profile_data) setGcProfileData(d.profile_data)
+            if (d?.profile_data) {
+              setGcProfileData(d.profile_data)
+              if (d.profile_data?.personal?.profilePhotoUrl) setGcPortraitUrl(prev => prev || d.profile_data.personal.profilePhotoUrl)
+            }
             if (d?.status) setGcProfileStatus(d.status)
           }).catch(() => {})
         }
@@ -2488,6 +2491,9 @@ export default function JourneyDetailPage() {
             listProfilePhotos(`${gc.userId}/portrait`).catch(() => []),
           ]).then(([gallery, portraits]) => setGcPhotos([...portraits, ...gallery]))
           getPortraitPhotoUrl(gc.userId).then(url => { if (url) setGcPortraitUrl(url) }).catch(() => {})
+        }
+        if (gc?.id) {
+          getPortraitPhotoUrl(String(gc.id)).then(url => { if (url) setGcPortraitUrl(prev => prev || url) }).catch(() => {})
         }
         // Load IP portrait (stored at ip-{caseId}/portrait/)
         if (j.ip_case_id) {
