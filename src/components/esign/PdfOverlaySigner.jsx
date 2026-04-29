@@ -259,53 +259,10 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
               return lines.map(L => <div key={L.k}><div style={L.style} /><span style={{ position: 'absolute', ...L.lpos, fontSize: 8, color: '#666', background: 'white', padding: '0 2px' }}>{L.label}</span></div>)
             })()}
 
-            {/* AcroForm-aware signature widget — pulls position straight from
-                the PDF's named "gcSignature" field. No coord guessing.
-                Only renders for fillable PDFs; coord-overlay PDFs use the
-                template.overlay map below. */}
-            {hasForm && sigGeometry?.pageIndex === pi && (() => {
-              const { rect } = sigGeometry
-              const { left, top, scale } = pdfToCss(pi, rect.x, rect.y + rect.height)
-              const w = rect.width * scale
-              const h = rect.height * scale
-              const sigId = 'signature'
-              const sig = signatures[sigId]
-              if (activeSigId === sigId) {
-                return (
-                  <div style={{ position: 'absolute', left, top, width: Math.max(w, 260), zIndex: 30 }}>
-                    <SignaturePad value={sig} signerName={signerName} onChange={(val) => { setSignatures(p => ({ ...p, [sigId]: val })); if (val?.type === 'drawn') setActiveSigId(null) }} />
-                    <button onClick={() => setActiveSigId(null)} className="text-[10px] text-stone-400 hover:underline mt-0.5">Done</button>
-                  </div>
-                )
-              }
-              if (sig?.type === 'drawn' && sig.image) {
-                return (
-                  <button onClick={() => setActiveSigId(sigId)}
-                    style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
-                    className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-center"
-                    title="Click to re-sign">
-                    <img src={sig.image} alt="signature" style={{ height: h - 4, width: 'auto' }} />
-                  </button>
-                )
-              }
-              if (sig?.type === 'typed' && sig.name) {
-                return (
-                  <button onClick={() => setActiveSigId(sigId)}
-                    style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
-                    className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-start px-2 font-serif italic text-[#283693]"
-                    title="Click to re-sign">
-                    {sig.name}
-                  </button>
-                )
-              }
-              return (
-                <button onClick={() => setActiveSigId(sigId)}
-                  style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
-                  className="border-2 border-dashed border-[#ed148c] bg-[#ed148c]/10 rounded text-[10px] text-[#ed148c] font-semibold flex items-center justify-center hover:bg-[#ed148c]/20 transition-colors animate-pulse">
-                  Click to sign
-                </button>
-              )
-            })()}
+            {/* AcroForm signature widget on the PDF removed — the dedicated
+                "Your signature" card below the PDF is the single sign target
+                for both desktop and mobile. The inline widget was visually
+                noisy and redundant. */}
 
             {/* Coord-overlay widgets (legacy fallback for non-fillable PDFs) */}
             {!hasForm && (template.overlay || []).filter(f => f.page === pi).map(field => {
