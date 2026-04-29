@@ -155,17 +155,27 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
         if (geom) {
           const page = pdf.getPages()[geom.pageIndex]
           const { rect } = geom
+          // The drawn-signature canvas has white-space padding above/below the
+          // ink. Pulling the image down by ~half the rect height lands the
+          // visible signature on the underline rather than floating above it.
+          const SIG_Y_OFFSET = -Math.round(rect.height * 0.5)
           if (sig?.type === 'drawn' && sig.image) {
             try {
               const imgBytes = await fetch(sig.image).then(r => r.arrayBuffer())
               const png = await pdf.embedPng(imgBytes)
-              page.drawImage(png, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+              page.drawImage(png, {
+                x: rect.x,
+                y: rect.y + SIG_Y_OFFSET,
+                width: rect.width,
+                height: rect.height,
+              })
             } catch (err) { console.warn('Failed to embed drawn signature:', err) }
           } else if (sig?.name) {
+            // Typed signature — baseline sits just above the underline
             page.drawText(sig.name, {
               x: rect.x + 2,
-              y: rect.y + Math.max(2, rect.height * 0.25),
-              size: Math.min(rect.height - 4, 14),
+              y: rect.y - 2,
+              size: Math.min(rect.height - 2, 14),
               font: helvOblique,
               color: rgb(0.16, 0.21, 0.58),
             })
@@ -246,4 +256,68 @@ export async function loadTemplatePdf(pdfPath) {
   const res = await fetch(pdfPath)
   if (!res.ok) throw new Error(`Failed to load template PDF (${res.status})`)
   return res.arrayBuffer()
+}
+
+/**
+ * Append an "Electronic Signature Certificate" page to a signed PDF blob.
+ * This is the audit-trail evidence page that makes the signature ESIGN /
+ * UETA defensible — same content the doc-first release forms attach.
+ *
+ * Drawn natively with pdf-lib (no html2canvas dance) so it's fast and
+ * crisp, and we can keep the original baked PDF intact and just add a
+ * trailing page.
+ */
+export async function appendAuditTrailPage(pdfBlob, audit) {
+  const buf = await pdfBlob.arrayBuffer()
+  const pdf = await PDFDocument.load(buf, { ignoreEncryption: true })
+  const page = pdf.addPage([612, 792]) // US Letter
+  const helv = await pdf.embedFont(StandardFonts.Helvetica)
+  const helvBold = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const indigo = rgb(40 / 255, 54 / 255, 147 / 255)
+  const grey = rgb(0.35, 0.35, 0.35)
+
+  // Top accent bar
+  page.drawRectangle({ x: 50, y: 750, width: 512, height: 2, color: indigo })
+
+  // Heading
+  page.drawText('ELECTRONIC SIGNATURE CERTIFICATE', {
+    x: 50, y: 720, size: 14, font: helvBold, color: indigo,
+  })
+
+  const completed = (audit?.signedAt instanceof Date ? audit.signedAt : new Date())
+    .toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
+    })
+  const sigType = audit?.signatureType === 'drawn' ? 'Hand-drawn' : 'Typed'
+  const sigDescriptor = audit?.signatureName ? `${sigType} — ${audit.signatureName}` : sigType
+
+  const rows = [
+    ['Document:',     audit?.documentTitle || ''],
+    ['Document ID:',  audit?.documentId || ''],
+    ['Completed:',    completed],
+    ['Signer:',       audit?.signerName || ''],
+    ['Email:',        audit?.signerEmail || ''],
+    ['Signature:',    sigDescriptor],
+    ['User Agent:',   (audit?.userAgent || '').slice(0, 80)],
+    ['IP Address:',   audit?.ipAddress || 'Captured at signing'],
+  ]
+
+  let y = 685
+  for (const [label, val] of rows) {
+    if (!val) continue
+    page.drawText(label, { x: 50, y, size: 11, font: helvBold, color: rgb(0, 0, 0) })
+    page.drawText(String(val), { x: 200, y, size: 11, font: helv, color: rgb(0, 0, 0) })
+    y -= 22
+  }
+
+  // Footer disclaimer
+  const footer1 = 'Electronically signed via ABC Surrogacy (app.abcsurrogacy.com) in accordance with the'
+  const footer2 = 'ESIGN Act and UETA. A tamper-proof audit trail has been recorded for each signature event.'
+  page.drawLine({ start: { x: 50, y: y - 16 }, end: { x: 562, y: y - 16 }, thickness: 0.5, color: grey })
+  page.drawText(footer1, { x: 50, y: y - 36, size: 9, font: helv, color: grey })
+  page.drawText(footer2, { x: 50, y: y - 50, size: 9, font: helv, color: grey })
+
+  const finalBytes = await pdf.save()
+  return new Blob([finalBytes], { type: 'application/pdf' })
 }

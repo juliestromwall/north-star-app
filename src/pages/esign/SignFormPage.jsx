@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { logAuditEvent, signDocument } from '@/lib/esign'
 import { FORM_TEMPLATES, generateBackgroundWaiverHtml, generateIPBackgroundWaiverHtml, generateAuditTrailHtml, generateReleasePageHtml, generateReleaseFormHtml } from '@/lib/formTemplates'
 import PdfOverlaySigner from '@/components/esign/PdfOverlaySigner'
+import { appendAuditTrailPage } from '@/lib/pdfOverlay'
 
 // ── Signature Pad ──
 function SignaturePad({ value, onChange, signerName }) {
@@ -923,26 +924,79 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
   const [adminValues, setAdminValues] = useState({})
   const [submitError, setSubmitError] = useState(null)
 
-  // Pull GC context from the case's intake answers + admin pre-fill from doc metadata
+  // Pull GC context from the case's intake answers + admin pre-fill from doc metadata.
+  // Address can live in several places depending on when/how the surrogate was
+  // onboarded: _confidential block (newer flow), top-level intake answers
+  // (older intake), the application form, OR the surrogate_profiles personal
+  // section (filled out separately on the GC profile page). Walk all of them
+  // and use the first hit so Kaiser doesn't go out with a blank address.
   useEffect(() => {
     if (!doc?.case_id || !supabase) return
     const meta = (() => { try { return JSON.parse(doc.document_hash || '{}') } catch { return {} } })()
     setAdminValues(meta.adminValues || {})
-    supabase.from('intake_submissions').select('answers').eq('id', doc.case_id).single().then(({ data }) => {
-      const a = data?.answers || {}
+
+    async function load() {
+      const { data: intake } = await supabase
+        .from('intake_submissions')
+        .select('answers, applicant_email')
+        .eq('id', doc.case_id)
+        .single()
+      const a = intake?.answers || {}
       const c = a._confidential || {}
+      const app = a._application || {}
+
+      // Fall back through the address sources in priority order
+      const pickStreet = () =>
+        [c.streetAddress, c.aptNumber].filter(Boolean).join(' ').trim() ||
+        [a.streetAddress, a.aptNumber].filter(Boolean).join(' ').trim() ||
+        [a.street, a.street2].filter(Boolean).join(' ').trim() ||
+        [app.streetAddress, app.aptNumber].filter(Boolean).join(' ').trim() ||
+        app.street || ''
+      const pickCity     = () => c.city     || a.city     || app.city     || ''
+      const pickState    = () => c.state    || a.state    || app.state    || ''
+      const pickZip      = () => c.zipCode  || a.zipCode  || a.zip || app.zipCode || app.zip || ''
+      const pickPhone    = () => a.phone    || app.phone  || c.phone || ''
+
+      let street = pickStreet()
+      let city   = pickCity()
+      let state  = pickState()
+      let zip    = pickZip()
+      let phone  = pickPhone()
+
+      // Final fallback: surrogate_profiles.profile_data.personal.* — populated
+      // when the GC fills out their profile page (separate from the application).
+      if (!street || !city || !state || !zip || !phone) {
+        const email = (a.email || intake?.applicant_email || '').toLowerCase()
+        if (email) {
+          try {
+            const { data: profileRow } = await supabase
+              .from('surrogate_profiles')
+              .select('profile_data')
+              .eq('email', email)
+              .maybeSingle()
+            const personal = profileRow?.profile_data?.personal || {}
+            street = street || [personal.streetAddress, personal.aptNumber].filter(Boolean).join(' ').trim() || personal.address || ''
+            city   = city   || personal.city   || ''
+            state  = state  || personal.state  || ''
+            zip    = zip    || personal.zipCode || personal.zip || ''
+            phone  = phone  || personal.phone  || ''
+          } catch (err) { console.warn('profile lookup failed:', err) }
+        }
+      }
+
       const fullName = [a.firstName, a.lastName].filter(Boolean).join(' ').trim() || mySigner.name || ''
       setGcCtx({
         name: fullName,
         dob: a.dob || '',
         email: a.email || mySigner.email || '',
-        phone: a.phone || '',
-        street: [c.streetAddress, c.aptNumber].filter(Boolean).join(' ').trim(),
-        city: c.city || '',
-        state: c.state || '',
-        zipCode: c.zipCode || '',
+        phone,
+        street,
+        city,
+        state,
+        zipCode: zip,
       })
-    })
+    }
+    load().catch(() => {})
   }, [doc?.case_id])
 
   async function handleSign({ blob, signatures }) {
@@ -960,9 +1014,23 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
       }
       const updated = await signDocument(doc.id, mySigner.email, signatureData)
 
-      // Upload the baked PDF as the signed copy
+      // Append the ESIGN/UETA audit-trail page to the baked PDF — same
+      // evidentiary cert page that gets attached to the doc-first releases.
+      // Kaiser is single-signer, so we can finalize on this submit.
+      const finalBlob = await appendAuditTrailPage(blob, {
+        documentTitle: doc.title,
+        documentId: doc.id,
+        signerName: mySigner.name,
+        signerEmail: mySigner.email,
+        signatureType: signatures?.signature?.type || 'typed',
+        signatureName: signatures?.signature?.name || mySigner.name || '',
+        signedAt: new Date(),
+        userAgent: navigator?.userAgent || '',
+      })
+
+      // Upload the audited PDF as the signed copy
       const path = `documents/signed_kaiser_${doc.id}_${Date.now()}.pdf`
-      const upload = await supabase.storage.from('esign-documents').upload(path, blob, { contentType: 'application/pdf' })
+      const upload = await supabase.storage.from('esign-documents').upload(path, finalBlob, { contentType: 'application/pdf' })
       if (upload?.error) throw upload.error
       const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(path)
 

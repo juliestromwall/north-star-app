@@ -385,6 +385,40 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
         ))}
       </div>
 
+      {/* Dedicated "Your signature" card — primary entry point on mobile,
+          where the inline coord-positioned widget on the PDF is too small
+          to tap reliably. Wires the same signatures.signature state so
+          desktop click-to-sign and this card stay in sync. */}
+      <Card className="mt-5 mb-2 border-2 border-[#ed148c]/30 shadow-sm">
+        <CardContent className="p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h3>
+            {signatures.signature && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                <CheckCircle2 className="size-3.5" /> Signed
+              </span>
+            )}
+          </div>
+          {signatures.signature?.type === 'drawn' && signatures.signature.image ? (
+            <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+              <img src={signatures.signature.image} alt="signature" style={{ height: 36 }} />
+              <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Re-sign</button>
+            </div>
+          ) : signatures.signature?.type === 'typed' && signatures.signature.name ? (
+            <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+              <span className="text-lg font-serif italic text-[#283693]">{signatures.signature.name}</span>
+              <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Clear</button>
+            </div>
+          ) : (
+            <SignaturePad
+              value={signatures.signature}
+              signerName={signerName}
+              onChange={(val) => setSignatures(p => ({ ...p, signature: val }))}
+            />
+          )}
+        </CardContent>
+      </Card>
+
       {/* Footer */}
       <div className="flex flex-col items-center gap-3 pt-6 pb-10">
         <label className="flex items-center gap-2 text-sm text-stone-700">
