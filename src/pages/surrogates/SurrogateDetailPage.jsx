@@ -1791,7 +1791,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
   )
 }
 
-export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surrogateData }) {
+export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surrogateData, includeJourneyDocs = false }) {
   const { currentUser } = useRole()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -1843,8 +1843,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
   const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
 
   // Case-folder options (matched view shows folder picker when >1 option).
-  // The "Journey" option is a sentinel — at upload time it expands into one
-  // row per real case so the doc lives in both files (and survives a broken match).
+  // The "Journey" option is a sentinel — at upload time it stays a single
+  // matched-journey document until/unless the match is later broken.
   const realCaseFolders = [
     { id: surrogateId, label: shortCaseLabel(caseLabels?.[surrogateId]) || 'Surrogate' },
     ...(additionalCaseIds || []).map(id => ({ id, label: shortCaseLabel(caseLabels?.[id]) || 'IP' })),
@@ -1857,13 +1857,21 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
   useEffect(() => {
     async function loadDocs() {
       try {
+        const mapDocForSource = (doc, fallbackSource) => ({
+          ...doc,
+          _source: doc.doc_label === 'journey' ? 'Journey' : (fallbackSource || null),
+        })
+        const keepDoc = (doc) => includeJourneyDocs || doc.doc_label !== 'journey'
         const primary = await fetchCaseDocuments(surrogateId)
-        let allDocs = (primary || []).map(d => ({ ...d, _source: caseLabels?.[surrogateId] || null }))
+        let allDocs = (primary || []).filter(keepDoc).map(d => mapDocForSource(d, caseLabels?.[surrogateId]))
         if (additionalCaseIds?.length) {
           for (const caseId of additionalCaseIds) {
             const extra = await fetchCaseDocuments(caseId)
             if (extra?.length) {
-              allDocs = [...allDocs, ...extra.map(d => ({ ...d, _source: caseLabels?.[caseId] || 'Other' }))]
+              allDocs = [
+                ...allDocs,
+                ...extra.filter(keepDoc).map(d => mapDocForSource(d, caseLabels?.[caseId] || 'Other')),
+              ]
             }
           }
         }
@@ -1871,7 +1879,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       } catch {} finally { setLoading(false) }
     }
     loadDocs()
-  }, [surrogateId])
+  }, [surrogateId, additionalCaseIds, caseLabels, includeJourneyDocs])
 
   // Filter by search
   const filteredDocs = docSearch
@@ -1891,8 +1899,8 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     document.getElementById('doc-upload-input')?.click()
   }
 
-  // In matched view, default folder is "Journey" so uploads land in both
-  // the GC and IP files unless the user explicitly picks one side.
+  // In matched view, default folder is "Journey" so uploads stay attached
+  // to the matched journey unless the user explicitly picks one side.
   const defaultUploadCaseId = isMatchedView ? '__journey__' : surrogateId
 
   function stageFilesForAssignment(files, categoryId) {
@@ -1994,9 +2002,19 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       const results = await Promise.allSettled(
         batch.map(item => {
           const file = item.file instanceof window.File ? item.file : new window.File([item.file], item.name, { type: item.file.type })
-          const itemCaseId = getCaseIdForItem ? getCaseIdForItem(item) : surrogateId
-          return uploadCaseDocument({ surrogateId: itemCaseId, category: getCategoryForItem(item), file, uploadedBy: currentUser.name })
-            .then(doc => doc ? { ...doc, _source: caseLabels?.[itemCaseId] || null } : doc)
+          const caseTarget = getCaseIdForItem ? getCaseIdForItem(item) : surrogateId
+          const isJourneyDoc = caseTarget === '__journey__'
+          const itemCaseId = isJourneyDoc ? surrogateId : caseTarget
+          return uploadCaseDocument({
+            surrogateId: itemCaseId,
+            category: getCategoryForItem(item),
+            file,
+            uploadedBy: currentUser.name,
+            docLabel: isJourneyDoc ? 'journey' : null,
+          }).then(doc => doc ? {
+            ...doc,
+            _source: isJourneyDoc ? 'Journey' : (caseLabels?.[itemCaseId] || null),
+          } : doc)
         })
       )
       for (const r of results) {
@@ -2011,15 +2029,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
 
   async function uploadZipFiles() {
     if (!zipFiles) return
-    // "Journey" expands to one upload per linked case so the doc lives in
-    // both files independently — survives if the match is later broken.
-    const realIds = realCaseFolders.map(f => f.id)
-    const expanded = zipFiles.flatMap(item =>
-      item.caseId === '__journey__'
-        ? realIds.map(cid => ({ ...item, caseId: cid }))
-        : [item]
-    )
-    await uploadBatch(expanded, item => item.category, item => item.caseId)
+    await uploadBatch(zipFiles, item => item.category, item => item.caseId)
     setZipFiles(null)
   }
 

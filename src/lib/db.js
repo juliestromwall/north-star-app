@@ -783,7 +783,7 @@ export async function fetchCaseDocuments(surrogateId) {
   return data || []
 }
 
-export async function uploadCaseDocument({ surrogateId, category, file, uploadedBy }) {
+export async function uploadCaseDocument({ surrogateId, category, file, uploadedBy, docLabel = null }) {
   if (!supabase) return null
   const ext = file.name.split('.').pop()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -805,6 +805,7 @@ export async function uploadCaseDocument({ surrogateId, category, file, uploaded
       storage_path: uploadData.path,
       public_url: urlData.publicUrl,
       uploaded_by: uploadedBy,
+      doc_label: docLabel,
     })
     .select()
     .single()
