@@ -377,33 +377,70 @@ export default function IPDetailPage() {
                       if (!ip.email) return
                       if (!ensureAssignedBeforeInvite()) return
                       setInviting(true); setInviteResult(null)
+                      // Invite the primary IP. If a partner exists with an
+                      // email and no portal account yet, invite them in
+                      // parallel so the first-ever click sends to BOTH.
+                      const shouldInvitePartner = hasPartner && ip.ip2Email && !portalStatus2?.exists
                       try {
-                        const res = await fetch('/api/ip-invite', {
+                        const primaryReq = fetch('/api/ip-invite', {
                           method: 'POST', headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ email: ip.email, name: ip.names, firstName: a.primaryFirstName || '' }),
-                        })
-                        const data = await res.json()
-                        if (!res.ok) throw new Error(data.error || 'Invite failed')
-                        setInviteResult(data.emailSent ? 'sent' : 'error')
+                        }).then(async r => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
+
+                        const partnerReq = shouldInvitePartner
+                          ? fetch('/api/ip-invite', {
+                              method: 'POST', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ email: ip.ip2Email, name: ip.ip2Name, firstName: a.ip2FirstName || '' }),
+                            }).then(async r => ({ ok: r.ok, data: await r.json().catch(() => ({})) }))
+                          : Promise.resolve(null)
+
+                        const [primary, partner] = await Promise.all([primaryReq, partnerReq])
+                        if (!primary.ok) throw new Error(primary.data.error || 'Invite failed')
+
+                        const primarySent = !!primary.data?.emailSent
+                        const partnerSent = !partner ? null : !!partner.data?.emailSent
+                        const allSent = primarySent && (partnerSent === null || partnerSent === true)
+                        setInviteResult(allSent ? 'sent' : 'error')
+
+                        // Stamp both timestamps so the audit trail shows
+                        // who/when for each side.
                         try {
                           const { supabase } = await import('@/lib/supabase')
                           if (supabase) {
                             const { data: row } = await supabase.from('intake_submissions').select('answers').eq('id', ip.id).single()
                             if (row) {
-                              await supabase.from('intake_submissions').update({ answers: { ...(row.answers || {}), _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }).eq('id', ip.id)
+                              const nowIso = new Date().toISOString()
+                              const newAnswers = {
+                                ...(row.answers || {}),
+                                _lastInvitedAt: nowIso,
+                                _invitedBy: currentUser.name,
+                              }
+                              if (partner) {
+                                newAnswers._partnerInvitedAt = nowIso
+                                newAnswers._partnerInvitedBy = currentUser.name
+                              }
+                              await supabase.from('intake_submissions').update({ answers: newAnswers }).eq('id', ip.id)
                             }
                           }
-                          setIp(prev => ({ ...prev, answers: { ...prev.answers, _lastInvitedAt: new Date().toISOString(), _invitedBy: currentUser.name } }))
+                          setIp(prev => {
+                            const nowIso = new Date().toISOString()
+                            const newAnswers = { ...prev.answers, _lastInvitedAt: nowIso, _invitedBy: currentUser.name }
+                            if (partner) {
+                              newAnswers._partnerInvitedAt = nowIso
+                              newAnswers._partnerInvitedBy = currentUser.name
+                            }
+                            return { ...prev, answers: newAnswers }
+                          })
                         } catch {}
                       } catch { setInviteResult('error') }
                       setInviting(false)
                       setTimeout(() => setInviteResult(null), 4000)
                     }}>
                     {inviting ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
-                    {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'error' ? 'Send failed' : 'Invite to Portal'}
+                    {inviting ? 'Inviting...' : inviteResult === 'sent' ? 'Invited!' : inviteResult === 'error' ? 'Send failed' : (hasPartner && ip.ip2Email && !portalStatus2?.exists ? 'Invite Both to Portal' : 'Invite to Portal')}
                   </Button>
                   {ip.answers?._lastInvitedAt && (
-                    <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span className="text-[10px] text-stone-400">Invited {new Date(ip.answers._lastInvitedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}{ip.answers._invitedBy ? ` by ${ip.answers._invitedBy}` : ''}</span>
                   )}
                 </div>
               )}
