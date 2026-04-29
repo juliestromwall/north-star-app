@@ -28,6 +28,9 @@ export async function onRequestPost(context) {
   }
 
   const notifyEmails = ['intake@abcsurrogacy.com', 'julie@abcsurrogacy.com', 'nicole@abcsurrogacy.com', 'juliestromwall@gmail.com']
+  const reviewUrl = caseId
+    ? `https://app.abcsurrogacy.com/surrogates/${caseId}`
+    : 'https://app.abcsurrogacy.com/surrogates'
 
   const htmlBody = `<!DOCTYPE html>
 <html lang="en">
@@ -56,7 +59,7 @@ export async function onRequestPost(context) {
         </div>
 
         <div style="text-align: center; margin: 24px 0;">
-          <a href="https://app.abcsurrogacy.com/case-updates" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          <a href="${reviewUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
             Review Profile
           </a>
         </div>
