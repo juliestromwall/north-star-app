@@ -63,6 +63,20 @@ import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as Sel
 import { getAdminStaff } from '@/data/mock/users'
 import { ProfilePreview, QUALITIES_OPTIONS } from '@/pages/profile/SurrogateProfilePage'
 
+// Coerce a value into an array — handles legacy data where collections
+// are stored as { '0': item, '1': item, ... } object instead of an array
+// (sometimes happens after partial JSON merges in older save flows).
+function normalizeStructuredList(value) {
+  if (Array.isArray(value)) return value
+  if (value && typeof value === 'object') {
+    return Object.keys(value)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(key => value[key])
+      .filter(Boolean)
+  }
+  return []
+}
+
 // ── GTPAL ──────────────────────────────────────────────────
 function getGTPAL(profileData) {
   const ph = profileData?.pregnancyHistory
