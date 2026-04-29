@@ -83,15 +83,110 @@ export function resolveOverlayValue(field, ctx) {
 }
 
 /**
+ * AcroForm-aware name → context value lookup. Mirrors resolveOverlayValue
+ * but keyed off the field's NAME (case-insensitive, trimmed) so the same
+ * mapping works whether the template defines explicit overlay coords or
+ * the PDF carries named form fields.
+ */
+export function valueForFieldName(rawName, ctx) {
+  const name = String(rawName || '').trim().toLowerCase()
+  const { gc = {}, admin = {}, today, fieldValues = {} } = ctx
+  if (name === 'gcsignature') return { isSignature: true }
+  // Live override from the signing-page input
+  if (fieldValues[rawName] !== undefined && fieldValues[rawName] !== '') return { text: fieldValues[rawName] }
+  switch (name) {
+    case 'gcname':         return { text: gc.name || '' }
+    case 'gcdob':          return { text: formatDob(gc.dob) }
+    case 'gcstreet':       return { text: gc.street || '' }
+    case 'gccity':         return { text: gc.city || '' }
+    case 'gcstate':        return { text: gc.state || '' }
+    case 'gczipcode':      return { text: gc.zipCode || '' }
+    case 'gcphone':        return { text: formatPhoneForKaiser(gc.phone) }
+    case 'gcemail':        return { text: gc.email || '' }
+    case 'step1daterange': return { text: admin.step1DateRange || '' }
+    case 'gcsigndate':     return { text: today || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) }
+    default:               return { text: '' }
+  }
+}
+
+/**
  * Draw the overlay onto a copy of the original PDF and return a flattened
  * Blob that's safe to upload to Storage as the signed copy.
  *
+ * Two paths:
+ *  1. AcroForm path — when the PDF has named text fields. Fill by name,
+ *     draw signature image at the signature field's widget rect, flatten.
+ *     Pixel-perfect because the form fields know their own positions.
+ *  2. Coordinate path — fallback for PDFs without form fields. Reads
+ *     overlay coords from the template entry.
+ *
  * @param pdfBytes  ArrayBuffer of the original template PDF
  * @param overlay   Array of { id, page, x, y, width, height, fontSize, type, source, adminField } from the template
- * @param ctx       { gc, admin, today, signatures, fieldValues } (see resolveOverlayValue)
+ * @param ctx       { gc, admin, today, signatures, fieldValues }
  */
 export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
-  const pdf = await PDFDocument.load(pdfBytes)
+  const pdf = await PDFDocument.load(pdfBytes, { ignoreEncryption: true })
+  const form = pdf.getForm()
+  const fields = form.getFields()
+
+  // ── AcroForm path ──
+  if (fields.length > 0) {
+    const helvOblique = await pdf.embedFont(StandardFonts.HelveticaOblique)
+    for (const field of fields) {
+      const rawName = field.getName()
+      const resolved = valueForFieldName(rawName, ctx)
+
+      if (resolved.isSignature) {
+        const sig = ctx.signatures?.signature || ctx.signatures?.[rawName.trim()] || ctx.signatures?.[rawName]
+        let geom = null
+        try {
+          const widgets = field.acroField.getWidgets()
+          if (widgets.length) {
+            const rect = widgets[0].getRectangle()
+            const pageRef = widgets[0].P()
+            let pageIndex = 0
+            const pages = pdf.getPages()
+            for (let i = 0; i < pages.length; i++) {
+              if (pages[i].ref === pageRef) { pageIndex = i; break }
+            }
+            geom = { pageIndex, rect }
+          }
+        } catch {}
+        if (geom) {
+          const page = pdf.getPages()[geom.pageIndex]
+          const { rect } = geom
+          if (sig?.type === 'drawn' && sig.image) {
+            try {
+              const imgBytes = await fetch(sig.image).then(r => r.arrayBuffer())
+              const png = await pdf.embedPng(imgBytes)
+              page.drawImage(png, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
+            } catch (err) { console.warn('Failed to embed drawn signature:', err) }
+          } else if (sig?.name) {
+            page.drawText(sig.name, {
+              x: rect.x + 2,
+              y: rect.y + Math.max(2, rect.height * 0.25),
+              size: Math.min(rect.height - 4, 14),
+              font: helvOblique,
+              color: rgb(0.16, 0.21, 0.58),
+            })
+          }
+        }
+        // Remove signature field so the form-flatten step doesn't draw an empty box on top
+        try { form.removeField(field) } catch {}
+        continue
+      }
+
+      if (typeof field.setText === 'function' && resolved.text) {
+        try { field.setText(String(resolved.text)) } catch (err) { console.warn(`setText(${rawName}) failed:`, err) }
+      }
+    }
+    // Flatten so the values + signature image are baked permanently
+    try { form.flatten() } catch (err) { console.warn('Form flatten failed:', err) }
+    const finalBytes = await pdf.save()
+    return new Blob([finalBytes], { type: 'application/pdf' })
+  }
+
+  // ── Coordinate path (legacy fallback) ──
   const helv = await pdf.embedFont(StandardFonts.Helvetica)
   const helvOblique = await pdf.embedFont(StandardFonts.HelveticaOblique)
   const pages = pdf.getPages()

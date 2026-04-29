@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { CheckCircle2, Loader2 } from 'lucide-react'
-import { bakePdfOverlay, loadTemplatePdf, resolveOverlayValue } from '@/lib/pdfOverlay'
+import { bakePdfOverlay, loadTemplatePdf, resolveOverlayValue, valueForFieldName } from '@/lib/pdfOverlay'
 
 /**
  * Renders a "pdf-overlay" template: shows the original PDF as the background
@@ -39,23 +39,78 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
     setFieldValues(initial)
   }, [template, gcCtx, adminValues])
 
-  // Render the PDF pages to images via pdfjs-dist
+  // Signature widget geometry, extracted from the PDF's AcroForm signature
+  // field. The live preview positions the signature pad at the field's
+  // exact widget rect — no manual coord guessing.
+  const [sigGeometry, setSigGeometry] = useState(null) // { pageIndex, rect: {x,y,width,height} }
+  // Whether the PDF is fillable (has named AcroForm fields). When true we
+  // pre-fill values via pdf-lib + flatten before pdfjs renders, so the
+  // surrogate sees the values landing exactly on Kaiser's pre-printed lines.
+  const [hasForm, setHasForm] = useState(false)
+
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         const buf = await loadTemplatePdf(template.pdfPath)
         if (cancelled) return
-        setPdfBytes(buf)
+        setPdfBytes(buf) // ORIGINAL bytes — used by bake on submit
+
+        // Pre-fill + flatten via pdf-lib so the rendered display matches
+        // what the final signed PDF will look like. This sidesteps coord
+        // guessing entirely — pdf-lib places each value at the exact
+        // position of its named form field.
+        const { PDFDocument } = await import('pdf-lib')
+        const sourcePdf = await PDFDocument.load(buf, { ignoreEncryption: true })
+        const form = sourcePdf.getForm()
+        const fields = form.getFields()
+        let displayBytes = buf
+
+        if (fields.length > 0) {
+          if (!cancelled) setHasForm(true)
+          for (const field of fields) {
+            const rawName = field.getName()
+            const name = rawName.trim().toLowerCase()
+            if (name === 'gcsignature') continue
+            const resolved = valueForFieldName(rawName, {
+              gc: gcCtx || {},
+              admin: adminValues || {},
+              today: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
+              fieldValues: {},
+            })
+            if (resolved.text && typeof field.setText === 'function') {
+              try { field.setText(String(resolved.text)) } catch {}
+            }
+          }
+          // Capture signature widget position before flattening removes it
+          const sigField = fields.find(f => f.getName().trim().toLowerCase() === 'gcsignature')
+          if (sigField) {
+            try {
+              const widgets = sigField.acroField.getWidgets()
+              if (widgets.length) {
+                const r = widgets[0].getRectangle()
+                const pageRef = widgets[0].P()
+                let pageIndex = 0
+                const pages = sourcePdf.getPages()
+                for (let i = 0; i < pages.length; i++) {
+                  if (pages[i].ref === pageRef) { pageIndex = i; break }
+                }
+                if (!cancelled) setSigGeometry({ pageIndex, rect: { x: r.x, y: r.y, width: r.width, height: r.height } })
+              }
+            } catch {}
+            try { form.removeField(sigField) } catch {}
+          }
+          try { form.flatten() } catch {}
+          displayBytes = await sourcePdf.save()
+        }
+
+        // Render the (filled, flattened) PDF via pdfjs
         const pdfjs = await import('pdfjs-dist')
-        // pdfjs-dist v5 requires a real worker URL — empty string throws
-        // "No GlobalWorkerOptions.workerSrc specified". Vite's ?url import
-        // gets the bundled worker as a hashed asset served with the app.
         if (!pdfjs.GlobalWorkerOptions.workerSrc) {
           const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
           pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
         }
-        const doc = await pdfjs.getDocument({ data: buf.slice(0) }).promise
+        const doc = await pdfjs.getDocument({ data: displayBytes.slice(0) }).promise
         const imgs = []
         const dims = []
         for (let i = 1; i <= doc.numPages; i++) {
@@ -82,7 +137,7 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
     }
     load()
     return () => { cancelled = true }
-  }, [template.pdfPath])
+  }, [template.pdfPath, gcCtx, adminValues])
 
   // Watch container width to scale the overlay coordinates appropriately
   useEffect(() => {
@@ -116,18 +171,26 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
       setValidationMsg('Please agree to the terms before submitting.')
       return
     }
-    // Validate required fields + at least one signature
-    const missing = []
-    for (const f of template.overlay || []) {
-      if (f.type === 'signature') {
-        if (!signatures[f.id]) missing.push('Signature')
-        continue
+    // For AcroForm PDFs the only required input is the signature.
+    // For coord-overlay PDFs, walk the template overlay.
+    if (hasForm) {
+      if (!signatures.signature) {
+        setValidationMsg('Please sign before submitting.')
+        return
       }
-      if (f.required && !fieldValues[f.id]) missing.push(f.label || f.id)
-    }
-    if (missing.length) {
-      setValidationMsg(`Please complete: ${[...new Set(missing)].join(', ')}`)
-      return
+    } else {
+      const missing = []
+      for (const f of template.overlay || []) {
+        if (f.type === 'signature') {
+          if (!signatures[f.id]) missing.push('Signature')
+          continue
+        }
+        if (f.required && !fieldValues[f.id]) missing.push(f.label || f.id)
+      }
+      if (missing.length) {
+        setValidationMsg(`Please complete: ${[...new Set(missing)].join(', ')}`)
+        return
+      }
     }
 
     try {
@@ -196,8 +259,56 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
               return lines.map(L => <div key={L.k}><div style={L.style} /><span style={{ position: 'absolute', ...L.lpos, fontSize: 8, color: '#666', background: 'white', padding: '0 2px' }}>{L.label}</span></div>)
             })()}
 
-            {/* Overlay widgets for fields on this page */}
-            {(template.overlay || []).filter(f => f.page === pi).map(field => {
+            {/* AcroForm-aware signature widget — pulls position straight from
+                the PDF's named "gcSignature" field. No coord guessing.
+                Only renders for fillable PDFs; coord-overlay PDFs use the
+                template.overlay map below. */}
+            {hasForm && sigGeometry?.pageIndex === pi && (() => {
+              const { rect } = sigGeometry
+              const { left, top, scale } = pdfToCss(pi, rect.x, rect.y + rect.height)
+              const w = rect.width * scale
+              const h = rect.height * scale
+              const sigId = 'signature'
+              const sig = signatures[sigId]
+              if (activeSigId === sigId) {
+                return (
+                  <div style={{ position: 'absolute', left, top, width: Math.max(w, 260), zIndex: 30 }}>
+                    <SignaturePad value={sig} signerName={signerName} onChange={(val) => { setSignatures(p => ({ ...p, [sigId]: val })); if (val?.type === 'drawn') setActiveSigId(null) }} />
+                    <button onClick={() => setActiveSigId(null)} className="text-[10px] text-stone-400 hover:underline mt-0.5">Done</button>
+                  </div>
+                )
+              }
+              if (sig?.type === 'drawn' && sig.image) {
+                return (
+                  <button onClick={() => setActiveSigId(sigId)}
+                    style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
+                    className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-center"
+                    title="Click to re-sign">
+                    <img src={sig.image} alt="signature" style={{ height: h - 4, width: 'auto' }} />
+                  </button>
+                )
+              }
+              if (sig?.type === 'typed' && sig.name) {
+                return (
+                  <button onClick={() => setActiveSigId(sigId)}
+                    style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
+                    className="border-2 border-emerald-400 bg-emerald-50/30 rounded flex items-center justify-start px-2 font-serif italic text-[#283693]"
+                    title="Click to re-sign">
+                    {sig.name}
+                  </button>
+                )
+              }
+              return (
+                <button onClick={() => setActiveSigId(sigId)}
+                  style={{ position: 'absolute', left, top, width: w, height: h, zIndex: 20 }}
+                  className="border-2 border-dashed border-[#ed148c] bg-[#ed148c]/10 rounded text-[10px] text-[#ed148c] font-semibold flex items-center justify-center hover:bg-[#ed148c]/20 transition-colors animate-pulse">
+                  Click to sign
+                </button>
+              )
+            })()}
+
+            {/* Coord-overlay widgets (legacy fallback for non-fillable PDFs) */}
+            {!hasForm && (template.overlay || []).filter(f => f.page === pi).map(field => {
               const { left, top, scale } = pdfToCss(pi, field.x, field.y)
               const w = (field.width || 200) * scale
               const h = (field.height || 22) * scale
