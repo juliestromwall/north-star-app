@@ -9,7 +9,25 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Check, X, Circle, ChevronDown, ChevronRight } from 'lucide-react'
-import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES, normalizeOptions } from '@/lib/checklistStore'
+
+// Tailwind class for an active option pill, picked from the option's
+// mapsTo target. Lets admin-defined dropdowns inherit the same color
+// language as the built-in statuses.
+const PILL_ACTIVE_BY_STATUS = {
+  complete: 'bg-emerald-500 border-emerald-500 text-white',
+  na: 'bg-stone-400 border-stone-400 text-white',
+  skipped: 'bg-amber-500 border-amber-500 text-white',
+  in_progress: 'bg-[#283693] border-[#283693] text-white',
+  reviewing: 'bg-[#283693] border-[#283693] text-white',
+  requested: 'bg-[#283693] border-[#283693] text-white',
+  records_received: 'bg-[#283693] border-[#283693] text-white',
+  partial_received: 'bg-[#283693] border-[#283693] text-white',
+  followed_up: 'bg-[#283693] border-[#283693] text-white',
+  started: 'bg-[#283693] border-[#283693] text-white',
+  submitted: 'bg-[#283693] border-[#283693] text-white',
+  not_started: 'bg-stone-200 border-stone-300 text-stone-700',
+}
 
 function formatRelativeTime(iso) {
   if (!iso) return ''
@@ -214,7 +232,12 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
   const lastLog = log[log.length - 1]
 
   function setStatus(newStatus, extra = {}) {
-    if (newStatus === status) return
+    // For custom dropdowns, two different options can map to the same
+    // underlying status (e.g., "1st Attempt" and "2nd Attempt" both
+    // map to in_progress). Only treat as a no-op when BOTH the status
+    // AND the option label are unchanged.
+    const newOptionLabel = extra.optionLabel
+    if (newStatus === status && (newOptionLabel === undefined || newOptionLabel === entry.optionLabel)) return
     const updates = { status: newStatus, ...extra }
     if (newStatus === 'complete' && !entry.completed_at) {
       updates.completed_at = new Date().toISOString()
@@ -226,14 +249,16 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
     }
     const newLog = [...log, {
       status: newStatus,
+      optionLabel: newOptionLabel || undefined,
       from: status,
+      fromOptionLabel: entry.optionLabel || undefined,
       changed_at: new Date().toISOString(),
       changed_by: currentUserName,
     }]
     updates.log = newLog
     onUpdate(step.id, updates)
     if (newStatus === 'complete' && onStatusLog) {
-      onStatusLog({ stepLabel: step.label, status: newStatus, date: new Date().toISOString().split('T')[0] })
+      onStatusLog({ stepLabel: step.label, status: newStatus, optionLabel: newOptionLabel, date: new Date().toISOString().split('T')[0] })
     }
   }
 
@@ -276,28 +301,54 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
             )}
           </div>
 
-          <div className="mt-2 flex items-center gap-1 flex-wrap">
-            {CHECKLIST_STEP_STATUSES.filter(s => !['note'].includes(s.id)).map(s => {
-              const active = status === s.id
-              const isWarning = s.id === 'skipped'
-              const isDone = s.id === 'complete'
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setStatus(s.id)}
-                  className={`text-[10.5px] px-2 py-0.5 rounded-full border transition-colors ${
-                    active
-                      ? isWarning ? 'bg-amber-500 border-amber-500 text-white font-semibold'
-                        : isDone ? 'bg-emerald-500 border-emerald-500 text-white font-semibold'
-                        : 'bg-[#283693] border-[#283693] text-white font-semibold'
-                      : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
-                  }`}
-                >
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
+          {/* Status pills. If the step is configured with a custom dropdown
+              in /settings, render ONLY the admin-defined options — the
+              global default statuses are intentionally hidden so the
+              configured workflow is the only path. */}
+          {step.logType === 'dropdown' && Array.isArray(step.options) && step.options.length > 0 ? (
+            <div className="mt-2 flex items-center gap-1 flex-wrap">
+              {normalizeOptions(step.options).map((opt, i) => {
+                const active = entry.optionLabel === opt.label
+                const activeClass = PILL_ACTIVE_BY_STATUS[opt.mapsTo] || PILL_ACTIVE_BY_STATUS.in_progress
+                return (
+                  <button
+                    key={`${opt.label}-${i}`}
+                    onClick={() => setStatus(opt.mapsTo, { optionLabel: opt.label })}
+                    className={`text-[10.5px] px-2 py-0.5 rounded-full border transition-colors ${
+                      active
+                        ? `${activeClass} font-semibold`
+                        : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="mt-2 flex items-center gap-1 flex-wrap">
+              {CHECKLIST_STEP_STATUSES.filter(s => !['note'].includes(s.id)).map(s => {
+                const active = status === s.id
+                const isWarning = s.id === 'skipped'
+                const isDone = s.id === 'complete'
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setStatus(s.id)}
+                    className={`text-[10.5px] px-2 py-0.5 rounded-full border transition-colors ${
+                      active
+                        ? isWarning ? 'bg-amber-500 border-amber-500 text-white font-semibold'
+                          : isDone ? 'bg-emerald-500 border-emerald-500 text-white font-semibold'
+                          : 'bg-[#283693] border-[#283693] text-white font-semibold'
+                        : 'bg-white border-stone-200 text-stone-500 hover:border-stone-300 hover:text-stone-700'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {lastLog && (
             <div className="mt-1.5 flex items-center gap-2">
@@ -315,8 +366,10 @@ function StepFormRow({ step, entry, onUpdate, onStatusLog, currentUserName }) {
             <ul className="mt-1.5 ml-3 space-y-0.5 border-l-2 border-stone-200 pl-3">
               {[...log].reverse().map((l, i) => (
                 <li key={i} className="text-[10px] text-stone-500">
-                  <span className="font-semibold text-stone-700">{l.status?.replace(/_/g, ' ')}</span>
-                  {l.from && <span className="text-stone-400"> ← {l.from.replace(/_/g, ' ')}</span>}
+                  <span className="font-semibold text-stone-700">{l.optionLabel || l.status?.replace(/_/g, ' ')}</span>
+                  {(l.fromOptionLabel || l.from) && (
+                    <span className="text-stone-400"> ← {l.fromOptionLabel || l.from?.replace(/_/g, ' ')}</span>
+                  )}
                   <span className="ml-1.5 text-stone-400">{l.changed_by || 'Unknown'} · {new Date(l.changed_at).toLocaleString()}</span>
                 </li>
               ))}
