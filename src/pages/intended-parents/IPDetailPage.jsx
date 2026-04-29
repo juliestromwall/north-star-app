@@ -741,17 +741,7 @@ export default function IPDetailPage() {
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-6 mt-4">
-          <div className="flex justify-end gap-2">
-            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
-              onClick={() => window.open(`/e-signature?caseType=ip&caseId=${id}`, '_blank')}>
-              <FileText className="size-4" /> Send for Signature
-            </Button>
-            <Button variant="outline" className="gap-1.5"
-              onClick={() => window.open(`/fax?caseType=ip&caseId=${id}`, '_blank')}>
-              <Printer className="size-4" /> Send Fax
-            </Button>
-          </div>
-          <DocumentsTab surrogateId={ip?.id} />
+          <DocumentsTab surrogateId={ip?.id} caseType="ip" />
         </TabsContent>
 
         {/* Texts Tab */}
