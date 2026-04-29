@@ -3610,6 +3610,7 @@ export default function JourneyDetailPage() {
               [journey.gc_case_id]: `GC — ${gcCase?.name || 'Surrogate'}`,
               [journey.ip_case_id]: `IP — ${ipCase?.names || 'Intended Parent'}`,
             }}
+            includeJourneyDocs
           />
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
