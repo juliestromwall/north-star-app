@@ -263,15 +263,16 @@ function DocumentWithFields({ html, fields, signerRole, signerName, signerEmail,
         .signing-doc img { max-width: 100%; height: auto; }
         .signing-doc a { color: #283693; }
         @media (max-width: 640px) {
-          .signing-doc { font-size: 13px; }
+          .signing-doc {
+            font-size: 13px;
+            min-width: 920px;
+            max-width: none;
+          }
           /* Keep multi-column tables (Payment Structure etc.) intact — let them
              scroll horizontally instead of stacking into blocks, which scrambles
              the header→cell pairing and overlaps the colored row backgrounds. */
           .signing-doc table {
-            display: block;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            max-width: 100%;
+            width: 100%;
           }
           .signing-doc table > tbody,
           .signing-doc table > thead,
@@ -761,7 +762,11 @@ export default function SignDocumentPage() {
 
         {/* Document with inline fields */}
         <Card className="rounded-2xl shadow-lg overflow-hidden">
-          <CardContent className="p-8 overflow-hidden" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+          <CardContent className="p-4 sm:p-8 overflow-x-auto overflow-y-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="block min-w-0 sm:min-w-0">
+              <div className="sm:hidden text-[11px] text-stone-400 mb-3">
+                Wide agreements can scroll sideways on mobile.
+              </div>
             {loadingHtml ? (
               <div className="text-center py-12"><Loader2 className="size-6 animate-spin text-[#283693] mx-auto" /></div>
             ) : docHtml ? (
@@ -782,6 +787,7 @@ export default function SignDocumentPage() {
                 <p className="text-xs mt-2">The document content could not be loaded. Please contact the sender.</p>
               </div>
             )}
+            </div>
           </CardContent>
         </Card>
 
