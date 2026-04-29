@@ -405,6 +405,9 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {section.fields.map(f => {
+          // coupleField fields render only on IP1 when there's a partner.
+          // Single IPs and the IP2 tab never see them.
+          if (f.coupleField && (!hasPartner || person !== 'ip1')) return null
           const node = renderEditField(f, personData, (k, v) => handleFieldChange(person, k, v))
           if (!node) return null
           const path = `${person}.${section.key}.${f.key}`

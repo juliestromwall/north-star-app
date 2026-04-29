@@ -79,6 +79,10 @@ const HISTORY_FIELDS = [
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
   { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS, fullWidth: true },
+  // coupleField: only rendered when hasPartner is true, and stored on IP1
+  // only (IP2's tab/column suppresses it). The relationship is mutual so a
+  // single answer per couple is the right model.
+  { key: 'relationshipDescription', label: "How would you describe you and your spouse/partner's relationship?", type: 'textarea', coupleField: true, fullWidth: true },
   { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
   { key: 'messageToSurrogate', label: 'What else would you like to share with your prospective surrogate?', type: 'textarea' },
 ]
@@ -660,6 +664,9 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           // Exclude messageToSurrogate — renders as a special letter card below.
           // Exclude qualities — rendered as green flags in the hero instead.
           const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate' && f.key !== 'qualities')
+          // coupleField rules: hide entirely when single, hide from IP2 column when partnered.
+          const ip1FieldDefs = hasPartner ? fieldDefs : fieldDefs.filter(f => !f.coupleField)
+          const ip2FieldDefs = fieldDefs.filter(f => !f.coupleField)
           const sectionLabel = secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
           const sectionNum = 3 + idx
@@ -667,7 +674,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           if (!hasPartner) {
             return (
               <NewSection key={secKey} title={sectionLabel} icon={Icon} number={sectionNum}>
-                {renderFields(ip1[secKey] || {}, fieldDefs, `ip1.${secKey}`)}
+                {renderFields(ip1[secKey] || {}, ip1FieldDefs, `ip1.${secKey}`)}
               </NewSection>
             )
           }
@@ -677,11 +684,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip1Name}</p>
-                  {renderFields(ip1[secKey] || {}, fieldDefs, `ip1.${secKey}`)}
+                  {renderFields(ip1[secKey] || {}, ip1FieldDefs, `ip1.${secKey}`)}
                 </div>
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-[#ed148c] uppercase tracking-[0.2em] mb-1">{ip2Name}</p>
-                  {renderFields(ip2[secKey] || {}, fieldDefs, `ip2.${secKey}`)}
+                  {renderFields(ip2[secKey] || {}, ip2FieldDefs, `ip2.${secKey}`)}
                 </div>
               </div>
             </NewSection>
