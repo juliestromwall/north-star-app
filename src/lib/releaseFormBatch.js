@@ -32,7 +32,11 @@ function resolveSignersForTemplate(template, ctx) {
 
 function docTitleForTemplate(template, ctx) {
   const { surrogate } = ctx
-  const isReleaseForm = template.layoutMode === 'doc-first'
+  // Both doc-first (HIPAA, Psych, Ellen Winters) AND pdf-overlay (Kaiser)
+  // get a "<Template Title> - <Surrogate Name>" doc title so the email
+  // subject + the Signed Documents folder filename reflect the actual
+  // form, not the legacy "Background Check Release Form" fallback.
+  const isReleaseForm = template.layoutMode === 'doc-first' || template.layoutMode === 'pdf-overlay'
   if (isReleaseForm) {
     return `${template.title} - ${surrogate?.name || ''}`
   }
