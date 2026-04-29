@@ -48,8 +48,13 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
         if (cancelled) return
         setPdfBytes(buf)
         const pdfjs = await import('pdfjs-dist')
-        // Workerless mode — runs the worker on the main thread. Slower but no asset bundling.
-        pdfjs.GlobalWorkerOptions.workerSrc = ''
+        // pdfjs-dist v5 requires a real worker URL — empty string throws
+        // "No GlobalWorkerOptions.workerSrc specified". Vite's ?url import
+        // gets the bundled worker as a hashed asset served with the app.
+        if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+          const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+          pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+        }
         const doc = await pdfjs.getDocument({ data: buf.slice(0) }).promise
         const imgs = []
         const dims = []
