@@ -1,5 +1,33 @@
 # Session Log
 
+## 2026-04-28 (Kaiser PDF overlay polish: audit trail, mobile sign card, address fallback, signature offset)
+
+**Worked on:** Continued the Kaiser PHI Release e-sign flow that pixel-perfects onto Kaiser's exact AcroForm PDF. Three polish items the user surfaced after the prior round of calibration: signature image floated above the underline, mobile UX had no clear sign target, and the GC's address didn't populate when it lived only on the surrogate's separate Personal Information profile (not in the application). Plus the user asked for the ESIGN/UETA audit-trail certificate that the doc-first releases attach — Kaiser was uploading the baked PDF without it.
+
+**Changes made (commit `3f1486b`, pushed to `main` per user approval — staging lacks Google API for end-to-end test):**
+
+- `src/lib/pdfOverlay.js` — new `appendAuditTrailPage(pdfBlob, audit)` helper that draws an ESIGN/UETA "Electronic Signature Certificate" page natively with pdf-lib (no html2canvas dance). Captures document title + ID, completed timestamp, signer name + email, signature type (typed/drawn) + name, and `navigator.userAgent`. Indigo accent bar, two-column rows, footer disclaimer about ESIGN Act + UETA. Same evidentiary content as `generateAuditTrailHtml` from the doc-first releases, just rendered as a native PDF page rather than html-to-canvas.
+- `src/lib/pdfOverlay.js` — `bakePdfOverlay()` AcroForm signature path got a `SIG_Y_OFFSET = -Math.round(rect.height * 0.5)` pull-down so the drawn-signature canvas's white-space padding doesn't leave the visible ink floating above Kaiser's pre-printed signature underline.
+- `src/components/esign/PdfOverlaySigner.jsx` — added a dedicated "Your signature" Card below the PDF preview, always visible. Wires the same `signatures.signature` state as the inline coord-positioned widget on the PDF, so signing in either place reflects in both. Primary entry point on mobile where the inline widget is too small to tap reliably.
+- `src/pages/esign/SignFormPage.jsx` `KaiserPdfOverlayBranch` — address fallback chain extended to walk through `_confidential` → top-level intake answers → `_application` → `surrogate_profiles.profile_data.personal.*` (looked up by email). Each component (street/city/state/zip/phone) falls through independently, so partial profile data still helps. User reported their surrogate had address only on their separate Personal Information profile page, not in the original application.
+- `src/pages/esign/SignFormPage.jsx` `handleSign` — calls `appendAuditTrailPage()` between bake and upload, so the file that lands in `case_documents` already contains the audit cert page. Uses the user's signature type/name + the canonical `doc.id` / `doc.title` / `mySigner.*` data; navigator userAgent baked in client-side.
+
+**Why we stayed on `main`:** Per CLAUDE.md the default deploy target is `staging`, but the user explicitly approved production this round (and the prior Kaiser test cycle was already on `main`) because staging doesn't have the Google API needed to actually exercise the email + sign flow end-to-end. Build was clean (`npm run build` ✓), single commit, no migrations, no destructive ops.
+
+**Audit trail mechanics — important context:**
+- `signDocument()` in `src/lib/esign.js` already inserts an `esign_audit_log` row with action='signed', actor_name, actor_email, ip_address (empty client-side), user_agent, details. That's the database side — it was firing all along for Kaiser.
+- What was missing was the *visible* audit page baked into the PDF itself — that's what `appendAuditTrailPage` adds. Two layers of audit trail now: (1) the DB row in `esign_audit_log`, (2) the cert page on page N+1 of the signed PDF.
+
+**Next steps:**
+- Watch the next Kaiser send for: signature offset landing correctly on the underline (offset is `-Math.round(rect.height * 0.5)`, may need tuning per actual visual), mobile sign card discoverability, audit page formatting.
+- The other Kaiser fixes from this session series (AcroForm PDF, formatPhone for Kaiser, formatDob, Step 1 admin pre-fill) are all live on prod via `c3d70d1` + `7041ae2` + `1761fe9` (last week's session).
+- (Carried) Codex still owes the `fetchSurrogateProfileByEmail` `user_id IS NOT NULL` tiebreaker fix.
+- (Carried) `/api/notify-app-released` still uses Gmail (`sendEmail` from `@/lib/google`); worth migrating to Resend like the IP equivalents.
+
+**Open questions:**
+- Whether the user actually wants Kaiser PDF audit cert text to mirror the HTML version's *exact* font/layout, or whether the native pdf-lib rendering is fine. Native is much faster and crisper but visually different from `generateAuditTrailHtml` output.
+- The SIG_Y_OFFSET is `-rect.height * 0.5` — half the rect height. If the user's drawn signatures still look floaty or now sit too low, this is the knob to turn.
+
 ## 2026-04-21 Session D (Full IP portal build-out: profile submission, application forms, prefill chain)
 
 **Worked on:** End-to-end IP portal lifecycle that mirrors the surrogate flow. Profile submit/approve/release/reopen, branded portal invite via Resend, IP-specific application forms (Contact / Clinic / References), admin actions, auto-save, country support, intake→profile→application prefill chain. Also restored 3 mid-session Warp transcripts at the very start (no code changes — confirmed all 3 were already committed before the freeze) and applied two outstanding DB migrations to prod (`admin_note_replies` table + 6 `journey_expenses` columns) before fast-forwarding 21 staging commits to `main`.
