@@ -1794,7 +1794,7 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
   )
 }
 
-export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surrogateData, includeJourneyDocs = false }) {
+export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surrogateData, includeJourneyDocs = false, caseType = 'gc', showCaseActions = true }) {
   const { currentUser } = useRole()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -2267,14 +2267,18 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
           onClick={() => triggerUpload('__pick__')}>
           <Upload className="size-4" /> Upload File
         </Button>
-        <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
-          onClick={() => window.open(`/e-signature?caseType=gc&caseId=${surrogateId}`, '_blank')}>
-          <FileText className="size-4" /> Send for Signature
-        </Button>
-        <Button variant="outline" className="gap-1.5"
-          onClick={() => window.open(`/fax?caseType=gc&caseId=${surrogateId}`, '_blank')}>
-          <Printer className="size-4" /> Send Fax
-        </Button>
+        {showCaseActions && (
+          <>
+            <Button className="gap-1.5" style={{ backgroundColor: '#283693', color: '#fff' }}
+              onClick={() => window.open(`/e-signature?caseType=${caseType}&caseId=${surrogateId}`, '_blank')}>
+              <FileText className="size-4" /> Send for Signature
+            </Button>
+            <Button variant="outline" className="gap-1.5"
+              onClick={() => window.open(`/fax?caseType=${caseType}&caseId=${surrogateId}`, '_blank')}>
+              <Printer className="size-4" /> Send Fax
+            </Button>
+          </>
+        )}
         <div className="flex items-center border rounded-md">
           <Button variant={docView === 'grid' ? 'default' : 'ghost'} size="icon" className="rounded-r-none" onClick={() => setDocView('grid')}>
             <LayoutGrid className="size-4" />
