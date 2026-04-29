@@ -221,21 +221,24 @@ export const FORM_TEMPLATES = {
       { id: 'step1DateRange', label: 'Step 1 — Date range of records to release', type: 'text', required: true, placeholder: 'e.g. 01/01/2024 – present' },
     ],
     // Signer fields (GC). Each maps a {{Placeholder}} to PDF-page coordinates.
+    // Coordinates calibrated against Kaiser's actual PDF via ?calibrate=1.
     overlay: [
-      // Page 1 — patient info block (top of form)
-      { id: 'patientName',  page: 0, x: 250, y: 700, width: 320, fontSize: 11, source: 'gcName',     placeholder: '{{Name:GC}}' },
-      { id: 'birthDate',    page: 0, x: 478, y: 678, width: 110, fontSize: 11, source: 'gcDob',      placeholder: '{{DOB:GC}}' },
-      { id: 'address',      page: 0, x: 250, y: 658, width: 340, fontSize: 11, source: 'gcStreet',   placeholder: '{{StreetAddress:GC}}' },
-      { id: 'city',         page: 0, x: 250, y: 638, width: 200, fontSize: 11, source: 'gcCity',     placeholder: '{{City:GC}}' },
-      { id: 'state',        page: 0, x: 510, y: 638, width: 80,  fontSize: 11, source: 'gcState',    placeholder: '{{State:GC}}' },
-      { id: 'zipCode',      page: 0, x: 250, y: 618, width: 200, fontSize: 11, source: 'gcZipCode',  placeholder: '{{ZipCode:GC}}' },
-      { id: 'phone',        page: 0, x: 510, y: 618, width: 80,  fontSize: 11, source: 'gcPhone',    placeholder: '{{Phone:GC}}' },
-      { id: 'email',        page: 0, x: 250, y: 598, width: 340, fontSize: 11, source: 'gcEmail',    placeholder: '{{Email:GC}}' },
-      // Step 1 date range — admin pre-fill (under the "Records as specified" option)
-      { id: 'step1DateRange', page: 0, x: 350, y: 358, width: 230, fontSize: 10, adminField: 'step1DateRange', placeholder: 'admin: step1DateRange' },
-      // Date + Signature at the bottom of page 1
-      { id: 'signedDate',   page: 0, x: 50,  y: 95,  width: 130, fontSize: 11, source: 'today',      placeholder: '{{Date:GC}}' },
-      { id: 'signature',    page: 0, x: 195, y: 92,  width: 250, height: 28, type: 'signature',      placeholder: '{{Signature:GC}}' },
+      { id: 'patientName',  page: 0, x: 264, y: 772, width: 320, fontSize: 11, source: 'gcName',     placeholder: '{{Name:GC}}' },
+      // DOB is rendered MM/DD/YYYY (Kaiser preference) — see resolveOverlayValue
+      { id: 'birthDate',    page: 0, x: 418, y: 753, width: 110, fontSize: 11, source: 'gcDob',      placeholder: '{{DOB:GC}}' },
+      { id: 'address',      page: 0, x: 238, y: 738, width: 340, fontSize: 11, source: 'gcStreet',   placeholder: '{{StreetAddress:GC}}' },
+      { id: 'city',         page: 0, x: 224, y: 721, width: 160, fontSize: 11, source: 'gcCity',     placeholder: '{{City:GC}}' },
+      { id: 'state',        page: 0, x: 400, y: 721, width: 80,  fontSize: 11, source: 'gcState',    placeholder: '{{State:GC}}' },
+      { id: 'zipCode',      page: 0, x: 242, y: 704, width: 160, fontSize: 11, source: 'gcZipCode',  placeholder: '{{ZipCode:GC}}' },
+      // Phone — formatted as "AAA    NNN-NNNN" so the area code lands inside
+      // Kaiser's pre-printed "( )" and the 7-digit number lands past the ")".
+      { id: 'phone',        page: 0, x: 415, y: 705, width: 140, fontSize: 11, source: 'gcPhone',    placeholder: '{{Phone:GC}}' },
+      { id: 'email',        page: 0, x: 238, y: 685, width: 340, fontSize: 11, source: 'gcEmail',    placeholder: '{{Email:GC}}' },
+      // Step 1 date range — admin pre-fill
+      { id: 'step1DateRange', page: 0, x: 309, y: 511, width: 240, fontSize: 10, adminField: 'step1DateRange', placeholder: 'admin: step1DateRange' },
+      // Date + Signature at the bottom
+      { id: 'signedDate',   page: 0, x: 21,  y: 185, width: 80,  fontSize: 11, source: 'today',      placeholder: '{{Date:GC}}' },
+      { id: 'signature',    page: 0, x: 102, y: 187, width: 250, height: 28, type: 'signature',      placeholder: '{{Signature:GC}}' },
     ],
     fields: [],
   },

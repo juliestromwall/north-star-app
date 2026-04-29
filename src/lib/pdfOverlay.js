@@ -13,6 +13,44 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 /**
+ * Format DOB → "MM/DD/YYYY". Accepts ISO ("1991-10-15"), already-slashed,
+ * or anything Date can parse. Returns input unchanged if we can't parse.
+ */
+function formatDob(raw) {
+  if (!raw) return ''
+  const s = String(raw).trim()
+  // Already MM/DD/YYYY (or M/D/YYYY) — normalize to padded
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split('/')
+    return `${m.padStart(2, '0')}/${d.padStart(2, '0')}/${y}`
+  }
+  // ISO YYYY-MM-DD
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) return `${iso[2]}/${iso[3]}/${iso[1]}`
+  // Fallback — let Date try
+  const d = new Date(s)
+  if (!Number.isNaN(d.getTime())) {
+    return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`
+  }
+  return s
+}
+
+/**
+ * Format phone → "AAA    NNN-NNNN" (4 spaces between area code + main).
+ * Kaiser's form pre-prints "Phone #: ( )" so the area code lands inside
+ * the parens and the 7-digit number lands past the closing paren.
+ */
+function formatPhoneForKaiser(raw) {
+  if (!raw) return ''
+  const digits = String(raw).replace(/\D/g, '')
+  if (digits.length < 10) return String(raw)
+  const area = digits.slice(-10, -7)
+  const prefix = digits.slice(-7, -4)
+  const line = digits.slice(-4)
+  return `${area}    ${prefix}-${line}`
+}
+
+/**
  * Resolve the value for a single overlay field from the surrogate's
  * profile data + admin pre-fill values. Returns the raw string to draw
  * (or null/undefined if the field is a signature image — handled below).
@@ -32,9 +70,9 @@ export function resolveOverlayValue(field, ctx) {
   // Auto-derived values from the GC profile / today.
   switch (field.source) {
     case 'gcName':       return gc.name || ''
-    case 'gcDob':        return gc.dob || ''
+    case 'gcDob':        return formatDob(gc.dob)
     case 'gcEmail':      return gc.email || ''
-    case 'gcPhone':      return gc.phone || ''
+    case 'gcPhone':      return formatPhoneForKaiser(gc.phone)
     case 'gcStreet':     return gc.street || ''
     case 'gcCity':       return gc.city || ''
     case 'gcState':      return gc.state || ''
