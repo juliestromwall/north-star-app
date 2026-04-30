@@ -388,12 +388,15 @@ function ProfileFollowUpForm({ data, onSave, saving, readOnly, isOpen, onToggle 
 
 // ── Screening Incentive Payment Preference ────────────────
 function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggle, caseId }) {
-  const [form, setForm] = useState({ method: '', venmoUsername: '', zelleInfo: '', screenshotUrl: '' })
+  const [form, setForm] = useState({ method: '', venmoUsername: '', venmoPhoneLast4: '', zelleInfo: '', screenshotUrl: '' })
   const [uploading, setUploading] = useState(false)
-  useEffect(() => { if (data) setForm({ method: data.method || '', venmoUsername: data.venmoUsername || '', zelleInfo: data.zelleInfo || '', screenshotUrl: data.screenshotUrl || '' }) }, [data])
+  useEffect(() => { if (data) setForm({ method: data.method || '', venmoUsername: data.venmoUsername || '', venmoPhoneLast4: data.venmoPhoneLast4 || '', zelleInfo: data.zelleInfo || '', screenshotUrl: data.screenshotUrl || '' }) }, [data])
 
-  const isComplete = data && data.method && (data.method === 'Venmo' ? data.venmoUsername : data.zelleInfo)
-  const allFilled = form.method && (form.method === 'Venmo' ? form.venmoUsername : form.zelleInfo)
+  // Venmo asks for the last 4 of the phone number on the account so we can
+  // confirm the right person before sending money.
+  const venmoComplete = v => v.venmoUsername && /^\d{4}$/.test(v.venmoPhoneLast4 || '')
+  const isComplete = data && data.method && (data.method === 'Venmo' ? venmoComplete(data) : data.zelleInfo)
+  const allFilled = form.method && (form.method === 'Venmo' ? venmoComplete(form) : form.zelleInfo)
 
   async function handleScreenshot(file) {
     if (!file || !caseId) return
@@ -435,10 +438,16 @@ function PaymentPreferenceForm({ data, onSave, saving, readOnly, isOpen, onToggl
             </Select>
           </div>
           {form.method === 'Venmo' && (
-            <div className="space-y-1">
-              <FieldLabel>Venmo Username <Req /></FieldLabel>
-              <Input value={form.venmoUsername} onChange={e => setForm(f => ({ ...f, venmoUsername: e.target.value }))} placeholder="@username" />
-            </div>
+            <>
+              <div className="space-y-1">
+                <FieldLabel>Venmo Username <Req /></FieldLabel>
+                <Input value={form.venmoUsername} onChange={e => setForm(f => ({ ...f, venmoUsername: e.target.value }))} placeholder="@username" />
+              </div>
+              <div className="space-y-1">
+                <FieldLabel>Last 4 Digits of Phone Number on the Venmo Account <Req /></FieldLabel>
+                <Input value={form.venmoPhoneLast4} onChange={e => setForm(f => ({ ...f, venmoPhoneLast4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" inputMode="numeric" maxLength={4} />
+              </div>
+            </>
           )}
           {form.method === 'Zelle' && (
             <div className="space-y-1">
@@ -1856,7 +1865,9 @@ export default function PortalApplicationPage() {
       return ynKeys.every(k => d[k] === 'yes' || d[k] === 'no' || d[k] === true || d[k] === false)
     }
     if (key === '_paymentPreference') {
-      return !!(d.method && (d.method === 'Venmo' ? d.venmoUsername : d.zelleInfo))
+      if (!d.method) return false
+      if (d.method === 'Venmo') return !!(d.venmoUsername && /^\d{4}$/.test(d.venmoPhoneLast4 || ''))
+      return !!d.zelleInfo
     }
     if (key === '_socialMediaRelease') {
       return !!(d.agreed && d.signature && d.fullName && d.email && d.signatureDate)

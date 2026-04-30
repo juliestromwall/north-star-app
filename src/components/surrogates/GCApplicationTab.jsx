@@ -1340,6 +1340,7 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
     (saved) => ({
       method: saved.method || '',
       venmoUsername: saved.venmoUsername || '',
+      venmoPhoneLast4: saved.venmoPhoneLast4 || '',
       zelleInfo: saved.zelleInfo || '',
       screenshotUrl: saved.screenshotUrl || '',
     })
@@ -1377,10 +1378,16 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
               <SelectField value={form.method} onValueChange={v => set('method', v)} options={['Venmo', 'Zelle']} placeholder="Select payment method..." />
             </div>
             {form.method === 'Venmo' && (
-              <div className="space-y-1">
-                <FieldLabel>Venmo Username</FieldLabel>
-                <Input value={form.venmoUsername} onChange={e => set('venmoUsername', e.target.value)} placeholder="@username" />
-              </div>
+              <>
+                <div className="space-y-1">
+                  <FieldLabel>Venmo Username</FieldLabel>
+                  <Input value={form.venmoUsername} onChange={e => set('venmoUsername', e.target.value)} placeholder="@username" />
+                </div>
+                <div className="space-y-1">
+                  <FieldLabel>Last 4 Digits of Phone Number on Venmo</FieldLabel>
+                  <Input value={form.venmoPhoneLast4} onChange={e => set('venmoPhoneLast4', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="1234" inputMode="numeric" maxLength={4} />
+                </div>
+              </>
             )}
             {form.method === 'Zelle' && (
               <div className="space-y-1">
@@ -1407,6 +1414,7 @@ function PaymentPreferenceSection({ surrogate, answers, onSaved, search }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <ReadField label="Payment Method" value={stored.method || '—'} />
             {stored.method === 'Venmo' && <ReadField label="Venmo Username" value={stored.venmoUsername} />}
+            {stored.method === 'Venmo' && <ReadField label="Last 4 of Venmo Phone" value={stored.venmoPhoneLast4} />}
             {stored.method === 'Zelle' && <ReadField label="Zelle Info" value={stored.zelleInfo} />}
             {stored.screenshotUrl && (
               <div>
