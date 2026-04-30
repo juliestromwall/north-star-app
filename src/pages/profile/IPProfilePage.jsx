@@ -78,10 +78,8 @@ const HISTORY_FIELDS = [
   { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
-  // coupleField: only renders on IP1 when there's a partner. The
-  // relationship is mutual, so a single answer per couple is the right
-  // model — IP2's column/tab suppresses the field, and singles never
-  // see it.
+  // coupleField: rendered for BOTH IPs when partnered (each answers
+  // from their own perspective); singles never see it.
   { key: 'relationshipDescription', label: "How would you describe you and your spouse/partner's relationship?", type: 'textarea', coupleField: true, fullWidth: true },
   { key: 'qualities', label: 'Choose 3 qualities that feel most like you today', type: 'qualitiesMax3', options: QUALITIES_OPTIONS, fullWidth: true },
   { key: 'personality', label: 'How would you describe yourself? Please include a description of your personality and temperament.', type: 'textarea' },
@@ -665,9 +663,10 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
           // Exclude messageToSurrogate — renders as a special letter card below.
           // Exclude qualities — rendered as green flags in the hero instead.
           const fieldDefs = rawDefs.filter(f => f.key !== 'messageToSurrogate' && f.key !== 'qualities')
-          // coupleField: render on IP1 only when partnered; never on IP2; never on singles.
-          const ip1FieldDefs = hasPartner ? fieldDefs : fieldDefs.filter(f => !f.coupleField)
-          const ip2FieldDefs = fieldDefs.filter(f => !f.coupleField)
+          // coupleField: ask BOTH IPs when partnered; never on singles.
+          const partneredFieldDefs = hasPartner ? fieldDefs : fieldDefs.filter(f => !f.coupleField)
+          const ip1FieldDefs = partneredFieldDefs
+          const ip2FieldDefs = partneredFieldDefs
           const sectionLabel = secKey === 'health' ? 'Health Information' : 'Personal History'
           const Icon = sectionIcons[secKey]
           const sectionNum = 3 + idx

@@ -176,10 +176,8 @@ function countSectionCompletion(profile, section, hasPartner) {
     for (const person of hasPartner ? ['ip1', 'ip2'] : ['ip1']) {
       const d = profile?.[person]?.[section.key] || {}
       for (const f of section.fields) {
-        // coupleField only counts on IP1 when partnered — never on IP2,
-        // never on singles. Otherwise the counter reports the field as
-        // missing on IP2's side and tanks the partnered-couple's %.
-        if (f.coupleField && (!hasPartner || person !== 'ip1')) continue
+        // coupleField counts for both IPs when partnered, neither when single.
+        if (f.coupleField && !hasPartner) continue
         if (f.conditional && !f.conditional(d)) continue
         total++
         if (isFieldFilled(d[f.key])) filled++
@@ -211,12 +209,10 @@ function countProfileCompletion(profile, hasPartner) {
         total++
         if (isFieldFilled(ip1Data[f.key])) filled++
       }
-      // Count IP2 fields if couple
+      // Count IP2 fields if couple — coupleField counts here too now.
       if (hasPartner) {
         const ip2Data = profile?.ip2?.[section.key] || {}
         for (const f of section.fields) {
-          // coupleField never counts on IP2 — the answer lives on IP1.
-          if (f.coupleField) continue
           if (f.conditional && !f.conditional(ip2Data)) continue
           total++
           if (isFieldFilled(ip2Data[f.key])) filled++
@@ -413,9 +409,9 @@ function PerPersonSectionCard({ section, profile, hasPartner, ip1Name, ip2Name, 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {section.fields.map(f => {
-          // coupleField fields render only on IP1 when there's a partner.
-          // Single IPs and the IP2 tab never see them.
-          if (f.coupleField && (!hasPartner || person !== 'ip1')) return null
+          // coupleField fields render for BOTH IPs when partnered.
+          // Singles never see them.
+          if (f.coupleField && !hasPartner) return null
           const node = renderEditField(f, personData, (k, v) => handleFieldChange(person, k, v))
           if (!node) return null
           const path = `${person}.${section.key}.${f.key}`
