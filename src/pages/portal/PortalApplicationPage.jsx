@@ -163,43 +163,71 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
       'street','city','state','zipCode',
       'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
       'hasSpouse','spouseFirstName','spouseLastName','spouseDob','spouseEmail','spousePhone',
+      'hasAdultHouseholdMembers',
       'emergencyName','emergencyPhone','emergencyRelationship',
     ]
     const init = {}
     for (const k of KEYS) init[k] = data?.[k] || prefills[k] || ''
+    // adultHouseholdMembers is an array, not a scalar — handle separately.
+    init.adultHouseholdMembers = Array.isArray(data?.adultHouseholdMembers) ? data.adultHouseholdMembers : []
     setForm(init)
   }, [data, quizData, userId])
 
   const hasSpouse = form.hasSpouse === 'yes' || form.hasSpouse === true
   const hasInsurance = form.hasInsurance === 'yes' || form.hasInsurance === true
+  const hasAdultMembers = form.hasAdultHouseholdMembers === 'yes' || form.hasAdultHouseholdMembers === true
   const SPOUSE_KEYS = ['spouseFirstName', 'spouseLastName', 'spouseDob', 'spouseEmail', 'spousePhone']
   const INSURANCE_KEYS = ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone']
+  const MAX_ADULT_MEMBERS = 4
 
-  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+  function adultMembersValid(arr) {
+    if (!Array.isArray(arr) || arr.length === 0) return false
+    return arr.every(m => m && m.firstName?.toString().trim() && m.lastName?.toString().trim() && isValidEmail(m.email) && isValidPhone(m.phone))
+  }
+
+  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','emergencyName','emergencyPhone','emergencyRelationship']
   if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS)
   if (hasInsurance) requiredKeys.push(...INSURANCE_KEYS)
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
-    if (k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+    if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers') return v === 'yes' || v === 'no'
     if (k === 'emergencyPhone' || k === 'spousePhone' || k === 'insurancePhone') return isValidPhone(v)
     if (k === 'spouseEmail') return isValidEmail(v)
     return v?.toString().trim()
-  })
+  }) && (!hasAdultMembers || adultMembersValid(form.adultHouseholdMembers))
+
+  function updateAdultMember(idx, field, val) {
+    setForm(f => {
+      const next = [...(f.adultHouseholdMembers || [])]
+      next[idx] = { ...(next[idx] || {}), [field]: val }
+      return { ...f, adultHouseholdMembers: next }
+    })
+  }
+  function addAdultMember() {
+    setForm(f => ({ ...f, adultHouseholdMembers: [...(f.adultHouseholdMembers || []), { firstName: '', lastName: '', email: '', phone: '' }] }))
+  }
+  function removeAdultMember(idx) {
+    setForm(f => ({ ...f, adultHouseholdMembers: (f.adultHouseholdMembers || []).filter((_, i) => i !== idx) }))
+  }
 
   function checkComplete(d) {
     if (!d) return false
     const hs = d.hasSpouse === 'yes'
     const hi = d.hasInsurance === 'yes'
-    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','emergencyName','emergencyPhone','emergencyRelationship']
+    const ha = d.hasAdultHouseholdMembers === 'yes'
+    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','emergencyName','emergencyPhone','emergencyRelationship']
     if (hs) rk.push(...SPOUSE_KEYS)
     if (hi) rk.push(...INSURANCE_KEYS)
-    return rk.every(k => {
+    const baseOk = rk.every(k => {
       const v = d[k]
-      if (k === 'hasInsurance' || k === 'hasSpouse') return v === 'yes' || v === 'no'
+      if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers') return v === 'yes' || v === 'no'
       if (k.includes('Phone')) return isValidPhone(v)
       if (k.includes('Email')) return isValidEmail(v)
       return v?.toString().trim()
     })
+    if (!baseOk) return false
+    if (ha && !adultMembersValid(d.adultHouseholdMembers)) return false
+    return true
   }
 
   return (
@@ -300,6 +328,41 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
               <div className="space-y-1"><FieldLabel>Spouse/Partner Email <Req /></FieldLabel><Input type="email" value={form.spouseEmail || ''} onChange={e => setForm(f => ({ ...f, spouseEmail: e.target.value }))} placeholder="name@example.com" /></div>
               <div className="space-y-1"><FieldLabel>Spouse/Partner Phone <Req /></FieldLabel><Input type="tel" value={form.spousePhone || ''} onChange={e => setForm(f => ({ ...f, spousePhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
             </>}
+          </div>
+
+          {/* Adult household members (over 18, not spouse/partner) — each one
+              gets their own Background Check Release Form in the admin
+              release-forms section. Capped at 4 since most households don't
+              go higher. */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Other Household Members (18+)</p>
+          <div className="space-y-3">
+            <div className="space-y-1 max-w-md">
+              <FieldLabel>Are any of your household members over the age of 18? <Req /></FieldLabel>
+              <YesNoButtons value={form.hasAdultHouseholdMembers} onChange={v => setForm(f => ({ ...f, hasAdultHouseholdMembers: v }))} />
+            </div>
+            {hasAdultMembers && (
+              <div className="space-y-3">
+                {(form.adultHouseholdMembers || []).map((m, i) => (
+                  <div key={i} className="rounded-lg border border-stone-200 bg-stone-50/50 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Adult #{i + 1}</p>
+                      {!readOnly && <button type="button" onClick={() => removeAdultMember(i)} className="text-[11px] text-red-500 hover:underline">Remove</button>}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <div className="space-y-1"><FieldLabel>First Name <Req /></FieldLabel><Input value={m.firstName || ''} onChange={e => updateAdultMember(i, 'firstName', e.target.value)} /></div>
+                      <div className="space-y-1"><FieldLabel>Last Name <Req /></FieldLabel><Input value={m.lastName || ''} onChange={e => updateAdultMember(i, 'lastName', e.target.value)} /></div>
+                      <div className="space-y-1"><FieldLabel>Email <Req /></FieldLabel><Input type="email" value={m.email || ''} onChange={e => updateAdultMember(i, 'email', e.target.value)} placeholder="name@example.com" /></div>
+                      <div className="space-y-1"><FieldLabel>Phone <Req /></FieldLabel><Input type="tel" value={m.phone || ''} onChange={e => updateAdultMember(i, 'phone', formatPhone(e.target.value))} placeholder="xxx-xxx-xxxx" /></div>
+                    </div>
+                  </div>
+                ))}
+                {!readOnly && (form.adultHouseholdMembers || []).length < MAX_ADULT_MEMBERS && (
+                  <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#283693] hover:underline">
+                    + Add household member
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Emergency Contact */}
@@ -1812,21 +1875,30 @@ export default function PortalApplicationPage() {
     if (key === '_application') {
       const hs = d.hasSpouse === 'yes' || d.hasSpouse === true
       const hi = d.hasInsurance === 'yes' || d.hasInsurance === true
+      const ha = d.hasAdultHouseholdMembers === 'yes' || d.hasAdultHouseholdMembers === true
       const required = [
         'fullLegalName', 'dob', 'ssn4', 'street', 'city', 'state', 'zipCode',
         'hasInsurance',
         ...(hi ? ['insuranceProvider', 'insurancePolicyNumber', 'insuranceGroupNumber', 'insurancePhone'] : []),
         'hasSpouse',
         ...(hs ? ['spouseFirstName', 'spouseLastName', 'spouseDob', 'spouseEmail', 'spousePhone'] : []),
+        'hasAdultHouseholdMembers',
         'emergencyName', 'emergencyPhone', 'emergencyRelationship',
       ]
-      return required.every(k => {
+      const baseOk = required.every(k => {
         const v = d[k]
-        if (['hasInsurance', 'hasSpouse'].includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
+        if (['hasInsurance', 'hasSpouse', 'hasAdultHouseholdMembers'].includes(k)) return v === 'yes' || v === 'no' || v === true || v === false
         if (['insurancePhone', 'spousePhone', 'emergencyPhone'].includes(k)) return isValidPhone(v)
         if (k === 'spouseEmail') return isValidEmail(v)
         return v?.toString().trim()
       })
+      if (!baseOk) return false
+      if (ha) {
+        const arr = d.adultHouseholdMembers
+        if (!Array.isArray(arr) || arr.length === 0) return false
+        if (!arr.every(m => m && m.firstName?.toString().trim() && m.lastName?.toString().trim() && isValidEmail(m.email) && isValidPhone(m.phone))) return false
+      }
+      return true
     }
     if (key === '_confidential') {
       const PHONE_KEYS = ['insurancePhone', 'spousePhone', 'emergencyPhone']

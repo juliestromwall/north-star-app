@@ -16,11 +16,20 @@ function randomToken(bytes = 16) {
 }
 
 function resolveSignersForTemplate(template, ctx) {
-  const { surrogate, partnerName, partnerEmail, adminName, adminEmail } = ctx
+  const { surrogate, partnerName, partnerEmail, adminName, adminEmail, adultHouseholdMembers = [] } = ctx
   const mkSigner = role => {
     if (role === 'gc') return { role, name: surrogate?.name || '', email: surrogate?.email || '', status: 'pending' }
     if (role === 'partner') return { role, name: partnerName || '', email: partnerEmail || '', status: 'pending' }
     if (role === 'admin') return { role, name: adminName || 'Agency Representative', email: adminEmail || '', status: 'pending' }
+    // householdMember1 → adultHouseholdMembers[0], etc. Index encoded in
+    // the role suffix so each background waiver can route to its own
+    // person without having to invent compound template ids.
+    const memberMatch = /^householdMember(\d+)$/.exec(role || '')
+    if (memberMatch) {
+      const member = adultHouseholdMembers[Number(memberMatch[1]) - 1] || {}
+      const name = [member.firstName, member.lastName].filter(Boolean).join(' ').trim()
+      return { role, name, email: member.email || '', status: 'pending' }
+    }
     return { role, name: '', email: '', status: 'pending' }
   }
   if (template.multiSigner) {
