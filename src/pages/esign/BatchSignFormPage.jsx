@@ -509,6 +509,26 @@ export default function BatchSignFormPage() {
           ))}
         </div>
 
+        {/* Background waiver — show the document so the signer knows what
+            they're putting their name to. Renders the same HTML the PDF will
+            be generated from, with their entered info filled in live. */}
+        {!isDocFirst && (() => {
+          const gen = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+          const previewHtml = gen(fieldValues, signatures, {
+            signerName: mySigner.name,
+            signerEmail: mySigner.email,
+            forPdf: false,
+          })
+          return (
+            <Card className="mb-5">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">Document</h3>
+                <div className="border rounded-lg p-3 sm:p-5 bg-white max-h-[420px] overflow-y-auto text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              </CardContent>
+            </Card>
+          )
+        })()}
+
         {/* Background waiver (fields + sigs in a card) */}
         {!isDocFirst && (
           <Card className="mb-5">

@@ -880,11 +880,12 @@ export default function SignFormPage() {
           </CardContent>
         </Card>
 
-        {/* Document Preview — hidden on mobile for cleaner UX, shown on desktop */}
-        <Card className="hidden sm:block">
-          <CardContent className="p-6">
-            <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Document Preview</h3>
-            <div className="border rounded-xl p-6 bg-white text-sm overflow-x-auto [&_table]:w-full [&_td]:text-xs [&_td]:py-1" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+        {/* Document Preview — signer must be able to see what they're
+            signing on every device. */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3 sm:mb-4">Document Preview</h3>
+            <div className="border rounded-xl p-3 sm:p-6 bg-white text-xs sm:text-sm overflow-x-auto [&_table]:w-full [&_td]:text-xs [&_td]:py-1" dangerouslySetInnerHTML={{ __html: previewHtml }} />
           </CardContent>
         </Card>
 
