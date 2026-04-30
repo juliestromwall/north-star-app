@@ -260,7 +260,7 @@ const REQUIRED_FIELDS = {
     'ipsWithChildren', 'openLGBTQ', 'openSingleIP', 'transferAnotherState', 'ipsOutsideUS',
     'childCareTraveling', 'whenReadyToBegin', 'postBirthRelationship',
     'cvsAmnio', 'willingnessToTerminate', 'conditionsWontTerminate',
-    'embryosToTransfer', 'carryTwins', 'desiredCompensation'],
+    'embryosToTransfer', 'desiredCompensation'],
   photos: [],
 }
 
@@ -313,6 +313,7 @@ const CONDITIONAL_REQUIRED = {
   hopesWishes: {
     cvsAmnioDetails: { parent: 'cvsAmnio', showWhen: 'no' },
     ipsAtAppointmentsDetails: { parent: 'ipsAtAppointments', showWhen: 'No' },
+    carryTwins: { parent: 'embryosToTransfer', showWhen: '1' },
   },
   academic: {
     currentlyInSchoolDetails: { parent: 'currentlyInSchool', showWhen: 'yes' },
