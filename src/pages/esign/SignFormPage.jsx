@@ -144,6 +144,14 @@ export default function SignFormPage() {
         lastName = app.spouseLastName || ''
         phone = app.spousePhone || ''
         dob = app.spouseDob || ''
+      } else if (/^householdMember\d+$/.test(role || '')) {
+        // householdMember1 → adultHouseholdMembers[0], etc.
+        const idx = Number(role.replace('householdMember', '')) - 1
+        const m = (Array.isArray(app.adultHouseholdMembers) ? app.adultHouseholdMembers[idx] : null) || {}
+        firstName = m.firstName || ''
+        lastName = m.lastName || ''
+        phone = m.phone || ''
+        dob = '' // DOB not collected for household members in the app form
       } else if (role === 'ip1') {
         firstName = a.primaryFirstName || ''
         lastName = a.primaryLastName || ''

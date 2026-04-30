@@ -327,6 +327,11 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
         spouseDob: saved.spouseDob || '',
         spouseEmail: saved.spouseEmail || '',
         spousePhone: saved.spousePhone || '',
+        // Household members aged 18+ (anyone besides spouse/partner who lives
+        // in the home and needs a background check). Stored as an array of
+        // {firstName, lastName, email, phone}. Capped at 4 in the UI.
+        hasAdultHouseholdMembers: saved.hasAdultHouseholdMembers ?? '',
+        adultHouseholdMembers: Array.isArray(saved.adultHouseholdMembers) ? saved.adultHouseholdMembers : [],
         // Emergency Contact
         emergencyName: saved.emergencyName || '',
         emergencyPhone: saved.emergencyPhone || '',
@@ -347,6 +352,24 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
 
   const showInsurance = editing ? form.hasInsurance === 'yes' || form.hasInsurance === true : stored.hasInsurance === 'yes' || stored.hasInsurance === true
   const showSpouse = editing ? form.hasSpouse === 'yes' || form.hasSpouse === true : stored.hasSpouse === 'yes' || stored.hasSpouse === true
+  const showAdultMembers = editing
+    ? form.hasAdultHouseholdMembers === 'yes' || form.hasAdultHouseholdMembers === true
+    : stored.hasAdultHouseholdMembers === 'yes' || stored.hasAdultHouseholdMembers === true
+  const MAX_ADULT_MEMBERS = 4
+  const adultMembersArr = editing ? (form.adultHouseholdMembers || []) : (stored.adultHouseholdMembers || [])
+  function updateAdultMember(idx, field, val) {
+    const next = [...(form.adultHouseholdMembers || [])]
+    next[idx] = { ...(next[idx] || {}), [field]: val }
+    set('adultHouseholdMembers', next)
+  }
+  function addAdultMember() {
+    const next = [...(form.adultHouseholdMembers || []), { firstName: '', lastName: '', email: '', phone: '' }]
+    set('adultHouseholdMembers', next)
+  }
+  function removeAdultMember(idx) {
+    const next = (form.adultHouseholdMembers || []).filter((_, i) => i !== idx)
+    set('adultHouseholdMembers', next)
+  }
 
   return (
     <Card className="rounded-2xl">
@@ -452,6 +475,63 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
                   <ReadField label="Spouse/Partner Email" value={stored.spouseEmail} />
                   <ReadField label="Spouse/Partner Phone" value={stored.spousePhone} />
                 </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Adult household members (over 18, not spouse/partner) — each one
+            gets their own Background Check Release Form in the release-forms
+            section. Capped at 4 since most households don't go higher. */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Other Household Members (18+)</p>
+          {editing ? (
+            <div className="space-y-3">
+              <div className="space-y-1 max-w-xs">
+                <FieldLabel>Are any of your household members over the age of 18?</FieldLabel>
+                <YesNoButtons value={form.hasAdultHouseholdMembers} onChange={v => set('hasAdultHouseholdMembers', v)} />
+              </div>
+              {showAdultMembers && (
+                <div className="space-y-3">
+                  {(form.adultHouseholdMembers || []).map((m, i) => (
+                    <div key={i} className="rounded-lg border border-stone-200 bg-stone-50/50 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Adult #{i + 1}</p>
+                        <button type="button" onClick={() => removeAdultMember(i)} className="text-[11px] text-red-500 hover:underline">Remove</button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="space-y-1"><FieldLabel>First Name</FieldLabel><Input value={m.firstName || ''} onChange={e => updateAdultMember(i, 'firstName', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>Last Name</FieldLabel><Input value={m.lastName || ''} onChange={e => updateAdultMember(i, 'lastName', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>Email</FieldLabel><Input type="email" value={m.email || ''} onChange={e => updateAdultMember(i, 'email', e.target.value)} /></div>
+                        <div className="space-y-1"><FieldLabel>Phone</FieldLabel><Input value={m.phone || ''} onChange={e => updateAdultMember(i, 'phone', e.target.value)} /></div>
+                      </div>
+                    </div>
+                  ))}
+                  {(form.adultHouseholdMembers || []).length < MAX_ADULT_MEMBERS && (
+                    <button type="button" onClick={addAdultMember} className="text-xs font-semibold text-[#283693] hover:underline">
+                      + Add household member
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <ReadField label="Has Adult Household Members" value={boolDisplay(stored.hasAdultHouseholdMembers)} />
+              {showAdultMembers && adultMembersArr.length > 0 && (
+                <div className="space-y-2">
+                  {adultMembersArr.map((m, i) => (
+                    <div key={i} className="rounded-lg border border-stone-200 bg-stone-50/50 p-3">
+                      <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider mb-2">Adult #{i + 1}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <ReadField label="First Name" value={m.firstName} />
+                        <ReadField label="Last Name" value={m.lastName} />
+                        <ReadField label="Email" value={m.email} />
+                        <ReadField label="Phone" value={m.phone} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
@@ -1586,6 +1666,11 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
         const adminName = adminEmail ? (getAdminStaff().find(a => a.email === adminEmail)?.name || adminEmail.split('@')[0]) : ''
         const maritalStatus = (profileData?.personal?.maritalStatus || answers?.maritalStatus || '').toLowerCase().trim()
         const hasPartner = !!partnerName.trim() || ['married', 'in a relationship', 'domestic partnership', 'partnered'].includes(maritalStatus)
+        // Pull adult household members from the saved application so each
+        // gets their own background-waiver row (rendered + sendable).
+        const adultHouseholdMembers = Array.isArray(answers?._application?.adultHouseholdMembers)
+          ? answers._application.adultHouseholdMembers.filter(m => m && (m.firstName || m.lastName || m.email))
+          : []
         return (
           <ReleaseFormsSection
             surrogate={surrogate}
@@ -1594,6 +1679,7 @@ export default function GCApplicationTab({ surrogate, setSurrogate, quizAnswers,
             partnerEmail={partnerEmail}
             adminName={adminName}
             adminEmail={adminEmail}
+            adultHouseholdMembers={adultHouseholdMembers}
           />
         )
       })()}

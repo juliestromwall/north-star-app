@@ -12,13 +12,24 @@ import { sendReleaseFormsBatch } from '@/lib/releaseFormBatch'
 import { getAuthHeaders } from '@/lib/authHeaders'
 
 /**
- * Resolve which templates to offer based on marital status, in display order.
+ * Resolve which templates to offer based on marital status + the number
+ * of adult household members on the application.
  */
-function resolveTemplateRows({ hasPartner }) {
+function resolveTemplateRows({ hasPartner, adultHouseholdMembers = [] }) {
   const rows = []
   // Background Check
   rows.push({ section: 'Background Check', templateId: 'gc_background_waiver' })
   if (hasPartner) rows.push({ section: 'Background Check', templateId: 'partner_background_waiver' })
+  // One row per household member (max 4). The label gets the member's
+  // name appended in the UI render step so admins can tell them apart.
+  adultHouseholdMembers.forEach((m, i) => {
+    if (i >= 4) return
+    rows.push({
+      section: 'Background Check',
+      templateId: `household_member_${i + 1}_background_waiver`,
+      labelOverride: `Household Member Background Waiver — ${[m.firstName, m.lastName].filter(Boolean).join(' ').trim() || `Adult #${i + 1}`}`,
+    })
+  })
   // HIPAA
   rows.push({ section: 'HIPAA', templateId: 'release_hipaa' })
   // General Psych
@@ -55,7 +66,7 @@ async function sendSingleResendEmail({ formToken, formTitle, recipientName, reci
   return { success: res.ok && data.success !== false, error: data.error }
 }
 
-export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName, partnerEmail, adminName, adminEmail }) {
+export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName, partnerEmail, adminName, adminEmail, adultHouseholdMembers = [] }) {
   const { currentUser } = useRole()
   const [existingDocs, setExistingDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -64,7 +75,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
   const [resending, setResending] = useState(() => new Set()) // templateIds mid-resend
   const [result, setResult] = useState(null) // { type: 'success'|'error', msg }
 
-  const rows = useMemo(() => resolveTemplateRows({ hasPartner }), [hasPartner])
+  const rows = useMemo(() => resolveTemplateRows({ hasPartner, adultHouseholdMembers }), [hasPartner, adultHouseholdMembers])
 
   const refetch = useCallback(() => {
     if (!surrogate?.id || !supabase) { setLoading(false); return }
@@ -156,6 +167,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
       partnerEmail,
       adminName,
       adminEmail,
+      adultHouseholdMembers,
       senderName: currentUser?.name,
       senderEmail: currentUser?.email,
       existingDocs,
@@ -260,9 +272,10 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
               <div key={section}>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 mb-1.5">{section}</p>
                 <div className="space-y-1.5">
-                  {sectionRows.map(({ templateId }) => {
+                  {sectionRows.map(({ templateId, labelOverride }) => {
                     const tpl = FORM_TEMPLATES[templateId]
                     if (!tpl) return null
+                    const displayTitle = labelOverride || tpl.title
                     const status = statusFor(templateId)
                     const isChecked = selected.has(templateId)
                     const isResending = resending.has(templateId)
@@ -275,7 +288,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                         <div key={templateId} className="flex items-center gap-2 text-xs py-1">
                           <CheckCircle2 className="size-4 text-green-500 shrink-0" />
                           <span className="text-green-700 font-medium">
-                            {tpl.title} — Signed{signedDate ? ` on ${signedDate}` : ''}
+                            {displayTitle} — Signed{signedDate ? ` on ${signedDate}` : ''}
                           </span>
                         </div>
                       )
@@ -286,7 +299,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                         <div key={templateId} className="flex items-center gap-2 text-xs py-1">
                           <Clock className="size-4 text-blue-500 shrink-0" />
                           <span className="text-blue-700 font-medium">
-                            {tpl.title} — Partially signed (waiting for remaining signer{(status.doc?.signers || []).filter(s => s.status !== 'signed').length > 1 ? 's' : ''})
+                            {displayTitle} — Partially signed (waiting for remaining signer{(status.doc?.signers || []).filter(s => s.status !== 'signed').length > 1 ? 's' : ''})
                           </span>
                           <label className="ml-auto flex items-center gap-1.5 cursor-pointer text-[11px] text-stone-500">
                             <Checkbox checked={isChecked} onCheckedChange={v => toggleSelect(templateId, v)} />
@@ -300,7 +313,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                       return (
                         <div key={templateId} className="flex items-center gap-2 text-xs py-1">
                           <Clock className="size-4 text-amber-500 shrink-0" />
-                          <span className="text-amber-700 font-medium">{tpl.title} — Pending</span>
+                          <span className="text-amber-700 font-medium">{displayTitle} — Pending</span>
                           <button
                             onClick={() => handleResend(templateId)}
                             disabled={isResending}
@@ -321,7 +334,7 @@ export default function ReleaseFormsSection({ surrogate, hasPartner, partnerName
                     return (
                       <label key={templateId} className="flex items-center gap-2 text-xs py-1 cursor-pointer hover:bg-stone-50 rounded px-1 -mx-1">
                         <Checkbox checked={isChecked} onCheckedChange={v => toggleSelect(templateId, v)} />
-                        <span className="text-stone-700 font-medium">{tpl.title}</span>
+                        <span className="text-stone-700 font-medium">{displayTitle}</span>
                         <span className="text-[10px] text-stone-400 ml-auto">Not sent</span>
                       </label>
                     )

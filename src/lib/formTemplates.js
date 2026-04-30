@@ -47,6 +47,41 @@ export const FORM_TEMPLATES = {
     fields: BACKGROUND_WAIVER_FIELDS,
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
+  // One template per household-member slot (max 4). Each gets its own
+  // signerRole so the batch send can route to the correct person from the
+  // application's adultHouseholdMembers[] array.
+  household_member_1_background_waiver: {
+    id: 'household_member_1_background_waiver',
+    title: 'Household Member #1 Background Waiver',
+    description: 'Disclosure Authorization and Release — Household Member Background Investigation',
+    signerRole: 'householdMember1',
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
+  },
+  household_member_2_background_waiver: {
+    id: 'household_member_2_background_waiver',
+    title: 'Household Member #2 Background Waiver',
+    description: 'Disclosure Authorization and Release — Household Member Background Investigation',
+    signerRole: 'householdMember2',
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
+  },
+  household_member_3_background_waiver: {
+    id: 'household_member_3_background_waiver',
+    title: 'Household Member #3 Background Waiver',
+    description: 'Disclosure Authorization and Release — Household Member Background Investigation',
+    signerRole: 'householdMember3',
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
+  },
+  household_member_4_background_waiver: {
+    id: 'household_member_4_background_waiver',
+    title: 'Household Member #4 Background Waiver',
+    description: 'Disclosure Authorization and Release — Household Member Background Investigation',
+    signerRole: 'householdMember4',
+    fields: BACKGROUND_WAIVER_FIELDS,
+    signatures: BACKGROUND_WAIVER_SIGNATURES,
+  },
   ip_background_waiver: {
     id: 'ip_background_waiver',
     title: 'IP Background Waiver',
