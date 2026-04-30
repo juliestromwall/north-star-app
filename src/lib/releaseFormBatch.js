@@ -32,7 +32,11 @@ function resolveSignersForTemplate(template, ctx) {
 
 function docTitleForTemplate(template, ctx) {
   const { surrogate } = ctx
-  const isReleaseForm = template.layoutMode === 'doc-first'
+  // Both doc-first (HIPAA, Psych, Ellen Winters) AND pdf-overlay (Kaiser)
+  // get a "<Template Title> - <Surrogate Name>" doc title so the email
+  // subject + the Signed Documents folder filename reflect the actual
+  // form, not the legacy "Background Check Release Form" fallback.
+  const isReleaseForm = template.layoutMode === 'doc-first' || template.layoutMode === 'pdf-overlay'
   if (isReleaseForm) {
     return `${template.title} - ${surrogate?.name || ''}`
   }
@@ -73,7 +77,7 @@ async function sendBatchEmail({ recipientName, recipientEmail, formTitles, batch
  * @returns { success, error, batchToken, createdDocIds }
  */
 export async function sendReleaseFormsBatch(templateIds, ctx) {
-  const { surrogate, senderName, senderEmail, existingDocs = [] } = ctx
+  const { surrogate, senderName, senderEmail, existingDocs = [], adminValuesByTemplate = {} } = ctx
 
   if (!templateIds?.length) return { success: false, error: 'No templates selected' }
   if (!surrogate?.id) return { success: false, error: 'Missing surrogate case id' }
@@ -126,11 +130,13 @@ export async function sendReleaseFormsBatch(templateIds, ctx) {
       createdBy: senderName || 'Admin',
     })
 
+    const adminValues = adminValuesByTemplate[t.id] || null
     await updateDocument(doc.id, {
       document_hash: JSON.stringify({
         formToken,
         templateId: t.id,
         batchToken,
+        ...(adminValues ? { adminValues } : {}),
       }),
     })
 

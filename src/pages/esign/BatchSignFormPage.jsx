@@ -93,6 +93,23 @@ export default function BatchSignFormPage() {
         const batch = (data || []).filter(d => {
           try { return JSON.parse(d.document_hash || '{}').batchToken === batchToken } catch { return false }
         })
+
+        // pdf-overlay docs (Kaiser etc.) need their own sign page — BatchSignFormPage
+        // doesn't render PDFs. If the batch is just one pdf-overlay doc, redirect to
+        // the single-form sign page where the pdf-overlay branch lives. Multi-doc
+        // batches with mixed types are a future fix; for now Kaiser is admin-only
+        // single-doc, so this covers the actual use case.
+        if (batch.length === 1) {
+          try {
+            const meta = JSON.parse(batch[0].document_hash || '{}')
+            const tpl = FORM_TEMPLATES[meta.templateId]
+            if (tpl?.layoutMode === 'pdf-overlay' && meta.formToken) {
+              window.location.replace(`/e-signature/form/${meta.formToken}`)
+              return
+            }
+          } catch {}
+        }
+
         setDocs(batch)
         const tpls = {}
         for (const d of batch) {

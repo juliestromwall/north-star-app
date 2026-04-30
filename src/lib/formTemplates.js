@@ -199,6 +199,49 @@ export const FORM_TEMPLATES = {
     ],
     fields: [],
   },
+
+  // ── Kaiser PDF overlay (picky medical-records facility — must use their exact PDF) ──
+  // Unlike the other release forms (which we re-render as React HTML), this one
+  // overlays input widgets on top of Kaiser's original PDF and uses pdf-lib to
+  // bake the values back into the same PDF on submit.
+  //
+  // Coordinates are in PDF-points, origin BOTTOM-LEFT, US-Letter (612 × 792).
+  // Tweak via /e-signature/form/<token>?calibrate=1 — that mode shows a grid
+  // overlay so you can dial in positions without redeploying.
+  release_kaiser: {
+    id: 'release_kaiser',
+    title: 'Kaiser PHI Authorization',
+    description: 'Kaiser Permanente — Authorization for Use or Disclosure of PHI',
+    layoutMode: 'pdf-overlay',
+    signerRole: 'gc',
+    pdfPath: '/kaiser-release.pdf',
+    // Admin pre-fills these BEFORE sending. The signer sees them already on
+    // the PDF when they open the link.
+    adminFields: [
+      { id: 'step1DateRange', label: 'Step 1 — Date range of records to release', type: 'text', required: true, placeholder: 'e.g. 01/01/2024 – present' },
+    ],
+    // Signer fields (GC). Each maps a {{Placeholder}} to PDF-page coordinates.
+    // Coordinates calibrated against Kaiser's actual PDF via ?calibrate=1.
+    overlay: [
+      { id: 'patientName',  page: 0, x: 262, y: 765, width: 320, fontSize: 11, source: 'gcName',     placeholder: '{{Name:GC}}' },
+      // DOB is rendered MM/DD/YYYY (Kaiser preference) — see resolveOverlayValue
+      { id: 'birthDate',    page: 0, x: 417, y: 752, width: 110, fontSize: 11, source: 'gcDob',      placeholder: '{{DOB:GC}}' },
+      { id: 'address',      page: 0, x: 237, y: 735, width: 340, fontSize: 11, source: 'gcStreet',   placeholder: '{{StreetAddress:GC}}' },
+      { id: 'city',         page: 0, x: 222, y: 720, width: 160, fontSize: 11, source: 'gcCity',     placeholder: '{{City:GC}}' },
+      { id: 'state',        page: 0, x: 400, y: 720, width: 80,  fontSize: 11, source: 'gcState',    placeholder: '{{State:GC}}' },
+      { id: 'zipCode',      page: 0, x: 242, y: 704, width: 160, fontSize: 11, source: 'gcZipCode',  placeholder: '{{ZipCode:GC}}' },
+      // Phone — formatted as "AAA    NNN-NNNN" so the area code lands inside
+      // Kaiser's pre-printed "( )" and the 7-digit number lands past the ")".
+      { id: 'phone',        page: 0, x: 411, y: 703, width: 140, fontSize: 11, source: 'gcPhone',    placeholder: '{{Phone:GC}}' },
+      { id: 'email',        page: 0, x: 228, y: 688, width: 340, fontSize: 11, source: 'gcEmail',    placeholder: '{{Email:GC}}' },
+      // Step 1 date range — admin pre-fill
+      { id: 'step1DateRange', page: 0, x: 304, y: 509, width: 240, fontSize: 10, adminField: 'step1DateRange', placeholder: 'admin: step1DateRange' },
+      // Date + Signature at the bottom
+      { id: 'signedDate',   page: 0, x: 21,  y: 182, width: 80,  fontSize: 11, source: 'today',      placeholder: '{{Date:GC}}' },
+      { id: 'signature',    page: 0, x: 104, y: 182, width: 250, height: 28, type: 'signature',      placeholder: '{{Signature:GC}}' },
+    ],
+    fields: [],
+  },
 }
 
 /**
