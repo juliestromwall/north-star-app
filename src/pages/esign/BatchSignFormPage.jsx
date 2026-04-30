@@ -509,27 +509,9 @@ export default function BatchSignFormPage() {
           ))}
         </div>
 
-        {/* Background waiver — show the document so the signer knows what
-            they're putting their name to. Renders the same HTML the PDF will
-            be generated from, with their entered info filled in live. */}
-        {!isDocFirst && (() => {
-          const gen = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
-          const previewHtml = gen(fieldValues, signatures, {
-            signerName: mySigner.name,
-            signerEmail: mySigner.email,
-            forPdf: false,
-          })
-          return (
-            <Card className="mb-5">
-              <CardContent className="p-4 sm:p-6">
-                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">Document</h3>
-                <div className="border rounded-lg p-3 sm:p-5 bg-white max-h-[420px] overflow-y-auto text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: previewHtml }} />
-              </CardContent>
-            </Card>
-          )
-        })()}
-
-        {/* Background waiver (fields + sigs in a card) */}
+        {/* Background waiver flow: 1) fill in info, 2) review document with
+            their info populated, 3) sign. Splitting these into separate cards
+            so the review step naturally sits between data entry and signing. */}
         {!isDocFirst && (
           <Card className="mb-5">
             <CardContent className="p-4 sm:p-6">
@@ -577,41 +559,66 @@ export default function BatchSignFormPage() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              {/* Signatures */}
-              <div className="mt-5 pt-5 border-t space-y-4">
-                <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Signatures</h3>
-                {(template.signatures || []).map(s => (
-                  <div key={s.id} className="space-y-2">
-                    <label className="text-xs font-medium text-stone-500">{s.label} <span className="text-red-400">*</span></label>
-                    {activeSigId === s.id ? (
-                      <div>
-                        <SignaturePad
-                          value={signatures[s.id]}
-                          onChange={val => {
-                            updateDocState(activeDoc.id, { signatures: { ...signatures, [s.id]: val } })
-                            if (val?.type === 'drawn') setActiveSigId(null)
-                          }}
-                          signerName={mySigner.name}
-                        />
-                        <button onClick={() => setActiveSigId(null)} className="text-xs text-stone-400 hover:underline mt-1">Done</button>
-                      </div>
-                    ) : signatures[s.id] ? (
-                      <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                        <CheckCircle2 className="size-4 text-green-500" />
-                        {signatures[s.id].type === 'drawn' && signatures[s.id].image ? (
-                          <img src={signatures[s.id].image} alt="signature" style={{ height: 32 }} />
-                        ) : (
-                          <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
-                        )}
-                        <button onClick={() => setActiveSigId(s.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5">Click to sign</button>
-                    )}
-                  </div>
-                ))}
-              </div>
+        {/* Document review — same HTML used to render the signed PDF, with the
+            signer's entered info populated live so they know exactly what
+            they're putting their name to. */}
+        {!isDocFirst && (() => {
+          const gen = template.formType === 'ip_background' ? generateIPBackgroundWaiverHtml : generateBackgroundWaiverHtml
+          const previewHtml = gen(fieldValues, signatures, {
+            signerName: mySigner.name,
+            signerEmail: mySigner.email,
+            forPdf: false,
+          })
+          return (
+            <Card className="mb-5">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-1">Review before signing</h3>
+                <p className="text-[11px] text-stone-400 mb-3">Read the document below carefully. Your information will appear in the document as you fill it in above.</p>
+                <div className="border rounded-lg p-3 sm:p-5 bg-white max-h-[420px] overflow-y-auto text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              </CardContent>
+            </Card>
+          )
+        })()}
+
+        {/* Signatures — last step so the signer has already reviewed above. */}
+        {!isDocFirst && (
+          <Card className="mb-5">
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Signatures</h3>
+              {(template.signatures || []).map(s => (
+                <div key={s.id} className="space-y-2">
+                  <label className="text-xs font-medium text-stone-500">{s.label} <span className="text-red-400">*</span></label>
+                  {activeSigId === s.id ? (
+                    <div>
+                      <SignaturePad
+                        value={signatures[s.id]}
+                        onChange={val => {
+                          updateDocState(activeDoc.id, { signatures: { ...signatures, [s.id]: val } })
+                          if (val?.type === 'drawn') setActiveSigId(null)
+                        }}
+                        signerName={mySigner.name}
+                      />
+                      <button onClick={() => setActiveSigId(null)} className="text-xs text-stone-400 hover:underline mt-1">Done</button>
+                    </div>
+                  ) : signatures[s.id] ? (
+                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <CheckCircle2 className="size-4 text-green-500" />
+                      {signatures[s.id].type === 'drawn' && signatures[s.id].image ? (
+                        <img src={signatures[s.id].image} alt="signature" style={{ height: 32 }} />
+                      ) : (
+                        <span className="text-sm font-serif italic text-[#283693]">{signatures[s.id].name || 'Signed'}</span>
+                      )}
+                      <button onClick={() => setActiveSigId(s.id)} className="text-xs text-stone-400 hover:underline ml-auto">Re-sign</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setActiveSigId(s.id)} className="w-full p-3 border-2 border-dashed border-[#ed148c]/30 rounded-lg text-sm text-[#ed148c] hover:bg-[#ed148c]/5">Click to sign</button>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
