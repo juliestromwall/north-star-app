@@ -4601,7 +4601,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     heightIn: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
     maritalStatus: ['Single', 'In a Relationship', 'Married', 'Domestic Partnership', 'Divorced', 'Separated', 'Widowed'],
     sexualPartners: ['0', '1', '2', '3', '4+'],
-    contraceptiveMethod: ['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other'],
+    contraceptiveMethod: ['None', 'Birth Control Pills', 'IUD', 'Condoms', 'Implant', 'Depo Shot', 'Natural Family Planning', 'Tubal Ligation', 'Bilateral Salpingectomy', 'Celibacy', 'Vasectomy', 'Same Sex Partner', 'Other'],
     homeOwnership: ['Own', 'Rent', 'Other'],
     religionImportance: ['Not Important', 'Somewhat Important', 'Important', 'Very Important'],
     insuranceType: ['Employer-sponsored insurance (my own employer)', 'Employer-sponsored insurance (spouse / partner)', 'Employer-sponsored insurance (through parent)', 'Individual / private plan', 'ACA Policy', 'Military / VA coverage', 'State funded insurance', 'Other'],
