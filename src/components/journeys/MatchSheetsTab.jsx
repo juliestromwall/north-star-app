@@ -283,7 +283,10 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
   const pregnancies = pregnancyHistory.pregnancies || []
   const numPreg = parseInt(pregnancyHistory.numberOfPregnancies) || pregnancies.length
-  const previousSurrogate = pregnancies.some(p => p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true)
+  const previousSurrogate = pregnancies.some((p) => {
+    const value = p?.wasSurrogacy
+    return value === true || String(value || '').toLowerCase() === 'yes'
+  })
 
   const gcDob = gcApp.dob || gcCase?.dob || ga.dob || personal.dob
   const ipHasPartner = a.hasPartner === true || a.hasPartner === 'yes'
