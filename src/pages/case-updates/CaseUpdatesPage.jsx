@@ -370,7 +370,6 @@ import ProviderInfoButton from '@/components/shared/ProviderInfoButton'
 
 export default function CaseUpdatesPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
-  const showAll = isSuperAdmin || isMasterAdmin
   const myEmail = currentUser?.email
 
   const [surrogates, setSurrogates] = useState([])
@@ -378,6 +377,7 @@ export default function CaseUpdatesPage() {
   const [journeys, setJourneys] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState('mine')
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
@@ -394,9 +394,38 @@ export default function CaseUpdatesPage() {
   // Only active (non-archived) journeys block a case from the unmatched list
   const matchedGcIds = useMemo(() => new Set(journeys.filter(isJourneyActive).map(j => j.gc_case_id).filter(Boolean)), [journeys])
   const matchedIpIds = useMemo(() => new Set(journeys.filter(isJourneyActive).map(j => j.ip_case_id).filter(Boolean)), [journeys])
-  // Filter by assigned admin (unless super/master admin)
-  const unmatchedSurrogates = useMemo(() => surrogates.filter(s => !matchedGcIds.has(s.id) && (showAll || s.assignedTo === myEmail)), [surrogates, matchedGcIds, showAll, myEmail])
-  const unmatchedIps = useMemo(() => ips.filter(ip => !matchedIpIds.has(ip.id) && (showAll || ip.assignedTo === myEmail)), [ips, matchedIpIds, showAll, myEmail])
+  const ownerScopedSurrogates = useMemo(() => {
+    return surrogates.filter(s => {
+      if (ownerFilter === 'mine') return s.assignedTo === myEmail
+      if (ownerFilter === 'unassigned') return !s.assignedTo
+      if (ownerFilter === 'all') return true
+      return s.assignedTo === ownerFilter
+    })
+  }, [surrogates, ownerFilter, myEmail])
+  const ownerScopedIps = useMemo(() => {
+    return ips.filter(ip => {
+      if (ownerFilter === 'mine') return ip.assignedTo === myEmail
+      if (ownerFilter === 'unassigned') return !ip.assignedTo
+      if (ownerFilter === 'all') return true
+      return ip.assignedTo === ownerFilter
+    })
+  }, [ips, ownerFilter, myEmail])
+  const ownerScopedJourneys = useMemo(() => {
+    return journeys.filter(j => {
+      if (ownerFilter === 'mine') return j.assigned_to === myEmail
+      if (ownerFilter === 'unassigned') return !j.assigned_to
+      if (ownerFilter === 'all') return true
+      return j.assigned_to === ownerFilter
+    })
+  }, [journeys, ownerFilter, myEmail])
+  const unmatchedSurrogates = useMemo(
+    () => ownerScopedSurrogates.filter(s => !matchedGcIds.has(s.id)),
+    [ownerScopedSurrogates, matchedGcIds]
+  )
+  const unmatchedIps = useMemo(
+    () => ownerScopedIps.filter(ip => !matchedIpIds.has(ip.id)),
+    [ownerScopedIps, matchedIpIds]
+  )
 
   // Apply search filter on top of admin scoping. Matches against any of the
   // names we display per row (surrogate name, IP names, or — for journeys —
@@ -411,15 +440,20 @@ export default function CaseUpdatesPage() {
     return unmatchedIps.filter(i => (i.names || '').toLowerCase().includes(q))
   }, [unmatchedIps, q])
   const visibleJourneys = useMemo(() => {
-    const scoped = showAll ? journeys : journeys.filter(j => j.assigned_to === myEmail)
-    if (!q) return scoped
-    return scoped.filter(j => {
+    if (!q) return ownerScopedJourneys
+    return ownerScopedJourneys.filter(j => {
       const gc = surrogates.find(s => s.id === j.gc_case_id)
       const ip = ips.find(i => i.id === j.ip_case_id)
       const blob = `${gc?.name || ''} ${ip?.names || ''}`.toLowerCase()
       return blob.includes(q)
     })
-  }, [journeys, surrogates, ips, showAll, myEmail, q])
+  }, [ownerScopedJourneys, surrogates, ips, q])
+
+  const myCaseCounts = useMemo(() => ({
+    surrogates: surrogates.filter(s => s.assignedTo === myEmail).length,
+    ips: ips.filter(ip => ip.assignedTo === myEmail).length,
+    journeys: journeys.filter(j => j.assigned_to === myEmail).length,
+  }), [surrogates, ips, journeys, myEmail])
 
   if (loading) return <div className="p-6 text-center text-stone-400">Loading...</div>
 
@@ -427,24 +461,41 @@ export default function CaseUpdatesPage() {
     <div className="p-4 sm:p-6 lg:p-8 space-y-6">
       <PageHeader title="Case Updates" subtitle="Track screening progress and case status across all case types" />
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name…"
-          className="pl-9 pr-9"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-            aria-label="Clear search"
-            type="button"
-          >
-            <X className="size-4" />
-          </button>
-        )}
+      <div className="flex flex-col gap-3 max-w-2xl sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name…"
+            className="pl-9 pr-9"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              aria-label="Clear search"
+              type="button"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+        <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mine">My Cases</SelectItem>
+            <SelectItem value="all">All Cases</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {getAdminStaff().map(admin => (
+              <SelectItem key={admin.email} value={admin.email}>
+                {admin.name}{admin.email === myEmail ? ' (Me)' : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <Tabs defaultValue="surrogates">
