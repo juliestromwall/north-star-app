@@ -23,6 +23,11 @@ import { journeyManagerOutlineColor, JOURNEY_MANAGERS } from '@/pages/journeys/M
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getAdminStaff } from '@/data/mock/users'
 
+const DEFAULT_ALL_CASE_EMAILS = new Set([
+  'julie@abcsurrogacy.com',
+  'nicole@abcsurrogacy.com',
+])
+
 function calcGestationalAge(dueDate) {
   if (!dueDate) return null
   const due = new Date(dueDate)
@@ -371,13 +376,16 @@ import ProviderInfoButton from '@/components/shared/ProviderInfoButton'
 export default function CaseUpdatesPage() {
   const { currentUser, isSuperAdmin, isMasterAdmin } = useRole()
   const myEmail = currentUser?.email
+  const defaultOwnerFilter = isSuperAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
+    ? 'all'
+    : 'mine'
 
   const [surrogates, setSurrogates] = useState([])
   const [ips, setIps] = useState([])
   const [journeys, setJourneys] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [ownerFilter, setOwnerFilter] = useState('mine')
+  const [ownerFilter, setOwnerFilter] = useState(defaultOwnerFilter)
 
   useEffect(() => {
     Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake(), fetchMatchedJourneys()])
@@ -389,6 +397,10 @@ export default function CaseUpdatesPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    setOwnerFilter(defaultOwnerFilter)
+  }, [defaultOwnerFilter])
 
   // Exclude surrogates and IPs that are in a matched journey
   // Only active (non-archived) journeys block a case from the unmatched list
