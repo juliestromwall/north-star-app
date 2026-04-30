@@ -2334,7 +2334,7 @@ function FertilitySection({ v, u, profile }) {
       )}
 
       <SelectField label="Which contraceptive method do you currently use?" value={v(s, 'contraceptiveMethod')} onChange={u(s, 'contraceptiveMethod')}
-        options={['Oral contraceptive pill', 'IUD', 'Implant', 'Injection', 'Vaginal ring', 'Patch', 'Condoms', 'Natural family planning / cycle tracking', 'Permanent sterilization', 'Vasectomy', 'Same sex partner', 'Abstinence', 'No current birth control', 'Other']} />
+        options={['Oral contraceptive pill', 'IUD', 'Implant', 'Injection', 'Vaginal ring', 'Patch', 'Condoms', 'Natural family planning / cycle tracking', 'Tubal Ligation', 'Bilateral Salpingectomy', 'Permanent sterilization', 'Vasectomy', 'Same sex partner', 'Abstinence', 'No current birth control', 'Other']} />
     </div>
   )
 }
