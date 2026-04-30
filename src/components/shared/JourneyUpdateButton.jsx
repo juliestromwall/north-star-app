@@ -5,11 +5,46 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea'
 import { useRole } from '@/context/RoleContext'
 import { getAppConfig, setAppConfig } from '@/lib/db'
+import { findJourneyByCaseId } from '@/lib/matching'
 
 function formatDate(d) {
   if (!d) return ''
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
     ' ' + new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+function normalizeCaseType(caseType) {
+  const t = String(caseType || 'journey').toLowerCase()
+  if (t === 'surrogate') return 'gc'
+  return t
+}
+
+function parseUpdates(saved) {
+  if (Array.isArray(saved)) return saved
+  if (typeof saved === 'string') {
+    try {
+      const parsed = JSON.parse(saved)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function mergeUpdates(arrays) {
+  const seen = new Set()
+  const merged = []
+  for (const arr of arrays) {
+    for (const item of arr) {
+      if (!item) continue
+      const key = item.id || `${item.date || ''}__${item.by || ''}__${item.text || ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(item)
+    }
+  }
+  return merged.sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime())
 }
 
 export default function JourneyUpdateButton({ caseId, caseType = 'journey', caseName, compact = false, hideIfEmpty = false }) {
@@ -19,30 +54,72 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
   const [loadedOnMount, setLoadedOnMount] = useState(!hideIfEmpty)
   const [newUpdate, setNewUpdate] = useState('')
   const [saving, setSaving] = useState(false)
-  const configKey = `journey_updates_${caseType}_${caseId}`
+  const [configKey, setConfigKey] = useState(caseId ? `journey_updates_${normalizeCaseType(caseType)}_${caseId}` : '')
+  const [candidateKeys, setCandidateKeys] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    async function resolveKeys() {
+      if (!caseId) {
+        if (!cancelled) {
+          setConfigKey('')
+          setCandidateKeys([])
+          setLoadedOnMount(!hideIfEmpty)
+        }
+        return
+      }
+      const normalized = normalizeCaseType(caseType)
+      let primaryKey = `journey_updates_${normalized}_${caseId}`
+      const fallbacks = new Set()
+      if (normalized === 'gc') {
+        fallbacks.add(`journey_updates_surrogate_${caseId}`)
+      }
+      if (caseType === 'surrogate') {
+        fallbacks.add(`journey_updates_gc_${caseId}`)
+      }
+      if (normalized === 'gc' || normalized === 'ip') {
+        const journeyId = await findJourneyByCaseId(caseId).catch(() => null)
+        if (journeyId) {
+          primaryKey = `journey_updates_journey_${journeyId}`
+          fallbacks.add(`journey_updates_${normalized}_${caseId}`)
+          if (normalized === 'gc') fallbacks.add(`journey_updates_surrogate_${caseId}`)
+        }
+      }
+      if (!cancelled) {
+        setConfigKey(primaryKey)
+        setCandidateKeys([primaryKey, ...Array.from(fallbacks).filter(k => k && k !== primaryKey)])
+        setLoadedOnMount(!hideIfEmpty)
+      }
+    }
+    if (hideIfEmpty) setLoadedOnMount(false)
+    resolveKeys()
+    return () => { cancelled = true }
+  }, [caseId, caseType, hideIfEmpty])
+
+  async function loadMergedUpdates() {
+    if (!configKey) return []
+    const keys = candidateKeys.length ? candidateKeys : [configKey]
+    const values = await Promise.all(keys.map(k => getAppConfig(k).catch(() => null)))
+    const merged = mergeUpdates(values.map(parseUpdates))
+    if (keys[0] && JSON.stringify(parseUpdates(values[0])) !== JSON.stringify(merged)) {
+      setAppConfig(keys[0], merged).catch(() => {})
+    }
+    return merged
+  }
 
   // Pre-load on mount when the caller wants to hide on empty, so we can decide whether to render.
   useEffect(() => {
-    if (!hideIfEmpty || !caseId) return
-    getAppConfig(configKey).then(saved => {
-      const arr = Array.isArray(saved)
-        ? saved
-        : typeof saved === 'string'
-          ? (() => { try { const p = JSON.parse(saved); return Array.isArray(p) ? p : [] } catch { return [] } })()
-          : []
-      setUpdates(arr)
-    }).catch(() => {}).finally(() => setLoadedOnMount(true))
-  }, [hideIfEmpty, configKey])
+    if (!hideIfEmpty || !caseId || !configKey) return
+    loadMergedUpdates().then(setUpdates).catch(() => {}).finally(() => setLoadedOnMount(true))
+  }, [hideIfEmpty, caseId, configKey, candidateKeys])
 
   useEffect(() => {
-    if (!open || !caseId) return
-    getAppConfig(configKey).then(saved => {
-      if (saved && Array.isArray(saved)) setUpdates(saved)
-    }).catch(() => {})
-  }, [open, configKey])
+    if (!open || !caseId || !configKey) return
+    loadMergedUpdates().then(setUpdates).catch(() => {})
+  }, [open, caseId, configKey, candidateKeys])
 
   async function handleAdd() {
-    if (!newUpdate.trim()) return
+    if (!newUpdate.trim() || !configKey) return
     setSaving(true)
     const entry = {
       id: Date.now().toString(),
@@ -60,7 +137,15 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
   async function handleDelete(id) {
     const updated = updates.filter(u => u.id !== id)
     setUpdates(updated)
-    await setAppConfig(configKey, updated).catch(() => {})
+    const keys = candidateKeys.length ? candidateKeys : [configKey]
+    await Promise.all(keys.map(async key => {
+      const existing = parseUpdates(await getAppConfig(key).catch(() => null))
+      const filtered = existing.filter(u => {
+        const currentKey = u?.id || `${u?.date || ''}__${u?.by || ''}__${u?.text || ''}`
+        return currentKey !== id && u?.id !== id
+      })
+      return setAppConfig(key, filtered).catch(() => {})
+    }))
   }
 
   if (compact) {
