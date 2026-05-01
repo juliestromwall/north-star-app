@@ -345,7 +345,10 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
 // ── Main Page ──────────────────────────────────────────────
 export default function SurrogateListPage() {
   const { currentUser, isAdmin, isSuperAdmin, isMasterAdmin } = useRole()
-  const defaultOwnerFilter = isSuperAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
+  // Master + super admins oversee everyone's caseload — default to All Cases.
+  // The email allowlist is kept for any non-master admin who still needs the
+  // wider view (legacy carve-out).
+  const defaultOwnerFilter = isSuperAdmin || isMasterAdmin || DEFAULT_ALL_CASE_EMAILS.has((currentUser?.email || '').toLowerCase())
     ? 'all'
     : 'mine'
   const [surrogates, setSurrogates] = useState([])
