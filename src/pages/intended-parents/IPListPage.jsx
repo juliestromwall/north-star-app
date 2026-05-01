@@ -30,10 +30,11 @@ const DEFAULT_ALL_CASE_EMAILS = new Set([
 
 const INACTIVE_IP_STAGES = new Set(['holding', 'withdrawn'])
 
+// Pull the accent straight from IP_STAGES so this stays in sync with
+// stage-color updates in src/lib/constants.js.
 function getInactiveCaseAccent(stage) {
-  if (stage === 'withdrawn') return '#dc2626'
-  if (stage === 'holding') return '#78716c'
-  return null
+  if (stage !== 'withdrawn' && stage !== 'holding') return null
+  return IP_STAGES.find(s => s.id === stage)?.color || null
 }
 
 export function FertilizedEggIcon({ size = 14, color = 'currentColor', className = '' }) {

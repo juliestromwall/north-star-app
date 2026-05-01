@@ -69,11 +69,11 @@ function filterOutMatchedSurrogates(surrogates, journeys) {
   return (surrogates || []).filter((surrogate) => !matchedGcIds.has(normalizeCaseId(surrogate.id)))
 }
 
+// Pull the accent straight from SURROGATE_STAGES so this stays in sync
+// with stage-color updates in src/lib/constants.js.
 function getInactiveCaseAccent(stage) {
-  if (stage === 'withdrawn') return '#dc2626'
-  if (stage === 'not-qualified') return '#92400e'
-  if (stage === 'holding') return '#78716c'
-  return null
+  if (stage !== 'withdrawn' && stage !== 'not-qualified' && stage !== 'holding') return null
+  return SURROGATE_STAGES.find(s => s.id === stage)?.color || null
 }
 
 // ── GTPAL Calculation ──────────────────────────────────────
