@@ -309,14 +309,19 @@ export function isJourneyEscrowFunded(journey) {
 
 /** Journey's "Escrow Closed" checklist step is marked Complete?
  *  Required before the admin can mark a journey complete (escrow must be
- *  closed out after delivery). Same lookup pattern as isJourneyEscrowFunded.
+ *  closed out after delivery).
+ *
+ *  Some prod configs ended up with two steps labeled "Escrow Closed" (the
+ *  default we seed plus an existing custom step that was renamed to match).
+ *  Match all steps with the label and return true if ANY of them is
+ *  complete — that way whichever one the admin actually tracks against
+ *  unblocks the gate.
  */
 export function isJourneyEscrowClosed(journey) {
   const tracking = journey?.journey_data?._checklistTracking || {}
   const steps = getChecklistSteps('gc', 'journey-oversight')
-  const step = steps.find(s => (s.label || '').trim().toLowerCase() === 'escrow closed')
-  if (!step) return false
-  return tracking[step.id]?.status === 'complete'
+  const matching = steps.filter(s => (s.label || '').trim().toLowerCase() === 'escrow closed')
+  return matching.some(s => tracking[s.id]?.status === 'complete')
 }
 
 /** Get milestones for a specific user type + stage */
