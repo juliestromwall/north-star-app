@@ -385,6 +385,27 @@ function countCompleted(data, sectionKey) {
     const val = sectionData[f]
     if (val !== undefined && val !== '' && val !== null) filled++
   }
+
+  if (sectionKey === 'personal') {
+    const householdMembers = Array.isArray(sectionData.householdMembers) ? sectionData.householdMembers : []
+    const isValidStepchildDob = (dob) => {
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob || '')) return false
+      const [day, month, year] = String(dob).split('/').map(Number)
+      const date = new Date(year, month - 1, day)
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      )
+    }
+    for (const member of householdMembers) {
+      if (['Stepson', 'Stepdaughter'].includes(member?.relationship || '')) {
+        if (isValidStepchildDob(member?.stepchildDob)) filled++
+        activeFields.push(`householdMembers:${member.relationship}:stepchildDob`)
+      }
+    }
+  }
+
   return { filled, total: activeFields.length, complete: filled === activeFields.length }
 }
 

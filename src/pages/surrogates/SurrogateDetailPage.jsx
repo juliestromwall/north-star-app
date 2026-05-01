@@ -5075,6 +5075,23 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   }
 
   function renderHouseholdMemberEdit(item, i, field, sourceData = editData) {
+    const requiresChildAge = (relationship) => ['Stepson', 'Stepdaughter'].includes(relationship || '')
+    const isValidStepchildDob = (dob) => {
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob || '')) return false
+      const [day, month, year] = String(dob).split('/').map(Number)
+      const date = new Date(year, month - 1, day)
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      )
+    }
+    const formatStepchildDobInput = (raw) => {
+      const digits = String(raw || '').replace(/\D/g, '').slice(0, 8)
+      if (digits.length <= 2) return digits
+      if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+    }
     const updateItem = (k, val) => {
       if (isApproved) return
       const updated = [...(sourceData?.[field] || [])]
@@ -5089,7 +5106,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
             <Trash2 className="size-3" /> Remove
           </Button>}
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-3 ${requiresChildAge(item.relationship) ? 'grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_180px]' : 'grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px]'}`}>
           <div className="space-y-1">
             <span className="text-[10px] text-gray-400 uppercase">Name</span>
             <input className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8" value={item.name || ''} onChange={e => updateItem('name', e.target.value)} />
@@ -5105,6 +5122,21 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
               </SelectContentUI>
             </SelectUI>
           </div>
+          {requiresChildAge(item.relationship) && (
+            <div className="space-y-1">
+              <span className="text-[10px] text-gray-400 uppercase">Stepchild's DOB</span>
+              <input
+                type="text"
+                className="w-full rounded border border-gray-200 px-2 py-1 text-xs bg-white h-8"
+                value={item.stepchildDob || ''}
+                onChange={e => updateItem('stepchildDob', formatStepchildDobInput(e.target.value))}
+                placeholder="DD/MM/YYYY"
+              />
+              {item.stepchildDob && !isValidStepchildDob(item.stepchildDob) && (
+                <p className="text-[10px] text-red-500">Use DD/MM/YYYY</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     )

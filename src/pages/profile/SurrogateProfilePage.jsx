@@ -258,6 +258,23 @@ function HouseholdMembers({ value = [], onChange, partnerName, maritalStatus }) 
   const [count, setCount] = useState(value.length || 0)
   const hasPartner = ['Married', 'Domestic Partnership', 'In a Relationship'].includes(maritalStatus)
   const autoRelationship = maritalStatus === 'Married' ? 'Spouse' : 'Partner'
+  const requiresChildAge = (relationship) => ['Stepson', 'Stepdaughter'].includes(relationship || '')
+  const isValidStepchildDob = (dob) => {
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dob || '')) return false
+    const [day, month, year] = String(dob).split('/').map(Number)
+    const date = new Date(year, month - 1, day)
+    return (
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+    )
+  }
+  const formatStepchildDobInput = (raw) => {
+    const digits = String(raw || '').replace(/\D/g, '').slice(0, 8)
+    if (digits.length <= 2) return digits
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+  }
 
   useEffect(() => {
     if (value.length > 0 && count === 0) setCount(value.length)
@@ -315,30 +332,52 @@ function HouseholdMembers({ value = [], onChange, partnerName, maritalStatus }) 
             <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">First Name</div>
             <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">Relationship</div>
           </div>
-          {Array.from({ length: count }).map((_, idx) => (
-            <div key={idx} className={`grid grid-cols-[1fr_1fr] ${idx < count - 1 ? 'border-b border-gray-100' : ''}`}>
-              <div className="px-3 py-2">
-                <Input
-                  value={value[idx]?.name || ''}
-                  onChange={e => updateMember(idx, 'name', e.target.value)}
-                  placeholder={`Person ${idx + 1}`}
-                  className="bg-white h-9"
-                />
+          {Array.from({ length: count }).map((_, idx) => {
+            const member = value[idx] || {}
+            const showAge = requiresChildAge(member.relationship)
+            return (
+              <div key={idx} className={`${idx < count - 1 ? 'border-b border-gray-100' : ''}`}>
+                <div className={`grid gap-3 px-3 py-2 ${showAge ? 'grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_180px]' : 'grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px]'}`}>
+                  <div className="px-3 py-2">
+                    <Input
+                      value={member.name || ''}
+                      onChange={e => updateMember(idx, 'name', e.target.value)}
+                      placeholder={`Person ${idx + 1}`}
+                      className="bg-white h-9"
+                    />
+                  </div>
+                  <div className="px-3 py-2">
+                    <Select value={member.relationship || ''} onValueChange={val => updateMember(idx, 'relationship', val)}>
+                      <SelectTrigger className="bg-white h-9">
+                        <SelectValue placeholder="Select..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HOUSEHOLD_RELATIONSHIPS.map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {showAge && (
+                    <div className="px-3 py-2">
+                      <Field label="Stepchild's DOB">
+                        <Input
+                          type="text"
+                          value={member.stepchildDob || ''}
+                          onChange={e => updateMember(idx, 'stepchildDob', formatStepchildDobInput(e.target.value))}
+                          placeholder="DD/MM/YYYY"
+                          className="bg-white h-9"
+                        />
+                      </Field>
+                      {member.stepchildDob && !isValidStepchildDob(member.stepchildDob) && (
+                        <p className="mt-1 text-[11px] text-red-500">Use DD/MM/YYYY</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="px-3 py-2">
-                <Select value={value[idx]?.relationship || ''} onValueChange={val => updateMember(idx, 'relationship', val)}>
-                  <SelectTrigger className="bg-white h-9">
-                    <SelectValue placeholder="Select..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HOUSEHOLD_RELATIONSHIPS.map(r => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
@@ -1372,6 +1411,29 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
   const portraitPhoto = photos?.find(p => p.path?.includes('/portrait/'))
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
+  const parseStepchildDob = (raw) => {
+    if (!raw) return null
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+      const [day, month, year] = raw.split('/').map(Number)
+      const date = new Date(year, month - 1, day)
+      if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) return date
+      return null
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const date = new Date(`${raw}T00:00:00`)
+      return Number.isNaN(date.getTime()) ? null : date
+    }
+    return null
+  }
+  const getStepchildAge = (rawDob) => {
+    const dob = parseStepchildDob(rawDob)
+    if (!dob) return ''
+    const today = new Date()
+    let years = today.getFullYear() - dob.getFullYear()
+    const monthDiff = today.getMonth() - dob.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) years--
+    return years >= 0 ? String(years) : ''
+  }
   const formatCurrency = (value) => {
     const digits = String(value || '').replace(/[^0-9]/g, '')
     if (!digits) return ''
@@ -1552,7 +1614,11 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
                 {householdMembers.map((m, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm bg-[#fdf8f3] rounded-lg px-3 py-2">
                     <span className="font-medium text-gray-800">{m.name || '—'}</span>
-                    {m.relationship && <span className="text-[11px] text-gray-400">({m.relationship})</span>}
+                    {m.relationship && (
+                      <span className="text-[11px] text-gray-400">
+                        ({m.relationship}{['Stepson', 'Stepdaughter'].includes(m.relationship) && getStepchildAge(m.stepchildDob) ? ` - ${getStepchildAge(m.stepchildDob)} yrs old` : ''})
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
