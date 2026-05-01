@@ -1099,7 +1099,9 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
     } finally { setSigning(false) }
   }
 
-  if (!gcCtx) {
+  // Wait until at least one signer context is loaded. Kaiser flows
+  // populate gcCtx; IP background waiver populates ipCtx.
+  if (!gcCtx && !ipCtx) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#283693]/5 to-white flex items-center justify-center">
         <Loader2 className="size-8 animate-spin text-[#283693]" />
