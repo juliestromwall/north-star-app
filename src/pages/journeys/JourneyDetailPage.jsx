@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component } from 'react'
+import { useState, useEffect, useRef, Component, lazy, Suspense } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, ArrowRight, Heart, Users, Baby, MapPin, Stethoscope, FileText,
@@ -14,22 +14,35 @@ import { Input } from '@/components/ui/input'
 import { Select as SelectUI, SelectContent as SelectContentUI, SelectItem as SelectItemUI, SelectTrigger as SelectTriggerUI, SelectValue as SelectValueUI } from '@/components/ui/select'
 import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
-import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import QuickNote from '@/components/shared/QuickNote'
 import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
-import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
+import { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
-import MatchSheetsTab from '@/components/journeys/MatchSheetsTab'
-import GCApplicationTab from '@/components/surrogates/GCApplicationTab'
-import IPApplicationTab from '@/components/intended-parents/IPApplicationTab'
-import IPProfileTab from '@/components/intended-parents/IPProfileTab'
-import { ProfilePreview } from '@/pages/profile/SurrogateProfilePage'
 import { EscrowStatusCell, NotesCell, getEscrowStatus, escrowStatusUpdates } from '@/pages/expenses/ExpensesPage'
-import { ProfileTab as GCProfileTab, DocumentsTab } from '@/pages/surrogates/SurrogateDetailPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
-import RichTextEditor, { RichTextDisplay } from '@/components/shared/RichTextEditor'
+
+// Tab-only components are code-split out of the journey-page initial bundle.
+// They're heavy (html2canvas + jsPDF for match sheets, full Tiptap for the
+// rich-text editor in notes, the entire SurrogateDetailPage module for the
+// shared profile/documents tabs, large form trees for the application tabs)
+// and the user lands on the Overview tab — no reason to download all of them
+// up front. Each tab usage is wrapped in <Suspense> with a small fallback.
+const CaseEmailsTab    = lazy(() => import('@/components/shared/CaseEmailsTab'))
+const InsuranceTab     = lazy(() => import('@/components/shared/InsuranceTab'))
+const MatchSheetsTab   = lazy(() => import('@/components/journeys/MatchSheetsTab'))
+const GCApplicationTab = lazy(() => import('@/components/surrogates/GCApplicationTab'))
+const IPApplicationTab = lazy(() => import('@/components/intended-parents/IPApplicationTab'))
+const IPProfileTab     = lazy(() => import('@/components/intended-parents/IPProfileTab'))
+const GCProfileTab     = lazy(() => import('@/pages/surrogates/SurrogateDetailPage').then(m => ({ default: m.ProfileTab })))
+const DocumentsTab     = lazy(() => import('@/pages/surrogates/SurrogateDetailPage').then(m => ({ default: m.DocumentsTab })))
+const RichTextEditor   = lazy(() => import('@/components/shared/RichTextEditor'))
+const RichTextDisplay  = lazy(() => import('@/components/shared/RichTextEditor').then(m => ({ default: m.RichTextDisplay })))
+
+function TabFallback() {
+  return <div className="text-center py-8 text-stone-400 text-sm">Loading…</div>
+}
 import { useRole } from '@/context/RoleContext'
 import { useDrafts } from '@/context/DraftContext'
 import { SURROGATE_STAGES } from '@/lib/constants'
@@ -2232,7 +2245,9 @@ function NotesTab({ journeyId, currentUser }) {
         ))}
       </div>
       <Card className="rounded-2xl"><CardContent className="p-4 space-y-3">
-        <RichTextEditor content={newContent} onChange={setNewContent} placeholder="Add a note..." />
+        <Suspense fallback={<TabFallback />}>
+          <RichTextEditor content={newContent} onChange={setNewContent} placeholder="Add a note..." />
+        </Suspense>
         <Button size="sm" onClick={handleAdd} disabled={saving || !newContent.trim()} style={{ backgroundColor: '#283693', color: '#fff' }}>{saving ? 'Saving...' : 'Add Note'}</Button>
       </CardContent></Card>
       {loading ? <p className="text-center py-8 text-stone-400">Loading...</p> : notes.length === 0 ? (
@@ -2260,7 +2275,9 @@ function NotesTab({ journeyId, currentUser }) {
                 </div>
                 {isEditing ? (
                   <div className="space-y-2">
-                    <RichTextEditor content={editContent} onChange={setEditContent} />
+                    <Suspense fallback={<TabFallback />}>
+                      <RichTextEditor content={editContent} onChange={setEditContent} />
+                    </Suspense>
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={cancelEdit} disabled={saving}>Cancel</Button>
                       <Button size="sm" onClick={handleSaveEdit} disabled={saving || !editContent || editContent === '<p></p>'} style={{ backgroundColor: '#283693', color: '#fff' }}>
@@ -2269,7 +2286,9 @@ function NotesTab({ journeyId, currentUser }) {
                     </div>
                   </div>
                 ) : (
-                  <RichTextDisplay content={note.content} />
+                  <Suspense fallback={<div className="text-stone-300 text-xs">…</div>}>
+                    <RichTextDisplay content={note.content} />
+                  </Suspense>
                 )}
               </CardContent></Card>
             )
@@ -2364,23 +2383,23 @@ function ProfilesTabContent({ profileView, gcCase, setGcCase, gcProfileData, set
   const heightStr = gcCase ? `${gcCase.heightFt || ''}\'${gcCase.heightIn || ''}"` : ''
   if (profileView === 'gc') {
     if (!gcCase) return <EmptyState title="No surrogate data" />
-    return <ProfileErrorBoundary key="gc"><GCProfileTab
+    return <ProfileErrorBoundary key="gc"><Suspense fallback={<TabFallback />}><GCProfileTab
       surrogate={gcCase} setSurrogate={setGcCase}
       profileData={gcProfileData || {}} setProfileData={setGcProfileData}
       profileStatus={gcProfileStatus} setProfileStatus={setGcProfileStatus}
       photos={gcPhotos} setPhotos={setGcPhotos}
       portraitUrl={gcPortraitUrl} heightStr={heightStr}
       quizAnswers={gcQuizAnswers} setQuizAnswers={setGcQuizAnswers}
-    /></ProfileErrorBoundary>
+    /></Suspense></ProfileErrorBoundary>
   }
   if (!ipCase) return <EmptyState title="No IP profile data" />
-  return <ProfileErrorBoundary key="ip"><IPProfileTab ip={ipCase} onUpdate={async (updates) => {
+  return <ProfileErrorBoundary key="ip"><Suspense fallback={<TabFallback />}><IPProfileTab ip={ipCase} onUpdate={async (updates) => {
     try {
       const { updateIntakeSubmission } = await import('@/lib/db')
       await updateIntakeSubmission(ipCase.id, updates)
       setIpCase(prev => ({ ...prev, ...updates }))
     } catch {}
-  }} /></ProfileErrorBoundary>
+  }} /></Suspense></ProfileErrorBoundary>
 }
 
 // ── Main Page ───────────────────────────────────────────
@@ -3757,13 +3776,17 @@ export default function JourneyDetailPage() {
               IP Application
             </button>
           </div>
-          {mainTab === 'application' && (appView === 'gc' ? (
-            gcCase ? <GCApplicationTab surrogate={gcCase} setSurrogate={setGcCase} quizAnswers={gcQuizAnswers || gcCase.answers || {}} setQuizAnswers={setGcQuizAnswers} profileData={gcProfileData} />
-              : <EmptyState title="GC data not found" />
-          ) : (
-            ipCase ? <IPApplicationTab ip={ipCase} setIp={setIpCase} />
-              : <EmptyState title="IP data not found" />
-          ))}
+          {mainTab === 'application' && (
+            <Suspense fallback={<TabFallback />}>
+              {appView === 'gc' ? (
+                gcCase ? <GCApplicationTab surrogate={gcCase} setSurrogate={setGcCase} quizAnswers={gcQuizAnswers || gcCase.answers || {}} setQuizAnswers={setGcQuizAnswers} profileData={gcProfileData} />
+                  : <EmptyState title="GC data not found" />
+              ) : (
+                ipCase ? <IPApplicationTab ip={ipCase} setIp={setIpCase} />
+                  : <EmptyState title="IP data not found" />
+              )}
+            </Suspense>
+          )}
         </TabsContent>
 
         {/* Profiles Tab — GC/IP sub-tabs */}
@@ -3793,31 +3816,47 @@ export default function JourneyDetailPage() {
         </TabsContent>
 
         <TabsContent value="match-sheets" className="mt-4">
-          {mainTab === 'match-sheets' && <MatchSheetsTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
-            const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
-            if (updated) setJourney(updated)
-          }} />}
+          {mainTab === 'match-sheets' && (
+            <Suspense fallback={<TabFallback />}>
+              <MatchSheetsTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
+                const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
+                if (updated) setJourney(updated)
+              }} />
+            </Suspense>
+          )}
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
-          {mainTab === 'documents' && <DocumentsTab
-            surrogateId={journey.gc_case_id}
-            additionalCaseIds={[journey.ip_case_id]}
-            caseLabels={{
-              [journey.gc_case_id]: `GC — ${gcCase?.name || 'Surrogate'}`,
-              [journey.ip_case_id]: `IP — ${ipCase?.names || 'Intended Parent'}`,
-            }}
-            includeJourneyDocs
-          />}
+          {mainTab === 'documents' && (
+            <Suspense fallback={<TabFallback />}>
+              <DocumentsTab
+                surrogateId={journey.gc_case_id}
+                additionalCaseIds={[journey.ip_case_id]}
+                caseLabels={{
+                  [journey.gc_case_id]: `GC — ${gcCase?.name || 'Surrogate'}`,
+                  [journey.ip_case_id]: `IP — ${ipCase?.names || 'Intended Parent'}`,
+                }}
+                includeJourneyDocs
+              />
+            </Suspense>
+          )}
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
-          {mainTab === 'insurance' && <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />}
+          {mainTab === 'insurance' && (
+            <Suspense fallback={<TabFallback />}>
+              <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+            </Suspense>
+          )}
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
           {mainTab === 'expenses' && <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} escrowFunded={isJourneyEscrowFunded(journey)} />}
         </TabsContent>
         <TabsContent value="notes" className="mt-4">{mainTab === 'notes' && <NotesTab journeyId={journey.id} currentUser={currentUser} />}</TabsContent>
         <TabsContent value="emails" className="mt-4">
-          {mainTab === 'emails' && <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} contactEmails={[gcCase?.email, ipCase?.email, ipCase?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />}
+          {mainTab === 'emails' && (
+            <Suspense fallback={<TabFallback />}>
+              <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} contactEmails={[gcCase?.email, ipCase?.email, ipCase?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />
+            </Suspense>
+          )}
         </TabsContent>
         <TabsContent value="texts" className="mt-4">{mainTab === 'texts' && <EmptyState title="Text Messages" description="GC and IP text threads." />}</TabsContent>
       </Tabs>
@@ -3907,7 +3946,11 @@ export default function JourneyDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><InsuranceCardIcon size={18} color="#283693" /> Insurance — {gcCase?.name}</DialogTitle>
           </DialogHeader>
-          <InsuranceTab caseId={journey?.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+          {insuranceOpen && (
+            <Suspense fallback={<TabFallback />}>
+              <InsuranceTab caseId={journey?.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+            </Suspense>
+          )}
         </DialogContent>
       </Dialog>
 
