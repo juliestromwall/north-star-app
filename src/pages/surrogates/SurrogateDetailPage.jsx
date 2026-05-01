@@ -3357,12 +3357,15 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
     if (total <= 0) return
     setSaving(true)
     try {
-      let attachmentUrl = null
+      // Collect every line-item upload's URL — newline-joined so the Doc
+      // cell can render one icon per attachment instead of dropping items 2+.
+      const uploadedUrls = []
       for (const li of lineItems) {
         if (!li.file) continue
         const doc = await uploadCaseDocument({ surrogateId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
-        if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
+        if (doc?.public_url) uploadedUrls.push(doc.public_url)
       }
+      const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null
       let resolvedPaidTo = newExpense.paid_to || null
       let payVia = null
       let payViaInfo = null

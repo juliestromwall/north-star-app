@@ -481,17 +481,27 @@ function ExpenseTable({ expenses, journeyMap, surrogateMap = {}, onSave, onRecon
                   {/* Doc */}
                   <td className="px-3 py-3 align-top text-center">
                     <div className="inline-flex items-center gap-2">
-                      {exp.attachment_url ? (
-                        <button onClick={() => setPreviewUrl(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
-                          <Eye className="size-4" />
-                        </button>
-                      ) : gmailMatch && onViewEmail ? (
-                        <button onClick={() => onViewEmail(gmailMatch[1])} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View linked email">
-                          <Mail className="size-4" />
-                        </button>
-                      ) : (
-                        <span className="text-stone-200">—</span>
-                      )}
+                      {(() => {
+                        // attachment_url may hold a single URL or a newline-
+                        // joined list when the expense was added with multiple
+                        // line-item files. Render one icon per attachment.
+                        const urls = (exp.attachment_url || '').split('\n').map(s => s.trim()).filter(Boolean)
+                        if (urls.length > 0) {
+                          return urls.map((url, i) => (
+                            <button key={url + i} onClick={() => setPreviewUrl(url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title={`View attachment${urls.length > 1 ? ` ${i + 1} of ${urls.length}` : ''}`}>
+                              <Eye className="size-4" />
+                            </button>
+                          ))
+                        }
+                        if (gmailMatch && onViewEmail) {
+                          return (
+                            <button onClick={() => onViewEmail(gmailMatch[1])} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View linked email">
+                              <Mail className="size-4" />
+                            </button>
+                          )
+                        }
+                        return <span className="text-stone-200">—</span>
+                      })()}
                       {j.gcPayPrefScreenshotUrl && (
                         <button
                           onClick={() => setPreviewUrl(j.gcPayPrefScreenshotUrl)}
@@ -860,8 +870,11 @@ export default function ExpensesPage() {
     }
   }
 
-  // Filter and sort — Hold-for-Payment items never appear in the main tracker
-  let filtered = expenses.filter(e => e.pay_to_type !== 'hold')
+  // Filter and sort — Hold-for-Payment items never appear in the main tracker.
+  // Expenses where escrow was opened AND the row was submitted to escrow are
+  // also hidden: ABC isn't paying those, escrow is. They still live on the
+  // case-level expense table; this page is the ABC-pay tracker only.
+  let filtered = expenses.filter(e => e.pay_to_type !== 'hold' && !(e.escrow_opened && e.submitted_to_escrow))
   if (activeTab === 'expenses') {
     // Awaiting reconciliation — either escrow-paid, or direct-pay that's already been marked Paid
     filtered = filtered.filter(e => !e.reconciled && (!e.needs_payment || !!e.paid_at))
@@ -956,21 +969,21 @@ export default function ExpensesPage() {
           <TabsTrigger value="expenses" className="gap-1">
             Expenses
             <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full ml-1">
-              {expenses.filter(e => !e.reconciled && !e.needs_payment).length}
+              {expenses.filter(e => !e.reconciled && !e.needs_payment && !(e.escrow_opened && e.submitted_to_escrow)).length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="to_pay" className="gap-1">
             Expenses to Pay
-            {expenses.filter(e => e.needs_payment && !e.reconciled).length > 0 && (
+            {expenses.filter(e => e.needs_payment && !e.reconciled && !(e.escrow_opened && e.submitted_to_escrow)).length > 0 && (
               <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full ml-1">
-                {expenses.filter(e => e.needs_payment && !e.reconciled).length}
+                {expenses.filter(e => e.needs_payment && !e.reconciled && !(e.escrow_opened && e.submitted_to_escrow)).length}
               </span>
             )}
           </TabsTrigger>
           <TabsTrigger value="reconciled" className="gap-1">
             Reconciled
             <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full ml-1">
-              {expenses.filter(e => e.reconciled).length}
+              {expenses.filter(e => e.reconciled && !(e.escrow_opened && e.submitted_to_escrow)).length}
             </span>
           </TabsTrigger>
         </TabsList>
