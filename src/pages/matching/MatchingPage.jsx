@@ -193,10 +193,45 @@ export default function MatchingPage() {
         setIps(allIps)
         setJourneys(js)
 
-        // Load profile photos
+        // Load GC avatars — same fallback chain as /surrogates:
+        // profile_data URL, then storage portrait by userId, then by case id.
         const userIds = gcs.filter(g => g.userId).map(g => g.userId)
         if (userIds.length > 0) {
-          getProfilePhotoUrls(userIds).then(setAvatarUrls).catch(() => {})
+          getProfilePhotoUrls(userIds).then(profileUrlMap => {
+            const avatars = {}
+            const hasAvatarByCaseId = new Set()
+            const needsCaseIdFallback = []
+
+            for (const gc of gcs) {
+              const url = gc.userId ? profileUrlMap[gc.userId] : null
+              if (url) {
+                avatars[gc.id] = url
+                hasAvatarByCaseId.add(gc.id)
+              } else {
+                needsCaseIdFallback.push(gc)
+              }
+            }
+
+            setAvatarUrls(avatars)
+
+            if (needsCaseIdFallback.length > 0) {
+              Promise.all(needsCaseIdFallback.map(gc => getPortraitPhotoUrl(String(gc.id)).catch(() => null)))
+                .then(urls => {
+                  const update = {}
+                  needsCaseIdFallback.forEach((gc, i) => {
+                    if (urls[i] && !hasAvatarByCaseId.has(gc.id)) update[gc.id] = urls[i]
+                  })
+                  if (Object.keys(update).length) setAvatarUrls(prev => ({ ...prev, ...update }))
+                })
+            }
+          }).catch(() => {})
+        } else if (gcs.length > 0) {
+          Promise.all(gcs.map(gc => getPortraitPhotoUrl(String(gc.id)).catch(() => null)))
+            .then(urls => {
+              const update = {}
+              gcs.forEach((gc, i) => { if (urls[i]) update[gc.id] = urls[i] })
+              if (Object.keys(update).length) setAvatarUrls(update)
+            })
         }
 
         // Load IP avatars
@@ -392,7 +427,7 @@ export default function MatchingPage() {
               {list.map(gc => {
                 const ss = getSurrogateStageStatus(gc.id)
                 const profile = profileMap[gc.id]
-                const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
+                const avatarUrl = avatarUrls[gc.id] || null
                 return (
                   <Card key={gc.id} className="rounded-xl hover:shadow-md transition-shadow">
                     <CardContent className="p-3 space-y-2">
@@ -442,7 +477,7 @@ export default function MatchingPage() {
               {list.map(gc => {
                 const ss = getSurrogateStageStatus(gc.id)
                 const profile = profileMap[gc.id]
-                const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
+                const avatarUrl = avatarUrls[gc.id] || null
                 return (
                   <Card key={gc.id} className="rounded-xl hover:shadow-md transition-shadow">
                     <CardContent className="p-3 space-y-2">
@@ -492,7 +527,7 @@ export default function MatchingPage() {
               const ss = getSurrogateStageStatus(gc.id)
               const profile = profileMap[gc.id]
               const gtpal = getGTPAL(profile)
-              const avatarUrl = gc.userId ? avatarUrls[gc.userId] : null
+              const avatarUrl = avatarUrls[gc.id] || null
               const heightStr = gc.heightFt ? `${gc.heightFt}'${gc.heightIn || 0}"` : null
               const shares = shareHistory[gc.id] || []
               const questions = questionHistory[gc.id] || []
