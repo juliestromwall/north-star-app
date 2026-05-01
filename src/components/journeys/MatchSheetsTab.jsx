@@ -931,11 +931,19 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         if (a) attachments.push(a)
       }
     }
-    // Insurance Card Review
-    if ((docsByLabel['insurance-card-review'] || []).length > 0) {
-      bullets.push('Insurance Review')
-      for (const d of docsByLabel['insurance-card-review']) {
-        const a = await urlToAttachment(d.public_url, d.file_name || 'Insurance-Review.pdf')
+    // GC Insurance Card
+    if ((docsByLabel['gc-insurance-card'] || []).length > 0) {
+      bullets.push('GC Insurance Card')
+      for (const d of docsByLabel['gc-insurance-card']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Insurance-Card.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // GC Insurance Review
+    if ((docsByLabel['gc-insurance-review'] || []).length > 0) {
+      bullets.push('GC Insurance Review')
+      for (const d of docsByLabel['gc-insurance-review']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Insurance-Review.pdf')
         if (a) attachments.push(a)
       }
     }
@@ -953,21 +961,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       bullets.push(label)
       for (const d of docsByLabel['partner-paystubs']) {
         const a = await urlToAttachment(d.public_url, d.file_name || 'Partner-Paystubs.pdf')
-        if (a) attachments.push(a)
-      }
-    }
-    // GC + Partner Background Checks — combined into one bullet when both
-    // are labeled, mirroring the IP background-report pattern below.
-    const gcBg = docsByLabel['gc-background-check'] || []
-    const partnerBg = gcHasPartner ? (docsByLabel['partner-background-check'] || []) : []
-    if (gcBg.length > 0 || partnerBg.length > 0) {
-      const names = [
-        gcBg.length > 0 ? gcFirstName : null,
-        partnerBg.length > 0 ? (gcPartnerFull || 'Partner') : null,
-      ].filter(Boolean).join(' & ')
-      bullets.push(`${names}'s Background Check${(gcBg.length + partnerBg.length) > 1 ? 's' : ''}`)
-      for (const d of [...gcBg, ...partnerBg]) {
-        const a = await urlToAttachment(d.public_url, d.file_name || 'Background-Check.pdf')
         if (a) attachments.push(a)
       }
     }

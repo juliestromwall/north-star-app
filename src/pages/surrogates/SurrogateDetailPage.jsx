@@ -2121,11 +2121,11 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
               'gc-paystubs': 'GC Paystubs',
               'partner-paystubs': 'Partner Paystubs',
               'gc-benefit-package': 'GC Benefit Package',
-              'gc-background-check': 'GC Background Check',
-              'partner-background-check': 'Partner Background Check',
               'ip1-background-report': 'IP1 Background Report',
               'ip2-background-report': 'IP2 Background Report',
-              'insurance-card-review': 'Insurance Card Review',
+              'gc-insurance-card': 'GC Insurance Card',
+              'gc-insurance-review': 'GC Insurance Review',
+              'gc-psych-evaluation': 'GC Psych Evaluation',
             }[doc.doc_label] || doc.doc_label}</span>}
             {compact && cat ? ` · ${cat.label}` : ''}
             {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-stone-100 text-stone-500">{doc._source}</span>}
@@ -2471,11 +2471,11 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                   <SelectItemUI value="gc-paystubs">GC Paystubs</SelectItemUI>
                   <SelectItemUI value="partner-paystubs">Partner Paystubs</SelectItemUI>
                   <SelectItemUI value="gc-benefit-package">GC Benefit Package</SelectItemUI>
-                  <SelectItemUI value="gc-background-check">GC Background Check</SelectItemUI>
-                  <SelectItemUI value="partner-background-check">Partner Background Check</SelectItemUI>
                   <SelectItemUI value="ip1-background-report">IP1 Background Check Report</SelectItemUI>
                   <SelectItemUI value="ip2-background-report">IP2 Background Check Report</SelectItemUI>
-                  <SelectItemUI value="insurance-card-review">Insurance Card Review</SelectItemUI>
+                  <SelectItemUI value="gc-insurance-card">GC Insurance Card</SelectItemUI>
+                  <SelectItemUI value="gc-insurance-review">GC Insurance Review</SelectItemUI>
+                  <SelectItemUI value="gc-psych-evaluation">GC Psych Evaluation</SelectItemUI>
                 </SelectContentUI>
               </SelectUI>
             </div>
