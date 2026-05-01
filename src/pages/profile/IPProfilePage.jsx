@@ -404,8 +404,11 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
   const profilePhoto = visiblePhotos.find(p => p.kind === 'portrait') || visiblePhotos.find(p => p.path?.includes('/portrait/') || p.path?.includes('/ip-portrait/'))
   const coverPhoto = visiblePhotos.find(p => p.kind === 'cover') || visiblePhotos.find(p => p.path?.includes('/cover/') || p.path?.includes('/ip-cover/'))
   const galleryPhotos = visiblePhotos.filter(p => p.kind === 'gallery' || (p.path?.includes('/gallery/') && !p.path?.includes('/portrait/') && !p.path?.includes('/cover/'))) || []
-  // All viewable photos for lightbox: cover first, then gallery
-  const lightboxPhotos = coverPhoto ? [coverPhoto, ...galleryPhotos] : galleryPhotos
+  // Lightbox / thumbnail strip = gallery only. The cover already has its
+  // own hero treatment up top — re-listing it as a gallery thumbnail is
+  // what the GC profile intentionally avoids. Drop the prepend so IP
+  // behavior matches.
+  const lightboxPhotos = galleryPhotos
   const [lightboxIdx, setLightboxIdx] = useState(null)
   const fertility = profile?.fertility || {}
   const surrogacy = profile?.surrogacy || {}
@@ -640,8 +643,8 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
         <div data-pdf="thumbs" className="flex gap-2 px-8 sm:px-12 pt-4 pb-2 overflow-x-auto print:hidden">
           {lightboxPhotos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
-              className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
-              <img src={ph.url} alt="" className="w-full h-full object-cover" />
+              className="h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
+              <img src={ph.url} alt="" className="h-full w-auto block" />
             </button>
           ))}
         </div>
@@ -748,13 +751,14 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
             </>
           )}
         </div>
-        {/* Thumbnail strip */}
+        {/* Thumbnail strip — fixed height, variable width so each thumb keeps
+            its native aspect (no cropped-to-square preview). */}
         {lightboxPhotos.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10 max-w-[90vw] overflow-x-auto">
             {lightboxPhotos.map((ph, i) => (
               <button key={ph.path} onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
-                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
-                <img src={ph.url} alt="" className="w-full h-full object-cover" />
+                className={`h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
+                <img src={ph.url} alt="" className="h-full w-auto block" />
               </button>
             ))}
           </div>
