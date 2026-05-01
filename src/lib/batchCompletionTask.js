@@ -18,9 +18,17 @@ function parseMeta(doc) {
 }
 
 /**
- * @returns 'release' | 'clinic' | null — null means: don't auto-task.
+ * @returns 'ip_background' | 'release' | 'clinic' | null — null means: don't auto-task.
  */
 function classifyBatch(batchDocs) {
+  // IP Background Waiver — template ids ip_background_waiver / ip2_background_waiver.
+  // Distinct kind so the auto-task title + case_type can be IP-specific.
+  const isIpBackground = batchDocs.some(d => {
+    const t = parseMeta(d).templateId || ''
+    return t === 'ip_background_waiver' || t === 'ip2_background_waiver'
+  })
+  if (isIpBackground) return 'ip_background'
+
   // Release forms come from the form-template registry — they carry a
   // templateId in document_hash. Covers HIPAA, Psych, Ellen Winters, and
   // background waivers (which share the "Release Forms" UI card).
@@ -48,6 +56,29 @@ async function getSurrogateName(caseId) {
     || [answers.firstName, answers.lastName].filter(Boolean).join(' ').trim()
     || 'Surrogate'
   return { name, assignedTo: data.assigned_to }
+}
+
+// IP-side equivalent. applicant_name on the intake row is already the
+// "IP1 First Last & IP2 First Last" combined display label, so we can
+// reuse it directly. Falls back to assembling from intake answers if
+// applicant_name is empty.
+async function getIpNames(caseId) {
+  const { data } = await supabase
+    .from('intake_submissions')
+    .select('applicant_name, answers, assigned_to, intake_type')
+    .eq('id', caseId)
+    .single()
+  if (!data) return { names: 'Intended Parents', assignedTo: null }
+  const a = data.answers || {}
+  const c = a._ipContact || {}
+  const ip1 = [c.ip1FirstName || a.primaryFirstName, c.ip1LastName || a.primaryLastName].filter(Boolean).join(' ').trim()
+  const ip2 = (a.hasPartner === 'yes' || a.hasPartner === true)
+    ? [c.ip2FirstName || a.ip2FirstName, c.ip2LastName || a.ip2LastName].filter(Boolean).join(' ').trim()
+    : ''
+  const names = data.applicant_name
+    || (ip2 ? `${ip1} & ${ip2}` : ip1)
+    || 'Intended Parents'
+  return { names, assignedTo: data.assigned_to }
 }
 
 export async function maybeCreateSigningCompletionTask(doc) {
@@ -81,14 +112,24 @@ export async function maybeCreateSigningCompletionTask(doc) {
   if (anchorMeta.completionTaskCreated) return
 
   const kind = classifyBatch(batchDocs)
-  if (!kind) return // not a release or clinic doc — skip auto-task
+  if (!kind) return // not a release / clinic / IP background doc — skip auto-task
 
-  const { name: surrogateName, assignedTo } = await getSurrogateName(doc.case_id)
+  // IP background waiver = IP case; everything else = surrogate case.
+  let title, assignedTo, caseType
+  if (kind === 'ip_background') {
+    const r = await getIpNames(doc.case_id)
+    assignedTo = r.assignedTo
+    title = `Background Check Release complete for ${r.names}`
+    caseType = 'ip'
+  } else {
+    const r = await getSurrogateName(doc.case_id)
+    assignedTo = r.assignedTo
+    title = kind === 'clinic'
+      ? `Clinic/Hospital Release Forms Signed for ${r.name} - Saved in E-Signature Documents Folder`
+      : `Release Forms Signed for ${r.name} - Saved in E-Signature Documents Folder`
+    caseType = 'surrogate'
+  }
   if (!assignedTo) return // no admin to assign to — bail quietly
-
-  const title = kind === 'clinic'
-    ? `Clinic/Hospital Release Forms Signed for ${surrogateName} - Saved in E-Signature Documents Folder`
-    : `Release Forms Signed for ${surrogateName} - Saved in E-Signature Documents Folder`
 
   try {
     const { createCaseTask } = await import('./db')
@@ -100,7 +141,7 @@ export async function maybeCreateSigningCompletionTask(doc) {
       status: 'open',
       created_by: 'system',
       case_id: doc.case_id,
-      case_type: 'surrogate',
+      case_type: caseType,
     })
   } catch (err) {
     console.error('Auto-task creation failed:', err)
