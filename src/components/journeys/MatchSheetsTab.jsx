@@ -953,6 +953,21 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         if (a) attachments.push(a)
       }
     }
+    // GC + Partner Background Checks — combined into one bullet when both
+    // are labeled, mirroring the IP background-report pattern below.
+    const gcBg = docsByLabel['gc-background-check'] || []
+    const partnerBg = gcHasPartner ? (docsByLabel['partner-background-check'] || []) : []
+    if (gcBg.length > 0 || partnerBg.length > 0) {
+      const names = [
+        gcBg.length > 0 ? gcFirstName : null,
+        partnerBg.length > 0 ? (gcPartnerFull || 'Partner') : null,
+      ].filter(Boolean).join(' & ')
+      bullets.push(`${names}'s Background Check${(gcBg.length + partnerBg.length) > 1 ? 's' : ''}`)
+      for (const d of [...gcBg, ...partnerBg]) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'Background-Check.pdf')
+        if (a) attachments.push(a)
+      }
+    }
     // IP Background Reports — combine into one bullet with both IPs' first
     // names if both are labeled.
     const ip1Bg = docsByLabel['ip1-background-report'] || []
