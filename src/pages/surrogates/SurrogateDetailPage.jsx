@@ -546,10 +546,12 @@ export default function SurrogateDetailPage() {
         async function fetchAllPhotos() {
           let allHeadshots = [], allPortraits = [], allGallery = []
           for (const id of uniqueIds) {
+            // Raw mode for slot folders — ProfilePreview picks the cropped
+            // for the banner and the originals for the gallery view.
             const [gallery, headshots, portraits] = await Promise.all([
               listProfilePhotos(id).catch(() => []),
-              listProfilePhotos(`${id}/headshot`).catch(() => []),
-              listProfilePhotos(`${id}/portrait`).catch(() => []),
+              listProfilePhotos(`${id}/headshot`, { raw: true }).catch(() => []),
+              listProfilePhotos(`${id}/portrait`, { raw: true }).catch(() => []),
             ])
             allHeadshots.push(...headshots)
             allPortraits.push(...portraits)
