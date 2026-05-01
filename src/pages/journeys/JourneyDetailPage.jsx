@@ -667,6 +667,10 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
             <Check className="size-2.5" /> ABC Paid
           </span>
+        ) : exp.submitted_to_escrow ? (
+          // When the expense was sent to escrow, ABC isn't paying it — the
+          // Escrow column owns the lifecycle from here.
+          <span className="text-[10px] text-stone-300" title="Paid via escrow — see Submitted to Escrow column">—</span>
         ) : (
           <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
         )}
@@ -2104,8 +2108,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[220px]">Notes</th>
                     <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
-                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Submitted to Escrow</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">ABC Pay Status</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Escrow Pay Status</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
