@@ -467,11 +467,16 @@ export default function SurrogateListPage() {
       const isCompleted = completedGcIds.has(normalizeCaseId(s.id))
       if (isCompleted && !search) return false
       const surrogateStage = allStageStatuses[s.id]?.stage || 'pre-qualification'
+      const surrogateStatus = allStageStatuses[s.id]?.status || ''
+      // "Zoom Ready" is a special tile, not a stage — Pre-Qualification
+      // surrogates whose status is Profile Complete or Zoom Call Scheduled.
       const matchesStatus = statusFilter === 'all'
         ? true
-        : statusFilter === 'active'
-          ? (!INACTIVE_GC_STAGES.has(surrogateStage) || (!!search && matchesSearch))
-          : surrogateStage === statusFilter
+        : statusFilter === '_zoom_ready'
+          ? (surrogateStage === 'pre-qualification' && ['Profile Complete', 'Zoom Call Scheduled'].includes(surrogateStatus))
+          : statusFilter === 'active'
+            ? (!INACTIVE_GC_STAGES.has(surrogateStage) || (!!search && matchesSearch))
+            : surrogateStage === statusFilter
       return matchesSearch && matchesStatus
     })
   }, [surrogates, search, statusFilter, ownerFilter, currentUser.email, completedGcIds, allStageStatuses])
@@ -523,6 +528,7 @@ export default function SurrogateListPage() {
 
   const stageCounts = {}
   for (const stage of SURROGATE_STAGES) stageCounts[stage.id] = 0
+  let zoomReadyCount = 0
   // Exclude completed-journey surrogates so chip totals match what's rendered
   // (those surrogates are hidden unless searched by name).
   for (const s of ownerFiltered) {
@@ -530,6 +536,9 @@ export default function SurrogateListPage() {
     const ss = allStageStatuses[s.id]
     const stageId = ss?.stage || 'pre-qualification'
     if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
+    if (stageId === 'pre-qualification' && ['Profile Complete', 'Zoom Call Scheduled'].includes(ss?.status || '')) {
+      zoomReadyCount++
+    }
   }
 
   return (
@@ -549,7 +558,7 @@ export default function SurrogateListPage() {
       />
 
       {/* Hero stats — click to filter */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <button
           onClick={() => setStatusFilter('active')}
           className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
@@ -569,6 +578,24 @@ export default function SurrogateListPage() {
             <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">{stage.label}</p>
           </button>
         ))}
+        {/* "Zoom Ready" — Pre-Qualification surrogates whose status is
+            Profile Complete or Zoom Call Scheduled. Not a stage itself
+            — it's a saved-view shortcut Nicole asked for. */}
+        <button
+          onClick={() => setStatusFilter(statusFilter === '_zoom_ready' ? 'all' : '_zoom_ready')}
+          className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === '_zoom_ready' ? 'ring-2 ring-[#2D8CFF] border-[#2D8CFF]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
+          style={{ backgroundColor: '#2D8CFF08' }}
+          title="Pre-Qualification surrogates ready for Zoom"
+        >
+          <div className="flex items-center justify-center gap-1.5">
+            <p className="text-2xl font-bold" style={{ color: '#2D8CFF' }}>{zoomReadyCount}</p>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2D8CFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+              <path d="m22 8-6 4 6 4V8Z" />
+              <rect x="2" y="6" width="14" height="12" rx="2" ry="2" />
+            </svg>
+          </div>
+          <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wider mt-0.5">Zoom Ready</p>
+        </button>
       </div>
 
       {addSuccess && (
