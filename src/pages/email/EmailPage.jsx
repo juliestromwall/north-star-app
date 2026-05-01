@@ -145,6 +145,125 @@ function labelNameOf(labelId, userLabels = []) {
   return labelId.replace('CATEGORY_', '').replace(/_/g, ' ')
 }
 
+/**
+ * Parse Gmail's `Parent/Child` naming into a tree. Synthetic parent nodes are
+ * created when a child like "A/B/C" exists without a literal "A/B" label
+ * (Gmail allows this; we render them as un-clickable headers).
+ */
+function buildLabelTree(labels) {
+  const root = []
+  const byPath = new Map()
+  const sorted = [...labels].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  for (const label of sorted) {
+    const parts = (label.name || '').split('/').filter(Boolean)
+    let parent = null
+    let path = ''
+    for (let i = 0; i < parts.length; i++) {
+      path = path ? `${path}/${parts[i]}` : parts[i]
+      let node = byPath.get(path)
+      if (!node) {
+        node = { path, name: parts[i], fullName: path, children: [], label: null }
+        byPath.set(path, node)
+        if (parent) parent.children.push(node)
+        else root.push(node)
+      }
+      // Promote synthetic parent to a real one if the literal label matches
+      if (path === label.name) node.label = label
+      parent = node
+    }
+  }
+  return root
+}
+
+/** Dialog for creating a label, with optional "Nest label under" parent picker. */
+function CreateLabelDialog({ open, onClose, userLabels, onCreate }) {
+  const [name, setName] = useState('')
+  const [nestUnder, setNestUnder] = useState(false)
+  const [parent, setParent] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [error, setError] = useState('')
+
+  // Reset whenever the dialog reopens
+  useEffect(() => {
+    if (open) { setName(''); setNestUnder(false); setParent(''); setError('') }
+  }, [open])
+
+  const handleSubmit = async () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const fullName = nestUnder && parent ? `${parent}/${trimmed}` : trimmed
+    if (userLabels.some(l => (l.name || '').toLowerCase() === fullName.toLowerCase())) {
+      setError('A label with this name already exists.')
+      return
+    }
+    setCreating(true)
+    setError('')
+    try {
+      await onCreate(fullName)
+      onClose()
+    } catch (e) {
+      setError(e?.message || 'Could not create label')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New label</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-stone-500">Please enter a new label name:</label>
+            <Input
+              value={name}
+              onChange={e => { setName(e.target.value); setError('') }}
+              onKeyDown={e => { if (e.key === 'Enter' && !creating && name.trim()) { e.preventDefault(); handleSubmit() } }}
+              autoFocus
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={nestUnder}
+              onChange={e => {
+                setNestUnder(e.target.checked)
+                if (e.target.checked && !parent) setParent(userLabels[0]?.name || '')
+              }}
+              className="size-4 accent-[#283693]"
+              disabled={userLabels.length === 0}
+            />
+            Nest label under:
+          </label>
+          {nestUnder && (
+            <Select value={parent} onValueChange={setParent}>
+              <SelectTrigger><SelectValue placeholder="Choose parent label..." /></SelectTrigger>
+              <SelectContent>
+                {userLabels.map(l => (
+                  <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={creating}>Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name.trim() || creating || (nestUnder && !parent)}
+            style={{ backgroundColor: '#283693', color: '#fff' }}
+          >
+            {creating ? <Loader2 className="size-3.5 animate-spin" /> : 'Create'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ── Not Connected State ─────────────────────────────────
 
 function NotConnectedState({ userId }) {
@@ -892,8 +1011,60 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
 
 // ── Folder Sidebar ──────────────────────────────────────
 
-function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, onCompose }) {
+function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, onCompose, onCreateLabelClick }) {
   const [showMore, setShowMore] = useState(false)
+  const [collapsedPaths, setCollapsedPaths] = useState(() => new Set())
+  const labelTree = buildLabelTree(userLabels)
+
+  function toggleCollapsed(path) {
+    setCollapsedPaths(prev => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path); else next.add(path)
+      return next
+    })
+  }
+
+  function renderLabelNode(node, depth = 0) {
+    const hasChildren = node.children.length > 0
+    const isCollapsed = collapsedPaths.has(node.path)
+    const isActive = node.label && activeFolder === node.label.id
+    const count = node.label ? (labelCounts[node.label.id] || 0) : 0
+    return (
+      <div key={node.path}>
+        <div className={`group flex items-center gap-1 rounded-lg text-sm transition-colors ${isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'}`}>
+          {hasChildren ? (
+            <button
+              onClick={() => toggleCollapsed(node.path)}
+              className="size-5 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground"
+              style={{ marginLeft: `${depth * 12}px` }}
+              title={isCollapsed ? 'Expand' : 'Collapse'}
+            >
+              <ChevronDown className={`size-3.5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+            </button>
+          ) : (
+            <span className="size-5 shrink-0" style={{ marginLeft: `${depth * 12}px` }} />
+          )}
+          <button
+            onClick={() => node.label && onFolderChange(node.label.id)}
+            disabled={!node.label}
+            className={`flex-1 flex items-center gap-2 py-1.5 pr-2 text-left ${node.label ? 'cursor-pointer' : 'cursor-default'}`}
+            title={node.fullName}
+          >
+            <Tag className={`size-3.5 shrink-0 ${node.label ? 'text-muted-foreground' : 'text-stone-300'}`} />
+            <span className="flex-1 truncate">{node.name}</span>
+            {count > 0 && (
+              <span className={`text-xs font-semibold ${isActive ? 'text-blue-600' : 'text-muted-foreground'}`}>{count.toLocaleString()}</span>
+            )}
+          </button>
+        </div>
+        {hasChildren && !isCollapsed && (
+          <div>
+            {node.children.map(child => renderLabelNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   function renderFolder(folder) {
     const isActive = activeFolder === folder.id
@@ -940,32 +1111,24 @@ function FolderSidebar({ activeFolder, onFolderChange, userLabels, labelCounts, 
 
           {showMore && CATEGORY_FOLDERS.map(renderFolder)}
 
-          {/* User Labels */}
-          {userLabels.length > 0 && (
-            <>
-              <div className="flex items-center gap-2 px-3 mt-4 mb-1">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Labels</span>
-              </div>
-              {userLabels.map(label => {
-                const isActive = activeFolder === label.id
-                const count = labelCounts[label.id] || 0
-                return (
-                  <button
-                    key={label.id}
-                    onClick={() => onFolderChange(label.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-foreground/70 hover:bg-muted'
-                    }`}
-                  >
-                    <Tag className="size-3.5 shrink-0 text-muted-foreground" />
-                    <span className="flex-1 text-left truncate">{label.name}</span>
-                    {count > 0 && (
-                      <span className={`text-xs font-semibold ${isActive ? 'text-blue-600' : 'text-muted-foreground'}`}>{count.toLocaleString()}</span>
-                    )}
-                  </button>
-                )
-              })}
-            </>
+          {/* User Labels — rendered as a nested tree using Gmail's
+              "Parent/Child" naming convention. */}
+          <div className="flex items-center gap-2 px-3 mt-4 mb-1">
+            <span className="flex-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Labels</span>
+            {onCreateLabelClick && (
+              <button
+                onClick={onCreateLabelClick}
+                className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+                title="Create new label"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            )}
+          </div>
+          {labelTree.length === 0 ? (
+            <p className="px-3 py-1 text-[11px] text-muted-foreground">No labels yet</p>
+          ) : (
+            labelTree.map(node => renderLabelNode(node, 0))
           )}
         </nav>
       </div>
@@ -1143,6 +1306,7 @@ export default function EmailPage() {
   const [userLabels, setUserLabels] = useState([])
   const [labelCounts, setLabelCounts] = useState({})
   const [selectedIds, setSelectedIds] = useState(new Set())
+  const [createLabelDialogOpen, setCreateLabelDialogOpen] = useState(false)
 
   // Check Google connection
   useEffect(() => {
@@ -1465,6 +1629,16 @@ export default function EmailPage() {
         userLabels={userLabels}
         labelCounts={labelCounts}
         onCompose={handleCompose}
+        onCreateLabelClick={() => setCreateLabelDialogOpen(true)}
+      />
+
+      <CreateLabelDialog
+        open={createLabelDialogOpen}
+        onClose={() => setCreateLabelDialogOpen(false)}
+        userLabels={userLabels}
+        onCreate={async (name) => {
+          await handleCreateLabel(name, false)
+        }}
       />
 
       {selectedEmail ? (
