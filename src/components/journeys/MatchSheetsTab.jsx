@@ -871,8 +871,11 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     const attorneyFirst = attorneyFullName.split(/\s+/)[0] || attorneyFullName
     const otherAttorneyFullName = recipient === 'ip' ? (jd.gcAttorneyName || '') : (jd.ipAttorneyName || '')
     const otherAttorneyFirst = otherAttorneyFullName.split(/\s+/)[0] || otherAttorneyFullName
-    const clinicName = jd.ivfClinicName || jd.clinicName || ''
-    const clinicState = jd.ivfState || jd.clinicState || ''
+    // Clinic name lives on the journey row as `ivfClinic`. The match-sheet
+    // editor stores user overrides at `_matchSheetData.ivfClinicName`. Prefer
+    // the override, then fall back to the journey field.
+    const clinicName = msData.ivfClinicName || jd.ivfClinic || jd.ivfClinicName || jd.clinicName || ''
+    const clinicState = msData.reClinicLocation?.split(',').pop()?.trim() || jd.ivfState || jd.clinicState || ''
 
     // Pull labeled docs from BOTH the GC and IP cases. We dedupe nothing
     // intentionally — a GC could (rarely) have multiple docs sharing the
