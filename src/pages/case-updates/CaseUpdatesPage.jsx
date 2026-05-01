@@ -812,7 +812,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                             <div className="min-w-0">
                               <StatusPill status={status} label={textVal || stepData.optionLabel || lastEntry?.optionLabel || status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                               {lastEntry?.date && status !== 'not_started' && status !== 'na' && (
-                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(lastEntry.date)}{lastEntry.note ? ` · ${lastEntry.note}` : ''}</p>
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]" title={`${formatDate(lastEntry.date)}${lastEntry.note ? ` · ${lastEntry.note}` : ''}`}>{formatDate(lastEntry.date)}{lastEntry.note ? ` · ${lastEntry.note}` : ''}</p>
                               )}
                             </div>
                             {isRecordType && totalCount > 0 && (
@@ -861,7 +861,7 @@ function SurrogateUpdatesSheet({ surrogates }) {
                                         {rec.isComplete ? <CheckCircle2 className="size-3.5 text-green-500 shrink-0" /> : <Circle className="size-3.5 text-stone-300 shrink-0" />}
                                         <div className="flex items-center gap-1 flex-1 min-w-0">
                                           {rec.badge && <span className={`text-[8px] font-bold px-1 py-0 rounded ${rec.badge.color}`}>{rec.badge.label}</span>}
-                                          <span className="text-stone-700 truncate">{rec.label}</span>
+                                          <span className="text-stone-700 truncate" title={rec.label}>{rec.label}</span>
                                         </div>
                                         <StatusPill status={rec.status} label={rec.isComplete ? 'Done' : rec.status === 'not_started' ? '—' : rec.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
                                       </div>
@@ -1034,7 +1034,7 @@ function IPUpdatesSheet({ ips }) {
                             <div className="min-w-0">
                               <StatusPill status={displayStatus} label={statusLabel} />
                               {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
-                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]" title={`${formatDate(displayDate)}${lastManual?.note ? ` · ${lastManual.note}` : ''}`}>{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
                               )}
                             </div>
                           </div>
@@ -1299,7 +1299,7 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                             <div className="min-w-0">
                               <StatusPill status={displayStatus} label={statusLabel} />
                               {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
-                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]">{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
+                                <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]" title={`${formatDate(displayDate)}${lastManual?.note ? ` · ${lastManual.note}` : ''}`}>{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
                               )}
                             </div>
                           </div>
