@@ -625,6 +625,11 @@ function ComposeWindow({ draft, index }) {
     editorProps: {
       attributes: {
         class: 'focus:outline-none px-3 py-2 text-sm h-full [&_p]:mb-3 [&_p:last-child]:mb-0',
+        // Browser-native spellcheck — gives the squiggly underline + right-click
+        // suggestions like Gmail. ProseMirror disables it by default.
+        spellcheck: 'true',
+        autocorrect: 'on',
+        autocapitalize: 'sentences',
       },
     },
   })
