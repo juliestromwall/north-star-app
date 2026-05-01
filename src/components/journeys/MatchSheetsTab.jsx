@@ -1023,7 +1023,9 @@ ${representationParagraph}
 
     openDraft({
       to: toEmail || '',
-      subject: `Attorney Referral for ${ipNames} with ${gcFullName}`,
+      subject: recipient === 'gc'
+        ? `Attorney Referral for ${gcFullName} with ${ipNames}`
+        : `Attorney Referral for ${ipNames} with ${gcFullName}`,
       body,
       userId: currentUser?.id,
       caseId: journey.id,
