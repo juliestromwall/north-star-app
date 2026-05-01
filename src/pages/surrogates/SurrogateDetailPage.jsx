@@ -2112,7 +2112,19 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
             {' · '}
             {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {doc.doc_label && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{{ gc: 'GC', ip1: 'IP1', ip2: 'IP2', partner: 'Partner', 'previous-journey': 'Previous Journey' }[doc.doc_label] || doc.doc_label}</span>}
+            {doc.doc_label && <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">{{
+              gc: 'GC',
+              ip1: 'IP1',
+              ip2: 'IP2',
+              partner: 'Partner',
+              'previous-journey': 'Previous Journey',
+              'gc-paystubs': 'GC Paystubs',
+              'partner-paystubs': 'Partner Paystubs',
+              'gc-benefit-package': 'GC Benefit Package',
+              'ip1-background-report': 'IP1 Background Report',
+              'ip2-background-report': 'IP2 Background Report',
+              'insurance-card-review': 'Insurance Card Review',
+            }[doc.doc_label] || doc.doc_label}</span>}
             {compact && cat ? ` · ${cat.label}` : ''}
             {doc._source && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-stone-100 text-stone-500">{doc._source}</span>}
             {!doc.doc_label && !doc._source && doc.uploaded_by?.startsWith('Previous Match') && <span className="ml-1.5 text-[9px] font-semibold px-1 py-0.5 rounded-full bg-amber-50 text-amber-600">Previous Journey</span>}
@@ -2437,21 +2449,32 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                 </SelectContentUI>
               </SelectUI>
             </div>
-            {editCategory === 'photo-id' && (
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">ID Belongs To</Label>
-                <SelectUI value={editLabel || '_none'} onValueChange={v => setEditLabel(v === '_none' ? '' : v)}>
-                  <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
-                  <SelectContentUI>
-                    <SelectItemUI value="_none">Not specified</SelectItemUI>
-                    <SelectItemUI value="gc">GC (Surrogate)</SelectItemUI>
-                    <SelectItemUI value="ip1">Intended Parent 1</SelectItemUI>
-                    <SelectItemUI value="ip2">Intended Parent 2</SelectItemUI>
-                    <SelectItemUI value="partner">Spouse / Partner</SelectItemUI>
-                  </SelectContentUI>
-                </SelectUI>
-              </div>
-            )}
+            {/* Doc label dropdown — admins use this to mark which docs go
+                out with the attorney match-sheet email. Multiple docs can
+                share a label (e.g. several paystubs); the labels listed
+                under "Match-sheet attachments" are the ones the email
+                builder pulls when sending. */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Label</Label>
+              <SelectUI value={editLabel || '_none'} onValueChange={v => setEditLabel(v === '_none' ? '' : v)}>
+                <SelectTriggerUI><SelectValueUI /></SelectTriggerUI>
+                <SelectContentUI>
+                  <SelectItemUI value="_none">Not specified</SelectItemUI>
+                  <div className="px-2 py-1 text-[9px] font-semibold text-stone-400 uppercase tracking-wider">Photo IDs</div>
+                  <SelectItemUI value="gc">GC (Surrogate) ID</SelectItemUI>
+                  <SelectItemUI value="partner">Spouse / Partner ID</SelectItemUI>
+                  <SelectItemUI value="ip1">Intended Parent 1 ID</SelectItemUI>
+                  <SelectItemUI value="ip2">Intended Parent 2 ID</SelectItemUI>
+                  <div className="px-2 py-1 text-[9px] font-semibold text-stone-400 uppercase tracking-wider">Match-sheet attachments</div>
+                  <SelectItemUI value="gc-paystubs">GC Paystubs</SelectItemUI>
+                  <SelectItemUI value="partner-paystubs">Partner Paystubs</SelectItemUI>
+                  <SelectItemUI value="gc-benefit-package">GC Benefit Package</SelectItemUI>
+                  <SelectItemUI value="ip1-background-report">IP1 Background Check Report</SelectItemUI>
+                  <SelectItemUI value="ip2-background-report">IP2 Background Check Report</SelectItemUI>
+                  <SelectItemUI value="insurance-card-review">Insurance Card Review</SelectItemUI>
+                </SelectContentUI>
+              </SelectUI>
+            </div>
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setEditingDoc(null)}>Cancel</Button>
               <Button size="sm" style={{ backgroundColor: '#283693', color: '#fff' }} disabled={editSaving} onClick={handleEditSave}>
