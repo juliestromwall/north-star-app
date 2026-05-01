@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown, Save, Baby, Stethoscope, User, Heart, HeartPulse, BookOpen, Camera, Upload, X, Loader2, Trash2,
-  Eye, EyeOff, Download, ShieldCheck, ShieldX, Unlock, Send
+  Eye, EyeOff, Download, ShieldCheck, ShieldX, Unlock, Send, Crop
 } from 'lucide-react'
 import { useRole } from '@/context/RoleContext'
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
@@ -500,18 +500,28 @@ async function convertToJpeg(file, maxSize = 1200) {
   })
 }
 
-function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
-  const [photo, setPhoto] = useState(null)
+// IP profile/cover photo slot. Storage convention matches the GC-side
+// AdminPhotoSlot: keep the original_* file as the editor source so admins
+// can re-crop without losing fidelity; cropped_* is what's displayed on
+// the profile.
+function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) {
+  const [originalPhoto, setOriginalPhoto] = useState(null)
+  const [croppedPhoto, setCroppedPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
+  const [editing, setEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const photo = croppedPhoto || originalPhoto
 
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
-    listProfilePhotos(storagePath).then(photos => {
+    listProfilePhotos(storagePath).then(list => {
       if (cancelled) return
-      if (photos.length > 0) setPhoto(photos[0])
+      const cropped = list.find(p => p.kind === 'cropped') || null
+      const original = list.find(p => p.kind === 'original') || (cropped ? null : list[0]) || null
+      setOriginalPhoto(original)
+      setCroppedPhoto(cropped)
     }).catch(() => {})
     return () => { cancelled = true }
   }, [storagePath])
@@ -522,18 +532,51 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
     if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
     setUploading(true); setError(null)
     try {
-      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
+      // Replacing the source — wipe the slot so old crops/originals don't linger.
+      const list = await listProfilePhotos(storagePath).catch(() => [])
+      for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
       const jpeg = await convertToJpeg(file)
-      const result = await uploadProfilePhoto(storagePath, jpeg)
-      if (result) { setPhoto(result); if (onChange) onChange(result.url) }
+      const result = await uploadProfilePhoto(storagePath, jpeg, 'original')
+      if (result) {
+        setOriginalPhoto(result)
+        setCroppedPhoto(null)
+        if (onChange) onChange(result.url)
+      }
     } catch (err) { setError(err.message || 'Upload failed') }
     finally { setUploading(false); e.target.value = '' }
   }
 
   async function handleDelete() {
-    if (!photo) return
-    try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
-    catch (err) { setError(err.message || 'Delete failed') }
+    try {
+      const list = await listProfilePhotos(storagePath).catch(() => [])
+      for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
+      setOriginalPhoto(null)
+      setCroppedPhoto(null)
+      if (onChange) onChange(null)
+    } catch (err) { setError(err.message || 'Delete failed') }
+  }
+
+  async function handleCropSave(_sourcePhoto, croppedFile) {
+    try {
+      if (croppedPhoto) await deleteProfilePhoto(croppedPhoto.path).catch(() => {})
+      const result = await uploadProfilePhoto(storagePath, croppedFile, 'cropped')
+      if (result) {
+        setCroppedPhoto(result)
+        if (onChange) onChange(result.url)
+      }
+      setEditing(false)
+    } catch (err) { setError(err.message || 'Save failed') }
+  }
+
+  if (editing && originalPhoto) {
+    return (
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-semibold text-stone-700">{label}</p>
+        </div>
+        <PhotoEditor photo={originalPhoto} onSave={handleCropSave} onClose={() => setEditing(false)} aspect={cropAspect} />
+      </div>
+    )
   }
 
   return (
@@ -546,6 +589,9 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange }) {
         <div className="relative group w-40 h-40">
           <img src={photo.url} alt={label} className="w-40 h-40 rounded-2xl object-cover border border-stone-200" />
           <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <button onClick={() => setEditing(true)} className="p-2 rounded-full bg-white text-stone-700 hover:bg-stone-100" title="Crop / Rotate" disabled={!originalPhoto}>
+              <Crop className="w-4 h-4" />
+            </button>
             <label className="p-2 rounded-full bg-white text-stone-700 cursor-pointer hover:bg-stone-100" title="Replace">
               <Upload className="w-4 h-4" />
               <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" onChange={handleUpload} className="hidden" disabled={uploading} />
@@ -605,6 +651,9 @@ function IPAdminPhotosSection({ ip, profile, onProfileChange }) {
             hint="A favorite picture doing something they love"
             storagePath={`${baseId}/cover`}
             onChange={handleCoverChange}
+            // Match the IP profile's hero banner aspect — same shape as the
+            // GC cover slot so admins see exactly what publishes.
+            cropAspect={3 / 1}
           />
         </div>
         <div>
