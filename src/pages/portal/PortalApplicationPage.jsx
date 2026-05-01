@@ -96,20 +96,27 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
   const editing = isOpen
   const [insFrontUrl, setInsFrontUrl] = useState(null)
   const [insBackUrl, setInsBackUrl] = useState(null)
+  const [dlGcUrl, setDlGcUrl] = useState(null)
+  const [dlPartnerUrl, setDlPartnerUrl] = useState(null)
   const [uploading, setUploading] = useState(null)
   const insFrontRef = useRef(null)
   const insBackRef = useRef(null)
+  const dlGcRef = useRef(null)
+  const dlPartnerRef = useRef(null)
 
-  // Load existing insurance card photos
+  // Load existing insurance-card and driver's-license photos
   useEffect(() => {
     if (!caseId || !supabase) return
-    supabase.from('case_documents').select('*').eq('surrogate_id', caseId).eq('category', 'insurance-card').then(({ data: docs }) => {
-      if (docs) {
-        const front = docs.find(d => d.doc_label === 'insurance-front')
-        const back = docs.find(d => d.doc_label === 'insurance-back')
-        if (front?.public_url) setInsFrontUrl(front.public_url)
-        if (back?.public_url) setInsBackUrl(back.public_url)
-      }
+    supabase.from('case_documents').select('*').eq('surrogate_id', caseId).in('category', ['insurance-card', 'photo-id']).then(({ data: docs }) => {
+      if (!docs) return
+      const front = docs.find(d => d.category === 'insurance-card' && d.doc_label === 'insurance-front')
+      const back = docs.find(d => d.category === 'insurance-card' && d.doc_label === 'insurance-back')
+      if (front?.public_url) setInsFrontUrl(front.public_url)
+      if (back?.public_url) setInsBackUrl(back.public_url)
+      const gcDl = docs.find(d => d.category === 'photo-id' && d.doc_label === 'gc')
+      const partnerDl = docs.find(d => d.category === 'photo-id' && d.doc_label === 'partner')
+      if (gcDl?.public_url) setDlGcUrl(gcDl.public_url)
+      if (partnerDl?.public_url) setDlPartnerUrl(partnerDl.public_url)
     })
   }, [caseId])
 
@@ -133,6 +140,43 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
       if (label === 'insurance-front') setInsFrontUrl(urlData.publicUrl)
       else setInsBackUrl(urlData.publicUrl)
     } catch (err) { console.error('Insurance card upload failed:', err); alert('Upload failed.') }
+    finally { setUploading(null) }
+  }
+
+  // Driver's license upload — saves to the existing Photo IDs case-doc
+  // category with doc_label 'gc' or 'partner'. Required for the section to
+  // be marked complete; we set form.dlGcUrl / form.dlPartnerUrl on upload
+  // and silently persist so checkComplete passes without an extra Save click.
+  async function handleDlUpload(file, label) {
+    if (!file || !caseId || !supabase) return
+    const stateKey = label === 'gc' ? 'dl-gc' : 'dl-partner'
+    setUploading(stateKey)
+    try {
+      const path = `${caseId}/photo-id/dl_${label}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('case-documents').upload(path, file, { cacheControl: '3600', upsert: false })
+      if (uploadError) throw uploadError
+      const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(uploadData.path)
+      const { data: existing } = await supabase.from('case_documents').select('id').eq('surrogate_id', caseId).eq('category', 'photo-id').eq('doc_label', label)
+      if (existing?.length > 0) for (const old of existing) await supabase.from('case_documents').delete().eq('id', old.id)
+      const personLabel = label === 'gc' ? 'GC' : 'Partner'
+      await supabase.from('case_documents').insert({
+        surrogate_id: caseId, category: 'photo-id', doc_label: label,
+        file_name: `${personLabel} Driver's License - ${file.name}`,
+        file_type: file.type, file_size: file.size,
+        storage_path: uploadData.path, public_url: urlData.publicUrl,
+        uploaded_by: 'Portal Upload',
+      })
+      if (label === 'gc') setDlGcUrl(urlData.publicUrl)
+      else setDlPartnerUrl(urlData.publicUrl)
+      // Mirror the URL onto the form + persist silently so the section can
+      // checkComplete on first load without forcing the user to click Save.
+      const formKey = label === 'gc' ? 'dlGcUrl' : 'dlPartnerUrl'
+      setForm(f => {
+        const next = { ...f, [formKey]: urlData.publicUrl }
+        onSave?.('_application', next, { silent: true })
+        return next
+      })
+    } catch (err) { console.error("Driver's license upload failed:", err); alert('Upload failed.') }
     finally { setUploading(null) }
   }
 
@@ -164,6 +208,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
       'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
       'hasSpouse','spouseFirstName','spouseLastName','spouseDob','spouseEmail','spousePhone',
       'hasAdultHouseholdMembers',
+      'dlGcUrl','dlPartnerUrl',
       'emergencyName','emergencyPhone','emergencyRelationship',
     ]
     const init = {}
@@ -185,14 +230,16 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     return arr.every(m => m && m.firstName?.toString().trim() && m.lastName?.toString().trim() && isValidEmail(m.email) && isValidPhone(m.phone))
   }
 
-  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','emergencyName','emergencyPhone','emergencyRelationship']
-  if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS)
+  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','dlGcUrl','emergencyName','emergencyPhone','emergencyRelationship']
+  if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS, 'dlPartnerUrl')
   if (hasInsurance) requiredKeys.push(...INSURANCE_KEYS)
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
     if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers') return v === 'yes' || v === 'no'
     if (k === 'emergencyPhone' || k === 'spousePhone' || k === 'insurancePhone') return isValidPhone(v)
     if (k === 'spouseEmail') return isValidEmail(v)
+    if (k === 'dlGcUrl') return !!(form.dlGcUrl || dlGcUrl)
+    if (k === 'dlPartnerUrl') return !!(form.dlPartnerUrl || dlPartnerUrl)
     return v?.toString().trim()
   }) && (!hasAdultMembers || adultMembersValid(form.adultHouseholdMembers))
 
@@ -227,6 +274,8 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     })
     if (!baseOk) return false
     if (ha && !adultMembersValid(d.adultHouseholdMembers)) return false
+    if (!d.dlGcUrl) return false
+    if (hs && !d.dlPartnerUrl) return false
     return true
   }
 
@@ -252,6 +301,23 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
             <div className="space-y-1"><FieldLabel>Date of Birth <Req /></FieldLabel><Input type="date" value={form.dob || ''} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Last 4 of SSN <Req /></FieldLabel><Input value={form.ssn4 || ''} onChange={e => setForm(f => ({ ...f, ssn4: e.target.value }))} maxLength={4} /></div>
             <div className="space-y-1"><FieldLabel>Religion</FieldLabel><Input value={form.religion || ''} onChange={e => setForm(f => ({ ...f, religion: e.target.value }))} /></div>
+          </div>
+          {/* GC Driver's License — saves to Photo IDs folder under doc_label 'gc' */}
+          <div className="space-y-2 pt-1">
+            <FieldLabel>Driver's License — Photo <Req /></FieldLabel>
+            {dlGcUrl ? (
+              <div className="flex items-center gap-3">
+                <a href={dlGcUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Driver's License</a>
+                {!readOnly && <button onClick={() => dlGcRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
+              </div>
+            ) : !readOnly && (
+              <button onClick={() => dlGcRef.current?.click()} disabled={uploading === 'dl-gc'}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                {uploading === 'dl-gc' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                Upload Driver's License
+              </button>
+            )}
+            <input ref={dlGcRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleDlUpload(e.target.files[0], 'gc'); e.target.value = '' }} />
           </div>
 
           {/* Address */}
@@ -316,6 +382,13 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
               </div>
             </div>
           )}
+          {hasInsurance && (
+            <div className="rounded-lg border border-red-200 bg-red-50/40 px-3 py-2.5">
+              <p className="text-xs text-red-600 leading-relaxed">
+                Please upload your insurance policy's <strong>Evidence of Coverage Booklet</strong> (sometimes called <strong>Benefit Booklet</strong>) to your Documents. This is a huge PDF document usually 100–150 pages. It is <strong>not</strong> the same as the Summary of Coverage. If you cannot locate this document on your insurance company's website (when you log in), please call your provider and have them e-mail you a copy.
+              </p>
+            </div>
+          )}
 
           {/* Spouse/Partner */}
           <p className="text-xs font-semibold text-muted-foreground uppercase pt-3 border-t">Spouse / Partner</p>
@@ -329,6 +402,24 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
               <div className="space-y-1"><FieldLabel>Spouse/Partner Phone <Req /></FieldLabel><Input type="tel" value={form.spousePhone || ''} onChange={e => setForm(f => ({ ...f, spousePhone: formatPhone(e.target.value) }))} placeholder="xxx-xxx-xxxx" /></div>
             </>}
           </div>
+          {hasSpouse && (
+            <div className="space-y-2 pt-1">
+              <FieldLabel>Spouse/Partner Driver's License — Photo <Req /></FieldLabel>
+              {dlPartnerUrl ? (
+                <div className="flex items-center gap-3">
+                  <a href={dlPartnerUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#283693] hover:underline"><Image className="size-4" /> View Driver's License</a>
+                  {!readOnly && <button onClick={() => dlPartnerRef.current?.click()} className="text-xs text-stone-400 hover:text-stone-600">Replace</button>}
+                </div>
+              ) : !readOnly && (
+                <button onClick={() => dlPartnerRef.current?.click()} disabled={uploading === 'dl-partner'}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-stone-200 hover:border-[#283693]/40 hover:bg-stone-50 text-sm text-stone-500 transition-colors">
+                  {uploading === 'dl-partner' ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                  Upload Spouse/Partner Driver's License
+                </button>
+              )}
+              <input ref={dlPartnerRef} type="file" accept="image/*,.pdf" className="hidden" onChange={e => { if (e.target.files?.[0]) handleDlUpload(e.target.files[0], 'partner'); e.target.value = '' }} />
+            </div>
+          )}
 
           {/* Adult household members (over 18, not spouse/partner) — each one
               gets their own Background Check Release Form in the admin
@@ -1898,6 +1989,9 @@ export default function PortalApplicationPage() {
         if (!Array.isArray(arr) || arr.length === 0) return false
         if (!arr.every(m => m && m.firstName?.toString().trim() && m.lastName?.toString().trim() && isValidEmail(m.email) && isValidPhone(m.phone))) return false
       }
+      // Driver's license files — GC always, partner only when partnered.
+      if (!d.dlGcUrl) return false
+      if (hs && !d.dlPartnerUrl) return false
       return true
     }
     if (key === '_confidential') {
