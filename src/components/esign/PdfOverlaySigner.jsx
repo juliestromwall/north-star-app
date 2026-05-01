@@ -14,7 +14,7 @@ import { bakePdfOverlay, loadTemplatePdf, resolveOverlayValue, valueForFieldName
  * Calibration mode: append ?calibrate=1 to the URL — adds a 50pt grid +
  * coordinate-on-click logger so positions can be tweaked without a redeploy.
  */
-export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign, signing, signerName, calibrate = false }) {
+export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, onSign, signing, signerName, calibrate = false }) {
   const [pdfBytes, setPdfBytes] = useState(null)
   const [pageImages, setPageImages] = useState([]) // dataURLs
   const [pageDims, setPageDims] = useState([]) // [{ widthPt, heightPt }]
@@ -26,6 +26,13 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
   const [error, setError] = useState(null)
   const [agreed, setAgreed] = useState(false)
   const [validationMsg, setValidationMsg] = useState(null)
+  // AcroForm fields the signer needs to fill — captured from the PDF and
+  // rendered as input overlays at each field's widget position. Populated
+  // during load alongside the pre-fill flatten step.
+  const [inputGeoms, setInputGeoms] = useState([]) // [{ name, page, rect, fieldType }]
+  // True when the PDF carries the wantsCopy checkbox pair — drives the
+  // radio question that surfaces above the signature card.
+  const [hasWantsCopy, setHasWantsCopy] = useState(false)
   const containerRef = useRef(null)
 
   // Pre-fill fieldValues from gcCtx + adminValues so the PDF shows the
@@ -68,38 +75,77 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
 
         if (fields.length > 0) {
           if (!cancelled) setHasForm(true)
+          const collectedInputs = []
+          let sawWantsCopy = false
+          let firstSigField = null
+          const ctx = {
+            gc: gcCtx || {},
+            ip: ipCtx || {},
+            admin: adminValues || {},
+            today: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
+            fieldValues: {},
+          }
+          // Helper: locate which page a widget sits on
+          const pages = sourcePdf.getPages()
+          function pageIndexOfWidget(w) {
+            const pageRef = w.P()
+            for (let i = 0; i < pages.length; i++) {
+              if (pages[i].ref === pageRef) return i
+            }
+            return 0
+          }
           for (const field of fields) {
             const rawName = field.getName()
-            const name = rawName.trim().toLowerCase()
-            if (name === 'gcsignature') continue
-            const resolved = valueForFieldName(rawName, {
-              gc: gcCtx || {},
-              admin: adminValues || {},
-              today: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
-              fieldValues: {},
-            })
+            const resolved = valueForFieldName(rawName, ctx)
+            // Signature fields — capture for the dedicated sign card; bake
+            // step iterates all widgets so 1 sign action covers all spots.
+            if (resolved.isSignature) {
+              if (!firstSigField) firstSigField = field
+              continue
+            }
+            // Checkbox pair for "wish to receive a copy" — surfaces as a
+            // radio question above the signature card. Don't draw anything
+            // on the PDF; bake step ticks the right box at submit time.
+            if (resolved.isCheckbox) {
+              sawWantsCopy = true
+              continue
+            }
+            // Text fields with a prefilled value: write it now so the
+            // flatten step bakes it into the rendered image. The signer
+            // sees the value on the PDF and doesn't need to re-type.
             if (resolved.text && typeof field.setText === 'function') {
               try { field.setText(String(resolved.text)) } catch {}
+              continue
             }
-          }
-          // Capture signature widget position before flattening removes it
-          const sigField = fields.find(f => f.getName().trim().toLowerCase() === 'gcsignature')
-          if (sigField) {
+            // Empty text fields: capture the first widget's position so
+            // we can render an input overlay where the signer types their
+            // value (Middle Name, SSN, DL #, etc. on the IP waiver). For
+            // multi-widget fields, a single input fills all widgets at
+            // bake time via setText() on the parent field.
             try {
-              const widgets = sigField.acroField.getWidgets()
+              const widgets = field.acroField.getWidgets()
               if (widgets.length) {
                 const r = widgets[0].getRectangle()
-                const pageRef = widgets[0].P()
-                let pageIndex = 0
-                const pages = sourcePdf.getPages()
-                for (let i = 0; i < pages.length; i++) {
-                  if (pages[i].ref === pageRef) { pageIndex = i; break }
-                }
-                if (!cancelled) setSigGeometry({ pageIndex, rect: { x: r.x, y: r.y, width: r.width, height: r.height } })
+                collectedInputs.push({
+                  name: rawName,
+                  page: pageIndexOfWidget(widgets[0]),
+                  rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+                })
               }
             } catch {}
-            try { form.removeField(sigField) } catch {}
           }
+          if (firstSigField) {
+            try {
+              const widgets = firstSigField.acroField.getWidgets()
+              if (widgets.length) {
+                const r = widgets[0].getRectangle()
+                if (!cancelled) setSigGeometry({ pageIndex: pageIndexOfWidget(widgets[0]), rect: { x: r.x, y: r.y, width: r.width, height: r.height } })
+              }
+            } catch {}
+            try { form.removeField(firstSigField) } catch {}
+          }
+          if (!cancelled) setInputGeoms(collectedInputs)
+          if (!cancelled) setHasWantsCopy(sawWantsCopy)
           try { form.flatten() } catch {}
           displayBytes = await sourcePdf.save()
         }
@@ -137,7 +183,7 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
     }
     load()
     return () => { cancelled = true }
-  }, [template.pdfPath, gcCtx, adminValues])
+  }, [template.pdfPath, gcCtx, ipCtx, adminValues])
 
   // Watch container width to scale the overlay coordinates appropriately
   useEffect(() => {
@@ -193,9 +239,15 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
       }
     }
 
+    // wantsCopy is required when the PDF has the checkbox pair
+    if (hasWantsCopy && !fieldValues.wantsCopy) {
+      setValidationMsg('Please choose whether you want to receive a copy of the report.')
+      return
+    }
     try {
       const blob = await bakePdfOverlay(pdfBytes, template.overlay || [], {
         gc: gcCtx,
+        ip: ipCtx,
         admin: adminValues || {},
         today: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }),
         fieldValues,
@@ -263,6 +315,39 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
                 "Your signature" card below the PDF is the single sign target
                 for both desktop and mobile. The inline widget was visually
                 noisy and redundant. */}
+
+            {/* AcroForm text-field input overlays — for any field that
+                wasn't pre-filled (e.g. SSN/DL/Middle on the IP background
+                waiver). Positioned at the field's first widget rect so the
+                signer types directly on top of the underline. */}
+            {hasForm && inputGeoms.filter(g => g.page === pi).map(g => {
+              const { left, top, scale } = pdfToCss(pi, g.rect.x, g.rect.y)
+              const w = g.rect.width * scale
+              const h = g.rect.height * scale
+              return (
+                <input
+                  key={g.name}
+                  type="text"
+                  value={fieldValues[g.name] || ''}
+                  onChange={(e) => updateField(g.name, e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    left,
+                    top: top - h * 0.85,
+                    width: w,
+                    height: h,
+                    fontSize: Math.max(10, h * 0.55),
+                    zIndex: 10,
+                    background: 'rgba(255, 255, 220, 0.65)',
+                    border: '1px solid rgba(237,20,140,0.3)',
+                    borderRadius: 2,
+                    padding: '0 4px',
+                    fontFamily: 'Helvetica, Arial, sans-serif',
+                    color: '#000',
+                  }}
+                />
+              )
+            })}
 
             {/* Coord-overlay widgets (legacy fallback for non-fillable PDFs) */}
             {!hasForm && (template.overlay || []).filter(f => f.page === pi).map(field => {
@@ -341,6 +426,47 @@ export default function PdfOverlaySigner({ template, gcCtx, adminValues, onSign,
           </div>
         ))}
       </div>
+
+      {/* "Receive a copy?" radio — surfaces only when the PDF carries the
+          ip_copy_yes / ip_copy_no checkbox pair. Mutually exclusive choice
+          maps to fieldValues.wantsCopy and gets baked as the right ✓ at
+          submit time. */}
+      {hasWantsCopy && (
+        <Card className="mt-5 mb-2 border-2 border-[#283693]/30 shadow-sm">
+          <CardContent className="p-4 sm:p-5 space-y-3">
+            <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Would you like a copy of the report?</h3>
+            <p className="text-xs text-stone-500">Required. Pick one.</p>
+            <div className="space-y-2">
+              <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+                <input
+                  type="radio"
+                  name="wantsCopy"
+                  value="yes"
+                  checked={fieldValues.wantsCopy === 'yes'}
+                  onChange={() => updateField('wantsCopy', 'yes')}
+                  className="mt-0.5 accent-[#283693]"
+                />
+                <span className="text-xs text-stone-700 leading-relaxed">
+                  <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.
+                </span>
+              </label>
+              <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+                <input
+                  type="radio"
+                  name="wantsCopy"
+                  value="no"
+                  checked={fieldValues.wantsCopy === 'no'}
+                  onChange={() => updateField('wantsCopy', 'no')}
+                  className="mt-0.5 accent-[#283693]"
+                />
+                <span className="text-xs text-stone-700 leading-relaxed">
+                  <strong>No</strong> — I do not wish to receive a copy of any report that is prepared, or any public records that may be obtained.
+                </span>
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dedicated "Your signature" card — primary entry point on mobile,
           where the inline coord-positioned widget on the PDF is too small

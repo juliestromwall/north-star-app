@@ -87,13 +87,40 @@ export function resolveOverlayValue(field, ctx) {
  * but keyed off the field's NAME (case-insensitive, trimmed) so the same
  * mapping works whether the template defines explicit overlay coords or
  * the PDF carries named form fields.
+ *
+ * Returns one of:
+ *  - { isSignature: true }                 → bake step embeds signature image at all widgets
+ *  - { isCheckbox: true, checked: bool }   → bake step calls check()/uncheck() on the field
+ *  - { text: '...' }                       → bake step calls setText() on the field
  */
 export function valueForFieldName(rawName, ctx) {
   const name = String(rawName || '').trim().toLowerCase()
-  const { gc = {}, admin = {}, today, fieldValues = {} } = ctx
-  if (name === 'gcsignature') return { isSignature: true }
-  // Live override from the signing-page input
+  const { gc = {}, ip = {}, admin = {}, today, fieldValues = {} } = ctx
+
+  // Any field whose name contains "signature" is treated as a signature
+  // widget — covers gcsignature (Kaiser) AND ip_signature (IP background
+  // waiver, plus any future forms that follow the convention). The "name"
+  // version (e.g. ip_signature_name) is the typed-name receipt and stays a
+  // text field, which the suffix check rules out.
+  if (name.includes('signature') && !name.endsWith('_name') && !name.endsWith('name')) {
+    return { isSignature: true }
+  }
+
+  const todayStr = today || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
+
+  // ── IP background waiver checkboxes (mutually exclusive: wantsCopy) ──
+  if (name === 'ip_copy_yes') return { isCheckbox: true, checked: fieldValues.wantsCopy === 'yes' || fieldValues.wantsCopy === true }
+  if (name === 'ip_copy_no')  return { isCheckbox: true, checked: fieldValues.wantsCopy === 'no'  || fieldValues.wantsCopy === false }
+
+  // Live override from the signing-page input wins over derived values.
+  // Page-2 sign-date field on the IP waiver was auto-named by PDFescape; map
+  // it to today's date.
+  if (rawName === 'text_25cowc' && (fieldValues[rawName] === undefined || fieldValues[rawName] === '')) {
+    return { text: todayStr }
+  }
   if (fieldValues[rawName] !== undefined && fieldValues[rawName] !== '') return { text: fieldValues[rawName] }
+
+  // ── GC fields (Kaiser) ──
   switch (name) {
     case 'gcname':         return { text: gc.name || '' }
     case 'gcdob':          return { text: formatDob(gc.dob) }
@@ -104,9 +131,25 @@ export function valueForFieldName(rawName, ctx) {
     case 'gcphone':        return { text: formatPhoneForKaiser(gc.phone) }
     case 'gcemail':        return { text: gc.email || '' }
     case 'step1daterange': return { text: admin.step1DateRange || '' }
-    case 'gcsigndate':     return { text: today || new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }) }
-    default:               return { text: '' }
+    case 'gcsigndate':     return { text: todayStr }
   }
+
+  // ── IP background waiver fields ──
+  switch (name) {
+    case 'ip_first_name':       return { text: ip.firstName || '' }
+    case 'ip_middle_name':      return { text: ip.middleName || '' }
+    case 'ip_last_name':        return { text: ip.lastName || '' }
+    case 'ip_phone':            return { text: ip.phone || '' }
+    case 'ip_dob':              return { text: formatDob(ip.dob) }
+    case 'ip_ssn':              return { text: ip.ssn || '' }
+    case 'ip_dl_number':        return { text: ip.dlNumber || '' }
+    case 'ip_dl_state':         return { text: ip.dlState || '' }
+    case 'ip_dl_exp':           return { text: formatDob(ip.dlExp) }
+    case 'ip_signature_name':   return { text: ip.fullName || [ip.firstName, ip.lastName].filter(Boolean).join(' ') || '' }
+    case 'ip_sign_date':        return { text: todayStr }
+  }
+
+  return { text: '' }
 }
 
 /**
@@ -138,38 +181,39 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
 
       if (resolved.isSignature) {
         const sig = ctx.signatures?.signature || ctx.signatures?.[rawName.trim()] || ctx.signatures?.[rawName]
-        let geom = null
+        // Iterate ALL widgets — IP background waiver has the same
+        // ip_signature field placed in 3 spots (top P1, bottom P1, P2);
+        // we want the signature image at every location.
+        let geoms = []
         try {
           const widgets = field.acroField.getWidgets()
-          if (widgets.length) {
-            const rect = widgets[0].getRectangle()
-            const pageRef = widgets[0].P()
+          const pages = pdf.getPages()
+          for (const w of widgets) {
+            const rect = w.getRectangle()
+            const pageRef = w.P()
             let pageIndex = 0
-            const pages = pdf.getPages()
             for (let i = 0; i < pages.length; i++) {
               if (pages[i].ref === pageRef) { pageIndex = i; break }
             }
-            geom = { pageIndex, rect }
+            geoms.push({ pageIndex, rect })
           }
         } catch {}
-        if (geom) {
-          const page = pdf.getPages()[geom.pageIndex]
-          const { rect } = geom
+        // Pre-embed the PNG once if drawn — avoids repeating the fetch+embed work.
+        let png = null
+        if (sig?.type === 'drawn' && sig.image) {
+          try {
+            const imgBytes = await fetch(sig.image).then(r => r.arrayBuffer())
+            png = await pdf.embedPng(imgBytes)
+          } catch (err) { console.warn('Failed to embed drawn signature:', err) }
+        }
+        for (const { pageIndex, rect } of geoms) {
+          const page = pdf.getPages()[pageIndex]
           // The drawn-signature canvas has white-space padding above/below the
           // ink. Pulling the image down by ~half the rect height lands the
           // visible signature on the underline rather than floating above it.
           const SIG_Y_OFFSET = -Math.round(rect.height * 0.5)
-          if (sig?.type === 'drawn' && sig.image) {
-            try {
-              const imgBytes = await fetch(sig.image).then(r => r.arrayBuffer())
-              const png = await pdf.embedPng(imgBytes)
-              page.drawImage(png, {
-                x: rect.x,
-                y: rect.y + SIG_Y_OFFSET,
-                width: rect.width,
-                height: rect.height,
-              })
-            } catch (err) { console.warn('Failed to embed drawn signature:', err) }
+          if (png) {
+            page.drawImage(png, { x: rect.x, y: rect.y + SIG_Y_OFFSET, width: rect.width, height: rect.height })
           } else if (sig?.name) {
             // Typed signature — baseline sits just above the underline
             page.drawText(sig.name, {
@@ -183,6 +227,15 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
         }
         // Remove signature field so the form-flatten step doesn't draw an empty box on top
         try { form.removeField(field) } catch {}
+        continue
+      }
+
+      if (resolved.isCheckbox) {
+        try {
+          if (typeof field.check === 'function' && typeof field.uncheck === 'function') {
+            if (resolved.checked) field.check(); else field.uncheck()
+          }
+        } catch (err) { console.warn(`checkbox(${rawName}) failed:`, err) }
         continue
       }
 
