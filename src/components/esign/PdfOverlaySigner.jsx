@@ -464,15 +464,15 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
             </span>
           )}
         </div>
+        {/* Drawn signatures swap to a preview + Re-sign button so the
+            canvas isn't sitting there blank after the user lifted their
+            pen. Typed signatures stay in the SignaturePad input the
+            whole time so the user can keep typing past the first letter
+            (and edit/correct without having to "Clear" first). */}
         {signatures.signature?.type === 'drawn' && signatures.signature.image ? (
           <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
             <img src={signatures.signature.image} alt="signature" style={{ height: 36 }} />
             <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Re-sign</button>
-          </div>
-        ) : signatures.signature?.type === 'typed' && signatures.signature.name ? (
-          <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-            <span className="text-lg font-serif italic text-[#283693]">{signatures.signature.name}</span>
-            <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Clear</button>
           </div>
         ) : (
           <SignaturePad

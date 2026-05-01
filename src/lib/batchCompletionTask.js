@@ -81,11 +81,14 @@ async function getIpNames(caseId) {
   return { names, assignedTo: data.assigned_to }
 }
 
+const IP_BG_TEMPLATE_IDS = new Set(['ip_background_waiver', 'ip2_background_waiver'])
+
 export async function maybeCreateSigningCompletionTask(doc) {
   if (!supabase || !doc?.case_id) return
 
   const meta = parseMeta(doc)
   const batchToken = meta.batchToken
+  const myTemplateId = meta.templateId
 
   // Load the full batch (or treat this doc as a batch of one)
   let batchDocs = [doc]
@@ -97,6 +100,20 @@ export async function maybeCreateSigningCompletionTask(doc) {
     batchDocs = (data || []).filter(d => {
       const m = parseMeta(d)
       return m.batchToken === batchToken && d.status !== 'voided'
+    })
+    if (!batchDocs.length) batchDocs = [doc]
+  } else if (IP_BG_TEMPLATE_IDS.has(myTemplateId)) {
+    // IP background waivers — IP1 and IP2 are usually sent as two separate
+    // admin actions (no shared batchToken), but we want ONE task fired
+    // when BOTH have signed (not one per IP). Group every IP background
+    // waiver doc on this case together.
+    const { data } = await supabase
+      .from('esign_documents')
+      .select('id, status, title, document_hash, case_id, created_at')
+      .eq('case_id', doc.case_id)
+    batchDocs = (data || []).filter(d => {
+      const m = parseMeta(d)
+      return IP_BG_TEMPLATE_IDS.has(m.templateId) && d.status !== 'voided'
     })
     if (!batchDocs.length) batchDocs = [doc]
   }
