@@ -710,12 +710,20 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       heightLeft -= (pageHeight - margin * 2)
       while (heightLeft > 0) { position -= (pageHeight - margin); pdf.addPage(); pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight); heightLeft -= (pageHeight - margin * 2) }
     } else {
-      const breakOffsets = pageBreaks.map(pb => pb.offsetTop)
-      pageBreaks.forEach(pb => pb.style.display = 'none')
+      // Use getBoundingClientRect against the container — pb.offsetTop is
+      // relative to the nearest positioned ancestor, which (depending on
+      // wrapping styles) can be the page <body> instead of the sheet div.
+      // That bug made every break collapse to "0 above first break, all
+      // content below" → effectively a one-page PDF.
+      const containerRect = container.getBoundingClientRect()
+      const breakOffsets = pageBreaks.map(pb => pb.getBoundingClientRect().top - containerRect.top)
       const sections = []
       let prevTop = 0
       for (const offset of breakOffsets) { sections.push({ top: prevTop, height: offset - prevTop }); prevTop = offset }
       sections.push({ top: prevTop, height: container.scrollHeight - prevTop })
+      // Capture the full canvas with breaks left visible (they're 1px each
+      // — invisible in the rendered output but they hold their position so
+      // our offsets stay accurate).
       const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
       const renderScale = fullCanvas.width / container.offsetWidth
       const usableWidth = pageWidth - margin * 2
@@ -723,7 +731,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         if (i > 0) pdf.addPage()
         const s = sections[i]
         const srcY = Math.round(s.top * renderScale)
-        const srcH = Math.round(s.height * renderScale)
+        const srcH = Math.max(1, Math.round(s.height * renderScale))
         const cropCanvas = document.createElement('canvas')
         cropCanvas.width = fullCanvas.width
         cropCanvas.height = srcH
@@ -733,7 +741,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         const imgHeight = (srcH * usableWidth) / fullCanvas.width
         pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight)
       }
-      pageBreaks.forEach(pb => pb.style.display = '')
     }
 
     return pdf
