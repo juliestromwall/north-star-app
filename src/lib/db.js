@@ -296,6 +296,44 @@ export async function updateIntakeSubmissionStatus(id, status) {
 
 // ── Surrogates (from qualified intake submissions) ─────
 
+function mapSurrogateIntakeRow(row) {
+  const a = row.answers || {}
+  const dob = a.dob ? new Date(a.dob) : null
+  const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+  return {
+    id: row.id,
+    name: `${a.firstName || ''} ${a.lastName || ''}`.trim() || 'Unknown',
+    email: row.applicant_email || a.email || '',
+    age,
+    location: [a.city, a.state].filter(Boolean).join(', ') || a.state || '',
+    status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'screening' : 'pending',
+    intakeStatus: row.status,
+    submittedAt: row.submitted_at,
+    phone: a.phone || '',
+    maritalStatus: a.maritalStatus || '',
+    heightFt: a.heightFt,
+    heightIn: a.heightIn,
+    weightLbs: a.weightLbs,
+    bmi: a.heightFt && a.weightLbs
+      ? ((a.weightLbs / ((a.heightFt * 12 + (parseInt(a.heightIn) || 0)) ** 2)) * 703).toFixed(1)
+      : null,
+    healthyPregnancy: a.healthyPregnancy,
+    hearAboutUs: a.hearAboutUs,
+    preferredContact: a.preferredContact,
+    matchNotes: a._matchNotes || '',
+    userId: row.user_id || null,
+    matchStage: null,
+    dueDate: null,
+    previousJourneys: 0,
+    assignedTo: row.assigned_to || null,
+    referralPartner: row.referral_partner || null,
+    partnerName: a._confidential?.spouseFullName || a.spouseFullName || a.partnerName || '',
+    partnerEmail: a._confidential?.spouseEmail || a.spouseEmail || '',
+    answers: a,
+    screening: { medical: 'not_started', psychological: 'not_started', background: 'not_started', homeStudy: 'not_started' },
+  }
+}
+
 export async function fetchSurrogatesFromIntake() {
   if (!supabase) return []
   const result = await withTimeout(
@@ -307,43 +345,7 @@ export async function fetchSurrogatesFromIntake() {
     20000
   )
   if (!result || result.error) return []
-  return result.data.map(row => {
-    const a = row.answers || {}
-    const dob = a.dob ? new Date(a.dob) : null
-    const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
-    return {
-      id: row.id,
-      name: `${a.firstName || ''} ${a.lastName || ''}`.trim() || 'Unknown',
-      email: row.applicant_email || a.email || '',
-      age,
-      location: [a.city, a.state].filter(Boolean).join(', ') || a.state || '',
-      status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'screening' : 'pending',
-      intakeStatus: row.status,
-      submittedAt: row.submitted_at,
-      phone: a.phone || '',
-      maritalStatus: a.maritalStatus || '',
-      heightFt: a.heightFt,
-      heightIn: a.heightIn,
-      weightLbs: a.weightLbs,
-      bmi: a.heightFt && a.weightLbs
-        ? ((a.weightLbs / ((a.heightFt * 12 + (parseInt(a.heightIn) || 0)) ** 2)) * 703).toFixed(1)
-        : null,
-      healthyPregnancy: a.healthyPregnancy,
-      hearAboutUs: a.hearAboutUs,
-      preferredContact: a.preferredContact,
-      matchNotes: a._matchNotes || '',
-      userId: row.user_id || null,
-      matchStage: null,
-      dueDate: null,
-      previousJourneys: 0,
-      assignedTo: row.assigned_to || null,
-      referralPartner: row.referral_partner || null,
-      partnerName: a._confidential?.spouseFullName || a.spouseFullName || a.partnerName || '',
-      partnerEmail: a._confidential?.spouseEmail || a.spouseEmail || '',
-      answers: a,
-      screening: { medical: 'not_started', psychological: 'not_started', background: 'not_started', homeStudy: 'not_started' },
-    }
-  })
+  return result.data.map(mapSurrogateIntakeRow)
 }
 
 // ── Profile Photo URL lookup ─────────────────────────────
@@ -374,6 +376,45 @@ export async function getProfilePhotoUrls(userIds) {
 
 // ── Intended Parents (from intake submissions) ─────────
 
+function mapIpIntakeRow(row) {
+  const a = row.answers || {}
+  const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
+  const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
+  const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : null
+  const names = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+  const dob = a.primaryDob ? new Date(a.primaryDob) : null
+  const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
+  return {
+    id: row.id,
+    user_id: row.user_id || null,
+    names: names || 'Unknown',
+    ip1Name,
+    ip2Name,
+    email: row.applicant_email || a.email || '',
+    ip2Email: a.ip2Email || '',
+    phone: a.phone || '',
+    ip2Phone: a.ip2Phone || '',
+    age,
+    location: [a.city, a.stateProv].filter(Boolean).join(', ') || '',
+    country: a.country || '',
+    type: hasPartner ? 'Couple' : 'Single parent',
+    status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'new' : row.status,
+    intakeStatus: row.status,
+    submittedAt: row.submitted_at,
+    hasRE: a.hasRE,
+    reDoctorName: a.reDoctorName || '',
+    hasFrozenEmbryos: a.hasFrozenEmbryos,
+    frozenEmbryoDetails: a.frozenEmbryoDetails || '',
+    usingEggDonor: a.usingEggDonor,
+    usingSpermDonor: a.usingSpermDonor,
+    wantsConsultation: a.wantsConsultation,
+    hearAboutUs: a.hearAboutUs || '',
+    assignedTo: row.assigned_to || null,
+    matchStage: null,
+    answers: a,
+  }
+}
+
 export async function fetchIPsFromIntake() {
   if (!supabase) return []
   const result = await withTimeout(
@@ -384,45 +425,27 @@ export async function fetchIPsFromIntake() {
     20000
   )
   if (!result || result.error) return []
-  return result.data.map(row => {
-    const a = row.answers || {}
-    const hasPartner = a.hasPartner === 'yes' || a.hasPartner === true
-    const ip1Name = `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()
-    const ip2Name = hasPartner ? `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() : null
-    const names = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
-    const dob = a.primaryDob ? new Date(a.primaryDob) : null
-    const age = dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null
-    return {
-      id: row.id,
-      user_id: row.user_id || null,
-      names: names || 'Unknown',
+  return result.data.map(mapIpIntakeRow)
+}
 
-      ip1Name,
-      ip2Name,
-      email: row.applicant_email || a.email || '',
-      ip2Email: a.ip2Email || '',
-      phone: a.phone || '',
-      ip2Phone: a.ip2Phone || '',
-      age,
-      location: [a.city, a.stateProv].filter(Boolean).join(', ') || '',
-      country: a.country || '',
-      type: hasPartner ? 'Couple' : 'Single parent',
-      status: row.status === 'approved' ? 'active' : row.status === 'qualified' ? 'new' : row.status,
-      intakeStatus: row.status,
-      submittedAt: row.submitted_at,
-      hasRE: a.hasRE,
-      reDoctorName: a.reDoctorName || '',
-      hasFrozenEmbryos: a.hasFrozenEmbryos,
-      frozenEmbryoDetails: a.frozenEmbryoDetails || '',
-      usingEggDonor: a.usingEggDonor,
-      usingSpermDonor: a.usingSpermDonor,
-      wantsConsultation: a.wantsConsultation,
-      hearAboutUs: a.hearAboutUs || '',
-      assignedTo: row.assigned_to || null,
-      matchStage: null,
-      answers: a,
-    }
-  })
+export async function fetchSurrogateCaseById(id) {
+  if (!supabase || !id) return null
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('*').eq('id', id).eq('intake_type', 'gc').single(),
+    12000
+  )
+  if (!result || result.error || !result.data) return null
+  return mapSurrogateIntakeRow(result.data)
+}
+
+export async function fetchIPCaseById(id) {
+  if (!supabase || !id) return null
+  const result = await withTimeout(
+    () => supabase.from('intake_submissions').select('*').eq('id', id).eq('intake_type', 'ip').single(),
+    12000
+  )
+  if (!result || result.error || !result.data) return null
+  return mapIpIntakeRow(result.data)
 }
 
 // ── Case Assignment ─────────────────────────────────────

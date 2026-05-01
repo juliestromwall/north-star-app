@@ -40,7 +40,7 @@ import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIS
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { fetchSurrogatesFromIntake, fetchIPsFromIntake, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask } from '@/lib/db'
+import { fetchSurrogateCaseById, fetchIPCaseById, fetchInsurance, fetchIntakeByEmail, fetchSurrogateProfileByEmail, listProfilePhotos, getPortraitPhotoUrl, fetchJourneyExpenses, insertExpense, updateExpense, deleteExpense, uploadCaseDocument, getAppConfig, setAppConfig, createCaseTask } from '@/lib/db'
 import { sendSMS } from '@/lib/sms'
 import { getAdminStaff } from '@/data/mock/users'
 import { JOURNEY_MANAGERS } from '@/pages/journeys/MatchedJourneysPage'
@@ -2397,6 +2397,7 @@ export default function JourneyDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [profileView, setProfileView] = useState('gc')
+  const [mainTab, setMainTab] = useState('overview')
   const [breakOpen, setBreakOpen] = useState(false)
   const [breakReason, setBreakReason] = useState('')
   const [breaking, setBreaking] = useState(false)
@@ -2440,6 +2441,8 @@ export default function JourneyDetailPage() {
   const [gcPhotos, setGcPhotos] = useState([])
   const [gcPortraitUrl, setGcPortraitUrl] = useState(null)
   const [ipPortraitUrl, setIpPortraitUrl] = useState(null)
+  const [gcApplicationLoaded, setGcApplicationLoaded] = useState(false)
+  const [gcProfilesLoaded, setGcProfilesLoaded] = useState(false)
   const [appView, setAppView] = useState('gc') // gc | ip
   const [providerEdit, setProviderEdit] = useState(null) // 'ivf' | 'ob' | 'hospital' | null
   const [providerForm, setProviderForm] = useState({})
@@ -2506,31 +2509,26 @@ export default function JourneyDetailPage() {
   useEffect(() => {
     async function load() {
       try {
+        setGcApplicationLoaded(false)
+        setGcProfilesLoaded(false)
+        setGcQuizAnswers(null)
+        setGcProfileData(null)
+        setGcProfileStatus('draft')
+        setGcPhotos([])
+        setGcPortraitUrl(null)
+        setIpPortraitUrl(null)
         const j = await fetchMatchedJourney(Number(id))
         if (!j) { setLoading(false); return }
         setJourney(j)
         fetchJourneyExpenses(j.id).then(setJourneyExpenses).catch(() => {})
-        const [gcs, ips] = await Promise.all([fetchSurrogatesFromIntake(), fetchIPsFromIntake()])
-        setGcCase(gcs.find(g => g.id === j.gc_case_id) || null)
-        setIpCase(ips.find(i => i.id === j.ip_case_id) || null)
+        const [gc, ip] = await Promise.all([
+          fetchSurrogateCaseById(j.gc_case_id),
+          fetchIPCaseById(j.ip_case_id),
+        ])
+        setGcCase(gc || null)
+        setIpCase(ip || null)
         fetchInsurance(j.gc_case_id, 'surrogate').then(setGcInsurance).catch(() => {})
-        // Load GC quiz answers + profile + photos for Application/Profile tabs
-        const gc = gcs.find(g => g.id === j.gc_case_id)
-        if (gc?.email) {
-          fetchIntakeByEmail(gc.email).then(answers => { if (answers) setGcQuizAnswers(answers) }).catch(() => {})
-          fetchSurrogateProfileByEmail(gc.email).then(d => {
-            if (d?.profile_data) {
-              setGcProfileData(d.profile_data)
-              if (d.profile_data?.personal?.profilePhotoUrl) setGcPortraitUrl(prev => prev || d.profile_data.personal.profilePhotoUrl)
-            }
-            if (d?.status) setGcProfileStatus(d.status)
-          }).catch(() => {})
-        }
         if (gc?.userId) {
-          Promise.all([
-            listProfilePhotos(gc.userId).catch(() => []),
-            listProfilePhotos(`${gc.userId}/portrait`).catch(() => []),
-          ]).then(([gallery, portraits]) => setGcPhotos([...portraits, ...gallery]))
           getPortraitPhotoUrl(gc.userId).then(url => { if (url) setGcPortraitUrl(url) }).catch(() => {})
         }
         if (gc?.id) {
@@ -2545,8 +2543,11 @@ export default function JourneyDetailPage() {
           fetchMatchedJourney(j.tandem_partner_journey_id).then(partner => {
             if (!partner) return
             setPartnerJourney(partner)
-            const partnerGc = gcs.find(g => g.id === partner.gc_case_id)
-            setPartnerGcName(partnerGc?.name || `Surrogate #${partner.gc_case_id}`)
+            fetchSurrogateCaseById(partner.gc_case_id).then(partnerGc => {
+              setPartnerGcName(partnerGc?.name || `Surrogate #${partner.gc_case_id}`)
+            }).catch(() => {
+              setPartnerGcName(`Surrogate #${partner.gc_case_id}`)
+            })
           }).catch(() => {})
         } else {
           setPartnerJourney(null)
@@ -2556,6 +2557,37 @@ export default function JourneyDetailPage() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    const needsGcApplication = mainTab === 'application' && appView === 'gc'
+    const needsGcProfile = mainTab === 'profiles' && profileView === 'gc'
+    if (!gcCase?.email) return
+
+    if (needsGcApplication && !gcApplicationLoaded) {
+      fetchIntakeByEmail(gcCase.email).then(answers => {
+        if (answers) setGcQuizAnswers(answers)
+      }).catch(() => {}).finally(() => setGcApplicationLoaded(true))
+    }
+
+    if ((needsGcApplication || needsGcProfile) && !gcProfilesLoaded) {
+      fetchSurrogateProfileByEmail(gcCase.email).then(d => {
+        if (d?.profile_data) {
+          setGcProfileData(d.profile_data)
+          if (d.profile_data?.personal?.profilePhotoUrl) setGcPortraitUrl(prev => prev || d.profile_data.personal.profilePhotoUrl)
+        }
+        if (d?.status) setGcProfileStatus(d.status)
+      }).catch(() => {}).finally(() => setGcProfilesLoaded(true))
+    }
+  }, [mainTab, appView, profileView, gcCase?.email, gcApplicationLoaded, gcProfilesLoaded])
+
+  useEffect(() => {
+    const needsGcPhotos = mainTab === 'profiles' && profileView === 'gc'
+    if (!needsGcPhotos || !gcCase?.userId || gcPhotos.length > 0) return
+    Promise.all([
+      listProfilePhotos(gcCase.userId).catch(() => []),
+      listProfilePhotos(`${gcCase.userId}/portrait`).catch(() => []),
+    ]).then(([gallery, portraits]) => setGcPhotos([...portraits, ...gallery]))
+  }, [mainTab, profileView, gcCase?.userId, gcPhotos.length])
 
   // handleUnlinkTandem removed — unlinking is no longer surfaced from the
   // journey page. The lib helper unlinkTandemJourney() is still available
@@ -3684,7 +3716,7 @@ export default function JourneyDetailPage() {
       <QuickNote caseId={journey.id} caseType="journey" />
 
       {/* ─── Tabs ─────────────────────────────────────────── */}
-      <Tabs defaultValue="overview">
+      <Tabs value={mainTab} onValueChange={setMainTab}>
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Overview' },
           { value: 'application', label: 'Application' },
@@ -3725,13 +3757,13 @@ export default function JourneyDetailPage() {
               IP Application
             </button>
           </div>
-          {appView === 'gc' ? (
+          {mainTab === 'application' && (appView === 'gc' ? (
             gcCase ? <GCApplicationTab surrogate={gcCase} setSurrogate={setGcCase} quizAnswers={gcQuizAnswers || gcCase.answers || {}} setQuizAnswers={setGcQuizAnswers} profileData={gcProfileData} />
               : <EmptyState title="GC data not found" />
           ) : (
             ipCase ? <IPApplicationTab ip={ipCase} setIp={setIpCase} />
               : <EmptyState title="IP data not found" />
-          )}
+          ))}
         </TabsContent>
 
         {/* Profiles Tab — GC/IP sub-tabs */}
@@ -3746,26 +3778,28 @@ export default function JourneyDetailPage() {
               IP Profile
             </button>
           </div>
-          <ProfilesTabContent
-            profileView={profileView}
-            gcCase={gcCase} setGcCase={setGcCase}
-            gcProfileData={gcProfileData} setGcProfileData={setGcProfileData}
-            gcProfileStatus={gcProfileStatus} setGcProfileStatus={setGcProfileStatus}
-            gcPhotos={gcPhotos} setGcPhotos={setGcPhotos}
-            gcPortraitUrl={gcPortraitUrl}
-            gcQuizAnswers={gcQuizAnswers} setGcQuizAnswers={setGcQuizAnswers}
-            ipCase={ipCase} setIpCase={setIpCase}
-          />
+          {mainTab === 'profiles' && (
+            <ProfilesTabContent
+              profileView={profileView}
+              gcCase={gcCase} setGcCase={setGcCase}
+              gcProfileData={gcProfileData} setGcProfileData={setGcProfileData}
+              gcProfileStatus={gcProfileStatus} setGcProfileStatus={setGcProfileStatus}
+              gcPhotos={gcPhotos} setGcPhotos={setGcPhotos}
+              gcPortraitUrl={gcPortraitUrl}
+              gcQuizAnswers={gcQuizAnswers} setGcQuizAnswers={setGcQuizAnswers}
+              ipCase={ipCase} setIpCase={setIpCase}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="match-sheets" className="mt-4">
-          <MatchSheetsTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
+          {mainTab === 'match-sheets' && <MatchSheetsTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
-          }} />
+          }} />}
         </TabsContent>
         <TabsContent value="documents" className="mt-4">
-          <DocumentsTab
+          {mainTab === 'documents' && <DocumentsTab
             surrogateId={journey.gc_case_id}
             additionalCaseIds={[journey.ip_case_id]}
             caseLabels={{
@@ -3773,19 +3807,19 @@ export default function JourneyDetailPage() {
               [journey.ip_case_id]: `IP — ${ipCase?.names || 'Intended Parent'}`,
             }}
             includeJourneyDocs
-          />
+          />}
         </TabsContent>
         <TabsContent value="insurance" className="mt-4">
-          <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />
+          {mainTab === 'insurance' && <InsuranceTab caseId={journey.gc_case_id} caseType="surrogate" surrogateNameForDisplay={gcCase?.name} />}
         </TabsContent>
         <TabsContent value="expenses" className="mt-4">
-          <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} escrowFunded={isJourneyEscrowFunded(journey)} />
+          {mainTab === 'expenses' && <JourneyExpensesTab journeyId={journey.id} gcCaseId={journey.gc_case_id} gcCase={gcCase} ipCase={ipCase} journeyLabel={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} onExpensesChanged={() => fetchJourneyExpenses(journey.id).then(setJourneyExpenses).catch(() => {})} escrowFunded={isJourneyEscrowFunded(journey)} />}
         </TabsContent>
-        <TabsContent value="notes" className="mt-4"><NotesTab journeyId={journey.id} currentUser={currentUser} /></TabsContent>
+        <TabsContent value="notes" className="mt-4">{mainTab === 'notes' && <NotesTab journeyId={journey.id} currentUser={currentUser} />}</TabsContent>
         <TabsContent value="emails" className="mt-4">
-          <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} contactEmails={[gcCase?.email, ipCase?.email, ipCase?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />
+          {mainTab === 'emails' && <CaseEmailsTab caseId={journey.id} caseType="journey" additionalCaseIds={[journey.gc_case_id, journey.ip_case_id]} contactEmails={[gcCase?.email, ipCase?.email, ipCase?.ip2Email].filter(Boolean)} onUnreadCount={setUnreadEmailCount} />}
         </TabsContent>
-        <TabsContent value="texts" className="mt-4"><EmptyState title="Text Messages" description="GC and IP text threads." /></TabsContent>
+        <TabsContent value="texts" className="mt-4">{mainTab === 'texts' && <EmptyState title="Text Messages" description="GC and IP text threads." />}</TabsContent>
       </Tabs>
 
       {/* Email confirmation toast — positioned near the card that triggered it */}
