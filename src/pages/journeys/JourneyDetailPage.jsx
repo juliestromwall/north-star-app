@@ -629,27 +629,46 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
         )}
       </td>
       <td className="px-3 py-3 text-center align-top">
-        {exp.attachment_url ? (
-          <button onClick={() => onPreview(exp.attachment_url)} className="text-stone-400 hover:text-abc-indigo transition-colors" title="View attachment">
-            <Eye className="size-4" />
-          </button>
-        ) : (
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="relative inline-flex items-center text-stone-300 hover:text-abc-indigo transition-colors"
-            title="Add attachment"
-          >
-            <Paperclip className="size-3.5" />
-            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center size-3 rounded-full bg-stone-100 text-stone-500 text-[8px] font-bold leading-none border border-stone-200">+</span>
-          </button>
-        )}
+        {(() => {
+          const urls = parseAttachmentUrls(exp.attachment_url)
+          if (urls.length === 0) {
+            return (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="relative inline-flex items-center text-stone-300 hover:text-abc-indigo transition-colors"
+                title="Add attachment"
+              >
+                <Paperclip className="size-3.5" />
+                <span className="absolute -top-1 -right-1 inline-flex items-center justify-center size-3 rounded-full bg-stone-100 text-stone-500 text-[8px] font-bold leading-none border border-stone-200">+</span>
+              </button>
+            )
+          }
+          return (
+            <div className="inline-flex items-center gap-1">
+              {urls.map((url, i) => (
+                <button
+                  key={url + i}
+                  onClick={() => onPreview(url)}
+                  className="text-stone-400 hover:text-abc-indigo transition-colors"
+                  title={`View attachment ${i + 1}${urls.length > 1 ? ` of ${urls.length}` : ''}`}
+                >
+                  <Eye className="size-4" />
+                </button>
+              ))}
+            </div>
+          )
+        })()}
         <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" className="hidden" onChange={async e => {
           const file = e.target.files?.[0]
           if (!file) return
           try {
             const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file, uploadedBy: 'Admin' })
             if (doc?.public_url) {
-              await onUpdate(exp.id, 'attachment_url', doc.public_url)
+              // Append to existing URLs so adding a second attachment from the
+              // table doesn't clobber what was uploaded with the expense.
+              const existing = parseAttachmentUrls(exp.attachment_url)
+              const next = [...existing, doc.public_url].join('\n')
+              await onUpdate(exp.id, 'attachment_url', next)
             }
           } catch (err) {
             console.error('Upload failed:', err)
@@ -1715,6 +1734,17 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
 export function emptyLineItem() {
   return { id: Math.random().toString(36).slice(2), amount: '', description: '', file: null }
 }
+
+/**
+ * attachment_url is a TEXT field that started life holding a single URL.
+ * To support multi-line-item expenses without a schema migration, we now
+ * also accept newline-separated URLs in the same field. This helper hands
+ * back an array either way; empty/null returns [].
+ */
+export function parseAttachmentUrls(value) {
+  if (!value || typeof value !== 'string') return []
+  return value.split('\n').map(s => s.trim()).filter(Boolean)
+}
 export function sumLineItems(items) {
   return (items || []).reduce((sum, li) => sum + (parseFloat(li.amount) || 0), 0)
 }
@@ -1789,13 +1819,16 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     if (total <= 0) return
     setSaving(true)
     try {
-      // Upload each line item's file to case documents; use the first as the primary attachment_url
-      let attachmentUrl = null
+      // Upload each line item's file to case documents and collect all URLs.
+      // attachment_url stores them newline-joined so the Doc cell can render
+      // one icon per attached file instead of dropping items 2+.
+      const uploadedUrls = []
       for (const li of lineItems) {
         if (!li.file) continue
         const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
-        if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
+        if (doc?.public_url) uploadedUrls.push(doc.public_url)
       }
+      const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null
       // Resolve paid_to based on escrow/type
       let resolvedPaidTo = newExpense.paid_to || null
       let payVia = null
@@ -3045,13 +3078,15 @@ export default function JourneyDetailPage() {
               <Button size="sm" disabled={savingExpense || expenseTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1" onClick={async () => {
                 setSavingExpense(true)
                 try {
-                  // Upload each line item's file; keep first URL as the primary attachment
-                  let attachmentUrl = null
+                  // Upload each line item's file and collect all URLs into a
+                  // newline-joined attachment_url so items 2+ aren't dropped.
+                  const uploadedUrls = []
                   for (const li of expenseLineItems) {
                     if (!li.file) continue
                     const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
-                    if (!attachmentUrl && doc?.public_url) attachmentUrl = doc.public_url
+                    if (doc?.public_url) uploadedUrls.push(doc.public_url)
                   }
+                  const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null
                   // Resolve paid_to based on escrow/type
                   let resolvedPaidTo = newExpense.paid_to || null
                   let payVia = null
