@@ -666,6 +666,44 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
   const [movingCreating, setMovingCreating] = useState(false)
   const moveMenuRef = useRef(null)
 
+  // In-app create-label dialog (replaces window.prompt) with optional
+  // "Nest under" parent picker. Gmail nests labels via "Parent/Child"
+  // naming, so on submit we prefix the name when nesting is enabled.
+  const [createLabelOpen, setCreateLabelOpen] = useState(false)
+  const [newLabelName, setNewLabelName] = useState('')
+  const [nestUnder, setNestUnder] = useState(false)
+  const [nestParent, setNestParent] = useState('')
+  const [createLabelError, setCreateLabelError] = useState('')
+  const createActionRef = useRef(null) // resolves with final name when dialog confirms
+
+  const openCreateLabelDialog = (action) => {
+    setNewLabelName('')
+    setNestUnder(false)
+    setNestParent('')
+    setCreateLabelError('')
+    createActionRef.current = action
+    setCreateLabelOpen(true)
+  }
+
+  const handleCreateLabelConfirm = async () => {
+    const trimmed = newLabelName.trim()
+    if (!trimmed) {
+      setCreateLabelError('Enter a label name.')
+      return
+    }
+    const finalName = nestUnder && nestParent ? `${nestParent}/${trimmed}` : trimmed
+    const exists = userLabels.some(l => (l.name || '').toLowerCase() === finalName.toLowerCase())
+    if (exists) {
+      setCreateLabelError('A label with that name already exists.')
+      return
+    }
+    setCreateLabelError('')
+    setCreateLabelOpen(false)
+    const action = createActionRef.current
+    createActionRef.current = null
+    if (action) await action(finalName)
+  }
+
   // Close the Label-as menu on outside click / Escape
   useEffect(() => {
     if (!labelMenuOpen) return
@@ -717,17 +755,28 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
   }
 
   const handleMoveCreate = async () => {
-    let name = moveSearch.trim()
-    if (!name) {
-      name = (window.prompt('New label name:') || '').trim()
-      if (!name) return
+    const typed = moveSearch.trim()
+    if (!typed) {
+      // No name typed — open the dialog and let the user enter (and optionally nest)
+      openCreateLabelDialog(async (finalName) => {
+        setMovingCreating(true)
+        try {
+          const created = await onCreateLabel?.(finalName, false)
+          if (created?.id) {
+            setMoveMenuOpen(false)
+            setMoveSearch('')
+            await onMoveTo?.(created.id)
+          }
+        } finally { setMovingCreating(false) }
+      })
+      return
     }
     if (moveExactMatch) return
     setMovingCreating(true)
     try {
       // Create label WITHOUT applying it, then move to it so the flow is
       // a single addLabels+removeLabels INBOX step (matches Gmail).
-      const created = await onCreateLabel?.(name, false)
+      const created = await onCreateLabel?.(typed, false)
       if (created?.id) {
         setMoveMenuOpen(false)
         setMoveSearch('')
@@ -888,15 +937,22 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
                   prompts for a name inline. */}
               <button
                 onClick={async () => {
-                  let name = labelSearch.trim()
-                  if (!name) {
-                    name = (window.prompt('New label name:') || '').trim()
-                    if (!name) return
+                  const typed = labelSearch.trim()
+                  if (!typed) {
+                    // No name typed — open the in-app dialog with nest option
+                    openCreateLabelDialog(async (finalName) => {
+                      setCreatingLabel(true)
+                      try {
+                        await onCreateLabel?.(finalName, true)
+                        setLabelSearch('')
+                      } finally { setCreatingLabel(false) }
+                    })
+                    return
                   }
                   if (exactMatch) return
                   setCreatingLabel(true)
                   try {
-                    await onCreateLabel?.(name, true)
+                    await onCreateLabel?.(typed, true)
                     setLabelSearch('')
                   } finally {
                     setCreatingLabel(false)
@@ -1005,6 +1061,65 @@ function EmailDetail({ email, userId, userName, onBack, onReply, onReplyAll, onF
       </div>
 
       <LogToCaseDialog open={logOpen} onOpenChange={setLogOpen} email={email} userId={userId} userName={userName} isMasterAdmin={isMasterAdmin} />
+
+      {/* In-app create-label dialog (replaces window.prompt). Supports
+          optional nesting under an existing label via Gmail's Parent/Child
+          naming convention. */}
+      <Dialog open={createLabelOpen} onOpenChange={(open) => { if (!open) { setCreateLabelOpen(false); createActionRef.current = null } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New label</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Label name</label>
+              <Input
+                autoFocus
+                value={newLabelName}
+                onChange={e => { setNewLabelName(e.target.value); setCreateLabelError('') }}
+                placeholder="e.g. Surrogates"
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateLabelConfirm() }}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-stone-700 select-none">
+              <input
+                type="checkbox"
+                checked={nestUnder}
+                onChange={e => setNestUnder(e.target.checked)}
+                className="size-4 accent-[#283693]"
+              />
+              Nest label under
+            </label>
+            {nestUnder && (
+              <select
+                value={nestParent}
+                onChange={e => setNestParent(e.target.value)}
+                className="w-full h-9 rounded-md border border-stone-200 bg-white px-2 text-sm"
+              >
+                <option value="">Select a parent label…</option>
+                {userLabels
+                  .map(l => l.name || '')
+                  .filter(Boolean)
+                  .sort((a, b) => a.localeCompare(b))
+                  .map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+              </select>
+            )}
+            {createLabelError && (
+              <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700">
+                {createLabelError}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCreateLabelOpen(false); createActionRef.current = null }}>Cancel</Button>
+            <Button onClick={handleCreateLabelConfirm} style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }}>
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
