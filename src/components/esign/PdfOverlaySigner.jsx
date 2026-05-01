@@ -5,6 +5,44 @@ import { Input } from '@/components/ui/input'
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { bakePdfOverlay, loadTemplatePdf, resolveOverlayValue, valueForFieldName } from '@/lib/pdfOverlay'
 
+// US state abbreviations for the License Issuing State dropdown on the
+// IP background waiver. Two-letter postal codes — what fits Kaiser/RCS
+// background-check forms.
+const US_STATE_ABBR = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC']
+
+function formatSsn(raw) {
+  const d = String(raw || '').replace(/\D/g, '').slice(0, 9)
+  if (d.length <= 3) return d
+  if (d.length <= 5) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`
+}
+
+function formatPhone(raw) {
+  const d = String(raw || '').replace(/\D/g, '').slice(0, 10)
+  if (d.length <= 3) return d
+  if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`
+  return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+}
+
+// Convert ISO YYYY-MM-DD (from <input type="date">) → MM/DD/YYYY for the
+// PDF AcroForm field, which is the format the release form expects.
+function isoToMmddyyyy(iso) {
+  if (!iso) return ''
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : iso
+}
+
+// Reverse: MM/DD/YYYY → YYYY-MM-DD so <input type="date"> renders the
+// prefilled value correctly. Returns '' if input isn't parseable.
+function mmddyyyyToIso(s) {
+  if (!s) return ''
+  const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) {
+    return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : ''
+  }
+  return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`
+}
+
 /**
  * Renders a "pdf-overlay" template: shows the original PDF as the background
  * with absolute-positioned input + signature widgets sitting on top of the
