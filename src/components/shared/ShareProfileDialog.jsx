@@ -42,10 +42,12 @@ export default function ShareProfileDialog({ open, onOpenChange, caseId, caseTyp
         const uniqueIds = [...new Set(ids)]
         let allHeadshots = [], allPortraits = [], allGallery = []
         for (const id of uniqueIds) {
+          // Raw mode on slot folders so ProfilePreview can render the cropped
+          // banner up top and the un-cropped originals in the gallery.
           const [gallery, headshots, portraits] = await Promise.all([
             listProfilePhotos(id).catch(() => []),
-            listProfilePhotos(`${id}/headshot`).catch(() => []),
-            listProfilePhotos(`${id}/portrait`).catch(() => []),
+            listProfilePhotos(`${id}/headshot`, { raw: true }).catch(() => []),
+            listProfilePhotos(`${id}/portrait`, { raw: true }).catch(() => []),
           ])
           allHeadshots.push(...headshots)
           allPortraits.push(...portraits)

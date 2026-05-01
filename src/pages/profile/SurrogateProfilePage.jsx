@@ -934,17 +934,20 @@ export default function SurrogateProfilePage() {
       setPreviewOpen(false)
       return
     }
+    // Raw mode for the slot folders so ProfilePreview gets both `original_*`
+    // (used for the gallery thumbnails / lightbox) and `cropped_*` (used for
+    // the hero banner). Gallery folder has no crops so default mode is fine.
     const [gallery, headshots, portraits] = await Promise.all([
       listProfilePhotos(userId).catch(() => []),
-      listProfilePhotos(`${userId}/headshot`).catch(() => []),
-      listProfilePhotos(`${userId}/portrait`).catch(() => []),
+      listProfilePhotos(`${userId}/headshot`, { raw: true }).catch(() => []),
+      listProfilePhotos(`${userId}/portrait`, { raw: true }).catch(() => []),
     ])
     let allGallery = gallery, allHeadshots = headshots, allPortraits = portraits
     if (intakeCaseId && intakeCaseId !== userId) {
       const [g2, h2, p2] = await Promise.all([
         listProfilePhotos(intakeCaseId).catch(() => []),
-        listProfilePhotos(`${intakeCaseId}/headshot`).catch(() => []),
-        listProfilePhotos(`${intakeCaseId}/portrait`).catch(() => []),
+        listProfilePhotos(`${intakeCaseId}/headshot`, { raw: true }).catch(() => []),
+        listProfilePhotos(`${intakeCaseId}/portrait`, { raw: true }).catch(() => []),
       ])
       allGallery = [...gallery, ...g2]
       allHeadshots = [...headshots, ...h2]
@@ -1407,8 +1410,22 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
   const heightStr = about.heightFt ? `${about.heightFt}'${about.heightIn || 0}"` : ''
   const bmi = about.bmi || (about.heightFt && about.weight ? ((parseFloat(about.weight) / ((parseInt(about.heightFt)*12 + parseInt(about.heightIn||0)) ** 2)) * 703).toFixed(1) : '')
   const [lightboxIdx, setLightboxIdx] = useState(null)
-  const heroPhoto = photos?.[0]
-  const portraitPhoto = photos?.find(p => p.path?.includes('/portrait/'))
+  // When the caller passes raw photos (both `original_*` and `cropped_*`), the
+  // hero/banner uses the cropped version (admins crop specifically for the
+  // banner) while the thumbnail strip + lightbox show the originals so
+  // viewers see the full un-cropped image at its native aspect. If only one
+  // version is present (legacy / no crop yet), it gets used in both spots.
+  const allPhotos = photos || []
+  const headshotCropped = allPhotos.find(p => p.kind === 'cropped' && p.path?.includes('/headshot/'))
+  const headshotOriginal = allPhotos.find(p => p.kind === 'original' && p.path?.includes('/headshot/'))
+  const portraitCropped = allPhotos.find(p => p.kind === 'cropped' && p.path?.includes('/portrait/'))
+  const portraitOriginal = allPhotos.find(p => p.kind === 'original' && p.path?.includes('/portrait/'))
+  const heroPhoto = headshotCropped || headshotOriginal || allPhotos[0]
+  const portraitPhoto = portraitCropped || portraitOriginal || allPhotos.find(p => p.path?.includes('/portrait/'))
+  // Gallery (thumbnails + lightbox) — show un-cropped versions. Drop any
+  // cropped_* entries so the squat banner crop doesn't appear as a separate
+  // thumbnail; viewers click the cover thumbnail and see the full original.
+  const galleryPhotos = allPhotos.filter(p => p.kind !== 'cropped')
   const hasPartner = ['In a Relationship', 'Married', 'Domestic Partnership'].includes(about.maritalStatus)
   const householdMembers = about.householdMembers || []
   const parseStepchildDob = (raw) => {
@@ -1466,9 +1483,9 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
           )}
           {/* Subtle bottom gradient for name card legibility */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#fdf8f3] to-transparent" />
-          {photos.length > 1 && (
+          {galleryPhotos.length > 1 && (
             <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[#283693] text-xs font-bold px-3 py-1 rounded-full print:hidden">
-              {photos.length} photos
+              {galleryPhotos.length} photos
             </div>
           )}
         </div>
@@ -1577,9 +1594,9 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
       </div>
 
       {/* ── Thumbnail Strip (hidden in print) ── */}
-      {photos?.length > 1 && (
+      {galleryPhotos?.length > 1 && (
         <div data-pdf="thumbs" className="flex gap-2 px-8 sm:px-12 pt-4 pb-2 overflow-x-auto print:hidden">
-          {photos.map((ph, i) => (
+          {galleryPhotos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
               className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
               <img src={ph.url} alt="" className="w-full h-full object-cover" />
@@ -1913,33 +1930,33 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
     </div>
 
     {/* ── Photo Lightbox Modal ── */}
-    {lightboxIdx !== null && photos?.length > 0 && (
+    {lightboxIdx !== null && galleryPhotos?.length > 0 && (
       <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setLightboxIdx(null)}>
         <button className="absolute top-4 right-4 text-white/70 hover:text-white z-10" onClick={() => setLightboxIdx(null)}>
           <X className="w-8 h-8" />
         </button>
         <div className="relative max-w-4xl w-full mx-4" onClick={e => e.stopPropagation()}>
-          <img src={photos[lightboxIdx].url} alt="" className="w-full max-h-[80vh] object-contain rounded-lg" />
-          {photos.length > 1 && (
+          <img src={galleryPhotos[lightboxIdx].url} alt="" className="w-full max-h-[80vh] object-contain rounded-lg" />
+          {galleryPhotos.length > 1 && (
             <>
-              <button onClick={() => setLightboxIdx(i => (i - 1 + photos.length) % photos.length)}
+              <button onClick={() => setLightboxIdx(i => (i - 1 + galleryPhotos.length) % galleryPhotos.length)}
                 className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              <button onClick={() => setLightboxIdx(i => (i + 1) % photos.length)}
+              <button onClick={() => setLightboxIdx(i => (i + 1) % galleryPhotos.length)}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 text-white hover:bg-white/40 transition-colors">
                 <ChevronRight className="w-6 h-6" />
               </button>
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white text-sm font-medium px-3 py-1 rounded-full">
-                {lightboxIdx + 1} / {photos.length}
+                {lightboxIdx + 1} / {galleryPhotos.length}
               </div>
             </>
           )}
         </div>
         {/* Thumbnail strip */}
-        {photos.length > 1 && (
+        {galleryPhotos.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10">
-            {photos.map((ph, i) => (
+            {galleryPhotos.map((ph, i) => (
               <button key={ph.path} onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
                 className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
                 <img src={ph.url} alt="" className="w-full h-full object-cover" />
