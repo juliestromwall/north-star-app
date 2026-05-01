@@ -730,17 +730,27 @@ export async function adminUpdateSurrogateProfile(email, profileData) {
 
 const BUCKET = 'profile-photos'
 
-export async function uploadProfilePhoto(userId, file) {
+/**
+ * Upload a profile photo. `kind` is encoded in the filename so the slot can
+ * distinguish original-source files from admin-cropped versions:
+ *   - 'original' — the un-modified source. Set on initial upload, kept around
+ *     so future re-crops can start from it instead of from a previous crop.
+ *   - 'cropped' — a crop output. Display layer prefers this when present.
+ * Files uploaded before this convention shipped have no prefix and are
+ * treated as legacy originals.
+ */
+export async function uploadProfilePhoto(userId, file, kind = 'original') {
   if (!supabase) return null
   const ext = file.name.split('.').pop()
-  const path = `${userId}/${Date.now()}.${ext}`
+  const prefix = kind === 'cropped' ? 'cropped_' : 'original_'
+  const path = `${userId}/${prefix}${Date.now()}.${ext}`
   const { data, error } = await supabase.storage.from(BUCKET).upload(path, file, {
     cacheControl: '3600',
     upsert: false,
   })
   if (error) throw error
   const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path)
-  return { path: data.path, url: urlData.publicUrl }
+  return { path: data.path, url: urlData.publicUrl, kind }
 }
 
 export async function deleteProfilePhoto(path) {
@@ -773,7 +783,10 @@ export async function listProfilePhotos(userId) {
     .map(f => {
       const path = `${userId}/${f.name}`
       const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path)
-      return { path, url: urlData.publicUrl, name: f.name }
+      // Filename prefix encodes original vs cropped (see uploadProfilePhoto).
+      // Legacy files without a prefix are treated as originals.
+      const kind = f.name.startsWith('cropped_') ? 'cropped' : 'original'
+      return { path, url: urlData.publicUrl, name: f.name, kind }
     })
 }
 
