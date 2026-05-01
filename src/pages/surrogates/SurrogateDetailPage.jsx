@@ -3617,8 +3617,8 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">CC Last 4</th>
                     <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[220px]">Notes</th>
                     <th className="text-center px-3 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Doc</th>
-                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">Status</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Submitted to Escrow</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider">ABC Pay Status</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-stone-500 uppercase tracking-wider min-w-[180px]">Escrow Pay Status</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
