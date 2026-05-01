@@ -3956,18 +3956,31 @@ function toBooleanDisplay(value) {
 }
 
 // ── Photo upload slot (profile / cover) with crop/rotate ──
+//
+// Storage layout per slot (see lib/db.js > uploadProfilePhoto):
+//   - exactly one `original_*` file — the source uploaded by the admin or
+//     surrogate; we never overwrite this on crop so re-crops always start
+//     from full-fidelity input.
+//   - optionally one `cropped_*` file — last admin crop. Replaced on each
+//     subsequent crop, removed when admin uploads a new source.
 function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, locked = false }) {
-  const [photo, setPhoto] = useState(null)
+  const [originalPhoto, setOriginalPhoto] = useState(null) // source for the editor
+  const [croppedPhoto, setCroppedPhoto] = useState(null)   // shown on the profile
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const displayPhoto = croppedPhoto || originalPhoto
 
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
     listProfilePhotos(storagePath).then(list => {
-      if (!cancelled && list.length > 0) setPhoto(list[0])
+      if (cancelled) return
+      const cropped = list.find(p => p.kind === 'cropped') || null
+      const original = list.find(p => p.kind === 'original') || (cropped ? null : list[0]) || null
+      setOriginalPhoto(original)
+      setCroppedPhoto(cropped)
     }).catch(() => {})
     return () => { cancelled = true }
   }, [storagePath])
@@ -3979,43 +3992,56 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, lo
     if (file.size > 10 * 1024 * 1024) { setError('Photo must be under 10MB'); return }
     setUploading(true); setError(null)
     try {
-      if (photo) await deleteProfilePhoto(photo.path).catch(() => {})
-      const result = await uploadProfilePhoto(storagePath, file)
-      if (result) { setPhoto(result); if (onChange) onChange(result.url) }
+      // Replacing the source — delete every file in the folder so old
+      // cropped + original from the prior photo don't linger.
+      const list = await listProfilePhotos(storagePath).catch(() => [])
+      for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
+      const result = await uploadProfilePhoto(storagePath, file, 'original')
+      if (result) {
+        setOriginalPhoto(result)
+        setCroppedPhoto(null)
+        if (onChange) onChange(result.url)
+      }
     } catch (err) { setError(err.message || 'Upload failed') }
     finally { setUploading(false); e.target.value = '' }
   }
 
   async function handleDelete() {
     if (locked) return
-    if (!photo) return
-    try { await deleteProfilePhoto(photo.path); setPhoto(null); if (onChange) onChange(null) }
-    catch (err) { setError(err.message || 'Delete failed') }
+    try {
+      const list = await listProfilePhotos(storagePath).catch(() => [])
+      for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
+      setOriginalPhoto(null)
+      setCroppedPhoto(null)
+      if (onChange) onChange(null)
+    } catch (err) { setError(err.message || 'Delete failed') }
   }
 
-  async function handleCropSave(oldPhoto, croppedFile) {
+  async function handleCropSave(_sourcePhoto, croppedFile) {
     if (locked) return
     try {
-      const result = await uploadProfilePhoto(storagePath, croppedFile)
+      // Remove any prior cropped output but keep the original intact.
+      if (croppedPhoto) await deleteProfilePhoto(croppedPhoto.path).catch(() => {})
+      const result = await uploadProfilePhoto(storagePath, croppedFile, 'cropped')
       if (result) {
-        await deleteProfilePhoto(oldPhoto.path).catch(() => {})
-        setPhoto(result)
+        setCroppedPhoto(result)
         if (onChange) onChange(result.url)
       }
       setEditing(false)
     } catch (err) { setError(err.message || 'Save failed') }
   }
 
-  if (editing && photo) {
+  if (editing && originalPhoto) {
     return (
       <div className="space-y-2">
         <div>
           <p className="text-sm font-semibold text-stone-700">{label}</p>
         </div>
-        <PhotoEditor photo={photo} onSave={handleCropSave} onClose={() => setEditing(false)} aspect={cropAspect} />
+        <PhotoEditor photo={originalPhoto} onSave={handleCropSave} onClose={() => setEditing(false)} aspect={cropAspect} />
       </div>
     )
   }
+  const photo = displayPhoto
 
   return (
     <div className="space-y-2">
@@ -4317,7 +4343,11 @@ function AdminPhotosSection({ photos, setPhotos, profileData, setProfileData, po
             label="Cover Photo"
             hint="A favorite picture with family or doing something they love"
             storagePath={`${baseId}/headshot`}
-            cropAspect={16 / 9}
+            // Profile hero renders the cover at ~3:1 (`object-cover` over an
+            // h-80 banner). Cropping at 3:1 means what the admin sees in
+            // the editor is exactly what shows on the profile — no extra
+            // top/bottom trim from object-cover.
+            cropAspect={3 / 1}
             locked={locked}
           />
         </div>
