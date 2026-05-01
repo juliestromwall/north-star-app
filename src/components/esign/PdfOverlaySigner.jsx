@@ -43,8 +43,26 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
       const v = resolveOverlayValue(f, { gc: gcCtx, admin: adminValues, today: new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' }), fieldValues: {}, signatures: {} })
       if (v) initial[f.id] = v
     }
+    // For form-above templates, prefill the AcroForm-named fields from
+    // ipCtx so the structured form opens with what we already know
+    // (First/Last/DOB/Phone). Empty fields wait for the IP to type.
+    if (template.formMode === 'above' && template.formAboveFields && ipCtx) {
+      for (const f of template.formAboveFields) {
+        const raw = ipCtx[f.source]
+        if (!raw) continue
+        if (f.type === 'phone') initial[f.name] = formatPhone(raw)
+        else if (f.type === 'ssn') initial[f.name] = formatSsn(raw)
+        else if (f.type === 'date') {
+          // Store as MM/DD/YYYY in fieldValues so the bake step sees the
+          // canonical form expected by the PDF AcroForm field.
+          const iso = mmddyyyyToIso(raw)
+          initial[f.name] = iso ? isoToMmddyyyy(iso) : raw
+        }
+        else initial[f.name] = String(raw)
+      }
+    }
     setFieldValues(initial)
-  }, [template, gcCtx, adminValues])
+  }, [template, gcCtx, ipCtx, adminValues])
 
   // Signature widget geometry, extracted from the PDF's AcroForm signature
   // field. The live preview positions the signature pad at the field's
@@ -286,12 +304,145 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
     </div>
   )
 
+  const formAbove = template.formMode === 'above'
+
+  // ── Building-block JSX for the layout ──
+  // Defined as variables so we can flip the order based on formMode (PDF
+  // preview at the top for Kaiser-style overlay; PDF preview at the bottom
+  // for form-above templates like the IP background waiver).
+
+  const yourInformationCard = (formAbove && Array.isArray(template.formAboveFields) && template.formAboveFields.length > 0) ? (
+    <Card className="mt-1 mb-2 border-2 border-[#283693]/30 shadow-sm">
+      <CardContent className="p-4 sm:p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Your information</h3>
+          <p className="text-[11px] text-stone-500 mt-0.5">We've prefilled what we already have. Please fill in the rest.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {template.formAboveFields.map(f => {
+            const val = fieldValues[f.name] || ''
+            const onChange = (raw) => {
+              let v = raw
+              if (f.type === 'ssn') v = formatSsn(raw)
+              else if (f.type === 'phone') v = formatPhone(raw)
+              else if (f.type === 'date') v = isoToMmddyyyy(raw)
+              updateField(f.name, v)
+            }
+            return (
+              <div key={f.name} className={f.type === 'date' || f.type === 'state' ? '' : 'sm:col-span-1'}>
+                <label className="block text-[11px] font-semibold text-stone-600 uppercase tracking-wide mb-1">
+                  {f.label} {f.required && <span className="text-[#ed148c]">*</span>}
+                </label>
+                {f.type === 'state' ? (
+                  <select
+                    value={val}
+                    onChange={(e) => updateField(f.name, e.target.value)}
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                  >
+                    <option value="">Select…</option>
+                    {US_STATE_ABBR.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                ) : f.type === 'date' ? (
+                  <input
+                    type="date"
+                    value={mmddyyyyToIso(val)}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                  />
+                ) : (
+                  <input
+                    type={f.type === 'phone' ? 'tel' : 'text'}
+                    inputMode={f.type === 'ssn' || f.type === 'phone' ? 'numeric' : undefined}
+                    placeholder={f.type === 'ssn' ? '123-45-6789' : f.type === 'phone' ? '555-555-5555' : ''}
+                    value={val}
+                    onChange={(e) => onChange(e.target.value)}
+                    className="w-full rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#283693]/40"
+                  />
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  ) : null
+
+  // Radio + signature cards extracted so the layout can be reordered
+  // based on formMode (above the PDF for formAbove templates; below the
+  // PDF for Kaiser-style overlays).
+  const wantsCopyCard = hasWantsCopy ? (
+    <Card className="mt-5 mb-2 border-2 border-[#283693]/30 shadow-sm">
+      <CardContent className="p-4 sm:p-5 space-y-3">
+        <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Would you like a copy of the report?</h3>
+        <p className="text-xs text-stone-500">Required. Pick one.</p>
+        <div className="space-y-2">
+          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+            <input type="radio" name="wantsCopy" value="yes" checked={fieldValues.wantsCopy === 'yes'} onChange={() => updateField('wantsCopy', 'yes')} className="mt-0.5 accent-[#283693]" />
+            <span className="text-xs text-stone-700 leading-relaxed">
+              <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.
+            </span>
+          </label>
+          <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
+            <input type="radio" name="wantsCopy" value="no" checked={fieldValues.wantsCopy === 'no'} onChange={() => updateField('wantsCopy', 'no')} className="mt-0.5 accent-[#283693]" />
+            <span className="text-xs text-stone-700 leading-relaxed">
+              <strong>No</strong> — I do not wish to receive a copy of any report that is prepared, or any public records that may be obtained.
+            </span>
+          </label>
+        </div>
+      </CardContent>
+    </Card>
+  ) : null
+
+  const signatureCard = (
+    <Card className="mt-5 mb-2 border-2 border-[#ed148c]/30 shadow-sm">
+      <CardContent className="p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h3>
+          {signatures.signature && (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+              <CheckCircle2 className="size-3.5" /> Signed
+            </span>
+          )}
+        </div>
+        {signatures.signature?.type === 'drawn' && signatures.signature.image ? (
+          <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+            <img src={signatures.signature.image} alt="signature" style={{ height: 36 }} />
+            <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Re-sign</button>
+          </div>
+        ) : signatures.signature?.type === 'typed' && signatures.signature.name ? (
+          <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+            <span className="text-lg font-serif italic text-[#283693]">{signatures.signature.name}</span>
+            <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Clear</button>
+          </div>
+        ) : (
+          <SignaturePad
+            value={signatures.signature}
+            signerName={signerName}
+            onChange={(val) => setSignatures(p => ({ ...p, signature: val }))}
+          />
+        )}
+      </CardContent>
+    </Card>
+  )
+
   return (
     <div className="max-w-3xl mx-auto py-4 px-2 sm:px-4">
       {validationMsg && (
         <div role="alert" className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           <span className="flex-1">{validationMsg}</span>
           <button onClick={() => setValidationMsg(null)} className="text-red-500 hover:text-red-700 font-semibold">&times;</button>
+        </div>
+      )}
+
+      {/* form-above templates: interactive cards FIRST, PDF as a read-only sample below */}
+      {formAbove && yourInformationCard}
+      {formAbove && wantsCopyCard}
+      {formAbove && signatureCard}
+
+      {formAbove && (
+        <div className="mt-6 mb-2 text-center">
+          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Sample of the document you're signing</p>
+          <p className="text-[10px] text-stone-400 mt-0.5">The values you entered above will be filled into this PDF on submit.</p>
         </div>
       )}
 
@@ -317,10 +468,12 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
                 noisy and redundant. */}
 
             {/* AcroForm text-field input overlays — for any field that
-                wasn't pre-filled (e.g. SSN/DL/Middle on the IP background
-                waiver). Positioned at the field's first widget rect so the
-                signer types directly on top of the underline. */}
-            {hasForm && inputGeoms.filter(g => g.page === pi).map(g => {
+                wasn't pre-filled. Positioned at the field's first widget
+                rect so the signer types directly on top of the underline.
+                Suppressed for templates that render a structured form
+                above the PDF (formMode='above') — the PDF is then a
+                read-only sample. */}
+            {hasForm && template.formMode !== 'above' && inputGeoms.filter(g => g.page === pi).map(g => {
               const { left, top, scale } = pdfToCss(pi, g.rect.x, g.rect.y)
               const w = g.rect.width * scale
               const h = g.rect.height * scale
@@ -427,80 +580,11 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
         ))}
       </div>
 
-      {/* "Receive a copy?" radio — surfaces only when the PDF carries the
-          ip_copy_yes / ip_copy_no checkbox pair. Mutually exclusive choice
-          maps to fieldValues.wantsCopy and gets baked as the right ✓ at
-          submit time. */}
-      {hasWantsCopy && (
-        <Card className="mt-5 mb-2 border-2 border-[#283693]/30 shadow-sm">
-          <CardContent className="p-4 sm:p-5 space-y-3">
-            <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider">Would you like a copy of the report?</h3>
-            <p className="text-xs text-stone-500">Required. Pick one.</p>
-            <div className="space-y-2">
-              <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'yes' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
-                <input
-                  type="radio"
-                  name="wantsCopy"
-                  value="yes"
-                  checked={fieldValues.wantsCopy === 'yes'}
-                  onChange={() => updateField('wantsCopy', 'yes')}
-                  className="mt-0.5 accent-[#283693]"
-                />
-                <span className="text-xs text-stone-700 leading-relaxed">
-                  <strong>Yes</strong> — I wish to receive a copy of any report that is prepared. I understand that a copy of the report will be provided within three (3) business days of receipt of the report by Abundant Beginnings Co.
-                </span>
-              </label>
-              <label className={`flex items-start gap-2.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${fieldValues.wantsCopy === 'no' ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-200 hover:bg-stone-50'}`}>
-                <input
-                  type="radio"
-                  name="wantsCopy"
-                  value="no"
-                  checked={fieldValues.wantsCopy === 'no'}
-                  onChange={() => updateField('wantsCopy', 'no')}
-                  className="mt-0.5 accent-[#283693]"
-                />
-                <span className="text-xs text-stone-700 leading-relaxed">
-                  <strong>No</strong> — I do not wish to receive a copy of any report that is prepared, or any public records that may be obtained.
-                </span>
-              </label>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dedicated "Your signature" card — primary entry point on mobile,
-          where the inline coord-positioned widget on the PDF is too small
-          to tap reliably. Wires the same signatures.signature state so
-          desktop click-to-sign and this card stay in sync. */}
-      <Card className="mt-5 mb-2 border-2 border-[#ed148c]/30 shadow-sm">
-        <CardContent className="p-4 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider">Your signature</h3>
-            {signatures.signature && (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                <CheckCircle2 className="size-3.5" /> Signed
-              </span>
-            )}
-          </div>
-          {signatures.signature?.type === 'drawn' && signatures.signature.image ? (
-            <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-              <img src={signatures.signature.image} alt="signature" style={{ height: 36 }} />
-              <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Re-sign</button>
-            </div>
-          ) : signatures.signature?.type === 'typed' && signatures.signature.name ? (
-            <div className="flex items-center justify-between gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-              <span className="text-lg font-serif italic text-[#283693]">{signatures.signature.name}</span>
-              <button onClick={() => setSignatures(p => ({ ...p, signature: null }))} className="text-xs text-stone-500 hover:text-red-500 underline">Clear</button>
-            </div>
-          ) : (
-            <SignaturePad
-              value={signatures.signature}
-              signerName={signerName}
-              onChange={(val) => setSignatures(p => ({ ...p, signature: val }))}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Cards below the PDF for the Kaiser-style overlay flow. For
+          form-above templates, these were already rendered above the
+          PDF — don't duplicate them. */}
+      {!formAbove && wantsCopyCard}
+      {!formAbove && signatureCard}
 
       {/* Footer */}
       <div className="flex flex-col items-center gap-3 pt-6 pb-10">

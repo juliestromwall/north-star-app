@@ -183,8 +183,11 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
         const sig = ctx.signatures?.signature || ctx.signatures?.[rawName.trim()] || ctx.signatures?.[rawName]
         // Iterate ALL widgets — IP background waiver has the same
         // ip_signature field placed in 3 spots (top P1, bottom P1, P2);
-        // we want the signature image at every location.
+        // we want the signature image at every location. Dedupe by
+        // rounded position so a phantom-overlapping widget doesn't
+        // double-stamp the signature at the same spot.
         let geoms = []
+        const seenPos = new Set()
         try {
           const widgets = field.acroField.getWidgets()
           const pages = pdf.getPages()
@@ -195,6 +198,9 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
             for (let i = 0; i < pages.length; i++) {
               if (pages[i].ref === pageRef) { pageIndex = i; break }
             }
+            const posKey = `${pageIndex}:${Math.round(rect.x)}:${Math.round(rect.y)}`
+            if (seenPos.has(posKey)) continue
+            seenPos.add(posKey)
             geoms.push({ pageIndex, rect })
           }
         } catch {}
@@ -206,6 +212,13 @@ export async function bakePdfOverlay(pdfBytes, overlay, ctx = {}) {
             png = await pdf.embedPng(imgBytes)
           } catch (err) { console.warn('Failed to embed drawn signature:', err) }
         }
+        // Empty the field BEFORE drawing so the upcoming form.flatten()
+        // doesn't render the field's appearance stream on top of (or
+        // alongside) our signature image. setText('') here is safer than
+        // removeField — pdf-lib leaves the widget annotations behind on
+        // removeField, which can still get rendered by flatten and stack
+        // a second copy of the signature at the same widget position.
+        try { if (typeof field.setText === 'function') field.setText('') } catch {}
         for (const { pageIndex, rect } of geoms) {
           const page = pdf.getPages()[pageIndex]
           // The drawn-signature canvas has white-space padding above/below the

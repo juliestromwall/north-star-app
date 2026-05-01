@@ -30,6 +30,22 @@ const BACKGROUND_WAIVER_SIGNATURES = [
   { id: 'sig3', label: 'Signature (Driving Record Consent)' },
 ]
 
+// Above-PDF input form for the IP background waiver. The `name` matches the
+// AcroForm field name in /public/ip-background-waiver.pdf so PdfOverlaySigner
+// can route values straight into fieldValues by name. Types drive both UI
+// (text vs date vs select vs masked SSN) and bake-time formatting.
+const IP_BG_FORM_FIELDS = [
+  { name: 'ip_first_name',  label: 'First Name',                required: true,  type: 'text',  source: 'firstName',  prefilled: true },
+  { name: 'ip_middle_name', label: 'Middle Name',               required: true,  type: 'text',  source: 'middleName' },
+  { name: 'ip_last_name',   label: 'Last Name',                 required: true,  type: 'text',  source: 'lastName',   prefilled: true },
+  { name: 'ip_dob',         label: 'Date of Birth',             required: true,  type: 'date',  source: 'dob',        prefilled: true },
+  { name: 'ip_phone',       label: 'Phone',                     required: true,  type: 'phone', source: 'phone',      prefilled: true },
+  { name: 'ip_ssn',         label: 'Social Security Number',    required: true,  type: 'ssn',   source: 'ssn' },
+  { name: 'ip_dl_number',   label: "Driver's License Number",   required: true,  type: 'text',  source: 'dlNumber' },
+  { name: 'ip_dl_state',    label: 'Issuing State',             required: true,  type: 'state', source: 'dlState' },
+  { name: 'ip_dl_exp',      label: 'License Expiration Date',   required: true,  type: 'date',  source: 'dlExp' },
+]
+
 export const FORM_TEMPLATES = {
   gc_background_waiver: {
     id: 'gc_background_waiver',
@@ -93,11 +109,13 @@ export const FORM_TEMPLATES = {
     title: 'IP Background Waiver',
     description: 'Disclosure Authorization and Release — IP Background Investigation',
     layoutMode: 'pdf-overlay',
+    formMode: 'above',                       // structured form ABOVE the PDF; PDF is read-only sample
     signerRole: 'ip1',
     formType: 'ip_background',
     pdfPath: '/ip-background-waiver.pdf',
     adminFields: [],
-    overlay: [],  // AcroForm fields are auto-rendered by PdfOverlaySigner
+    overlay: [],
+    formAboveFields: IP_BG_FORM_FIELDS,
     fields: BACKGROUND_WAIVER_FIELDS,        // legacy — preserved for any in-flight non-overlay sends
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
@@ -106,11 +124,13 @@ export const FORM_TEMPLATES = {
     title: 'IP2 Background Waiver',
     description: 'Disclosure Authorization and Release — IP2 Background Investigation',
     layoutMode: 'pdf-overlay',
+    formMode: 'above',
     signerRole: 'ip2',
     formType: 'ip_background',
     pdfPath: '/ip-background-waiver.pdf',
     adminFields: [],
     overlay: [],
+    formAboveFields: IP_BG_FORM_FIELDS,
     fields: BACKGROUND_WAIVER_FIELDS,
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
