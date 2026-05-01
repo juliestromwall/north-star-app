@@ -555,7 +555,7 @@ export function IPProfilePreview({ profile, photos, hasPartner, ip1Name, ip2Name
       <div className="relative print:break-inside-avoid">
         <div data-pdf="cover" className="relative overflow-hidden">
           {coverPhoto ? (
-            <img src={coverPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover" />
+            <img src={coverPhoto.url} alt="" className="w-full h-72 sm:h-80 object-cover object-top" />
           ) : (
             <div className="w-full h-72 sm:h-80 bg-gradient-to-br from-[#ed148c]/20 via-[#fce7f0] to-[#283693]/10 flex items-center justify-center">
               <Camera className="w-12 h-12 text-white/70" />
