@@ -269,19 +269,42 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
 
   async function handleSubmit() {
     setValidationMsg(null)
-    if (!agreed) {
-      setValidationMsg('Please agree to the terms before submitting.')
-      return
+
+    // Collect every missing requirement up front, then show one message
+    // listing them all — instead of bouncing the user one step at a time.
+    const missing = []
+
+    if (!agreed) missing.push('Agreement to the terms')
+
+    // SSN is special: requires the full xxx-xx-xxxx form. Date fields
+    // require the MM/DD/YYYY form. Helper validates each value type.
+    function isFilled(val, type) {
+      const s = String(val ?? '').trim()
+      if (!s) return false
+      if (type === 'ssn') return /^\d{3}-\d{2}-\d{4}$/.test(s)
+      if (type === 'phone') return s.replace(/\D/g, '').length >= 10
+      if (type === 'date') return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s) || /^\d{4}-\d{2}-\d{2}/.test(s)
+      return true
     }
-    // For AcroForm PDFs the only required input is the signature.
-    // For coord-overlay PDFs, walk the template overlay.
-    if (hasForm) {
-      if (!signatures.signature) {
-        setValidationMsg('Please sign before submitting.')
-        return
+
+    // form-above templates: walk the structured form fields
+    if (template.formMode === 'above' && Array.isArray(template.formAboveFields)) {
+      for (const f of template.formAboveFields) {
+        if (!f.required) continue
+        if (!isFilled(fieldValues[f.name], f.type)) missing.push(f.label || f.name)
       }
+    }
+
+    // wantsCopy is required when the PDF has the checkbox pair
+    if (hasWantsCopy && !fieldValues.wantsCopy) {
+      missing.push('Receive-a-copy choice')
+    }
+
+    // Signature is required for any AcroForm PDF or any signature widget
+    // in the coord overlay.
+    if (hasForm) {
+      if (!signatures.signature) missing.push('Signature')
     } else {
-      const missing = []
       for (const f of template.overlay || []) {
         if (f.type === 'signature') {
           if (!signatures[f.id]) missing.push('Signature')
@@ -289,15 +312,14 @@ export default function PdfOverlaySigner({ template, gcCtx, ipCtx, adminValues, 
         }
         if (f.required && !fieldValues[f.id]) missing.push(f.label || f.id)
       }
-      if (missing.length) {
-        setValidationMsg(`Please complete: ${[...new Set(missing)].join(', ')}`)
-        return
-      }
     }
 
-    // wantsCopy is required when the PDF has the checkbox pair
-    if (hasWantsCopy && !fieldValues.wantsCopy) {
-      setValidationMsg('Please choose whether you want to receive a copy of the report.')
+    if (missing.length) {
+      const unique = [...new Set(missing)]
+      setValidationMsg(`Please complete the following before submitting: ${unique.join(' · ')}`)
+      // Scroll the validation banner into view so the IP sees what's missing
+      // even if they tapped Submit far below the form.
+      try { containerRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }) } catch {}
       return
     }
     try {
