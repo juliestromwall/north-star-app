@@ -528,6 +528,8 @@ function ComposeWindow({ draft, index }) {
   const [docSearch, setDocSearch] = useState('')
   const [docsLoading, setDocsLoading] = useState(false)
   const [contacts, setContacts] = useState([])
+  const [pickerSelected, setPickerSelected] = useState(() => new Set())
+  const [pickerAttaching, setPickerAttaching] = useState(false)
 
   // Load Gmail contacts (cached)
   useEffect(() => {
@@ -540,6 +542,7 @@ function ComposeWindow({ draft, index }) {
     setDocPickerOpen(true)
     setDocsLoading(true)
     setDocSearch('')
+    setPickerSelected(new Set())
     try {
       // For journey cases, fetch documents from the journey itself + the linked GC and IP cases
       if (draft.caseType === 'journey') {
@@ -578,6 +581,31 @@ function ComposeWindow({ draft, index }) {
       }
       reader.readAsDataURL(blob)
     } catch { alert('Failed to attach document') }
+  }
+
+  /** Attach a list of docs at once. Single state update at the end so all
+   * attachments appear together instead of incrementally. */
+  async function attachDocsBatch(docs) {
+    setPickerAttaching(true)
+    try {
+      const fetched = await Promise.all(docs.map(async d => {
+        const res = await fetch(d.public_url)
+        const blob = await res.blob()
+        const base64 = await new Promise((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result.split(',')[1])
+          r.onerror = reject
+          r.readAsDataURL(blob)
+        })
+        return { filename: d.file_name, mimeType: d.file_type || 'application/octet-stream', base64Data: base64, size: d.file_size || blob.size }
+      }))
+      const existing = draft.attachments || []
+      updateDraft(draft.id, { attachments: [...existing, ...fetched] })
+    } catch {
+      alert('Failed to attach one or more documents')
+    } finally {
+      setPickerAttaching(false)
+    }
   }
 
   const editor = useEditor({
@@ -1046,13 +1074,27 @@ function ComposeWindow({ draft, index }) {
                     .filter(d => !docSearch || d.file_name?.toLowerCase().includes(docSearch.toLowerCase()) || d.category?.toLowerCase().includes(docSearch.toLowerCase()))
                     .map(doc => {
                       const alreadyAttached = (draft.attachments || []).some(a => a.filename === doc.file_name)
+                      const isSelected = pickerSelected.has(doc.id)
+                      const toggle = () => {
+                        if (alreadyAttached) return
+                        setPickerSelected(prev => {
+                          const next = new Set(prev)
+                          if (next.has(doc.id)) next.delete(doc.id); else next.add(doc.id)
+                          return next
+                        })
+                      }
                       return (
-                        <button
+                        <label
                           key={doc.id}
-                          disabled={alreadyAttached}
-                          onClick={() => { attachDoc(doc); setDocPickerOpen(false) }}
-                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5 cursor-pointer'}`}
+                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : `cursor-pointer ${isSelected ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5'}`}`}
                         >
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-[#283693] shrink-0"
+                            checked={isSelected || alreadyAttached}
+                            disabled={alreadyAttached}
+                            onChange={toggle}
+                          />
                           <FileText className="size-4 text-stone-400 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
@@ -1062,11 +1104,32 @@ function ComposeWindow({ draft, index }) {
                             </p>
                           </div>
                           {alreadyAttached && <span className="text-[9px] text-stone-400">Attached</span>}
-                        </button>
+                        </label>
                       )
                     })}
                 </div>
               )}
+            </div>
+            {/* Footer: Attach Selected button */}
+            <div className="px-4 py-3 border-t flex items-center justify-between bg-stone-50/50">
+              <p className="text-xs text-stone-500">
+                {pickerSelected.size === 0 ? 'Select one or more documents' : `${pickerSelected.size} selected`}
+              </p>
+              <Button
+                size="sm"
+                disabled={pickerSelected.size === 0 || pickerAttaching}
+                onClick={async () => {
+                  const selectedDocs = caseDocs.filter(d => pickerSelected.has(d.id))
+                  await attachDocsBatch(selectedDocs)
+                  setPickerSelected(new Set())
+                  setDocPickerOpen(false)
+                }}
+                style={{ backgroundColor: pickerSelected.size > 0 ? '#283693' : undefined }}
+                className="gap-1.5"
+              >
+                {pickerAttaching ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+                {pickerAttaching ? 'Attaching...' : `Attach ${pickerSelected.size > 0 ? `(${pickerSelected.size})` : ''}`}
+              </Button>
             </div>
           </div>
         </div>

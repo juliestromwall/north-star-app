@@ -1802,8 +1802,26 @@ function SortableCategoryCard({ cat, catDocs, uploading, uploadCategory, onUploa
   )
 }
 
+// Fax icon — Lucide doesn't ship one and Printer was getting confused for
+// "print" on the doc row. Inline SVG matches Lucide's stroke style.
+function FaxIcon({ className }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M8 3h8v4H8z" />
+      <rect x="3" y="7" width="18" height="14" rx="1.5" />
+      <line x1="14" y1="13" x2="18" y2="13" />
+      <line x1="14" y1="17" x2="18" y2="17" />
+      <circle cx="7" cy="13" r="0.7" fill="currentColor" />
+      <circle cx="10" cy="13" r="0.7" fill="currentColor" />
+      <circle cx="7" cy="17" r="0.7" fill="currentColor" />
+      <circle cx="10" cy="17" r="0.7" fill="currentColor" />
+    </svg>
+  )
+}
+
 export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surrogateData, includeJourneyDocs = false, caseType = 'gc', showCaseActions = true }) {
   const { currentUser } = useRole()
+  const { openDraft } = useDrafts()
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -2124,9 +2142,33 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                 if (currentUser?.id) getGmailSignature(currentUser.id).then(html => setFaxSignatureHtml(html || '')).catch(() => {})
               })
             }} title="Fax">
-              <Printer className="size-3 text-stone-400" />
+              <FaxIcon className="size-3.5 text-stone-400" />
             </button>
           )}
+          <button className="size-7 rounded-full flex items-center justify-center hover:bg-blue-50" onClick={async () => {
+            try {
+              const res = await fetch(doc.public_url)
+              const blob = await res.blob()
+              const reader = new FileReader()
+              reader.onload = () => {
+                const base64 = reader.result.split(',')[1]
+                openDraft({
+                  caseId: surrogateId,
+                  caseType,
+                  userId: currentUser?.id,
+                  attachments: [{
+                    filename: doc.file_name,
+                    mimeType: doc.file_type || 'application/octet-stream',
+                    base64Data: base64,
+                    size: doc.file_size || blob.size,
+                  }],
+                })
+              }
+              reader.readAsDataURL(blob)
+            } catch { alert('Failed to open compose with attachment.') }
+          }} title="Email this doc">
+            <MailIcon className="size-3 text-stone-400" />
+          </button>
           <button className="size-7 rounded-full flex items-center justify-center hover:bg-stone-100" onClick={() => startEdit(doc)} title="Edit">
             <Pencil className="size-3 text-stone-400" />
           </button>
