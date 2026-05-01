@@ -102,7 +102,16 @@ const DEFAULT_CHECKLISTS = {
     'holding': { steps: [], milestones: [] },
     'not-qualified': { steps: [], milestones: [] },
     'withdrawn': { steps: [], milestones: [] },
-    'journey-oversight': { steps: [], milestones: [] },
+    'journey-oversight': {
+      steps: [
+        // locked:true means ensureDefaults() will add this to any existing
+        // config that's missing it (matched by id or label). Required by the
+        // "Mark Journey Complete" gate — admin can't close out a journey
+        // until escrow has been closed after delivery.
+        { id: 'escrow_closed', label: 'Escrow Closed', locked: true },
+      ],
+      milestones: [],
+    },
   },
   ip: {
     'pre-qualification': { steps: [], milestones: [] },
@@ -296,6 +305,18 @@ export function isJourneyEscrowFunded(journey) {
   const escrowStep = steps.find(s => (s.label || '').trim().toLowerCase() === 'escrow')
   if (!escrowStep) return false
   return tracking[escrowStep.id]?.status === 'complete'
+}
+
+/** Journey's "Escrow Closed" checklist step is marked Complete?
+ *  Required before the admin can mark a journey complete (escrow must be
+ *  closed out after delivery). Same lookup pattern as isJourneyEscrowFunded.
+ */
+export function isJourneyEscrowClosed(journey) {
+  const tracking = journey?.journey_data?._checklistTracking || {}
+  const steps = getChecklistSteps('gc', 'journey-oversight')
+  const step = steps.find(s => (s.label || '').trim().toLowerCase() === 'escrow closed')
+  if (!step) return false
+  return tracking[step.id]?.status === 'complete'
 }
 
 /** Get milestones for a specific user type + stage */

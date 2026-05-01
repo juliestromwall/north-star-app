@@ -27,7 +27,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { getAdminStaff } from '@/data/mock/users'
 import { ROLES, ADMIN_ROLES, MATCH_STAGES } from '@/lib/constants'
-import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive, fetchCompletedJourneys } from '@/lib/matching'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
   'julie@abcsurrogacy.com',
@@ -215,7 +215,7 @@ function BeBadge({ className = '' }) {
 }
 
 // ── Surrogate Card (Tile View) ─────────────────────────────
-export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl, lastLogin }) {
+export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, avatarUrl, lastLogin, isCompletedJourney }) {
   const navigate = useNavigate()
   const gtpal = getGTPAL(profileData)
   const height = formatHeight(surrogate.heightFt, surrogate.heightIn)
@@ -257,8 +257,13 @@ export function SurrogateCard({ surrogate, profileData, onAssign, stageStatus, a
               </div>
               {surrogate.referralPartner === 'be_surrogacy' && <BeBadge />}
             </div>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
               <StageBadge stage={stageStatus.stage} status={stageStatus.status} />
+              {isCompletedJourney && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Completed Journey
+                </span>
+              )}
               {submitted && (
                 <span className="text-[10px] text-stone-300 font-medium">{submitted}</span>
               )}
@@ -344,6 +349,7 @@ export default function SurrogateListPage() {
     ? 'all'
     : 'mine'
   const [surrogates, setSurrogates] = useState([])
+  const [completedGcIds, setCompletedGcIds] = useState(() => new Set())
   const [profiles, setProfiles] = useState({})
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
@@ -375,12 +381,15 @@ export default function SurrogateListPage() {
   }, [defaultOwnerFilter])
 
   useEffect(() => {
-    Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys()])
-      .then(([data, profileList, journeys]) => {
+    Promise.all([fetchSurrogatesFromIntake(), fetchAllSurrogateProfiles(), fetchMatchedJourneys(), fetchCompletedJourneys()])
+      .then(([data, profileList, journeys, completed]) => {
         // Hide surrogates whose current case already belongs to an active journey.
         // A deliberate "Start New Case" duplicate remains visible because it gets a new case id.
         const filtered = filterOutMatchedSurrogates(data, journeys)
         setSurrogates(filtered)
+        setCompletedGcIds(new Set(
+          (completed || []).map(j => normalizeCaseId(j.gc_case_id)).filter(Boolean)
+        ))
         const map = {}
         for (const p of (profileList || [])) {
           map[p.email] = p.profile_data
@@ -449,6 +458,11 @@ export default function SurrogateListPage() {
         s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.location.toLowerCase().includes(search.toLowerCase()) ||
         s.email.toLowerCase().includes(search.toLowerCase())
+      // Hide surrogates whose journey was marked complete unless the admin
+      // is explicitly searching by name. They re-appear with a "Completed
+      // Journey" badge in search results.
+      const isCompleted = completedGcIds.has(normalizeCaseId(s.id))
+      if (isCompleted && !search) return false
       const surrogateStage = allStageStatuses[s.id]?.stage || 'pre-qualification'
       const matchesStatus = statusFilter === 'all'
         ? true
@@ -457,7 +471,7 @@ export default function SurrogateListPage() {
           : surrogateStage === statusFilter
       return matchesSearch && matchesStatus
     })
-  }, [surrogates, search, statusFilter, ownerFilter, currentUser.email])
+  }, [surrogates, search, statusFilter, ownerFilter, currentUser.email, completedGcIds, allStageStatuses])
 
   const myCaseCount = surrogates.filter(s => s.assignedTo === currentUser.email).length
   const unassignedCount = surrogates.filter(s => !s.assignedTo).length
@@ -472,8 +486,11 @@ export default function SurrogateListPage() {
         assignedTo: currentUser.email,
         referralPartner: addForm.referralPartner ? 'be_surrogacy' : null,
       })
-      const [data, journeys] = await Promise.all([fetchSurrogatesFromIntake(), fetchMatchedJourneys()])
+      const [data, journeys, completed] = await Promise.all([fetchSurrogatesFromIntake(), fetchMatchedJourneys(), fetchCompletedJourneys()])
       setSurrogates(filterOutMatchedSurrogates(data, journeys))
+      setCompletedGcIds(new Set(
+        (completed || []).map(j => normalizeCaseId(j.gc_case_id)).filter(Boolean)
+      ))
       setAddOpen(false)
       setAddForm({ firstName: '', lastName: '', email: '', phone: '', state: '', dob: '', referralPartner: false })
       setAddSuccess(true)
@@ -503,7 +520,10 @@ export default function SurrogateListPage() {
 
   const stageCounts = {}
   for (const stage of SURROGATE_STAGES) stageCounts[stage.id] = 0
+  // Exclude completed-journey surrogates so chip totals match what's rendered
+  // (those surrogates are hidden unless searched by name).
   for (const s of ownerFiltered) {
+    if (completedGcIds.has(normalizeCaseId(s.id))) continue
     const ss = allStageStatuses[s.id]
     const stageId = ss?.stage || 'pre-qualification'
     if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
@@ -513,7 +533,10 @@ export default function SurrogateListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Surrogates"
-        subtitle={`${filtered.length} of ${surrogates.length} surrogate${surrogates.length !== 1 ? 's' : ''} shown`}
+        subtitle={(() => {
+          const total = surrogates.filter(s => !completedGcIds.has(normalizeCaseId(s.id))).length
+          return `${filtered.length} of ${total} surrogate${total !== 1 ? 's' : ''} shown`
+        })()}
         actions={
           <Button className="gap-2" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" />
@@ -529,7 +552,7 @@ export default function SurrogateListPage() {
           className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${statusFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !INACTIVE_GC_STAGES.has(st) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(s => { const st = allStageStatuses[s.id]?.stage || 'pre-qualification'; return !INACTIVE_GC_STAGES.has(st) && !completedGcIds.has(normalizeCaseId(s.id)) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {SURROGATE_STAGES.filter(s => !s.hidden).map(stage => (
@@ -638,6 +661,7 @@ export default function SurrogateListPage() {
               stageStatus={allStageStatuses[surrogate.id] || { stage: 'pre-qualification', status: 'New' }}
               avatarUrl={avatarUrls[surrogate.id]}
               lastLogin={lastLogins[surrogate.email?.toLowerCase()]?.lastSignIn}
+              isCompletedJourney={completedGcIds.has(normalizeCaseId(surrogate.id))}
             />
           ))}
         </div>

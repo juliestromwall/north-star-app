@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Mail, Phone, MapPin, Users, Baby, Stethoscope, FileText,
-  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2, Send, FileCheck,
+  Calendar, ClipboardList, Copy, Check, CheckCircle2, MessageSquare, Heart, UserCog, Egg, Milestone, Circle, Printer, UserPlus, Loader2, Send, FileCheck, Plus,
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -32,7 +32,7 @@ import SortableTabsList from '@/components/shared/SortableTabsList'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
-import { findJourneyByCaseId } from '@/lib/matching'
+import { findJourneyByCaseId, fetchCompletedJourneys, startNewCaseFromJourney } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
@@ -70,6 +70,11 @@ export default function IPDetailPage() {
   const [statusOpen, setStatusOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
   const [sillyGooseOpen, setSillyGooseOpen] = useState(false)
+  // Latest completed journey for this IP — drives the "Start Sibling Journey"
+  // button. Only the most recent one matters; older completions keep their
+  // own previous-match history.
+  const [completedJourney, setCompletedJourney] = useState(null)
+  const [startingSibling, setStartingSibling] = useState(false)
 
   // Don't let the admin invite an IP to the portal until a case owner
   // is assigned — otherwise the IP's dashboard has no coordinator to
@@ -102,7 +107,34 @@ export default function IPDetailPage() {
       }
       setLoading(false)
     }).catch(() => setLoading(false))
+
+    // Look up any completed journey this IP has had — enables the
+    // "Start Sibling Journey" action below.
+    fetchCompletedJourneys().then(list => {
+      const mine = (list || []).find(j => String(j.ip_case_id) === String(id))
+      if (mine) setCompletedJourney(mine)
+    }).catch(() => {})
   }, [id])
+
+  async function handleStartSiblingJourney() {
+    if (!completedJourney) return
+    setStartingSibling(true)
+    try {
+      const newCase = await startNewCaseFromJourney({
+        fromCaseId: ip.id,
+        journeyId: completedJourney.id,
+        createdBy: currentUser.name,
+      })
+      if (newCase?.id) {
+        window.location.href = `/intended-parents/${newCase.id}`
+      } else {
+        setStartingSibling(false)
+      }
+    } catch (err) {
+      alert('Failed to start sibling journey: ' + (err.message || ''))
+      setStartingSibling(false)
+    }
+  }
 
   // Check portal status
   useEffect(() => {
@@ -174,7 +206,25 @@ export default function IPDetailPage() {
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl font-heading font-bold text-stone-900">{ip.names}</h1>
                 <StageBadge stage={stageStatus.stage} status={stageStatus.status} caseType="ip" />
+                {completedJourney && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Completed Journey
+                  </span>
+                )}
                 <AISummaryButton caseId={ip.id} caseName={ip.names || ip.name} caseType="ip" stage={stageStatus.stage} status={stageStatus.status} />
+                {completedJourney && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                    disabled={startingSibling}
+                    onClick={handleStartSiblingJourney}
+                    title="Create a new IP case prefilled from this one — for a sibling journey"
+                  >
+                    {startingSibling ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+                    {startingSibling ? 'Creating...' : 'Start Sibling Journey'}
+                  </Button>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-stone-500">
                 {ip.location && (

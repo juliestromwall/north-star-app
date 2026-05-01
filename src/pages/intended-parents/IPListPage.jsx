@@ -15,7 +15,7 @@ import ProfileAvatar from '@/components/shared/ProfileAvatar'
 import EmptyState from '@/components/shared/EmptyState'
 import { useRole } from '@/context/RoleContext'
 import { fetchIPsFromIntake, adminAddIP, getAppConfig, getPortraitPhotoUrl } from '@/lib/db'
-import { fetchMatchedJourneys, isJourneyActive } from '@/lib/matching'
+import { fetchMatchedJourneys, isJourneyActive, fetchCompletedJourneys } from '@/lib/matching'
 import { IP_STAGES } from '@/lib/constants'
 import { getSurrogateStageStatus } from '@/lib/stageStatusStore'
 import { getChecklistMilestones } from '@/lib/checklistStore'
@@ -192,6 +192,7 @@ export default function IPListPage() {
     : 'mine'
   const canSeeAll = true
   const [ips, setIps] = useState([])
+  const [completedIpIds, setCompletedIpIds] = useState(() => new Set())
   const [allStageStatuses, setAllStageStatuses] = useState({})
   const [recordTrackingMap, setRecordTrackingMap] = useState({})
   const [ipAvatars, setIpAvatars] = useState({})
@@ -237,12 +238,15 @@ export default function IPListPage() {
   }
 
   useEffect(() => {
-    Promise.all([fetchIPsFromIntake(), fetchMatchedJourneys()])
-      .then(([data, journeys]) => {
+    Promise.all([fetchIPsFromIntake(), fetchMatchedJourneys(), fetchCompletedJourneys()])
+      .then(([data, journeys, completed]) => {
         const activeJourneys = (journeys || []).filter(isJourneyActive)
         const matchedIpIds = new Set(activeJourneys.map(j => j.ip_case_id))
         const ipList = (data || []).filter(ip => !matchedIpIds.has(ip.id))
         setIps(ipList)
+        setCompletedIpIds(new Set(
+          (completed || []).map(j => String(j.ip_case_id)).filter(Boolean)
+        ))
         // Load stage statuses
         const statuses = {}
         for (const ip of ipList) { statuses[ip.id] = getSurrogateStageStatus(ip.id) }
@@ -277,10 +281,12 @@ export default function IPListPage() {
     })
   }, [ips, ownerFilter, currentUser.email])
 
-  // Stage counts
+  // Stage counts — exclude completed-journey IPs so the chip totals match
+  // what's actually rendered (those IPs are hidden unless searched by name).
   const stageCounts = {}
   for (const stage of IP_STAGES) stageCounts[stage.id] = 0
   for (const ip of ownerFiltered) {
+    if (completedIpIds.has(String(ip.id))) continue
     const ss = allStageStatuses[ip.id]
     const stageId = ss?.stage || 'pre-qualification'
     if (stageCounts[stageId] !== undefined) stageCounts[stageId]++
@@ -292,6 +298,10 @@ export default function IPListPage() {
       if (ownerFilter === 'mine') { if (ip.assignedTo !== currentUser.email) return false }
       else if (ownerFilter === 'unassigned') { if (ip.assignedTo) return false }
       else if (ownerFilter !== 'all') { if (ip.assignedTo !== ownerFilter) return false }
+      // Hide IPs whose journey was marked complete unless the admin is
+      // explicitly searching by name. They re-appear with a "Completed
+      // Journey" badge in search results.
+      if (completedIpIds.has(String(ip.id)) && !search) return false
       // Stage filter
       if (stageFilter === 'active') {
         const stage = allStageStatuses[ip.id]?.stage || 'pre-qualification'
@@ -319,7 +329,10 @@ export default function IPListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Intended Parents"
-        subtitle={`${filtered.length} of ${ips.length} intended parent${ips.length !== 1 ? 's' : ''} shown`}
+        subtitle={(() => {
+          const total = ips.filter(ip => !completedIpIds.has(String(ip.id))).length
+          return `${filtered.length} of ${total} intended parent${total !== 1 ? 's' : ''} shown`
+        })()}
         actions={
           <Button className="gap-2" onClick={() => setAddOpen(true)}>
             <Plus className="size-4" /> Add IP
@@ -334,7 +347,7 @@ export default function IPListPage() {
           className={`rounded-xl border p-4 text-center cursor-pointer transition-all ${stageFilter === 'active' ? 'ring-2 ring-[#283693] border-[#283693]/30 shadow-md scale-[1.03]' : 'border-stone-100 hover:shadow-sm hover:scale-[1.01]'}`}
           style={{ background: 'linear-gradient(135deg, #fdf8f3, #f0f1fa)' }}
         >
-          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !INACTIVE_IP_STAGES.has(st) }).length}</p>
+          <p className="text-2xl font-bold" style={{ color: '#283693' }}>{ownerFiltered.filter(ip => { const st = allStageStatuses[ip.id]?.stage || 'pre-qualification'; return !INACTIVE_IP_STAGES.has(st) && !completedIpIds.has(String(ip.id)) }).length}</p>
           <p className="text-xs text-stone-400 font-medium uppercase tracking-wider mt-0.5">Active Cases</p>
         </button>
         {IP_STAGES.filter(s => !s.hidden).map(stage => (
@@ -444,8 +457,13 @@ export default function IPListPage() {
                           <MapPin className="size-3.5" /><span>{ip.location}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         <StageBadge stage={ss.stage} status={ss.status} caseType="ip" />
+                        {completedIpIds.has(String(ip.id)) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Completed Journey
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -141,12 +141,17 @@ export async function createMatchedJourney({ gcCaseId, ipCaseId, assignedTo, cre
 
 export async function findJourneyByCaseId(caseId) {
   if (!supabase) return null
-  // Check if this case is a GC or IP in any active journey
-  const { data: gcMatches } = await supabase.from('matched_journeys').select('id,status,stage').eq('gc_case_id', caseId).order('created_at', { ascending: false })
-  const gcMatch = (gcMatches || []).find(isActiveMatchedJourney)
+  // Only redirect to journeys that are still active AND not archived. After
+  // Mark Complete the journey gets _archivedAt set — at that point we want
+  // navigation to /intended-parents/<id> or /surrogates/<id> to land on the
+  // case page (so admins can use Start Sibling Journey, etc.) instead of
+  // bouncing back to the closed-out journey.
+  const stillOpen = j => isActiveMatchedJourney(j) && isJourneyActive(j)
+  const { data: gcMatches } = await supabase.from('matched_journeys').select('id,status,stage,journey_data').eq('gc_case_id', caseId).order('created_at', { ascending: false })
+  const gcMatch = (gcMatches || []).find(stillOpen)
   if (gcMatch) return gcMatch.id
-  const { data: ipMatches } = await supabase.from('matched_journeys').select('id,status,stage').eq('ip_case_id', caseId).order('created_at', { ascending: false })
-  const ipMatch = (ipMatches || []).find(isActiveMatchedJourney)
+  const { data: ipMatches } = await supabase.from('matched_journeys').select('id,status,stage,journey_data').eq('ip_case_id', caseId).order('created_at', { ascending: false })
+  const ipMatch = (ipMatches || []).find(stillOpen)
   if (ipMatch) return ipMatch.id
   return null
 }
@@ -244,6 +249,26 @@ export async function updateMatchedJourney(id, updates) {
 // but their participants reappear in the case/matching lists so they can start a new journey.
 export function isJourneyActive(j) {
   return !j?.journey_data?._archivedAt
+}
+
+// True if a journey was marked complete (vs. plain archived). Completed
+// journeys hide their participants from the default list views — same rule
+// as inactive stages — and qualify the IPs for a sibling journey button.
+export function isJourneyCompleted(j) {
+  return !!j?.journey_data?._completedAt
+}
+
+// Fetch matched journeys that were completed (used to filter / badge cases
+// in the surrogate + IP lists). Filtered separately because the standard
+// `fetchMatchedJourneys` returns only active (non-archived) journeys.
+export async function fetchCompletedJourneys() {
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('matched_journeys')
+    .select('id, gc_case_id, ip_case_id, journey_data')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return (data || []).filter(isJourneyCompleted)
 }
 
 // Archive a journey — preserve all data but release the GC and IP back into their respective lists.

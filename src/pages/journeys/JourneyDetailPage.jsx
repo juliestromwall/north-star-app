@@ -36,7 +36,7 @@ import { SURROGATE_STAGES } from '@/lib/constants'
 import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
-import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded } from '@/lib/checklistStore'
+import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded, isJourneyEscrowClosed } from '@/lib/checklistStore'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -2368,8 +2368,12 @@ export default function JourneyDetailPage() {
   const [archiving, setArchiving] = useState(false)
   const [unarchiveOpen, setUnarchiveOpen] = useState(false)
   const [unarchiving, setUnarchiving] = useState(false)
+  const [completeOpen, setCompleteOpen] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const [startCaseOpen, setStartCaseOpen] = useState(false)
   const [startingCase, setStartingCase] = useState(false)
+  const [startSiblingOpen, setStartSiblingOpen] = useState(false)
+  const [startingSibling, setStartingSibling] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [journeyExpenses, setJourneyExpenses] = useState([])
   const unpaidExpenseCount = journeyExpenses.filter(e => e.pay_to_type !== 'hold' && !e.reconciled && !e.paid_at).length
@@ -2601,6 +2605,39 @@ export default function JourneyDetailPage() {
     }
   }
 
+  // Mark Journey Complete: requires the "Escrow Closed" checklist step to be
+  // complete. Stamps _completedAt + status, then runs the existing archive
+  // flow so participants are released and a match-history entry is logged.
+  async function handleMarkComplete() {
+    setCompleting(true)
+    try {
+      const nowIso = new Date().toISOString()
+      const updatedJourneyData = {
+        ...(journey.journey_data || {}),
+        _completedAt: nowIso,
+        _completedBy: currentUser.name,
+      }
+      await updateMatchedJourney(journey.id, {
+        status: 'Closed — Complete',
+        journey_data: updatedJourneyData,
+      })
+      // archiveJourney reads the row fresh, so the _completedAt stamp above
+      // survives the journey_data merge it does for _archivedAt.
+      await archiveJourney(journey.id, {
+        reason: 'Journey marked complete',
+        archivedBy: currentUser.name,
+        gcCaseId: journey.gc_case_id,
+        ipCaseId: journey.ip_case_id,
+        gcName: gcCase?.name,
+        ipName: ipCase?.names,
+      })
+      window.location.href = '/journeys'
+    } catch (err) {
+      alert('Failed to mark complete: ' + (err.message || ''))
+      setCompleting(false)
+    }
+  }
+
   async function handleUnarchiveJourney() {
     setUnarchiving(true)
     try {
@@ -2637,6 +2674,29 @@ export default function JourneyDetailPage() {
     } catch (err) {
       alert('Failed to start new case: ' + (err.message || ''))
       setStartingCase(false)
+    }
+  }
+
+  // Start Sibling Journey for the IP — creates a new IP intake row prefilled
+  // from the existing one. Available after Mark Complete (so the IPs can move
+  // on to a sibling journey while the original journey stays archived).
+  async function handleStartSiblingJourney() {
+    setStartingSibling(true)
+    try {
+      const newCase = await startNewCaseFromJourney({
+        fromCaseId: journey.ip_case_id,
+        journeyId: journey.id,
+        createdBy: currentUser.name,
+      })
+      if (newCase?.id) {
+        window.location.href = `/intended-parents/${newCase.id}`
+      } else {
+        setStartSiblingOpen(false)
+        setStartingSibling(false)
+      }
+    } catch (err) {
+      alert('Failed to start sibling journey: ' + (err.message || ''))
+      setStartingSibling(false)
     }
   }
 
@@ -2709,6 +2769,65 @@ export default function JourneyDetailPage() {
               <Button size="sm" onClick={handleStartNewCase} disabled={startingCase} className="gap-1" style={{ backgroundColor: '#ed148c', color: '#fff' }}>
                 {startingCase ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
                 {startingCase ? 'Creating...' : 'Start New Case'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Start Sibling Journey Dialog (IP side) */}
+      <Dialog open={startSiblingOpen} onOpenChange={setStartSiblingOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-700">Start Sibling Journey for {ipCase?.names || 'IP'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+              <p className="font-semibold">Create a new IP case for a sibling journey?</p>
+              <p className="mt-1 text-xs text-stone-600">
+                A fresh IP intake will be created with a copy of the existing application.
+                The new case will be ready to match with a new surrogate. This journey stays archived as their previous match history.
+              </p>
+              {jd._newCaseStartedId && (
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                  Heads up — a new case was already started from this journey. Creating another will spawn an additional new case.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setStartSiblingOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleStartSiblingJourney} disabled={startingSibling} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                {startingSibling ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />}
+                {startingSibling ? 'Creating...' : 'Start Sibling Journey'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Journey Complete Dialog */}
+      <Dialog open={completeOpen} onOpenChange={setCompleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-700">Mark Journey Complete</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800">
+              <p className="font-semibold">Close out this journey?</p>
+              <p className="mt-1 text-xs text-stone-600">
+                Sets status to <strong>Closed — Complete</strong>, archives the journey, and preserves all data
+                (checklist, expenses, notes, emails, documents). Both
+                <strong className="mx-1">{gcCase?.name}</strong> and
+                <strong className="mx-1">{ipCase?.names}</strong> will be hidden from the default surrogate / IP lists
+                (still searchable by name with a "Completed Journey" badge).
+                You'll be able to start a sibling journey for the IPs from their case page.
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setCompleteOpen(false)}>Cancel</Button>
+              <Button size="sm" onClick={handleMarkComplete} disabled={completing} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                {completing ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                {completing ? 'Marking complete...' : 'Mark Complete'}
               </Button>
             </div>
           </div>
@@ -3060,7 +3179,11 @@ export default function JourneyDetailPage() {
               <div className="shrink-0 flex items-center gap-2">
                 {/* Status pills sit OUTSIDE the actions trigger so the trigger
                     stays a clean circular icon while still surfacing key state. */}
-                {jd._archivedAt && (
+                {jd._completedAt ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <Check className="size-2.5" /> Completed
+                  </span>
+                ) : jd._archivedAt && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
                     <Check className="size-2.5" /> Archived
                   </span>
@@ -3107,6 +3230,21 @@ export default function JourneyDetailPage() {
                                 <Users className="size-3.5" /> Open tandem · {partnerGcName}
                               </button>
                             )}
+                            {(() => {
+                              const escrowClosed = isJourneyEscrowClosed(journey)
+                              return (
+                                <button
+                                  onClick={() => { if (!escrowClosed) return; setCompleteOpen(true); setActionsOpen(false) }}
+                                  disabled={!escrowClosed}
+                                  title={escrowClosed ? 'Mark this journey as complete' : 'Mark the "Escrow Closed" checklist step complete first'}
+                                  className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${escrowClosed ? 'hover:bg-emerald-50 text-emerald-700 cursor-pointer' : 'text-stone-300 cursor-not-allowed'}`}
+                                >
+                                  <Check className={`size-3.5 ${escrowClosed ? 'text-emerald-600' : 'text-stone-300'}`} />
+                                  <span className="flex-1">Mark Complete</span>
+                                  {!escrowClosed && <span className="text-[10px] uppercase tracking-wider text-stone-400">escrow</span>}
+                                </button>
+                              )
+                            })()}
                             <button
                               onClick={() => { setArchiveOpen(true); setActionsOpen(false) }}
                               className="w-full text-left px-3 py-2 text-sm hover:bg-stone-50 flex items-center gap-2 text-stone-700"
@@ -3460,6 +3598,28 @@ export default function JourneyDetailPage() {
                 )}
                 <AttorneyRow prefix="ipAttorney" data={jd} onSaveBatch={updateFields} color="indigo"
                   onEmail={(email, name) => setEmailConfirm({ name: name || 'IP Attorney', email, caseId: journey.id })} />
+                {/* Start Sibling Journey — only after this journey has been marked complete */}
+                {jd._completedAt && (
+                  <div className="pt-1">
+                    {jd._newCaseStartedId ? (
+                      <Link
+                        to={`/intended-parents/${jd._newCaseStartedId}`}
+                        className="inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-900 hover:underline"
+                      >
+                        <ArrowRight className="size-3" /> Sibling journey started {jd._newCaseStartedAt ? `${fmtDate(jd._newCaseStartedAt)}` : ''} — open it
+                      </Link>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                        onClick={() => setStartSiblingOpen(true)}
+                      >
+                        <Plus className="size-3" /> Start Sibling Journey for {ipCase.names?.split(' & ')[0]?.split(' ')[0] || 'IP'}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </>)
             })() : <p className="text-xs text-stone-400">IP not found</p>}
             {/* IP Sticky Note */}
