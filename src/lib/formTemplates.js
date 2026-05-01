@@ -82,21 +82,35 @@ export const FORM_TEMPLATES = {
     fields: BACKGROUND_WAIVER_FIELDS,
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
+  // IP background waivers — switched from HTML-form layout to pdf-overlay
+  // mode (same as Kaiser). The signer sees the official release PDF with
+  // input widgets overlaid at the AcroForm field positions. Name/phone/DOB
+  // are prefilled from intake; the IP types Middle/SSN/DL/DL-state/DL-exp
+  // inline. Signature applies to all 3 widget positions; "wish to receive
+  // a copy" radio maps to the two checkbox fields.
   ip_background_waiver: {
     id: 'ip_background_waiver',
     title: 'IP Background Waiver',
     description: 'Disclosure Authorization and Release — IP Background Investigation',
+    layoutMode: 'pdf-overlay',
     signerRole: 'ip1',
     formType: 'ip_background',
-    fields: BACKGROUND_WAIVER_FIELDS,
+    pdfPath: '/ip-background-waiver.pdf',
+    adminFields: [],
+    overlay: [],  // AcroForm fields are auto-rendered by PdfOverlaySigner
+    fields: BACKGROUND_WAIVER_FIELDS,        // legacy — preserved for any in-flight non-overlay sends
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },
   ip2_background_waiver: {
     id: 'ip2_background_waiver',
     title: 'IP2 Background Waiver',
     description: 'Disclosure Authorization and Release — IP2 Background Investigation',
+    layoutMode: 'pdf-overlay',
     signerRole: 'ip2',
     formType: 'ip_background',
+    pdfPath: '/ip-background-waiver.pdf',
+    adminFields: [],
+    overlay: [],
     fields: BACKGROUND_WAIVER_FIELDS,
     signatures: BACKGROUND_WAIVER_SIGNATURES,
   },

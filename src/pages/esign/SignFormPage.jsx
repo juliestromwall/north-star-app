@@ -930,15 +930,18 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
   const [searchParams] = useSearchParams()
   const calibrate = searchParams.get('calibrate') === '1'
   const [gcCtx, setGcCtx] = useState(null)
+  const [ipCtx, setIpCtx] = useState(null)
   const [adminValues, setAdminValues] = useState({})
   const [submitError, setSubmitError] = useState(null)
 
-  // Pull GC context from the case's intake answers + admin pre-fill from doc metadata.
-  // Address can live in several places depending on when/how the surrogate was
-  // onboarded: _confidential block (newer flow), top-level intake answers
-  // (older intake), the application form, OR the surrogate_profiles personal
-  // section (filled out separately on the GC profile page). Walk all of them
-  // and use the first hit so Kaiser doesn't go out with a blank address.
+  const isIpForm = template?.signerRole === 'ip1' || template?.signerRole === 'ip2'
+
+  // Pull signer context from the case's intake answers + admin pre-fill from doc metadata.
+  //
+  // - GC (Kaiser): walks _confidential / intake / _application / surrogate_profiles
+  //   for address, since address can live in several places depending on onboarding flow.
+  // - IP (background waiver): pulls from _ipContact (Application's Contact Info) and
+  //   intake fallbacks; picks IP1 vs IP2 fields based on template.signerRole.
   useEffect(() => {
     if (!doc?.case_id || !supabase) return
     const meta = (() => { try { return JSON.parse(doc.document_hash || '{}') } catch { return {} } })()
@@ -951,10 +954,38 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
         .eq('id', doc.case_id)
         .single()
       const a = intake?.answers || {}
+
+      if (isIpForm) {
+        // IP background waiver — assemble IP1 or IP2 context based on signer role.
+        const c = a._ipContact || {}
+        const isIp2 = template.signerRole === 'ip2'
+        const firstName = (isIp2 ? (c.ip2FirstName || a.ip2FirstName) : (c.ip1FirstName || a.primaryFirstName)) || ''
+        const lastName  = (isIp2 ? (c.ip2LastName  || a.ip2LastName)  : (c.ip1LastName  || a.primaryLastName))  || ''
+        const dob       = (isIp2 ? (c.ip2Dob       || a.ip2Dob)       : (c.ip1Dob       || a.primaryDob))       || ''
+        const email     = (isIp2 ? (c.ip2Email     || a.ip2Email)     : (c.ip1Email     || a.email))            || mySigner.email || ''
+        const phone     = (isIp2 ? (c.ip2Phone     || a.ip2Phone)     : (c.ip1Phone     || a.phone))            || ''
+        // Background-check info (SSN/DL) lives in _ipBackground if collected.
+        // Falls back to '' so the signer types it inline on the PDF.
+        const bg = a._ipBackground?.[isIp2 ? 'ip2' : 'ip1'] || a._ipBackground || {}
+        setIpCtx({
+          firstName,
+          middleName: bg.middleName || '',
+          lastName,
+          fullName: [firstName, bg.middleName, lastName].filter(Boolean).join(' '),
+          phone,
+          dob,
+          email,
+          ssn: bg.ssn || '',
+          dlNumber: bg.dlNumber || '',
+          dlState: bg.dlState || '',
+          dlExp: bg.dlExp || '',
+        })
+        return
+      }
+
+      // GC (Kaiser) — original logic
       const c = a._confidential || {}
       const app = a._application || {}
-
-      // Fall back through the address sources in priority order
       const pickStreet = () =>
         [c.streetAddress, c.aptNumber].filter(Boolean).join(' ').trim() ||
         [a.streetAddress, a.aptNumber].filter(Boolean).join(' ').trim() ||
@@ -972,8 +1003,6 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
       let zip    = pickZip()
       let phone  = pickPhone()
 
-      // Final fallback: surrogate_profiles.profile_data.personal.* — populated
-      // when the GC fills out their profile page (separate from the application).
       if (!street || !city || !state || !zip || !phone) {
         const email = (a.email || intake?.applicant_email || '').toLowerCase()
         if (email) {
@@ -1006,7 +1035,7 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
       })
     }
     load().catch(() => {})
-  }, [doc?.case_id])
+  }, [doc?.case_id, template?.signerRole])
 
   async function handleSign({ blob, signatures }) {
     if (signing) return
@@ -1037,8 +1066,11 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
         userAgent: navigator?.userAgent || '',
       })
 
-      // Upload the audited PDF as the signed copy
-      const path = `documents/signed_kaiser_${doc.id}_${Date.now()}.pdf`
+      // Upload the audited PDF as the signed copy. Filename slug derives
+      // from the template id so IP background waivers don't get tagged
+      // "signed_kaiser_*" and so on for any future pdf-overlay form.
+      const slug = String(template?.id || 'pdfoverlay').replace(/[^a-z0-9]+/gi, '_').slice(0, 40)
+      const path = `documents/signed_${slug}_${doc.id}_${Date.now()}.pdf`
       const upload = await supabase.storage.from('esign-documents').upload(path, finalBlob, { contentType: 'application/pdf' })
       if (upload?.error) throw upload.error
       const { data: urlData } = supabase.storage.from('esign-documents').getPublicUrl(path)
@@ -1096,6 +1128,7 @@ function KaiserPdfOverlayBranch({ doc, template, mySigner, onDone, signing, setS
       <PdfOverlaySigner
         template={template}
         gcCtx={gcCtx}
+        ipCtx={ipCtx}
         adminValues={adminValues}
         onSign={handleSign}
         signing={signing}
