@@ -516,7 +516,8 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
-    listProfilePhotos(storagePath).then(list => {
+    // Raw mode — see SurrogateDetailPage AdminPhotoSlot for the rationale.
+    listProfilePhotos(storagePath, { raw: true }).then(list => {
       if (cancelled) return
       const cropped = list.find(p => p.kind === 'cropped') || null
       const original = list.find(p => p.kind === 'original') || (cropped ? null : list[0]) || null
@@ -533,7 +534,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
     setUploading(true); setError(null)
     try {
       // Replacing the source — wipe the slot so old crops/originals don't linger.
-      const list = await listProfilePhotos(storagePath).catch(() => [])
+      const list = await listProfilePhotos(storagePath, { raw: true }).catch(() => [])
       for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
       const jpeg = await convertToJpeg(file)
       const result = await uploadProfilePhoto(storagePath, jpeg, 'original')
@@ -548,7 +549,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1 }) 
 
   async function handleDelete() {
     try {
-      const list = await listProfilePhotos(storagePath).catch(() => [])
+      const list = await listProfilePhotos(storagePath, { raw: true }).catch(() => [])
       for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
       setOriginalPhoto(null)
       setCroppedPhoto(null)

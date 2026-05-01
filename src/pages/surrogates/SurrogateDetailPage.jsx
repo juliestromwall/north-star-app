@@ -3903,7 +3903,10 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, lo
   useEffect(() => {
     if (!storagePath) return
     let cancelled = false
-    listProfilePhotos(storagePath).then(list => {
+    // Raw mode: this slot needs both the original (editor source) and any
+    // cropped (display thumbnail). Default listProfilePhotos hides originals
+    // once a cropped sibling exists.
+    listProfilePhotos(storagePath, { raw: true }).then(list => {
       if (cancelled) return
       const cropped = list.find(p => p.kind === 'cropped') || null
       const original = list.find(p => p.kind === 'original') || (cropped ? null : list[0]) || null
@@ -3922,7 +3925,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, lo
     try {
       // Replacing the source — delete every file in the folder so old
       // cropped + original from the prior photo don't linger.
-      const list = await listProfilePhotos(storagePath).catch(() => [])
+      const list = await listProfilePhotos(storagePath, { raw: true }).catch(() => [])
       for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
       const result = await uploadProfilePhoto(storagePath, file, 'original')
       if (result) {
@@ -3937,7 +3940,7 @@ function AdminPhotoSlot({ label, hint, storagePath, onChange, cropAspect = 1, lo
   async function handleDelete() {
     if (locked) return
     try {
-      const list = await listProfilePhotos(storagePath).catch(() => [])
+      const list = await listProfilePhotos(storagePath, { raw: true }).catch(() => [])
       for (const p of list) await deleteProfilePhoto(p.path).catch(() => {})
       setOriginalPhoto(null)
       setCroppedPhoto(null)
