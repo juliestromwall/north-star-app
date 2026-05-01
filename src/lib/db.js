@@ -772,13 +772,25 @@ export async function replaceProfilePhoto(oldPath, blob) {
   return { path: data.path, url: urlData.publicUrl + '?t=' + Date.now() }
 }
 
-export async function listProfilePhotos(userId) {
+/**
+ * List photos at a storage path.
+ *
+ * Default (display mode): when a `cropped_*` file exists, hide the
+ * `original_*` siblings — every consumer that's just rendering photos
+ * should see the latest crop instead of accidentally picking up the
+ * pre-crop source. Gallery folders never contain cropped files, so they
+ * pass through unchanged.
+ *
+ * Pass `{ raw: true }` to get the full unfiltered list (needed by the
+ * AdminPhotoSlot editor, which has to read the original to re-crop).
+ */
+export async function listProfilePhotos(userId, opts = {}) {
   if (!supabase) return []
   const { data, error } = await supabase.storage.from(BUCKET).list(userId, {
     sortBy: { column: 'created_at', order: 'asc' },
   })
   if (error) return []
-  return (data || [])
+  const all = (data || [])
     .filter(f => f.id && !f.name.startsWith('.'))
     .map(f => {
       const path = `${userId}/${f.name}`
@@ -788,6 +800,10 @@ export async function listProfilePhotos(userId) {
       const kind = f.name.startsWith('cropped_') ? 'cropped' : 'original'
       return { path, url: urlData.publicUrl, name: f.name, kind }
     })
+  if (opts.raw) return all
+  const hasCropped = all.some(p => p.kind === 'cropped')
+  if (hasCropped) return all.filter(p => p.kind === 'cropped')
+  return all
 }
 
 export async function getPortraitPhotoUrl(userId) {
