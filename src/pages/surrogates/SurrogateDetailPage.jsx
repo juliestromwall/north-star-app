@@ -2088,7 +2088,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
       <div className={`flex items-center gap-3 group hover:bg-stone-50/50 transition-colors ${compact ? 'px-4 py-2' : 'px-4 py-2.5'}`}>
         <DocIcon className="size-4 text-stone-300 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
+          <p className="text-xs font-medium text-stone-700 truncate" title={doc.file_name}>{doc.file_name}</p>
           <p className="text-[10px] text-stone-400">
             {formatFileSize(doc.file_size)}
             {doc.uploaded_by ? ` · ${doc.uploaded_by}` : ''}
