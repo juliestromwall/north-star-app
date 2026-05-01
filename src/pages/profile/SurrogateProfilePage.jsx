@@ -1593,13 +1593,15 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         </div>
       </div>
 
-      {/* ── Thumbnail Strip (hidden in print) ── */}
+      {/* ── Thumbnail Strip (hidden in print) — fixed height, variable
+          width so each thumbnail preserves its native aspect instead of
+          being squashed to a square. */}
       {galleryPhotos?.length > 1 && (
         <div data-pdf="thumbs" className="flex gap-2 px-8 sm:px-12 pt-4 pb-2 overflow-x-auto print:hidden">
           {galleryPhotos.map((ph, i) => (
             <button key={ph.path} onClick={() => setLightboxIdx(i)}
-              className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
-              <img src={ph.url} alt="" className="w-full h-full object-cover" />
+              className="h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 hover:scale-105 transition-all ring-1 ring-stone-200">
+              <img src={ph.url} alt="" className="h-full w-auto block" />
             </button>
           ))}
         </div>
@@ -1953,13 +1955,14 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             </>
           )}
         </div>
-        {/* Thumbnail strip */}
+        {/* Thumbnail strip — fixed height, variable width so each thumbnail
+            preserves its native aspect (no more cropped-to-square preview). */}
         {galleryPhotos.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 mb-10 max-w-[90vw] overflow-x-auto">
             {galleryPhotos.map((ph, i) => (
               <button key={ph.path} onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
-                className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
-                <img src={ph.url} alt="" className="w-full h-full object-cover" />
+                className={`h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${i === lightboxIdx ? 'border-white scale-110' : 'border-white/30 opacity-60 hover:opacity-100'}`}>
+                <img src={ph.url} alt="" className="h-full w-auto block" />
               </button>
             ))}
           </div>
