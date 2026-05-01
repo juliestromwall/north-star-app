@@ -3169,8 +3169,19 @@ export default function JourneyDetailPage() {
                     </div>
                   )}
                 </div>
-                <AISummaryButton caseId={journey.id} caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} caseType="journey" stage={stageObj.label} status={journey.status} journeyData={jd} />
-                <JourneyUpdateButton caseId={journey.id} caseType="journey" caseName={journey.label || `${journey.gc_name} & ${journey.ip_name}`} />
+                <AISummaryButton
+                  caseId={journey.id}
+                  caseName={journey.label || [gcCase?.name || journey.gc_name, ipCase?.names || journey.ip_name].filter(Boolean).join(' & ')}
+                  caseType="journey"
+                  stage={stageObj.label}
+                  status={journey.status}
+                  journeyData={jd}
+                />
+                <JourneyUpdateButton
+                  caseId={journey.id}
+                  caseType="journey"
+                  caseName={journey.label || [gcCase?.name || journey.gc_name, ipCase?.names || journey.ip_name].filter(Boolean).join(' & ')}
+                />
               </div>
               {/* Actions dropdown — collapses Archive / Unarchive / Break Match
                   and the tandem partner shortcut into one button so the hero

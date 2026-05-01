@@ -47,6 +47,19 @@ function mergeUpdates(arrays) {
   return merged.sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime())
 }
 
+function cleanCaseName(caseName) {
+  const raw = String(caseName || '').trim()
+  if (!raw) return ''
+  const cleaned = raw
+    .replace(/\bundefined\b/gi, '')
+    .replace(/\bnull\b/gi, '')
+    .replace(/\s*&\s*/g, ' & ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^(?:&\s*)+|(?:\s*&)+$/g, '')
+    .trim()
+  return cleaned
+}
+
 export default function JourneyUpdateButton({ caseId, caseType = 'journey', caseName, compact = false, hideIfEmpty = false }) {
   const { currentUser } = useRole()
   const [open, setOpen] = useState(false)
@@ -56,6 +69,7 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
   const [saving, setSaving] = useState(false)
   const [configKey, setConfigKey] = useState(caseId ? `journey_updates_${normalizeCaseType(caseType)}_${caseId}` : '')
   const [candidateKeys, setCandidateKeys] = useState([])
+  const displayCaseName = cleanCaseName(caseName)
 
   useEffect(() => {
     let cancelled = false
@@ -156,7 +170,7 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
         <button onClick={() => setOpen(true)} title="Journey Updates" className="text-stone-400 hover:text-[#283693] transition-colors">
           <Megaphone className="size-3.5" />
         </button>
-        <UpdateDialog open={open} onOpenChange={setOpen} updates={updates} newUpdate={newUpdate} setNewUpdate={setNewUpdate} saving={saving} onAdd={handleAdd} onDelete={handleDelete} caseName={caseName} />
+        <UpdateDialog open={open} onOpenChange={setOpen} updates={updates} newUpdate={newUpdate} setNewUpdate={setNewUpdate} saving={saving} onAdd={handleAdd} onDelete={handleDelete} caseName={displayCaseName} />
       </>
     )
   }
@@ -166,7 +180,7 @@ export default function JourneyUpdateButton({ caseId, caseType = 'journey', case
       <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setOpen(true)}>
         <Megaphone className="size-3" /> Journey Update
       </Button>
-      <UpdateDialog open={open} onOpenChange={setOpen} updates={updates} newUpdate={newUpdate} setNewUpdate={setNewUpdate} saving={saving} onAdd={handleAdd} onDelete={handleDelete} caseName={caseName} />
+      <UpdateDialog open={open} onOpenChange={setOpen} updates={updates} newUpdate={newUpdate} setNewUpdate={setNewUpdate} saving={saving} onAdd={handleAdd} onDelete={handleDelete} caseName={displayCaseName} />
     </>
   )
 }
@@ -187,10 +201,9 @@ function UpdateDialog({ open, onOpenChange, updates, newUpdate, setNewUpdate, sa
               value={newUpdate}
               onChange={e => setNewUpdate(e.target.value)}
               placeholder="Type a journey update..."
-              rows={1}
+              rows={3}
               className="text-sm flex-1 resize-none border-stone-200 focus:border-stone-300 !ring-0 !outline-none !shadow-none"
               style={{ boxShadow: 'none' }}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAdd() } }}
             />
             <Button size="sm" className="gap-1 shrink-0 self-end" style={{ backgroundColor: '#ed148c' }} onClick={onAdd} disabled={saving || !newUpdate.trim()}>
               {saving ? <Loader2 className="size-3 animate-spin" /> : <Plus className="size-3" />} Add
