@@ -761,6 +761,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   // Attorney sheet: ask which attorney to send to
   const [attorneyPickerOpen, setAttorneyPickerOpen] = useState(false)
   const [pendingPdf, setPendingPdf] = useState(null)
+  // "Have you reviewed all the information?" gate before any send.
+  const [reviewConfirmOpen, setReviewConfirmOpen] = useState(false)
 
   async function sendMatchSheet() {
     setGenerating(true)
@@ -830,15 +832,59 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   function sendAttorneySheet(recipient) {
     const jd = journey?.journey_data || {}
     const ipAnswers = ipCase?.answers || {}
-    const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
-    const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
+    const gcApp = gcCase?.answers?._application || {}
+    const ip1First = ipAnswers.primaryFirstName || ''
+    const ip1Last = ipAnswers.primaryLastName || ''
+    const ip1Name = `${ip1First} ${ip1Last}`.trim()
+    const ipHasPartner = ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes'
+    const ip2First = ipAnswers.ip2FirstName || ''
+    const ip2Last = ipAnswers.ip2LastName || ''
+    const ip2Name = ipHasPartner ? `${ip2First} ${ip2Last}`.trim() : ''
     const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+    const gcFullName = gcApp.fullLegalName || gcCase?.name || ''
+    const gcFirstName = gcFullName.split(/\s+/)[0] || gcFullName
+    const gcHasPartner = gcApp.hasSpouse === 'yes' || gcApp.hasSpouse === true
+    const gcPartnerFirst = gcApp.spouseFirstName || ''
+    const gcPartnerLast = gcApp.spouseLastName || ''
+    const gcPartnerFull = `${gcPartnerFirst} ${gcPartnerLast}`.trim()
+    const partnerRelationship = (gcApp.maritalStatus || gcApp.relationshipStatus || 'spouse/partner').toLowerCase()
+
     const toEmail = recipient === 'ip' ? jd.ipAttorneyEmail : jd.gcAttorneyEmail
-    const attorneyName = recipient === 'ip' ? jd.ipAttorneyName : jd.gcAttorneyName
+    const attorneyFullName = recipient === 'ip' ? (jd.ipAttorneyName || '') : (jd.gcAttorneyName || '')
+    const attorneyFirst = attorneyFullName.split(/\s+/)[0] || attorneyFullName
+    const otherAttorneyFullName = recipient === 'ip' ? (jd.gcAttorneyName || '') : (jd.ipAttorneyName || '')
+    const otherAttorneyFirst = otherAttorneyFullName.split(/\s+/)[0] || otherAttorneyFullName
+    const clinicName = jd.ivfClinicName || jd.clinicName || ''
+    const clinicState = jd.ivfState || jd.clinicState || ''
+
+    // The bulleted attachment list is dynamic — only include items we
+    // actually have data for. Doc-label-driven items (paystubs, benefit
+    // package, insurance review, background reports) will be wired up in
+    // the next push when the labeling system lands.
+    const bullets = []
+    bullets.push('Attorney Match Sheet')
+    // GC + Partner photo IDs are uploaded via the portal under photo-id
+    // category. We can't sync-check storage here, so list them
+    // unconditionally based on profile flags — admins can prune the
+    // bullet in the compose window before sending if a doc is missing.
+    bullets.push(`${gcFirstName}'s ID`)
+    if (gcHasPartner && gcPartnerFull) {
+      bullets.push(`${gcPartnerFull}'s ID (${partnerRelationship})`)
+    }
+    const bulletsHtml = bullets.map(b => `<li>${b}</li>`).join('')
+
+    const body = `<p>Hi ${attorneyFirst || ''},</p>
+<p>I am writing to let you know that our Intended Parents ${ipNames} and their gestational surrogate ${gcFullName} are working with ${clinicName || '{clinic name}'} in ${clinicState || '{clinic state}'} and are ready to begin legal contracts. We will use SeedTrust Escrow, LLC to hold escrow.</p>
+<p>${gcFullName} will be represented by ${recipient === 'ip' ? (jd.gcAttorneyName || '{GC Attorney Full Name}') : (jd.ipAttorneyName || '{IP Attorney Full Name}')}. I will be reaching out to ${otherAttorneyFirst || '{other attorney first name}'} shortly and I will send ${otherAttorneyFirst ? 'them' : 'her'} this information as well.</p>
+<p>Attached, you will find the following:</p>
+<ul>${bulletsHtml}</ul>
+<p>Please let me know if any additional information is needed. I look forward to working with you.</p>
+<p>Thank you,</p>`
+
     openDraft({
       to: toEmail || '',
-      subject: `Attorney Match Sheet - ${ipNames} with GC ${gcCase?.name || ''}`,
-      body: '',
+      subject: `Attorney Referral for ${ipNames} with ${gcFullName}`,
+      body,
       userId: currentUser?.id,
       caseId: journey.id,
       caseType: 'journey',
@@ -882,7 +928,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
                   <p className="text-xs text-stone-400 mt-1 leading-relaxed">{sheet.description}</p>
                 </div>
                 <Button variant="outline" size="sm" className="gap-1.5 rounded-full text-xs mt-2" style={{ color: sheet.color, borderColor: sheet.color + '40' }}>
-                  <Eye className="size-3.5" /> Preview & Download
+                  <Eye className="size-3.5" /> Preview & Send
                 </Button>
               </CardContent>
             </Card>
@@ -905,11 +951,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
               <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={printSheet}>
                 <Printer className="size-3.5" /> Print
               </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={saveToDocuments} disabled={generating}>
-                {generating ? <Clock className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                Save to Documents
-              </Button>
-              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={sendMatchSheet} disabled={generating}>
+              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={() => setReviewConfirmOpen(true)} disabled={generating}>
                 {generating ? <Clock className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                 Send Match Sheet
               </Button>
@@ -929,6 +971,34 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
           </div>
         </div>
       )}
+
+      {/* "Have you reviewed all the information?" gate — shown before any
+          send, regardless of which sheet type. "Go back" closes; "Yes,
+          send" runs the original sendMatchSheet flow which (for attorney
+          sheets) opens the attorney picker, and (for escrow/clinic) opens
+          a draft directly. */}
+      <Dialog open={reviewConfirmOpen} onOpenChange={v => { if (!v) setReviewConfirmOpen(false) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Have you reviewed all the information?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            Please double-check that everything on the match sheet is correct before sending.
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setReviewConfirmOpen(false)}>
+              Go back
+            </Button>
+            <Button
+              size="sm"
+              style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color, color: '#fff' }}
+              onClick={() => { setReviewConfirmOpen(false); sendMatchSheet() }}
+            >
+              Yes, send
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Attorney Picker Dialog */}
       <Dialog open={attorneyPickerOpen} onOpenChange={v => { if (!v) { setAttorneyPickerOpen(false); setPendingPdf(null) } }}>
