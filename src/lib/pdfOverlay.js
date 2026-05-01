@@ -365,16 +365,64 @@ export async function appendAuditTrailPage(pdfBlob, audit) {
     ['Signer:',       audit?.signerName || ''],
     ['Email:',        audit?.signerEmail || ''],
     ['Signature:',    sigDescriptor],
-    ['User Agent:',   (audit?.userAgent || '').slice(0, 80)],
+    ['User Agent:',   audit?.userAgent || ''],
     ['IP Address:',   audit?.ipAddress || 'Captured at signing'],
   ]
 
+  // Wrap a value into lines that fit a given width, at the given font size.
+  // Word-aware where possible; falls back to char-by-char so a long UA
+  // string (Mozilla/5.0 ... like Gecko) Chrome/142.0.0.0 Safari/537.36)
+  // breaks instead of running off the page.
+  function wrapValue(text, maxWidth, font, size) {
+    const s = String(text || '')
+    if (!s) return ['']
+    const words = s.split(/(\s+)/) // keep separators so we can rejoin cleanly
+    const lines = []
+    let current = ''
+    function flush() { if (current) { lines.push(current); current = '' } }
+    for (const w of words) {
+      const trial = current + w
+      if (font.widthOfTextAtSize(trial, size) <= maxWidth) {
+        current = trial
+        continue
+      }
+      // Word doesn't fit on the current line: emit current, then break the
+      // word itself char-by-char if it's still too wide on its own.
+      flush()
+      if (font.widthOfTextAtSize(w, size) <= maxWidth) {
+        current = w.replace(/^\s+/, '')
+        continue
+      }
+      let chunk = ''
+      for (const ch of w) {
+        if (font.widthOfTextAtSize(chunk + ch, size) > maxWidth) {
+          if (chunk) lines.push(chunk)
+          chunk = ch
+        } else {
+          chunk += ch
+        }
+      }
+      current = chunk
+    }
+    flush()
+    return lines.length ? lines : ['']
+  }
+
+  const VALUE_X = 200
+  const VALUE_MAX_WIDTH = 562 - VALUE_X
+  const SIZE = 11
+  const LINE_HEIGHT = 14
   let y = 685
   for (const [label, val] of rows) {
     if (!val) continue
-    page.drawText(label, { x: 50, y, size: 11, font: helvBold, color: rgb(0, 0, 0) })
-    page.drawText(String(val), { x: 200, y, size: 11, font: helv, color: rgb(0, 0, 0) })
-    y -= 22
+    page.drawText(label, { x: 50, y, size: SIZE, font: helvBold, color: rgb(0, 0, 0) })
+    const lines = wrapValue(val, VALUE_MAX_WIDTH, helv, SIZE)
+    for (let i = 0; i < lines.length; i++) {
+      page.drawText(lines[i], { x: VALUE_X, y: y - i * LINE_HEIGHT, size: SIZE, font: helv, color: rgb(0, 0, 0) })
+    }
+    // Reserve enough vertical space for the wrapped lines (min 22pt to keep
+    // the row rhythm matching pre-wrap layout).
+    y -= Math.max(22, lines.length * LINE_HEIGHT + 8)
   }
 
   // Footer disclaimer
