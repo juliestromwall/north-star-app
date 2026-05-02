@@ -236,7 +236,28 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
   const [confirmingDeleteRecord, setConfirmingDeleteRecord] = useState(false)
   const entry = step._entry
   const status = step._status
-  const log = useMemo(() => Array.isArray(entry.log) ? entry.log : [], [entry.log])
+  // The new UI persists log entries as `entry.log` with shape
+  // { id, status, from, changed_at, changed_by, note }. Pre-revamp data lived
+  // in `entry.history` as { status, date, note, by, ... }. Merge both so older
+  // records keep showing all the activity that was previously logged.
+  const log = useMemo(() => {
+    const newLog = Array.isArray(entry.log) ? entry.log : []
+    const legacyHistory = Array.isArray(entry.history) ? entry.history : []
+    if (newLog.length === 0 && legacyHistory.length === 0) return []
+    const normalizedLegacy = legacyHistory
+      .filter(h => h && !h._deactivate) // skip legacy NA-toggle markers
+      .map((h, i) => ({
+        id: h.id || `_legacy_${i}`,
+        status: h.status,
+        from: '',
+        changed_at: h.date || h.changed_at || '',
+        changed_by: h.by || h.changed_by || '',
+        note: h.note || '',
+      }))
+    const merged = [...normalizedLegacy, ...newLog]
+    merged.sort((a, b) => String(a.changed_at).localeCompare(String(b.changed_at)))
+    return merged
+  }, [entry.log, entry.history])
   const isComplete = TERMINAL_STATUSES.has(status)
 
   // Auto-collapse when terminal; user can manually toggle.
@@ -284,7 +305,10 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
       changed_by: currentUserName,
       note: newLogNote || '',
     }
-    onUpdate(step.id, { ...entry, status: newLogStatus, log: [...log, newLog] })
+    // `log` here is the merged view (legacy entry.history + new entry.log).
+    // Persist the full merged list to entry.log AND clear entry.history so we
+    // don't double-count on next render once both shapes coexist.
+    onUpdate(step.id, { ...entry, status: newLogStatus, log: [...log, newLog], history: [] })
     if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: newLogStatus, by: currentUserName })
     // Reset row for the next log
     setNewLogStatus('')
@@ -305,7 +329,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
       if (id !== editingLogId) return l
       return { ...l, changed_at: isoFromDate, note: editLogNote }
     })
-    onUpdate(step.id, { ...entry, log: newList })
+    onUpdate(step.id, { ...entry, log: newList, history: [] })
     setEditingLogId(null)
   }
   function cancelEditLog() { setEditingLogId(null) }
@@ -317,7 +341,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
     if (newList.length !== log.length) {
       newStatus = newList.length ? newList[newList.length - 1].status : 'not_started'
     }
-    onUpdate(step.id, { ...entry, status: newStatus, log: newList })
+    onUpdate(step.id, { ...entry, status: newStatus, log: newList, history: [] })
   }
 
   const colors = statusColors(status)
