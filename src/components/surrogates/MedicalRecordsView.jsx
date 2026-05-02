@@ -145,25 +145,90 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
         </div>
       </div>
 
-      {/* RECORD CARDS — stacked */}
-      <div className="space-y-3">
-        {stepsWithMeta.map((step, idx) => (
-          <RecordCard
-            key={step.id}
-            step={step}
-            recordNumber={idx + 1}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onStatusLog={onStatusLog}
-            currentUserName={currentUserName}
-          />
-        ))}
-      </div>
+      {/* RECORD GROUPS — by delivery year, with IVF → OB → Delivery ordering
+          inside each year. PAP + ad-hoc records collected under "Other Records"
+          at the bottom. */}
+      {(() => {
+        const groups = groupStepsByYear(stepsWithMeta)
+        return (
+          <div className="space-y-6">
+            {groups.years.map(g => (
+              <section key={g.year}>
+                <h3 className="text-2xl font-heading font-black text-[#ed148c]/60 tracking-tight mb-2 px-1">
+                  {g.year}
+                </h3>
+                <div className="space-y-3">
+                  {g.steps.map(step => (
+                    <RecordCard
+                      key={step.id}
+                      step={step}
+                      onUpdate={onUpdate}
+                      onDelete={onDelete}
+                      onStatusLog={onStatusLog}
+                      currentUserName={currentUserName}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+            {groups.other.length > 0 && (
+              <section>
+                <h3 className="text-2xl font-heading font-black text-[#ed148c]/60 tracking-tight mb-2 px-1">
+                  Other Records
+                </h3>
+                <div className="space-y-3">
+                  {groups.other.map(step => (
+                    <RecordCard
+                      key={step.id}
+                      step={step}
+                      onUpdate={onUpdate}
+                      onDelete={onDelete}
+                      onStatusLog={onStatusLog}
+                      currentUserName={currentUserName}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
 
-function RecordCard({ step, recordNumber, onUpdate, onDelete, onStatusLog, currentUserName }) {
+// Group records by delivery year. PAP + custom_record_* + anything missing a
+// year drops into the "Other" bucket. Within each year, sort IVF → OB →
+// Delivery (chronological for one pregnancy).
+function groupStepsByYear(stepsWithMeta) {
+  const TYPE_ORDER = { ivf: 1, ob: 2, delivery: 3 }
+  const byYear = {}
+  const other = []
+  for (const step of stepsWithMeta) {
+    const isCustom = /^custom_record_/.test(step.id)
+    const isPap = step.id === 'pap'
+    const year = step._deliveryYear
+    if (isCustom || isPap || !year) {
+      other.push(step)
+      continue
+    }
+    if (!byYear[year]) byYear[year] = []
+    byYear[year].push(step)
+  }
+  for (const year of Object.keys(byYear)) {
+    byYear[year].sort((a, b) => {
+      const at = TYPE_ORDER[(a.badge?.label || '').toLowerCase()] || 99
+      const bt = TYPE_ORDER[(b.badge?.label || '').toLowerCase()] || 99
+      return at - bt
+    })
+  }
+  const years = Object.keys(byYear)
+    .sort((a, b) => Number(a) - Number(b))
+    .map(year => ({ year, steps: byYear[year] }))
+  return { years, other }
+}
+
+function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) {
   // Manually-added records (added via the "+ Add Record" button) get a delete
   // affordance — auto-generated rows can't be deleted here since they'd just
   // re-render from the pregnancy-data auto-gen on next paint.
@@ -277,9 +342,6 @@ function RecordCard({ step, recordNumber, onUpdate, onDelete, onStatusLog, curre
         >
           {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
         </button>
-        <span className="text-2xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums shrink-0">
-          {String(recordNumber).padStart(2, '0')}
-        </span>
         <div className="flex-1 min-w-0">
           {editingField === 'label' ? (
             <InlineEditInput
@@ -308,11 +370,6 @@ function RecordCard({ step, recordNumber, onUpdate, onDelete, onStatusLog, curre
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {step.badge && (
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${step.badge.color}`}>{step.badge.label}</span>
-            )}
-            {step._deliveryYear && (
-              <span className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">
-                Delivery year · {step._deliveryYear}
-              </span>
             )}
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${colors.badge}`}>
               {status === 'not_started' ? 'Not Started' : statusLabel(status)}
