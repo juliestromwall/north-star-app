@@ -1,17 +1,18 @@
 import { useState, useMemo } from 'react'
-import { Check, X, Pencil, Trash2, Phone as PhoneIcon, Printer, Mail as MailIcon, Plus } from 'lucide-react'
+import { Check, X, Pencil, Trash2, Phone as PhoneIcon, Printer, Mail as MailIcon, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 
 /**
- * Stacked-list medical records UI. Each record is a full-width card that's
- * always expanded: header (badge + delivery year + inline-editable title +
- * provider details inline) → status pills → "+ Log" panel → history
- * (always visible, oldest → newest). No two-pane, no clicking to navigate
- * between records — Desiree's preference for list-style.
+ * Stacked-list medical records UI. Each record is a full-width card. Cards
+ * collapse by default once the record reaches a terminal status (Records
+ * Complete / Already Collected / Skip); otherwise expanded. Click the card
+ * header to toggle.
  *
- * Status options reflect the records-collection workflow (Faxed Request,
- * Refaxed, Confirmed Fax Received, etc.). Internally `complete` is reused
- * for "Records Complete" and `na` for "Skip" to keep existing tracking
- * data interpretable.
+ * Logging is inline: an always-visible "next log" row at the bottom of the
+ * history takes [Status select] [Date] [Note] [+ Log]. Pick a status, type
+ * an optional note, click + → log appended and current status updated.
+ *
+ * Status ids: `complete` and `na` reused from legacy tracking shape so
+ * existing data is interpretable.
  */
 
 const STATUS_PILLS = [
@@ -23,15 +24,52 @@ const STATUS_PILLS = [
   { id: 'fax_received_reviewing',     label: 'Fax Received - Reviewing' },
   { id: 'partial_records_incomplete', label: 'Partial Records (Incomplete)' },
   { id: 'partial_records_complete',   label: 'Partial Records (Complete)' },
-  { id: 'complete',                   label: 'Records Complete' },        // id stays 'complete' for back-compat
+  { id: 'complete',                   label: 'Records Complete' },
   { id: 'already_collected',          label: 'Already Collected' },
-  { id: 'na',                         label: 'Skip' },                    // id stays 'na' for back-compat
+  { id: 'na',                         label: 'Skip' },
 ]
 
-const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected'])
+// Statuses that count as "done" for the progress bar and trigger auto-collapse.
+// Partial Records (Complete) is treated as done since it means we've collected
+// everything we're going to collect from this provider.
+const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected', 'partial_records_complete'])
 
-// Legacy ids that may exist in old tracking data — keep them recognizable
-// in the history readout even though they're not currently selectable.
+// Color buckets — each status maps to a visual state so admins can scan the
+// records list and immediately see which ones need follow-up.
+//   yellow → request sent, waiting on provider
+//   blue   → response received, in review
+//   green  → fully done (records in hand, or already collected)
+//   gray   → skipped (not applicable)
+//   white  → not started yet
+const YELLOW_STATUSES = new Set(['faxed_request', 'refaxed_request', 'records_sent_by_mail', 'followed_up'])
+const BLUE_STATUSES   = new Set(['confirmed_fax_received', 'fax_received_reviewing', 'partial_records_incomplete'])
+const GREEN_STATUSES  = new Set(['complete', 'already_collected', 'partial_records_complete'])
+const GRAY_STATUSES   = new Set(['na'])
+
+function statusColors(status) {
+  if (GRAY_STATUSES.has(status))   return { card: 'bg-stone-100/60 border-stone-200',   badge: 'bg-stone-200 text-stone-600' }
+  if (GREEN_STATUSES.has(status))  return { card: 'bg-emerald-50/50 border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' }
+  if (BLUE_STATUSES.has(status))   return { card: 'bg-sky-50/60 border-sky-200',         badge: 'bg-sky-100 text-sky-700' }
+  if (YELLOW_STATUSES.has(status)) return { card: 'bg-amber-50/60 border-amber-200',     badge: 'bg-amber-100 text-amber-800' }
+  return { card: 'bg-white border-stone-200', badge: 'bg-stone-100 text-stone-500' }
+}
+
+function formatLogDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`
+}
+
+// "Julie Stromwall" → "JS", "Desiree Melchiori" → "DM"; falls back to first
+// 2 chars uppercased if there's only one word.
+function initialsOf(name) {
+  if (!name) return '—'
+  const parts = String(name).trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 const LEGACY_LABELS = {
   not_started:         'Not Started',
   requested:           'Requested',
@@ -51,20 +89,11 @@ function isoDatePart(iso) {
   return m ? m[1] : ''
 }
 
-function formatRelativeTime(iso) {
-  if (!iso) return ''
-  const sec = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
-  if (sec < 60) return 'just now'
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`
-  return `${Math.floor(sec / 86400)}d ago`
-}
-
 function statusLabel(id) {
   return STATUS_PILLS.find(p => p.id === id)?.label || LEGACY_LABELS[id] || (id || '').replace(/_/g, ' ')
 }
 
-export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, currentUserName, onStatusLog, providerDefaults = {} }) {
+export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {} }) {
   const stepsWithMeta = useMemo(() => medSteps.map(step => {
     const entry = tracking[step.id] || {}
     const status = entry.status || 'not_started'
@@ -94,25 +123,29 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
   }
 
   return (
-    <div className="space-y-3">
-      {/* Progress summary header */}
-      <div className="flex items-center justify-between gap-4 px-1">
-        <div className="flex-1">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1">Records</p>
-          <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${counts.total > 0 ? (counts.complete / counts.total) * 100 : 0}%`,
-                background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
-              }}
-            />
-          </div>
+    <div className="space-y-4">
+      {/* HEADER — prominent, with progress bar + count */}
+      <div className="rounded-2xl bg-gradient-to-r from-[#283693]/8 via-[#283693]/5 to-[#ed148c]/8 border border-[#283693]/15 px-5 py-4">
+        <div className="flex items-center justify-between gap-4 mb-2.5">
+          <h2 className="font-heading font-black text-lg sm:text-xl text-[#283693] tracking-tight">
+            Medical Records to Collect
+          </h2>
+          <p className="text-sm font-bold text-stone-600 tabular-nums shrink-0">
+            {counts.complete} <span className="text-stone-400 font-medium">/ {counts.total} complete</span>
+          </p>
         </div>
-        <p className="text-xs text-stone-500 font-medium tabular-nums">{counts.complete} / {counts.total} complete</p>
+        <div className="h-2 rounded-full bg-white/60 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{
+              width: `${counts.total > 0 ? (counts.complete / counts.total) * 100 : 0}%`,
+              background: counts.complete === counts.total ? '#10b981' : 'linear-gradient(90deg, #283693, #ed148c)',
+            }}
+          />
+        </div>
       </div>
 
-      {/* Stacked list of records — every record fully expanded */}
+      {/* RECORD CARDS — stacked */}
       <div className="space-y-3">
         {stepsWithMeta.map((step, idx) => (
           <RecordCard
@@ -120,6 +153,7 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
             step={step}
             recordNumber={idx + 1}
             onUpdate={onUpdate}
+            onDelete={onDelete}
             onStatusLog={onStatusLog}
             currentUserName={currentUserName}
           />
@@ -129,25 +163,34 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
   )
 }
 
-function RecordCard({ step, recordNumber, onUpdate, onStatusLog, currentUserName }) {
+function RecordCard({ step, recordNumber, onUpdate, onDelete, onStatusLog, currentUserName }) {
+  // Manually-added records (added via the "+ Add Record" button) get a delete
+  // affordance — auto-generated rows can't be deleted here since they'd just
+  // re-render from the pregnancy-data auto-gen on next paint.
+  const canDelete = typeof onDelete === 'function' && /^custom_record_/.test(step.id)
+  const [confirmingDeleteRecord, setConfirmingDeleteRecord] = useState(false)
   const entry = step._entry
   const status = step._status
   const log = useMemo(() => Array.isArray(entry.log) ? entry.log : [], [entry.log])
   const isComplete = TERMINAL_STATUSES.has(status)
 
+  // Auto-collapse when terminal; user can manually toggle.
+  const [manualExpanded, setManualExpanded] = useState(null) // null = use default, true/false = override
+  const expanded = manualExpanded === null ? !isComplete : manualExpanded
+
   // Inline edit state for header fields
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
 
-  // Note (per-record sticky note)
-  const [noteOpen, setNoteOpen] = useState(false)
-  const [noteDraft, setNoteDraft] = useState(entry.note || '')
-
-  // Log creation/edit panel
-  const [logMode, setLogMode] = useState(null) // null | { kind: 'create', status } | { kind: 'edit', logId }
-  const [logDate, setLogDate] = useState(todayIsoDate())
-  const [logNote, setLogNote] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
+  const [editingLogId, setEditingLogId] = useState(null)
+  const [editLogDate, setEditLogDate] = useState('')
+  const [editLogNote, setEditLogNote] = useState('')
+
+  // Inline new-log row state — always present at the bottom of history.
+  const [newLogStatus, setNewLogStatus] = useState('')
+  const [newLogDate, setNewLogDate] = useState(todayIsoDate())
+  const [newLogNote, setNewLogNote] = useState('')
 
   function startInlineEdit(field, current) {
     setEditingField(field); setDraft(current || '')
@@ -165,42 +208,42 @@ function RecordCard({ step, recordNumber, onUpdate, onStatusLog, currentUserName
   }
   function cancelInlineEdit() { setEditingField(null); setDraft('') }
 
-  function openLogCreate(newStatus) {
-    setLogMode({ kind: 'create', status: newStatus })
-    setLogDate(todayIsoDate())
-    setLogNote('')
-  }
-  function openLogEdit(logEntry) {
-    setLogMode({ kind: 'edit', logId: logEntry.id || logEntry._idx })
-    setLogDate(isoDatePart(logEntry.changed_at) || todayIsoDate())
-    setLogNote(logEntry.note || '')
-  }
-  function cancelLog() { setLogMode(null) }
-
-  function saveLog() {
-    if (!logMode) return
-    const isoFromDate = `${logDate}T${new Date().toTimeString().slice(0, 8)}Z`
-    if (logMode.kind === 'create') {
-      const newLog = {
-        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        status: logMode.status,
-        from: status,
-        changed_at: isoFromDate,
-        changed_by: currentUserName,
-        note: logNote || '',
-      }
-      onUpdate(step.id, { ...entry, status: logMode.status, log: [...log, newLog] })
-      if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: logMode.status, by: currentUserName })
-    } else if (logMode.kind === 'edit') {
-      const newList = log.map((l, idx) => {
-        const id = l.id || `_idx_${idx}`
-        if (id !== logMode.logId) return l
-        return { ...l, changed_at: isoFromDate, note: logNote }
-      })
-      onUpdate(step.id, { ...entry, log: newList })
+  function addNewLog() {
+    if (!newLogStatus) return
+    const isoFromDate = `${newLogDate}T${new Date().toTimeString().slice(0, 8)}Z`
+    const newLog = {
+      id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      status: newLogStatus,
+      from: status,
+      changed_at: isoFromDate,
+      changed_by: currentUserName,
+      note: newLogNote || '',
     }
-    setLogMode(null)
+    onUpdate(step.id, { ...entry, status: newLogStatus, log: [...log, newLog] })
+    if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: newLogStatus, by: currentUserName })
+    // Reset row for the next log
+    setNewLogStatus('')
+    setNewLogDate(todayIsoDate())
+    setNewLogNote('')
   }
+
+  function startEditLog(logEntry) {
+    setEditingLogId(logEntry.id || logEntry._idx)
+    setEditLogDate(isoDatePart(logEntry.changed_at) || todayIsoDate())
+    setEditLogNote(logEntry.note || '')
+  }
+  function saveEditLog() {
+    if (!editingLogId) return
+    const isoFromDate = `${editLogDate}T${new Date().toTimeString().slice(0, 8)}Z`
+    const newList = log.map((l, idx) => {
+      const id = l.id || `_idx_${idx}`
+      if (id !== editingLogId) return l
+      return { ...l, changed_at: isoFromDate, note: editLogNote }
+    })
+    onUpdate(step.id, { ...entry, log: newList })
+    setEditingLogId(null)
+  }
+  function cancelEditLog() { setEditingLogId(null) }
 
   function deleteLog(logEntry) {
     const id = logEntry.id || logEntry._idx
@@ -212,17 +255,28 @@ function RecordCard({ step, recordNumber, onUpdate, onStatusLog, currentUserName
     onUpdate(step.id, { ...entry, status: newStatus, log: newList })
   }
 
-  function saveNote() {
-    onUpdate(step.id, { ...entry, note: noteDraft })
-    setNoteOpen(false)
-  }
-
-  const cardBg = isComplete ? 'bg-emerald-50/30 border-emerald-100' : 'bg-white border-stone-200'
+  const colors = statusColors(status)
+  const cardBg = colors.card
+  const headerCursor = 'cursor-pointer'
 
   return (
-    <div className={`rounded-2xl border ${cardBg} px-5 py-4`}>
-      {/* HEADER ROW: number + title + badge + year */}
-      <div className="flex items-baseline gap-3 mb-2 pb-2 border-b border-stone-100">
+    <div className={`rounded-2xl border ${cardBg} overflow-hidden`}>
+      {/* HEADER ROW — clickable to toggle expand/collapse */}
+      <div
+        className={`flex items-start gap-3 px-5 py-3 ${headerCursor} hover:bg-stone-50/40 transition-colors`}
+        onClick={(e) => {
+          // Don't toggle when clicking interactive children (title rename input, etc.)
+          if (e.target.closest('input, button, a')) return
+          setManualExpanded(!expanded)
+        }}
+      >
+        <button
+          className="mt-1 text-stone-400 hover:text-[#283693] shrink-0"
+          onClick={(e) => { e.stopPropagation(); setManualExpanded(!expanded) }}
+          aria-label={expanded ? 'Collapse' : 'Expand'}
+        >
+          {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+        </button>
         <span className="text-2xl font-heading font-black text-[#ed148c]/60 leading-none tabular-nums shrink-0">
           {String(recordNumber).padStart(2, '0')}
         </span>
@@ -237,13 +291,19 @@ function RecordCard({ step, recordNumber, onUpdate, onStatusLog, currentUserName
               autoFocus
             />
           ) : (
-            <h3
-              className="text-base font-heading font-black text-[#283693] tracking-tight leading-tight cursor-text hover:underline decoration-dotted decoration-stone-300 underline-offset-4 truncate inline-block"
-              title="Click to rename"
-              onClick={() => startInlineEdit('label', entry.customLabel || step.label)}
-            >
-              {entry.customLabel || step.label}
-            </h3>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <h3
+                className="text-base font-heading font-black text-[#283693] tracking-tight leading-tight cursor-text hover:underline decoration-dotted decoration-stone-300 underline-offset-4"
+                title="Click to rename"
+                onClick={(e) => { e.stopPropagation(); startInlineEdit('label', entry.customLabel || step.label) }}
+              >
+                {entry.customLabel || step.label}
+              </h3>
+              {/* Note inline with the title */}
+              <span className="min-w-[120px] max-w-[400px]" onClick={e => e.stopPropagation()}>
+                <HeaderNote entry={entry} stepId={step.id} onUpdate={onUpdate} />
+              </span>
+            </div>
           )}
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {step.badge && (
@@ -254,195 +314,193 @@ function RecordCard({ step, recordNumber, onUpdate, onStatusLog, currentUserName
                 Delivery year · {step._deliveryYear}
               </span>
             )}
-            {/* CURRENT STATUS BADGE — visually distinct from the action pills below */}
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-              isComplete ? 'bg-emerald-100 text-emerald-700' :
-              status === 'not_started' ? 'bg-stone-100 text-stone-500' :
-              'bg-[#283693]/10 text-[#283693]'
-            }`}>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${colors.badge}`}>
               {status === 'not_started' ? 'Not Started' : statusLabel(status)}
             </span>
           </div>
+          {/* Provider contacts — visible on header (collapsed AND expanded) */}
+          <div className="flex items-center gap-x-5 gap-y-1 flex-wrap text-xs mt-1.5" onClick={e => e.stopPropagation()}>
+            <ContactInline icon={PhoneIcon} label="Phone" value={step._provider.phone}
+              editing={editingField === 'phone'} draft={draft} setDraft={setDraft}
+              startEdit={() => startInlineEdit('phone', step._provider.phone)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="tel" />
+            <ContactInline icon={Printer} label="Fax" value={step._provider.fax}
+              editing={editingField === 'fax'} draft={draft} setDraft={setDraft}
+              startEdit={() => startInlineEdit('fax', step._provider.fax)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="tel" />
+            <ContactInline icon={MailIcon} label="Email" value={step._provider.email}
+              editing={editingField === 'email'} draft={draft} setDraft={setDraft}
+              startEdit={() => startInlineEdit('email', step._provider.email)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="email" />
+          </div>
         </div>
-      </div>
-
-      {/* PROVIDER ROW — name (prominent) + phone/fax/email inline */}
-      <div className="mb-3">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Provider</span>
-          {editingField === 'name' ? (
-            <InlineEditInput
-              value={draft}
-              onChange={setDraft}
-              onCommit={commitInlineEdit}
-              onCancel={cancelInlineEdit}
-              className="text-sm font-medium text-stone-800 min-w-[200px]"
-              autoFocus
-              placeholder="Provider name"
-            />
-          ) : (
-            <button
-              onClick={() => startInlineEdit('name', step._provider.name)}
-              className={`text-sm font-medium ${step._provider.name ? 'text-stone-800' : 'text-stone-300 italic'} hover:underline decoration-dotted decoration-stone-300 underline-offset-4 text-left`}
-            >
-              {step._provider.name || '+ Add provider name'}
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-x-5 gap-y-1.5 flex-wrap text-xs">
-          <ContactInline icon={PhoneIcon} label="Phone" field="phone" value={step._provider.phone}
-            editing={editingField === 'phone'} draft={draft} setDraft={setDraft}
-            startEdit={() => startInlineEdit('phone', step._provider.phone)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="tel" />
-          <ContactInline icon={Printer} label="Fax" field="fax" value={step._provider.fax}
-            editing={editingField === 'fax'} draft={draft} setDraft={setDraft}
-            startEdit={() => startInlineEdit('fax', step._provider.fax)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="tel" />
-          <ContactInline icon={MailIcon} label="Email" field="email" value={step._provider.email}
-            editing={editingField === 'email'} draft={draft} setDraft={setDraft}
-            startEdit={() => startInlineEdit('email', step._provider.email)} commit={commitInlineEdit} cancel={cancelInlineEdit} inputType="email" />
-        </div>
-      </div>
-
-      {/* STATUS PILLS — clicking opens the log confirm panel.
-          Active pill (= current record status) gets a thicker emerald ring + filled bg. */}
-      <div className="mb-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {STATUS_PILLS.map(s => {
-            const active = status === s.id
-            const isTerminal = TERMINAL_STATUSES.has(s.id)
-            const cls = active
-              ? isTerminal
-                ? 'bg-emerald-500 border-emerald-500 text-white font-bold ring-2 ring-emerald-200 shadow-sm'
-                : 'bg-[#283693] border-[#283693] text-white font-bold ring-2 ring-[#283693]/20 shadow-sm'
-              : 'bg-white border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-50'
-            return (
+        {canDelete && (
+          <div className="shrink-0" onClick={e => e.stopPropagation()}>
+            {confirmingDeleteRecord ? (
+              <span className="inline-flex items-center gap-1">
+                <span className="text-[10px] text-red-500 font-semibold mr-1">Delete record?</span>
+                <button onClick={() => { onDelete(step.id); setConfirmingDeleteRecord(false) }} className="text-[10px] font-bold text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded">Yes</button>
+                <button onClick={() => setConfirmingDeleteRecord(false)} className="text-[10px] text-stone-500 hover:bg-stone-100 px-1.5 py-0.5 rounded">No</button>
+              </span>
+            ) : (
               <button
-                key={s.id}
-                onClick={() => openLogCreate(s.id)}
-                className={`text-[11px] px-2.5 py-1 rounded-full border-2 transition-all ${cls}`}
+                onClick={() => setConfirmingDeleteRecord(true)}
+                className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                title="Delete this record"
               >
-                {active && <Check className="size-3 inline mr-0.5 -mt-0.5" strokeWidth={3} />}
-                {s.label}
+                <Trash2 className="size-3.5" />
               </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* LOG CONFIRM PANEL — date + single-line note side-by-side */}
-      {logMode && (
-        <div className="mb-3 rounded-xl border-2 border-[#283693]/40 bg-[#283693]/5 p-3">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold text-[#283693] uppercase tracking-wider">
-              {logMode.kind === 'create' ? `New log · ${statusLabel(logMode.status)}` : 'Edit log'}
-            </p>
-            <button onClick={cancelLog} className="text-stone-400 hover:text-stone-600">
-              <X className="size-4" />
-            </button>
+            )}
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-            <div className="space-y-1 shrink-0">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Date</label>
-              <input
-                type="date"
-                value={logDate}
-                onChange={e => setLogDate(e.target.value)}
-                className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-sm focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-              />
-            </div>
-            <div className="space-y-1 flex-1 min-w-0">
-              <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Note (optional)</label>
-              <input
-                type="text"
-                value={logNote}
-                onChange={e => setLogNote(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') saveLog() }}
-                placeholder="Quick note…"
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-sm focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-              />
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <button onClick={cancelLog} className="text-xs text-stone-500 hover:text-stone-700 px-3 py-1.5">Cancel</button>
-              <button
-                onClick={saveLog}
-                className="text-xs font-semibold text-white bg-[#283693] hover:bg-[#1f2a73] rounded-lg px-4 py-1.5 transition-colors"
-              >
-                {logMode.kind === 'create' ? 'Create log' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* HISTORY — always visible, oldest → newest */}
-      {log.length > 0 && (
-        <div className="mb-2">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-1.5">History</p>
-          <ul className="space-y-1 border-l-2 border-stone-200 pl-3">
-            {log.map((l, idx) => {
-              const stableId = l.id || `_idx_${idx}`
-              const withIdx = { ...l, _idx: stableId }
-              return (
-                <li key={stableId} className="group flex items-start gap-2 text-[11px]">
-                  <span className="flex-1 min-w-0">
-                    <span className="font-semibold text-stone-700">{statusLabel(l.status)}</span>
-                    <span className="ml-1.5 text-stone-400">
-                      {new Date(l.changed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      {' · '}{l.changed_by || 'Unknown'}
-                    </span>
-                    {l.note && <span className="block mt-0.5 italic text-stone-500">"{l.note}"</span>}
-                  </span>
-                  <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {pendingDeleteId === stableId ? (
-                      <>
-                        <span className="text-[10px] text-red-500 font-semibold mr-1">Delete?</span>
-                        <button onClick={() => { deleteLog(withIdx); setPendingDeleteId(null) }} className="text-[10px] font-bold text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded">Yes</button>
-                        <button onClick={() => setPendingDeleteId(null)} className="text-[10px] text-stone-500 hover:bg-stone-100 px-1.5 py-0.5 rounded">No</button>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => openLogEdit(withIdx)} className="p-0.5 text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 rounded" title="Edit log">
-                          <Pencil className="size-3" />
-                        </button>
-                        <button onClick={() => setPendingDeleteId(stableId)} className="p-0.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded" title="Delete log">
-                          <Trash2 className="size-3" />
-                        </button>
-                      </>
-                    )}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* NOTE (per-record sticky) */}
-      <div>
-        {noteOpen ? (
-          <div className="space-y-1.5">
-            <input
-              type="text"
-              value={noteDraft}
-              onChange={e => setNoteDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') saveNote() }}
-              className="w-full text-sm rounded-lg border border-stone-200 px-3 py-1.5 bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
-              placeholder="Sticky note for this record (admin only)…"
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => { setNoteOpen(false); setNoteDraft(entry.note || '') }} className="text-xs text-stone-400 hover:text-stone-700">Cancel</button>
-              <button onClick={saveNote} className="text-xs font-semibold text-[#283693] hover:underline">Save</button>
-            </div>
-          </div>
-        ) : entry.note ? (
-          <button onClick={() => { setNoteOpen(true); setNoteDraft(entry.note) }} className="block text-[11px] text-stone-500 italic hover:text-stone-700 text-left">
-            "{entry.note}"
-          </button>
-        ) : (
-          <button onClick={() => { setNoteOpen(true); setNoteDraft('') }} className="text-[10px] text-stone-400 hover:text-[#283693]">+ Sticky note</button>
         )}
       </div>
+
+      {/* EXPANDED BODY */}
+      {expanded && (
+        <div className="px-5 pb-4 pt-2 border-t border-stone-100">
+          {/* HISTORY + INLINE NEW-LOG ROW — primary interaction surface */}
+          <div className="mb-2">
+            <ul className="space-y-1.5 border-l-2 border-stone-200 pl-3">
+              {log.map((l, idx) => {
+                const stableId = l.id || `_idx_${idx}`
+                const withIdx = { ...l, _idx: stableId }
+                const isEditing = editingLogId === stableId
+                if (isEditing) {
+                  return (
+                    <li key={stableId} className="rounded-lg border border-[#283693]/30 bg-[#283693]/5 p-2 space-y-1.5">
+                      <p className="text-[10px] font-bold text-[#283693] uppercase tracking-wider">Editing · {statusLabel(l.status)}</p>
+                      <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center">
+                        <input type="date" value={editLogDate} onChange={e => setEditLogDate(e.target.value)} className="text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
+                        <input type="text" value={editLogNote} onChange={e => setEditLogNote(e.target.value)} placeholder="Note…" className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1 outline-none focus:border-[#283693]" />
+                        <div className="flex gap-1">
+                          <button onClick={cancelEditLog} className="text-[11px] text-stone-500 hover:text-stone-700 px-2 py-1">Cancel</button>
+                          <button onClick={saveEditLog} className="text-[11px] font-semibold text-white bg-[#283693] rounded px-2.5 py-1">Save</button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                }
+                return (
+                  <li key={stableId} className="group flex items-start gap-2 text-[11px]">
+                    <span className="flex-1 min-w-0">
+                      <span className="font-semibold text-stone-700">{statusLabel(l.status)}</span>
+                      <span className="ml-1.5 text-stone-400">
+                        {formatLogDate(l.changed_at)}
+                        {' · '}<span title={l.changed_by || 'Unknown'}>{initialsOf(l.changed_by)}</span>
+                      </span>
+                      {l.note && <span className="ml-2 font-medium text-[#283693]">{l.note}</span>}
+                    </span>
+                    <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {pendingDeleteId === stableId ? (
+                        <>
+                          <span className="text-[10px] text-red-500 font-semibold mr-1">Delete?</span>
+                          <button onClick={() => { deleteLog(withIdx); setPendingDeleteId(null) }} className="text-[10px] font-bold text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded">Yes</button>
+                          <button onClick={() => setPendingDeleteId(null)} className="text-[10px] text-stone-500 hover:bg-stone-100 px-1.5 py-0.5 rounded">No</button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => startEditLog(withIdx)} className="p-0.5 text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 rounded" title="Edit log">
+                            <Pencil className="size-3" />
+                          </button>
+                          <button onClick={() => setPendingDeleteId(stableId)} className="p-0.5 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded" title="Delete log">
+                            <Trash2 className="size-3" />
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </li>
+                )
+              })}
+
+              {/* INLINE NEW-LOG ROW — always present, becomes a real log on submit */}
+              <li className="pt-1.5">
+                <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center rounded-lg border-2 border-dashed border-stone-200 bg-stone-50/40 p-2 hover:border-[#283693]/30 hover:bg-[#283693]/5 transition-colors focus-within:border-[#283693] focus-within:bg-[#283693]/5">
+                  <select
+                    value={newLogStatus}
+                    onChange={e => setNewLogStatus(e.target.value)}
+                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693] min-w-[160px]"
+                  >
+                    <option value="">Choose status…</option>
+                    {STATUS_PILLS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                  <input
+                    type="date"
+                    value={newLogDate}
+                    onChange={e => setNewLogDate(e.target.value)}
+                    className="text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                    title="Log date"
+                  />
+                  <input
+                    type="text"
+                    value={newLogNote}
+                    onChange={e => setNewLogNote(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && newLogStatus) addNewLog() }}
+                    placeholder="Optional note…"
+                    className="flex-1 text-xs rounded border border-stone-200 bg-white px-2 py-1.5 outline-none focus:border-[#283693]"
+                  />
+                  <button
+                    onClick={addNewLog}
+                    disabled={!newLogStatus}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-[#283693] hover:bg-[#1f2a73] disabled:bg-stone-300 disabled:cursor-not-allowed rounded-lg px-3 py-1.5 transition-colors shrink-0"
+                  >
+                    <Plus className="size-3.5" /> Log
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      )}
     </div>
+  )
+}
+
+/**
+ * Inline note that lives in the top-right of every record header. Always
+ * visible (collapsed or expanded card). Plain styling — integrates with the
+ * card rather than reading as a separate post-it.
+ */
+function HeaderNote({ entry, stepId, onUpdate }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(entry.note || '')
+  function save() {
+    onUpdate(stepId, { ...entry, note: draft })
+    setOpen(false)
+  }
+  function cancel() {
+    setOpen(false)
+    setDraft(entry.note || '')
+  }
+  if (open) {
+    return (
+      <input
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') cancel() }}
+        onBlur={save}
+        autoFocus
+        placeholder="Note…"
+        className="w-full text-xs rounded-md border border-stone-300 bg-white px-2 py-1 outline-none focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20"
+      />
+    )
+  }
+  if (entry.note) {
+    return (
+      <button
+        onClick={() => { setOpen(true); setDraft(entry.note) }}
+        className="block text-left text-xs text-stone-600 hover:text-[#283693] hover:underline decoration-dotted decoration-stone-300 underline-offset-4 w-full"
+        title="Click to edit"
+      >
+        {entry.note}
+      </button>
+    )
+  }
+  return (
+    <button
+      onClick={() => { setOpen(true); setDraft('') }}
+      className="text-[11px] text-stone-300 hover:text-[#283693] italic"
+    >
+      + Add note
+    </button>
   )
 }
 

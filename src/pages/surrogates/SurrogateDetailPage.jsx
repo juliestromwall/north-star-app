@@ -211,7 +211,7 @@ const RECORD_TYPES = [
   { value: 'PAP', label: 'PAP', color: 'bg-amber-100 text-amber-700' },
 ]
 
-function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName, onStatusLog, providerDefaults = {} }) {
+function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, onDelete, currentUserName, onStatusLog, providerDefaults = {} }) {
   const [addOpen, setAddOpen] = useState(false)
   const [addLabel, setAddLabel] = useState('')
   const [addType, setAddType] = useState('OB')
@@ -253,6 +253,7 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, current
         medSteps={allSteps}
         tracking={tracking}
         onUpdate={onUpdate}
+        onDelete={onDelete}
         currentUserName={currentUserName}
         onStatusLog={onStatusLog}
         providerDefaults={providerDefaults}
@@ -405,6 +406,16 @@ export default function SurrogateDetailPage() {
 
   function updateRecord(recordId, updates) {
     setRecordTracking(prev => ({ ...prev, [recordId]: { ...(prev[recordId] || {}), ...updates } }))
+  }
+  // Hard delete — only used for manually-added custom_record_* entries from the
+  // records tab. Auto-generated records are derived from pregnancy data so
+  // deleting them here would just have them re-added on next render.
+  function deleteRecord(recordId) {
+    setRecordTracking(prev => {
+      const next = { ...prev }
+      delete next[recordId]
+      return next
+    })
   }
 
   useEffect(() => {
@@ -1603,6 +1614,7 @@ export default function SurrogateDetailPage() {
                 statuses={MEDICAL_RECORD_STATUSES}
                 tracking={recordTracking}
                 onUpdate={updateRecord}
+                onDelete={deleteRecord}
                 currentUserName={currentUser.name}
                 providerDefaults={providerDefaults}
                 onStatusLog={async ({ stepLabel, status, by }) => {
