@@ -909,7 +909,7 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Most Recent PAP Smear</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div className="space-y-1"><FieldLabel>Date</FieldLabel><Input type="date" value={form.papDate} onChange={e => setForm(f => ({ ...f, papDate: e.target.value }))} /></div>
+                <div className="space-y-1"><FieldLabel>Date (MM/YYYY)</FieldLabel><Input type="month" value={form.papDate} onChange={e => setForm(f => ({ ...f, papDate: e.target.value }))} /></div>
                 <div className="space-y-1"><FieldLabel>Doctor Name</FieldLabel><Input value={form.papDoctorName} onChange={e => setForm(f => ({ ...f, papDoctorName: e.target.value }))} /></div>
                 <div className="space-y-1"><FieldLabel>Clinic Name</FieldLabel><Input value={form.papClinicName} onChange={e => setForm(f => ({ ...f, papClinicName: e.target.value }))} /></div>
                 <div className="space-y-1"><FieldLabel>City</FieldLabel><Input value={form.papClinicCity} onChange={e => setForm(f => ({ ...f, papClinicCity: e.target.value }))} /></div>
@@ -1027,7 +1027,12 @@ function ClinicHospitalSection({ surrogate, answers, profileData, onSaved, searc
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Most Recent PAP Smear</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <ReadField label="Date" value={stored.papDate} />
+                <ReadField label="Date" value={(() => {
+                  const v = String(stored.papDate || '')
+                  // Reformat YYYY-MM and legacy YYYY-MM-DD into MM/YYYY for display.
+                  const m = v.match(/^(\d{4})-(\d{2})(?:-\d{2})?$/)
+                  return m ? `${m[2]}/${m[1]}` : v
+                })()} />
                 <ReadField label="Doctor" value={stored.papDoctorName} />
                 <ReadField label="Clinic" value={stored.papClinicName} />
                 <ReadField label="City" value={stored.papClinicCity} />
