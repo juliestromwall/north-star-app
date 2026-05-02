@@ -1221,7 +1221,18 @@ function ClinicHospitalForm({ data, onSave, saving, quizData, userId, readOnly, 
               <div key={i} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 space-y-4">
                 <p className="text-sm font-semibold text-[#283693]">Pregnancy #{i + 1}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1"><FieldLabel>Date <Req /></FieldLabel><Input type="date" value={p.date} onChange={e => updatePreg(i, 'date', e.target.value)} /></div>
+                  <div className="space-y-1">
+                    <FieldLabel>Date {isNonDel ? '(MM/YYYY)' : ''} <Req /></FieldLabel>
+                    {/* Non-delivery outcomes (miscarriage / termination / ectopic / chemical) — surrogates
+                        often don't remember the exact day. Ask MM/YYYY only. Delivery outcomes still ask
+                        MM/DD/YYYY. The stored value differs by type ("YYYY-MM" vs "YYYY-MM-DD"); the
+                        records-tab year-extractor handles either. */}
+                    <Input
+                      type={isNonDel ? 'month' : 'date'}
+                      value={isNonDel ? String(p.date || '').slice(0, 7) : (p.date || '')}
+                      onChange={e => updatePreg(i, 'date', e.target.value)}
+                    />
+                  </div>
                   <div className="space-y-1"><FieldLabel>Outcome <Req /></FieldLabel>
                     <Select value={p.outcome} onValueChange={v => updatePreg(i, 'outcome', v)}>
                       <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>

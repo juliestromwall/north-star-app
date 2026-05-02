@@ -2256,7 +2256,21 @@ function PregnancyHistorySection({ v, u, profile, setProfile }) {
                 {pregnancies[expandedIdx]?.outcome !== 'Live Birth' && (
                   <TextField label="Notes (optional)" value={pregnancies[expandedIdx]?.name || ''} onChange={val => updatePregnancy(expandedIdx, 'name', val)} placeholder={pregnancies[expandedIdx]?.outcome === 'Miscarriage' ? 'e.g. how far along' : ''} />
                 )}
-                <TextField label="Date (DOB or date of event)" value={pregnancies[expandedIdx]?.dob || ''} onChange={val => updatePregnancy(expandedIdx, 'dob', val)} type="date" />
+                {/* Non-delivery outcomes (miscarriage / termination / ectopic / chemical) — surrogates
+                    often don't remember the day. Ask MM/YYYY only. Live Birth + Stillborn ask MM/DD/YYYY. */}
+                {(() => {
+                  const outcome = pregnancies[expandedIdx]?.outcome
+                  const isNonDel = outcome && outcome !== 'Live Birth' && outcome !== 'Stillborn'
+                  const raw = pregnancies[expandedIdx]?.dob || ''
+                  return (
+                    <TextField
+                      label={isNonDel ? 'Date of event (MM/YYYY)' : 'Date (DOB or date of event)'}
+                      value={isNonDel ? String(raw).slice(0, 7) : raw}
+                      onChange={val => updatePregnancy(expandedIdx, 'dob', val)}
+                      type={isNonDel ? 'month' : 'date'}
+                    />
+                  )
+                })()}
               </div>
 
               {/* Gestation: weeks + days */}

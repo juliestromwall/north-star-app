@@ -53,6 +53,7 @@ import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
+import MedicalRecordsView from '@/components/surrogates/MedicalRecordsView'
 import QuickNote from '@/components/shared/QuickNote'
 import JourneyUpdateButton from '@/components/shared/JourneyUpdateButton'
 import SortableTabsList from '@/components/shared/SortableTabsList'
@@ -128,14 +129,40 @@ function getExpectedRecordKeysForPrefix(profileData, prefix) {
   }
   return keys
 }
-function getMedicalRecordStepIds(profileData, recordTracking = {}, screeningSteps = []) {
-  const pregnancies = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
-  const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
-  const stepIds = []
-  for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
-    stepIds.push(`ob_records_${i}`, `delivery_records_${i}`)
-    if (pregnancies[i]?.wasSurrogacy === 'yes') stepIds.push(`ivf_records_${i}`)
+function getMedicalRecordStepIds(profileData, recordTracking = {}, screeningSteps = [], quizAnswers = null) {
+  // Merge profile pregnancies (basics) with application _clinicHospital.pregnancies
+  // (outcome + prenatal-care flag + provider details). App form data wins per-field
+  // so the rules below see the correct outcome + receivedPrenatalCare values.
+  const profilePregs = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
+  const appPregs = quizAnswers?._clinicHospital?.pregnancies || []
+  const numPreg = Math.max(
+    parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0,
+    appPregs.length,
+  )
+  const pregnancies = []
+  for (let i = 0; i < Math.max(numPreg, profilePregs.length, appPregs.length); i++) {
+    pregnancies.push({ ...(profilePregs[i] || {}), ...(appPregs[i] || {}) })
   }
+  const stepIds = []
+  // Same outcome-based rules as the records tab (kept in sync with the medSteps
+  // builder in the Medical Records tab so the chip count matches what's rendered):
+  // - Prenatal (OB):     delivery outcomes always; non-delivery only if receivedPrenatalCare === 'yes'
+  // - Delivery hospital: delivery outcomes only (Live Birth / Stillborn)
+  // - IVF clinic:        wasSurrogacy === 'yes' OR wasIVF === 'yes'
+  const isDeliveryOutcome = (o) => o === 'Live Birth' || o === 'Stillborn'
+  for (let i = 0; i < pregnancies.length; i++) {
+    const p = pregnancies[i] || {}
+    const isDelivery = isDeliveryOutcome(p.outcome)
+    const hadPrenatal = isDelivery || p.receivedPrenatalCare === 'yes' || p.receivedPrenatalCare === true
+    if (hadPrenatal) stepIds.push(`ob_records_${i}`)
+    if (isDelivery) stepIds.push(`delivery_records_${i}`)
+    if (p.wasSurrogacy === 'yes' || p.wasSurrogacy === true || p.wasIVF === 'yes' || p.wasIVF === true) {
+      stepIds.push(`ivf_records_${i}`)
+    }
+  }
+  // Every surrogate with pregnancy history also gets one PAP record (id matches
+  // the screening checklist's "pap" step so progress is shared).
+  if (numPreg > 0) stepIds.push('pap')
   for (const key of getExistingMedicalRecordKeys(recordTracking, screeningSteps)) {
     if (!stepIds.includes(key)) stepIds.push(key)
   }
@@ -184,7 +211,7 @@ const RECORD_TYPES = [
   { value: 'PAP', label: 'PAP', color: 'bg-amber-100 text-amber-700' },
 ]
 
-function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName, onStatusLog }) {
+function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, currentUserName, onStatusLog, providerDefaults = {} }) {
   const [addOpen, setAddOpen] = useState(false)
   const [addLabel, setAddLabel] = useState('')
   const [addType, setAddType] = useState('OB')
@@ -222,14 +249,13 @@ function MedicalRecordsSection({ medSteps, statuses, tracking, onUpdate, current
 
   return (
     <div className="space-y-4">
-      <TrackingTable
-        title="Medical Records"
-        steps={allSteps}
-        statuses={statuses}
+      <MedicalRecordsView
+        medSteps={allSteps}
         tracking={tracking}
         onUpdate={onUpdate}
         currentUserName={currentUserName}
         onStatusLog={onStatusLog}
+        providerDefaults={providerDefaults}
       />
       {/* Add Record */}
       {addOpen ? (
@@ -1251,7 +1277,7 @@ export default function SurrogateDetailPage() {
           { value: 'records', label: (() => {
             const rt = recordTracking || {}
             const screeningSteps = getChecklistSteps('gc', 'screening')
-            const stepIds = getMedicalRecordStepIds(profileData, rt, screeningSteps)
+            const stepIds = getMedicalRecordStepIds(profileData, rt, screeningSteps, quizAnswers)
             const active = stepIds.filter(k => rt[k]?.status !== 'na')
             const done = active.filter(k => rt[k]?.status === 'complete')
             return active.length > 0 ? <span>Medical Records <span className="text-[10px] text-stone-400">{done.length}/{active.length}</span></span> : 'Medical Records'
@@ -1395,8 +1421,25 @@ export default function SurrogateDetailPage() {
         {/* Medical Records Tab */}
         <TabsContent value="records" className="mt-4 space-y-6">
           {(() => {
-            const pregnancies = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
-            const numPreg = parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0
+            // Pregnancy data lives in TWO places:
+            //  - profileData.pregnancyHistory.pregnancies — captured in the GC profile (dob, outcome basics)
+            //  - quizAnswers._clinicHospital.pregnancies   — captured in the application's Clinic/Hospital form
+            //                                                 (outcome, prenatal-care flag, OB clinic + phone,
+            //                                                  hospital + phone, IVF clinic + phone)
+            // The application form has the provider details. Merge by index so the records tracker
+            // sees both the outcome rules + provider defaults regardless of which form filled what.
+            const profilePregs = normalizeStructuredList(profileData?.pregnancyHistory?.pregnancies)
+            const appPregs = quizAnswers?._clinicHospital?.pregnancies || []
+            const numPreg = Math.max(
+              parseInt(profileData?.pregnancyHistory?.numberOfPregnancies) || 0,
+              appPregs.length,
+            )
+            const pregnancies = []
+            for (let i = 0; i < Math.max(numPreg, profilePregs.length, appPregs.length); i++) {
+              // Application data wins on overlapping fields (outcome/wasSurrogacy/etc) — that's the
+              // form the surrogate fills out latest with the most-correct provider info.
+              pregnancies.push({ ...(profilePregs[i] || {}), ...(appPregs[i] || {}) })
+            }
             if (numPreg === 0) {
               return (
                 <Card className="rounded-2xl">
@@ -1407,35 +1450,152 @@ export default function SurrogateDetailPage() {
                 </Card>
               )
             }
+            // Auto-generate medical records based on each pregnancy's outcome:
+            // - Live Birth / Stillborn  → both Prenatal (OB) + Delivery (hospital)
+            // - Miscarriage / Termination / Ectopic / Chemical Pregnancy:
+            //     - if `receivedPrenatalCare === 'yes'` → Prenatal only (no hospital)
+            //     - otherwise → neither (no records to collect)
+            // - IVF/Fertility Clinic → if `wasSurrogacy === 'yes'` OR `wasIVF === 'yes'`
+            //   (some surrogates used IVF for their own pregnancies, not just gestational ones).
+            const isDeliveryOutcome = (o) => o === 'Live Birth' || o === 'Stillborn'
+            // Record label format: "Provider - Year Type" (e.g. "CFWMG - 2020 OB",
+            // "St. Anthony's - 2020 Delivery") so admins see at-a-glance who they're collecting
+            // from. When the provider field is blank we fall back to outcome-based labels for
+            // non-Live-Birth pregnancies (e.g. "Miscarriage 2019") so the row still self-describes.
+            const buildLabel = ({ provider, year, type, outcome }) => {
+              const yearStr = year || '?'
+              if (provider && provider.trim()) return `${provider.trim()} - ${yearStr} ${type}`
+              // Fallback when no provider entered: use outcome name for non-Live-Birth, else type.
+              if (type === 'OB') {
+                switch (outcome) {
+                  case 'Miscarriage':         return `Miscarriage ${yearStr}`
+                  case 'Stillborn':           return `Stillborn ${yearStr}`
+                  case 'Termination':         return `Termination ${yearStr}`
+                  case 'Ectopic Pregnancy':   return `Ectopic ${yearStr}`
+                  case 'Chemical Pregnancy':  return `Chemical ${yearStr}`
+                  default:                    return `OB ${yearStr}`
+                }
+              }
+              return `${type} ${yearStr}`
+            }
+            // The pregnancy "date" can come from two fields: profile uses `dob` (full date),
+            // application uses `date` (full for live-birth/stillborn, MM/YYYY i.e. "YYYY-MM"
+            // for non-delivery outcomes). Either format yields a valid Date — pull just the year.
+            const yearOf = (p) => {
+              const raw = p?.dob || p?.date || ''
+              if (!raw) return ''
+              const m = String(raw).match(/^(\d{4})/)
+              return m ? m[1] : ''
+            }
             const medSteps = []
             for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
               const p = pregnancies[i] || {}
-              const year = p.dob ? new Date(p.dob).getFullYear() : ''
+              const year = yearOf(p)
               const yearLabel = year || `#${i + 1}`
-              medSteps.push({ id: `ob_records_${i}`, label: `OB ${yearLabel}`, canToggleNA: true, badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' } })
-              medSteps.push({ id: `delivery_records_${i}`, label: `Delivery ${yearLabel}`, canToggleNA: true, badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' } })
-              if (p.wasSurrogacy === 'yes') {
-                medSteps.push({ id: `ivf_records_${i}`, label: `IVF ${yearLabel}`, canToggleNA: true, badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' } })
-              }
-            }
-            // Also include any existing tracked records not represented by the current pregnancy list.
-            for (const key of getExistingMedicalRecordKeys(recordTracking, getChecklistSteps('gc', 'screening'))) {
-              if (!medSteps.some(s => s.id === key)) {
-                const rt = recordTracking[key] || {}
-                const badgeType = rt.recordType || 'OB'
-                const BADGE_MAP = {
-                  'OB': { label: 'OB', color: 'bg-blue-100 text-blue-700' },
-                  'Delivery': { label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
-                  'IVF': { label: 'IVF', color: 'bg-pink-100 text-pink-700' },
-                  'PAP': { label: 'PAP', color: 'bg-amber-100 text-amber-700' },
-                }
+              const isDelivery = isDeliveryOutcome(p.outcome)
+              const hadPrenatal = isDelivery || p.receivedPrenatalCare === 'yes' || p.receivedPrenatalCare === true
+              if (hadPrenatal) {
+                const obProvider = p.obClinicName || p.obDoctorName || ''
                 medSteps.push({
-                  id: key,
-                  label: rt.customLabel || key.replace(customPrefix, '').replace(/_/g, ' '),
+                  id: `ob_records_${i}`,
+                  label: buildLabel({ provider: obProvider, year: yearLabel, type: 'OB', outcome: p.outcome }),
                   canToggleNA: true,
-                  badge: BADGE_MAP[badgeType] || BADGE_MAP['OB'],
+                  badge: { label: 'OB', color: 'bg-blue-100 text-blue-700' },
                 })
               }
+              if (isDelivery) {
+                medSteps.push({
+                  id: `delivery_records_${i}`,
+                  label: buildLabel({ provider: p.hospitalName || '', year: yearLabel, type: 'Delivery', outcome: p.outcome }),
+                  canToggleNA: true,
+                  badge: { label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
+                })
+              }
+              if (p.wasSurrogacy === 'yes' || p.wasSurrogacy === true || p.wasIVF === 'yes' || p.wasIVF === true) {
+                const ivfProvider = p.ivfClinicName || p.ivfDoctorName || ''
+                medSteps.push({
+                  id: `ivf_records_${i}`,
+                  label: buildLabel({ provider: ivfProvider, year: yearLabel, type: 'IVF', outcome: p.outcome }),
+                  canToggleNA: true,
+                  badge: { label: 'IVF', color: 'bg-pink-100 text-pink-700' },
+                })
+              }
+            }
+            // Every surrogate with pregnancy history needs ONE PAP record (regardless of pregnancy count).
+            // Label uses the most-recent PAP date from the Clinic/Hospital application form (MM/YYYY) when present.
+            // We use the id `pap` (matching the screening checklist step in checklistStore) so that
+            // marking the record Complete here also flips the PAP checklist item — single source of truth.
+            const papDateRaw = quizAnswers?._clinicHospital?.papDate || ''
+            // papDate from <input type="month"> is "YYYY-MM"; reformat to "MM/YYYY" for the label.
+            const papLabel = (() => {
+              const m = String(papDateRaw).match(/^(\d{4})-(\d{2})$/)
+              if (m) return `PAP ${m[2]}/${m[1]}`
+              // Legacy MM/DD/YYYY values sneak through if anyone saved before the Clinic form switched to MM/YYYY.
+              const m2 = String(papDateRaw).match(/^(\d{4})-(\d{2})-\d{2}$/)
+              if (m2) return `PAP ${m2[2]}/${m2[1]}`
+              return 'PAP'
+            })()
+            medSteps.push({ id: 'pap', label: papLabel, canToggleNA: true, badge: { label: 'PAP', color: 'bg-amber-100 text-amber-700' } })
+            // Also include any existing tracked records not represented by the current pregnancy list,
+            // BUT skip stale `delivery_records_${i}` / `ob_records_${i}` orphans when the new outcome-
+            // based rules say that pregnancy shouldn't have one (e.g. a miscarriage with no prenatal
+            // care had a delivery_records_1 in storage from before the rule change — we don't want it
+            // to surface as "delivery records 1").
+            for (const key of getExistingMedicalRecordKeys(recordTracking, getChecklistSteps('gc', 'screening'))) {
+              if (medSteps.some(s => s.id === key)) continue
+              const obMatch = /^ob_records_(\d+)$/.exec(key)
+              const delMatch = /^delivery_records_(\d+)$/.exec(key)
+              const ivfMatch = /^ivf_records_(\d+)$/.exec(key)
+              const idx = obMatch?.[1] ?? delMatch?.[1] ?? ivfMatch?.[1]
+              if (idx !== undefined) {
+                const p = pregnancies[Number(idx)] || {}
+                if (delMatch && !isDeliveryOutcome(p.outcome)) continue
+                if (obMatch && !(isDeliveryOutcome(p.outcome) || p.receivedPrenatalCare === 'yes' || p.receivedPrenatalCare === true)) continue
+                if (ivfMatch && !(p.wasSurrogacy === 'yes' || p.wasSurrogacy === true || p.wasIVF === 'yes' || p.wasIVF === true)) continue
+              }
+              const rt = recordTracking[key] || {}
+              const badgeType = rt.recordType || 'OB'
+              const BADGE_MAP = {
+                'OB': { label: 'OB', color: 'bg-blue-100 text-blue-700' },
+                'Delivery': { label: 'Delivery', color: 'bg-purple-100 text-purple-700' },
+                'IVF': { label: 'IVF', color: 'bg-pink-100 text-pink-700' },
+                'PAP': { label: 'PAP', color: 'bg-amber-100 text-amber-700' },
+              }
+              medSteps.push({
+                id: key,
+                label: rt.customLabel || key.replace(/^custom_record_/, '').replace(/_/g, ' '),
+                canToggleNA: true,
+                badge: BADGE_MAP[badgeType] || BADGE_MAP['OB'],
+              })
+            }
+            // Derive provider defaults per record from intake answers — surfaces what the
+            // surrogate already entered (OB doctor name + phone for OB records, hospital
+            // name + phone for Delivery records, PAP clinic for the PAP row) so the admin
+            // doesn't have to copy/paste from the application tab.
+            const providerDefaults = {}
+            for (let i = 0; i < Math.max(numPreg, pregnancies.length); i++) {
+              const p = pregnancies[i] || {}
+              const year = yearOf(p)
+              providerDefaults[`ob_records_${i}`] = {
+                name: p.obDoctorName || p.obClinicName || '',
+                phone: p.obPhone || '',
+                deliveryYear: year || '',
+              }
+              providerDefaults[`delivery_records_${i}`] = {
+                name: p.hospitalName || '',
+                phone: p.hospitalPhone || '',
+                deliveryYear: year || '',
+              }
+              providerDefaults[`ivf_records_${i}`] = {
+                name: p.ivfClinicName || p.ivfDoctorName || '',
+                phone: p.ivfPhone || '',
+                deliveryYear: year || '',
+              }
+            }
+            const ch = quizAnswers?._clinicHospital || {}
+            providerDefaults['pap'] = {
+              name: ch.papDoctorName || ch.papClinicName || '',
+              phone: ch.papClinicPhone || '',
             }
             return (
               <MedicalRecordsSection
@@ -1444,6 +1604,7 @@ export default function SurrogateDetailPage() {
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
+                providerDefaults={providerDefaults}
                 onStatusLog={async ({ stepLabel, status, by }) => {
                   if (status === 'fax_received') {
                     try {
