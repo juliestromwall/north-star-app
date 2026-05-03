@@ -20,6 +20,7 @@ import { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
+import JourneyChecklistView from '@/components/journeys/JourneyChecklistView'
 import { EscrowStatusCell, NotesCell, getEscrowStatus, escrowStatusUpdates } from '@/pages/expenses/ExpensesPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 
@@ -471,13 +472,12 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 
   return (
     <div>
-      <TrackingTable
-        title={`${stageObj.label} Checklist`}
+      <JourneyChecklistView
         steps={steps}
-        statuses={CHECKLIST_STEP_STATUSES}
         tracking={tracking}
         onUpdate={handleUpdate}
         currentUserName={currentUser.name}
+        stageLabel="Journey Checklist"
         onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
           if (status === 'complete') {
             const julieEmail = 'julie@abcsurrogacy.com'
@@ -524,7 +524,6 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
           }
         }}
       />
-      <ChecklistHistory history={journey.journey_data?._checklistHistory} />
     </div>
   )
 }
@@ -3698,32 +3697,37 @@ export default function JourneyDetailPage() {
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
-          { value: 'overview', label: 'Overview' },
+          { value: 'overview', label: 'Checklist' },
+          { value: 'tasks-appts', label: 'Tasks / Appts' },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
           { value: 'documents', label: 'Documents' },
           { value: 'insurance', label: 'Insurance' },
-          { value: 'expenses', label: 'Expenses' },
+          { value: 'expenses', label: 'Escrow / Expenses' },
           { value: 'notes', label: 'Notes' },
           { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'texts', label: 'Texts' },
         ]} />
 
+        {/* CHECKLIST tab — just the card-based checklist UI. The old milestone
+            timeline + legacy ChecklistHistory roll-up are removed; the new
+            cards show per-step status + history inline. Tasks + Appointments
+            moved to their own tab. */}
         <TabsContent value="overview" className="mt-4 space-y-6">
-          <JourneyMilestoneTimeline journey={journey} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-          </div>
-          {/* Checklist */}
           <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
         </TabsContent>
 
-        {/* Checklist tab removed — now in Overview */}
+        {/* TASKS / APPTS tab — split out from the old Overview. */}
+        <TabsContent value="tasks-appts" className="mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+          </div>
+        </TabsContent>
 
         {/* Application Tab — GC/IP sub-tabs */}
         <TabsContent value="application" className="mt-4">

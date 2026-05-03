@@ -35,6 +35,7 @@ import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import { findJourneyByCaseId, fetchCompletedJourneys, startNewCaseFromJourney } from '@/lib/matching'
 import { inviteUser } from '@/lib/invite'
 import TrackingTable from '@/components/shared/TrackingTable'
+import JourneyChecklistView from '@/components/journeys/JourneyChecklistView'
 import MatchNotesDialog, { MatchNotesPreview } from '@/components/shared/MatchNotesDialog'
 import { getChecklistSteps, getChecklistMilestones, CHECKLIST_STEP_STATUSES } from '@/lib/checklistStore'
 import { getRecordTracking, setRecordTracking as setRecordTrackingDB } from '@/lib/db'
@@ -755,13 +756,12 @@ export default function IPDetailPage() {
             const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Consultation'
             const allSteps = getChecklistSteps('ip', currentStageId)
             return (
-              <TrackingTable
-                title={`${currentStageLabel} Checklist`}
+              <JourneyChecklistView
                 steps={allSteps}
-                statuses={CHECKLIST_STEP_STATUSES}
                 tracking={recordTracking}
                 onUpdate={updateRecord}
                 currentUserName={currentUser.name}
+                stageLabel={`${currentStageLabel} Checklist`}
               />
             )
           })()}
