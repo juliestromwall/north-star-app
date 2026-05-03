@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, createContext, useContext } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
@@ -448,7 +448,14 @@ function DropdownOptionsEditor({ options, onChange }) {
   )
 }
 
+// Read-only by default. ChecklistsSection wraps its children in this provider
+// and flips it true only after the admin clicks "Enable Edit Mode". Gates every
+// mutation control in the checklist editor — guards against the 2026-05-03 wipe.
+const ChecklistEditModeContext = createContext(false)
+const useChecklistEditMode = () => useContext(ChecklistEditModeContext)
+
 function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, onEditSubtask, onDeleteSubtask }) {
+  const editMode = useChecklistEditMode()
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(step.label)
   const [editLogType, setEditLogType] = useState(step.logType || 'status')
@@ -485,16 +492,22 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
   return (
     <div ref={setNodeRef} style={style} className={`rounded-lg border px-3 py-2.5 group ${isInfoRow ? 'bg-[#283693]/5 border-[#283693]/20' : 'bg-white'}`}>
       <div className="flex items-center gap-2">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
-          <GripVertical className="size-4" />
-        </button>
+        {editMode ? (
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none">
+            <GripVertical className="size-4" />
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" aria-hidden />
+        )}
         {isInfoRow ? (
           <>
             <div className="flex-1 flex items-center gap-2">
               <span className="text-[9px] font-bold text-[#283693] bg-[#283693]/10 px-1.5 py-0.5 rounded">INFO</span>
               <span className="text-sm font-medium text-[#283693]">{step.label}</span>
             </div>
-            <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>
+            {editMode && (
+              <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500 opacity-0 group-hover:opacity-100"><Trash2 className="size-3.5" /></button>
+            )}
           </>
         ) : editing ? (
           <div className="flex-1 space-y-2">
@@ -535,17 +548,19 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
                 <span className="text-[10px] text-stone-400 ml-1">({normalizeOptions(step.options).map(o => o.label).join(', ')})</span>
               )}
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => { setAddingSubtask(true); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693]" title="Add subtask"><CornerDownRight className="size-3.5" /></button>
-              {step.locked ? (
-                <span className="text-[9px] text-stone-400 font-medium px-1.5 py-0.5 rounded bg-stone-100">🔒 Locked</span>
-              ) : (
-                <>
-                  <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions(normalizeOptions(step.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
-                  <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
-                </>
-              )}
-            </div>
+            {editMode && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => { setAddingSubtask(true); setNewSubtaskLabel('') }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693]" title="Add subtask"><CornerDownRight className="size-3.5" /></button>
+                {step.locked ? (
+                  <span className="text-[9px] text-stone-400 font-medium px-1.5 py-0.5 rounded bg-stone-100">🔒 Locked</span>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditLabel(step.label); setEditLogType(step.logType || 'status'); setEditOptions(normalizeOptions(step.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3.5" /></button>
+                    <button onClick={() => onDelete(step.id)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3.5" /></button>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -599,6 +614,7 @@ function SortableStepRow({ step, subtasks = [], onEdit, onDelete, onAddSubtask, 
 // ── Subtask Row (draggable, full edit incl. custom dropdowns) ──────
 
 function SubtaskRow({ subtask, onEdit, onDelete }) {
+  const editMode = useChecklistEditMode()
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(subtask.label)
   const [editLogType, setEditLogType] = useState(subtask.logType || 'status')
@@ -630,9 +646,13 @@ function SubtaskRow({ subtask, onEdit, onDelete }) {
   return (
     <div ref={setNodeRef} style={style} className="group/sub py-0.5">
       <div className="flex items-start gap-1.5">
-        <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none mt-0.5" title="Drag to reorder">
-          <GripVertical className="size-3.5" />
-        </button>
+        {editMode ? (
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-stone-300 hover:text-stone-500 shrink-0 touch-none mt-0.5" title="Drag to reorder">
+            <GripVertical className="size-3.5" />
+          </button>
+        ) : (
+          <span className="w-3.5 shrink-0" aria-hidden />
+        )}
         <CornerDownRight className="size-3 text-stone-300 shrink-0 mt-1" />
         {editing ? (
           <div className="flex-1 space-y-1.5">
@@ -673,10 +693,12 @@ function SubtaskRow({ subtask, onEdit, onDelete }) {
                 <span className="text-[9px] text-stone-400 ml-1">({normalizeOptions(subtask.options).map(o => o.label).join(', ')})</span>
               )}
             </div>
-            <div className="flex items-center gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
-              <button onClick={() => { setEditLabel(subtask.label); setEditLogType(subtask.logType || 'status'); setEditOptions(normalizeOptions(subtask.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
-              <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
-            </div>
+            {editMode && (
+              <div className="flex items-center gap-0.5 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+                <button onClick={() => { setEditLabel(subtask.label); setEditLogType(subtask.logType || 'status'); setEditOptions(normalizeOptions(subtask.options)); setEditing(true) }} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+                <button onClick={onDelete} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -687,6 +709,7 @@ function SubtaskRow({ subtask, onEdit, onDelete }) {
 // ── Milestone Row ──────────────────────────────────────
 
 function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
+  const editMode = useChecklistEditMode()
   const [editing, setEditing] = useState(false)
   const [editLabel, setEditLabel] = useState(milestone.label)
   const [open, setOpen] = useState(false)
@@ -728,10 +751,12 @@ function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
               <>
                 <span className="flex-1 text-xs font-semibold text-stone-600">{milestone.label}</span>
                 <span className="text-[10px] text-stone-400">{assignedCount} step{assignedCount !== 1 ? 's' : ''}</span>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => { setEditLabel(milestone.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
-                  <button onClick={() => { deleteChecklistMilestone(userType, stageId, milestone.id); onUpdate() }} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
-                </div>
+                {editMode && (
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                    <button onClick={() => { setEditLabel(milestone.label); setEditing(true) }} className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
+                    <button onClick={() => { deleteChecklistMilestone(userType, stageId, milestone.id); onUpdate() }} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
+                  </div>
+                )}
                 <ChevronDown className={`size-3.5 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
               </>
             )}
@@ -744,10 +769,11 @@ function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
               <p className="text-xs text-stone-400 italic">No steps to assign — add steps first.</p>
             ) : (
               steps.map(step => (
-                <label key={step.id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5 hover:bg-stone-100 rounded px-1 -mx-1">
+                <label key={step.id} className={`flex items-center gap-2 text-xs py-0.5 rounded px-1 -mx-1 ${editMode ? 'cursor-pointer hover:bg-stone-100' : 'cursor-default'}`}>
                   <Checkbox
                     checked={milestone.stepIds?.includes(step.id)}
-                    onCheckedChange={() => handleToggleStep(step.id)}
+                    onCheckedChange={() => editMode && handleToggleStep(step.id)}
+                    disabled={!editMode}
                     className="size-3.5"
                   />
                   <span className="text-stone-600">{step.label}</span>
@@ -764,6 +790,7 @@ function MilestoneRow({ milestone, steps, userType, stageId, onUpdate }) {
 // ── Stage Checklist Card ──────────────────────────────────
 
 function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney }) {
+  const editMode = useChecklistEditMode()
   const steps = stageData?.steps || []
   const milestones = stageData?.milestones || []
   const [newStepLabel, setNewStepLabel] = useState('')
@@ -803,6 +830,7 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
   }, {})
 
   const handleDragEnd = (event) => {
+    if (!editMode) return
     const { active, over } = event
     if (!over || active.id === over.id) return
     const activeStep = steps.find(s => s.id === active.id)
@@ -897,16 +925,18 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
             <CardTitle className="text-base">{stage.label}</CardTitle>
             <span className="text-xs text-stone-400 font-normal">{steps.length} step{steps.length !== 1 ? 's' : ''} · {milestones.length} milestone{milestones.length !== 1 ? 's' : ''}</span>
           </div>
-          {confirmReset ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-stone-500">Reset to defaults?</span>
-              <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={handleReset}>Reset</Button>
-              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setConfirmReset(false)}>Cancel</Button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmReset(true)} className="text-stone-400 hover:text-stone-600 p-1 rounded hover:bg-stone-100" title="Reset to defaults">
-              <RotateCcw className="size-3.5" />
-            </button>
+          {editMode && (
+            confirmReset ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-stone-500">Reset to defaults?</span>
+                <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={handleReset}>Reset</Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setConfirmReset(false)}>Cancel</Button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmReset(true)} className="text-stone-400 hover:text-stone-600 p-1 rounded hover:bg-stone-100" title="Reset to defaults">
+                <RotateCcw className="size-3.5" />
+              </button>
+            )
           )}
         </div>
       </CardHeader>
@@ -936,33 +966,35 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
           ) : (
             <p className="text-xs text-stone-400 py-2 text-center">No steps configured.</p>
           )}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                value={newStepLabel}
-                onChange={e => setNewStepLabel(e.target.value)}
-                placeholder="Add a step..."
-                className="h-8 text-sm flex-1"
-                onKeyDown={e => { if (e.key === 'Enter' && newStepLogType !== 'dropdown') handleAddStep() }}
-              />
-              <select value={newStepLogType} onChange={e => setNewStepLogType(e.target.value)} className="h-8 text-[11px] border rounded px-1.5 bg-white text-stone-600">
-                <option value="status">Status</option>
-                <option value="text">Text</option>
-                <option value="dropdown">Dropdown</option>
-              </select>
-              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
-                <Plus className="size-3.5" /> Add
-              </Button>
-            </div>
-            {newStepLogType === 'dropdown' && (
-              <div className="rounded-lg border bg-stone-50/50 p-2.5">
-                <DropdownOptionsEditor options={newStepOptions} onChange={setNewStepOptions} />
+          {editMode && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newStepLabel}
+                  onChange={e => setNewStepLabel(e.target.value)}
+                  placeholder="Add a step..."
+                  className="h-8 text-sm flex-1"
+                  onKeyDown={e => { if (e.key === 'Enter' && newStepLogType !== 'dropdown') handleAddStep() }}
+                />
+                <select value={newStepLogType} onChange={e => setNewStepLogType(e.target.value)} className="h-8 text-[11px] border rounded px-1.5 bg-white text-stone-600">
+                  <option value="status">Status</option>
+                  <option value="text">Text</option>
+                  <option value="dropdown">Dropdown</option>
+                </select>
+                <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddStep} disabled={!newStepLabel.trim()}>
+                  <Plus className="size-3.5" /> Add
+                </Button>
               </div>
-            )}
-          </div>
+              {newStepLogType === 'dropdown' && (
+                <div className="rounded-lg border bg-stone-50/50 p-2.5">
+                  <DropdownOptionsEditor options={newStepOptions} onChange={setNewStepOptions} />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Info Rows — journey only */}
-          {showInfoRows && (
+          {editMode && showInfoRows && (
             <div className="border-t border-stone-100 pt-3 mt-2">
               <p className="text-[10px] text-[#283693] uppercase tracking-wider font-semibold mb-2">{isJourney ? 'Provider Info Rows' : 'Screening Surrogate Info'}</p>
               <p className="text-[10px] text-stone-400 mb-2">These show data in Case Updates (not on the case checklist). Drag to reorder with steps above.</p>
@@ -994,18 +1026,20 @@ function StageChecklistCard({ stage, userType, stageData, onUpdate, isJourney })
           ) : (
             <p className="text-xs text-stone-400 py-2 text-center">No milestones configured.</p>
           )}
-          <div className="flex items-center gap-2">
-            <Input
-              value={newMilestoneLabel}
-              onChange={e => setNewMilestoneLabel(e.target.value)}
-              placeholder="Add a milestone..."
-              className="h-8 text-sm flex-1"
-              onKeyDown={e => { if (e.key === 'Enter') handleAddMilestone() }}
-            />
-            <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddMilestone} disabled={!newMilestoneLabel.trim()}>
-              <Plus className="size-3.5" /> Add
-            </Button>
-          </div>
+          {editMode && (
+            <div className="flex items-center gap-2">
+              <Input
+                value={newMilestoneLabel}
+                onChange={e => setNewMilestoneLabel(e.target.value)}
+                placeholder="Add a milestone..."
+                className="h-8 text-sm flex-1"
+                onKeyDown={e => { if (e.key === 'Enter') handleAddMilestone() }}
+              />
+              <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={handleAddMilestone} disabled={!newMilestoneLabel.trim()}>
+                <Plus className="size-3.5" /> Add
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -1021,8 +1055,12 @@ function ChecklistsSection() {
   const [open, setOpen] = useState(false)
   const [userType, setUserType] = useState('gc')
   const [activeStage, setActiveStage] = useState('pre-qualification')
+  const [editMode, setEditMode] = useState(false)
   const [, setTick] = useState(0)
   const forceUpdate = useCallback(() => setTick(t => t + 1), [])
+
+  // Auto-lock when the section is collapsed so reopening starts read-only.
+  useEffect(() => { if (!open && editMode) setEditMode(false) }, [open, editMode])
 
   const config = getChecklistConfig()
   const caseStages = SURROGATE_STAGES.filter(s => CASE_STAGES.includes(s.id))
@@ -1053,10 +1091,37 @@ function ChecklistsSection() {
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
+        <ChecklistEditModeContext.Provider value={editMode}>
         <div className="space-y-4 mt-3">
           <CardDescription>
             Configure the checklist steps that appear for each case stage. Each stage has one checklist per user type.
           </CardDescription>
+
+          {/* Edit-mode gate — read-only by default. Prevents accidental wipes. */}
+          <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${editMode ? 'bg-amber-50 border-amber-200' : 'bg-stone-50 border-stone-200'}`}>
+            <div className="flex items-center gap-2 text-xs">
+              {editMode ? (
+                <>
+                  <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+                  <span className="text-amber-800 font-medium">Edit mode is on — every add, edit, delete, drag, or reset writes to production immediately.</span>
+                </>
+              ) : (
+                <>
+                  <Eye className="size-4 text-stone-400 shrink-0" />
+                  <span className="text-stone-500">Read-only. Click <span className="font-semibold text-stone-700">Edit Checklist</span> to make changes.</span>
+                </>
+              )}
+            </div>
+            {editMode ? (
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-amber-300 text-amber-800 hover:bg-amber-100" onClick={() => setEditMode(false)}>
+                <Check className="size-3.5" /> Done Editing
+              </Button>
+            ) : (
+              <Button size="sm" className="h-7 text-xs gap-1.5 bg-[#283693] hover:bg-[#283693]/90" onClick={() => setEditMode(true)}>
+                <Pencil className="size-3.5" /> Edit Checklist
+              </Button>
+            )}
+          </div>
 
           <div className="flex gap-2 border-b pb-2">
             {[
@@ -1107,6 +1172,7 @@ function ChecklistsSection() {
             </div>
           </div>
         </div>
+        </ChecklistEditModeContext.Provider>
       </CollapsibleContent>
     </Collapsible>
   )
