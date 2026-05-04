@@ -1642,12 +1642,12 @@ export default function SurrogateDetailPage() {
                 currentUserName={currentUser.name}
                 providerDefaults={providerDefaults}
                 onStatusLog={async ({ stepLabel, status, by }) => {
-                  if (status === 'fax_received') {
+                  if (status === 'partial_records_incomplete') {
                     try {
                       const task = await createCaseTask({
                         case_id: Number(surrogate.id),
                         case_type: 'surrogate',
-                        title: `Fax Received - Verify if ${stepLabel} are complete`,
+                        title: `Partial Records (Incomplete) - Verify what's missing on ${stepLabel}`,
                         assigned_to: currentUser?.email || '',
                         due_date: new Date().toISOString().split('T')[0],
                         priority: 'normal',
