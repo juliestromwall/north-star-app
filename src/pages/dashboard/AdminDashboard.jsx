@@ -230,6 +230,9 @@ export default function AdminDashboard() {
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
+  // Task tab: 'mine' (assigned to me), 'cases' (tasks on cases I manage),
+  // 'all' (every open task — master/super only). Defaults to 'mine'.
+  const [taskTab, setTaskTab] = useState('mine')
   const [apptMeta, setApptMeta] = useState({}) // { configKey: { eventId: { followedUp, notes, ... } } }
   const [notesModal, setNotesModal] = useState(null)
   const [noteText, setNoteText] = useState('')
@@ -250,13 +253,16 @@ export default function AdminDashboard() {
       fetchSurrogatesFromIntake(),
       fetchIPsFromIntake(),
       fetchMatchedJourneys(),
-      fetchMyTasks(currentUser?.email).catch(() => []),
+      // Pull ALL open tasks once and filter client-side into the three
+      // tabs (My Tasks / My Cases / All Tasks). Avoids a second round-trip
+      // when admins flip tabs and lets the bucket counts render upfront.
+      fetchAllOpenTasks().catch(() => []),
       fetchMyCompletedTasks(currentUser?.email).catch(() => []),
-    ]).then(([gcs, allIps, js, myTasks, myCompleted]) => {
+    ]).then(([gcs, allIps, js, openTasks, myCompleted]) => {
       setSurrogates(gcs || [])
       setIps(allIps || [])
       setJourneys(js || [])
-      setTasks(myTasks || [])
+      setTasks(openTasks || [])
       setCompletedTasks(myCompleted || [])
       // Load profile data for surrogate cards
       const emails = (gcs || []).map(s => s.email).filter(Boolean)
@@ -520,6 +526,44 @@ export default function AdminDashboard() {
   const upcomingEvents = events.filter(e => (e.start?.dateTime || e.start?.date || '').substring(0, 10) >= todayStr)
   const pastEvents = [...events.filter(e => (e.start?.dateTime || e.start?.date || '').substring(0, 10) < todayStr)].reverse()
 
+  // Cases the logged-in admin manages (their email is the case's assigned_to).
+  // Used by the "My Cases" tab — shows tasks attached to those cases even
+  // when the admin isn't personally the assignee.
+  const managedCases = useMemo(() => {
+    const myEmail = (currentUser?.email || '').toLowerCase()
+    if (!myEmail) return { surrogate: new Set(), ip: new Set(), journey: new Set() }
+    const matchEmail = (val) => {
+      if (!val) return false
+      // assigned_to may be a single email or comma-separated list
+      return String(val).toLowerCase().split(',').map(s => s.trim()).includes(myEmail)
+    }
+    const surrogate = new Set(surrogates.filter(s => matchEmail(s.assignedTo || s.assigned_to)).map(s => Number(s.id)))
+    const ip = new Set(ips.filter(i => matchEmail(i.assignedTo || i.assigned_to)).map(i => Number(i.id)))
+    const journey = new Set(journeys.filter(j => matchEmail(j.assigned_to || j.journey_data?.assigned_to)).map(j => Number(j.id)))
+    return { surrogate, ip, journey }
+  }, [currentUser?.email, surrogates, ips, journeys])
+
+  // Bucket open tasks per tab. "mine" = assignee is me; "cases" = tasks on a
+  // case I manage but I'm not the assignee; "all" = everything (master/super
+  // only). A future-tasks toggle on each tab still controls >7-day items.
+  const taskBuckets = useMemo(() => {
+    const myEmail = (currentUser?.email || '').toLowerCase()
+    const isMine = (t) => myEmail && String(t.assigned_to || '').toLowerCase().split(',').map(s => s.trim()).includes(myEmail)
+    const onMyCase = (t) => {
+      if (!t.case_id || !t.case_type) return false
+      const cid = Number(t.case_id)
+      if (t.case_type === 'surrogate' || t.case_type === 'gc') return managedCases.surrogate.has(cid)
+      if (t.case_type === 'ip') return managedCases.ip.has(cid)
+      if (t.case_type === 'journey') return managedCases.journey.has(cid)
+      return false
+    }
+    const mine = tasks.filter(isMine)
+    // Exclude tasks already in "mine" so an admin's own task isn't double-listed
+    // when they also manage the case.
+    const cases = tasks.filter(t => !isMine(t) && onMyCase(t))
+    return { mine, cases, all: tasks }
+  }, [tasks, currentUser?.email, managedCases])
+
   if (loading) return <div className="p-6 text-center text-stone-400">Loading dashboard...</div>
 
   return (
@@ -615,343 +659,343 @@ export default function AdminDashboard() {
 
       {/* Appointments + Tasks — two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Appointments (Upcoming + Recent Past) */}
-        <Card>
-          <CardHeader className="pb-2 cursor-pointer" onClick={() => setAppointmentsOpen(o => !o)}>
-            <CardTitle className="text-sm flex items-center gap-2">
-              {appointmentsOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-              <Calendar className="size-4 text-stone-400" /> Appointments
-            </CardTitle>
-          </CardHeader>
-          {appointmentsOpen && <CardContent>
-            {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
-              <p className="text-xs text-stone-400 text-center py-6">No appointments this week</p>
-            ) : (
-              <div className="space-y-3">
-                {/* Upcoming */}
-                {upcomingEvents.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold">Upcoming</p>
-                    {upcomingEvents.slice(0, 6).map(event => {
-                      const startDt = event.start?.dateTime || event.start?.date || ''
-                      const isAllDay = !!event.start?.date && !event.start?.dateTime
-                      const today = new Date().toDateString() === new Date(startDt).toDateString()
-                      const { caseName, caseLink } = getEventCaseInfo(event)
-                      const meta = apptMeta[event.id] || {}
-                      const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
-                      const isFollowedUp = meta.followedUp || title.startsWith('✅')
-                      return (
-                        <div key={event.id} className={`rounded-lg border px-3 py-2 ${today ? 'border-[#283693]/30 bg-[#283693]/5' : 'border-stone-100'}`}>
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm ${today ? 'font-semibold text-[#283693]' : 'text-stone-800'}`}>
-                                {title.replace(/^✅\s*/, '')}
-                              </p>
-                              <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5 flex-wrap">
-                                <span>{formatDate(startDt)}</span>
-                                {!isAllDay && event.start?.dateTime && (
-                                  <span className="flex items-center gap-0.5">
-                                    <Clock className="size-2.5" />
-                                    {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                )}
-                                {today && <span className="text-[#283693] font-semibold">Today</span>}
-                                {isFollowedUp && <span className="text-emerald-600 font-semibold">✅ Followed Up</span>}
-                                {caseName && caseLink && (
-                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
-                                )}
-                              </div>
-                              {meta.notes && (
-                                <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 100)}{meta.notes.length > 100 ? '...' : ''}</p>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1 shrink-0 items-end">
-                              {!isFollowedUp && (
-                                <button
-                                  onClick={() => handleFollowUp(event)}
-                                  disabled={followingUp === event.id}
-                                  className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
-                                >
-                                  {followingUp === event.id ? <Loader2 className="size-2.5 animate-spin" /> : <CheckCircle2 className="size-2.5" />}
-                                  Follow Up
-                                </button>
-                              )}
-                              <button
-                                onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
-                                className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
-                              >
-                                <FileText className="size-2.5" />
-                                {meta.notes ? 'Edit Notes' : 'Add Notes'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Past 7 Days — collapsible */}
-                {pastEvents.length > 0 && (
-                  <div className="space-y-2">
-                    <button onClick={() => setPastApptOpen(o => !o)} className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1 hover:text-stone-600 transition-colors">
-                      {pastApptOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                      <History className="size-3" /> Past 7 Days ({pastEvents.length})
-                    </button>
-                    {pastApptOpen && pastEvents.slice(0, 6).map(event => {
-                      const startDt = event.start?.dateTime || event.start?.date || ''
-                      const isAllDay = !!event.start?.date && !event.start?.dateTime
-                      const { caseName, caseLink } = getEventCaseInfo(event)
-                      const meta = apptMeta[event.id] || {}
-                      const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
-                      const isFollowedUp = meta.followedUp || title.startsWith('✅')
-                      return (
-                        <div key={event.id} className="rounded-lg border border-stone-100 px-3 py-2 opacity-80">
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-stone-700">{title.replace(/^✅\s*/, '')}</p>
-                              <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5 flex-wrap">
-                                <span>{formatDate(startDt)}</span>
-                                {!isAllDay && event.start?.dateTime && (
-                                  <span className="flex items-center gap-0.5">
-                                    <Clock className="size-2.5" />
-                                    {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                                  </span>
-                                )}
-                                {isFollowedUp && <span className="text-emerald-600 font-semibold">✅ Followed Up</span>}
-                                {caseName && caseLink && (
-                                  <Link to={caseLink} className="text-[#283693] hover:underline font-medium">{caseName}</Link>
-                                )}
-                              </div>
-                              {meta.notes && (
-                                <p className="text-[10px] text-stone-500 mt-1 italic border-l-2 border-stone-200 pl-2">{meta.notes.slice(0, 100)}{meta.notes.length > 100 ? '...' : ''}</p>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1 shrink-0 items-end">
-                              {!isFollowedUp && (
-                                <button
-                                  onClick={() => handleFollowUp(event)}
-                                  disabled={followingUp === event.id}
-                                  className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200 transition-colors"
-                                >
-                                  {followingUp === event.id ? <Loader2 className="size-2.5 animate-spin" /> : <CheckCircle2 className="size-2.5" />}
-                                  Follow Up
-                                </button>
-                              )}
-                              <button
-                                onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
-                                className="inline-flex items-center gap-1 text-[9px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200 transition-colors"
-                              >
-                                <FileText className="size-2.5" />
-                                {meta.notes ? 'Edit Notes' : 'Add Notes'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-1">View full calendar →</Link>
-              </div>
-            )}
-          </CardContent>}
-        </Card>
-
-        {/* Tasks */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
-                {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-                <CheckCircle2 className="size-4 text-stone-400" /> My Tasks
-              </CardTitle>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setAddTaskOpen(true)}>
-                <Plus className="size-3" /> Add Task
-              </Button>
-            </div>
-          </CardHeader>
-          {tasksOpen && <CardContent className="space-y-3">
-            {(() => {
-              // Split tasks into current (≤7 days or no due date) and future (>7 days)
-              const now = new Date()
-              now.setHours(0, 0, 0, 0)
-              const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-              const currentTasks = []
-              const futureTasks = []
-              for (const task of tasks) {
-                if (task.due_date) {
-                  const due = new Date(task.due_date + 'T12:00:00')
-                  if (due > sevenDaysFromNow) { futureTasks.push(task); continue }
-                }
-                currentTasks.push(task)
-              }
-              const renderTask = (task) => {
-                let caseName = null, caseLink = null
-                if (task.case_id && task.case_type && task.case_type !== 'personal') {
-                  const cid = Number(task.case_id)
-                  if (task.case_type === 'surrogate' || task.case_type === 'gc') {
-                    const gc = surrogates.find(s => Number(s.id) === cid)
-                    if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
-                  } else if (task.case_type === 'ip') {
-                    const ip = ips.find(i => Number(i.id) === cid)
-                    if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
-                  } else if (task.case_type === 'journey') {
-                    const j = journeys.find(j => Number(j.id) === cid)
-                    if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
-                  }
-                }
-                const isExpanded = getTaskExpanded(task)
-                const isComplete = task.status === 'complete'
-                return (
-                  <div key={task.id} className={`rounded-lg border ${isComplete ? 'border-stone-100 opacity-60' : task.priority === 'high' || task.priority === 'urgent' ? 'border-red-200 bg-red-50/50' : 'border-stone-100'}`}>
-                    <div className="px-3 py-2 flex items-center gap-2">
-                      {isComplete ? (
-                        <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
-                          <CheckCircle2 className="size-4" />
-                        </button>
-                      ) : (
-                        <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Complete">
-                          <Circle className="size-4" />
-                        </button>
+        {/* Appointments — same visual language as the new Tasks card:
+            left-border accent ("today" = indigo, past = neutral), bigger
+            title, full-width chip metadata row, always-visible action
+            buttons sized to match the Tasks edit/delete icons. */}
+        {(() => {
+          const renderAppointment = (event, { isPast = false } = {}) => {
+            const startDt = event.start?.dateTime || event.start?.date || ''
+            const isAllDay = !!event.start?.date && !event.start?.dateTime
+            const today = new Date().toDateString() === new Date(startDt).toDateString()
+            const { caseName, caseLink } = getEventCaseInfo(event)
+            const meta = apptMeta[event.id] || {}
+            const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
+            const isFollowedUp = meta.followedUp || title.startsWith('✅')
+            const borderColor = today ? 'border-l-[#283693]' : isPast ? 'border-l-stone-200' : 'border-l-stone-300'
+            return (
+              <div key={event.id} className={`group rounded-lg border border-stone-200 border-l-4 ${borderColor} ${today ? 'bg-[#283693]/5' : 'bg-white'} ${isPast ? 'opacity-75' : ''} hover:shadow-sm hover:border-stone-300 transition-all`}>
+                <div className="px-3 py-2.5 flex items-start gap-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium leading-snug ${today ? 'text-[#283693]' : 'text-stone-800'}`}>
+                      {title.replace(/^✅\s*/, '')}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] mt-1 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-stone-500 font-medium">
+                        <Calendar className="size-3" />
+                        {today ? 'Today' : formatDate(startDt)}
+                      </span>
+                      {!isAllDay && event.start?.dateTime && (
+                        <span className="inline-flex items-center gap-1 text-stone-400">
+                          <Clock className="size-3" />
+                          {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                        </span>
                       )}
-                      <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
-                        <p className={`text-sm truncate ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>{task.title}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                          {task.due_date && <span>{formatDate(task.due_date)}</span>}
-                          {isComplete && task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
-                          {task.priority === 'high' && !isComplete && <span className="text-red-500 font-semibold">High</span>}
-                          {task.priority === 'urgent' && !isComplete && <span className="text-red-600 font-semibold">Urgent</span>}
-                          {caseName ? (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 truncate max-w-[140px]">
-                              {caseName}
-                            </span>
-                          ) : (task.case_type === 'personal' || !task.case_id) ? (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
-                          ) : null}
-                        </div>
-                      </button>
-                      {!isComplete && (
-                        <button onClick={() => setEditingTask({ ...task })} className="text-stone-300 hover:text-[#283693] shrink-0" title="Edit">
-                          <Pencil className="size-3" />
-                        </button>
+                      {isFollowedUp && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Followed Up</span>
                       )}
-                      <button onClick={() => removeTask(task.id)} className="text-stone-300 hover:text-red-500 shrink-0" title="Delete">
-                        <Trash2 className="size-3" />
-                      </button>
+                      {caseName && caseLink && (
+                        <Link to={caseLink} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors truncate max-w-[160px]">
+                          {caseName}
+                        </Link>
+                      )}
                     </div>
-                    {isExpanded && (
-                      <div className="px-3 pb-2 pl-9 space-y-1 text-[11px] border-t border-stone-100 pt-2">
-                        {caseName && caseLink && (
-                          <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
-                        )}
-                        {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{task.assigned_to.includes(',') ? task.assigned_to.split(',').map(e => e.trim().split('@')[0]).join(' & ') : task.assigned_to.split('@')[0]}</span></p>}
-                        {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
-                        {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
-                        {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
-                      </div>
+                    {meta.notes && (
+                      <p className="text-[11px] text-stone-500 mt-1.5 italic border-l-2 border-stone-200 pl-2 line-clamp-2">{meta.notes}</p>
                     )}
                   </div>
-                )
-              }
-              return (
-                <>
-                  {currentTasks.length === 0 && futureTasks.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-6">No open tasks</p>
-                  ) : currentTasks.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-3">No tasks due in the next 7 days</p>
+                  <div className="flex flex-col gap-1 shrink-0 items-end">
+                    {!isFollowedUp && (
+                      <button
+                        onClick={() => handleFollowUp(event)}
+                        disabled={followingUp === event.id}
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200 transition-colors"
+                        title="Mark as followed up"
+                      >
+                        {followingUp === event.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+                        Follow Up
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
+                      className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-1 rounded-md border border-stone-200 transition-colors"
+                      title={meta.notes ? 'Edit notes' : 'Add notes'}
+                    >
+                      <FileText className="size-3" />
+                      {meta.notes ? 'Edit' : 'Notes'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+          return (
+            <Card>
+              <CardHeader className="pb-3 cursor-pointer" onClick={() => setAppointmentsOpen(o => !o)}>
+                <CardTitle className="text-sm flex items-center gap-2">
+                  {appointmentsOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
+                  <Calendar className="size-4 text-stone-400" /> Appointments
+                  {upcomingEvents.length > 0 && (
+                    <span className="ml-auto text-[10px] font-semibold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">{upcomingEvents.length}</span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              {appointmentsOpen && (
+                <CardContent>
+                  {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-6">No appointments this week.</p>
                   ) : (
-                    <div className="space-y-2">
-                      {currentTasks.slice(0, 8).map(renderTask)}
+                    <div className="space-y-3">
+                      {upcomingEvents.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold pl-1">Upcoming</p>
+                          {/* Cap height + scroll instead of letting the card grow without bound. */}
+                          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                            {upcomingEvents.map(event => renderAppointment(event))}
+                          </div>
+                        </div>
+                      )}
+                      {pastEvents.length > 0 && (
+                        <div className="space-y-2">
+                          <button onClick={() => setPastApptOpen(o => !o)} className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1 hover:text-stone-600 transition-colors pl-1">
+                            {pastApptOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                            <History className="size-3" /> Past 7 Days ({pastEvents.length})
+                          </button>
+                          {pastApptOpen && (
+                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                              {pastEvents.map(event => renderAppointment(event, { isPast: true }))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-2">View full calendar →</Link>
+                    </div>
+                  )}
+                </CardContent>
+              )}
+            </Card>
+          )
+        })()}
+
+        {/* Tasks — tabbed: My Tasks / My Cases / All Tasks */}
+        {(() => {
+          // Hoisted task helpers — case name/link lookup, the row renderer
+          // shared across all tabs and the completed list, and the
+          // ≤7-day / >7-day split.
+          const lookupCase = (task) => {
+            if (!task.case_id || !task.case_type || task.case_type === 'personal') return { caseName: null, caseLink: null }
+            const cid = Number(task.case_id)
+            if (task.case_type === 'surrogate' || task.case_type === 'gc') {
+              const gc = surrogates.find(s => Number(s.id) === cid)
+              if (gc) return { caseName: gc.name, caseLink: `/surrogates/${gc.id}` }
+            } else if (task.case_type === 'ip') {
+              const ip = ips.find(i => Number(i.id) === cid)
+              if (ip) return { caseName: ip.names || ip.name, caseLink: `/intended-parents/${ip.id}` }
+            } else if (task.case_type === 'journey') {
+              const j = journeys.find(j => Number(j.id) === cid)
+              if (j) return { caseName: j.label || j.gc_name, caseLink: `/journeys/${j.id}` }
+            }
+            return { caseName: null, caseLink: null }
+          }
+          const formatAssignees = (val) => {
+            if (!val) return ''
+            return String(val).split(',').map(e => e.trim().split('@')[0]).join(' & ')
+          }
+          // Priority drives a 4px left-border accent so high/urgent items pop
+          // without painting the whole row red. Today + overdue get color in
+          // the metadata row.
+          const priorityBorder = (task) => {
+            if (task.status === 'complete') return 'border-l-stone-200'
+            if (task.priority === 'urgent') return 'border-l-red-500'
+            if (task.priority === 'high') return 'border-l-amber-400'
+            return 'border-l-stone-200'
+          }
+          const todayIsoStr = new Date().toISOString().split('T')[0]
+          const renderTask = (task) => {
+            const { caseName, caseLink } = lookupCase(task)
+            const isExpanded = getTaskExpanded(task)
+            const isComplete = task.status === 'complete'
+            const isOverdue = task.due_date && task.due_date < todayIsoStr && !isComplete
+            const isToday = task.due_date === todayIsoStr && !isComplete
+            return (
+              <div key={task.id} className={`group rounded-lg border border-stone-200 border-l-4 ${priorityBorder(task)} bg-white hover:shadow-sm hover:border-stone-300 transition-all ${isComplete ? 'opacity-60' : ''}`}>
+                <div className="px-3 py-2.5 flex items-center gap-2.5">
+                  {isComplete ? (
+                    <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
+                      <CheckCircle2 className="size-5" />
+                    </button>
+                  ) : (
+                    <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Mark complete">
+                      <Circle className="size-5" />
+                    </button>
+                  )}
+                  <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
+                    <p className={`text-sm font-medium leading-snug ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>
+                      {task.title}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-[11px] mt-1 flex-wrap">
+                      {task.due_date && (
+                        <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-600 font-semibold' : isToday ? 'text-[#283693] font-semibold' : 'text-stone-400'}`}>
+                          <Calendar className="size-3" />
+                          {isToday ? 'Today' : formatDate(task.due_date)}
+                          {isOverdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
+                        </span>
+                      )}
+                      {isComplete && task.completed_at && (
+                        <span className="text-stone-400">Completed {formatDate(task.completed_at)}</span>
+                      )}
+                      {task.priority === 'urgent' && !isComplete && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">Urgent</span>
+                      )}
+                      {task.priority === 'high' && !isComplete && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">High</span>
+                      )}
+                      {caseName ? (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 truncate max-w-[160px] border border-blue-100">
+                          {caseName}
+                        </span>
+                      ) : (task.case_type === 'personal' || !task.case_id) ? (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
+                      ) : null}
+                      {task.assigned_to && (
+                        <span className="text-[10px] text-stone-400">→ {formatAssignees(task.assigned_to)}</span>
+                      )}
+                    </div>
+                  </button>
+                  {!isComplete && (
+                    <button onClick={() => setEditingTask({ ...task })} className="size-7 rounded-md flex items-center justify-center text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 shrink-0 transition-colors" title="Edit">
+                      <Pencil className="size-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => removeTask(task.id)} className="size-7 rounded-md flex items-center justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 shrink-0 transition-colors" title="Delete">
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+                {isExpanded && (
+                  <div className="px-3 pb-2.5 pl-10 space-y-1 text-[11px] border-t border-stone-100 pt-2">
+                    {caseName && caseLink && (
+                      <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
+                    )}
+                    {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{formatAssignees(task.assigned_to)}</span></p>}
+                    {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
+                    {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
+                    {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
+                  </div>
+                )}
+              </div>
+            )
+          }
+          // Bucket the active tab's task list into "due in next 7 days or
+          // already overdue" vs "future" so the future toggle works the same
+          // on every tab.
+          const splitByHorizon = (list) => {
+            const now = new Date(); now.setHours(0, 0, 0, 0)
+            const sevenDays = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+            const current = []
+            const future = []
+            for (const t of list) {
+              if (t.due_date) {
+                const due = new Date(t.due_date + 'T12:00:00')
+                if (due > sevenDays) { future.push(t); continue }
+              }
+              current.push(t)
+            }
+            return { current, future }
+          }
+          const activeList = taskTab === 'all' ? taskBuckets.all : taskTab === 'cases' ? taskBuckets.cases : taskBuckets.mine
+          const { current: currentTasks, future: futureTasks } = splitByHorizon(activeList)
+          const showAllTab = isSuperAdmin || isMasterAdmin
+          const tabs = [
+            { id: 'mine', label: 'My Tasks', count: taskBuckets.mine.length },
+            { id: 'cases', label: 'My Cases', count: taskBuckets.cases.length },
+            ...(showAllTab ? [{ id: 'all', label: 'All Tasks', count: taskBuckets.all.length }] : []),
+          ]
+          return (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
+                    {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
+                    <CheckCircle2 className="size-4 text-stone-400" /> Tasks
+                  </CardTitle>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setAddTaskOpen(true)}>
+                    <Plus className="size-3" /> Add Task
+                  </Button>
+                </div>
+                {tasksOpen && (
+                  <div className="flex items-center gap-1 mt-2 -mb-1">
+                    {tabs.map(t => (
+                      <button
+                        key={t.id}
+                        onClick={() => setTaskTab(t.id)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          taskTab === t.id
+                            ? 'bg-[#283693] text-white shadow-sm'
+                            : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
+                        }`}
+                      >
+                        {t.label}
+                        <span className={`ml-1.5 text-[10px] font-semibold ${taskTab === t.id ? 'opacity-90' : 'opacity-60'}`}>{t.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardHeader>
+              {tasksOpen && (
+                <CardContent className="space-y-3">
+                  {currentTasks.length === 0 && futureTasks.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-6">
+                      {taskTab === 'mine'
+                        ? 'No open tasks assigned to you.'
+                        : taskTab === 'cases'
+                          ? 'No tasks on cases you manage.'
+                          : 'No open tasks.'}
+                    </p>
+                  ) : currentTasks.length === 0 ? (
+                    <p className="text-xs text-stone-400 text-center py-3">No tasks due in the next 7 days.</p>
+                  ) : (
+                    /* Cap height + scroll so a long list doesn't blow up the
+                       card. The future / completed toggles below stay
+                       accessible regardless of how many open tasks exist. */
+                    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+                      {currentTasks.map(renderTask)}
                     </div>
                   )}
                   {futureTasks.length > 0 && (
                     <div>
-                      <button onClick={() => setFutureOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
+                      <button onClick={() => setFutureOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full pt-2">
                         {futureOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
                         <Calendar className="size-3 text-blue-500" />
                         Future Tasks ({futureTasks.length})
                       </button>
                       {futureOpen && (
-                        <div className="space-y-2 mt-2">
+                        <div className="space-y-2 mt-2 max-h-[300px] overflow-y-auto pr-1">
                           {futureTasks.map(renderTask)}
                         </div>
                       )}
                     </div>
                   )}
-                </>
-              )
-            })()}
-            {/* Completed Tasks */}
-            {completedTasks.length > 0 && (() => {
-              // Build same renderer with case lookup
-              const renderCompleted = (task) => {
-                let caseName = null, caseLink = null
-                if (task.case_id && task.case_type && task.case_type !== 'personal') {
-                  const cid = Number(task.case_id)
-                  if (task.case_type === 'surrogate' || task.case_type === 'gc') {
-                    const gc = surrogates.find(s => Number(s.id) === cid)
-                    if (gc) { caseName = gc.name; caseLink = `/surrogates/${gc.id}` }
-                  } else if (task.case_type === 'ip') {
-                    const ip = ips.find(i => Number(i.id) === cid)
-                    if (ip) { caseName = ip.names || ip.name; caseLink = `/intended-parents/${ip.id}` }
-                  } else if (task.case_type === 'journey') {
-                    const j = journeys.find(j => Number(j.id) === cid)
-                    if (j) { caseName = j.label || j.gc_name; caseLink = `/journeys/${j.id}` }
-                  }
-                }
-                const isExpanded = getTaskExpanded(task)
-                return (
-                  <div key={task.id} className="rounded-lg border border-stone-100 opacity-70 hover:opacity-100 transition-opacity">
-                    <div className="px-3 py-2 flex items-center gap-2">
-                      <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
-                        <CheckCircle2 className="size-4" />
+                  {/* Completed list lives on My Tasks only — completedTasks
+                      is the assignee's own completed list. */}
+                  {taskTab === 'mine' && completedTasks.length > 0 && (
+                    <div>
+                      <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full pt-2">
+                        {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+                        <CheckCircle2 className="size-3 text-emerald-500" />
+                        Completed ({completedTasks.length})
                       </button>
-                      <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
-                        <p className="text-sm text-stone-500 line-through truncate">{task.title}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
-                          {task.completed_at && <span>Completed {formatDate(task.completed_at)}</span>}
-                          {caseName && (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 truncate max-w-[140px]">{caseName}</span>
-                          )}
+                      {completedOpen && (
+                        <div className="space-y-2 mt-2 max-h-[300px] overflow-y-auto pr-1">
+                          {completedTasks.map(renderTask)}
                         </div>
-                      </button>
-                      <button onClick={() => removeTask(task.id)} className="text-stone-300 hover:text-red-500 shrink-0" title="Delete">
-                        <Trash2 className="size-3" />
-                      </button>
-                    </div>
-                    {isExpanded && (
-                      <div className="px-3 pb-2 pl-9 space-y-1 text-[11px] border-t border-stone-100 pt-2">
-                        {caseName && caseLink && (
-                          <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
-                        )}
-                        {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{task.assigned_to.includes(',') ? task.assigned_to.split(',').map(e => e.trim().split('@')[0]).join(' & ') : task.assigned_to.split('@')[0]}</span></p>}
-                        {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
-                        {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
-                        {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
-                      </div>
-                    )}
-                  </div>
-                )
-              }
-              return (
-                <div>
-                  <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full">
-                    {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                    <CheckCircle2 className="size-3 text-emerald-500" />
-                    Completed ({completedTasks.length})
-                  </button>
-                  {completedOpen && (
-                    <div className="space-y-1.5 mt-2">
-                      {completedTasks.map(renderCompleted)}
+                      )}
                     </div>
                   )}
-                </div>
-              )
-            })()}
-          </CardContent>}
-        </Card>
+                </CardContent>
+              )}
+            </Card>
+          )
+        })()}
       </div>
 
       {/* Add Task Dialog */}
