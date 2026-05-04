@@ -55,7 +55,7 @@ function iconForSection(label) {
 }
 
 function statusColors(status) {
-  if (SKIP_BUCKET.has(status))     return { row: 'bg-stone-100/70',   badge: 'bg-stone-200 text-stone-600' }
+  if (SKIP_BUCKET.has(status))     return { row: 'bg-stone-100/70',   badge: 'bg-stone-100/70 text-stone-400' }
   if (COMPLETE_BUCKET.has(status)) return { row: 'bg-emerald-50/70',  badge: 'bg-emerald-100 text-emerald-700' }
   if (status === 'not_started')    return { row: 'bg-white',          badge: 'bg-stone-100 text-stone-500' }
   // In progress (anything that's been started but not finalized) → blue
