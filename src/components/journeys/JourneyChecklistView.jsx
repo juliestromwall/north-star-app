@@ -130,32 +130,42 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
     for (const list of Object.values(byParent)) {
       list.sort((a, b) => a._order - b._order || String(a.id).localeCompare(String(b.id)))
     }
-    // Insert dynamic sections after their anchor, sorted by _dynamicIndex so
-    // #2 lands before #3, etc. Anchors that aren't found put dynamic sections
-    // at the end in stable order.
+    // Layout dynamic sections interleaved by index: for each attempt N,
+    // emit Transfer #N then CHB #N as a pair, after the LAST relevant
+    // anchor in base. Result becomes:
+    //   Transfer #1 → CHB #1 → Transfer #2 → CHB #2 → Transfer #3 → CHB #3
     if (dynamicSections.length > 0) {
-      const grouped = {}
-      for (const { id, val } of dynamicSections) {
-        const anchorId = val._dynamicAnchorId || '_orphan'
-        if (!grouped[anchorId]) grouped[anchorId] = []
-        grouped[anchorId].push({
-          id,
-          label: val._label || id,
-          cards: [], // children pulled from byParent[id] in render
-          _isDynamicSection: true,
-          _dynamicIndex: val._dynamicIndex || 0,
-          _dynamicKind: val._dynamicKind,
+      const wrapped = dynamicSections.map(({ id, val }) => ({
+        id,
+        label: val._label || id,
+        cards: [],
+        _isDynamicSection: true,
+        _dynamicIndex: val._dynamicIndex || 0,
+        _dynamicKind: val._dynamicKind,
+        _dynamicAnchorId: val._dynamicAnchorId,
+      }))
+      // Group by index (2, 3, ...) and within each index put transfer first.
+      const byIndex = {}
+      for (const sec of wrapped) {
+        if (!byIndex[sec._dynamicIndex]) byIndex[sec._dynamicIndex] = []
+        byIndex[sec._dynamicIndex].push(sec)
+      }
+      const indices = Object.keys(byIndex).map(Number).sort((a, b) => a - b)
+      const orderedDynamic = []
+      for (const n of indices) {
+        const group = byIndex[n].sort((a, b) => {
+          if (a._dynamicKind === b._dynamicKind) return 0
+          return a._dynamicKind === 'transfer' ? -1 : 1
         })
+        orderedDynamic.push(...group)
       }
-      for (const list of Object.values(grouped)) {
-        list.sort((a, b) => a._dynamicIndex - b._dynamicIndex)
-      }
-      const result = []
-      for (const sec of base) {
-        result.push(sec)
-        if (grouped[sec.id]) result.push(...grouped[sec.id])
-      }
-      if (grouped._orphan) result.push(...grouped._orphan)
+      // Insert at the position right after the LAST anchor that exists in base.
+      const anchorIds = new Set(wrapped.map(s => s._dynamicAnchorId).filter(Boolean))
+      let insertAfter = -1
+      base.forEach((sec, i) => { if (anchorIds.has(sec.id)) insertAfter = i })
+      const result = insertAfter >= 0
+        ? [...base.slice(0, insertAfter + 1), ...orderedDynamic, ...base.slice(insertAfter + 1)]
+        : [...base, ...orderedDynamic]
       return { sections: result, subtasksByParent: byParent }
     }
     return { sections: base, subtasksByParent: byParent }
