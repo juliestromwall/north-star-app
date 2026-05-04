@@ -1903,6 +1903,22 @@ export function formatLineItemsAsNotes(items) {
     .map(li => `$${(parseFloat(li.amount) || 0).toFixed(2)} — ${li.description || '(no description)'}`)
     .join('\n')
 }
+export function parseNotesToLineItems(notes, fallbackAmount) {
+  const text = (notes || '').trim()
+  if (!text) {
+    const amt = fallbackAmount != null ? Number(fallbackAmount) : 0
+    return [{ ...emptyLineItem(), amount: amt > 0 ? amt.toFixed(2) : '' }]
+  }
+  const lineRe = /^\$\s*(\d+(?:\.\d+)?)\s*[—-]\s*(.*)$/
+  const parsed = text.split('\n').map(line => {
+    const m = line.trim().match(lineRe)
+    if (!m) return null
+    const desc = (m[2] || '').trim()
+    return { ...emptyLineItem(), amount: parseFloat(m[1]).toFixed(2), description: desc === '(no description)' ? '' : desc }
+  })
+  if (parsed.every(Boolean)) return parsed
+  return [{ ...emptyLineItem(), amount: fallbackAmount != null ? Number(fallbackAmount).toFixed(2) : '', description: text }]
+}
 
 export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel, onExpensesChanged, escrowFunded = false }) {
   const [expenses, setExpenses] = useState([])
@@ -2104,8 +2120,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     setEditExpense({
       id: exp.id,
       expense_date: exp.expense_date || new Date().toISOString().split('T')[0],
-      amount: exp.amount != null ? Number(exp.amount).toFixed(2) : '',
-      notes: exp.notes || '',
+      lineItems: parseNotesToLineItems(exp.notes, exp.amount),
+      existingAttachments: parseAttachmentUrls(exp.attachment_url),
       escrow_opened: !!exp.escrow_opened,
       paid_to: exp.paid_to || '',
       cc_last4: exp.cc_last4 || '',
@@ -2116,12 +2132,22 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     })
   }
 
+  const editTotal = sumLineItems(editExpense?.lineItems)
+
   async function handleEditSave() {
     if (!editExpense) return
-    const amt = parseFloat(editExpense.amount)
-    if (!amt || amt <= 0) return
+    if (editTotal <= 0) return
     setEditSaving(true)
     try {
+      const newUploadedUrls = []
+      for (const li of editExpense.lineItems) {
+        if (!li.file) continue
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        if (doc?.public_url) newUploadedUrls.push(doc.public_url)
+      }
+      const allUrls = [...(editExpense.existingAttachments || []), ...newUploadedUrls]
+      const attachmentUrl = allUrls.length ? allUrls.join('\n') : null
+
       let resolvedPaidTo = editExpense.paid_to || null
       let payVia = null
       let payViaInfo = null
@@ -2147,8 +2173,9 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
       const submittedToEscrow = editExpense.escrow_opened ? !!editExpense.submitted_to_escrow : false
       const updates = {
         expense_date: editExpense.expense_date,
-        amount: amt,
-        notes: editExpense.notes || null,
+        amount: editTotal,
+        notes: formatLineItemsAsNotes(editExpense.lineItems) || null,
+        attachment_url: attachmentUrl,
         escrow_opened: editExpense.escrow_opened,
         paid_to: resolvedPaidTo,
         cc_last4: editExpense.escrow_opened ? (editExpense.cc_last4 || null) : null,
@@ -2347,31 +2374,86 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
           </DialogHeader>
           {editExpense && (
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] text-stone-400 font-medium">Date *</label>
-                  <Input type="date" value={editExpense.expense_date} onChange={e => setEditExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
-                  <Input
-                    value={editExpense.amount}
-                    onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setEditExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }}
-                    placeholder="0.00"
-                    className="h-9"
-                  />
-                </div>
-              </div>
               <div className="space-y-1">
-                <label className="text-[11px] text-stone-400 font-medium">Description / Notes</label>
-                <textarea
-                  value={editExpense.notes}
-                  onChange={e => setEditExpense(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Description"
-                  rows={3}
-                  className="w-full text-sm border border-stone-200 rounded-md px-2 py-1.5 bg-white"
-                />
+                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+                <Input type="date" value={editExpense.expense_date} onChange={e => setEditExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
               </div>
+              {/* Line items */}
+              <div className="space-y-2 border-t border-stone-100 pt-3">
+                <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Line Items</p>
+                {editExpense.lineItems.map((li, idx) => (
+                  <div key={li.id} className="rounded-lg border border-stone-200 p-2 space-y-1.5 bg-stone-50/40">
+                    <div className="grid grid-cols-[110px_1fr_auto] gap-2 items-start">
+                      <Input
+                        value={li.amount}
+                        onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, amount: (cents / 100).toFixed(2) } : x) })) }}
+                        placeholder="0.00"
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        value={li.description}
+                        onChange={e => setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, description: e.target.value } : x) }))}
+                        placeholder="Description"
+                        className="h-8 text-sm"
+                      />
+                      {editExpense.lineItems.length > 1 && (
+                        <button
+                          onClick={() => setEditExpense(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }))}
+                          className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                          title="Remove line item"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      )}
+                      {editExpense.lineItems.length === 1 && <div className="w-7" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                        onChange={e => setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, file: e.target.files?.[0] || null } : x) }))}
+                        className="h-7 text-[10px] file:text-[10px]"
+                      />
+                    </div>
+                    {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditExpense(p => ({ ...p, lineItems: [...p.lineItems, emptyLineItem()] }))}
+                  className="text-xs text-[#283693] hover:underline font-medium"
+                  type="button"
+                >
+                  + Add Line Item
+                </button>
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                  <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
+                  <span className="text-base font-bold text-[#283693]">${editTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              {/* Existing attachments */}
+              {editExpense.existingAttachments.length > 0 && (
+                <div className="space-y-1.5 border-t border-stone-100 pt-3">
+                  <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Existing Attachments</p>
+                  <div className="space-y-1">
+                    {editExpense.existingAttachments.map((url, i) => (
+                      <div key={url + i} className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-stone-200 bg-stone-50/40">
+                        <Paperclip className="size-3 text-stone-400 shrink-0" />
+                        <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-[#283693] hover:underline truncate flex-1">
+                          {url.split('/').pop() || `Attachment ${i + 1}`}
+                        </a>
+                        <button
+                          onClick={() => setEditExpense(p => ({ ...p, existingAttachments: p.existingAttachments.filter((_, j) => j !== i) }))}
+                          className="text-stone-400 hover:text-red-500 shrink-0"
+                          title="Remove attachment"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Escrow Opened */}
               <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
                 <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
                 <div className="flex gap-1">
@@ -2425,7 +2507,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
               )}
               <div className="flex gap-2 justify-end pt-2 border-t border-stone-100">
                 <Button variant="outline" size="sm" onClick={() => setEditExpense(null)}>Cancel</Button>
-                <Button size="sm" onClick={handleEditSave} disabled={editSaving || !(parseFloat(editExpense.amount) > 0)} style={{ backgroundColor: '#283693' }} className="gap-1">
+                <Button size="sm" onClick={handleEditSave} disabled={editSaving || editTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
                   {editSaving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
                   {editSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
