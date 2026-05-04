@@ -655,7 +655,7 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
       log: [...log, newLog],
       history: [],
     })
-    if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: resolvedStatus, optionLabel, date: newLogDate })
+    if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: resolvedStatus, optionLabel, date: newLogDate, note: newLogNote })
     setNewLogStatus('')
     setNewLogDate(todayIsoDate())
     setNewLogNote('')

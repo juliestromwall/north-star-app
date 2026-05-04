@@ -498,7 +498,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
         onUpdate={handleUpdate}
         currentUserName={currentUser.name}
         stageLabel="Journey Checklist"
-        onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
+        onStatusLog={async ({ stepLabel, status, optionLabel, date, note }) => {
           if (status === 'complete') {
             const julieEmail = 'julie@abcsurrogacy.com'
             const sName = gcCase?.name || journey.gc_name || 'Surrogate'
@@ -544,19 +544,45 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 
           // Subtasks marked "Requested" → ship-to-surrogate auto-tasks for Emily.
           // Date defaults to the log date (when admin marked it Requested).
-          if (status === 'requested' || (optionLabel || '').toLowerCase() === 'requested') {
+          // Match is loose: any optionLabel that starts with "Requested"
+          // (e.g. "Requested (Include Size)") or an underlying status of
+          // 'requested' triggers the task.
+          const optLower = (optionLabel || '').toLowerCase()
+          const isRequestedLog = status === 'requested' || optLower.startsWith('requested')
+          if (isRequestedLog) {
             const sName = gcCase?.name || journey.gc_name || 'Surrogate'
             const logDt = date || new Date().toISOString().split('T')[0]
             const lbl = stepLabel.toLowerCase()
+
+            // Address — pull from multiple shapes so we don't fall back to
+            // just the state. Surrogate intake-form data lives flat on
+            // answers OR nested under answers._application; field names
+            // also vary (street vs streetAddress, zipCode vs zip).
             const a = gcCase?.answers || {}
-            const addr = [a.street, a.street2, a.city, a.stateProv || a.state, a.zipCode].filter(Boolean).join(', ') || '(address not on file)'
+            const app = a._application || {}
+            const street = app.street || a.street || a.streetAddress || ''
+            const street2 = app.street2 || a.street2 || a.aptNumber || ''
+            const city = app.city || a.city || ''
+            const stateVal = app.state || app.stateProv || a.state || a.stateProv || ''
+            const zip = app.zipCode || app.zip || a.zipCode || a.zip || ''
+            const addr = [
+              [street, street2].filter(Boolean).join(' ').trim(),
+              city,
+              stateVal,
+              zip,
+            ].filter(Boolean).join(', ') || '(address not on file)'
+
+            // Build description: address + admin's log note (e.g. shirt size)
+            const trimmedNote = (note || '').trim()
+            const description = trimmedNote ? `${addr}\n\nAdmin note: ${trimmedNote}` : addr
+
             const emilyEmail = 'emily@abcsurrogacy.com'
 
             if (lbl.includes('request transfer package')) {
               try {
                 await createCaseTask({
                   title: `Send Transfer Package to ${sName}`,
-                  description: addr,
+                  description,
                   due_date: logDt,
                   priority: 'high',
                   assigned_to: emilyEmail,
@@ -572,7 +598,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               try {
                 await createCaseTask({
                   title: `Send Jacket to ${sName}`,
-                  description: addr,
+                  description,
                   due_date: logDt,
                   priority: 'normal',
                   assigned_to: emilyEmail,
