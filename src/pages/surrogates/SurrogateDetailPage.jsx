@@ -1347,8 +1347,11 @@ export default function SurrogateDetailPage() {
                       })
                     } catch (err) { console.error('Reference check task creation failed:', err) }
                   }
-                  // Auto-create follow-up tasks for "Connect with Applicant" attempts
-                  if (stepLabel.toLowerCase().includes('connect with applicant') && optionLabel) {
+                  // Auto-create follow-up tasks for outreach attempts. The
+                  // logs used to live on the parent "Connect With Applicant"
+                  // step; once a child subtask "Reach out to GC" was added,
+                  // logs moved to the child, so we now match either label.
+                  if ((stepLabel.toLowerCase().includes('connect with applicant') || stepLabel.toLowerCase().includes('reach out to gc')) && optionLabel) {
                     const name = surrogate.name || 'Surrogate'
                     const logDate = date || new Date().toISOString().split('T')[0]
                     const addDays = (d, n) => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + n); return dt.toISOString().split('T')[0] }
