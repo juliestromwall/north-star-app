@@ -77,6 +77,7 @@ const HISTORY_FIELDS = [
   { key: 'favoriteBook', label: 'Favorite book', type: 'text' },
   { key: 'favoriteFoods', label: 'Favorite foods', type: 'text' },
   { key: 'pets', label: 'Do you have any pets?', type: 'textarea' },
+  { key: 'occupation', label: 'What is your Occupation?', type: 'text' },
   { key: 'freeTime', label: 'What do you like to do in your free time?', type: 'textarea' },
   // coupleField: rendered for BOTH IPs when partnered (each answers
   // from their own perspective); singles never see it.
