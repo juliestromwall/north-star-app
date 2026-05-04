@@ -2072,7 +2072,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
 
       {/* Add Expense Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
@@ -3108,7 +3108,7 @@ export default function JourneyDetailPage() {
 
       {/* Add Expense Dialog (hero-level) */}
       <Dialog open={expenseOpen} onOpenChange={setExpenseOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
           </DialogHeader>
