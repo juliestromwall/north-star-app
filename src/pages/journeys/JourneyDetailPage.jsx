@@ -1309,8 +1309,8 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                     {t.droppedCycle && <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Dropped Cycle</span>}
                     {t.lossType && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t.lossType === 'miscarriage' ? 'Miscarriage' : t.lossType === 'ectopic' ? 'Ectopic' : t.lossType === 'chemical' ? 'Chemical' : 'Loss'}</span>}
                     {/* Edit / Delete */}
-                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle || false, betaResult: t.betaResult, betaValue: t.betaValue || '', betaDate: t.betaDate || '', needsSecondBeta: t.needsSecondBeta || false, beta2Result: t.beta2Result || '', beta2Value: t.beta2Value || '', beta2Date: t.beta2Date || '', heartbeatConfirmed: t.heartbeatConfirmed || false, heartbeatDate: t.heartbeatDate || '', babies: String(t.babies || 1) }); setAddOpen(true) }} className="text-stone-300 hover:text-stone-500 transition-colors" title="Edit"><Pencil className="size-3" /></button>
-                    <button onClick={() => setDeleteConfirmIdx(i)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete"><Trash2 className="size-3" /></button>
+                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle || false, betaResult: t.betaResult, betaValue: t.betaValue || '', betaDate: t.betaDate || '', needsSecondBeta: t.needsSecondBeta || false, beta2Result: t.beta2Result || '', beta2Value: t.beta2Value || '', beta2Date: t.beta2Date || '', heartbeatConfirmed: t.heartbeatConfirmed || false, heartbeatDate: t.heartbeatDate || '', babies: String(t.babies || 1) }); setAddOpen(true) }} className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors" title="Edit transfer"><Pencil className="size-3.5" /></button>
+                    <button onClick={() => setDeleteConfirmIdx(i)} className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete transfer"><Trash2 className="size-3.5" /></button>
                   </div>
                 </div>
                 {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
@@ -1323,9 +1323,9 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                   <div className="flex flex-wrap gap-2 mt-2">
                     {!t.betaResult && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-600 hover:bg-amber-50" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-500 hover:bg-red-50" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-[#283693] border-[#283693]/30 hover:bg-[#283693]/5 hover:text-[#283693]" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 hover:bg-amber-100 hover:text-amber-800" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-600 border-red-300 hover:bg-red-100 hover:text-red-700" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
                       </>
                     )}
                     {t.betaResult === 'positive' && t.needsSecondBeta && !t.beta2Result && (
