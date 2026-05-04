@@ -11,6 +11,9 @@
 //   - journey_data._transfers has at least one entry with heartbeatConfirmed
 //   - That same transfer has no lossType (no miscarriage / ectopic / chemical)
 //   - The journey is not delivered (journey_data.delivered !== true)
+//   - The computed 16-week date is in the FUTURE (today or later) — already-
+//     past dates are skipped, since the PBO check is moot for surrogates who
+//     have already passed 16 weeks
 //   - No existing case_task on the journey whose title matches the 16wk PBO
 //     pattern (idempotent — re-running is safe)
 //
@@ -46,7 +49,9 @@ const { data: journeys, error } = await supabase
 if (error) { console.error('Failed to fetch journeys:', error.message); process.exit(1) }
 console.log(`Loaded ${journeys.length} matched journeys.`)
 
+const today = new Date().toISOString().split('T')[0]
 const candidates = []
+let skippedPast = 0
 
 for (const j of journeys) {
   const jd = j.journey_data || {}
@@ -63,6 +68,9 @@ for (const j of journeys) {
   const sixteenWeekDate = new Date(transferDate.getTime() + 93 * 24 * 60 * 60 * 1000)
   const dueStr = sixteenWeekDate.toISOString().split('T')[0]
 
+  // Skip surrogates who have already passed 16 weeks.
+  if (dueStr < today) { skippedPast++; continue }
+
   candidates.push({
     journeyId: j.id,
     gcName: j.gc_name || 'Surrogate',
@@ -72,7 +80,7 @@ for (const j of journeys) {
   })
 }
 
-console.log(`Found ${candidates.length} journeys with confirmed pregnancy + no loss + not delivered.`)
+console.log(`Found ${candidates.length} journeys not yet at 16 weeks (skipped ${skippedPast} already past 16wk).`)
 if (candidates.length === 0) process.exit(0)
 
 // Idempotency: pull existing 16wk PBO tasks across these journeys
@@ -95,10 +103,7 @@ console.log(`  - ${toCreate.length} need a 16wk PBO task created.`)
 console.log('')
 
 for (const c of toCreate) {
-  const today = new Date().toISOString().split('T')[0]
-  const overdue = c.dueDate < today
-  const tag = overdue ? '⚠️  OVERDUE' : '       '
-  console.log(`  ${tag}  journey=${c.journeyId}  gc="${c.gcName}"  transfer=${c.transferDate}  due=${c.dueDate}  assignee=${c.assignedTo || '(unassigned → fallback)'}`)
+  console.log(`  journey=${c.journeyId}  gc="${c.gcName}"  transfer=${c.transferDate}  due=${c.dueDate}  assignee=${c.assignedTo || '(unassigned → fallback)'}`)
 }
 
 if (!APPLY) {
