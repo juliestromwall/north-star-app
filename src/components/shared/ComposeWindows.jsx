@@ -26,6 +26,7 @@ import {
   List, ListOrdered, Palette, Link as LinkIcon, Undo2, Redo2,
   FolderOpen, Search, FileText, Smile, Wand2, Sparkles, RotateCw,
   Sparkle, Scissors, FileEdit, Briefcase,
+  ChevronDown as ChevronDownIcon, Check,
 } from 'lucide-react'
 
 const EMOJI_SET = [
@@ -528,6 +529,21 @@ function ComposeWindow({ draft, index }) {
   const [docSearch, setDocSearch] = useState('')
   const [docsLoading, setDocsLoading] = useState(false)
   const [contacts, setContacts] = useState([])
+  const [pickerSelected, setPickerSelected] = useState(() => new Set())
+  const [pickerAttaching, setPickerAttaching] = useState(false)
+  const [casePickerOpen, setCasePickerOpen] = useState(false)
+  const [caseSearch, setCaseSearch] = useState('')
+  const casePickerRef = useRef(null)
+
+  // Close case picker on outside click
+  useEffect(() => {
+    if (!casePickerOpen) return
+    const handler = (e) => {
+      if (casePickerRef.current && !casePickerRef.current.contains(e.target)) setCasePickerOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [casePickerOpen])
 
   // Load Gmail contacts (cached)
   useEffect(() => {
@@ -540,6 +556,7 @@ function ComposeWindow({ draft, index }) {
     setDocPickerOpen(true)
     setDocsLoading(true)
     setDocSearch('')
+    setPickerSelected(new Set())
     try {
       // For journey cases, fetch documents from the journey itself + the linked GC and IP cases
       if (draft.caseType === 'journey') {
@@ -580,6 +597,31 @@ function ComposeWindow({ draft, index }) {
     } catch { alert('Failed to attach document') }
   }
 
+  /** Attach a list of docs at once. Single state update at the end so all
+   * attachments appear together instead of incrementally. */
+  async function attachDocsBatch(docs) {
+    setPickerAttaching(true)
+    try {
+      const fetched = await Promise.all(docs.map(async d => {
+        const res = await fetch(d.public_url)
+        const blob = await res.blob()
+        const base64 = await new Promise((resolve, reject) => {
+          const r = new FileReader()
+          r.onload = () => resolve(r.result.split(',')[1])
+          r.onerror = reject
+          r.readAsDataURL(blob)
+        })
+        return { filename: d.file_name, mimeType: d.file_type || 'application/octet-stream', base64Data: base64, size: d.file_size || blob.size }
+      }))
+      const existing = draft.attachments || []
+      updateDraft(draft.id, { attachments: [...existing, ...fetched] })
+    } catch {
+      alert('Failed to attach one or more documents')
+    } finally {
+      setPickerAttaching(false)
+    }
+  }
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -597,6 +639,11 @@ function ComposeWindow({ draft, index }) {
     editorProps: {
       attributes: {
         class: 'focus:outline-none px-3 py-2 text-sm h-full [&_p]:mb-3 [&_p:last-child]:mb-0',
+        // Browser-native spellcheck — gives the squiggly underline + right-click
+        // suggestions like Gmail. ProseMirror disables it by default.
+        spellcheck: 'true',
+        autocorrect: 'on',
+        autocapitalize: 'sentences',
       },
     },
   })
@@ -618,15 +665,21 @@ function ComposeWindow({ draft, index }) {
         const ipMap = {}
         for (const ip of (ips || [])) ipMap[ip.id] = ip.names
 
+        const cmpLabel = (a, b) => (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' })
+
+        const journeyCases = (journeys || []).map(j => {
+          const gcName = gcMap[j.gc_case_id] || 'GC'
+          const ipName = ipMap[j.ip_case_id] || 'IP'
+          return { id: j.id, name: `${ipName} + ${gcName}`, type: 'journey', label: `${ipName} + ${gcName}`, group: 'Journeys' }
+        }).sort(cmpLabel)
+        const gcCases = (gcs || []).map(c => ({ id: c.id, name: c.name || '?', type: 'gc', label: c.name || '?', group: 'Surrogates' })).sort(cmpLabel)
+        const ipCases = (ips || []).map(c => ({ id: c.id, name: c.names || '?', type: 'ip', label: c.names || '?', group: 'Intended Parents' })).sort(cmpLabel)
+
         const allCases = [
           { id: '_none', name: '', label: 'None', group: '' },
-          ...(journeys || []).map(j => {
-            const gcName = gcMap[j.gc_case_id] || 'GC'
-            const ipName = ipMap[j.ip_case_id] || 'IP'
-            return { id: j.id, name: `${ipName} + ${gcName}`, type: 'journey', label: `${ipName} + ${gcName}`, group: 'Journeys' }
-          }),
-          ...(gcs || []).map(c => ({ id: c.id, name: c.name || '?', type: 'gc', label: c.name || '?', group: 'Surrogates' })),
-          ...(ips || []).map(c => ({ id: c.id, name: c.names || '?', type: 'ip', label: c.names || '?', group: 'Intended Parents' })),
+          ...journeyCases,
+          ...gcCases,
+          ...ipCases,
         ]
         setCases(allCases)
       })
@@ -954,50 +1007,103 @@ function ComposeWindow({ draft, index }) {
           )}
 
           <div className="ml-auto flex items-center gap-1.5">
-            <Select
-              value={draft.caseId || '_none'}
-              onValueChange={v => updateDraft(draft.id, { caseId: v === '_none' ? '' : v })}
-              onOpenChange={loadCases}
-            >
-              <SelectTrigger className="h-7 text-xs w-[180px] border-dashed">
-                <SelectValue placeholder="Log to case..." />
-              </SelectTrigger>
-              <SelectContent>
-                {!cases ? (
-                  <div className="px-2 py-3 text-xs text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="size-3 animate-spin" /> Loading...
+            {/* Case picker — searchable, alphabetical within each type group.
+                Replaces shadcn Select so we can show a search box and keep
+                groups visible while filtering. */}
+            <div className="relative" ref={casePickerRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  loadCases()
+                  setCasePickerOpen(o => !o)
+                  setCaseSearch('')
+                }}
+                className="h-7 text-xs w-[180px] border border-dashed border-stone-300 rounded-md px-2.5 flex items-center justify-between hover:bg-stone-50 transition-colors text-left"
+              >
+                <span className={`truncate ${draft.caseId && draft.caseId !== '_none' ? 'text-stone-700' : 'text-stone-400'}`}>
+                  {(() => {
+                    if (!draft.caseId || draft.caseId === '_none') return 'Log to case...'
+                    const c = cases?.find(c => String(c.id) === String(draft.caseId))
+                    return c?.label || 'Loading...'
+                  })()}
+                </span>
+                <ChevronDownIcon className="size-3 text-stone-400 shrink-0" />
+              </button>
+              {casePickerOpen && (
+                <div className="absolute bottom-full mb-1 right-0 w-[280px] bg-white rounded-lg border border-stone-200 shadow-xl z-50 overflow-hidden">
+                  <div className="p-2 border-b border-stone-100">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-stone-400" />
+                      <input
+                        autoFocus
+                        value={caseSearch}
+                        onChange={e => setCaseSearch(e.target.value)}
+                        placeholder="Search cases..."
+                        className="w-full h-8 text-xs border border-stone-200 rounded-md pl-7 pr-2 bg-white focus:outline-none focus:border-[#283693]"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <SelectItem value="_none">None</SelectItem>
-                    {cases.filter(c => c.group === 'Journeys').length > 0 && (
-                      <>
-                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Journeys</div>
-                        {cases.filter(c => c.group === 'Journeys').map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
-                        ))}
-                      </>
-                    )}
-                    {cases.filter(c => c.group === 'Surrogates').length > 0 && (
-                      <>
-                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Surrogates</div>
-                        {cases.filter(c => c.group === 'Surrogates').map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
-                        ))}
-                      </>
-                    )}
-                    {cases.filter(c => c.group === 'Intended Parents').length > 0 && (
-                      <>
-                        <div className="px-2 py-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Intended Parents</div>
-                        {cases.filter(c => c.group === 'Intended Parents').map(c => (
-                          <SelectItem key={c.id} value={String(c.id)}>{c.label}</SelectItem>
-                        ))}
-                      </>
-                    )}
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+                  <div className="max-h-[300px] overflow-y-auto py-1">
+                    {!cases ? (
+                      <div className="px-3 py-4 text-xs text-stone-400 flex items-center gap-2 justify-center">
+                        <Loader2 className="size-3 animate-spin" /> Loading...
+                      </div>
+                    ) : (() => {
+                      const q = caseSearch.trim().toLowerCase()
+                      const matches = (c) => !q || (c.label || '').toLowerCase().includes(q)
+                      const groups = [
+                        { key: 'Journeys', label: 'Journeys' },
+                        { key: 'Surrogates', label: 'GC' },
+                        { key: 'Intended Parents', label: 'IP' },
+                      ]
+                      const renderRow = (c) => {
+                        const isSelected = String(draft.caseId) === String(c.id)
+                        return (
+                          <button
+                            key={`${c.group}-${c.id}`}
+                            onClick={() => {
+                              updateDraft(draft.id, { caseId: c.id === '_none' ? '' : String(c.id) })
+                              setCasePickerOpen(false)
+                            }}
+                            className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 flex items-center justify-between ${isSelected ? 'bg-[#283693]/5 text-[#283693] font-medium' : 'text-stone-700'}`}
+                          >
+                            <span className="truncate">{c.label}</span>
+                            {isSelected && <Check className="size-3 text-[#283693] shrink-0 ml-2" />}
+                          </button>
+                        )
+                      }
+                      const noneRow = matches({ label: 'None' }) ? (
+                        <button
+                          onClick={() => { updateDraft(draft.id, { caseId: '' }); setCasePickerOpen(false) }}
+                          className={`w-full text-left text-xs px-3 py-1.5 hover:bg-stone-50 ${(!draft.caseId || draft.caseId === '_none') ? 'bg-[#283693]/5 text-[#283693] font-medium' : 'text-stone-500 italic'}`}
+                        >
+                          None
+                        </button>
+                      ) : null
+                      const sections = groups.map(g => ({
+                        ...g,
+                        items: cases.filter(c => c.group === g.key && matches(c)),
+                      }))
+                      const totalMatches = sections.reduce((n, s) => n + s.items.length, 0)
+                      if (totalMatches === 0 && !noneRow) {
+                        return <p className="px-3 py-4 text-xs text-stone-400 text-center">No matches.</p>
+                      }
+                      return (
+                        <>
+                          {noneRow}
+                          {sections.map(s => s.items.length > 0 && (
+                            <div key={s.key}>
+                              <div className="px-3 pt-2 pb-1 text-[9px] font-semibold uppercase tracking-wider text-stone-400">{s.label}</div>
+                              {s.items.map(renderRow)}
+                            </div>
+                          ))}
+                        </>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {draft.caseId && draft.caseId !== '_none' && (
               <Select value={draft.emailTag || ''} onValueChange={v => updateDraft(draft.id, { emailTag: v })}>
@@ -1046,13 +1152,27 @@ function ComposeWindow({ draft, index }) {
                     .filter(d => !docSearch || d.file_name?.toLowerCase().includes(docSearch.toLowerCase()) || d.category?.toLowerCase().includes(docSearch.toLowerCase()))
                     .map(doc => {
                       const alreadyAttached = (draft.attachments || []).some(a => a.filename === doc.file_name)
+                      const isSelected = pickerSelected.has(doc.id)
+                      const toggle = () => {
+                        if (alreadyAttached) return
+                        setPickerSelected(prev => {
+                          const next = new Set(prev)
+                          if (next.has(doc.id)) next.delete(doc.id); else next.add(doc.id)
+                          return next
+                        })
+                      }
                       return (
-                        <button
+                        <label
                           key={doc.id}
-                          disabled={alreadyAttached}
-                          onClick={() => { attachDoc(doc); setDocPickerOpen(false) }}
-                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5 cursor-pointer'}`}
+                          className={`w-full text-left rounded-lg border px-3 py-2 flex items-center gap-2 transition-colors ${alreadyAttached ? 'opacity-40 cursor-not-allowed border-stone-100' : `cursor-pointer ${isSelected ? 'border-[#283693] bg-[#283693]/5' : 'border-stone-100 hover:border-[#283693]/30 hover:bg-[#283693]/5'}`}`}
                         >
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-[#283693] shrink-0"
+                            checked={isSelected || alreadyAttached}
+                            disabled={alreadyAttached}
+                            onChange={toggle}
+                          />
                           <FileText className="size-4 text-stone-400 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-stone-700 truncate">{doc.file_name}</p>
@@ -1062,11 +1182,32 @@ function ComposeWindow({ draft, index }) {
                             </p>
                           </div>
                           {alreadyAttached && <span className="text-[9px] text-stone-400">Attached</span>}
-                        </button>
+                        </label>
                       )
                     })}
                 </div>
               )}
+            </div>
+            {/* Footer: Attach Selected button */}
+            <div className="px-4 py-3 border-t flex items-center justify-between bg-stone-50/50">
+              <p className="text-xs text-stone-500">
+                {pickerSelected.size === 0 ? 'Select one or more documents' : `${pickerSelected.size} selected`}
+              </p>
+              <Button
+                size="sm"
+                disabled={pickerSelected.size === 0 || pickerAttaching}
+                onClick={async () => {
+                  const selectedDocs = caseDocs.filter(d => pickerSelected.has(d.id))
+                  await attachDocsBatch(selectedDocs)
+                  setPickerSelected(new Set())
+                  setDocPickerOpen(false)
+                }}
+                style={{ backgroundColor: pickerSelected.size > 0 ? '#283693' : undefined }}
+                className="gap-1.5"
+              >
+                {pickerAttaching ? <Loader2 className="size-3.5 animate-spin" /> : <Paperclip className="size-3.5" />}
+                {pickerAttaching ? 'Attaching...' : `Attach ${pickerSelected.size > 0 ? `(${pickerSelected.size})` : ''}`}
+              </Button>
             </div>
           </div>
         </div>

@@ -29,6 +29,7 @@ function EmbryoIcon({ size = 14, color = '#000' }) {
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { fetchSurrogateProfileByEmail } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 
 const SHEET_TYPES = [
   { id: 'clinic', label: 'Clinic Match Sheet', icon: Stethoscope, color: '#9b2ea7', description: 'For RE / IVF clinic — medical history, pregnancy details, insurance, and transfer logistics.' },
@@ -710,12 +711,20 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       heightLeft -= (pageHeight - margin * 2)
       while (heightLeft > 0) { position -= (pageHeight - margin); pdf.addPage(); pdf.addImage(imgData, 'JPEG', margin, position, usableWidth, imgHeight); heightLeft -= (pageHeight - margin * 2) }
     } else {
-      const breakOffsets = pageBreaks.map(pb => pb.offsetTop)
-      pageBreaks.forEach(pb => pb.style.display = 'none')
+      // Use getBoundingClientRect against the container — pb.offsetTop is
+      // relative to the nearest positioned ancestor, which (depending on
+      // wrapping styles) can be the page <body> instead of the sheet div.
+      // That bug made every break collapse to "0 above first break, all
+      // content below" → effectively a one-page PDF.
+      const containerRect = container.getBoundingClientRect()
+      const breakOffsets = pageBreaks.map(pb => pb.getBoundingClientRect().top - containerRect.top)
       const sections = []
       let prevTop = 0
       for (const offset of breakOffsets) { sections.push({ top: prevTop, height: offset - prevTop }); prevTop = offset }
       sections.push({ top: prevTop, height: container.scrollHeight - prevTop })
+      // Capture the full canvas with breaks left visible (they're 1px each
+      // — invisible in the rendered output but they hold their position so
+      // our offsets stay accurate).
       const fullCanvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
       const renderScale = fullCanvas.width / container.offsetWidth
       const usableWidth = pageWidth - margin * 2
@@ -723,7 +732,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         if (i > 0) pdf.addPage()
         const s = sections[i]
         const srcY = Math.round(s.top * renderScale)
-        const srcH = Math.round(s.height * renderScale)
+        const srcH = Math.max(1, Math.round(s.height * renderScale))
         const cropCanvas = document.createElement('canvas')
         cropCanvas.width = fullCanvas.width
         cropCanvas.height = srcH
@@ -733,7 +742,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         const imgHeight = (srcH * usableWidth) / fullCanvas.width
         pdf.addImage(imgData, 'JPEG', margin, margin, usableWidth, imgHeight)
       }
-      pageBreaks.forEach(pb => pb.style.display = '')
     }
 
     return pdf
@@ -754,6 +762,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   // Attorney sheet: ask which attorney to send to
   const [attorneyPickerOpen, setAttorneyPickerOpen] = useState(false)
   const [pendingPdf, setPendingPdf] = useState(null)
+  // "Have you reviewed all the information?" gate before any send.
+  const [reviewConfirmOpen, setReviewConfirmOpen] = useState(false)
 
   async function sendMatchSheet() {
     setGenerating(true)
@@ -820,22 +830,203 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     }
   }
 
-  function sendAttorneySheet(recipient) {
+  /** Fetch a remote URL and return it as a draft-ready attachment object. */
+  async function urlToAttachment(url, filename) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) return null
+      const blob = await res.blob()
+      const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader()
+        r.onload = () => resolve(String(r.result).split(',')[1])
+        r.onerror = reject
+        r.readAsDataURL(blob)
+      })
+      return { filename, mimeType: blob.type || 'application/octet-stream', base64Data: base64 }
+    } catch { return null }
+  }
+
+  async function sendAttorneySheet(recipient) {
     const jd = journey?.journey_data || {}
     const ipAnswers = ipCase?.answers || {}
-    const ip1Name = `${ipAnswers.primaryFirstName || ''} ${ipAnswers.primaryLastName || ''}`.trim()
-    const ip2Name = (ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes') ? `${ipAnswers.ip2FirstName || ''} ${ipAnswers.ip2LastName || ''}`.trim() : ''
+    const gcApp = gcCase?.answers?._application || {}
+    const ip1First = ipAnswers.primaryFirstName || ''
+    const ip1Last = ipAnswers.primaryLastName || ''
+    const ip1Name = `${ip1First} ${ip1Last}`.trim()
+    const ipHasPartner = ipAnswers.hasPartner === true || ipAnswers.hasPartner === 'yes'
+    const ip2First = ipAnswers.ip2FirstName || ''
+    const ip2Last = ipAnswers.ip2LastName || ''
+    const ip2Name = ipHasPartner ? `${ip2First} ${ip2Last}`.trim() : ''
     const ipNames = ip2Name ? `${ip1Name} & ${ip2Name}` : ip1Name
+    const gcFullName = gcApp.fullLegalName || gcCase?.name || ''
+    const gcFirstName = gcFullName.split(/\s+/)[0] || gcFullName
+    const gcHasPartner = gcApp.hasSpouse === 'yes' || gcApp.hasSpouse === true
+    const gcPartnerFirst = gcApp.spouseFirstName || ''
+    const gcPartnerLast = gcApp.spouseLastName || ''
+    const gcPartnerFull = `${gcPartnerFirst} ${gcPartnerLast}`.trim()
+    const partnerRelationship = (gcApp.maritalStatus || gcApp.relationshipStatus || 'spouse/partner').toLowerCase()
+
     const toEmail = recipient === 'ip' ? jd.ipAttorneyEmail : jd.gcAttorneyEmail
-    const attorneyName = recipient === 'ip' ? jd.ipAttorneyName : jd.gcAttorneyName
+    const attorneyFullName = recipient === 'ip' ? (jd.ipAttorneyName || '') : (jd.gcAttorneyName || '')
+    const attorneyFirst = attorneyFullName.split(/\s+/)[0] || attorneyFullName
+    const otherAttorneyFullName = recipient === 'ip' ? (jd.gcAttorneyName || '') : (jd.ipAttorneyName || '')
+    const otherAttorneyFirst = otherAttorneyFullName.split(/\s+/)[0] || otherAttorneyFullName
+    // Clinic name lives on the journey row as `ivfClinic`. The match-sheet
+    // editor stores user overrides at `_matchSheetData.ivfClinicName`. Prefer
+    // the override, then fall back to the journey field.
+    const clinicName = msData.ivfClinicName || jd.ivfClinic || jd.ivfClinicName || jd.clinicName || ''
+    const clinicState = msData.reClinicLocation?.split(',').pop()?.trim() || jd.ivfState || jd.clinicState || ''
+
+    // Pull labeled docs from BOTH the GC and IP cases. We dedupe nothing
+    // intentionally — a GC could (rarely) have multiple docs sharing the
+    // same label (e.g. several paystubs), and we attach each.
+    let labeledDocs = []
+    try {
+      const ids = [gcCase?.id, ipCase?.id].filter(Boolean)
+      if (ids.length && supabase) {
+        const { data } = await supabase
+          .from('case_documents')
+          .select('id, file_name, public_url, doc_label, surrogate_id')
+          .in('surrogate_id', ids)
+          .not('doc_label', 'is', null)
+        labeledDocs = data || []
+      }
+    } catch (err) { console.error('Could not load labeled docs:', err) }
+
+    const docsByLabel = {}
+    for (const d of labeledDocs) {
+      if (!docsByLabel[d.doc_label]) docsByLabel[d.doc_label] = []
+      docsByLabel[d.doc_label].push(d)
+    }
+
+    // Build the bullet list and the attachment list in lockstep — only
+    // include a bullet when we actually have at least one labeled doc to
+    // back it up. Match Sheet is the exception (always present, comes
+    // from the rendered PDF in pendingPdf).
+    const bullets = ['Attorney Match Sheet']
+    const attachments = pendingPdf ? [pendingPdf] : []
+
+    // GC ID
+    if ((docsByLabel['gc'] || []).length > 0) {
+      bullets.push(`${gcFirstName}'s ID`)
+      for (const d of docsByLabel['gc']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || `${gcFirstName}-ID.pdf`)
+        if (a) attachments.push(a)
+      }
+    }
+    // Partner ID — only when partnered
+    if (gcHasPartner && (docsByLabel['partner'] || []).length > 0) {
+      const partnerLabel = gcPartnerFull ? `${gcPartnerFull}'s ID (${partnerRelationship})` : `Partner's ID (${partnerRelationship})`
+      bullets.push(partnerLabel)
+      for (const d of docsByLabel['partner']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'Partner-ID.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // GC Benefit Package
+    if ((docsByLabel['gc-benefit-package'] || []).length > 0) {
+      bullets.push('GC Benefit Package')
+      for (const d of docsByLabel['gc-benefit-package']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Benefit-Package.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // GC Insurance Card
+    if ((docsByLabel['gc-insurance-card'] || []).length > 0) {
+      bullets.push('GC Insurance Card')
+      for (const d of docsByLabel['gc-insurance-card']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Insurance-Card.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // GC Insurance Review
+    if ((docsByLabel['gc-insurance-review'] || []).length > 0) {
+      bullets.push('GC Insurance Review')
+      for (const d of docsByLabel['gc-insurance-review']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Insurance-Review.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // GC Paystubs
+    if ((docsByLabel['gc-paystubs'] || []).length > 0) {
+      bullets.push(`${gcFirstName}'s Paystubs`)
+      for (const d of docsByLabel['gc-paystubs']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'GC-Paystubs.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // Partner Paystubs — only when partnered
+    if (gcHasPartner && (docsByLabel['partner-paystubs'] || []).length > 0) {
+      const label = gcPartnerFull ? `${gcPartnerFull}'s Paystubs (${partnerRelationship})` : `Partner Paystubs (${partnerRelationship})`
+      bullets.push(label)
+      for (const d of docsByLabel['partner-paystubs']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'Partner-Paystubs.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // IP Background Reports — combine into one bullet with both IPs' first
+    // names if both are labeled.
+    const ip1Bg = docsByLabel['ip1-background-report'] || []
+    const ip2Bg = ipHasPartner ? (docsByLabel['ip2-background-report'] || []) : []
+    if (ip1Bg.length > 0 || ip2Bg.length > 0) {
+      const names = [
+        ip1Bg.length > 0 ? ip1First : null,
+        ip2Bg.length > 0 ? ip2First : null,
+      ].filter(Boolean).join(' & ')
+      bullets.push(`${names || 'IP'}'s Background Report${(ip1Bg.length + ip2Bg.length) > 1 ? 's' : ''}`)
+      for (const d of [...ip1Bg, ...ip2Bg]) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'IP-Background-Report.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    // IP1/IP2 IDs (separate from background reports — independently labeled)
+    if ((docsByLabel['ip1'] || []).length > 0) {
+      bullets.push(`${ip1First || 'IP1'}'s ID`)
+      for (const d of docsByLabel['ip1']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'IP1-ID.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+    if (ipHasPartner && (docsByLabel['ip2'] || []).length > 0) {
+      bullets.push(`${ip2First || 'IP2'}'s ID`)
+      for (const d of docsByLabel['ip2']) {
+        const a = await urlToAttachment(d.public_url, d.file_name || 'IP2-ID.pdf')
+        if (a) attachments.push(a)
+      }
+    }
+
+    const bulletsHtml = bullets.map(b => `<li>${b}</li>`).join('')
+
+    // Body intro is recipient-specific. The IP attorney version leads
+    // with the IPs; the GC attorney version leads with the surrogate
+    // (everything else flips the same way — "represented by" names the
+    // OTHER attorney, "I'll reach out to" too).
+    const introParagraph = recipient === 'gc'
+      ? `<p>I am writing to let you know that our gestational surrogate ${gcFullName} and her Intended Parents ${ipNames} are working with ${clinicName || '{clinic name}'} in ${clinicState || '{clinic state}'} and are ready to begin legal contracts. We will use SeedTrust Escrow, LLC to hold escrow.</p>`
+      : `<p>I am writing to let you know that our Intended Parents ${ipNames} and their gestational surrogate ${gcFullName} are working with ${clinicName || '{clinic name}'} in ${clinicState || '{clinic state}'} and are ready to begin legal contracts. We will use SeedTrust Escrow, LLC to hold escrow.</p>`
+
+    const representationParagraph = recipient === 'gc'
+      ? `<p>${ipNames} will be represented by ${jd.ipAttorneyName || '{IP Attorney Full Name}'}. I will be reaching out to ${otherAttorneyFirst || '{IP Attorney first name}'} shortly and I will send ${otherAttorneyFirst ? 'them' : 'them'} this information as well.</p>`
+      : `<p>${gcFullName} will be represented by ${jd.gcAttorneyName || '{GC Attorney Full Name}'}. I will be reaching out to ${otherAttorneyFirst || '{GC Attorney first name}'} shortly and I will send ${otherAttorneyFirst ? 'them' : 'her'} this information as well.</p>`
+
+    const body = `<p>Hi ${attorneyFirst || ''},</p>
+${introParagraph}
+${representationParagraph}
+<p>Attached, you will find the following:</p>
+<ul>${bulletsHtml}</ul>
+<p>Please let me know if any additional information is needed. I look forward to working with you.</p>
+<p>Thank you,</p>`
+
     openDraft({
       to: toEmail || '',
-      subject: `Attorney Match Sheet - ${ipNames} with GC ${gcCase?.name || ''}`,
-      body: '',
+      subject: recipient === 'gc'
+        ? `Attorney Referral for ${gcFullName} with ${ipNames}`
+        : `Attorney Referral for ${ipNames} with ${gcFullName}`,
+      body,
       userId: currentUser?.id,
       caseId: journey.id,
       caseType: 'journey',
-      attachments: pendingPdf ? [pendingPdf] : [],
+      attachments,
     })
     setAttorneyPickerOpen(false)
     setPendingPdf(null)
@@ -875,7 +1066,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
                   <p className="text-xs text-stone-400 mt-1 leading-relaxed">{sheet.description}</p>
                 </div>
                 <Button variant="outline" size="sm" className="gap-1.5 rounded-full text-xs mt-2" style={{ color: sheet.color, borderColor: sheet.color + '40' }}>
-                  <Eye className="size-3.5" /> Preview & Download
+                  <Eye className="size-3.5" /> Preview & Send
                 </Button>
               </CardContent>
             </Card>
@@ -898,11 +1089,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
               <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={printSheet}>
                 <Printer className="size-3.5" /> Print
               </Button>
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-full" onClick={saveToDocuments} disabled={generating}>
-                {generating ? <Clock className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-                Save to Documents
-              </Button>
-              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={sendMatchSheet} disabled={generating}>
+              <Button size="sm" className="gap-1.5 rounded-full" style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color }} onClick={() => setReviewConfirmOpen(true)} disabled={generating}>
                 {generating ? <Clock className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                 Send Match Sheet
               </Button>
@@ -922,6 +1109,34 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
           </div>
         </div>
       )}
+
+      {/* "Have you reviewed all the information?" gate — shown before any
+          send, regardless of which sheet type. "Go back" closes; "Yes,
+          send" runs the original sendMatchSheet flow which (for attorney
+          sheets) opens the attorney picker, and (for escrow/clinic) opens
+          a draft directly. */}
+      <Dialog open={reviewConfirmOpen} onOpenChange={v => { if (!v) setReviewConfirmOpen(false) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Have you reviewed all the information?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-stone-600">
+            Please double-check that everything on the match sheet is correct before sending.
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setReviewConfirmOpen(false)}>
+              Go back
+            </Button>
+            <Button
+              size="sm"
+              style={{ backgroundColor: SHEET_TYPES.find(s => s.id === activeSheet)?.color, color: '#fff' }}
+              onClick={() => { setReviewConfirmOpen(false); sendMatchSheet() }}
+            >
+              Yes, send
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Attorney Picker Dialog */}
       <Dialog open={attorneyPickerOpen} onOpenChange={v => { if (!v) { setAttorneyPickerOpen(false); setPendingPdf(null) } }}>
