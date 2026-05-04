@@ -1875,6 +1875,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const [expenses, setExpenses] = useState([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
+  const [deleteConfirmExpense, setDeleteConfirmExpense] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
   const [lineItems, setLineItems] = useState([emptyLineItem()])
@@ -2023,14 +2024,22 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
-  async function handleDelete(id) {
-    if (!confirm('Delete this expense?')) return
+  function handleDelete(id) {
+    const exp = expenses.find(e => e.id === id) || { id }
+    setDeleteConfirmExpense(exp)
+  }
+
+  async function confirmDeleteExpense() {
+    const exp = deleteConfirmExpense
+    if (!exp) return
     try {
-      await deleteExpense(id)
-      setExpenses(prev => prev.filter(e => e.id !== id))
+      await deleteExpense(exp.id)
+      setExpenses(prev => prev.filter(e => e.id !== exp.id))
       onExpensesChanged?.()
     } catch (err) {
       console.error('Failed to delete expense:', err)
+    } finally {
+      setDeleteConfirmExpense(null)
     }
   }
 
@@ -2272,6 +2281,30 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
           </CardContent>
         </Card>
       )}
+
+      {/* Delete-expense confirm — replaces a browser confirm() so the
+          dialog is in-app and themed. */}
+      <Dialog open={!!deleteConfirmExpense} onOpenChange={(open) => { if (!open) setDeleteConfirmExpense(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete this expense?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-stone-600">
+              {deleteConfirmExpense?.expense_date && (
+                <>This will permanently delete the expense from <strong>{formatDate(deleteConfirmExpense.expense_date)}</strong>. </>
+              )}
+              This cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmExpense(null)}>Cancel</Button>
+              <Button size="sm" variant="destructive" className="gap-1" onClick={confirmDeleteExpense}>
+                <Trash2 className="size-3" /> Delete
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
