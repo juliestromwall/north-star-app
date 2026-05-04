@@ -23,7 +23,7 @@ import { formatDate } from '@/lib/utils'
 import { Link } from 'react-router-dom'
 import {
   Heart, HeartHandshake, Route, Megaphone, X, Calendar, Clock, CheckCircle2, Circle,
-  LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check,
+  LayoutGrid, List as ListIcon, Quote, Calculator, StickyNote, Plus, Trash2, Check, CheckSquare,
   ChevronDown, ChevronRight, MapPin, History, FileText, Loader2, Pencil, RotateCcw, Search, Sparkles,
 } from 'lucide-react'
 
@@ -664,25 +664,39 @@ export default function AdminDashboard() {
       )}
 
       {/* Appointments + Tasks */}
-      <div>
+      {!apptTasksSectionOpen ? (
         <button
-          onClick={() => setApptTasksSectionOpen(o => !o)}
-          className="w-full flex items-center gap-2 px-1 py-1.5 text-stone-500 hover:text-stone-800 transition-colors group"
+          onClick={() => setApptTasksSectionOpen(true)}
+          className="group w-full rounded-2xl border border-stone-200 bg-white hover:border-[#ed148c]/30 hover:shadow-sm transition-all px-5 py-3.5 flex items-center gap-4 text-left"
         >
-          {apptTasksSectionOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500 group-hover:text-stone-700">
-            Appointments &amp; Tasks
-          </span>
-          {!apptTasksSectionOpen && (
-            <span className="text-[10px] text-stone-400 font-medium normal-case tracking-normal">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-full bg-[#ed148c]/10 flex items-center justify-center shrink-0">
+              <Calendar className="size-4 text-[#ed148c]" />
+            </div>
+            <div className="size-8 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0 -ml-3 ring-2 ring-white">
+              <CheckSquare className="size-4 text-[#283693]" />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-heading font-black text-[#283693] leading-tight tracking-tight">Appointments &amp; Tasks</h3>
+            <p className="text-[11px] text-stone-400 font-medium">
               {upcomingEvents.length} upcoming · {taskBuckets.mine.length} mine · {taskBuckets.cases.length} on my cases
-            </span>
-          )}
-          <span className="ml-auto text-[10px] font-medium text-stone-400 normal-case tracking-normal">
-            {apptTasksSectionOpen ? 'Hide' : 'Show'}
-          </span>
+            </p>
+          </div>
+          <span className="text-[11px] font-semibold text-[#ed148c] group-hover:underline">Show</span>
+          <ChevronRight className="size-4 text-stone-400 group-hover:text-[#ed148c] transition-colors" />
         </button>
-      </div>
+      ) : (
+        <div className="flex justify-end -mb-2">
+          <button
+            onClick={() => setApptTasksSectionOpen(false)}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-400 hover:text-[#ed148c] transition-colors"
+          >
+            <ChevronDown className="size-3.5" />
+            Hide section
+          </button>
+        </div>
+      )}
 
       {apptTasksSectionOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
