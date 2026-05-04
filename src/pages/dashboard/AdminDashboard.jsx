@@ -687,10 +687,10 @@ export default function AdminDashboard() {
           <ChevronRight className="size-4 text-stone-400 group-hover:text-[#ed148c] transition-colors" />
         </button>
       ) : (
-        <div className="flex justify-end -mb-2">
+        <div className="flex justify-end">
           <button
             onClick={() => setApptTasksSectionOpen(false)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-400 hover:text-[#ed148c] transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-stone-500 bg-white border border-stone-200 hover:text-[#ed148c] hover:border-[#ed148c]/30 transition-colors"
           >
             <ChevronDown className="size-3.5" />
             Hide section
