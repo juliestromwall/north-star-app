@@ -93,6 +93,9 @@ function initialsOf(name) {
 // Tracking entries can carry `_optionLabel` to remember which option was picked.
 function statusLabel(id, optionLabel) {
   if (optionLabel) return optionLabel
+  // 'na' is reused as the underlying status for the Skip action, so reframe
+  // the pill label as "Skipped" in this UI (the data id stays 'na').
+  if (id === 'na') return 'Skipped'
   return DEFAULT_PILLS.find(p => p.id === id)?.label || (id || '').replace(/_/g, ' ')
 }
 
