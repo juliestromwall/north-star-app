@@ -2458,6 +2458,12 @@ export default function JourneyDetailPage() {
   const [ipCase, setIpCase] = useState(null)
   const [loading, setLoading] = useState(true)
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  // Counts surfaced by the Tasks/Appts widgets so the tab label can show an
+  // attention dot. Both widgets are force-mounted so these populate on page
+  // load even before the user clicks the tab.
+  const [taskAttentionCount, setTaskAttentionCount] = useState(0)
+  const [apptAttentionCount, setApptAttentionCount] = useState(0)
+  const tasksApptsAttention = taskAttentionCount + apptAttentionCount
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -3810,7 +3816,7 @@ export default function JourneyDetailPage() {
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
           { value: 'overview', label: 'Checklist' },
-          { value: 'tasks-appts', label: 'Tasks / Appts' },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
@@ -3833,11 +3839,23 @@ export default function JourneyDetailPage() {
           }} />
         </TabsContent>
 
-        {/* TASKS / APPTS tab — split out from the old Overview. */}
-        <TabsContent value="tasks-appts" className="mt-4">
+        {/* TASKS / APPTS tab — force-mounted so widgets fetch on page load and
+            can report their attention counts (overdue tasks, today's events
+            not followed up) for the tab dot, even before the user clicks in. */}
+        <TabsContent value="tasks-appts" className="mt-4 data-[state=inactive]:hidden" forceMount>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
+            <CaseCalendarWidget
+              caseId={journey.id}
+              caseType="journey"
+              caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`}
+              onAttentionCountChange={setApptAttentionCount}
+            />
+            <CaseTasksWidget
+              caseId={journey.id}
+              caseType="journey"
+              caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`}
+              onAttentionCountChange={setTaskAttentionCount}
+            />
           </div>
         </TabsContent>
 
