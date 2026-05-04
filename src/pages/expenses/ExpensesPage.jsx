@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { fetchAllExpenses, updateExpense, createCaseTask } from '@/lib/db'
+import { fetchAllExpenses, updateExpense, createCaseTask, fetchCaseEmailByGmailMessageId } from '@/lib/db'
 import { isJourneyEscrowFunded } from '@/lib/checklistStore'
 import { getGoogleStatus, getEmail, parseEmailHeaders, parseEmailBody, parseEmailAttachments, getAttachment } from '@/lib/google'
 import { fetchMatchedJourneys } from '@/lib/matching'
@@ -790,12 +790,30 @@ export default function ExpensesPage() {
     setEmailViewId(gmailId)
     setEmailViewLoading(true)
     setEmailViewData(null)
+    let storedEmail = null
     try {
+      storedEmail = await fetchCaseEmailByGmailMessageId(gmailId)
+      if (storedEmail) {
+        setEmailViewData({
+          from: storedEmail.from_address || '',
+          to: storedEmail.to_address || '',
+          cc: storedEmail.cc_address || '',
+          date: storedEmail.date,
+          subject: storedEmail.subject || '',
+          bodyHtml: storedEmail.body_html || `<p>${storedEmail.snippet || '(No preview available)'}</p>`,
+        })
+      }
       const full = await getEmail(userId, gmailId, 'full')
       const headers = parseEmailHeaders(full)
       const bodyHtml = parseEmailBody(full)
-      setEmailViewData({ ...headers, bodyHtml })
-    } catch { setEmailViewData(null) }
+      setEmailViewData(prev => ({
+        ...(prev || {}),
+        ...headers,
+        bodyHtml: prev?.bodyHtml || bodyHtml,
+      }))
+    } catch {
+      if (!storedEmail) setEmailViewData(null)
+    }
     setEmailViewLoading(false)
   }
 
