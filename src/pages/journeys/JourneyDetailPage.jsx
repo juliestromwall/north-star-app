@@ -541,6 +541,49 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               } catch (err) { console.error('Escrow funded auto-task failed:', err) }
             }
           }
+
+          // Subtasks marked "Requested" → ship-to-surrogate auto-tasks for Emily.
+          // Date defaults to the log date (when admin marked it Requested).
+          if (status === 'requested' || (optionLabel || '').toLowerCase() === 'requested') {
+            const sName = gcCase?.name || journey.gc_name || 'Surrogate'
+            const logDt = date || new Date().toISOString().split('T')[0]
+            const lbl = stepLabel.toLowerCase()
+            const a = gcCase?.answers || {}
+            const addr = [a.street, a.street2, a.city, a.stateProv || a.state, a.zipCode].filter(Boolean).join(', ') || '(address not on file)'
+            const emilyEmail = 'emily@abcsurrogacy.com'
+
+            if (lbl.includes('request transfer package')) {
+              try {
+                await createCaseTask({
+                  title: `Send Transfer Package to ${sName}`,
+                  description: addr,
+                  due_date: logDt,
+                  priority: 'high',
+                  assigned_to: emilyEmail,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Transfer package auto-task failed:', err) }
+            }
+
+            if (lbl.includes('request ivf graduation jacket') || lbl.includes('graduation jacket')) {
+              try {
+                await createCaseTask({
+                  title: `Send Jacket to ${sName}`,
+                  description: addr,
+                  due_date: logDt,
+                  priority: 'normal',
+                  assigned_to: emilyEmail,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Jacket auto-task failed:', err) }
+            }
+          }
         }}
       />
     </div>
