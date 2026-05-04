@@ -230,6 +230,12 @@ export default function AdminDashboard() {
   const [appointmentsOpen, setAppointmentsOpen] = useState(true)
   const [pastApptOpen, setPastApptOpen] = useState(false)
   const [tasksOpen, setTasksOpen] = useState(true)
+  const [apptTasksSectionOpen, setApptTasksSectionOpen] = useState(() => {
+    try { return localStorage.getItem('abc_dashboard_appt_tasks_open') !== '0' } catch { return true }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('abc_dashboard_appt_tasks_open', apptTasksSectionOpen ? '1' : '0') } catch {}
+  }, [apptTasksSectionOpen])
   // Task tab: 'mine' (assigned to me), 'cases' (tasks on cases I manage),
   // 'all' (every open task — master/super only). Defaults to 'mine'.
   const [taskTab, setTaskTab] = useState('mine')
@@ -657,7 +663,28 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Appointments + Tasks — two columns */}
+      {/* Appointments + Tasks */}
+      <div>
+        <button
+          onClick={() => setApptTasksSectionOpen(o => !o)}
+          className="w-full flex items-center gap-2 px-1 py-1.5 text-stone-500 hover:text-stone-800 transition-colors group"
+        >
+          {apptTasksSectionOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-stone-500 group-hover:text-stone-700">
+            Appointments &amp; Tasks
+          </span>
+          {!apptTasksSectionOpen && (
+            <span className="text-[10px] text-stone-400 font-medium normal-case tracking-normal">
+              {upcomingEvents.length} upcoming · {taskBuckets.mine.length} mine · {taskBuckets.cases.length} on my cases
+            </span>
+          )}
+          <span className="ml-auto text-[10px] font-medium text-stone-400 normal-case tracking-normal">
+            {apptTasksSectionOpen ? 'Hide' : 'Show'}
+          </span>
+        </button>
+      </div>
+
+      {apptTasksSectionOpen && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Appointments — same visual language as the new Tasks card:
             left-border accent ("today" = indigo, past = neutral), bigger
@@ -1022,6 +1049,7 @@ export default function AdminDashboard() {
           )
         })()}
       </div>
+      )}
 
       {/* Add Task Dialog */}
       {/* Add Task Dialog */}
