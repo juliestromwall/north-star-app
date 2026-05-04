@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Check, X, Pencil, Trash2, Plus, ChevronDown, ChevronRight, ChevronUp, CornerDownRight,
   Handshake, Syringe, HeartPulse, Brain, Hospital, Receipt, IdCard,
-  Stethoscope, Scale, DollarSign, Baby,
+  Stethoscope, Scale, DollarSign, Baby, FastForward,
 } from 'lucide-react'
 import { CHECKLIST_STEP_STATUSES, normalizeOptions } from '@/lib/checklistStore'
 
@@ -458,6 +458,7 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
                   onStatusLog={onStatusLog}
                   currentUserName={currentUserName}
                   isDefaultExpanded={step.id === sectionDefaultStepId}
+                  childStepIds={subs.map(s => s.id)}
                   // Reorder is only allowed on admin-added steps. Up/down move
                   // the admin step within the merged config+admin list — they
                   // can interleave with config steps.
@@ -527,7 +528,7 @@ function buildSections(steps) {
   return sections
 }
 
-function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false }) {
+function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDefaultExpanded, onMoveUp, onMoveDown, indented = false, childStepIds = [] }) {
   const entry = tracking[step.id] || {}
   const status = entry.status || 'not_started'
   const colors = statusColors(status)
@@ -657,6 +658,38 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
     setNewLogNote('')
   }
 
+  // Skip — fast-forward icon click. Marks this step as N/A (and cascades to
+  // any children for parent steps) so it disappears from "to do" without
+  // being treated as complete. Children that are already terminal are left
+  // alone (don't overwrite a completed subtask just because we skipped the
+  // parent).
+  function skipStep() {
+    if (status === 'na' || status === 'complete') return
+    const today = todayIsoDate()
+    const isoFromDate = `${today}T${new Date().toTimeString().slice(0, 8)}Z`
+    const writeSkip = (sid, sentry) => {
+      const sLog = Array.isArray(sentry.log) ? sentry.log : []
+      const skipLog = {
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        status: 'na',
+        optionLabel: '',
+        from: sentry.status || 'not_started',
+        changed_at: isoFromDate,
+        changed_by: currentUserName,
+        note: 'Skipped',
+      }
+      onUpdate(sid, { ...sentry, status: 'na', log: [...sLog, skipLog], history: [] })
+    }
+    writeSkip(step.id, entry)
+    // Cascade to children — but never demote a completed/skipped child.
+    for (const cid of childStepIds) {
+      const ce = tracking[cid] || {}
+      if (ce.status === 'complete' || ce.status === 'na') continue
+      writeSkip(cid, ce)
+    }
+    if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: 'na', optionLabel: '', date: today })
+  }
+
   function startEditLog(logEntry) {
     setEditingLogId(logEntry.id || logEntry._idx)
     // Preserve the original date — never silently fall back to today on edit.
@@ -741,36 +774,46 @@ function StepRow({ step, tracking, onUpdate, onStatusLog, currentUserName, isDef
             </span>
           )}
         </span>
-        {/* Reorder + delete affordances — always visible on case-subtask rows
-            (chevrons disabled when there's no neighbor in that direction so
-            they're still discoverable when you only have one added step). */}
-        {isSubtask && (
-          <span className="ml-auto flex items-center gap-0.5 opacity-70 group-hover/row:opacity-100 transition-opacity shrink-0">
+        {/* Right-side row actions. Skip is shown on every row that's not
+            already terminal. Subtask rows additionally get reorder + delete. */}
+        <span className="ml-auto flex items-center gap-0.5 shrink-0">
+          {status !== 'na' && status !== 'complete' && (
             <button
-              onClick={(e) => { e.stopPropagation(); onMoveUp && onMoveUp() }}
-              disabled={!onMoveUp}
-              className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-              title={onMoveUp ? 'Move up' : 'Already at top'}
+              onClick={(e) => { e.stopPropagation(); skipStep() }}
+              className="p-0.5 text-stone-200 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors"
+              title="Skip (mark N/A)"
             >
-              <ChevronUp className="size-3.5" />
+              <FastForward className="size-3.5" />
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onMoveDown && onMoveDown() }}
-              disabled={!onMoveDown}
-              className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-              title={onMoveDown ? 'Move down' : 'Already at bottom'}
-            >
-              <ChevronDown className="size-3.5" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); deleteSubtaskSelf() }}
-              className="p-0.5 text-stone-500 hover:text-red-500 hover:bg-red-50 rounded ml-1"
-              title="Delete"
-            >
-              <Trash2 className="size-3" />
-            </button>
-          </span>
-        )}
+          )}
+          {isSubtask && (
+            <span className="flex items-center gap-0.5 opacity-70 group-hover/row:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveUp && onMoveUp() }}
+                disabled={!onMoveUp}
+                className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                title={onMoveUp ? 'Move up' : 'Already at top'}
+              >
+                <ChevronUp className="size-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onMoveDown && onMoveDown() }}
+                disabled={!onMoveDown}
+                className="p-0.5 text-stone-500 hover:text-[#283693] hover:bg-[#283693]/5 rounded disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                title={onMoveDown ? 'Move down' : 'Already at bottom'}
+              >
+                <ChevronDown className="size-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); deleteSubtaskSelf() }}
+                className="p-0.5 text-stone-500 hover:text-red-500 hover:bg-red-50 rounded ml-1"
+                title="Delete"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </span>
+          )}
+        </span>
       </div>
 
       {/* EXPANDED BODY — log row at TOP, history below */}
