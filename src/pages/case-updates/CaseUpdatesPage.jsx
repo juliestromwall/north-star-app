@@ -62,7 +62,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
     if (!caseId || !userId) return
     const doCount = async () => {
       try {
-        const { listCaseEvents, listCalendars } = await import('@/lib/google')
+        const { listCaseEvents, listCalendars, getAccessToken } = await import('@/lib/google')
         const now = new Date()
         const timeMin = new Date(now.getFullYear() - 2, now.getMonth(), now.getDate()).toISOString()
         const timeMax = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate()).toISOString()
@@ -73,6 +73,21 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
         if (apptCal) fetches.push(listCaseEvents(userId, caseId, caseType, { calendarId: calId, timeMin, timeMax, maxResults: 50 }))
         const results = await Promise.all(fetches)
         const all = results.flatMap(r => r.items || [])
+        // Fallback: events created before the caseId extended property was
+        // added won't match the strict filter above. Search by case name
+        // across the same calendars to catch them. Mirrors CaseCalendarWidget.
+        if (all.length === 0 && caseName) {
+          try {
+            const params = new URLSearchParams({ timeMin, timeMax, maxResults: '50', singleEvents: 'true', orderBy: 'startTime', q: caseName })
+            const token = await getAccessToken(userId)
+            const calIds = [calId]
+            if (calId !== 'primary') calIds.push('primary')
+            for (const cid of calIds) {
+              const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cid)}/events?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+              if (res.ok) { const data = await res.json(); all.push(...(data.items || [])) }
+            }
+          } catch {}
+        }
         const seen = new Set()
         const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true })
         setCount(deduped.length)
@@ -80,7 +95,7 @@ function AppointmentsBadge({ caseId, caseType, caseName }) {
       } catch { setCount(0) }
     }
     doCount()
-  }, [caseId, userId, caseType])
+  }, [caseId, userId, caseType, caseName])
 
   async function handleOpen() {
     setOpen(true)
