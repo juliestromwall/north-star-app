@@ -51,6 +51,7 @@ import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded, isJourneyEscrowClosed } from '@/lib/checklistStore'
+import { syncDynamicTransferSteps } from '@/lib/dynamicChecklistSync'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -2600,6 +2601,18 @@ export default function JourneyDetailPage() {
 
   async function updateFields(fields) {
     const jd = { ...(journey.journey_data || {}), ...fields }
+    // When the pregnancy tracker mutates _transfers, reconcile the dynamic
+    // Transfer / CHB checklist entries in the same write so the checklist UI
+    // updates atomically with the tracker.
+    if (Object.prototype.hasOwnProperty.call(fields, '_transfers')) {
+      const stageId = journey.stage || 'journey-oversight'
+      const stepsForStage = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
+      jd._checklistTracking = syncDynamicTransferSteps(
+        fields._transfers,
+        jd._checklistTracking || {},
+        stepsForStage,
+      )
+    }
     const updated = await updateMatchedJourney(journey.id, { journey_data: jd }).catch(() => null)
     if (updated) setJourney(updated)
   }

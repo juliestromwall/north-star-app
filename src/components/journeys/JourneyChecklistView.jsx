@@ -114,6 +114,10 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
           _isCaseSubtask: true,
           _parentId: pid,
           _order: typeof val._order === 'number' ? val._order : 0,
+          // Honor logType + options stored on the tracking entry so dynamic
+          // mirrors of config steps preserve custom-dropdown behavior.
+          logType: val._logType,
+          options: val._options,
         })
       }
     }
@@ -398,7 +402,9 @@ function ChecklistSection({ section, sectionNumber = 1, subtasksByParent = {}, t
         <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden divide-y divide-stone-100">
           {orderedSteps.map((step, i) => {
             const isAdmin = !step._isConfig
-            const subs = step._isConfig ? (subtasksByParent[step.id] || []) : []
+            // Admin (case-added or dynamic) steps can host subtasks too — needed
+            // so dynamic "Transfer #2" displays its mirrored subtasks.
+            const subs = subtasksByParent[step.id] || []
             return (
               <div key={step.id} className="divide-y divide-stone-100">
                 <StepRow
