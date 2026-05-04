@@ -3250,6 +3250,16 @@ export default function JourneyDetailPage() {
                   caseType="journey"
                   caseName={journey.label || [gcCase?.name || journey.gc_name, ipCase?.names || journey.ip_name].filter(Boolean).join(' & ')}
                 />
+                {jd._medicalClearanceDate && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Med Cleared {formatDate(jd._medicalClearanceDate)}
+                  </span>
+                )}
+                {jd._legalClearanceDate && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Legal Cleared {formatDate(jd._legalClearanceDate)}
+                  </span>
+                )}
               </div>
               {/* Actions dropdown — collapses Archive / Unarchive / Break Match
                   and the tandem partner shortcut into one button so the hero
