@@ -436,6 +436,7 @@ export default function MatchedJourneysPage() {
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Intended Parent</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Cleared</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Created</th>
                 </tr>
               </thead>
@@ -465,6 +466,19 @@ export default function MatchedJourneysPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3"><JourneyStatusPill stage={j.stage} status={j.status} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5 text-[11px]">
+                        {j.journey_data?._medicalClearanceDate && (
+                          <span className="text-emerald-700"><span className="text-stone-400">Med:</span> {formatDate(j.journey_data._medicalClearanceDate)}</span>
+                        )}
+                        {j.journey_data?._legalClearanceDate && (
+                          <span className="text-emerald-700"><span className="text-stone-400">Legal:</span> {formatDate(j.journey_data._legalClearanceDate)}</span>
+                        )}
+                        {!j.journey_data?._medicalClearanceDate && !j.journey_data?._legalClearanceDate && (
+                          <span className="text-stone-300">—</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-stone-400 text-xs">{new Date(j.created_at).toLocaleDateString()}</td>
                   </tr>
                   )
