@@ -14,6 +14,7 @@
 //   psych_screening                  → psych_1777910710690
 //   mitera                           → mitera_1777910735957
 //   insurance                        → art_risk_insurance_verification_1777910745457
+//   reference_check_1776318522771    → references_1777911412106
 //
 // Default dry-run; --apply to write.
 
@@ -36,6 +37,7 @@ const REPARENT = {
   psych_screening: 'psych_1777910710690',
   mitera: 'mitera_1777910735957',
   insurance: 'art_risk_insurance_verification_1777910745457',
+  reference_check_1776318522771: 'references_1777911412106',
 }
 
 console.error(`Connecting to: ${SUPABASE_URL}`)
