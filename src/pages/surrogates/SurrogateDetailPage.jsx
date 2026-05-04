@@ -385,6 +385,9 @@ export default function SurrogateDetailPage() {
   const [smsResult, setSmsResult] = useState(null)
   const [hasUnreadTexts, setHasUnreadTexts] = useState(false)
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  const [taskAttentionCount, setTaskAttentionCount] = useState(0)
+  const [apptAttentionCount, setApptAttentionCount] = useState(0)
+  const tasksApptsAttention = taskAttentionCount + apptAttentionCount
   const [portraitUrl, setPortraitUrl] = useState(null)
   const [insuranceStatus, setInsuranceStatus] = useState(null) // null=loading, {has_insurance, company, status}
   const [insuranceOpen, setInsuranceOpen] = useState(false)
@@ -1279,7 +1282,8 @@ export default function SurrogateDetailPage() {
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`surrogate_${surrogate.id}`} tabs={[
-          { value: 'overview', label: 'Overview' },
+          { value: 'overview', label: 'Checklist' },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'profile', label: 'Profile' },
           { value: 'contact', label: 'Application' },
           { value: 'texts', label: <span className="flex items-center gap-1.5" onClick={() => setHasUnreadTexts(false)}>Texts{hasUnreadTexts && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
@@ -1300,13 +1304,10 @@ export default function SurrogateDetailPage() {
         ]} />
 
         {/* Overview Tab */}
+        {/* Checklist Tab (was "Overview") — milestone timeline + side widgets
+            removed in favor of the new card-based JourneyChecklistView. Tasks
+            + appointments live on their own tab now. */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          <OverviewTab surrogate={surrogate} screening={screening} heightStr={heightStr} profileData={profileData} recordTracking={recordTracking} updateRecord={updateRecord} currentUserName={currentUser.name} stageId={stageStatus?.stage || 'pre-qualification'} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
-            <CaseTasksWidget caseId={surrogate.id} caseType="surrogate" caseName={surrogate.name} />
-          </div>
-          {/* Checklist */}
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = SURROGATE_STAGES.find(s => s.id === currentStageId)?.label || 'Pre-Qualification'
@@ -1401,6 +1402,26 @@ export default function SurrogateDetailPage() {
               />
             )
           })()}
+        </TabsContent>
+
+        {/* Tasks / Appts — split out from the old Overview. Force-mounted so
+            the widgets fetch on page load and the tab attention dot is
+            populated before the user clicks in. */}
+        <TabsContent value="tasks-appts" className="mt-4 data-[state=inactive]:hidden" forceMount>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget
+              caseId={surrogate.id}
+              caseType="surrogate"
+              caseName={surrogate.name}
+              onAttentionCountChange={setApptAttentionCount}
+            />
+            <CaseTasksWidget
+              caseId={surrogate.id}
+              caseType="surrogate"
+              caseName={surrogate.name}
+              onAttentionCountChange={setTaskAttentionCount}
+            />
+          </div>
         </TabsContent>
 
         {/* Application Tab */}

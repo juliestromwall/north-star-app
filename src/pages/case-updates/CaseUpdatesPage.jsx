@@ -365,6 +365,74 @@ function StatusPill({ status, label }) {
   return <span className="text-[11px] font-semibold text-stone-700">{label}</span>
 }
 
+// Per-cell summary for a section that has subtasks. Builds a richer cell:
+//   - Section fully done with at least one complete → "Complete · MM/DD/YYYY"
+//   - Section fully done but every subtask was skipped → "Skipped · MM/DD/YYYY"
+//   - Some progress: shows the next subtask in blue + the most recently
+//     COMPLETED subtask (skipped ones don't count) below in muted gray
+//   - No work yet → caller falls back to the step-level pill
+//
+// Reads from entry.log (new) AND entry.history (legacy) so pre-revamp data
+// still surfaces dates correctly.
+function getSubtaskLogs(entry) {
+  if (Array.isArray(entry?.log) && entry.log.length > 0) return entry.log.filter(l => !l?.auto)
+  if (Array.isArray(entry?.history) && entry.history.length > 0) return entry.history.filter(l => !l?.auto)
+  return []
+}
+function latestLog(logs) {
+  if (logs.length === 0) return null
+  return logs[logs.length - 1]
+}
+function latestDate(log) {
+  return log?.changed_at || log?.date || null
+}
+function computeSectionCellDisplay(subs, tracking) {
+  if (!subs || subs.length === 0) return null
+
+  const complete = []  // { sub, log, date } — status === 'complete'
+  const skipped = []   // status === 'na'
+  const pending = []   // anything else
+
+  for (const sub of subs) {
+    const entry = tracking[sub.id] || {}
+    const status = entry.status || 'not_started'
+    const log = latestLog(getSubtaskLogs(entry))
+    const date = latestDate(log)
+    if (status === 'complete') complete.push({ sub, log, date })
+    else if (status === 'na') skipped.push({ sub, log, date })
+    else pending.push({ sub, entry })
+  }
+
+  // Untouched — every subtask is not_started
+  const allUntouched = complete.length === 0 && skipped.length === 0
+    && pending.every(p => (p.entry.status || 'not_started') === 'not_started')
+  if (allUntouched) return { kind: 'not_started' }
+
+  // All resolved (no pending)
+  if (pending.length === 0) {
+    if (complete.length === 0) {
+      // All skipped
+      const lastSkip = [...skipped].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0]
+      return { kind: 'skipped', date: lastSkip?.date }
+    }
+    const lastComplete = [...complete].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0]
+    return { kind: 'complete', date: lastComplete?.date }
+  }
+
+  // In progress: first pending in subtask order + most recent completed (by date)
+  const firstPending = pending[0]
+  const lastCompletedByDate = complete.length > 0
+    ? [...complete].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))[0]
+    : null
+  return {
+    kind: 'in_progress',
+    pendingLabel: firstPending.sub.label,
+    completedLabel: lastCompletedByDate?.sub.label,
+    completedOptionLabel: lastCompletedByDate?.log?.optionLabel || '',
+    completedDate: lastCompletedByDate?.date,
+  }
+}
+
 const SCREENING_STAGES = ['pre-qualification', 'screening', 'matching']
 const JOURNEY_STAGE_IDS = ['journey-oversight']
 
@@ -804,6 +872,64 @@ function SurrogateUpdatesSheet({ surrogates }) {
                       const isDocOpen = docPopover?.surrogateId === s.id && docPopover?.stepId === row.id
                       const isComplete = status === 'complete'
                       const isNotNeeded = status === 'na' || status === 'deactivated'
+
+                      // Section-rich cell only for non-record rows that have subtasks.
+                      // Record types keep their specialized doneCount/totalCount UI.
+                      const globalSubsForSection = subtasksByParent[row.id] || []
+                      const caseSubsForSection = Object.entries(rt)
+                        .filter(([, v]) => v?._isCaseSubtask && !v?._deleted && v?._parentId === row.id)
+                        .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
+                      const subsForSection = [...globalSubsForSection, ...caseSubsForSection]
+                      const sectionDisplay = (!isRecordType && subsForSection.length > 0)
+                        ? computeSectionCellDisplay(subsForSection, rt) : null
+                      if (sectionDisplay && sectionDisplay.kind !== 'not_started') {
+                        const cellBg = sectionDisplay.kind === 'complete' ? '#f0fdf4'
+                          : sectionDisplay.kind === 'skipped' ? '#fafaf9'
+                          : '#eff6ff'
+                        return (
+                          <td key={s.id} className="px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center"
+                            style={{ backgroundColor: cellBg }}
+                            onClick={() => { setLogPopover(isLogOpen ? null : { surrogateId: s.id, stepId: row.id }); setDocPopover(null) }}>
+                            {sectionDisplay.kind === 'complete' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-emerald-700">Complete</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-400 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'skipped' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-stone-400 italic">Skipped</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-300 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'in_progress' && (
+                              <div className="text-center space-y-0.5">
+                                <p className="text-[11px] font-semibold text-blue-700">{sectionDisplay.pendingLabel}</p>
+                                {sectionDisplay.completedLabel && (
+                                  <p className="text-[9px] text-stone-400 truncate max-w-[180px] mx-auto">
+                                    {sectionDisplay.completedLabel}
+                                    {sectionDisplay.completedOptionLabel && ` — ${sectionDisplay.completedOptionLabel}`}
+                                    {sectionDisplay.completedDate && ` ${formatDate(sectionDisplay.completedDate)}`}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {isLogOpen && (() => {
+                              const manualLogs = [...history].reverse().filter(e => !e.auto)
+                              return (
+                                <div className="absolute z-20 top-full left-0 mt-1 w-80 bg-white rounded-2xl shadow-xl border border-stone-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+                                  <div className="flex items-center justify-between px-3 py-2 bg-stone-50 border-b border-stone-100">
+                                    <p className="text-[11px] font-semibold text-stone-600">{row.label}</p>
+                                    <button onClick={() => setLogPopover(null)} className="p-0.5 text-stone-300 hover:text-stone-500 rounded"><X className="size-3.5" /></button>
+                                  </div>
+                                  <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subsForSection} tracking={rt} />
+                                </div>
+                              )
+                            })()}
+                          </td>
+                        )
+                      }
+
                       return (
                         <td key={s.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNotNeeded ? 'opacity-40' : ''}`}
                           style={{ backgroundColor: statusCellBg(status) }}
@@ -1016,23 +1142,62 @@ function IPUpdatesSheet({ ips }) {
                         .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
                       const subs = [...globalSubs, ...caseSubs]
                       const hasChildren = subs.length > 0
+                      const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
+
+                      const sectionDisplay = hasChildren ? computeSectionCellDisplay(subs, rt) : null
+                      if (sectionDisplay && sectionDisplay.kind !== 'not_started') {
+                        const cellBg = sectionDisplay.kind === 'complete' ? '#f0fdf4'
+                          : sectionDisplay.kind === 'skipped' ? '#fafaf9'
+                          : '#eff6ff'
+                        return (
+                          <td key={ip.id} className="px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center"
+                            style={{ backgroundColor: cellBg }}
+                            onClick={() => setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id })}>
+                            {sectionDisplay.kind === 'complete' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-emerald-700">Complete</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-400 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'skipped' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-stone-400 italic">Skipped</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-300 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'in_progress' && (
+                              <div className="text-center space-y-0.5">
+                                <p className="text-[11px] font-semibold text-blue-700">{sectionDisplay.pendingLabel}</p>
+                                {sectionDisplay.completedLabel && (
+                                  <p className="text-[9px] text-stone-400 truncate max-w-[180px] mx-auto">
+                                    {sectionDisplay.completedLabel}
+                                    {sectionDisplay.completedOptionLabel && ` — ${sectionDisplay.completedOptionLabel}`}
+                                    {sectionDisplay.completedDate && ` ${formatDate(sectionDisplay.completedDate)}`}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
+                          </td>
+                        )
+                      }
+
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
                       const isNA = effectiveStatus === 'na'
-                      const isLogOpen = logPopover?.caseId === ip.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
                       const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
                       const displayDate = lastManual?.date
                       const textValue = d._textValue || lastManual?.textValue
-                      const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      const statusLabelStr = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={ip.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNA ? 'opacity-40' : ''}`}
                           style={{ backgroundColor: statusCellBg(displayStatus) }}
                           onClick={() => { if (manualHistory.length > 0 || hasChildren) setLogPopover(isLogOpen ? null : { caseId: ip.id, stepId: step.id }) }}>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="min-w-0">
-                              <StatusPill status={displayStatus} label={statusLabel} />
+                              <StatusPill status={displayStatus} label={statusLabelStr} />
                               {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
                                 <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]" title={`${formatDate(displayDate)}${lastManual?.note ? ` · ${lastManual.note}` : ''}`}>{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
                               )}
@@ -1281,23 +1446,64 @@ function JourneyUpdatesSheet({ journeys, surrogates, ips }) {
                         .map(([k, v]) => ({ id: k, label: v._label, parentId: v._parentId }))
                       const subs = [...globalSubs, ...caseSubs]
                       const hasChildren = subs.length > 0
+                      const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
+
+                      // Section-level rich display when subtasks exist
+                      const sectionDisplay = hasChildren ? computeSectionCellDisplay(subs, rt) : null
+                      if (sectionDisplay && sectionDisplay.kind !== 'not_started') {
+                        const cellBg = sectionDisplay.kind === 'complete' ? '#f0fdf4'
+                          : sectionDisplay.kind === 'skipped' ? '#fafaf9'
+                          : '#eff6ff' // in_progress → blue tint
+                        return (
+                          <td key={j.id} className="px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center"
+                            style={{ backgroundColor: cellBg }}
+                            onClick={() => setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id })}>
+                            {sectionDisplay.kind === 'complete' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-emerald-700">Complete</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-400 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'skipped' && (
+                              <div className="text-center">
+                                <p className="text-[11px] font-semibold text-stone-400 italic">Skipped</p>
+                                {sectionDisplay.date && <p className="text-[9px] text-stone-300 mt-0.5">{formatDate(sectionDisplay.date)}</p>}
+                              </div>
+                            )}
+                            {sectionDisplay.kind === 'in_progress' && (
+                              <div className="text-center space-y-0.5">
+                                <p className="text-[11px] font-semibold text-blue-700">{sectionDisplay.pendingLabel}</p>
+                                {sectionDisplay.completedLabel && (
+                                  <p className="text-[9px] text-stone-400 truncate max-w-[180px] mx-auto">
+                                    {sectionDisplay.completedLabel}
+                                    {sectionDisplay.completedOptionLabel && ` — ${sectionDisplay.completedOptionLabel}`}
+                                    {sectionDisplay.completedDate && ` ${formatDate(sectionDisplay.completedDate)}`}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {isLogOpen && <LogPopover history={history} onClose={() => setLogPopover(null)} subtasks={subs} tracking={rt} />}
+                          </td>
+                        )
+                      }
+
+                      // Fallback: no subtasks OR section untouched — original step-pill view
                       const rawStatus = d.status || 'not_started'
                       const effectiveStatus = hasChildren ? (deriveParentStatus(subs, rt) || rawStatus) : rawStatus
                       const isNA = effectiveStatus === 'na'
-                      const isLogOpen = logPopover?.caseId === j.id && logPopover?.stepId === step.id
                       const manualHistory = history.filter(e => !e.auto)
                       const lastManual = manualHistory.length > 0 ? manualHistory[manualHistory.length - 1] : null
                       const displayStatus = hasChildren ? effectiveStatus : (lastManual?.status || effectiveStatus)
                       const displayDate = lastManual?.date
                       const textValue = d._textValue || lastManual?.textValue
-                      const statusLabel = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                      const statusLabelStr = textValue || lastManual?.optionLabel || displayStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
                       return (
                         <td key={j.id} className={`px-3 py-2 relative cursor-pointer hover:bg-stone-50/50 transition-colors text-center ${isNA ? 'opacity-40' : ''}`}
                           style={{ backgroundColor: statusCellBg(displayStatus) }}
                           onClick={() => { if (manualHistory.length > 0 || hasChildren) setLogPopover(isLogOpen ? null : { caseId: j.id, stepId: step.id }) }}>
                           <div className="flex items-center justify-center gap-1.5">
                             <div className="min-w-0">
-                              <StatusPill status={displayStatus} label={statusLabel} />
+                              <StatusPill status={displayStatus} label={statusLabelStr} />
                               {displayDate && displayStatus !== 'not_started' && displayStatus !== 'na' && (
                                 <p className="text-[9px] text-stone-400 mt-0.5 truncate max-w-[150px]" title={`${formatDate(displayDate)}${lastManual?.note ? ` · ${lastManual.note}` : ''}`}>{formatDate(displayDate)}{lastManual?.note ? ` · ${lastManual.note}` : ''}</p>
                               )}

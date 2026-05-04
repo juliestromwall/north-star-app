@@ -67,6 +67,9 @@ export default function IPDetailPage() {
   const [portalStatus2, setPortalStatus2] = useState(null)
   const [stageStatus, setStageStatus] = useState({ stage: 'pre-qualification', status: 'New' })
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  const [taskAttentionCount, setTaskAttentionCount] = useState(0)
+  const [apptAttentionCount, setApptAttentionCount] = useState(0)
+  const tasksApptsAttention = taskAttentionCount + apptAttentionCount
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [matchNotesOpen, setMatchNotesOpen] = useState(false)
@@ -673,7 +676,8 @@ export default function IPDetailPage() {
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs defaultValue="overview">
         <SortableTabsList configKey={`ip_${ip.id}`} tabs={[
-          { value: 'overview', label: 'Overview' },
+          { value: 'overview', label: 'Checklist' },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profile', label: 'Profile' },
           { value: 'documents', label: 'Documents' },
@@ -683,74 +687,10 @@ export default function IPDetailPage() {
           ...(ip?.answers?._matchHistory?.length ? [{ value: 'previous-match', label: 'Previous Match' }] : []),
         ]} />
 
-        {/* Overview Tab */}
+        {/* Checklist Tab (was "Overview") — milestone timeline removed in favor
+            of the new card-based JourneyChecklistView; per-step status + history
+            are now inline on each card. */}
         <TabsContent value="overview" className="space-y-6 mt-4">
-          {/* Milestones — timeline visual matching GC pattern */}
-          {(() => {
-            const milestones = getChecklistMilestones('ip', stageStatus?.stage || 'pre-qualification')
-            const rt = recordTracking || {}
-            let completed = 0
-            const milestoneData = milestones.map(ms => {
-              const stepIds = ms.stepIds || []
-              const relevantSteps = stepIds.filter(id => rt[id]?.status || !id.startsWith('_'))
-              const allComplete = relevantSteps.length > 0 && relevantSteps.every(id => rt[id]?.status === 'complete' || rt[id]?.status === 'na')
-              const anyStarted = relevantSteps.some(id => rt[id]?.status && rt[id].status !== 'not_started')
-              const status = allComplete ? 'complete' : anyStarted ? 'in_progress' : 'not_started'
-              if (allComplete) completed++
-              return { ...ms, status }
-            })
-            const total = milestones.length
-            const getGradientColor = (index) => {
-              if (total <= 1) return '#ed148c'
-              const t = index / (total - 1)
-              const r = Math.round(237 + (40 - 237) * t)
-              const g = Math.round(20 + (54 - 20) * t)
-              const b = Math.round(140 + (147 - 140) * t)
-              return `rgb(${r},${g},${b})`
-            }
-            return (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-[#283693]">Milestones</h3>
-                  <span className="text-sm font-semibold text-stone-400">{completed}/{total}</span>
-                </div>
-                {milestoneData.length === 0 ? (
-                  <p className="text-sm text-stone-400 text-center py-4">No milestones configured. Set them up in Settings.</p>
-                ) : (
-                  <div className="relative pt-4 pb-2 overflow-x-auto">
-                    <div className="relative flex items-start" style={{ minWidth: `${Math.max(milestoneData.length * 120, 400)}px` }}>
-                      <div className="absolute top-[14px] left-[14px] right-[14px] h-[3px] bg-stone-200 rounded-full" />
-                      {completed > 0 && (
-                        <div className="absolute top-[14px] left-[14px] h-[3px] rounded-full transition-all duration-700"
-                          style={{
-                            width: total <= 1 ? '100%' : `${((milestoneData.findLastIndex(m => m.status === 'complete') + 0.5) / (total - 1)) * 100}%`,
-                            maxWidth: 'calc(100% - 28px)',
-                            background: 'linear-gradient(90deg, #ed148c, #283693)',
-                          }} />
-                      )}
-                      {milestoneData.map((ms, i) => {
-                        const isComplete = ms.status === 'complete'
-                        const isActive = ms.status === 'in_progress'
-                        const color = getGradientColor(i)
-                        return (
-                          <div key={ms.id} className="flex-1 flex flex-col items-center relative z-10" style={{ minWidth: '80px' }}>
-                            <div className={`w-7 h-7 rounded-full border-[3px] transition-all duration-300 ${isComplete ? 'scale-110' : isActive ? 'scale-105 shadow-md' : ''}`}
-                              style={{ backgroundColor: isComplete ? color : isActive ? color + '40' : '#e7e5e4', borderColor: isComplete || isActive ? color : '#d6d3d1' }} />
-                            <p className={`text-[11px] mt-2 text-center leading-tight font-medium max-w-[90px] ${isComplete ? 'text-stone-800' : isActive ? 'text-stone-600' : 'text-stone-400'}`}>{ms.label}</p>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
-            <CaseTasksWidget caseId={ip.id} caseType="ip" caseName={ip.names} />
-          </div>
-          {/* Checklist */}
           {(() => {
             const currentStageId = stageStatus?.stage || 'pre-qualification'
             const currentStageLabel = IP_STAGES.find(s => s.id === currentStageId)?.label || 'Consultation'
@@ -765,6 +705,26 @@ export default function IPDetailPage() {
               />
             )
           })()}
+        </TabsContent>
+
+        {/* Tasks / Appts — split out from the old Overview. Force-mounted so
+            the widgets fetch on page load and the tab attention dot is
+            populated even before the user clicks in. */}
+        <TabsContent value="tasks-appts" className="mt-4 data-[state=inactive]:hidden" forceMount>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget
+              caseId={ip.id}
+              caseType="ip"
+              caseName={ip.names}
+              onAttentionCountChange={setApptAttentionCount}
+            />
+            <CaseTasksWidget
+              caseId={ip.id}
+              caseType="ip"
+              caseName={ip.names}
+              onAttentionCountChange={setTaskAttentionCount}
+            />
+          </div>
         </TabsContent>
 
         {/* Application Tab */}
