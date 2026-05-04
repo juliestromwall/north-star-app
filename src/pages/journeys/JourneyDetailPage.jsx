@@ -498,7 +498,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
         onUpdate={handleUpdate}
         currentUserName={currentUser.name}
         stageLabel="Journey Checklist"
-        onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
+        onStatusLog={async ({ stepLabel, status, optionLabel, date, note }) => {
           if (status === 'complete') {
             const julieEmail = 'julie@abcsurrogacy.com'
             const sName = gcCase?.name || journey.gc_name || 'Surrogate'
@@ -544,19 +544,45 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 
           // Subtasks marked "Requested" → ship-to-surrogate auto-tasks for Emily.
           // Date defaults to the log date (when admin marked it Requested).
-          if (status === 'requested' || (optionLabel || '').toLowerCase() === 'requested') {
+          // Match is loose: any optionLabel that starts with "Requested"
+          // (e.g. "Requested (Include Size)") or an underlying status of
+          // 'requested' triggers the task.
+          const optLower = (optionLabel || '').toLowerCase()
+          const isRequestedLog = status === 'requested' || optLower.startsWith('requested')
+          if (isRequestedLog) {
             const sName = gcCase?.name || journey.gc_name || 'Surrogate'
             const logDt = date || new Date().toISOString().split('T')[0]
             const lbl = stepLabel.toLowerCase()
+
+            // Address — pull from multiple shapes so we don't fall back to
+            // just the state. Surrogate intake-form data lives flat on
+            // answers OR nested under answers._application; field names
+            // also vary (street vs streetAddress, zipCode vs zip).
             const a = gcCase?.answers || {}
-            const addr = [a.street, a.street2, a.city, a.stateProv || a.state, a.zipCode].filter(Boolean).join(', ') || '(address not on file)'
+            const app = a._application || {}
+            const street = app.street || a.street || a.streetAddress || ''
+            const street2 = app.street2 || a.street2 || a.aptNumber || ''
+            const city = app.city || a.city || ''
+            const stateVal = app.state || app.stateProv || a.state || a.stateProv || ''
+            const zip = app.zipCode || app.zip || a.zipCode || a.zip || ''
+            const addr = [
+              [street, street2].filter(Boolean).join(' ').trim(),
+              city,
+              stateVal,
+              zip,
+            ].filter(Boolean).join(', ') || '(address not on file)'
+
+            // Build description: address + admin's log note (e.g. shirt size)
+            const trimmedNote = (note || '').trim()
+            const description = trimmedNote ? `${addr}\n\nAdmin note: ${trimmedNote}` : addr
+
             const emilyEmail = 'emily@abcsurrogacy.com'
 
             if (lbl.includes('request transfer package')) {
               try {
                 await createCaseTask({
                   title: `Send Transfer Package to ${sName}`,
-                  description: addr,
+                  description,
                   due_date: logDt,
                   priority: 'high',
                   assigned_to: emilyEmail,
@@ -572,7 +598,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               try {
                 await createCaseTask({
                   title: `Send Jacket to ${sName}`,
-                  description: addr,
+                  description,
                   due_date: logDt,
                   priority: 'normal',
                   assigned_to: emilyEmail,
@@ -591,7 +617,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid, escrowFunded = false }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, onEdit, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid, escrowFunded = false }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [customPayeeDraft, setCustomPayeeDraft] = useState('')
@@ -779,9 +805,16 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
       </td>
       <td className="px-2 py-3 align-top">
         {!exp.reconciled && (
-          <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
-            <Trash2 className="size-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {typeof onEdit === 'function' && !exp.paid_at && !exp.disbursement_paid_at && (
+              <button onClick={() => onEdit(exp)} className="text-stone-300 hover:text-[#283693] transition-colors" title="Edit expense">
+                <Pencil className="size-3.5" />
+              </button>
+            )}
+            <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
         )}
       </td>
     </tr>
@@ -1870,6 +1903,22 @@ export function formatLineItemsAsNotes(items) {
     .map(li => `$${(parseFloat(li.amount) || 0).toFixed(2)} — ${li.description || '(no description)'}`)
     .join('\n')
 }
+export function parseNotesToLineItems(notes, fallbackAmount) {
+  const text = (notes || '').trim()
+  if (!text) {
+    const amt = fallbackAmount != null ? Number(fallbackAmount) : 0
+    return [{ ...emptyLineItem(), amount: amt > 0 ? amt.toFixed(2) : '' }]
+  }
+  const lineRe = /^\$\s*(\d+(?:\.\d+)?)\s*[—-]\s*(.*)$/
+  const parsed = text.split('\n').map(line => {
+    const m = line.trim().match(lineRe)
+    if (!m) return null
+    const desc = (m[2] || '').trim()
+    return { ...emptyLineItem(), amount: parseFloat(m[1]).toFixed(2), description: desc === '(no description)' ? '' : desc }
+  })
+  if (parsed.every(Boolean)) return parsed
+  return [{ ...emptyLineItem(), amount: fallbackAmount != null ? Number(fallbackAmount).toFixed(2) : '', description: text }]
+}
 
 export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journeyLabel, onExpensesChanged, escrowFunded = false }) {
   const [expenses, setExpenses] = useState([])
@@ -1880,6 +1929,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
+  const [editExpense, setEditExpense] = useState(null)
+  const [editSaving, setEditSaving] = useState(false)
   const { currentUser } = useRole()
   const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
   const total = sumLineItems(lineItems)
@@ -2065,6 +2116,92 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
+  function openEditExpense(exp) {
+    setEditExpense({
+      id: exp.id,
+      expense_date: exp.expense_date || new Date().toISOString().split('T')[0],
+      lineItems: parseNotesToLineItems(exp.notes, exp.amount),
+      existingAttachments: parseAttachmentUrls(exp.attachment_url),
+      escrow_opened: !!exp.escrow_opened,
+      paid_to: exp.paid_to || '',
+      cc_last4: exp.cc_last4 || '',
+      submitted_to_escrow: !!exp.submitted_to_escrow,
+      pay_to_type: exp.pay_to_type || '',
+      pay_to_other: exp.pay_to_type === 'other' ? (exp.paid_to || '') : '',
+      _wasSubmittedToEscrow: !!exp.submitted_to_escrow,
+    })
+  }
+
+  const editTotal = sumLineItems(editExpense?.lineItems)
+
+  async function handleEditSave() {
+    if (!editExpense) return
+    if (editTotal <= 0) return
+    setEditSaving(true)
+    try {
+      const newUploadedUrls = []
+      for (const li of editExpense.lineItems) {
+        if (!li.file) continue
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        if (doc?.public_url) newUploadedUrls.push(doc.public_url)
+      }
+      const allUrls = [...(editExpense.existingAttachments || []), ...newUploadedUrls]
+      const attachmentUrl = allUrls.length ? allUrls.join('\n') : null
+
+      let resolvedPaidTo = editExpense.paid_to || null
+      let payVia = null
+      let payViaInfo = null
+      let needsPayment = false
+      if (!editExpense.escrow_opened) {
+        if (editExpense.pay_to_type === 'hold') {
+          resolvedPaidTo = 'Hold for Payment'
+        } else {
+          needsPayment = true
+          if (editExpense.pay_to_type === 'surrogate') {
+            resolvedPaidTo = gcCase?.name || 'Surrogate'
+            payVia = gcPaymentPref.method?.toLowerCase() || null
+            payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+          } else if (editExpense.pay_to_type === 'ip1') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+          } else if (editExpense.pay_to_type === 'ip2') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+          } else if (editExpense.pay_to_type === 'other') {
+            resolvedPaidTo = editExpense.pay_to_other || 'Other'
+          }
+        }
+      }
+      const submittedToEscrow = editExpense.escrow_opened ? !!editExpense.submitted_to_escrow : false
+      const updates = {
+        expense_date: editExpense.expense_date,
+        amount: editTotal,
+        notes: formatLineItemsAsNotes(editExpense.lineItems) || null,
+        attachment_url: attachmentUrl,
+        escrow_opened: editExpense.escrow_opened,
+        paid_to: resolvedPaidTo,
+        cc_last4: editExpense.escrow_opened ? (editExpense.cc_last4 || null) : null,
+        submitted_to_escrow: submittedToEscrow,
+        pay_to_type: !editExpense.escrow_opened ? editExpense.pay_to_type : null,
+        pay_via: payVia,
+        pay_via_info: payViaInfo,
+        needs_payment: needsPayment,
+      }
+      if (submittedToEscrow && !editExpense._wasSubmittedToEscrow) {
+        updates.disbursement_requested_at = new Date().toISOString()
+        updates.disbursement_requested_by = currentUser?.email || ''
+      }
+      const updated = await updateExpense(editExpense.id, updates)
+      if (updated) {
+        setExpenses(prev => prev.map(e => e.id === editExpense.id ? { ...e, ...updated } : e))
+        onExpensesChanged?.()
+      }
+      setEditExpense(null)
+    } catch (err) {
+      console.error('Failed to update expense:', err)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   const fmtCurrency = (val) => {
     if (!val && val !== 0) return '—'
     return `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -2229,6 +2366,157 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         </DialogContent>
       </Dialog>
 
+      {/* Edit Expense Dialog */}
+      <Dialog open={!!editExpense} onOpenChange={(open) => { if (!open) setEditExpense(null) }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+          </DialogHeader>
+          {editExpense && (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+                <Input type="date" value={editExpense.expense_date} onChange={e => setEditExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+              </div>
+              {/* Line items */}
+              <div className="space-y-2 border-t border-stone-100 pt-3">
+                <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Line Items</p>
+                {editExpense.lineItems.map((li, idx) => (
+                  <div key={li.id} className="rounded-lg border border-stone-200 p-2 space-y-1.5 bg-stone-50/40">
+                    <div className="grid grid-cols-[110px_1fr_auto] gap-2 items-start">
+                      <Input
+                        value={li.amount}
+                        onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, amount: (cents / 100).toFixed(2) } : x) })) }}
+                        placeholder="0.00"
+                        className="h-8 text-sm"
+                      />
+                      <Input
+                        value={li.description}
+                        onChange={e => setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, description: e.target.value } : x) }))}
+                        placeholder="Description"
+                        className="h-8 text-sm"
+                      />
+                      {editExpense.lineItems.length > 1 && (
+                        <button
+                          onClick={() => setEditExpense(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }))}
+                          className="p-1.5 rounded hover:bg-red-50 text-red-400 hover:text-red-600"
+                          title="Remove line item"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      )}
+                      {editExpense.lineItems.length === 1 && <div className="w-7" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                        onChange={e => setEditExpense(p => ({ ...p, lineItems: p.lineItems.map((x, i) => i === idx ? { ...x, file: e.target.files?.[0] || null } : x) }))}
+                        className="h-7 text-[10px] file:text-[10px]"
+                      />
+                    </div>
+                    {li.file && <p className="text-[10px] text-stone-400">{li.file.name} ({(li.file.size / 1024).toFixed(0)}KB)</p>}
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditExpense(p => ({ ...p, lineItems: [...p.lineItems, emptyLineItem()] }))}
+                  className="text-xs text-[#283693] hover:underline font-medium"
+                  type="button"
+                >
+                  + Add Line Item
+                </button>
+                <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                  <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Total</span>
+                  <span className="text-base font-bold text-[#283693]">${editTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              {/* Existing attachments */}
+              {editExpense.existingAttachments.length > 0 && (
+                <div className="space-y-1.5 border-t border-stone-100 pt-3">
+                  <p className="text-[11px] text-stone-400 font-medium uppercase tracking-wide">Existing Attachments</p>
+                  <div className="space-y-1">
+                    {editExpense.existingAttachments.map((url, i) => (
+                      <div key={url + i} className="flex items-center gap-2 px-2 py-1.5 rounded-md border border-stone-200 bg-stone-50/40">
+                        <Paperclip className="size-3 text-stone-400 shrink-0" />
+                        <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-[#283693] hover:underline truncate flex-1">
+                          {url.split('/').pop() || `Attachment ${i + 1}`}
+                        </a>
+                        <button
+                          onClick={() => setEditExpense(p => ({ ...p, existingAttachments: p.existingAttachments.filter((_, j) => j !== i) }))}
+                          className="text-stone-400 hover:text-red-500 shrink-0"
+                          title="Remove attachment"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Escrow Opened */}
+              <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+                <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
+                <div className="flex gap-1">
+                  <button onClick={() => setEditExpense(p => ({ ...p, escrow_opened: true }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${editExpense.escrow_opened ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                  <button onClick={() => setEditExpense(p => ({ ...p, escrow_opened: false }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!editExpense.escrow_opened ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>No</button>
+                </div>
+              </div>
+              {editExpense.escrow_opened ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                      <Input value={editExpense.paid_to} onChange={e => setEditExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                      <Input value={editExpense.cc_last4 || ''} onChange={e => setEditExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+                    <button onClick={() => setEditExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${editExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                      {editExpense.submitted_to_escrow ? 'Yes' : 'No'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                    <select value={editExpense.pay_to_type} onChange={e => setEditExpense(p => ({ ...p, pay_to_type: e.target.value }))}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                      <option value="">Select...</option>
+                      <option value="surrogate">{gcCase?.name || 'Surrogate'}</option>
+                      <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
+                      {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
+                      <option value="other">Other</option>
+                      <option value="hold">Hold for Payment</option>
+                    </select>
+                  </div>
+                  {editExpense.pay_to_type === 'other' && (
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                      <Input value={editExpense.pay_to_other || ''} onChange={e => setEditExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="flex gap-2 justify-end pt-2 border-t border-stone-100">
+                <Button variant="outline" size="sm" onClick={() => setEditExpense(null)}>Cancel</Button>
+                <Button size="sm" onClick={handleEditSave} disabled={editSaving || editTotal <= 0} style={{ backgroundColor: '#283693' }} className="gap-1">
+                  {editSaving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                  {editSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Attachment Preview Dialog */}
       <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -2273,7 +2561,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} escrowFunded={escrowFunded} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={openEditExpense} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} escrowFunded={escrowFunded} />
                   ))}
                 </tbody>
               </table>

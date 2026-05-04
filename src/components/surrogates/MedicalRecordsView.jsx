@@ -20,22 +20,16 @@ const STATUS_PILLS = [
   { id: 'requested_on_portal',        label: 'Requested on Portal' },
   { id: 'emailed_request',            label: 'Emailed Request' },
   { id: 'refaxed_request',            label: 'Refaxed Request' },
-  { id: 'resubmitted_request',        label: 'Resubmitted Request' },
-  { id: 'confirmed_fax_received',     label: 'Confirmed Fax Received' },
   { id: 'followed_up',                label: 'Followed Up' },
   { id: 'records_sent_by_mail',       label: 'Records Sent by Mail' },
-  { id: 'fax_received_reviewing',     label: 'Fax Received - Reviewing' },
   { id: 'partial_records_incomplete', label: 'Partial Records (Incomplete)' },
-  { id: 'partial_records_complete',   label: 'Partial Records (Complete)' },
   { id: 'complete',                   label: 'Records Complete' },
   { id: 'already_collected',          label: 'Already Collected' },
   { id: 'na',                         label: 'Skip' },
 ]
 
 // Statuses that count as "done" for the progress bar and trigger auto-collapse.
-// Partial Records (Complete) is treated as done since it means we've collected
-// everything we're going to collect from this provider.
-const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected', 'partial_records_complete'])
+const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected'])
 
 // Color buckets — each status maps to a visual state so admins can scan the
 // records list and immediately see which ones need follow-up.
@@ -44,9 +38,9 @@ const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected', 'parti
 //   green  → fully done (records in hand, or already collected)
 //   gray   → skipped (not applicable)
 //   white  → not started yet
-const YELLOW_STATUSES = new Set(['faxed_request', 'requested_on_portal', 'emailed_request', 'refaxed_request', 'resubmitted_request', 'records_sent_by_mail', 'followed_up'])
-const BLUE_STATUSES   = new Set(['confirmed_fax_received', 'fax_received_reviewing', 'partial_records_incomplete'])
-const GREEN_STATUSES  = new Set(['complete', 'already_collected', 'partial_records_complete'])
+const YELLOW_STATUSES = new Set(['faxed_request', 'requested_on_portal', 'emailed_request', 'refaxed_request', 'records_sent_by_mail', 'followed_up'])
+const BLUE_STATUSES   = new Set(['partial_records_incomplete'])
+const GREEN_STATUSES  = new Set(['complete', 'already_collected'])
 const GRAY_STATUSES   = new Set(['na'])
 
 function statusColors(status) {

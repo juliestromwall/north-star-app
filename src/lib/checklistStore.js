@@ -51,7 +51,9 @@ export function normalizeOptions(options) {
 export function deriveParentStatus(children, tracking) {
   if (!Array.isArray(children) || children.length === 0) return null
   const statuses = children.map(c => tracking?.[c.id]?.status || 'not_started')
-  const allDoneOrNa = statuses.every(s => s === 'complete' || s === 'na' || s === 'partial_complete')
+  // 'already_collected' counts the same as 'complete' for roll-up — admins
+  // marking a record already-on-file should make the parent register as done.
+  const allDoneOrNa = statuses.every(s => s === 'complete' || s === 'na' || s === 'partial_complete' || s === 'already_collected')
   if (allDoneOrNa) return 'complete'
   // Priority order — highest "active" wins
   const priority = ['reviewing', 'in_progress', 'requested', 'partial_received', 'records_received']
