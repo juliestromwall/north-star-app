@@ -465,7 +465,26 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
     ct[stepId] = { ...(ct[stepId] || {}), ...updates }
     pendingTrackingRef.current = ct
     const jd = { ...(journey.journey_data || {}), _checklistTracking: ct }
-    await onUpdate({ journey_data: jd })
+
+    // Clearance side effects — bundled into the same write so journey.status
+    // and the date land atomically with the checklist tracking update. Date is
+    // pulled from the most recent log entry to match what the admin actually
+    // selected (instead of always using "today").
+    const writeUpdates = { journey_data: jd }
+    if (updates.status === 'complete') {
+      const stepLbl = (steps.find(s => s.id === stepId)?.label || '').toLowerCase()
+      const lastLog = Array.isArray(updates.log) ? updates.log[updates.log.length - 1] : null
+      const dt = (lastLog?.changed_at || '').split('T')[0] || new Date().toISOString().split('T')[0]
+      if (stepLbl.includes('medical clearance')) {
+        jd._medicalClearanceDate = dt
+        writeUpdates.status = 'Pending Legal Clearance'
+      } else if (stepLbl.includes('legal clearance')) {
+        jd._legalClearanceDate = dt
+        writeUpdates.status = 'Transfer Prep'
+      }
+    }
+
+    await onUpdate(writeUpdates)
     // Clear pending once the write lands — next call will read fresh props
     pendingTrackingRef.current = null
   }
@@ -501,7 +520,6 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               if (isRef) {
                 try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
               }
-              try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
             }
 
             // Escrow funded — remind the case's assigned admin to submit expenses.

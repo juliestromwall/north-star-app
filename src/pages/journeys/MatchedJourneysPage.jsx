@@ -154,6 +154,16 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
                 🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
               </span>
             ) : null}
+            {j.journey_data?._medicalClearanceDate && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                Med Cleared {formatDate(j.journey_data._medicalClearanceDate)}
+              </span>
+            )}
+            {j.journey_data?._legalClearanceDate && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                Legal Cleared {formatDate(j.journey_data._legalClearanceDate)}
+              </span>
+            )}
             {j.journey_data?.escrowBalance && (
               <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
                 Escrow: {j.journey_data.escrowBalance}
