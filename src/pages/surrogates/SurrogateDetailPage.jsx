@@ -2785,7 +2785,7 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
                             <tr>
                               <td style="text-align: center; padding: 25px; vertical-align: middle;">
                                 <img src="${window.location.origin}/abc-logo.png" style="height: 90px; display: inline-block;" />
-                                <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 323-207-5762 &nbsp;&nbsp; Fax: 323-843-9433</p>
+                                <p style="font-size: 12px; margin: 8px 0 0 0;">Tel: 818-321-9329 &nbsp;&nbsp; Fax: 323-843-9433</p>
                               </td>
                               <td style="border-left: 2px solid #000; padding: 20px 30px; font-size: 40px; font-weight: 700; text-align: center; width: 120px; vertical-align: middle;">Fax</td>
                             </tr>

@@ -115,7 +115,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
   <div style="text-align: center; padding-bottom: 10px; border-bottom: 2px solid #283693;">
     <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="Abundant Beginnings Co." style="height: 50px; margin-bottom: 4px;" onerror="this.style.display='none'" />
     <p style="color: #283693; font-size: 16px; font-weight: 700; margin: 0;">Abundant Beginnings Co.</p>
-    <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 323-207-5762 | F: 323-843-9433</p>
+    <p style="font-size: 10px; margin: 2px 0 8px 0;">5627 Kanan Road #229, Agoura Hills, CA 91301 | O: 818-321-9329 | F: 323-843-9433</p>
     <p style="font-size: 14px; font-weight: 700; margin: 0; text-decoration: underline;">AUTHORIZATION TO RELEASE PROTECTED HEALTH INFORMATION</p>
     <p style="font-size: 11px; font-weight: 600; margin-top: 3px;">${typeInfo.label} Records</p>
   </div>
@@ -139,7 +139,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <div style="text-align: center; margin: 6px 0; padding: 8px; border: 2px solid #283693;">
     <p style="font-weight: 700; color: #283693; font-size: 13px; margin: 0;">Abundant Beginnings Co. C/O Desiree Melchiori</p>
-    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 323-207-5762 | Fax: 323-843-9433 | records@abcsurrogacy.com</p>
+    <p style="margin: 2px 0; font-size: 10px;">6329 Agua Dulce Court, Placerville, CA 95667 | Ph: 818-321-9329 | Fax: 323-843-9433 | records@abcsurrogacy.com</p>
   </div>
 
   <!-- Provider -->
@@ -217,7 +217,7 @@ export function generateReleaseFormHtml(provider, patient, confidentialData) {
 
   <!-- Footer -->
   <div style="margin-top: 16px; text-align: center; padding-top: 8px; border-top: 1px solid #000;">
-    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 323-207-5762 | F: 323-843-9433 | abcsurrogacy.com</p>
+    <p style="font-size: 8px; color: #333; margin: 0;">6329 Agua Dulce Court, Placerville, CA 95667 | O: 818-321-9329 | F: 323-843-9433 | abcsurrogacy.com</p>
     <p style="font-size: 7px; color: #555; margin: 2px 0 0 0;">Compliant with HIPAA (45 CFR 164.508), ESIGN Act, UETA, 42 CFR Part 2, and Cal. Civil Code 56.11.</p>
   </div>
 
