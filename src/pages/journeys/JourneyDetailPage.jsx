@@ -1030,6 +1030,26 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       })
     } catch (err) { console.error('Failed to create 20-week task:', err) }
 
+    // Auto-create 16-week PBO check-in task for the case's assigned admin.
+    // 16w0d GA = 112 days GA → 112 - 19 (GA at 5-day transfer) = 93 days
+    // after transfer.
+    try {
+      const transferDate = new Date(updated[idx].date + 'T12:00:00')
+      const sixteenWeekDate = new Date(transferDate.getTime() + 93 * 24 * 60 * 60 * 1000)
+      const sixteenWeekStr = sixteenWeekDate.toISOString().split('T')[0]
+      const surName = gcName || journey.gc_name || 'Surrogate'
+      await createCaseTask({
+        case_id: journey.id,
+        case_type: 'journey',
+        title: `${surName} is 16 Weeks Pregnant, Check on PBO`,
+        assigned_to: journey.assigned_to || null,
+        due_date: sixteenWeekStr,
+        priority: 'normal',
+        status: 'open',
+        created_by: 'system',
+      })
+    } catch (err) { console.error('Failed to create 16-week PBO task:', err) }
+
     // Auto-create 4th Agency Payment task for Julie & Nicole
     try {
       await createCaseTask({
