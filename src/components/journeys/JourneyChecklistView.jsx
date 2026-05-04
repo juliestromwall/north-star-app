@@ -104,25 +104,59 @@ export default function JourneyChecklistView({ steps, tracking = {}, onUpdate, o
   const { sections, subtasksByParent } = useMemo(() => {
     const base = buildSections(steps)
     const byParent = {}
+    // Dynamic sections (case subtasks marked _dynamicIsSection) get rendered
+    // as their own top-level sections, inserted right after their anchor.
+    const dynamicSections = []
     for (const [key, val] of Object.entries(tracking || {})) {
-      if (val?._isCaseSubtask && !val?._deleted) {
-        const pid = val._parentId
-        if (!byParent[pid]) byParent[pid] = []
-        byParent[pid].push({
-          id: key,
-          label: val._label || key,
-          _isCaseSubtask: true,
-          _parentId: pid,
-          _order: typeof val._order === 'number' ? val._order : 0,
-          // Honor logType + options stored on the tracking entry so dynamic
-          // mirrors of config steps preserve custom-dropdown behavior.
-          logType: val._logType,
-          options: val._options,
-        })
+      if (!val?._isCaseSubtask || val?._deleted) continue
+      if (val._dynamicIsSection) {
+        dynamicSections.push({ id: key, val })
+        continue
       }
+      const pid = val._parentId
+      if (!byParent[pid]) byParent[pid] = []
+      byParent[pid].push({
+        id: key,
+        label: val._label || key,
+        _isCaseSubtask: true,
+        _parentId: pid,
+        _order: typeof val._order === 'number' ? val._order : 0,
+        // Honor logType + options stored on the tracking entry so dynamic
+        // mirrors of config steps preserve custom-dropdown behavior.
+        logType: val._logType,
+        options: val._options,
+      })
     }
     for (const list of Object.values(byParent)) {
       list.sort((a, b) => a._order - b._order || String(a.id).localeCompare(String(b.id)))
+    }
+    // Insert dynamic sections after their anchor, sorted by _dynamicIndex so
+    // #2 lands before #3, etc. Anchors that aren't found put dynamic sections
+    // at the end in stable order.
+    if (dynamicSections.length > 0) {
+      const grouped = {}
+      for (const { id, val } of dynamicSections) {
+        const anchorId = val._dynamicAnchorId || '_orphan'
+        if (!grouped[anchorId]) grouped[anchorId] = []
+        grouped[anchorId].push({
+          id,
+          label: val._label || id,
+          cards: [], // children pulled from byParent[id] in render
+          _isDynamicSection: true,
+          _dynamicIndex: val._dynamicIndex || 0,
+          _dynamicKind: val._dynamicKind,
+        })
+      }
+      for (const list of Object.values(grouped)) {
+        list.sort((a, b) => a._dynamicIndex - b._dynamicIndex)
+      }
+      const result = []
+      for (const sec of base) {
+        result.push(sec)
+        if (grouped[sec.id]) result.push(...grouped[sec.id])
+      }
+      if (grouped._orphan) result.push(...grouped._orphan)
+      return { sections: result, subtasksByParent: byParent }
     }
     return { sections: base, subtasksByParent: byParent }
   }, [steps, tracking])

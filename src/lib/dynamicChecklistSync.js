@@ -1,67 +1,69 @@
 // Reconciles the journey checklist with the pregnancy tracker.
 //
 // Trigger model:
-//   - A transfer marked unsuccessful OR with lossType (miscarriage / ectopic /
-//     chemical) gets its checklist counterpart "consumed" — the next attempt
-//     needs its own steps, so we duplicate the original Transfer (and CHB if
-//     pregnancy was confirmed but lost) right after.
-//   - droppedCycle (Cancel Cycle) does NOT trigger duplication. Admin will
-//     reset the existing checklist steps manually.
+//   - Mark Unsuccessful (transfers[i].unsuccessful=true) → +1 Transfer section.
+//     Auto, no prompt.
+//   - Pregnancy loss (lossType in miscarriage/ectopic/chemical) → +1 Transfer
+//     section AND +1 Confirmation of Heartbeat section, but ONLY when the
+//     admin explicitly opts in via _addNextTransferToChecklist=true on the
+//     transfer entry. The Pregnancy Loss dialog asks them.
+//   - Cancel Cycle (droppedCycle=true) → no duplication. Admin will reset
+//     existing checklist steps manually.
 //
-// Result:
-//   - 1 transfer step per closed transfer + 1 for the "next" / current attempt
-//     (so checklist always has at least 1 Transfer step).
-//   - When count > 1 the original is re-labeled "Transfer #1" and dynamic
-//     copies are "Transfer #2", "#3", etc.
-//   - Same for "Confirmation of Heartbeat" (only counted on lossType, since
-//     unsuccessful transfers never reached heartbeat).
-//   - Mirrored subtasks: each dynamic copy gets a clone of the anchor's
-//     config-defined subtasks (label + logType + options preserved) so each
-//     attempt can be tracked the same way.
-//
-// Storage:
-//   - All dynamic entries live in journey_data._checklistTracking, marked
-//     with _dynamicKind ('transfer' | 'chb') so we can wipe + regenerate
-//     without disturbing user-added case subtasks.
-//   - Anchor labels are overridden via tracking[anchorId].customLabel so
-//     config never has to know about this.
+// Layout:
+//   The anchor "Transfer" / "Confirmation of Heartbeat" steps are SECTIONS
+//   (top-level config steps with their own children). Dynamic copies are
+//   stored as case subtasks marked _dynamicIsSection=true and rendered as
+//   their own top-level sections by JourneyChecklistView. Each dynamic
+//   section's children mirror the anchor's config children verbatim
+//   (label + logType + options).
 
 const TRANSFER_LABEL_BASE = 'Transfer'
 const CHB_LABEL_BASE = 'Confirmation of Heartbeat'
 const PREGNANCY_LOSS_TYPES = new Set(['miscarriage', 'ectopic', 'chemical'])
 
-function findAnchor(steps, labelMatcher) {
-  // Anchor must be a child step (has parentId), so we know which section to
-  // attach dynamic siblings to. If no parentId match, fall back to top-level.
-  return steps.find(s => s.parentId && labelMatcher(s.label || ''))
-      || steps.find(s => labelMatcher(s.label || ''))
-      || null
-}
-
-function isTransferAnchor(label) {
+function isTransferSection(label) {
   const l = label.toLowerCase()
   return /transfer/.test(l) && !/intro/.test(l) && !/match/.test(l)
 }
 
-function isChbAnchor(label) {
+function isChbSection(label) {
   const l = label.toLowerCase()
   return /heartbeat/.test(l) || /\bchb\b/.test(l)
+}
+
+// Find the section (top-level config step that has child cards) whose label
+// matches the predicate. Falls back to a child step if no top-level match.
+function findSectionAnchor(configSteps, matcher) {
+  const topLevel = configSteps.filter(s => !s.parentId)
+  const childCount = id => configSteps.filter(s => s.parentId === id).length
+  return (
+    topLevel.find(s => matcher(s.label || '') && childCount(s.id) > 0)
+      || topLevel.find(s => matcher(s.label || ''))
+      || configSteps.find(s => matcher(s.label || ''))
+      || null
+  )
 }
 
 export function syncDynamicTransferSteps(transfers, currentTracking, configSteps) {
   const tracking = { ...(currentTracking || {}) }
 
-  // Wipe existing dynamic entries; we'll regenerate from current truth.
+  // Wipe existing dynamic entries; we regenerate from current truth so edits/
+  // deletes/reverts in the pregnancy tracker propagate cleanly.
   for (const id of Object.keys(tracking)) {
     if (tracking[id]?._dynamicKind) delete tracking[id]
   }
 
-  const transferAnchor = findAnchor(configSteps, isTransferAnchor)
-  const chbAnchor = findAnchor(configSteps, isChbAnchor)
+  const transferAnchor = findSectionAnchor(configSteps, isTransferSection)
+  const chbAnchor = findSectionAnchor(configSteps, isChbSection)
 
   const list = Array.isArray(transfers) ? transfers : []
-  const transferLossCount = list.filter(t => t?.unsuccessful || t?.lossType).length
-  const chbLossCount = list.filter(t => PREGNANCY_LOSS_TYPES.has(t?.lossType)).length
+  const transferLossCount = list.filter(t => (
+    t?.unsuccessful || (t?.lossType && t?._addNextTransferToChecklist === true)
+  )).length
+  const chbLossCount = list.filter(t => (
+    PREGNANCY_LOSS_TYPES.has(t?.lossType) && t?._addNextTransferToChecklist === true
+  )).length
 
   applyAnchor(tracking, configSteps, transferAnchor, 'transfer', TRANSFER_LABEL_BASE, transferLossCount)
   applyAnchor(tracking, configSteps, chbAnchor, 'chb', CHB_LABEL_BASE, chbLossCount)
@@ -76,38 +78,38 @@ function applyAnchor(tracking, configSteps, anchor, kind, baseLabel, extras) {
   if (extras > 0) {
     tracking[anchor.id] = { ...anchorEntry, customLabel: `${baseLabel} #1` }
   } else if (anchorEntry.customLabel === `${baseLabel} #1`) {
-    // Cleanup: if we previously renamed but no losses now, drop customLabel
     const { customLabel, ...rest } = anchorEntry
     tracking[anchor.id] = rest
   }
 
   if (extras < 1) return
 
-  // Subtasks defined in config under the anchor — mirrored verbatim under each
-  // dynamic copy. Sort by their array order so the mirror order matches.
-  const anchorSubtasks = configSteps.filter(s => s.parentId === anchor.id)
+  // Children of the anchor section in config — these get mirrored as subtasks
+  // under each dynamic section copy.
+  const anchorChildren = configSteps.filter(s => s.parentId === anchor.id)
 
   for (let n = 2; n <= 1 + extras; n++) {
-    const dynCardId = `_dyn_${kind}_${n}`
-    tracking[dynCardId] = {
+    const dynSectionId = `_dyn_${kind}_${n}`
+    tracking[dynSectionId] = {
       _isCaseSubtask: true,
-      _parentId: anchor.parentId || null,
-      _label: `${baseLabel} #${n}`,
-      _order: 1000 + (n - 1) * 0.001, // sit after config siblings, in order
+      _parentId: null,            // top-level
+      _dynamicIsSection: true,
       _dynamicKind: kind,
       _dynamicIndex: n,
+      _dynamicAnchorId: anchor.id, // used to position right after the anchor section
+      _label: `${baseLabel} #${n}`,
       status: 'not_started',
     }
-    anchorSubtasks.forEach((sub, j) => {
-      tracking[`_dyn_${kind}_${n}_sub_${j}`] = {
+    anchorChildren.forEach((child, j) => {
+      tracking[`${dynSectionId}_card_${j}`] = {
         _isCaseSubtask: true,
-        _parentId: dynCardId,
-        _label: sub.label,
-        _order: j,
+        _parentId: dynSectionId,
         _dynamicKind: kind,
         _dynamicIndex: n,
-        _logType: sub.logType || 'status',
-        _options: sub.options || [],
+        _label: child.label,
+        _order: j,
+        _logType: child.logType || 'status',
+        _options: child.options || [],
         status: 'not_started',
       }
     })

@@ -791,6 +791,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
   const [babySexOpen, setBabySexOpen] = useState(false)
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
+  const [lossAddNextTransfer, setLossAddNextTransfer] = useState(null) // null = not chosen yet
   const [birthOpen, setBirthOpen] = useState(false)
   const [birthForm, setBirthForm] = useState({ date: '', deliveryType: '', notes: '' })
   const [birthBabies, setBirthBabies] = useState([])
@@ -1005,13 +1006,18 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
   }
 
   async function handlePregnancyLoss() {
-    if (!lossReason) return
+    if (!lossReason || lossAddNextTransfer === null) return
     setSaving(true)
     const updated = [...transfers]
-    updated[updated.length - 1] = { ...updated[updated.length - 1], lossType: lossReason, lossDate: new Date().toISOString().split('T')[0] }
+    updated[updated.length - 1] = {
+      ...updated[updated.length - 1],
+      lossType: lossReason,
+      lossDate: new Date().toISOString().split('T')[0],
+      _addNextTransferToChecklist: lossAddNextTransfer === true,
+    }
     await onUpdate({ _transfers: updated, pregnant: 'no', dueDate: null })
     await updateBabiesBornCounter('loss')
-    setLossOpen(false); setLossReason('')
+    setLossOpen(false); setLossReason(''); setLossAddNextTransfer(null)
     setSaving(false)
   }
 
@@ -1571,7 +1577,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       </Dialog>
 
       {/* Pregnancy Loss Dialog */}
-      <Dialog open={lossOpen} onOpenChange={setLossOpen}>
+      <Dialog open={lossOpen} onOpenChange={(open) => { setLossOpen(open); if (!open) { setLossReason(''); setLossAddNextTransfer(null) } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="text-red-600">Record Pregnancy Loss</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -1588,9 +1594,25 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                 <option value="other">Other</option>
               </select>
             </div>
+            {lossReason && lossReason !== 'other' && (
+              <div className="space-y-1.5 rounded-lg bg-stone-50 border border-stone-200 p-3">
+                <p className="text-xs font-semibold text-stone-700">Will there be another embryo transfer on this journey?</p>
+                <p className="text-[11px] text-stone-500">If yes, a new <strong>Transfer</strong> + <strong>Confirmation of Heartbeat</strong> section will be added to the checklist for the next attempt.</p>
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setLossAddNextTransfer(true)}
+                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md border transition-colors ${lossAddNextTransfer === true ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'}`}>
+                    Yes
+                  </button>
+                  <button type="button" onClick={() => setLossAddNextTransfer(false)}
+                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md border transition-colors ${lossAddNextTransfer === false ? 'bg-stone-100 border-stone-300 text-stone-700' : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'}`}>
+                    No
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setLossOpen(false)}>Cancel</Button>
-              <Button size="sm" disabled={saving || !lossReason} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
+              <Button size="sm" disabled={saving || !lossReason || (lossReason !== 'other' && lossAddNextTransfer === null)} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 Record Loss
               </Button>
@@ -3444,32 +3466,38 @@ export default function JourneyDetailPage() {
               </div>
             </div>
 
-            {/* ── Pregnancy Tracker ── */}
-            <PregnancyTracker
-              journey={journey}
-              gcName={gcCase?.name}
-              onUpdate={async (fields) => { await updateFields(fields) }}
-              onStatusChange={async (status) => {
-                const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)
-                if (updated) setJourney(updated)
-              }}
-              onPregnancyConfirmed={() => {
-                setShowConfetti(true)
-                setTimeout(() => fireConfetti({
-                  particleCount: 260,
-                  spread: 360,
-                  startVelocity: 55,
-                  gravity: 0.25,
-                  decay: 0.94,
-                  lifetime: 160,
-                  scalar: 14,
-                  iconScalar: 38,
-                  iconRate: 0.2,
-                  colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
-                  origin: { x: 0.5, y: 0.45 },
-                }), 500)
-              }}
-            />
+            {/* ── Pregnancy Tracker ──
+                Hidden until Legal Clearance is issued. Pre-clearance there's
+                no transfer activity to track, and showing it just adds noise.
+                Existing transfer data still renders if data was already there
+                (defensive — never hide content that already exists). */}
+            {(jd._legalClearanceDate || (jd._transfers && jd._transfers.length > 0)) && (
+              <PregnancyTracker
+                journey={journey}
+                gcName={gcCase?.name}
+                onUpdate={async (fields) => { await updateFields(fields) }}
+                onStatusChange={async (status) => {
+                  const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)
+                  if (updated) setJourney(updated)
+                }}
+                onPregnancyConfirmed={() => {
+                  setShowConfetti(true)
+                  setTimeout(() => fireConfetti({
+                    particleCount: 260,
+                    spread: 360,
+                    startVelocity: 55,
+                    gravity: 0.25,
+                    decay: 0.94,
+                    lifetime: 160,
+                    scalar: 14,
+                    iconScalar: 38,
+                    iconRate: 0.2,
+                    colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
+                    origin: { x: 0.5, y: 0.45 },
+                  }), 500)
+                }}
+              />
+            )}
 
             {/* ── Providers (clickable to edit via modal) ── */}
             <div className="border-t border-stone-100 pt-4">
