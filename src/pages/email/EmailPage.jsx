@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake } from '@/lib/db'
 import { EMAIL_TAGS } from '@/lib/emailTags'
+import { findJourneyByCaseId } from '@/lib/matching'
 import { mockUsers, getAdminStaff } from '@/data/mock/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -312,14 +313,20 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
       fetchIPsFromIntake(),
       import('@/lib/matching').then(m => m.fetchMatchedJourneys()),
     ]).then(([gcs, ips, journeys]) => {
+        const matchedGcIds = new Set((journeys || []).map(j => String(j.gc_case_id)))
+        const matchedIpIds = new Set((journeys || []).map(j => String(j.ip_case_id)))
         const allCases = [
           ...(journeys || []).map(j => {
             const gcName = (gcs || []).find(g => g.id === j.gc_case_id)?.name || 'GC'
             const ipName = (ips || []).find(i => i.id === j.ip_case_id)?.names || 'IP'
             return { id: j.id, name: `${ipName} + ${gcName}`, type: 'journey', group: 'Matched Journeys' }
           }),
-          ...(gcs || []).map(c => ({ id: c.id, name: c.name || 'Unknown', type: 'gc', group: 'Surrogates' })),
-          ...(ips || []).map(c => ({ id: c.id, name: c.names || 'Unknown', type: 'ip', group: 'Intended Parents' })),
+          ...(gcs || [])
+            .filter(c => !matchedGcIds.has(String(c.id)))
+            .map(c => ({ id: c.id, name: c.name || 'Unknown', type: 'gc', group: 'Surrogates' })),
+          ...(ips || [])
+            .filter(c => !matchedIpIds.has(String(c.id)))
+            .map(c => ({ id: c.id, name: c.names || 'Unknown', type: 'ip', group: 'Intended Parents' })),
         ]
         setCases(allCases)
       })
@@ -413,10 +420,15 @@ function LogToCaseDialog({ open, onOpenChange, email, userId, userName, isMaster
     setSaving(true)
     try {
       const { insertExpense } = await import('@/lib/db')
+      let targetJourneyId = aiData.caseId
+      if (aiData.caseType === 'gc' || aiData.caseType === 'ip') {
+        const activeJourneyId = await findJourneyByCaseId(aiData.caseId)
+        if (activeJourneyId) targetJourneyId = activeJourneyId
+      }
       const submitted = !!aiData.submittedToEscrow
       const nowIso = new Date().toISOString()
       await insertExpense({
-        journey_id: aiData.caseId,
+        journey_id: targetJourneyId,
         expense_date: aiData.expense_date || new Date().toISOString().split('T')[0],
         amount: parseFloat(aiData.amount) || 0,
         paid_to: aiData.paid_to || '',
