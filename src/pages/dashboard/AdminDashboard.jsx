@@ -672,36 +672,46 @@ export default function AdminDashboard() {
             const meta = apptMeta[event.id] || {}
             const title = event.summary?.includes(' — ') ? event.summary.split(' — ')[0] : event.summary || ''
             const isFollowedUp = meta.followedUp || title.startsWith('✅')
-            const borderColor = today ? 'border-l-[#283693]' : isPast ? 'border-l-stone-200' : 'border-l-stone-300'
+            // Profile-inspired tinted backgrounds: indigo wash for today,
+            // emerald wash for already-followed-up, otherwise white.
+            const tint = today
+              ? 'bg-[#283693]/[0.04] border-[#283693]/20'
+              : isFollowedUp
+                ? 'bg-emerald-50/40 border-emerald-200/60'
+                : 'bg-white border-stone-200'
             return (
-              <div key={event.id} className={`group rounded-lg border border-stone-200 border-l-4 ${borderColor} ${today ? 'bg-[#283693]/5' : 'bg-white'} ${isPast ? 'opacity-75' : ''} hover:shadow-sm hover:border-stone-300 transition-all`}>
-                <div className="px-3 py-2.5 flex items-start gap-2.5">
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium leading-snug ${today ? 'text-[#283693]' : 'text-stone-800'}`}>
+              <div key={event.id} className={`group rounded-xl border ${tint} ${isPast ? 'opacity-75' : ''} hover:shadow-sm transition-all`}>
+                <div className="px-4 py-3 flex items-start gap-3">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <p className={`text-[14px] font-semibold leading-snug ${today ? 'text-[#283693]' : 'text-stone-800'}`}>
                       {title.replace(/^✅\s*/, '')}
                     </p>
-                    <div className="flex items-center gap-1.5 text-[11px] mt-1 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-stone-500 font-medium">
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${today ? 'text-[#283693]' : 'text-stone-500'}`}>
                         <Calendar className="size-3" />
                         {today ? 'Today' : formatDate(startDt)}
                       </span>
                       {!isAllDay && event.start?.dateTime && (
-                        <span className="inline-flex items-center gap-1 text-stone-400">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-stone-400">
                           <Clock className="size-3" />
                           {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                         </span>
                       )}
                       {isFollowedUp && (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Followed Up</span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700">
+                          <CheckCircle2 className="size-3" /> Followed Up
+                        </span>
                       )}
                       {caseName && caseLink && (
-                        <Link to={caseLink} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors truncate max-w-[160px]">
+                        <Link to={caseLink} className="text-[11px] font-semibold text-[#ed148c] hover:underline truncate max-w-[180px]">
                           {caseName}
                         </Link>
                       )}
                     </div>
                     {meta.notes && (
-                      <p className="text-[11px] text-stone-500 mt-1.5 italic border-l-2 border-stone-200 pl-2 line-clamp-2">{meta.notes}</p>
+                      <p className="text-[11px] text-stone-500 italic border-l-2 border-stone-300 pl-2.5 line-clamp-2">
+                        {meta.notes}
+                      </p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1 shrink-0 items-end">
@@ -709,7 +719,7 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => handleFollowUp(event)}
                         disabled={followingUp === event.id}
-                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-md border border-emerald-200 transition-colors"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-white hover:bg-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 transition-colors"
                         title="Mark as followed up"
                       >
                         {followingUp === event.id ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
@@ -718,11 +728,11 @@ export default function AdminDashboard() {
                     )}
                     <button
                       onClick={() => { setNotesModal(event); setNoteText(apptMeta[event.id]?.notes || '') }}
-                      className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500 hover:text-[#283693] bg-stone-50 hover:bg-stone-100 px-2 py-1 rounded-md border border-stone-200 transition-colors"
+                      className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500 hover:text-[#283693] hover:bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200 transition-colors"
                       title={meta.notes ? 'Edit notes' : 'Add notes'}
                     >
                       <FileText className="size-3" />
-                      {meta.notes ? 'Edit' : 'Notes'}
+                      {meta.notes ? 'Edit notes' : 'Add notes'}
                     </button>
                   </div>
                 </div>
@@ -730,26 +740,33 @@ export default function AdminDashboard() {
             )
           }
           return (
-            <Card>
-              <CardHeader className="pb-3 cursor-pointer" onClick={() => setAppointmentsOpen(o => !o)}>
-                <CardTitle className="text-sm flex items-center gap-2">
+            <Card className="rounded-2xl border-stone-200 shadow-sm">
+              {/* Magazine-style header borrowed from the profile pages: pink
+                  icon dot + indigo serif title, divider tinted with the same
+                  pink as the profile section breaks. */}
+              <CardHeader className="pb-3 cursor-pointer border-b border-[#ed148c]/15" onClick={() => setAppointmentsOpen(o => !o)}>
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-full bg-[#ed148c]/10 flex items-center justify-center shrink-0">
+                    <Calendar className="size-4 text-[#ed148c]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-heading font-black text-[#283693] leading-tight tracking-tight">Appointments</h3>
+                    {upcomingEvents.length > 0 && (
+                      <p className="text-[11px] text-stone-400 font-medium">{upcomingEvents.length} upcoming this week</p>
+                    )}
+                  </div>
                   {appointmentsOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-                  <Calendar className="size-4 text-stone-400" /> Appointments
-                  {upcomingEvents.length > 0 && (
-                    <span className="ml-auto text-[10px] font-semibold text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">{upcomingEvents.length}</span>
-                  )}
-                </CardTitle>
+                </div>
               </CardHeader>
               {appointmentsOpen && (
-                <CardContent>
+                <CardContent className="pt-4">
                   {upcomingEvents.length === 0 && pastEvents.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-6">No appointments this week.</p>
+                    <p className="text-sm text-stone-400 text-center py-6">No appointments this week.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {upcomingEvents.length > 0 && (
                         <div className="space-y-2">
-                          <p className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold pl-1">Upcoming</p>
-                          {/* Cap height + scroll instead of letting the card grow without bound. */}
+                          <p className="text-[10px] text-stone-500 uppercase tracking-[0.12em] font-bold pl-1">Upcoming</p>
                           <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                             {upcomingEvents.map(event => renderAppointment(event))}
                           </div>
@@ -757,7 +774,7 @@ export default function AdminDashboard() {
                       )}
                       {pastEvents.length > 0 && (
                         <div className="space-y-2">
-                          <button onClick={() => setPastApptOpen(o => !o)} className="text-[10px] text-stone-400 uppercase tracking-wider font-semibold flex items-center gap-1 hover:text-stone-600 transition-colors pl-1">
+                          <button onClick={() => setPastApptOpen(o => !o)} className="flex items-center gap-1.5 text-[10px] text-stone-500 uppercase tracking-[0.12em] font-bold hover:text-stone-700 transition-colors pl-1">
                             {pastApptOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
                             <History className="size-3" /> Past 7 Days ({pastEvents.length})
                           </button>
@@ -768,7 +785,7 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       )}
-                      <Link to="/calendar" className="text-xs text-[#283693] hover:underline block text-center pt-2">View full calendar →</Link>
+                      <Link to="/calendar" className="text-xs font-semibold text-[#ed148c] hover:underline block text-center pt-1">View full calendar →</Link>
                     </div>
                   )}
                 </CardContent>
@@ -801,14 +818,16 @@ export default function AdminDashboard() {
             if (!val) return ''
             return String(val).split(',').map(e => e.trim().split('@')[0]).join(' & ')
           }
-          // Priority drives a 4px left-border accent so high/urgent items pop
-          // without painting the whole row red. Today + overdue get color in
-          // the metadata row.
-          const priorityBorder = (task) => {
-            if (task.status === 'complete') return 'border-l-stone-200'
-            if (task.priority === 'urgent') return 'border-l-red-500'
-            if (task.priority === 'high') return 'border-l-amber-400'
-            return 'border-l-stone-200'
+          // Profile-inspired: tinted backgrounds for each state instead of
+          // border-only accents. Urgent → rose wash, High → amber wash,
+          // Today → indigo wash, Overdue → rose-200 wash with red text.
+          const tintFor = (task, isOverdue, isToday) => {
+            if (task.status === 'complete') return 'bg-stone-50 border-stone-200'
+            if (isOverdue) return 'bg-rose-50/60 border-rose-200/70'
+            if (task.priority === 'urgent') return 'bg-rose-50/60 border-rose-200/70'
+            if (task.priority === 'high') return 'bg-amber-50/60 border-amber-200/70'
+            if (isToday) return 'bg-[#283693]/[0.04] border-[#283693]/20'
+            return 'bg-white border-stone-200'
           }
           const todayIsoStr = new Date().toISOString().split('T')[0]
           const renderTask = (task) => {
@@ -818,68 +837,67 @@ export default function AdminDashboard() {
             const isOverdue = task.due_date && task.due_date < todayIsoStr && !isComplete
             const isToday = task.due_date === todayIsoStr && !isComplete
             return (
-              <div key={task.id} className={`group rounded-lg border border-stone-200 border-l-4 ${priorityBorder(task)} bg-white hover:shadow-sm hover:border-stone-300 transition-all ${isComplete ? 'opacity-60' : ''}`}>
-                <div className="px-3 py-2.5 flex items-center gap-2.5">
+              <div key={task.id} className={`group rounded-xl border ${tintFor(task, isOverdue, isToday)} hover:shadow-sm transition-all ${isComplete ? 'opacity-70' : ''}`}>
+                <div className="px-4 py-3 flex items-start gap-3">
                   {isComplete ? (
-                    <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0" title="Mark incomplete">
+                    <button onClick={() => uncompleteTask(task.id)} className="text-emerald-500 hover:text-amber-500 shrink-0 mt-0.5" title="Mark incomplete">
                       <CheckCircle2 className="size-5" />
                     </button>
                   ) : (
-                    <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-green-600 shrink-0" title="Mark complete">
+                    <button onClick={() => completeTask(task.id)} className="text-stone-300 hover:text-emerald-500 shrink-0 mt-0.5" title="Mark complete">
                       <Circle className="size-5" />
                     </button>
                   )}
-                  <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left">
-                    <p className={`text-sm font-medium leading-snug ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>
+                  <button onClick={() => toggleTaskExpanded(task)} className="flex-1 min-w-0 text-left space-y-1.5">
+                    <p className={`text-[14px] font-semibold leading-snug ${isComplete ? 'text-stone-500 line-through' : 'text-stone-800'}`}>
                       {task.title}
                     </p>
-                    <div className="flex items-center gap-1.5 text-[11px] mt-1 flex-wrap">
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap">
                       {task.due_date && (
-                        <span className={`inline-flex items-center gap-1 ${isOverdue ? 'text-red-600 font-semibold' : isToday ? 'text-[#283693] font-semibold' : 'text-stone-400'}`}>
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${isOverdue ? 'text-rose-600 font-bold' : isToday ? 'text-[#283693]' : 'text-stone-500'}`}>
                           <Calendar className="size-3" />
-                          {isToday ? 'Today' : formatDate(task.due_date)}
-                          {isOverdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
+                          {isToday ? 'Today' : isOverdue ? `${formatDate(task.due_date)} · Overdue` : formatDate(task.due_date)}
                         </span>
                       )}
                       {isComplete && task.completed_at && (
-                        <span className="text-stone-400">Completed {formatDate(task.completed_at)}</span>
+                        <span className="text-[11px] text-stone-400">Completed {formatDate(task.completed_at)}</span>
                       )}
                       {task.priority === 'urgent' && !isComplete && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">Urgent</span>
+                        <span className="text-[10px] font-bold text-rose-600 uppercase tracking-[0.1em]">Urgent</span>
                       )}
                       {task.priority === 'high' && !isComplete && (
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">High</span>
+                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-[0.1em]">High</span>
                       )}
                       {caseName ? (
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 truncate max-w-[160px] border border-blue-100">
-                          {caseName}
-                        </span>
+                        <span className="text-[11px] font-semibold text-[#ed148c] truncate max-w-[180px]">{caseName}</span>
                       ) : (task.case_type === 'personal' || !task.case_id) ? (
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">Personal</span>
+                        <span className="text-[10px] font-medium text-stone-400 italic">Personal</span>
                       ) : null}
-                      {task.assigned_to && (
-                        <span className="text-[10px] text-stone-400">→ {formatAssignees(task.assigned_to)}</span>
+                      {task.assigned_to && taskTab !== 'mine' && (
+                        <span className="text-[11px] text-stone-500">→ {formatAssignees(task.assigned_to)}</span>
                       )}
                     </div>
                   </button>
-                  {!isComplete && (
-                    <button onClick={() => setEditingTask({ ...task })} className="size-7 rounded-md flex items-center justify-center text-stone-400 hover:text-[#283693] hover:bg-[#283693]/5 shrink-0 transition-colors" title="Edit">
-                      <Pencil className="size-3.5" />
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {!isComplete && (
+                      <button onClick={() => setEditingTask({ ...task })} className="size-7 rounded-full flex items-center justify-center text-stone-400 hover:text-[#283693] hover:bg-[#283693]/10 transition-colors" title="Edit">
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
+                    <button onClick={() => removeTask(task.id)} className="size-7 rounded-full flex items-center justify-center text-stone-400 hover:text-rose-500 hover:bg-rose-50 transition-colors" title="Delete">
+                      <Trash2 className="size-3.5" />
                     </button>
-                  )}
-                  <button onClick={() => removeTask(task.id)} className="size-7 rounded-md flex items-center justify-center text-stone-400 hover:text-red-500 hover:bg-red-50 shrink-0 transition-colors" title="Delete">
-                    <Trash2 className="size-3.5" />
-                  </button>
+                  </div>
                 </div>
                 {isExpanded && (
-                  <div className="px-3 pb-2.5 pl-10 space-y-1 text-[11px] border-t border-stone-100 pt-2">
+                  <div className="px-4 pb-3 pl-12 space-y-1 text-[11px] border-t border-stone-200/60 pt-2">
                     {caseName && caseLink && (
-                      <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#283693] hover:underline">{caseName}</Link></p>
+                      <p className="text-stone-400">Case: <Link to={caseLink} className="text-[#ed148c] hover:underline font-medium">{caseName}</Link></p>
                     )}
-                    {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-600">{formatAssignees(task.assigned_to)}</span></p>}
-                    {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-600">{task.created_by.split('@')[0]}</span></p>}
-                    {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-600">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
-                    {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1">{task.description}</p>}
+                    {task.assigned_to && <p className="text-stone-400">Assigned to: <span className="text-stone-700 font-medium">{formatAssignees(task.assigned_to)}</span></p>}
+                    {task.created_by && <p className="text-stone-400">Created by: <span className="text-stone-700">{task.created_by.split('@')[0]}</span></p>}
+                    {task.completed_by && <p className="text-stone-400">Completed by: <span className="text-stone-700">{task.completed_by.split('@')[0]}{task.completed_at ? ` on ${formatDate(task.completed_at)}` : ''}</span></p>}
+                    {task.description && <p className="text-stone-600 whitespace-pre-wrap pt-1.5">{task.description}</p>}
                   </div>
                 )}
               </div>
@@ -911,40 +929,52 @@ export default function AdminDashboard() {
             ...(showAllTab ? [{ id: 'all', label: 'All Tasks', count: taskBuckets.all.length }] : []),
           ]
           return (
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
-                    {tasksOpen ? <ChevronDown className="size-4 text-stone-400" /> : <ChevronRight className="size-4 text-stone-400" />}
-                    <CheckCircle2 className="size-4 text-stone-400" /> Tasks
-                  </CardTitle>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setAddTaskOpen(true)}>
-                    <Plus className="size-3" /> Add Task
+            <Card className="rounded-2xl border-stone-200 shadow-sm">
+              {/* Magazine-style header — indigo icon dot for Tasks (matches
+                  the pink Calendar dot on the Appointments card so the two
+                  feel like a pair without being identical). */}
+              <CardHeader className="pb-3 border-b border-[#283693]/15">
+                <div className="flex items-center gap-3">
+                  <div className="size-8 rounded-full bg-[#283693]/10 flex items-center justify-center shrink-0 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
+                    <CheckCircle2 className="size-4 text-[#283693]" />
+                  </div>
+                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setTasksOpen(o => !o)}>
+                    <h3 className="text-base font-heading font-black text-[#283693] leading-tight tracking-tight">Tasks</h3>
+                    <p className="text-[11px] text-stone-400 font-medium">
+                      {taskBuckets.mine.length} mine · {taskBuckets.cases.length} on my cases
+                      {showAllTab ? ` · ${taskBuckets.all.length} total` : ''}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 shrink-0 text-[#ed148c] hover:text-[#ed148c] hover:bg-[#ed148c]/10" onClick={() => setAddTaskOpen(true)}>
+                    <Plus className="size-3" /> Add
                   </Button>
+                  {tasksOpen ? <ChevronDown className="size-4 text-stone-400 shrink-0 cursor-pointer" onClick={() => setTasksOpen(false)} /> : <ChevronRight className="size-4 text-stone-400 shrink-0 cursor-pointer" onClick={() => setTasksOpen(true)} />}
                 </div>
+                {/* Underline-style tab strip mirrors the section dividers
+                    used throughout the profile preview (border-b accent). */}
                 {tasksOpen && (
-                  <div className="flex items-center gap-1 mt-2 -mb-1">
+                  <div className="flex items-center gap-1 mt-3 border-b border-stone-200 -mb-3">
                     {tabs.map(t => (
                       <button
                         key={t.id}
                         onClick={() => setTaskTab(t.id)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                        className={`px-3 pb-2 text-[12px] font-semibold transition-colors border-b-2 -mb-px ${
                           taskTab === t.id
-                            ? 'bg-[#283693] text-white shadow-sm'
-                            : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
+                            ? 'text-[#283693] border-[#ed148c]'
+                            : 'text-stone-400 border-transparent hover:text-stone-600'
                         }`}
                       >
                         {t.label}
-                        <span className={`ml-1.5 text-[10px] font-semibold ${taskTab === t.id ? 'opacity-90' : 'opacity-60'}`}>{t.count}</span>
+                        <span className={`ml-1.5 text-[10px] font-bold ${taskTab === t.id ? 'text-[#ed148c]' : 'text-stone-300'}`}>{t.count}</span>
                       </button>
                     ))}
                   </div>
                 )}
               </CardHeader>
               {tasksOpen && (
-                <CardContent className="space-y-3">
+                <CardContent className="pt-4 space-y-3">
                   {currentTasks.length === 0 && futureTasks.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-6">
+                    <p className="text-sm text-stone-400 text-center py-6">
                       {taskTab === 'mine'
                         ? 'No open tasks assigned to you.'
                         : taskTab === 'cases'
@@ -952,20 +982,17 @@ export default function AdminDashboard() {
                           : 'No open tasks.'}
                     </p>
                   ) : currentTasks.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-3">No tasks due in the next 7 days.</p>
+                    <p className="text-sm text-stone-400 text-center py-3">No tasks due in the next 7 days.</p>
                   ) : (
-                    /* Cap height + scroll so a long list doesn't blow up the
-                       card. The future / completed toggles below stay
-                       accessible regardless of how many open tasks exist. */
                     <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
                       {currentTasks.map(renderTask)}
                     </div>
                   )}
                   {futureTasks.length > 0 && (
                     <div>
-                      <button onClick={() => setFutureOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full pt-2">
+                      <button onClick={() => setFutureOpen(o => !o)} className="flex items-center gap-1.5 text-[10px] text-stone-500 uppercase tracking-[0.12em] font-bold hover:text-stone-700 transition-colors w-full pt-2 pl-1">
                         {futureOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-                        <Calendar className="size-3 text-blue-500" />
+                        <Calendar className="size-3 text-[#283693]" />
                         Future Tasks ({futureTasks.length})
                       </button>
                       {futureOpen && (
@@ -975,11 +1002,9 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   )}
-                  {/* Completed list lives on My Tasks only — completedTasks
-                      is the assignee's own completed list. */}
                   {taskTab === 'mine' && completedTasks.length > 0 && (
                     <div>
-                      <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-600 transition-colors w-full pt-2">
+                      <button onClick={() => setCompletedOpen(o => !o)} className="flex items-center gap-1.5 text-[10px] text-stone-500 uppercase tracking-[0.12em] font-bold hover:text-stone-700 transition-colors w-full pt-2 pl-1">
                         {completedOpen ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
                         <CheckCircle2 className="size-3 text-emerald-500" />
                         Completed ({completedTasks.length})
