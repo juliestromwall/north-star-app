@@ -11,7 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { config } from 'dotenv'
-config({ path: new URL('../.env', import.meta.url).pathname })
+config({ path: new URL('../.env', import.meta.url).pathname, quiet: true })
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY
