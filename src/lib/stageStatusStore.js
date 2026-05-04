@@ -194,6 +194,19 @@ function resolveUserType(stageId) {
   return 'gc' // default to gc for case stages
 }
 
+// Replace the entire status array for a stage with a new order. Caller is
+// expected to pass the same labels in a different sequence (used by the
+// Settings UI's up/down reorder buttons). The first item in the array is
+// treated as the "default" status for the stage.
+export function reorderStatuses(stageId, newOrder, userType) {
+  const type = userType || resolveUserType(stageId)
+  const config = getStatusConfig()
+  if (!config[type]) config[type] = {}
+  config[type][stageId] = [...newOrder]
+  setStatusConfig(config)
+  return config
+}
+
 export function addStatus(stageId, statusLabel, userType) {
   const type = userType || resolveUserType(stageId)
   const config = getStatusConfig()

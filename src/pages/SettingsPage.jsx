@@ -3,7 +3,7 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { useRole } from '@/context/RoleContext'
 import { fetchAllAdminNotes, insertAdminNote, updateAdminNote, deleteAdminNote } from '@/lib/db'
 import { ROLES, ROLE_LABELS, SURROGATE_STAGES, DEFAULT_STATUSES_BY_STAGE, IP_STAGE_LABELS } from '@/lib/constants'
-import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse } from '@/lib/stageStatusStore'
+import { getStatusConfig, addStatus, editStatus, deleteStatus, getStatusesInUse, reorderStatuses } from '@/lib/stageStatusStore'
 import { getChecklistConfig, setChecklistSteps, addChecklistStep, addChecklistSubtask, editChecklistStep, deleteChecklistStep, resetChecklistToDefaults, addChecklistMilestone, editChecklistMilestone, deleteChecklistMilestone, toggleStepInMilestone, setChecklistMilestones, normalizeOptions, addInfoRow, INFO_ROW_FIELDS, SURROGATE_INFO_ROW_FIELDS } from '@/lib/checklistStore'
 import PageHeader from '@/components/shared/PageHeader'
 import RichTextEditor from '@/components/shared/RichTextEditor'
@@ -23,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight, Phone } from 'lucide-react'
+import { Plus, Megaphone, Trash2, Eye, EyeOff, GripVertical, Pencil, Check, X, ClipboardList, RotateCcw, Milestone, ChevronDown, ChevronUp, Users, Shield, UserCog, Tag, AlertTriangle, Mail, Calendar, Unplug, Loader2, CheckCircle2, XCircle, CornerDownRight, Phone } from 'lucide-react'
 import { mockUsers, loadAdminUsers } from '@/data/mock/users'
 import { connectGoogle, getGoogleStatus, disconnectGoogle } from '@/lib/google'
 import { getAppConfig, setAppConfig, uploadProfilePhoto } from '@/lib/db'
@@ -1462,6 +1462,17 @@ function StageStatusesSection() {
     setDeleteConfirm(null)
   }
 
+  // Move a status one slot up or down. The first slot is the stage's "default"
+  // status, so reordering also changes which one new cases auto-receive.
+  function handleMove(idx, direction) {
+    const target = direction === 'up' ? idx - 1 : idx + 1
+    if (target < 0 || target >= statuses.length) return
+    const next = [...statuses]
+    ;[next[idx], next[target]] = [next[target], next[idx]]
+    const updated = reorderStatuses(activeStage, next, userType)
+    setConfig({ ...updated })
+  }
+
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger asChild>
@@ -1573,6 +1584,16 @@ function StageStatusesSection() {
                           <span className="flex-1 text-sm text-stone-700">{status}</span>
                           {idx === 0 && <span className="text-[10px] text-stone-300 uppercase tracking-wider">Default</span>}
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleMove(idx, 'up')} disabled={idx === 0}
+                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              title={idx === 0 ? 'Already at top' : 'Move up'}>
+                              <ChevronUp className="size-3" />
+                            </button>
+                            <button onClick={() => handleMove(idx, 'down')} disabled={idx === statuses.length - 1}
+                              className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-[#283693] disabled:text-stone-200 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              title={idx === statuses.length - 1 ? 'Already at bottom' : 'Move down'}>
+                              <ChevronDown className="size-3" />
+                            </button>
                             <button onClick={() => handleStartEdit(idx)} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-600"><Pencil className="size-3" /></button>
                             <button onClick={() => handleDeleteClick(status)} className="p-1 rounded hover:bg-red-50 text-stone-400 hover:text-red-500"><Trash2 className="size-3" /></button>
                           </div>
