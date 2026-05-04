@@ -617,7 +617,7 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
 }
 
 // ── Inline Editable Expense Row ─────────────────────────
-export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid, escrowFunded = false }) {
+export function ExpenseRow({ exp, onUpdate, onDelete, onEdit, fmtCurrency, onPreview, gcCaseId, payeeOptions, onChangePayee, onSetEscrowStatus, onMarkDisbursementPaid, escrowFunded = false }) {
   const [editField, setEditField] = useState(null)
   const [editVal, setEditVal] = useState('')
   const [customPayeeDraft, setCustomPayeeDraft] = useState('')
@@ -805,9 +805,16 @@ export function ExpenseRow({ exp, onUpdate, onDelete, fmtCurrency, onPreview, gc
       </td>
       <td className="px-2 py-3 align-top">
         {!exp.reconciled && (
-          <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
-            <Trash2 className="size-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {typeof onEdit === 'function' && !exp.paid_at && !exp.disbursement_paid_at && (
+              <button onClick={() => onEdit(exp)} className="text-stone-300 hover:text-[#283693] transition-colors" title="Edit expense">
+                <Pencil className="size-3.5" />
+              </button>
+            )}
+            <button onClick={() => onDelete(exp.id)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete">
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
         )}
       </td>
     </tr>
@@ -1906,6 +1913,8 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
   const [newExpense, setNewExpense] = useState({ expense_date: new Date().toISOString().split('T')[0], paid_to: '', escrow_opened: true, pay_to_type: '', pay_to_other: '' })
   const [lineItems, setLineItems] = useState([emptyLineItem()])
   const [saving, setSaving] = useState(false)
+  const [editExpense, setEditExpense] = useState(null)
+  const [editSaving, setEditSaving] = useState(false)
   const { currentUser } = useRole()
   const gcPaymentPref = gcCase?.answers?._paymentPreference || {}
   const total = sumLineItems(lineItems)
@@ -2091,6 +2100,81 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
     if (updated) { setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e)); onExpensesChanged?.() }
   }
 
+  function openEditExpense(exp) {
+    setEditExpense({
+      id: exp.id,
+      expense_date: exp.expense_date || new Date().toISOString().split('T')[0],
+      amount: exp.amount != null ? Number(exp.amount).toFixed(2) : '',
+      notes: exp.notes || '',
+      escrow_opened: !!exp.escrow_opened,
+      paid_to: exp.paid_to || '',
+      cc_last4: exp.cc_last4 || '',
+      submitted_to_escrow: !!exp.submitted_to_escrow,
+      pay_to_type: exp.pay_to_type || '',
+      pay_to_other: exp.pay_to_type === 'other' ? (exp.paid_to || '') : '',
+      _wasSubmittedToEscrow: !!exp.submitted_to_escrow,
+    })
+  }
+
+  async function handleEditSave() {
+    if (!editExpense) return
+    const amt = parseFloat(editExpense.amount)
+    if (!amt || amt <= 0) return
+    setEditSaving(true)
+    try {
+      let resolvedPaidTo = editExpense.paid_to || null
+      let payVia = null
+      let payViaInfo = null
+      let needsPayment = false
+      if (!editExpense.escrow_opened) {
+        if (editExpense.pay_to_type === 'hold') {
+          resolvedPaidTo = 'Hold for Payment'
+        } else {
+          needsPayment = true
+          if (editExpense.pay_to_type === 'surrogate') {
+            resolvedPaidTo = gcCase?.name || 'Surrogate'
+            payVia = gcPaymentPref.method?.toLowerCase() || null
+            payViaInfo = gcPaymentPref.method === 'Venmo' ? gcPaymentPref.venmoUsername : gcPaymentPref.method === 'Zelle' ? gcPaymentPref.zelleInfo : null
+          } else if (editExpense.pay_to_type === 'ip1') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[0]?.trim() || ipCase?.names || 'IP'
+          } else if (editExpense.pay_to_type === 'ip2') {
+            resolvedPaidTo = ipCase?.names?.split('&')?.[1]?.trim() || ipCase?.ip2Name || 'IP2'
+          } else if (editExpense.pay_to_type === 'other') {
+            resolvedPaidTo = editExpense.pay_to_other || 'Other'
+          }
+        }
+      }
+      const submittedToEscrow = editExpense.escrow_opened ? !!editExpense.submitted_to_escrow : false
+      const updates = {
+        expense_date: editExpense.expense_date,
+        amount: amt,
+        notes: editExpense.notes || null,
+        escrow_opened: editExpense.escrow_opened,
+        paid_to: resolvedPaidTo,
+        cc_last4: editExpense.escrow_opened ? (editExpense.cc_last4 || null) : null,
+        submitted_to_escrow: submittedToEscrow,
+        pay_to_type: !editExpense.escrow_opened ? editExpense.pay_to_type : null,
+        pay_via: payVia,
+        pay_via_info: payViaInfo,
+        needs_payment: needsPayment,
+      }
+      if (submittedToEscrow && !editExpense._wasSubmittedToEscrow) {
+        updates.disbursement_requested_at = new Date().toISOString()
+        updates.disbursement_requested_by = currentUser?.email || ''
+      }
+      const updated = await updateExpense(editExpense.id, updates)
+      if (updated) {
+        setExpenses(prev => prev.map(e => e.id === editExpense.id ? { ...e, ...updated } : e))
+        onExpensesChanged?.()
+      }
+      setEditExpense(null)
+    } catch (err) {
+      console.error('Failed to update expense:', err)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   const fmtCurrency = (val) => {
     if (!val && val !== 0) return '—'
     return `$${Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -2255,6 +2339,102 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
         </DialogContent>
       </Dialog>
 
+      {/* Edit Expense Dialog */}
+      <Dialog open={!!editExpense} onOpenChange={(open) => { if (!open) setEditExpense(null) }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+          </DialogHeader>
+          {editExpense && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Date *</label>
+                  <Input type="date" value={editExpense.expense_date} onChange={e => setEditExpense(p => ({ ...p, expense_date: e.target.value }))} className="h-9" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-stone-400 font-medium">Amount *</label>
+                  <Input
+                    value={editExpense.amount}
+                    onChange={e => { const digits = e.target.value.replace(/[^\d]/g, ''); const cents = parseInt(digits || '0', 10); setEditExpense(p => ({ ...p, amount: (cents / 100).toFixed(2) })) }}
+                    placeholder="0.00"
+                    className="h-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] text-stone-400 font-medium">Description / Notes</label>
+                <textarea
+                  value={editExpense.notes}
+                  onChange={e => setEditExpense(p => ({ ...p, notes: e.target.value }))}
+                  placeholder="Description"
+                  rows={3}
+                  className="w-full text-sm border border-stone-200 rounded-md px-2 py-1.5 bg-white"
+                />
+              </div>
+              <div className="flex items-center gap-3 border-t border-stone-100 pt-3">
+                <label className="text-[11px] text-stone-400 font-medium">Escrow Opened?</label>
+                <div className="flex gap-1">
+                  <button onClick={() => setEditExpense(p => ({ ...p, escrow_opened: true }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${editExpense.escrow_opened ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>Yes</button>
+                  <button onClick={() => setEditExpense(p => ({ ...p, escrow_opened: false }))}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!editExpense.escrow_opened ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-500'}`}>No</button>
+                </div>
+              </div>
+              {editExpense.escrow_opened ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">Paid To</label>
+                      <Input value={editExpense.paid_to} onChange={e => setEditExpense(p => ({ ...p, paid_to: e.target.value }))} placeholder="Vendor or recipient" className="h-9" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">CC Last 4</label>
+                      <Input value={editExpense.cc_last4 || ''} onChange={e => setEditExpense(p => ({ ...p, cc_last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))} placeholder="1234" maxLength={4} className="h-9" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-[11px] text-stone-400 font-medium">Submitted to Escrow</label>
+                    <button onClick={() => setEditExpense(p => ({ ...p, submitted_to_escrow: !p.submitted_to_escrow }))}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${editExpense.submitted_to_escrow ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                      {editExpense.submitted_to_escrow ? 'Yes' : 'No'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                    <select value={editExpense.pay_to_type} onChange={e => setEditExpense(p => ({ ...p, pay_to_type: e.target.value }))}
+                      className="w-full h-9 text-sm border border-stone-200 rounded-md px-2 bg-white">
+                      <option value="">Select...</option>
+                      <option value="surrogate">{gcCase?.name || 'Surrogate'}</option>
+                      <option value="ip1">{ipCase?.names?.split('&')?.[0]?.trim() || 'IP1'}</option>
+                      {ipCase?.ip2Name && <option value="ip2">{ipCase.names?.split('&')?.[1]?.trim() || ipCase.ip2Name || 'IP2'}</option>}
+                      <option value="other">Other</option>
+                      <option value="hold">Hold for Payment</option>
+                    </select>
+                  </div>
+                  {editExpense.pay_to_type === 'other' && (
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-400 font-medium">Who needs to be paid?</label>
+                      <Input value={editExpense.pay_to_other || ''} onChange={e => setEditExpense(p => ({ ...p, pay_to_other: e.target.value }))} placeholder="Name of person or vendor" className="h-9" />
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="flex gap-2 justify-end pt-2 border-t border-stone-100">
+                <Button variant="outline" size="sm" onClick={() => setEditExpense(null)}>Cancel</Button>
+                <Button size="sm" onClick={handleEditSave} disabled={editSaving || !(parseFloat(editExpense.amount) > 0)} style={{ backgroundColor: '#283693' }} className="gap-1">
+                  {editSaving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                  {editSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Attachment Preview Dialog */}
       <Dialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
@@ -2299,7 +2479,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
                 </thead>
                 <tbody>
                   {expenses.map(exp => (
-                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} escrowFunded={escrowFunded} />
+                    <ExpenseRow key={exp.id} exp={exp} onUpdate={handleUpdate} onDelete={handleDelete} onEdit={openEditExpense} fmtCurrency={fmtCurrency} onPreview={setPreviewUrl} gcCaseId={gcCaseId} payeeOptions={payeeOptions} onChangePayee={handleChangePayee} onSetEscrowStatus={handleSetEscrowStatus} onMarkDisbursementPaid={handleMarkDisbursementPaid} escrowFunded={escrowFunded} />
                   ))}
                 </tbody>
               </table>
