@@ -980,6 +980,21 @@ export async function fetchCaseEmails(caseId) {
   return result.data || []
 }
 
+export async function fetchCaseEmailByGmailMessageId(gmailMessageId) {
+  if (!supabase || !gmailMessageId) return null
+  const result = await withTimeout(
+    () => supabase
+      .from('case_emails')
+      .select('*')
+      .eq('gmail_message_id', gmailMessageId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  )
+  if (!result || result.error) return null
+  return result.data || null
+}
+
 export async function deleteCaseEmail(id) {
   if (!supabase) return
   const { error } = await supabase.from('case_emails').delete().eq('id', id)
