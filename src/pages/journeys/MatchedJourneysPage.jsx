@@ -154,6 +154,16 @@ export function JourneyTileCard({ j, ipAvatar, gcAvatar }) {
                 🤰 {j.journey_data.dueDate ? `Due ${formatDate(j.journey_data.dueDate)}` : 'Pregnant'}
               </span>
             ) : null}
+            {j.journey_data?._medicalClearanceDate && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                Med Cleared {formatDate(j.journey_data._medicalClearanceDate)}
+              </span>
+            )}
+            {j.journey_data?._legalClearanceDate && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                Legal Cleared {formatDate(j.journey_data._legalClearanceDate)}
+              </span>
+            )}
             {j.journey_data?.escrowBalance && (
               <span className={`font-semibold ${j.journey_data.escrowMin && parseFloat(String(j.journey_data.escrowBalance).replace(/[^0-9.]/g, '')) >= parseFloat(String(j.journey_data.escrowMin).replace(/[^0-9.]/g, '')) ? 'text-emerald-600' : 'text-red-600'}`}>
                 Escrow: {j.journey_data.escrowBalance}
@@ -426,6 +436,7 @@ export default function MatchedJourneysPage() {
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Intended Parent</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Surrogate</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Status</th>
+                  <th className="text-left px-4 py-3 font-semibold text-stone-500">Cleared</th>
                   <th className="text-left px-4 py-3 font-semibold text-stone-500">Created</th>
                 </tr>
               </thead>
@@ -455,6 +466,19 @@ export default function MatchedJourneysPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3"><JourneyStatusPill stage={j.stage} status={j.status} /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-0.5 text-[11px]">
+                        {j.journey_data?._medicalClearanceDate && (
+                          <span className="text-emerald-700"><span className="text-stone-400">Med:</span> {formatDate(j.journey_data._medicalClearanceDate)}</span>
+                        )}
+                        {j.journey_data?._legalClearanceDate && (
+                          <span className="text-emerald-700"><span className="text-stone-400">Legal:</span> {formatDate(j.journey_data._legalClearanceDate)}</span>
+                        )}
+                        {!j.journey_data?._medicalClearanceDate && !j.journey_data?._legalClearanceDate && (
+                          <span className="text-stone-300">—</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-stone-400 text-xs">{new Date(j.created_at).toLocaleDateString()}</td>
                   </tr>
                   )

@@ -46,7 +46,7 @@ export function normalizeApptNotes(meta) {
   return []
 }
 
-export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
+export default function CaseCalendarWidget({ caseId, caseType, caseName, onAttentionCountChange }) {
   const { currentUser } = useRole()
   const userId = currentUser?.userId || currentUser?.id
   const [events, setEvents] = useState([])
@@ -108,6 +108,20 @@ export default function CaseCalendarWidget({ caseId, caseType, caseName }) {
       setEvents(deduped.sort((a, b) => (a.start?.dateTime || a.start?.date || '').localeCompare(b.start?.dateTime || b.start?.date || '')))
     }).catch(() => {}).finally(() => setLoading(false))
   }, [caseId, userId])
+
+  // Report count of today's events not yet followed up so the parent can show
+  // an attention dot on a tab. Re-runs when events or apptMeta changes.
+  useEffect(() => {
+    if (!onAttentionCountChange) return
+    const count = events.filter(ev => {
+      const start = ev.start?.dateTime || ev.start?.date
+      if (!start || !isToday(start)) return false
+      const meta = apptMeta[ev.id] || {}
+      const isFollowedUp = meta.followedUp || /^✅/.test(ev.summary || '')
+      return !isFollowedUp
+    }).length
+    onAttentionCountChange(count)
+  }, [events, apptMeta, onAttentionCountChange])
 
   async function saveApptMeta(updated) {
     setApptMeta(updated)

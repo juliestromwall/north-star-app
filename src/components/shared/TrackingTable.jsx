@@ -460,8 +460,6 @@ export default function TrackingTable({ steps, statuses, tracking, onUpdate, tit
                         <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>
                           <option value="">Select...</option>
                           {normalizeOptions(step.options).map(opt => <option key={opt.label} value={opt.label}>{opt.label}</option>)}
-                          <option value="complete">Complete</option>
-                          <option value="na">N/A (Deactivate)</option>
                         </select>
                       ) : (
                         <select className="w-full rounded-lg border border-stone-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] outline-none" value={logStatus} onChange={e => setLogStatus(e.target.value)} autoFocus>

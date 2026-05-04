@@ -20,6 +20,7 @@ import { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import CaseTasksWidget from '@/components/shared/CaseTasksWidget'
 import CaseCalendarWidget from '@/components/shared/CaseCalendarWidget'
 import TrackingTable from '@/components/shared/TrackingTable'
+import JourneyChecklistView from '@/components/journeys/JourneyChecklistView'
 import { EscrowStatusCell, NotesCell, getEscrowStatus, escrowStatusUpdates } from '@/pages/expenses/ExpensesPage'
 import SortableTabsList from '@/components/shared/SortableTabsList'
 
@@ -50,6 +51,7 @@ import { getStatusesForStage } from '@/lib/stageStatusStore'
 import { formatDate } from '@/lib/utils'
 import { fetchMatchedJourney, updateMatchedJourney, fetchJourneyNotes, createJourneyNote, updateJourneyNote, deleteJourneyNote, breakMatch, archiveJourney, unarchiveJourney, startNewCaseFromJourney } from '@/lib/matching'
 import { getChecklistSteps, getChecklistMilestones, deriveParentStatus, CHECKLIST_STEP_STATUSES, isJourneyEscrowFunded, isJourneyEscrowClosed } from '@/lib/checklistStore'
+import { syncDynamicTransferSteps } from '@/lib/dynamicChecklistSync'
 import { Textarea } from '@/components/ui/textarea'
 import AISummaryButton from '@/components/shared/AISummaryButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -464,20 +466,38 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
     ct[stepId] = { ...(ct[stepId] || {}), ...updates }
     pendingTrackingRef.current = ct
     const jd = { ...(journey.journey_data || {}), _checklistTracking: ct }
-    await onUpdate({ journey_data: jd })
+
+    // Clearance side effects — bundled into the same write so journey.status
+    // and the date land atomically with the checklist tracking update. Date is
+    // pulled from the most recent log entry to match what the admin actually
+    // selected (instead of always using "today").
+    const writeUpdates = { journey_data: jd }
+    if (updates.status === 'complete') {
+      const stepLbl = (steps.find(s => s.id === stepId)?.label || '').toLowerCase()
+      const lastLog = Array.isArray(updates.log) ? updates.log[updates.log.length - 1] : null
+      const dt = (lastLog?.changed_at || '').split('T')[0] || new Date().toISOString().split('T')[0]
+      if (stepLbl.includes('medical clearance')) {
+        jd._medicalClearanceDate = dt
+        writeUpdates.status = 'Pending Legal Clearance'
+      } else if (stepLbl.includes('legal clearance')) {
+        jd._legalClearanceDate = dt
+        writeUpdates.status = 'Transfer Prep'
+      }
+    }
+
+    await onUpdate(writeUpdates)
     // Clear pending once the write lands — next call will read fresh props
     pendingTrackingRef.current = null
   }
 
   return (
     <div>
-      <TrackingTable
-        title={`${stageObj.label} Checklist`}
+      <JourneyChecklistView
         steps={steps}
-        statuses={CHECKLIST_STEP_STATUSES}
         tracking={tracking}
         onUpdate={handleUpdate}
         currentUserName={currentUser.name}
+        stageLabel="Journey Checklist"
         onStatusLog={async ({ stepLabel, status, optionLabel, date }) => {
           if (status === 'complete') {
             const julieEmail = 'julie@abcsurrogacy.com'
@@ -501,7 +521,6 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               if (isRef) {
                 try { await createCaseTask({ title: `Pay 2nd Referral Incentive to ${refName} for ${sName}'s Legal Clearance`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
               }
-              try { await createCaseTask({ title: `Pay 2nd Screening Incentive to ${sName}`, due_date: logDt, priority: 'high', assigned_to: julieEmail, created_by: currentUser?.email, status: 'open', case_id: journey.id, case_type: 'journey' }) } catch {}
             }
 
             // Escrow funded — remind the case's assigned admin to submit expenses.
@@ -522,9 +541,51 @@ function JourneyChecklistTab({ journey, gcCase, ipCase, onUpdate }) {
               } catch (err) { console.error('Escrow funded auto-task failed:', err) }
             }
           }
+
+          // Subtasks marked "Requested" → ship-to-surrogate auto-tasks for Emily.
+          // Date defaults to the log date (when admin marked it Requested).
+          if (status === 'requested' || (optionLabel || '').toLowerCase() === 'requested') {
+            const sName = gcCase?.name || journey.gc_name || 'Surrogate'
+            const logDt = date || new Date().toISOString().split('T')[0]
+            const lbl = stepLabel.toLowerCase()
+            const a = gcCase?.answers || {}
+            const addr = [a.street, a.street2, a.city, a.stateProv || a.state, a.zipCode].filter(Boolean).join(', ') || '(address not on file)'
+            const emilyEmail = 'emily@abcsurrogacy.com'
+
+            if (lbl.includes('request transfer package')) {
+              try {
+                await createCaseTask({
+                  title: `Send Transfer Package to ${sName}`,
+                  description: addr,
+                  due_date: logDt,
+                  priority: 'high',
+                  assigned_to: emilyEmail,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Transfer package auto-task failed:', err) }
+            }
+
+            if (lbl.includes('request ivf graduation jacket') || lbl.includes('graduation jacket')) {
+              try {
+                await createCaseTask({
+                  title: `Send Jacket to ${sName}`,
+                  description: addr,
+                  due_date: logDt,
+                  priority: 'normal',
+                  assigned_to: emilyEmail,
+                  created_by: currentUser?.email,
+                  status: 'open',
+                  case_id: journey.id,
+                  case_type: 'journey',
+                })
+              } catch (err) { console.error('Jacket auto-task failed:', err) }
+            }
+          }
         }}
       />
-      <ChecklistHistory history={journey.journey_data?._checklistHistory} />
     </div>
   )
 }
@@ -796,6 +857,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
   const [babySexOpen, setBabySexOpen] = useState(false)
   const [lossOpen, setLossOpen] = useState(false)
   const [lossReason, setLossReason] = useState('')
+  const [lossAddNextTransfer, setLossAddNextTransfer] = useState(null) // null = not chosen yet
   const [birthOpen, setBirthOpen] = useState(false)
   const [birthForm, setBirthForm] = useState({ date: '', deliveryType: '', notes: '' })
   const [birthBabies, setBirthBabies] = useState([])
@@ -991,6 +1053,26 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       })
     } catch (err) { console.error('Failed to create 20-week task:', err) }
 
+    // Auto-create 16-week PBO check-in task for the case's assigned admin.
+    // 16w0d GA = 112 days GA → 112 - 19 (GA at 5-day transfer) = 93 days
+    // after transfer.
+    try {
+      const transferDate = new Date(updated[idx].date + 'T12:00:00')
+      const sixteenWeekDate = new Date(transferDate.getTime() + 93 * 24 * 60 * 60 * 1000)
+      const sixteenWeekStr = sixteenWeekDate.toISOString().split('T')[0]
+      const surName = gcName || journey.gc_name || 'Surrogate'
+      await createCaseTask({
+        case_id: journey.id,
+        case_type: 'journey',
+        title: `${surName} is 16 Weeks Pregnant, Check on PBO`,
+        assigned_to: journey.assigned_to || null,
+        due_date: sixteenWeekStr,
+        priority: 'normal',
+        status: 'open',
+        created_by: 'system',
+      })
+    } catch (err) { console.error('Failed to create 16-week PBO task:', err) }
+
     // Auto-create 4th Agency Payment task for Julie & Nicole
     try {
       await createCaseTask({
@@ -1010,13 +1092,18 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
   }
 
   async function handlePregnancyLoss() {
-    if (!lossReason) return
+    if (!lossReason || lossAddNextTransfer === null) return
     setSaving(true)
     const updated = [...transfers]
-    updated[updated.length - 1] = { ...updated[updated.length - 1], lossType: lossReason, lossDate: new Date().toISOString().split('T')[0] }
+    updated[updated.length - 1] = {
+      ...updated[updated.length - 1],
+      lossType: lossReason,
+      lossDate: new Date().toISOString().split('T')[0],
+      _addNextTransferToChecklist: lossAddNextTransfer === true,
+    }
     await onUpdate({ _transfers: updated, pregnant: 'no', dueDate: null })
     await updateBabiesBornCounter('loss')
-    setLossOpen(false); setLossReason('')
+    setLossOpen(false); setLossReason(''); setLossAddNextTransfer(null)
     setSaving(false)
   }
 
@@ -1315,8 +1402,8 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                     {t.droppedCycle && <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Dropped Cycle</span>}
                     {t.lossType && <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">{t.lossType === 'miscarriage' ? 'Miscarriage' : t.lossType === 'ectopic' ? 'Ectopic' : t.lossType === 'chemical' ? 'Chemical' : 'Loss'}</span>}
                     {/* Edit / Delete */}
-                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle || false, betaResult: t.betaResult, betaValue: t.betaValue || '', betaDate: t.betaDate || '', needsSecondBeta: t.needsSecondBeta || false, beta2Result: t.beta2Result || '', beta2Value: t.beta2Value || '', beta2Date: t.beta2Date || '', heartbeatConfirmed: t.heartbeatConfirmed || false, heartbeatDate: t.heartbeatDate || '', babies: String(t.babies || 1) }); setAddOpen(true) }} className="text-stone-300 hover:text-stone-500 transition-colors" title="Edit"><Pencil className="size-3" /></button>
-                    <button onClick={() => setDeleteConfirmIdx(i)} className="text-stone-300 hover:text-red-500 transition-colors" title="Delete"><Trash2 className="size-3" /></button>
+                    <button onClick={() => { setEditIdx(i); setTransferForm({ date: t.date, embryoCount: String(t.embryoCount), notes: t.notes || '', droppedCycle: t.droppedCycle || false, betaResult: t.betaResult, betaValue: t.betaValue || '', betaDate: t.betaDate || '', needsSecondBeta: t.needsSecondBeta || false, beta2Result: t.beta2Result || '', beta2Value: t.beta2Value || '', beta2Date: t.beta2Date || '', heartbeatConfirmed: t.heartbeatConfirmed || false, heartbeatDate: t.heartbeatDate || '', babies: String(t.babies || 1) }); setAddOpen(true) }} className="p-1 rounded text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors" title="Edit transfer"><Pencil className="size-3.5" /></button>
+                    <button onClick={() => setDeleteConfirmIdx(i)} className="p-1 rounded text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Delete transfer"><Trash2 className="size-3.5" /></button>
                   </div>
                 </div>
                 {t.notes && <p className="text-xs text-stone-400 mt-1">{t.notes}</p>}
@@ -1329,9 +1416,9 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                   <div className="flex flex-wrap gap-2 mt-2">
                     {!t.betaResult && (
                       <>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-600 hover:bg-amber-50" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-500 hover:bg-red-50" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-[#283693] border-[#283693]/30 hover:bg-[#283693]/5 hover:text-[#283693]" onClick={() => { setBetaOpen(i); setBetaValue(''); setBetaDate(new Date().toISOString().split('T')[0]); setNeedsSecondBeta(null) }}>Log Beta Results</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-amber-700 border-amber-300 hover:bg-amber-100 hover:text-amber-800" onClick={() => { setCancelCycleOpen(i); setCancelCycleReason('') }}>Cancel Cycle</Button>
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1 text-red-600 border-red-300 hover:bg-red-100 hover:text-red-700" onClick={async () => { setSaving(true); const u = [...transfers]; u[i] = { ...u[i], unsuccessful: true }; await onUpdate({ _transfers: u }); setSaving(false) }}>Mark Unsuccessful</Button>
                       </>
                     )}
                     {t.betaResult === 'positive' && t.needsSecondBeta && !t.beta2Result && (
@@ -1576,7 +1663,7 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
       </Dialog>
 
       {/* Pregnancy Loss Dialog */}
-      <Dialog open={lossOpen} onOpenChange={setLossOpen}>
+      <Dialog open={lossOpen} onOpenChange={(open) => { setLossOpen(open); if (!open) { setLossReason(''); setLossAddNextTransfer(null) } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="text-red-600">Record Pregnancy Loss</DialogTitle></DialogHeader>
           <div className="space-y-3">
@@ -1593,9 +1680,25 @@ function PregnancyTracker({ journey, gcName, onUpdate, onPregnancyConfirmed, onS
                 <option value="other">Other</option>
               </select>
             </div>
+            {lossReason && lossReason !== 'other' && (
+              <div className="space-y-1.5 rounded-lg bg-stone-50 border border-stone-200 p-3">
+                <p className="text-xs font-semibold text-stone-700">Will there be another embryo transfer on this journey?</p>
+                <p className="text-[11px] text-stone-500">If yes, a new <strong>Transfer</strong> + <strong>Confirmation of Heartbeat</strong> section will be added to the checklist for the next attempt.</p>
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => setLossAddNextTransfer(true)}
+                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md border transition-colors ${lossAddNextTransfer === true ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'}`}>
+                    Yes
+                  </button>
+                  <button type="button" onClick={() => setLossAddNextTransfer(false)}
+                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md border transition-colors ${lossAddNextTransfer === false ? 'bg-stone-100 border-stone-300 text-stone-700' : 'bg-white border-stone-200 text-stone-600 hover:bg-stone-100'}`}>
+                    No
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex gap-2 justify-end pt-2">
               <Button variant="outline" size="sm" onClick={() => setLossOpen(false)}>Cancel</Button>
-              <Button size="sm" disabled={saving || !lossReason} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
+              <Button size="sm" disabled={saving || !lossReason || (lossReason !== 'other' && lossAddNextTransfer === null)} variant="destructive" className="gap-1" onClick={handlePregnancyLoss}>
                 {saving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 Record Loss
               </Button>
@@ -2412,6 +2515,12 @@ export default function JourneyDetailPage() {
   const [ipCase, setIpCase] = useState(null)
   const [loading, setLoading] = useState(true)
   const [unreadEmailCount, setUnreadEmailCount] = useState(0)
+  // Counts surfaced by the Tasks/Appts widgets so the tab label can show an
+  // attention dot. Both widgets are force-mounted so these populate on page
+  // load even before the user clicks the tab.
+  const [taskAttentionCount, setTaskAttentionCount] = useState(0)
+  const [apptAttentionCount, setApptAttentionCount] = useState(0)
+  const tasksApptsAttention = taskAttentionCount + apptAttentionCount
   const [stageOpen, setStageOpen] = useState(false)
   const [statusOpen, setStatusOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -2620,6 +2729,18 @@ export default function JourneyDetailPage() {
 
   async function updateFields(fields) {
     const jd = { ...(journey.journey_data || {}), ...fields }
+    // When the pregnancy tracker mutates _transfers, reconcile the dynamic
+    // Transfer / CHB checklist entries in the same write so the checklist UI
+    // updates atomically with the tracker.
+    if (Object.prototype.hasOwnProperty.call(fields, '_transfers')) {
+      const stageId = journey.stage || 'journey-oversight'
+      const stepsForStage = getChecklistSteps('gc', stageId).filter(s => s.type !== 'info_row')
+      jd._checklistTracking = syncDynamicTransferSteps(
+        fields._transfers,
+        jd._checklistTracking || {},
+        stepsForStage,
+      )
+    }
     const updated = await updateMatchedJourney(journey.id, { journey_data: jd }).catch(() => null)
     if (updated) setJourney(updated)
   }
@@ -3272,6 +3393,16 @@ export default function JourneyDetailPage() {
                   caseType="journey"
                   caseName={journey.label || [gcCase?.name || journey.gc_name, ipCase?.names || journey.ip_name].filter(Boolean).join(' & ')}
                 />
+                {jd._medicalClearanceDate && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Med Cleared {formatDate(jd._medicalClearanceDate)}
+                  </span>
+                )}
+                {jd._legalClearanceDate && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Legal Cleared {formatDate(jd._legalClearanceDate)}
+                  </span>
+                )}
               </div>
               {/* Actions dropdown — collapses Archive / Unarchive / Break Match
                   and the tandem partner shortcut into one button so the hero
@@ -3443,32 +3574,38 @@ export default function JourneyDetailPage() {
               </div>
             </div>
 
-            {/* ── Pregnancy Tracker ── */}
-            <PregnancyTracker
-              journey={journey}
-              gcName={gcCase?.name}
-              onUpdate={async (fields) => { await updateFields(fields) }}
-              onStatusChange={async (status) => {
-                const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)
-                if (updated) setJourney(updated)
-              }}
-              onPregnancyConfirmed={() => {
-                setShowConfetti(true)
-                setTimeout(() => fireConfetti({
-                  particleCount: 260,
-                  spread: 360,
-                  startVelocity: 55,
-                  gravity: 0.25,
-                  decay: 0.94,
-                  lifetime: 160,
-                  scalar: 14,
-                  iconScalar: 38,
-                  iconRate: 0.2,
-                  colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
-                  origin: { x: 0.5, y: 0.45 },
-                }), 500)
-              }}
-            />
+            {/* ── Pregnancy Tracker ──
+                Hidden until Legal Clearance is issued. Pre-clearance there's
+                no transfer activity to track, and showing it just adds noise.
+                Existing transfer data still renders if data was already there
+                (defensive — never hide content that already exists). */}
+            {(jd._legalClearanceDate || (jd._transfers && jd._transfers.length > 0)) && (
+              <PregnancyTracker
+                journey={journey}
+                gcName={gcCase?.name}
+                onUpdate={async (fields) => { await updateFields(fields) }}
+                onStatusChange={async (status) => {
+                  const updated = await updateMatchedJourney(journey.id, { status }).catch(() => null)
+                  if (updated) setJourney(updated)
+                }}
+                onPregnancyConfirmed={() => {
+                  setShowConfetti(true)
+                  setTimeout(() => fireConfetti({
+                    particleCount: 260,
+                    spread: 360,
+                    startVelocity: 55,
+                    gravity: 0.25,
+                    decay: 0.94,
+                    lifetime: 160,
+                    scalar: 14,
+                    iconScalar: 38,
+                    iconRate: 0.2,
+                    colors: ['#FFB3AB', '#464DA0', '#FDE047', '#F97316', '#EC4899', '#10B981', '#38BDF8'],
+                    origin: { x: 0.5, y: 0.45 },
+                  }), 500)
+                }}
+              />
+            )}
 
             {/* ── Providers (clickable to edit via modal) ── */}
             <div className="border-t border-stone-100 pt-4">
@@ -3737,32 +3874,49 @@ export default function JourneyDetailPage() {
       {/* ─── Tabs ─────────────────────────────────────────── */}
       <Tabs value={mainTab} onValueChange={setMainTab}>
         <SortableTabsList configKey={`journey_${journey.id}`} tabs={[
-          { value: 'overview', label: 'Overview' },
+          { value: 'overview', label: 'Checklist' },
+          { value: 'tasks-appts', label: <span className="flex items-center gap-1.5">Tasks / Appts{tasksApptsAttention > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'application', label: 'Application' },
           { value: 'profiles', label: 'Profiles' },
           { value: 'match-sheets', label: 'Match Sheets' },
           { value: 'documents', label: 'Documents' },
           { value: 'insurance', label: 'Insurance' },
-          { value: 'expenses', label: 'Expenses' },
+          { value: 'expenses', label: 'Escrow / Expenses' },
           { value: 'notes', label: 'Notes' },
           { value: 'emails', label: <span className="flex items-center gap-1.5">Emails{unreadEmailCount > 0 && <span className="relative flex size-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" /><span className="relative inline-flex rounded-full size-2 bg-pink-500" /></span>}</span> },
           { value: 'texts', label: 'Texts' },
         ]} />
 
+        {/* CHECKLIST tab — just the card-based checklist UI. The old milestone
+            timeline + legacy ChecklistHistory roll-up are removed; the new
+            cards show per-step status + history inline. Tasks + Appointments
+            moved to their own tab. */}
         <TabsContent value="overview" className="mt-4 space-y-6">
-          <JourneyMilestoneTimeline journey={journey} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CaseCalendarWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-            <CaseTasksWidget caseId={journey.id} caseType="journey" caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`} />
-          </div>
-          {/* Checklist */}
           <JourneyChecklistTab journey={journey} gcCase={gcCase} ipCase={ipCase} onUpdate={async (updates) => {
             const updated = await updateMatchedJourney(journey.id, updates).catch(() => null)
             if (updated) setJourney(updated)
           }} />
         </TabsContent>
 
-        {/* Checklist tab removed — now in Overview */}
+        {/* TASKS / APPTS tab — force-mounted so widgets fetch on page load and
+            can report their attention counts (overdue tasks, today's events
+            not followed up) for the tab dot, even before the user clicks in. */}
+        <TabsContent value="tasks-appts" className="mt-4 data-[state=inactive]:hidden" forceMount>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CaseCalendarWidget
+              caseId={journey.id}
+              caseType="journey"
+              caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`}
+              onAttentionCountChange={setApptAttentionCount}
+            />
+            <CaseTasksWidget
+              caseId={journey.id}
+              caseType="journey"
+              caseName={`${ipCase?.names || 'IP'} + ${gcCase?.name || 'GC'}`}
+              onAttentionCountChange={setTaskAttentionCount}
+            />
+          </div>
+        </TabsContent>
 
         {/* Application Tab — GC/IP sub-tabs */}
         <TabsContent value="application" className="mt-4">

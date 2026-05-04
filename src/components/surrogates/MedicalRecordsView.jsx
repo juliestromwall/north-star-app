@@ -17,7 +17,10 @@ import { Check, X, Pencil, Trash2, Phone as PhoneIcon, Printer, Mail as MailIcon
 
 const STATUS_PILLS = [
   { id: 'faxed_request',              label: 'Faxed Request' },
+  { id: 'requested_on_portal',        label: 'Requested on Portal' },
+  { id: 'emailed_request',            label: 'Emailed Request' },
   { id: 'refaxed_request',            label: 'Refaxed Request' },
+  { id: 'resubmitted_request',        label: 'Resubmitted Request' },
   { id: 'confirmed_fax_received',     label: 'Confirmed Fax Received' },
   { id: 'followed_up',                label: 'Followed Up' },
   { id: 'records_sent_by_mail',       label: 'Records Sent by Mail' },
@@ -41,7 +44,7 @@ const TERMINAL_STATUSES = new Set(['complete', 'na', 'already_collected', 'parti
 //   green  → fully done (records in hand, or already collected)
 //   gray   → skipped (not applicable)
 //   white  → not started yet
-const YELLOW_STATUSES = new Set(['faxed_request', 'refaxed_request', 'records_sent_by_mail', 'followed_up'])
+const YELLOW_STATUSES = new Set(['faxed_request', 'requested_on_portal', 'emailed_request', 'refaxed_request', 'resubmitted_request', 'records_sent_by_mail', 'followed_up'])
 const BLUE_STATUSES   = new Set(['confirmed_fax_received', 'fax_received_reviewing', 'partial_records_incomplete'])
 const GREEN_STATUSES  = new Set(['complete', 'already_collected', 'partial_records_complete'])
 const GRAY_STATUSES   = new Set(['na'])
@@ -124,17 +127,18 @@ export default function MedicalRecordsView({ medSteps, tracking = {}, onUpdate, 
 
   return (
     <div className="space-y-4">
-      {/* HEADER — prominent, with progress bar + count */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#283693]/8 via-[#283693]/5 to-[#ed148c]/8 border border-[#283693]/15 px-5 py-4">
-        <div className="flex items-center justify-between gap-4 mb-2.5">
-          <h2 className="font-heading font-black text-lg sm:text-xl text-[#283693] tracking-tight">
+      {/* HEADER — clean, no card. Title in serif (matches profile aesthetic) +
+          progress bar below. */}
+      <div className="px-1">
+        <div className="flex items-baseline justify-between gap-4 mb-2">
+          <h2 className="font-heading font-black text-2xl text-[#283693] tracking-tight">
             Medical Records to Collect
           </h2>
           <p className="text-sm font-bold text-stone-600 tabular-nums shrink-0">
             {counts.complete} <span className="text-stone-400 font-medium">/ {counts.total} complete</span>
           </p>
         </div>
-        <div className="h-2 rounded-full bg-white/60 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
@@ -236,28 +240,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
   const [confirmingDeleteRecord, setConfirmingDeleteRecord] = useState(false)
   const entry = step._entry
   const status = step._status
-  // The new UI persists log entries as `entry.log` with shape
-  // { id, status, from, changed_at, changed_by, note }. Pre-revamp data lived
-  // in `entry.history` as { status, date, note, by, ... }. Merge both so older
-  // records keep showing all the activity that was previously logged.
-  const log = useMemo(() => {
-    const newLog = Array.isArray(entry.log) ? entry.log : []
-    const legacyHistory = Array.isArray(entry.history) ? entry.history : []
-    if (newLog.length === 0 && legacyHistory.length === 0) return []
-    const normalizedLegacy = legacyHistory
-      .filter(h => h && !h._deactivate) // skip legacy NA-toggle markers
-      .map((h, i) => ({
-        id: h.id || `_legacy_${i}`,
-        status: h.status,
-        from: '',
-        changed_at: h.date || h.changed_at || '',
-        changed_by: h.by || h.changed_by || '',
-        note: h.note || '',
-      }))
-    const merged = [...normalizedLegacy, ...newLog]
-    merged.sort((a, b) => String(a.changed_at).localeCompare(String(b.changed_at)))
-    return merged
-  }, [entry.log, entry.history])
+  const log = useMemo(() => Array.isArray(entry.log) ? entry.log : [], [entry.log])
   const isComplete = TERMINAL_STATUSES.has(status)
 
   // Auto-collapse when terminal; user can manually toggle.
@@ -305,10 +288,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
       changed_by: currentUserName,
       note: newLogNote || '',
     }
-    // `log` here is the merged view (legacy entry.history + new entry.log).
-    // Persist the full merged list to entry.log AND clear entry.history so we
-    // don't double-count on next render once both shapes coexist.
-    onUpdate(step.id, { ...entry, status: newLogStatus, log: [...log, newLog], history: [] })
+    onUpdate(step.id, { ...entry, status: newLogStatus, log: [...log, newLog] })
     if (onStatusLog) onStatusLog({ stepLabel: entry.customLabel || step.label, status: newLogStatus, by: currentUserName })
     // Reset row for the next log
     setNewLogStatus('')
@@ -318,18 +298,27 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
 
   function startEditLog(logEntry) {
     setEditingLogId(logEntry.id || logEntry._idx)
-    setEditLogDate(isoDatePart(logEntry.changed_at) || todayIsoDate())
+    // Preserve the original date — never silently fall back to today on edit.
+    setEditLogDate(isoDatePart(logEntry.changed_at) || '')
     setEditLogNote(logEntry.note || '')
   }
   function saveEditLog() {
     if (!editingLogId) return
-    const isoFromDate = `${editLogDate}T${new Date().toTimeString().slice(0, 8)}Z`
     const newList = log.map((l, idx) => {
       const id = l.id || `_idx_${idx}`
       if (id !== editingLogId) return l
-      return { ...l, changed_at: isoFromDate, note: editLogNote }
+      // Only rewrite changed_at if the user actually edited the date. Otherwise
+      // preserve the original timestamp (admins editing a note shouldn't bump
+      // the entry to "today").
+      const originalDatePart = isoDatePart(l.changed_at)
+      const userEditedDate = editLogDate && editLogDate !== originalDatePart
+      const next = { ...l, note: editLogNote }
+      if (userEditedDate) {
+        next.changed_at = `${editLogDate}T${new Date().toTimeString().slice(0, 8)}Z`
+      }
+      return next
     })
-    onUpdate(step.id, { ...entry, log: newList, history: [] })
+    onUpdate(step.id, { ...entry, log: newList })
     setEditingLogId(null)
   }
   function cancelEditLog() { setEditingLogId(null) }
@@ -341,7 +330,7 @@ function RecordCard({ step, onUpdate, onDelete, onStatusLog, currentUserName }) 
     if (newList.length !== log.length) {
       newStatus = newList.length ? newList[newList.length - 1].status : 'not_started'
     }
-    onUpdate(step.id, { ...entry, status: newStatus, log: newList, history: [] })
+    onUpdate(step.id, { ...entry, status: newStatus, log: newList })
   }
 
   const colors = statusColors(status)

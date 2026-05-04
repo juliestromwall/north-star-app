@@ -34,7 +34,7 @@ function isOverdue(dueDate) {
   return new Date(dueDate + 'T23:59:59') < new Date()
 }
 
-export default function CaseTasksWidget({ caseId, caseType, caseName }) {
+export default function CaseTasksWidget({ caseId, caseType, caseName, onAttentionCountChange }) {
   const { currentUser } = useRole()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +46,15 @@ export default function CaseTasksWidget({ caseId, caseType, caseName }) {
     if (!caseId) return
     fetchCaseTasks(caseId, caseType).then(setTasks).catch(() => {}).finally(() => setLoading(false))
   }, [caseId, caseType])
+
+  // Report count of open tasks past-due or due today, so the parent can show
+  // an attention dot on a tab without re-fetching this list.
+  useEffect(() => {
+    if (!onAttentionCountChange) return
+    const today = new Date().toISOString().split('T')[0]
+    const count = tasks.filter(t => t.status !== 'complete' && t.due_date && t.due_date <= today).length
+    onAttentionCountChange(count)
+  }, [tasks, onAttentionCountChange])
 
   async function handleCreate(task) {
     const created = await createCaseTask({ ...task, case_id: caseId, case_type: caseType, created_by: currentUser?.name })
