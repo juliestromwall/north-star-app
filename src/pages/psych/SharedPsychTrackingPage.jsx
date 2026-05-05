@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, Sparkles, Plus, X, Mail } from 'lucide-react'
+import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, Sparkles, Plus, X, Mail, Baby } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -1530,13 +1530,13 @@ function DueDatePill({ date }) {
   if (!date) {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 text-stone-400 text-xs font-medium">
-        <Calendar className="size-3.5" /> No due date
+        <Baby className="size-3.5" /> No estimated due date
       </div>
     )
   }
   return (
     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-semibold whitespace-nowrap">
-      <Calendar className="size-3.5" /> Due {formatDate(date)}
+      <Baby className="size-3.5" /> Estimated Due Date {formatDate(date)}
     </div>
   )
 }
