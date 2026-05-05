@@ -654,7 +654,9 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         )
       })()}
 
-      {/* Pregnancy History — GTPAL summary directly above the per-row table. */}
+      {/* Pregnancy History — page 2: GTPAL summary directly above the per-row table. */}
+      <div style={{ pageBreakBefore: 'always', breakBefore: 'page', height: 1, margin: 0 }} className="pdf-page-break" />
+      <PartyBanner color="#ed148c" icon={Baby}>Pregnancy History</PartyBanner>
       <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
 
       {/* Pregnancy detail table — Live Birth deliveries default to
