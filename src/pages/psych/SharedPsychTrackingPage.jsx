@@ -564,8 +564,11 @@ export default function SharedPsychTrackingPage() {
     await saveTracking(updated)
   }
 
-  function openCheckinDialog(row, milestoneKey, readOnly = false) {
-    const existing = checkins[row.id]?.[milestoneKey]
+  function openCheckinDialog(row, milestoneKey, readOnly = false, { forceFresh = false } = {}) {
+    // forceFresh: ignore any existing record (used after withdraw-skip where
+    // we just removed the skipped report but React state hasn't flushed yet,
+    // so the lookup would still see the stale skipped report and lock the form).
+    const existing = forceFresh ? null : checkins[row.id]?.[milestoneKey]
     const milestoneName = getMilestoneLabel(milestoneKey, row.customCheckIns)
     const defaultMin = getDefaultTimeSpent(milestoneKey, row.customCheckIns)
     if (existing) {
@@ -844,7 +847,8 @@ export default function SharedPsychTrackingPage() {
       setSkipDetailRow(null)
       setSkipDetailMilestone(null)
       // Open the regular Check-In form so the therapist can complete it now.
-      openCheckinDialog(rowSnapshot, milestoneSnapshot, false)
+      // forceFresh because the just-removed skip report is still in checkins state.
+      openCheckinDialog(rowSnapshot, milestoneSnapshot, false, { forceFresh: true })
     } catch (e) {
       console.error('Failed to withdraw skip:', e)
       alert('Could not withdraw the skip. Please try again.')
