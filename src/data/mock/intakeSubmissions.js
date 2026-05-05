@@ -30,6 +30,7 @@ export const DQ_REASON_LABELS = {
   govt_assistance: 'Receiving government assistance',
   age_out_of_range: 'Age out of range (21–40)',
   no_financing_plan: 'No financing plan confirmed',
+  not_us_citizen_or_resident: 'Not a US Citizen or Legal Resident',
 }
 
 // Helper: resolve disqualifications for a GC form submission
@@ -48,6 +49,9 @@ export function getGCDisqualifications(answers) {
   if (answers.sixOrMoreDeliveries === true) reasons.push('too_many_deliveries')
   // Too many C-sections
   if (answers.moreThanTwoCsections === true) reasons.push('too_many_csections')
+  // Not a US citizen or legal resident → hard disqualification (can't be a
+  // surrogate in the program; should not get into the platform to start an app)
+  if (answers.usCitizen === false || answers.usCitizen === 'no') reasons.push('not_us_citizen_or_resident')
   return reasons
 }
 

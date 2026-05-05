@@ -3287,6 +3287,8 @@ const CONDITIONAL_FIELDS = {
   householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
   householdSubstancesPurpose: { parent: 'householdControlledSubstances', showWhen: 'yes' },
   gunsDetails: { parent: 'gunsOwned', showWhen: 'yes' },
+  gunsInHomeAdminNotes: { parent: 'gunsInHome', showWhen: 'yes' },
+  breastfeedingAdminNotes: { parent: 'breastfeeding', showWhen: 'yes' },
   piercingsTattoosDetails: { parent: 'piercingsTattoos', showWhen: 'yes' },
   lastTattooDate: { parent: 'piercingsTattoos', showWhen: 'yes' },
   eatingDisordersDetails: { parent: 'eatingDisorders', showWhen: 'yes' },
@@ -3349,6 +3351,7 @@ const PROFILE_SECTIONS = [
     'numberOfPregnancies', 'pregnancies'
   ] },
   { key: 'fertility', title: 'Fertility Information', fields: [
+    'breastfeeding', 'breastfeedingAdminNotes',
     'sameBioFather', 'sameBioFatherDetails', 'pregnancyDetails',
     'infertilityTreatment', 'infertilityTreatmentDetails',
     'gynecologicalProblems', 'gynecologicalProblemsDetails',
@@ -3363,8 +3366,10 @@ const PROFILE_SECTIONS = [
     'smokeVape', 'smokingHistory', 'smokingHistoryDetails',
     'householdSmoker', 'householdSmokerDetails',
     'alcoholDrugs', 'alcoholDrugsDetails',
+    'gunsInHome', 'gunsInHomeAdminNotes',
     'advisedLimitSubstances', 'advisedLimitDetails',
     'householdControlledSubstances', 'householdSubstancesDetails', 'householdSubstancesPurpose',
+    'religiousBackground', 'comfortableDifferentReligion',
     'typicalDiet', 'exerciseFrequency',
     'piercingsTattoos',
     'criminalHistory', 'criminalHistoryDetails',
@@ -3411,7 +3416,7 @@ const PROFILE_SECTIONS = [
     'transferAnotherState', 'transferAnotherStateDetails',
     'ipsOutsideUS',
     'childCareTraveling',
-    'whenReadyToBegin', 'postBirthRelationship',
+    'whenReadyToBegin', 'adminNotes', 'postBirthRelationship',
     'cvsAmnio', 'cvsAmnioDetails',
     'willingnessToTerminate',
     'partnerAgreesTermination',
@@ -4905,7 +4910,7 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'pregnancyMedication', 'willingToTravelNICU',
     'childrenFullTime', 'childrenSpecialNeeds', 'placedForAdoption', 'planMoreChildren',
     'smokeVape', 'smokingHistory', 'householdSmoker', 'alcoholDrugs', 'advisedLimitSubstances',
-    'householdControlledSubstances', 'gunsOwned', 'piercingsTattoos', 'nonSterilePiercing',
+    'householdControlledSubstances', 'gunsOwned', 'gunsInHome', 'piercingsTattoos', 'nonSterilePiercing',
     'eatingDisorders', 'criminalHistory', 'recentTravel', 'travelPlans', 'sleepIssues',
     'reliableVehicle', 'autoInsurance', 'validLicense', 'partnerFdaTests',
     'mentalHealthDiagnosis', 'mentalHealthHospitalization', 'mentalHealthMedication',
@@ -4975,6 +4980,20 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
     'postBirthRelationship',
     'ipsCantAttend', 'childCareTraveling', 'cvsAmnioDetails', 'willingnessToTerminate',
     'transferAnotherStateDetails', 'conditionsWontTerminateDetails', 'additionalComments',
+    // Admin-only fields (rendered with pink outline) — these are admin-filled
+    // free-text notes that surface in the profile preview. Surrogate never sees them.
+    'adminNotes', 'breastfeedingAdminNotes', 'gunsInHomeAdminNotes',
+    // Religion fields (surrogate-facing)
+    'religiousBackground', 'comfortableDifferentReligion',
+  ])
+
+  // Admin-only fields render with a pink outline and "Admin Only" badge so the
+  // agency knows these aren't surrogate-filled. They write to the same profile
+  // sections so they surface in the preview / share / download.
+  const ADMIN_ONLY_FIELDS = new Set([
+    'adminNotes',
+    'breastfeedingAdminNotes',
+    'gunsInHomeAdminNotes',
   ])
 
   const inputClass = "w-full rounded-md border border-gray-200 px-3 py-1.5 text-sm bg-white focus:border-[#283693] focus:ring-1 focus:ring-[#283693]/20 outline-none"
@@ -4982,10 +5001,14 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
   function renderScalarFieldEdit(field, secKey, sourceData = editData) {
     const val = sourceData?.[field]
     const hidden = isFieldHidden(secKey, field)
+    const isAdminOnly = ADMIN_ONLY_FIELDS.has(field)
 
     const labelRow = (
       <div className="flex items-center gap-1">
-        <label className="text-xs text-muted-foreground font-medium flex-1">{formatFieldLabel(field)}</label>
+        <label className="text-xs text-muted-foreground font-medium flex-1">
+          {formatFieldLabel(field)}
+          {isAdminOnly && <span className="ml-2 text-[9px] font-bold text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Admin Only</span>}
+        </label>
         {!isApproved && <HideToggle sectionKey={secKey} fieldKey={field} />}
       </div>
     )
@@ -5840,7 +5863,20 @@ export function ProfileTab({ surrogate, setSurrogate, profileData, setProfileDat
                     {showEditLayout ? (
                       <fieldset className="space-y-4 disabled:opacity-100" disabled={isApproved}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {scalarFields.map(field => renderScalarFieldEdit(field, sec.key, activeEditData))}
+                          {scalarFields.map(field => {
+                            const rendered = renderScalarFieldEdit(field, sec.key, activeEditData)
+                            // Admin-only fields render with a pink-bordered card so
+                            // the agency can spot them at a glance. They write to
+                            // the same profile data and surface in the preview.
+                            if (ADMIN_ONLY_FIELDS.has(field)) {
+                              return (
+                                <div key={field} className="col-span-full rounded-lg border-2 border-pink-300 bg-pink-50/30 p-3">
+                                  {rendered}
+                                </div>
+                              )
+                            }
+                            return rendered
+                          })}
                         </div>
                         {arrayFields.map(field => (
                           <div key={field}>
