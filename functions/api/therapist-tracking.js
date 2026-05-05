@@ -296,6 +296,9 @@ async function loadRows(env) {
       const gc = gcById.get(j.gc_case_id)
       if (!gc) return null
       const t = safeTracking[gc.id] || {}
+      // Hidden cases are kept in the DB for audit but never returned to the
+      // therapist view (admin-only flag, set via the cleanup import).
+      if (t._hiddenFromTherapist) return null
       const jd = j.journey_data || {}
       const assignedEmail = j.assigned_to || jd.assigned_to || ''
       const ipCase = ipById.get(j.ip_case_id)
@@ -330,7 +333,7 @@ async function loadRows(env) {
     .filter(Boolean)
 
   const manualRows = Object.entries(safeTracking)
-    .filter(([key, val]) => key.startsWith('manual_') && val?._manual)
+    .filter(([key, val]) => key.startsWith('manual_') && val?._manual && !val?._hiddenFromTherapist)
     .map(([key, val]) => {
       const birthGuidelinesGc = val.birthGuidelinesGc || val.birthGuidelines || null
       const birthGuidelinesIp = val.birthGuidelinesIp || null
