@@ -446,6 +446,12 @@ export default function SharedPsychTrackingPage() {
   const [skipReason, setSkipReason] = useState('')
   const [skipSaving, setSkipSaving] = useState(false)
 
+  // Skip Detail Dialog (view reason + withdraw skip)
+  const [skipDetailOpen, setSkipDetailOpen] = useState(false)
+  const [skipDetailRow, setSkipDetailRow] = useState(null)
+  const [skipDetailMilestone, setSkipDetailMilestone] = useState(null)
+  const [withdrawSaving, setWithdrawSaving] = useState(false)
+
   // Custom check-in dialog (Add Check-In)
   const [customOpen, setCustomOpen] = useState(false)
   const [customRow, setCustomRow] = useState(null)
@@ -772,18 +778,24 @@ export default function SharedPsychTrackingPage() {
     if (!checkinRow || !checkinMilestone) return
     setSkipSaving(true)
     try {
+      const milestoneName = getMilestoneLabel(checkinMilestone, checkinRow.customCheckIns)
       await therapistTrackingApi({
         action: 'skip',
         sessionToken,
         surrogateId: checkinRow.id,
         milestone: checkinMilestone,
         skipReason,
+        surrogateName: checkinRow.name,
+        milestoneName,
+        therapistName: THERAPIST_DEFAULTS.therapistName,
+        caseManagerEmail: checkinRow.caseManagerEmail || '',
       })
       const skippedReport = {
         ...(checkins[checkinRow.id]?.[checkinMilestone] || {}),
         status: 'skipped',
         skipReason,
         skippedAt: new Date().toISOString(),
+        skippedBy: THERAPIST_DEFAULTS.therapistName,
       }
       setCheckins(prev => ({
         ...prev,
@@ -796,6 +808,48 @@ export default function SharedPsychTrackingPage() {
       alert('Could not skip the check-in. Please try again.')
     } finally {
       setSkipSaving(false)
+    }
+  }
+
+  function openSkipDetailDialog(row, milestone) {
+    setSkipDetailRow(row)
+    setSkipDetailMilestone(milestone)
+    setSkipDetailOpen(true)
+  }
+
+  async function handleWithdrawSkip() {
+    if (!skipDetailRow || !skipDetailMilestone) return
+    setWithdrawSaving(true)
+    try {
+      const milestoneName = getMilestoneLabel(skipDetailMilestone, skipDetailRow.customCheckIns)
+      await therapistTrackingApi({
+        action: 'withdraw-skip',
+        sessionToken,
+        surrogateId: skipDetailRow.id,
+        milestone: skipDetailMilestone,
+        surrogateName: skipDetailRow.name,
+        milestoneName,
+        therapistName: THERAPIST_DEFAULTS.therapistName,
+        caseManagerEmail: skipDetailRow.caseManagerEmail || '',
+      })
+      // Drop the skipped report from local state so the cell goes back to "Check In".
+      setCheckins(prev => {
+        const surrogateRecord = prev[skipDetailRow.id] || {}
+        const { [skipDetailMilestone]: _removed, ...rest } = surrogateRecord
+        return { ...prev, [skipDetailRow.id]: rest }
+      })
+      const rowSnapshot = skipDetailRow
+      const milestoneSnapshot = skipDetailMilestone
+      setSkipDetailOpen(false)
+      setSkipDetailRow(null)
+      setSkipDetailMilestone(null)
+      // Open the regular Check-In form so the therapist can complete it now.
+      openCheckinDialog(rowSnapshot, milestoneSnapshot, false)
+    } catch (e) {
+      console.error('Failed to withdraw skip:', e)
+      alert('Could not withdraw the skip. Please try again.')
+    } finally {
+      setWithdrawSaving(false)
     }
   }
 
@@ -1017,7 +1071,11 @@ export default function SharedPsychTrackingPage() {
           checkins={checkins}
           onDateChange={updateDate}
           onCheckin={(row, milestone) => openCheckinDialog(row, milestone)}
-          onViewReport={(row, milestone) => openCheckinDialog(row, milestone, true)}
+          onViewReport={(row, milestone) => {
+            const r = checkins[row.id]?.[milestone]
+            if (r?.status === 'skipped') openSkipDetailDialog(row, milestone)
+            else openCheckinDialog(row, milestone, true)
+          }}
           onSkip={(row, milestone) => openSkipDialog(row, milestone)}
           onDownloadPdf={(row, milestone) => {
             const report = checkins[row.id]?.[milestone]
@@ -1326,6 +1384,46 @@ export default function SharedPsychTrackingPage() {
             <Button size="sm" className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white" onClick={handleSkipConfirm} disabled={skipSaving || !skipReason.trim()}>
               {skipSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
               Skip Check-In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Skip Detail Dialog (view skip reason + withdraw) */}
+      <Dialog open={skipDetailOpen} onOpenChange={setSkipDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              {skipDetailMilestone ? `${getMilestoneLabel(skipDetailMilestone, skipDetailRow?.customCheckIns)} — Skipped` : 'Skipped Check-In'}
+            </DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const skipReport = checkins[skipDetailRow?.id]?.[skipDetailMilestone] || {}
+            const reason = skipReport.skipReason || ''
+            const skippedAt = skipReport.skippedAt ? new Date(skipReport.skippedAt) : null
+            const skippedBy = skipReport.skippedBy || ''
+            return (
+              <div className="space-y-4 text-sm text-stone-600">
+                <p>
+                  This check-in for <strong className="text-stone-800">{skipDetailRow?.name}</strong> was marked as skipped
+                  {skippedAt ? ` on ${formatPTDate(skippedAt)} at ${formatPTTime(skippedAt)} (Pacific Time)` : ''}
+                  {skippedBy ? ` by ${skippedBy}` : ''}.
+                </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Reason</p>
+                  <p className="text-sm text-amber-900 mt-1 whitespace-pre-wrap">{reason || <span className="italic text-amber-500">No reason recorded.</span>}</p>
+                </div>
+                <p className="text-xs text-stone-500">
+                  If this was a mistake, you can withdraw your skip and complete the check-in. The assigned admin will be notified.
+                </p>
+              </div>
+            )
+          })()}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSkipDetailOpen(false)} disabled={withdrawSaving}>Close</Button>
+            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleWithdrawSkip} disabled={withdrawSaving}>
+              {withdrawSaving ? <Loader2 className="size-3.5 animate-spin" /> : <ClipboardCheck className="size-3.5" />}
+              Withdraw Skip & Check In
             </Button>
           </div>
         </DialogContent>
