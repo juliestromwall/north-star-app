@@ -611,12 +611,9 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         maritalStatus={ga.maritalStatus || personal.maritalStatus}
       />
 
-      {/* Pregnancy History — GTPAL code + colored stat badges */}
-      <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
-
-      {/* Spouse / Partner — surfaces directly under the Pregnancy History
-          bar (above contact info) when ANY partner data exists across the
-          GC profile, intake answers, _confidential, or _application blocks. */}
+      {/* Spouse / Partner — surfaces right under the surrogate hero (above
+          contact info) when ANY partner data exists across the GC profile,
+          intake answers, _confidential, or _application blocks. */}
       {(() => {
         const conf = ga._confidential || {}
         const app = ga._application || {}
@@ -649,11 +646,13 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
-      {/* Pregnancy detail table — totals already covered by the GTPAL bar
-          at the top, so no extra count tiles here. Default Live Birth
-          deliveries to "Vaginal" when the source data is blank. */}
+      {/* Pregnancy History — GTPAL summary directly above the per-row table. */}
+      <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
+
+      {/* Pregnancy detail table — Live Birth deliveries default to
+          "Vaginal" when the source data is blank. */}
       {pregnancies.length > 0 && (
-        <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+        <div style={{ marginTop: 4, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr style={{ backgroundColor: '#fafaf9' }}>
