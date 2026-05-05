@@ -1267,19 +1267,34 @@ function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRe
   const isSkipped = report?.status === 'skipped'
   const isDraft = report?.status === 'draft'
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-stone-50/60 border border-stone-200">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{custom.label}</span>
-        <span className="text-[10px] text-stone-400">· {custom.duration} min</span>
+    <div className="rounded-lg bg-stone-50/60 border border-stone-200 px-2.5 py-1.5">
+      {/* Top row: label + duration · remove */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600 break-words">{custom.label}</span>
+          <span className="text-[10px] text-stone-400 ml-1">· {custom.duration} min</span>
+        </div>
+        {!isComplete && (
+          <button
+            onClick={() => onRemove(row.id, custom.id)}
+            className="text-stone-300 hover:text-red-500 transition-colors leading-none px-1 -mr-1 -mt-0.5"
+            title="Remove this check-in slot"
+          >
+            <span className="text-sm">×</span>
+          </button>
+        )}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Bottom row: status / action */}
+      <div className="flex items-center justify-end gap-1.5 mt-1 pt-1 border-t border-stone-200/60">
         {isComplete && report?.completedAt && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-emerald-600 font-medium text-xs">{formatDate(report.completedAt)}</span>
-            <button onClick={() => onViewReport(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e]" title="View Report">
-              <Eye className="size-3" />
-            </button>
-          </div>
+          <button
+            onClick={() => onViewReport(row, custom.id)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
+            title="View Report"
+          >
+            {formatDate(report.completedAt)}
+            <Eye className="size-3 text-[#283693]" />
+          </button>
         )}
         {isSkipped && (
           <button
@@ -1315,15 +1330,6 @@ function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRe
               </>
             )}
           </>
-        )}
-        {!isComplete && (
-          <button
-            onClick={() => onRemove(row.id, custom.id)}
-            className="text-stone-300 hover:text-red-500 transition-colors"
-            title="Remove this check-in slot"
-          >
-            <span className="text-xs">×</span>
-          </button>
         )}
       </div>
     </div>
