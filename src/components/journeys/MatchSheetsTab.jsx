@@ -599,8 +599,6 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       {/* Surrogate — detailed medical */}
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
 
-      <PartyName name={gcCase?.name} />
-
       {/* Hero stats: Age (DOB), Height, Weight, BMI, Marital Status */}
       <SurrogateStatTiles
         gcDob={gcDob}
@@ -611,40 +609,45 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         maritalStatus={ga.maritalStatus || personal.maritalStatus}
       />
 
-      {/* Spouse / Partner — surfaces right under the surrogate hero (above
-          contact info) when ANY partner data exists across the GC profile,
-          intake answers, _confidential, or _application blocks. */}
+      {/* Surrogate identity grid — same Full Name / DOB / Email / Phone
+          shape the IP block uses, so the clinic reads both blocks the
+          same way. */}
+      <InfoGrid items={[
+        { label: 'Full Name',     value: gcCase?.name || '—' },
+        { label: 'Date of Birth', value: gcDob ? `${formatDate(gcDob)}${calcAge(gcDob) ? ` (Age ${calcAge(gcDob)})` : ''}` : '—' },
+        { label: 'Email',         value: gcCase?.email || '—' },
+        { label: 'Phone',         value: formatPhone(gcCase?.phone) || '—' },
+      ]} />
+
+      {/* Spouse / Partner — surfaces below the surrogate identity grid
+          when ANY partner data exists. Same Full Name / DOB / Email /
+          Phone shape so it mirrors both the surrogate above and the IP
+          partner block. */}
       {(() => {
         const conf = ga._confidential || {}
         const app = ga._application || {}
         const spouseFullName = conf.spouseFullName || app.spouseFullName || personal.spouseFullName || ''
         const parts = spouseFullName.trim().split(/\s+/).filter(Boolean)
-        // personal.partnerName is typically first-name-only on the GC profile.
-        // App + _confidential blocks have explicit spouseFirstName / spouseLastName.
         const partnerFirst = app.spouseFirstName || conf.spouseFirstName || personal.partnerName || parts[0] || ''
         const partnerLast = app.spouseLastName || conf.spouseLastName || (parts.length > 1 ? parts.slice(1).join(' ') : '')
         const partnerDob = app.spouseDob || conf.spouseDob || personal.partnerDob || ''
-        const hasPartner = !!(partnerFirst || partnerLast || partnerDob)
+        const partnerEmail = app.spouseEmail || conf.spouseEmail || personal.partnerEmail || ''
+        const partnerPhone = app.spousePhone || conf.spousePhone || personal.partnerPhone || ''
+        const partnerName = [partnerFirst, partnerLast].filter(Boolean).join(' ').trim() || spouseFullName
+        const hasPartner = !!(partnerName || partnerDob || partnerEmail || partnerPhone)
         if (!hasPartner) return null
         return (
           <>
             <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
             <InfoGrid items={[
-              { label: 'First Name', value: partnerFirst || '—' },
-              { label: 'Last Name', value: partnerLast || '—' },
+              { label: 'Full Name',     value: partnerName || '—' },
               { label: 'Date of Birth', value: partnerDob ? `${formatDate(partnerDob)}${calcAge(partnerDob) ? ` (Age ${calcAge(partnerDob)})` : ''}` : '—' },
+              { label: 'Email',         value: partnerEmail || '—' },
+              { label: 'Phone',         value: formatPhone(partnerPhone) || '—' },
             ]} />
           </>
         )
       })()}
-
-      {/* Contact info */}
-      <InfoGrid items={[
-        { label: 'Email', value: gcCase?.email },
-        { label: 'Phone', value: formatPhone(gcCase?.phone) },
-        { label: 'City / State', value: [ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', ') },
-        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
-      ]} />
 
       {/* Pregnancy History — GTPAL summary directly above the per-row table. */}
       <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
