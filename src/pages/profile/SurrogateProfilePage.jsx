@@ -1659,6 +1659,8 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
         {/* Fertility */}
         <PVSection title="Fertility Information" icon={Stethoscope} number={3}>
           <div className="space-y-1">
+            <PVYesNo label="Are you currently breastfeeding?" value={fertility.breastfeeding} fp="fertility.breastfeeding" />
+            {fertility.breastfeeding === 'yes' && fertility.breastfeedingAdminNotes && <PVField label="Details" value={fertility.breastfeedingAdminNotes} fp="fertility.breastfeedingAdminNotes" />}
             <PVYesNo label="Is the biological father the same for all of your biological children?" value={fertility.sameBioFather} fp="fertility.sameBioFather" />
             {fertility.sameBioFather === 'no' && <PVField label="Please explain" value={fertility.sameBioFatherDetails} fp="fertility.sameBioFatherDetails" />}
             <PVYesNo label="Have you ever been seen by a doctor for infertility treatment?" value={fertility.infertilityTreatment} fp="fertility.infertilityTreatment" />
@@ -1701,10 +1703,14 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             {general.householdSmoker === 'yes' && general.householdSmokerDetails && <PVField label="Please provide details (who, how often, where and what)" value={general.householdSmokerDetails} fp="general.householdSmokerDetails" />}
             <PVYesNo label="Do you drink alcohol or use recreational drugs?" value={general.alcoholDrugs} fp="general.alcoholDrugs" />
             {general.alcoholDrugs === 'yes' && general.alcoholDrugsDetails && <PVField label="Please list frequency and type" value={general.alcoholDrugsDetails} fp="general.alcoholDrugsDetails" />}
+            <PVYesNo label="Are there any guns in your home?" value={general.gunsInHome} fp="general.gunsInHome" />
+            {general.gunsInHome === 'yes' && general.gunsInHomeAdminNotes && <PVField label="Details" value={general.gunsInHomeAdminNotes} fp="general.gunsInHomeAdminNotes" />}
             <PVYesNo label="Have you ever been advised to limit your use of alcohol or any drugs?" value={general.advisedLimitSubstances} fp="general.advisedLimitSubstances" />
             {general.advisedLimitSubstances === 'yes' && general.advisedLimitDetails && <PVField label="Please provide details" value={general.advisedLimitDetails} fp="general.advisedLimitDetails" />}
             <PVYesNo label="Does anyone in your household drink alcohol, use controlled substances or recreational drugs?" value={general.householdControlledSubstances} fp="general.householdControlledSubstances" />
             {general.householdControlledSubstances === 'yes' && general.householdSubstancesDetails && <PVField label="What, how often, and when/where?" value={general.householdSubstancesDetails} fp="general.householdSubstancesDetails" />}
+            {general.religiousBackground && <PVField label="What is your religious background or faith tradition, if any?" value={general.religiousBackground} fp="general.religiousBackground" />}
+            {general.comfortableDifferentReligion && <PVField label="Are you comfortable supporting Intended Parents regardless of their religious beliefs or background?" value={general.comfortableDifferentReligion} fp="general.comfortableDifferentReligion" />}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-50 space-y-3">
             <PVField label="Please describe your typical diet and eating habits. Do you cook at home? How often do you eat out? Do you have any special dietary restrictions?" value={general.typicalDiet} fp="general.typicalDiet" />
@@ -1878,6 +1884,7 @@ export function ProfilePreview({ profile, photos, hideFooter = false, insuranceS
             <PVField label="What is the best form of communication that you are comfortable using?" value={hopes.preferredCommunication} fp="hopesWishes.preferredCommunication" />
             <PVField label="How much involvement from the Intended Parents do you want during the pregnancy?" value={hopes.ipInvolvement} fp="hopesWishes.ipInvolvement" />
             <PVField label="When are you ready to begin?" value={hopes.whenReadyToBegin} fp="hopesWishes.whenReadyToBegin" />
+            {hopes.adminNotes && <PVField label="Agency Notes" value={hopes.adminNotes} fp="hopesWishes.adminNotes" />}
             <PVField label="Ideal relationship with Intended Parent(s) post birth" value={hopes.postBirthRelationship} fp="hopesWishes.postBirthRelationship" />
             <PVField label="Is there anyone else you would like to have in the delivery room (partner/spouse, friend, mom)?" value={hopes.deliveryRoomOthers} fp="hopesWishes.deliveryRoomOthers" />
             <PVField label="How do you feel about having Intended Parents who cannot attend doctor appointments and see you on a regular basis?" value={hopes.ipsCantAttend} fp="hopesWishes.ipsCantAttend" />
@@ -2017,8 +2024,6 @@ function FollowUpSection({ v, u, profile }) {
     <div className="space-y-4">
       <p className="text-xs text-stone-400 italic">These questions help us complete your screening. Please answer honestly.</p>
 
-      <YesNoField label="Are you currently breastfeeding/lactating?" value={val('breastfeeding')} onChange={set('breastfeeding')} />
-      {val('breastfeeding') === 'yes' && <TextField label="When do you expect to stop?" value={val('breastfeedingStopDate')} onChange={set('breastfeedingStopDate')} />}
       <YesNoField label="Are your cycles typically between 28 to 30 days?" value={val('cycleLength')} onChange={set('cycleLength')} />
       {val('cycleLength') === 'no' && <TextField label="What is your typical cycle length?" value={val('cycleLengthDetails')} onChange={set('cycleLengthDetails')} />}
       <TextField label="When was the start of your last period?" value={val('lastPeriod')} onChange={set('lastPeriod')} />
@@ -2027,7 +2032,6 @@ function FollowUpSection({ v, u, profile }) {
       <TextField label="How long after stopping contraceptives did it take to get pregnant?" value={val('timeToConceive')} onChange={set('timeToConceive')} />
 
       <YesNoField label="Have you ever placed a child for adoption?" value={val('placedForAdoption')} onChange={set('placedForAdoption')} />
-      <YesNoField label="Do you own any guns?" value={val('gunsOwned')} onChange={set('gunsOwned')} />
       {val('piercingsTattoos') === 'yes' && <TextField label="When did you have your last tattoo?" value={val('lastTattooDate')} onChange={set('lastTattooDate')} />}
       <YesNoField label="Have you been tattooed or had a non-sterile skin piercing in the last 12 months?" value={val('nonSterilePiercing')} onChange={set('nonSterilePiercing')} />
       <YesNoField label="Do you have a history of eating disorders?" value={val('eatingDisorders')} onChange={set('eatingDisorders')} />
@@ -2410,6 +2414,7 @@ function FertilitySection({ v, u, profile }) {
 
   return (
     <div className="space-y-6">
+      <YesNoField label="Are you currently breastfeeding?" value={v(s, 'breastfeeding')} onChange={u(s, 'breastfeeding')} />
       <YesNoField label="Is the biological father the same for all of your biological children?" value={v(s, 'sameBioFather')} onChange={u(s, 'sameBioFather')} />
       {v(s, 'sameBioFather') === 'no' && (
         <TextAreaField label="Please explain" value={v(s, 'sameBioFatherDetails')} onChange={u(s, 'sameBioFatherDetails')} rows={2} />
@@ -2565,6 +2570,7 @@ function GeneralSection({ v, u, profile }) {
           {v(s, 'alcoholDrugs') === 'yes' && (
             <TextAreaField label="Please list frequency and type" value={v(s, 'alcoholDrugsDetails')} onChange={u(s, 'alcoholDrugsDetails')} rows={2} />
           )}
+          <YesNoField label="Are there any guns in your home?" value={v(s, 'gunsInHome')} onChange={u(s, 'gunsInHome')} />
           <YesNoField label="Have you ever been advised to limit your use of alcohol or any drugs?" value={v(s, 'advisedLimitSubstances')} onChange={u(s, 'advisedLimitSubstances')} />
           {v(s, 'advisedLimitSubstances') === 'yes' && (
             <TextAreaField label="Please provide details" value={v(s, 'advisedLimitDetails')} onChange={u(s, 'advisedLimitDetails')} rows={2} />
@@ -2576,6 +2582,8 @@ function GeneralSection({ v, u, profile }) {
               <TextAreaField label="If a controlled substance, what is the purpose for use?" value={v(s, 'householdSubstancesPurpose')} onChange={u(s, 'householdSubstancesPurpose')} rows={2} />
             </>
           )}
+          <TextField label="What is your religious background or faith tradition, if any?" value={v(s, 'religiousBackground')} onChange={u(s, 'religiousBackground')} />
+          <TextField label="Are you comfortable supporting Intended Parents regardless of their religious beliefs or background?" value={v(s, 'comfortableDifferentReligion')} onChange={u(s, 'comfortableDifferentReligion')} />
         </div>
       </div>
 
