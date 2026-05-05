@@ -378,7 +378,14 @@ export default function PsychTrackingPage() {
         }
       })
 
-    return [...pregnantRows, ...manualRows]
+    // Sort by Due Date ascending (soonest first); rows without a dueDate
+    // sink to the bottom — same ordering Jenny sees in the shared view.
+    return [...pregnantRows, ...manualRows].sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0
+      if (!a.dueDate) return 1
+      if (!b.dueDate) return -1
+      return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0
+    })
   }, [surrogates, journeys, tracking])
 
   const filtered = useMemo(() => {
