@@ -320,6 +320,8 @@ export default function PsychTrackingPage() {
         const gc = surrogates.find(s => s.id === j.gc_case_id)
         if (!gc) return null
         const t = tracking[gc.id] || {}
+        // Hidden cases (set via cleanup CSV) drop off the admin tracker too.
+        if (t._hiddenFromTherapist) return null
         const jd = j.journey_data || {}
         const milestones = calcMilestoneDates(jd.dueDate)
         // Birth guidelines: legacy `birthGuidelines` falls back into the GC slot.
@@ -350,7 +352,7 @@ export default function PsychTrackingPage() {
 
     // Add manual entries from tracking data
     const manualRows = Object.entries(tracking)
-      .filter(([key, val]) => key.startsWith('manual_') && val._manual)
+      .filter(([key, val]) => key.startsWith('manual_') && val._manual && !val._hiddenFromTherapist)
       .map(([key, val]) => {
         const birthGuidelinesGc = val.birthGuidelinesGc || val.birthGuidelines || null
         const birthGuidelinesIp = val.birthGuidelinesIp || null
@@ -987,10 +989,10 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
     )
   }
 
-  if (value && isComplete) {
+  if (isComplete) {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="text-emerald-600 font-medium text-xs">{formatDate(value)}</span>
+        <span className="text-emerald-600 font-medium text-xs">{value ? formatDate(value) : 'Complete'}</span>
         <button
           onClick={() => onViewReport(row, milestoneKey)}
           className="text-[#283693] hover:text-[#1e2a6e] transition-colors"
