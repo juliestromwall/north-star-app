@@ -1074,7 +1074,17 @@ export default function SharedPsychTrackingPage() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Check-In To-Do (Active tab only) */}
+        {tab === 'active' && (
+          <CheckInTodoPanel
+            rows={filtered}
+            checkins={checkins}
+            onCheckin={(row, milestone) => openCheckinDialog(row, milestone)}
+            onSkip={(row, milestone) => openSkipDialog(row, milestone)}
+          />
+        )}
+
+        {/* Cards */}
         <SharedPsychTable
           rows={filtered}
           checkins={checkins}
@@ -1690,6 +1700,184 @@ function ContactLine({ label, name, email, phone, accent = 'violet' }) {
       )}
       {phone && (
         <span className="inline-flex items-center gap-1 text-stone-500"><Phone className="size-3" /> {phone}</span>
+      )}
+    </div>
+  )
+}
+
+// ── Check-In To-Do panel ─────────────────────────────────────────────
+//
+// Flat list of every pending standard milestone across the active rows so
+// Jenny has a "today / this week" worklist at the top of the page. Each
+// row links straight back into the same check-in form a station click
+// would open.
+
+// Approximate planned date for milestones that don't have a calculated one.
+// Birth Plan: ~36 weeks gestation (≈ dueDate − 28 days). Post Delivery:
+// 1 week after deliveryDate, falling back to dueDate.
+function computePlannedDate(row, milestoneKey) {
+  if (milestoneKey === 'week10') return row.week10Date || null
+  if (milestoneKey === 'week20') return row.week20Date || null
+  if (milestoneKey === 'week30') return row.week30Date || null
+  if (milestoneKey === 'birthGuidelinesGc' || milestoneKey === 'birthGuidelinesIp') {
+    if (!row.dueDate) return null
+    const d = new Date(row.dueDate + 'T00:00:00')
+    d.setDate(d.getDate() - 28)
+    return d.toISOString().slice(0, 10)
+  }
+  if (milestoneKey === 'postDelivery') {
+    if (row.deliveryDate) {
+      const d = new Date(row.deliveryDate + 'T00:00:00')
+      d.setDate(d.getDate() + 7)
+      return d.toISOString().slice(0, 10)
+    }
+    return row.dueDate || null
+  }
+  return null
+}
+
+function getUrgency(plannedDate) {
+  if (!plannedDate) return 'unscheduled'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const planned = new Date(plannedDate + 'T00:00:00')
+  const diffDays = Math.round((planned - today) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return 'overdue'
+  if (diffDays <= 7) return 'soon'
+  return 'later'
+}
+
+function getPendingMilestoneItems(rows, checkins) {
+  const items = []
+  for (const row of rows) {
+    if (row.archivedAt) continue
+    for (const station of STATION_DEFS) {
+      const report = checkins[row.id]?.[station.key]
+      const status = report?.status
+      if (status === 'complete' || status === 'skipped') continue
+      const plannedDate = computePlannedDate(row, station.key)
+      const isEstimate = ['birthGuidelinesGc', 'birthGuidelinesIp', 'postDelivery'].includes(station.key)
+      items.push({
+        row,
+        milestoneKey: station.key,
+        label: station.label,
+        plannedDate,
+        plannedDateIsEstimate: isEstimate,
+        isDraft: status === 'draft',
+        urgency: getUrgency(plannedDate),
+      })
+    }
+  }
+  items.sort((a, b) => {
+    if (!a.plannedDate && !b.plannedDate) return 0
+    if (!a.plannedDate) return 1
+    if (!b.plannedDate) return -1
+    return a.plannedDate < b.plannedDate ? -1 : 1
+  })
+  return items
+}
+
+function TodoRow({ item, onCheckin, onSkip }) {
+  const { row, milestoneKey, label, plannedDate, plannedDateIsEstimate, isDraft, urgency } = item
+  const dotClass = {
+    overdue: 'bg-red-500 ring-4 ring-red-100',
+    soon: 'bg-amber-400 ring-4 ring-amber-100',
+    later: 'bg-stone-300',
+    unscheduled: 'bg-stone-200',
+  }[urgency]
+  const dateClass = urgency === 'overdue'
+    ? 'text-red-600 font-bold'
+    : urgency === 'soon'
+      ? 'text-amber-700 font-semibold'
+      : 'text-stone-600 font-medium'
+  const dateLabel = plannedDate
+    ? (plannedDateIsEstimate ? `~${formatDate(plannedDate)}` : formatDate(plannedDate))
+    : 'No date'
+
+  return (
+    <div className="flex items-center gap-3 px-5 py-2.5 hover:bg-stone-50/60 transition-colors">
+      <span className={`size-2.5 rounded-full shrink-0 ${dotClass}`} />
+      <span className={`text-xs w-24 shrink-0 ${dateClass}`} title={plannedDateIsEstimate ? 'Estimated date — actual timing varies' : ''}>{dateLabel}</span>
+      <span className="text-xs font-semibold text-stone-700 w-32 shrink-0 truncate">{label}</span>
+      <span className="text-xs text-stone-800 flex-1 truncate font-medium">{row.name}</span>
+      {isDraft && (
+        <span className="text-[9px] uppercase tracking-wider font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Draft</span>
+      )}
+      {urgency === 'overdue' && (
+        <span className="text-[9px] uppercase tracking-wider font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">Overdue</span>
+      )}
+      <button
+        onClick={() => onCheckin(row, milestoneKey)}
+        className="text-[#283693] hover:text-white hover:bg-[#283693] border border-[#283693]/30 hover:border-[#283693] text-xs font-semibold whitespace-nowrap px-3 py-1 rounded-full transition-colors"
+      >
+        {isDraft ? 'Resume' : 'Check In'}
+      </button>
+      {typeof onSkip === 'function' && (
+        <button
+          onClick={() => onSkip(row, milestoneKey)}
+          className="text-[10px] text-stone-400 hover:text-amber-700 hover:underline transition-colors"
+          title="Skip this check-in"
+        >
+          skip
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CheckInTodoPanel({ rows, checkins, onCheckin, onSkip }) {
+  const [showAll, setShowAll] = useState(false)
+  const items = useMemo(() => getPendingMilestoneItems(rows, checkins), [rows, checkins])
+  const overdueCount = items.filter(i => i.urgency === 'overdue').length
+  const soonCount = items.filter(i => i.urgency === 'soon').length
+
+  if (items.length === 0) {
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50/80 to-white p-6 text-center">
+        <p className="text-sm font-semibold text-emerald-700">🎉 All caught up — no pending check-ins.</p>
+      </div>
+    )
+  }
+
+  const PREVIEW_COUNT = 10
+  const visible = showAll ? items : items.slice(0, PREVIEW_COUNT)
+  const hiddenCount = items.length - visible.length
+
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-5 py-3 bg-gradient-to-r from-violet-50/60 to-pink-50/60 border-b border-stone-100">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ClipboardCheck className="size-4 text-[#283693]" />
+          <h2 className="text-sm font-semibold text-stone-800">Check-In To-Do</h2>
+          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white border border-stone-200 text-stone-600 font-semibold">{items.length} pending</span>
+          {overdueCount > 0 && (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-700 font-semibold">{overdueCount} overdue</span>
+          )}
+          {soonCount > 0 && (
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-700 font-semibold">{soonCount} this week</span>
+          )}
+        </div>
+      </div>
+      <div className="divide-y divide-stone-100">
+        {visible.map(item => (
+          <TodoRow key={`${item.row.id}-${item.milestoneKey}`} item={item} onCheckin={onCheckin} onSkip={onSkip} />
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="w-full py-2.5 text-xs font-semibold text-[#283693] hover:bg-stone-50 border-t border-stone-100 transition-colors"
+        >
+          Show {hiddenCount} more
+        </button>
+      )}
+      {showAll && items.length > PREVIEW_COUNT && (
+        <button
+          onClick={() => setShowAll(false)}
+          className="w-full py-2.5 text-xs font-semibold text-stone-500 hover:bg-stone-50 border-t border-stone-100 transition-colors"
+        >
+          Show fewer
+        </button>
       )}
     </div>
   )
