@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare } from 'lucide-react'
+import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, Sparkles, Plus, X, Mail } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -1484,334 +1484,318 @@ export default function SharedPsychTrackingPage() {
 }
 
 // ── Check-In Cell (shared view) ──
-function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport, onSkip }) {
+// ── Card-based view: each case is its own rounded card with a milestone
+//    timeline. Replaces the spreadsheet so the shared therapist view
+//    matches the rest of the app's profile-card visual language. ──
+
+const STATION_DEFS = [
+  { key: 'week10', label: '10 Week', dateField: 'week10Date' },
+  { key: 'week20', label: '20 Week', dateField: 'week20Date' },
+  { key: 'week30', label: '30 Week', dateField: 'week30Date' },
+  { key: 'birthGuidelinesGc', label: 'Birth Plan · GC', dateField: null },
+  { key: 'birthGuidelinesIp', label: 'Birth Plan · IP', dateField: null },
+  { key: 'postDelivery', label: 'Post Delivery', dateField: null },
+]
+
+function getInitials(name) {
+  if (!name) return '·'
+  const parts = name.trim().split(/\s+/).filter(p => /^[A-Za-z"]/.test(p))
+  if (!parts.length) return name.slice(0, 2).toUpperCase()
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+function GradientAvatar({ name, accent = 'pink' }) {
+  const bg = accent === 'indigo'
+    ? 'linear-gradient(135deg, #6366f1, #283693)'
+    : 'linear-gradient(135deg, #ed148c, #283693)'
+  return (
+    <div className="size-12 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0" style={{ background: bg }}>
+      {getInitials(name)}
+    </div>
+  )
+}
+
+function DueDatePill({ date }) {
+  if (!date) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 text-stone-400 text-xs font-medium">
+        <Calendar className="size-3.5" /> No due date
+      </div>
+    )
+  }
+  return (
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-700 text-xs font-semibold whitespace-nowrap">
+      <Calendar className="size-3.5" /> Due {formatDate(date)}
+    </div>
+  )
+}
+
+function MilestoneStation({ row, milestoneKey, label, plannedDate, checkins, onCheckin, onViewReport, onSkip }) {
   const report = checkins[row.id]?.[milestoneKey]
-  const isDraft = report?.status === 'draft'
-  const isComplete = report?.status === 'complete'
-  const isSkipped = report?.status === 'skipped'
+  const status = report?.status
+  const isComplete = status === 'complete'
+  const isSkipped = status === 'skipped'
+  const isDraft = status === 'draft'
+  const trackingDate = row[milestoneKey] || null
 
-  if (isSkipped) {
-    return (
+  // Click target: complete/skipped → view report, draft/none → check-in form.
+  const handleClick = () => {
+    if (isComplete || isSkipped) onViewReport(row, milestoneKey)
+    else onCheckin(row, milestoneKey)
+  }
+
+  // Visual style per state.
+  let bubbleClass, bubbleIcon, statusText, statusClass
+  if (isComplete) {
+    bubbleClass = 'bg-emerald-500 text-white border-emerald-500'
+    bubbleIcon = <Check className="size-4" strokeWidth={3} />
+    statusText = trackingDate ? formatDate(trackingDate) : 'Complete'
+    statusClass = 'text-emerald-600 font-semibold'
+  } else if (isSkipped) {
+    bubbleClass = 'bg-amber-100 text-amber-700 border-amber-300'
+    bubbleIcon = <X className="size-4" strokeWidth={3} />
+    statusText = 'Skipped'
+    statusClass = 'text-amber-700 font-medium'
+  } else if (isDraft) {
+    bubbleClass = 'bg-amber-50 text-amber-600 border-amber-300'
+    bubbleIcon = <Pencil className="size-3.5" />
+    statusText = 'Draft'
+    statusClass = 'text-amber-600 font-medium'
+  } else {
+    bubbleClass = 'bg-white text-[#283693] border-[#283693]/30 group-hover:bg-[#283693] group-hover:text-white group-hover:border-[#283693]'
+    bubbleIcon = <Sparkles className="size-3.5" />
+    statusText = 'Check In'
+    statusClass = 'text-[#283693] font-semibold group-hover:underline'
+  }
+
+  const showSkipLink = !isComplete && !isSkipped && typeof onSkip === 'function'
+
+  return (
+    <div className="flex flex-col items-center gap-1 min-w-[88px] flex-1">
       <button
-        onClick={() => onViewReport(row, milestoneKey)}
-        className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100 transition-colors"
-        title={report?.skipReason ? `Skipped: ${report.skipReason}` : 'Skipped'}
+        onClick={handleClick}
+        className="group flex flex-col items-center gap-1.5 w-full"
       >
-        Skipped
-      </button>
-    )
-  }
-
-  if (value && isComplete) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <span className="text-emerald-600 font-medium text-xs">{formatDate(value)}</span>
-        <button
-          onClick={() => onViewReport(row, milestoneKey)}
-          className="text-[#283693] hover:text-[#1e2a6e] transition-colors"
-          title="View Report"
-        >
-          <Eye className="size-3" />
-        </button>
-      </div>
-    )
-  }
-
-  if (isDraft) {
-    return (
-      <div className="inline-flex items-center gap-1.5">
-        <button
-          onClick={() => onCheckin(row, milestoneKey)}
-          className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors whitespace-nowrap"
-          title="Continue draft"
-        >
-          Draft
-        </button>
-        {typeof onSkip === 'function' && (
-          <>
-            <span className="text-stone-300 text-[10px]">·</span>
-            <button
-              onClick={() => onSkip(row, milestoneKey)}
-              className="text-stone-400 hover:text-amber-700 text-[10px] font-medium transition-colors"
-              title="Skip this check-in"
-            >
-              skip
-            </button>
-          </>
+        <div className={`size-9 rounded-full border-2 flex items-center justify-center transition-colors ${bubbleClass}`}>
+          {bubbleIcon}
+        </div>
+        <p className="text-[10px] uppercase tracking-wider font-semibold text-stone-500 text-center leading-tight">{label}</p>
+        <p className={`text-[11px] text-center leading-tight ${statusClass}`}>{statusText}</p>
+        {plannedDate && !isComplete && !isSkipped && !isDraft && (
+          <p className="text-[10px] text-stone-400 leading-tight">~{formatDate(plannedDate)}</p>
         )}
-      </div>
+      </button>
+      {showSkipLink && (
+        <button
+          onClick={() => onSkip(row, milestoneKey)}
+          className="text-[10px] text-stone-400 hover:text-amber-700 hover:underline transition-colors"
+        >
+          skip
+        </button>
+      )}
+    </div>
+  )
+}
+
+function MilestoneTimeline({ row, checkins, onCheckin, onViewReport, onSkip }) {
+  return (
+    <div className="flex items-start gap-1 overflow-x-auto py-2 -mx-1 px-1">
+      {STATION_DEFS.map(station => (
+        <MilestoneStation
+          key={station.key}
+          row={row}
+          milestoneKey={station.key}
+          label={station.label}
+          plannedDate={station.dateField ? row[station.dateField] : null}
+          checkins={checkins}
+          onCheckin={onCheckin}
+          onViewReport={onViewReport}
+          onSkip={onSkip}
+        />
+      ))}
+    </div>
+  )
+}
+
+function CustomCheckInChip({ row, custom, checkins, onCheckin, onViewReport, onSkip, onRemove }) {
+  const report = checkins[row.id]?.[custom.id]
+  const status = report?.status
+  const isComplete = status === 'complete'
+  const isSkipped = status === 'skipped'
+  const isDraft = status === 'draft'
+
+  let chipClass, statusEl, handleClick
+  if (isComplete) {
+    chipClass = 'bg-emerald-50 border-emerald-200 text-emerald-700'
+    statusEl = (
+      <span className="inline-flex items-center gap-1 font-medium">
+        <Check className="size-3" strokeWidth={3} />
+        {report?.completedAt ? formatDate(report.completedAt) : 'Complete'}
+      </span>
     )
+    handleClick = () => onViewReport(row, custom.id)
+  } else if (isSkipped) {
+    chipClass = 'bg-amber-50 border-amber-200 text-amber-700'
+    statusEl = <span className="font-medium">Skipped</span>
+    handleClick = () => onViewReport(row, custom.id)
+  } else if (isDraft) {
+    chipClass = 'bg-amber-50/60 border-amber-200 text-amber-600'
+    statusEl = <span className="font-medium">Draft</span>
+    handleClick = () => onCheckin(row, custom.id)
+  } else {
+    chipClass = 'bg-white border-[#283693]/30 text-[#283693] hover:bg-[#283693]/5'
+    statusEl = <span className="font-semibold">Check In</span>
+    handleClick = () => onCheckin(row, custom.id)
   }
 
   return (
-    <div className="inline-flex items-center gap-1.5">
-      <button
-        onClick={() => onCheckin(row, milestoneKey)}
-        className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors whitespace-nowrap"
-      >
-        Check In
+    <div className={`inline-flex items-center gap-2 pl-3 pr-1 py-1.5 rounded-full border text-xs transition-colors ${chipClass}`}>
+      <button onClick={handleClick} className="flex items-center gap-2">
+        <span className="font-semibold">{custom.label}</span>
+        <span className="text-stone-400">· {custom.duration}m</span>
+        <span className="text-stone-300">·</span>
+        {statusEl}
       </button>
-      {typeof onSkip === 'function' && (
+      {!isComplete && !isSkipped && typeof onSkip === 'function' && (
+        <button
+          onClick={() => onSkip(row, custom.id)}
+          className="text-[10px] text-stone-400 hover:text-amber-700"
+          title="Skip"
+        >
+          skip
+        </button>
+      )}
+      {!isComplete && (
+        <button
+          onClick={() => onRemove(row.id, custom.id)}
+          className="size-5 rounded-full text-stone-300 hover:text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center"
+          title="Remove this check-in slot"
+        >
+          <X className="size-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ContactLine({ label, name, email, phone, accent = 'violet' }) {
+  const accentClass = accent === 'indigo' ? 'text-[#283693] bg-[#283693]/10 border-[#283693]/20' : 'text-pink-600 bg-pink-50 border-pink-200'
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
+      <span className={`inline-flex shrink-0 px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border ${accentClass}`}>{label}</span>
+      {name && <span className="font-semibold text-stone-800">{name}</span>}
+      {email && (
+        <span className="inline-flex items-center gap-1 text-stone-500"><Mail className="size-3" /> {email}</span>
+      )}
+      {phone && (
+        <span className="inline-flex items-center gap-1 text-stone-500"><Phone className="size-3" /> {phone}</span>
+      )}
+    </div>
+  )
+}
+
+function CaseCard({ row, checkins, onCheckin, onViewReport, onSkip, onAddCustom, onRemoveCustom }) {
+  const intendedParents = Array.isArray(row.intendedParents) ? row.intendedParents : []
+  const fallbackIpName = !intendedParents.length && row.ipNames ? row.ipNames : ''
+  const customs = row.customCheckIns || []
+  return (
+    <div className={`rounded-2xl border bg-white shadow-sm hover:shadow-md transition-shadow p-5 space-y-4 ${row.archivedAt ? 'border-stone-200 opacity-90' : 'border-stone-200'}`}>
+      {/* Header: avatar, name, due date */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <GradientAvatar name={row.name} accent="pink" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-semibold text-stone-800 truncate">{row.name}</h3>
+              {row.archivedAt && (
+                <span className="inline-flex px-2 py-0.5 rounded-full bg-stone-100 text-stone-500 text-[9px] font-semibold uppercase tracking-wider border border-stone-200">Archived</span>
+              )}
+            </div>
+            <ContactLine label="Surrogate" email={row.email} phone={row.phone} accent="violet" />
+            {intendedParents.map((ip, i) => (
+              <ContactLine key={i} label={ip.label} name={ip.name} email={ip.email} phone={ip.phone} accent="indigo" />
+            ))}
+            {fallbackIpName && (
+              <ContactLine label="Intended Parent" name={fallbackIpName} accent="indigo" />
+            )}
+          </div>
+        </div>
+        <div className="shrink-0">
+          <DueDatePill date={row.dueDate} />
+          {row.deliveryDate && (
+            <div className="mt-1.5 text-right">
+              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-semibold text-emerald-600">
+                Delivered {formatDate(row.deliveryDate)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <hr className="border-stone-100" />
+
+      {/* Milestone timeline */}
+      <MilestoneTimeline row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
+
+      {/* Custom check-ins */}
+      {(customs.length > 0 || typeof onAddCustom === 'function') && (
         <>
-          <span className="text-stone-300 text-[10px]">·</span>
-          <button
-            onClick={() => onSkip(row, milestoneKey)}
-            className="text-stone-400 hover:text-amber-700 text-[10px] font-medium transition-colors"
-            title="Skip this check-in"
-          >
-            skip
-          </button>
+          <hr className="border-stone-100" />
+          <div className="space-y-2">
+            <h4 className="text-[10px] uppercase tracking-wider font-semibold text-stone-500">Other Check-Ins</h4>
+            <div className="flex flex-wrap items-center gap-2">
+              {customs.map(c => (
+                <CustomCheckInChip
+                  key={c.id}
+                  row={row}
+                  custom={c}
+                  checkins={checkins}
+                  onCheckin={onCheckin}
+                  onViewReport={onViewReport}
+                  onSkip={onSkip}
+                  onRemove={onRemoveCustom}
+                />
+              ))}
+              {typeof onAddCustom === 'function' && (
+                <button
+                  onClick={() => onAddCustom(row)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#283693] bg-[#283693]/10 hover:bg-[#283693]/15 border border-[#283693]/20 rounded-full transition-colors"
+                >
+                  <Plus className="size-3.5" /> Add Check-In
+                </button>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>
   )
 }
 
-// ── Custom Check-In Cell — renders a single custom slot inline ──
-function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRemove, onSkip }) {
-  const report = checkins[row.id]?.[custom.id]
-  const isComplete = report?.status === 'complete'
-  const isSkipped = report?.status === 'skipped'
-  const isDraft = report?.status === 'draft'
-  return (
-    <div className="rounded-lg bg-stone-50/60 border border-stone-200 px-2.5 py-1.5">
-      {/* Top row: label + duration · remove */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600 break-words">{custom.label}</span>
-          <span className="text-[10px] text-stone-400 ml-1">· {custom.duration} min</span>
-        </div>
-        {!isComplete && (
-          <button
-            onClick={() => onRemove(row.id, custom.id)}
-            className="text-stone-300 hover:text-red-500 transition-colors leading-none px-1 -mr-1 -mt-0.5"
-            title="Remove this check-in slot"
-          >
-            <span className="text-sm">×</span>
-          </button>
-        )}
-      </div>
-      {/* Bottom row: status / action */}
-      <div className="flex items-center justify-end gap-1.5 mt-1 pt-1 border-t border-stone-200/60">
-        {isComplete && report?.completedAt && (
-          <button
-            onClick={() => onViewReport(row, custom.id)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
-            title="View Report"
-          >
-            {formatDate(report.completedAt)}
-            <Eye className="size-3 text-[#283693]" />
-          </button>
-        )}
-        {isSkipped && (
-          <button
-            onClick={() => onViewReport(row, custom.id)}
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100"
-            title={report?.skipReason ? `Skipped: ${report.skipReason}` : 'Skipped'}
-          >
-            Skipped
-          </button>
-        )}
-        {isDraft && (
-          <>
-            <button onClick={() => onCheckin(row, custom.id)} className="text-amber-500 hover:text-amber-600 text-xs font-medium">
-              Draft
-            </button>
-            {typeof onSkip === 'function' && (
-              <>
-                <span className="text-stone-300 text-[10px]">·</span>
-                <button onClick={() => onSkip(row, custom.id)} className="text-stone-400 hover:text-amber-700 text-[10px] font-medium" title="Skip this check-in">skip</button>
-              </>
-            )}
-          </>
-        )}
-        {!isComplete && !isSkipped && !isDraft && (
-          <>
-            <button onClick={() => onCheckin(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium">
-              Check In
-            </button>
-            {typeof onSkip === 'function' && (
-              <>
-                <span className="text-stone-300 text-[10px]">·</span>
-                <button onClick={() => onSkip(row, custom.id)} className="text-stone-400 hover:text-amber-700 text-[10px] font-medium" title="Skip this check-in">skip</button>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ── Editable Date Cell (shared view — for non-checkin date fields) ──
-function EditableDateCell({ value, onSave }) {
-  const [editing, setEditing] = useState(false)
-
-  if (value && !editing) {
-    return (
-      <span className="text-emerald-600 font-medium cursor-pointer hover:underline" onClick={() => setEditing(true)} title="Click to edit">
-        {formatDate(value)}
-      </span>
-    )
-  }
-
-  return editing ? (
-    <input
-      type="date"
-      autoFocus
-      defaultValue={value || ''}
-      className="text-xs border border-stone-300 rounded px-1.5 py-1 w-[130px]"
-      onBlur={(e) => { if (e.target.value) onSave(e.target.value); setEditing(false) }}
-      onKeyDown={(e) => { if (e.key === 'Enter' && e.target.value) { onSave(e.target.value); setEditing(false) } if (e.key === 'Escape') setEditing(false) }}
-    />
-  ) : (
-    <button onClick={() => setEditing(true)} className="text-stone-400 hover:text-violet-500 text-xs transition-colors">
-      + Add date
-    </button>
-  )
-}
-
-// ── Contact Cell (surrogate + intended parents) ──
-function ContactCell({ row }) {
-  const intendedParents = Array.isArray(row.intendedParents) ? row.intendedParents : []
-  const fallbackIpName = !intendedParents.length && row.ipNames ? row.ipNames : ''
-  return (
-    <div className="space-y-3 min-w-[220px]">
-      <ContactBlock label="Surrogate" name={row.name} email={row.email} phone={row.phone} accent="violet" />
-      {intendedParents.map((ip, i) => (
-        <ContactBlock key={i} label={ip.label} name={ip.name} email={ip.email} phone={ip.phone} accent="indigo" />
-      ))}
-      {fallbackIpName && (
-        <ContactBlock label="Intended Parent" name={fallbackIpName} accent="indigo" />
-      )}
-    </div>
-  )
-}
-
-function ContactBlock({ label, name, email, phone, accent = 'violet' }) {
-  const accentClass = accent === 'indigo' ? 'text-[#283693]' : 'text-violet-600'
-  return (
-    <div>
-      <p className={`text-[9px] font-semibold uppercase tracking-wider ${accentClass}`}>{label}</p>
-      {name && <p className="text-xs font-semibold text-stone-800 mt-0.5">{name}</p>}
-      {email && <p className="text-[11px] text-stone-600 break-all leading-snug">{email}</p>}
-      {phone && <p className="text-[11px] text-stone-500 leading-snug">{phone}</p>}
-    </div>
-  )
-}
-
-// ── Shared Table (no case links) ──
 function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip, onAddCustom, onRemoveCustom }) {
   if (rows.length === 0) {
     return (
-      <div className="px-6 py-16 text-center text-stone-400">
+      <div className="rounded-2xl border border-stone-200 bg-white px-6 py-16 text-center text-stone-400">
         <p className="text-sm">No surrogates found.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="bg-stone-50 border-b border-stone-200">
-                <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[260px] border-r border-stone-200">Contact</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Estimated Due Date</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">30 Week</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 min-w-[180px]">Birth Guidelines</th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Delivery Date</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Post Delivery</th>
-                <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap min-w-[220px]">Other Check-Ins</th>
-              </tr>
-              <tr className="bg-stone-50/50 border-b border-stone-200">
-                <th className="sticky left-0 bg-stone-50/50 z-20 border-r border-stone-200" />
-                <th className="border-r border-stone-100" />
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
-                <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
-                <th className="border-r border-stone-100" />
-                <th className="border-r border-stone-100" />
-                <th className="border-r border-stone-100" />
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(row => (
-                <tr key={row.id} className="border-b-2 border-stone-200 hover:bg-stone-50/50 align-top">
-                  <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200 align-top">
-                    <ContactCell row={row} />
-                  </td>
-                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600 font-medium">{row.dueDate ? formatDate(row.dueDate) : '—'}</td>
-                  {/* 10 Week */}
-                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week10Date ? formatDate(row.week10Date) : '—'}</td>
-                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week10 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week10} milestoneKey="week10" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                  </td>
-                  {/* 20 Week */}
-                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week20Date ? formatDate(row.week20Date) : '—'}</td>
-                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week20 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week20} milestoneKey="week20" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                  </td>
-                  {/* 30 Week */}
-                  <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week30Date ? formatDate(row.week30Date) : '—'}</td>
-                  <td className={`px-3 py-3 border-r border-stone-100 ${row.week30 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week30} milestoneKey="week30" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                  </td>
-                  {/* Birth Guidelines (GC + IP slots in one cell) */}
-                  <td className="px-3 py-3 border-r border-stone-100">
-                    <div className="space-y-1.5">
-                      <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesGc ? 'bg-green-50/60' : ''}`}>
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: GC</span>
-                        <CheckInCell value={row.birthGuidelinesGc} milestoneKey="birthGuidelinesGc" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                      </div>
-                      <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesIp ? 'bg-green-50/60' : ''}`}>
-                        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: IP</span>
-                        <CheckInCell value={row.birthGuidelinesIp} milestoneKey="birthGuidelinesIp" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                      </div>
-                    </div>
-                  </td>
-                  {/* Delivery Date */}
-                  <td className="px-4 py-3 border-r border-stone-100 text-stone-600">
-                    {row.deliveryDate ? <span className="font-medium text-emerald-600">{formatDate(row.deliveryDate)}</span> : <span className="text-stone-300">—</span>}
-                  </td>
-                  {/* Post Delivery */}
-                  <td className={`px-3 py-3 border-r border-stone-100 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.postDelivery} milestoneKey="postDelivery" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
-                  </td>
-                  {/* Other / Custom Check-Ins */}
-                  <td className="px-3 py-3">
-                    <div className="space-y-1.5">
-                      {(row.customCheckIns || []).map(c => (
-                        <CustomCheckInRow
-                          key={c.id}
-                          row={row}
-                          custom={c}
-                          checkins={checkins}
-                          onCheckin={onCheckin}
-                          onViewReport={onViewReport}
-                          onSkip={onSkip}
-                          onRemove={onRemoveCustom}
-                        />
-                      ))}
-                      {typeof onAddCustom === 'function' && (
-                        <button
-                          onClick={() => onAddCustom(row)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[#283693] bg-[#283693]/10 hover:bg-[#283693]/15 border border-[#283693]/20 rounded-full transition-colors"
-                        >
-                          <span className="text-sm leading-none">+</span> Add Check-In
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="space-y-4">
+      {rows.map(row => (
+        <CaseCard
+          key={row.id}
+          row={row}
+          checkins={checkins}
+          onCheckin={onCheckin}
+          onViewReport={onViewReport}
+          onSkip={onSkip}
+          onAddCustom={onAddCustom}
+          onRemoveCustom={onRemoveCustom}
+        />
+      ))}
     </div>
   )
 }
