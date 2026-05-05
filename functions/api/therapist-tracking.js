@@ -307,6 +307,7 @@ async function loadRows(env) {
         name: gc.name,
         email: gc.email,
         phone: gc.phone,
+        archivedAt: jd._archivedAt || null,
         assignedTo: assignedEmail,
         caseManagerName: caseManagerName(assignedEmail),
         caseManagerEmail: assignedEmail,

@@ -540,20 +540,25 @@ export default function SharedPsychTrackingPage() {
     setCheckins(updated)
   }, [])
 
+  // An archived journey is always treated as Completed for tab-bucket purposes
+  // — Jenny shouldn't be prompted to do new check-ins on a closed case, but
+  // the row stays visible so prior check-in history is still browsable.
+  const isCaseArchivedOrComplete = (r) => Boolean(r.archivedAt) || isCaseComplete(r, checkins)
+
   const filtered = useMemo(() => {
     let list = rows
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(r => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q))
     }
-    if (tab === 'completed') return list.filter(r => isCaseComplete(r, checkins))
-    return list.filter(r => !isCaseComplete(r, checkins))
+    if (tab === 'completed') return list.filter(isCaseArchivedOrComplete)
+    return list.filter(r => !isCaseArchivedOrComplete(r))
   }, [rows, search, checkins, tab])
 
   const counts = useMemo(() => {
     let active = 0, completed = 0
     for (const r of rows) {
-      if (isCaseComplete(r, checkins)) completed++
+      if (isCaseArchivedOrComplete(r)) completed++
       else active++
     }
     return { active, completed }
