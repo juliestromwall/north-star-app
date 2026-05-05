@@ -301,7 +301,7 @@ export default function SurrogateIntakeForm() {
         )}
       </div>
       <div>
-        <p className="text-sm font-medium text-stone-800 mb-1">Are you a US citizen or permanent resident?</p>
+        <p className="text-sm font-medium text-stone-800 mb-1">Are you a US Citizen or Legal Resident?</p>
         <YesNoGrid
           value={form.usCitizen}
           onChange={v => set('usCitizen', v)}

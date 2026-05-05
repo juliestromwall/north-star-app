@@ -3287,6 +3287,8 @@ const CONDITIONAL_FIELDS = {
   householdSubstancesDetails: { parent: 'householdControlledSubstances', showWhen: 'yes' },
   householdSubstancesPurpose: { parent: 'householdControlledSubstances', showWhen: 'yes' },
   gunsDetails: { parent: 'gunsOwned', showWhen: 'yes' },
+  gunsInHomeAdminNotes: { parent: 'gunsInHome', showWhen: 'yes' },
+  breastfeedingAdminNotes: { parent: 'breastfeeding', showWhen: 'yes' },
   piercingsTattoosDetails: { parent: 'piercingsTattoos', showWhen: 'yes' },
   lastTattooDate: { parent: 'piercingsTattoos', showWhen: 'yes' },
   eatingDisordersDetails: { parent: 'eatingDisorders', showWhen: 'yes' },
