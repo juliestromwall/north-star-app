@@ -11,12 +11,12 @@ const corsHeaders = {
 const SHARE_KEY = 'psych_tracking_share'
 
 // Admin notification (the case manager) always goes to the assigned
-// caseManagerEmail. Jenny's confirmation copy is currently routed to the
-// user's spam-test inbox while we verify; flip JENNY_USE_TEST_RECIPIENT
-// to false to start sending to her real address.
+// caseManagerEmail. Jenny's confirmation copy now goes to her real
+// address. Flip JENNY_USE_TEST_RECIPIENT back to true to redirect to
+// the spam-test inbox while debugging.
 const TEST_RECIPIENT_EMAIL = 'juliestromwalll@gmail.com'
 const JENNY_REAL_EMAIL = 'joliver_2@hotmail.com'
-const JENNY_USE_TEST_RECIPIENT = true
+const JENNY_USE_TEST_RECIPIENT = false
 
 function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName, journeyUrl }) {
   return `<!DOCTYPE html>
