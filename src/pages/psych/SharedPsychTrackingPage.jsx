@@ -53,8 +53,71 @@ const MILESTONE_LABELS = {
   week10: '10 Week',
   week20: '20 Week',
   week30: '30 Week',
-  birthGuidelines: 'Birth Guidelines',
+  birthGuidelinesGc: 'Birth Guidelines (GC)',
+  birthGuidelinesIp: 'Birth Guidelines (IP)',
   postDelivery: 'Post Delivery',
+  // Legacy key — kept so old data displays a sensible label until backfilled.
+  birthGuidelines: 'Birth Guidelines',
+}
+
+// Required slots used to determine when a case is "complete" (every required
+// milestone is either complete or skipped). Custom check-ins don't count.
+const REQUIRED_MILESTONES = ['week10', 'week20', 'week30', 'birthGuidelinesGc', 'birthGuidelinesIp', 'postDelivery']
+
+const BIRTH_GUIDELINES_KEYS = new Set(['birthGuidelinesGc', 'birthGuidelinesIp'])
+
+// Default time-spent (minutes) per milestone — prefilled into the form.
+const DEFAULT_TIME_SPENT = {
+  week10: 30,
+  week20: 30,
+  week30: 30,
+  postDelivery: 30,
+  birthGuidelinesGc: 60,
+  birthGuidelinesIp: 60,
+}
+
+// Rich-text sections that appear on Birth Guidelines reports.
+const BIRTH_PLAN_SECTIONS = [
+  { key: 'obInfo', label: 'OB Info' },
+  { key: 'hospitalInfo', label: 'Hospital Info' },
+  { key: 'note', label: 'Note' },
+  { key: 'preferences', label: 'Preferences' },
+  { key: 'postDeliveryPlan', label: 'Post Delivery' },
+  { key: 'insurance', label: 'Insurance' },
+]
+
+function isCustomMilestoneKey(key) {
+  return typeof key === 'string' && key.startsWith('custom_')
+}
+
+function getMilestoneLabel(key, customCheckIns = []) {
+  if (MILESTONE_LABELS[key]) return MILESTONE_LABELS[key]
+  if (isCustomMilestoneKey(key)) {
+    const found = customCheckIns.find(c => c.id === key)
+    return found?.label || 'Misc Consult'
+  }
+  return key
+}
+
+function getDefaultTimeSpent(milestoneKey, customCheckIns = []) {
+  if (DEFAULT_TIME_SPENT[milestoneKey]) return DEFAULT_TIME_SPENT[milestoneKey]
+  if (isCustomMilestoneKey(milestoneKey)) {
+    const found = customCheckIns.find(c => c.id === milestoneKey)
+    return found?.duration === 60 ? 60 : 30
+  }
+  return 30
+}
+
+function isCaseComplete(row, checkins) {
+  const reports = checkins[row.id] || {}
+  return REQUIRED_MILESTONES.every(key => {
+    const status = reports[key]?.status
+    if (status === 'complete' || status === 'skipped') return true
+    // Tracking date counts the same as a completed report (legacy data).
+    if (key === 'birthGuidelinesGc' && (row.birthGuidelinesGc || row.birthGuidelines)) return true
+    if (row[key]) return true
+    return false
+  })
 }
 
 async function therapistTrackingApi(payload) {
@@ -175,6 +238,14 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
         </div>
       </div>
 
+      ${(report.birthPlanSections && Object.values(report.birthPlanSections).some(v => (v || '').trim()))
+        ? `<p class="section-title">Birth Plan</p>` +
+          BIRTH_PLAN_SECTIONS
+            .filter(s => (report.birthPlanSections[s.key] || '').trim())
+            .map(s => `<div style="margin: 0 0 10px 0;"><div style="font-size:10px;color:#78716c;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:3px;">${s.label}</div><div class="details-box" style="margin:0;">${report.birthPlanSections[s.key]}</div></div>`)
+            .join('')
+        : ''}
+
       <p class="section-title">Communication Details</p>
       <div class="details-box">${detailsHtml}</div>
 
@@ -211,6 +282,21 @@ export default function SharedPsychTrackingPage() {
   const [checkinSaving, setCheckinSaving] = useState(false)
   const [checkinReadOnly, setCheckinReadOnly] = useState(false)
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false)
+
+  // Skip-reason dialog state
+  const [skipOpen, setSkipOpen] = useState(false)
+  const [skipReason, setSkipReason] = useState('')
+  const [skipSaving, setSkipSaving] = useState(false)
+
+  // Custom check-in dialog (Add Check-In)
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customRow, setCustomRow] = useState(null)
+  const [customLabel, setCustomLabel] = useState('Misc Consult')
+  const [customDuration, setCustomDuration] = useState(30)
+  const [customSaving, setCustomSaving] = useState(false)
+
+  // Active / Completed tab toggle
+  const [tab, setTab] = useState('active')
 
   const SESSION_KEY = useMemo(() => `psych_share_session_${token}`, [token])
 
@@ -291,10 +377,23 @@ export default function SharedPsychTrackingPage() {
   }, [])
 
   const filtered = useMemo(() => {
-    if (!search) return rows
-    const q = search.toLowerCase()
-    return rows.filter(r => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q))
-  }, [rows, search])
+    let list = rows
+    if (search) {
+      const q = search.toLowerCase()
+      list = list.filter(r => r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q))
+    }
+    if (tab === 'completed') return list.filter(r => isCaseComplete(r, checkins))
+    return list.filter(r => !isCaseComplete(r, checkins))
+  }, [rows, search, checkins, tab])
+
+  const counts = useMemo(() => {
+    let active = 0, completed = 0
+    for (const r of rows) {
+      if (isCaseComplete(r, checkins)) completed++
+      else active++
+    }
+    return { active, completed }
+  }, [rows, checkins])
 
   async function updateDate(surrogateId, field, value) {
     const updated = { ...tracking, [surrogateId]: { ...tracking[surrogateId], [field]: value } }
@@ -303,10 +402,11 @@ export default function SharedPsychTrackingPage() {
 
   function openCheckinDialog(row, milestoneKey, readOnly = false) {
     const existing = checkins[row.id]?.[milestoneKey]
-    const milestoneName = MILESTONE_LABELS[milestoneKey]
+    const milestoneName = getMilestoneLabel(milestoneKey, row.customCheckIns)
+    const defaultMin = getDefaultTimeSpent(milestoneKey, row.customCheckIns)
     if (existing) {
       setCheckinForm({ ...existing })
-      setCheckinReadOnly(readOnly || existing.status === 'complete')
+      setCheckinReadOnly(readOnly || existing.status === 'complete' || existing.status === 'skipped')
     } else {
       setCheckinForm({
         therapistName: THERAPIST_DEFAULTS.therapistName,
@@ -317,8 +417,11 @@ export default function SharedPsychTrackingPage() {
         relationship: 'Self',
         communicationMethod: 'Phone',
         reason: `${milestoneName} Check-In`,
-        timeSpent: '',
+        timeSpent: `${defaultMin} minutes`,
         details: '',
+        birthPlanSections: BIRTH_GUIDELINES_KEYS.has(milestoneKey)
+          ? Object.fromEntries(BIRTH_PLAN_SECTIONS.map(s => [s.key, '']))
+          : undefined,
         signatureName: THERAPIST_DEFAULTS.signatureName,
         signatureCredentials: THERAPIST_DEFAULTS.signatureCredentials,
         signatureLicense: THERAPIST_DEFAULTS.signatureLicense,
@@ -333,8 +436,8 @@ export default function SharedPsychTrackingPage() {
     setCheckinOpen(true)
   }
 
-  function openPdfWindow(report, milestoneKey, surrogateName) {
-    const milestoneName = MILESTONE_LABELS[milestoneKey]
+  function openPdfWindow(report, milestoneKey, surrogateName, customCheckIns = []) {
+    const milestoneName = getMilestoneLabel(milestoneKey, customCheckIns)
     const html = generateCheckinPdfHtml(report, milestoneName, surrogateName)
     const win = window.open('', '_blank')
     if (!win) { alert('Please allow popups to view the PDF'); return }
@@ -378,7 +481,7 @@ export default function SharedPsychTrackingPage() {
       const now = new Date().toISOString()
       const today = new Date().toISOString().split('T')[0]
       const report = { ...checkinForm, status: 'complete', completedAt: now, savedAt: now }
-      const milestoneName = MILESTONE_LABELS[checkinMilestone]
+      const milestoneName = getMilestoneLabel(checkinMilestone, checkinRow.customCheckIns)
 
       // 1. Generate PDF and submit via server-side API (handles RLS bypass)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
@@ -454,7 +557,7 @@ export default function SharedPsychTrackingPage() {
       setRows(currentRows => currentRows.map(row => row.id === checkinRow.id ? { ...row, [checkinMilestone]: today } : row))
 
       // 3. Open PDF for download
-      openPdfWindow(report, checkinMilestone, checkinRow.name)
+      openPdfWindow(report, checkinMilestone, checkinRow.name, checkinRow.customCheckIns)
 
       setCheckinOpen(false)
     } catch (e) {
@@ -464,7 +567,97 @@ export default function SharedPsychTrackingPage() {
     finally { setCheckinSaving(false) }
   }
 
-  const milestoneName = checkinMilestone ? MILESTONE_LABELS[checkinMilestone] : ''
+  function openSkipDialog() {
+    setSkipReason('')
+    setSkipOpen(true)
+  }
+
+  async function handleSkipConfirm() {
+    if (!checkinRow || !checkinMilestone) return
+    setSkipSaving(true)
+    try {
+      await therapistTrackingApi({
+        action: 'skip',
+        sessionToken,
+        surrogateId: checkinRow.id,
+        milestone: checkinMilestone,
+        skipReason,
+      })
+      const skippedReport = {
+        ...(checkins[checkinRow.id]?.[checkinMilestone] || {}),
+        status: 'skipped',
+        skipReason,
+        skippedAt: new Date().toISOString(),
+      }
+      setCheckins(prev => ({
+        ...prev,
+        [checkinRow.id]: { ...(prev[checkinRow.id] || {}), [checkinMilestone]: skippedReport },
+      }))
+      setSkipOpen(false)
+      setCheckinOpen(false)
+    } catch (e) {
+      console.error('Failed to skip check-in:', e)
+      alert('Could not skip the check-in. Please try again.')
+    } finally {
+      setSkipSaving(false)
+    }
+  }
+
+  function openCustomCheckinDialog(row) {
+    setCustomRow(row)
+    setCustomLabel('Misc Consult')
+    setCustomDuration(30)
+    setCustomOpen(true)
+  }
+
+  async function handleAddCustomCheckin() {
+    if (!customRow) return
+    setCustomSaving(true)
+    try {
+      const res = await therapistTrackingApi({
+        action: 'add-custom-checkin',
+        sessionToken,
+        surrogateId: customRow.id,
+        label: customLabel.trim() || 'Misc Consult',
+        duration: customDuration,
+      })
+      const newCheckin = { id: res.id, label: customLabel.trim() || 'Misc Consult', duration: customDuration }
+      setRows(prev => prev.map(r => r.id === customRow.id
+        ? { ...r, customCheckIns: [...(r.customCheckIns || []), newCheckin] }
+        : r))
+      setCustomOpen(false)
+    } catch (e) {
+      console.error('Failed to add custom check-in:', e)
+      alert('Could not add the check-in. Please try again.')
+    } finally {
+      setCustomSaving(false)
+    }
+  }
+
+  async function handleRemoveCustomCheckin(rowId, checkInId) {
+    try {
+      await therapistTrackingApi({
+        action: 'remove-custom-checkin',
+        sessionToken,
+        surrogateId: rowId,
+        checkInId,
+      })
+      setRows(prev => prev.map(r => r.id === rowId
+        ? { ...r, customCheckIns: (r.customCheckIns || []).filter(c => c.id !== checkInId) }
+        : r))
+      setCheckins(prev => {
+        if (!prev[rowId]?.[checkInId]) return prev
+        const next = { ...prev, [rowId]: { ...prev[rowId] } }
+        delete next[rowId][checkInId]
+        return next
+      })
+    } catch (e) {
+      console.error('Failed to remove custom check-in:', e)
+    }
+  }
+
+  const milestoneName = checkinMilestone ? getMilestoneLabel(checkinMilestone, checkinRow?.customCheckIns) : ''
+  const isBirthGuidelinesMilestone = BIRTH_GUIDELINES_KEYS.has(checkinMilestone)
 
   if (valid === null) {
     return (
@@ -600,10 +793,26 @@ export default function SharedPsychTrackingPage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-          <Input placeholder="Search name or email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        {/* Tabs + Search */}
+        <div className="flex flex-wrap items-center gap-4 justify-between">
+          <div className="flex gap-1 border-b border-stone-200">
+            <button
+              onClick={() => setTab('active')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'active' ? 'border-[#ed148c] text-[#283693]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
+            >
+              Active <span className="text-stone-400 text-xs ml-1">{counts.active}</span>
+            </button>
+            <button
+              onClick={() => setTab('completed')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === 'completed' ? 'border-[#ed148c] text-[#283693]' : 'border-transparent text-stone-500 hover:text-stone-700'}`}
+            >
+              Completed Cases <span className="text-stone-400 text-xs ml-1">{counts.completed}</span>
+            </button>
+          </div>
+          <div className="relative max-w-sm flex-1 min-w-[240px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+            <Input placeholder="Search name or email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
         </div>
 
         {/* Table */}
@@ -615,8 +824,10 @@ export default function SharedPsychTrackingPage() {
           onViewReport={(row, milestone) => openCheckinDialog(row, milestone, true)}
           onDownloadPdf={(row, milestone) => {
             const report = checkins[row.id]?.[milestone]
-            if (report) openPdfWindow(report, milestone, row.name)
+            if (report) openPdfWindow(report, milestone, row.name, row.customCheckIns)
           }}
+          onAddCustom={openCustomCheckinDialog}
+          onRemoveCustom={handleRemoveCustomCheckin}
         />
 
         <p className="text-[10px] text-stone-400 text-center pt-4">
@@ -736,6 +947,39 @@ export default function SharedPsychTrackingPage() {
               <p className="text-xs text-stone-500 italic">The patient will not be billed for this communication.</p>
             </div>
 
+            {/* Birth Plan Sections — only shown for Birth Guidelines milestones */}
+            {isBirthGuidelinesMilestone && (
+              <div className="rounded-lg bg-[#ed148c]/[0.04] border border-[#ed148c]/20 p-4 space-y-4">
+                <h3 className="text-sm font-bold text-[#ed148c] uppercase tracking-wider flex items-center gap-2">
+                  <ClipboardList className="size-4" /> Birth Plan
+                </h3>
+                {checkinRow?.ipNames && checkinMilestone === 'birthGuidelinesIp' && (
+                  <p className="text-xs text-stone-500">For IP{checkinRow.ipNames ? `: ${checkinRow.ipNames}` : ''}</p>
+                )}
+                {checkinMilestone === 'birthGuidelinesGc' && (
+                  <p className="text-xs text-stone-500">For GC: {checkinRow?.name}</p>
+                )}
+                {BIRTH_PLAN_SECTIONS.map(section => (
+                  <div key={section.key} className="space-y-1.5">
+                    <label className="text-xs font-medium text-stone-600">{section.label}</label>
+                    {checkinReadOnly ? (
+                      <div
+                        className="rounded-xl border border-stone-200 bg-white p-3 text-sm text-stone-700 min-h-[60px]"
+                        dangerouslySetInnerHTML={{ __html: checkinForm.birthPlanSections?.[section.key] || '<p class="text-stone-400">(empty)</p>' }}
+                      />
+                    ) : (
+                      <RichTextEditor
+                        content={checkinForm.birthPlanSections?.[section.key] || ''}
+                        onChange={html => setCheckinForm(f => ({ ...f, birthPlanSections: { ...(f.birthPlanSections || {}), [section.key]: html } }))}
+                        placeholder={`${section.label}...`}
+                        minHeight="80px"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Communication Details */}
             <div className="rounded-lg bg-[#283693]/[0.03] border border-[#283693]/15 p-4 space-y-3">
               <h3 className="text-sm font-bold text-[#283693] uppercase tracking-wider flex items-center gap-2">
@@ -797,7 +1041,7 @@ export default function SharedPsychTrackingPage() {
                 <DialogClose asChild><Button variant="outline" size="sm">Close</Button></DialogClose>
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
                   const report = checkins[checkinRow?.id]?.[checkinMilestone]
-                  if (report) openPdfWindow(report, checkinMilestone, checkinRow.name)
+                  if (report) openPdfWindow(report, checkinMilestone, checkinRow.name, checkinRow.customCheckIns)
                 }}>
                   <FileText className="size-3.5" /> Download PDF
                 </Button>
@@ -805,6 +1049,9 @@ export default function SharedPsychTrackingPage() {
             ) : (
               <>
                 <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+                <Button size="sm" variant="ghost" className="gap-1.5 text-stone-500 hover:text-amber-700" onClick={openSkipDialog} disabled={checkinSaving}>
+                  Skip
+                </Button>
                 <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSaveDraft} disabled={checkinSaving}>
                   {checkinSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
                   Save Draft
@@ -829,7 +1076,7 @@ export default function SharedPsychTrackingPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 text-sm text-stone-600">
-            <p>You're about to submit this check-in for <strong className="text-stone-800">{checkinRow?.name}</strong> ({MILESTONE_LABELS[checkinMilestone] || ''} Check-In).</p>
+            <p>You're about to submit this check-in for <strong className="text-stone-800">{checkinRow?.name}</strong> ({milestoneName} Check-In).</p>
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 space-y-1">
               <p className="font-semibold">Once submitted:</p>
               <ul className="list-disc list-inside space-y-0.5 ml-1">
@@ -849,6 +1096,77 @@ export default function SharedPsychTrackingPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Skip Reason Dialog */}
+      <Dialog open={skipOpen} onOpenChange={setSkipOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              Skip {milestoneName}?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-stone-600">
+            <p>Marking this check-in as skipped for <strong className="text-stone-800">{checkinRow?.name}</strong>. Add a quick reason so the case file has context.</p>
+            <textarea
+              value={skipReason}
+              onChange={e => setSkipReason(e.target.value)}
+              placeholder="Reason for skipping (e.g. surrogate unreachable, milestone not applicable)"
+              rows={3}
+              className="w-full text-sm border border-stone-200 rounded-md px-2 py-1.5 bg-white"
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSkipOpen(false)} disabled={skipSaving}>Cancel</Button>
+            <Button size="sm" className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white" onClick={handleSkipConfirm} disabled={skipSaving || !skipReason.trim()}>
+              {skipSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              Skip Check-In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Custom Check-In Dialog */}
+      <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              Add Check-In{customRow ? ` — ${customRow.name}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Label</label>
+              <Input
+                value={customLabel}
+                onChange={e => setCustomLabel(e.target.value)}
+                placeholder="Misc Consult"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-stone-600">Time</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCustomDuration(30)}
+                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 30 ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                >30 min</button>
+                <button
+                  onClick={() => setCustomDuration(60)}
+                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${customDuration === 60 ? 'bg-[#283693] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
+                >60 min</button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setCustomOpen(false)} disabled={customSaving}>Cancel</Button>
+            <Button size="sm" className="gap-1.5 bg-[#283693] hover:bg-[#1e2a6e] text-white" onClick={handleAddCustomCheckin} disabled={customSaving || !customLabel.trim()}>
+              {customSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              Add Check-In
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -858,6 +1176,19 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
   const report = checkins[row.id]?.[milestoneKey]
   const isDraft = report?.status === 'draft'
   const isComplete = report?.status === 'complete'
+  const isSkipped = report?.status === 'skipped'
+
+  if (isSkipped) {
+    return (
+      <button
+        onClick={() => onViewReport(row, milestoneKey)}
+        className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100 transition-colors"
+        title={report?.skipReason ? `Skipped: ${report.skipReason}` : 'Skipped'}
+      >
+        Skipped
+      </button>
+    )
+  }
 
   if (value && isComplete) {
     return (
@@ -896,6 +1227,60 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
   )
 }
 
+// ── Custom Check-In Cell — renders a single custom slot inline ──
+function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRemove }) {
+  const report = checkins[row.id]?.[custom.id]
+  const isComplete = report?.status === 'complete'
+  const isSkipped = report?.status === 'skipped'
+  const isDraft = report?.status === 'draft'
+  return (
+    <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-stone-50/60 border border-stone-200">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">{custom.label}</span>
+        <span className="text-[10px] text-stone-400">· {custom.duration} min</span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {isComplete && report?.completedAt && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-emerald-600 font-medium text-xs">{formatDate(report.completedAt)}</span>
+            <button onClick={() => onViewReport(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e]" title="View Report">
+              <Eye className="size-3" />
+            </button>
+          </div>
+        )}
+        {isSkipped && (
+          <button
+            onClick={() => onViewReport(row, custom.id)}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full hover:bg-amber-100"
+            title={report?.skipReason ? `Skipped: ${report.skipReason}` : 'Skipped'}
+          >
+            Skipped
+          </button>
+        )}
+        {isDraft && (
+          <button onClick={() => onCheckin(row, custom.id)} className="text-amber-500 hover:text-amber-600 text-xs font-medium">
+            Draft
+          </button>
+        )}
+        {!isComplete && !isSkipped && !isDraft && (
+          <button onClick={() => onCheckin(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium">
+            Check In
+          </button>
+        )}
+        {!isComplete && (
+          <button
+            onClick={() => onRemove(row.id, custom.id)}
+            className="text-stone-300 hover:text-red-500 transition-colors"
+            title="Remove this check-in slot"
+          >
+            <span className="text-xs">×</span>
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Editable Date Cell (shared view — for non-checkin date fields) ──
 function EditableDateCell({ value, onSave }) {
   const [editing, setEditing] = useState(false)
@@ -925,7 +1310,7 @@ function EditableDateCell({ value, onSave }) {
 }
 
 // ── Shared Table (no case links) ──
-function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport }) {
+function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onAddCustom, onRemoveCustom }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -953,9 +1338,10 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport }) {
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">30 Week</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Birth Guidelines</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100 min-w-[180px]">Birth Guidelines</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Delivery Date</th>
-                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap">Post Delivery</th>
+                <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Post Delivery</th>
+                <th className="text-center px-3 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap min-w-[220px]">Other Check-Ins</th>
               </tr>
               <tr className="bg-stone-50/50 border-b border-stone-200">
                 <th className="sticky left-0 bg-stone-50/50 z-20 border-r border-stone-200" />
@@ -969,14 +1355,18 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport }) {
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
                 <th className="border-r border-stone-100" />
                 <th className="border-r border-stone-100" />
+                <th className="border-r border-stone-100" />
                 <th />
               </tr>
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50">
+                <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50 align-top">
                   <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
                     <span className="font-semibold text-xs text-stone-800">{row.name}</span>
+                    {row.ipNames && (
+                      <p className="text-[10px] text-stone-400 font-normal mt-0.5">IP: {row.ipNames}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100">
                     <p className="text-stone-600">{row.email || '—'}</p>
@@ -998,17 +1388,50 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport }) {
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week30 ? 'bg-green-50/60' : ''}`}>
                     <CheckInCell value={row.week30} milestoneKey="week30" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
                   </td>
-                  {/* Birth Guidelines */}
-                  <td className={`px-3 py-3 border-r border-stone-100 ${row.birthGuidelines ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.birthGuidelines} milestoneKey="birthGuidelines" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                  {/* Birth Guidelines (GC + IP slots in one cell) */}
+                  <td className="px-3 py-3 border-r border-stone-100">
+                    <div className="space-y-1.5">
+                      <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesGc ? 'bg-green-50/60' : ''}`}>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: GC</span>
+                        <CheckInCell value={row.birthGuidelinesGc} milestoneKey="birthGuidelinesGc" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                      </div>
+                      <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesIp ? 'bg-green-50/60' : ''}`}>
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: IP</span>
+                        <CheckInCell value={row.birthGuidelinesIp} milestoneKey="birthGuidelinesIp" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                      </div>
+                    </div>
                   </td>
                   {/* Delivery Date */}
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600">
                     {row.deliveryDate ? <span className="font-medium text-emerald-600">{formatDate(row.deliveryDate)}</span> : <span className="text-stone-300">—</span>}
                   </td>
                   {/* Post Delivery */}
-                  <td className={`px-3 py-3 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
+                  <td className={`px-3 py-3 border-r border-stone-100 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
                     <CheckInCell value={row.postDelivery} milestoneKey="postDelivery" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                  </td>
+                  {/* Other / Custom Check-Ins */}
+                  <td className="px-3 py-3">
+                    <div className="space-y-1.5">
+                      {(row.customCheckIns || []).map(c => (
+                        <CustomCheckInRow
+                          key={c.id}
+                          row={row}
+                          custom={c}
+                          checkins={checkins}
+                          onCheckin={onCheckin}
+                          onViewReport={onViewReport}
+                          onRemove={onRemoveCustom}
+                        />
+                      ))}
+                      {typeof onAddCustom === 'function' && (
+                        <button
+                          onClick={() => onAddCustom(row)}
+                          className="text-[11px] font-medium text-[#283693] hover:text-[#1e2a6e] hover:underline"
+                        >
+                          + Add Check-In
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

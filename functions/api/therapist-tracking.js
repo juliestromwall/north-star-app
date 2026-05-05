@@ -131,17 +131,28 @@ function caseManagerName(email) {
   return prefix.split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
 }
 
+function ipDisplayName(ipCase) {
+  if (!ipCase) return ''
+  const a = ipCase.answers || {}
+  const ip1 = `${a.ip1FirstName || ''} ${a.ip1LastName || ''}`.trim()
+  const ip2 = `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()
+  if (ip1 && ip2) return `${ip1} & ${ip2}`
+  return ip1 || ip2 || ''
+}
+
 async function loadRows(env) {
-  const [tracking, checkins, gcsRes, journeysRes] = await Promise.all([
+  const [tracking, checkins, gcsRes, ipsRes, journeysRes] = await Promise.all([
     getConfig(env, TRACKING_KEY),
     getConfig(env, CHECKINS_KEY),
     sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.gc&status=in.(qualified,approved,reviewed,pending_review)&select=id,applicant_email,answers&order=submitted_at.desc'),
-    sbFetch(env, '/rest/v1/matched_journeys?select=id,gc_case_id,assigned_to,status,stage,journey_data&order=created_at.desc'),
+    sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.ip&select=id,answers'),
+    sbFetch(env, '/rest/v1/matched_journeys?select=id,gc_case_id,ip_case_id,assigned_to,status,stage,journey_data&order=created_at.desc'),
   ])
 
-  if (!gcsRes.ok || !journeysRes.ok) throw new Error('Unable to load therapist tracking data')
+  if (!gcsRes.ok || !ipsRes.ok || !journeysRes.ok) throw new Error('Unable to load therapist tracking data')
 
   const gcs = await gcsRes.json()
+  const ips = await ipsRes.json()
   const journeys = await journeysRes.json()
   const safeTracking = tracking || {}
   const safeCheckins = checkins || {}
@@ -156,6 +167,8 @@ async function loadRows(env) {
     }]
   }))
 
+  const ipById = new Map(ips.map(row => [row.id, row]))
+
   const pregnantRows = journeys
     .filter(j => isActiveMatchedJourney(j) && j.journey_data?.pregnant === 'yes')
     .map(j => {
@@ -164,6 +177,10 @@ async function loadRows(env) {
       const t = safeTracking[gc.id] || {}
       const jd = j.journey_data || {}
       const assignedEmail = j.assigned_to || jd.assigned_to || ''
+      const ipCase = ipById.get(j.ip_case_id)
+      // Birth guidelines: legacy `birthGuidelines` maps to GC slot for back-compat.
+      const birthGuidelinesGc = t.birthGuidelinesGc || t.birthGuidelines || null
+      const birthGuidelinesIp = t.birthGuidelinesIp || null
       return {
         id: gc.id,
         name: gc.name,
@@ -172,34 +189,47 @@ async function loadRows(env) {
         assignedTo: assignedEmail,
         caseManagerName: caseManagerName(assignedEmail),
         caseManagerEmail: assignedEmail,
+        ipNames: ipDisplayName(ipCase),
         dueDate: jd.dueDate || null,
         deliveryDate: jd.deliveryDate || null,
         ...calcMilestoneDates(jd.dueDate),
         week10: t.week10 || null,
         week20: t.week20 || null,
         week30: t.week30 || null,
-        birthGuidelines: t.birthGuidelines || null,
+        birthGuidelinesGc,
+        birthGuidelinesIp,
+        // Legacy field for any client that hasn't updated yet.
+        birthGuidelines: birthGuidelinesGc,
         postDelivery: t.postDelivery || null,
+        customCheckIns: Array.isArray(t.customCheckIns) ? t.customCheckIns : [],
       }
     })
     .filter(Boolean)
 
   const manualRows = Object.entries(safeTracking)
     .filter(([key, val]) => key.startsWith('manual_') && val?._manual)
-    .map(([key, val]) => ({
-      id: key,
-      name: val.name || 'Unknown',
-      email: val.email || '',
-      phone: val.phone || '',
-      dueDate: val.dueDate || null,
-      deliveryDate: val.deliveryDate || null,
-      ...calcMilestoneDates(val.dueDate),
-      week10: val.week10 || null,
-      week20: val.week20 || null,
-      week30: val.week30 || null,
-      birthGuidelines: val.birthGuidelines || null,
-      postDelivery: val.postDelivery || null,
-    }))
+    .map(([key, val]) => {
+      const birthGuidelinesGc = val.birthGuidelinesGc || val.birthGuidelines || null
+      const birthGuidelinesIp = val.birthGuidelinesIp || null
+      return {
+        id: key,
+        name: val.name || 'Unknown',
+        email: val.email || '',
+        phone: val.phone || '',
+        ipNames: val.ipNames || '',
+        dueDate: val.dueDate || null,
+        deliveryDate: val.deliveryDate || null,
+        ...calcMilestoneDates(val.dueDate),
+        week10: val.week10 || null,
+        week20: val.week20 || null,
+        week30: val.week30 || null,
+        birthGuidelinesGc,
+        birthGuidelinesIp,
+        birthGuidelines: birthGuidelinesGc,
+        postDelivery: val.postDelivery || null,
+        customCheckIns: Array.isArray(val.customCheckIns) ? val.customCheckIns : [],
+      }
+    })
 
   return { rows: [...pregnantRows, ...manualRows], checkins: safeCheckins }
 }
@@ -283,6 +313,75 @@ export async function onRequestPost(context) {
         await setConfig(env, TRACKING_KEY, updatedTracking)
       }
 
+      return json({ success: true })
+    }
+
+    if (action === 'skip') {
+      const { skipReason } = body || {}
+      if (!surrogateId || !milestone) return json({ error: 'Missing required fields' }, 400)
+      const checkins = await getConfig(env, CHECKINS_KEY)
+      const existing = (checkins || {})[surrogateId]?.[milestone] || {}
+      const skippedReport = {
+        ...existing,
+        status: 'skipped',
+        skipReason: skipReason || '',
+        skippedAt: new Date().toISOString(),
+      }
+      const updatedCheckins = {
+        ...(checkins || {}),
+        [surrogateId]: {
+          ...((checkins || {})[surrogateId] || {}),
+          [milestone]: skippedReport,
+        },
+      }
+      await setConfig(env, CHECKINS_KEY, updatedCheckins)
+      return json({ success: true })
+    }
+
+    if (action === 'add-custom-checkin') {
+      const { label, duration } = body || {}
+      if (!surrogateId) return json({ error: 'Missing surrogateId' }, 400)
+      const tracking = await getConfig(env, TRACKING_KEY)
+      const safeTracking = tracking || {}
+      const existing = safeTracking[surrogateId] || {}
+      const list = Array.isArray(existing.customCheckIns) ? existing.customCheckIns : []
+      const newId = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const updated = {
+        ...safeTracking,
+        [surrogateId]: {
+          ...existing,
+          customCheckIns: [...list, { id: newId, label: label || 'Misc Consult', duration: duration === 60 ? 60 : 30 }],
+        },
+      }
+      await setConfig(env, TRACKING_KEY, updated)
+      return json({ success: true, id: newId })
+    }
+
+    if (action === 'remove-custom-checkin') {
+      const { checkInId } = body || {}
+      if (!surrogateId || !checkInId) return json({ error: 'Missing required fields' }, 400)
+      const tracking = await getConfig(env, TRACKING_KEY)
+      const safeTracking = tracking || {}
+      const existing = safeTracking[surrogateId] || {}
+      const list = Array.isArray(existing.customCheckIns) ? existing.customCheckIns : []
+      const updated = {
+        ...safeTracking,
+        [surrogateId]: {
+          ...existing,
+          customCheckIns: list.filter(c => c.id !== checkInId),
+        },
+      }
+      await setConfig(env, TRACKING_KEY, updated)
+      // Also clean up any check-in report attached to this custom slot
+      const checkins = await getConfig(env, CHECKINS_KEY)
+      if (checkins?.[surrogateId]?.[checkInId]) {
+        const updatedCheckins = {
+          ...checkins,
+          [surrogateId]: { ...checkins[surrogateId] },
+        }
+        delete updatedCheckins[surrogateId][checkInId]
+        await setConfig(env, CHECKINS_KEY, updatedCheckins)
+      }
       return json({ success: true })
     }
 
