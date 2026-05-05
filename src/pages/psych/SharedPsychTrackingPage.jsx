@@ -16,6 +16,15 @@ const THERAPIST_DEFAULTS = {
   signatureLicense: '51961',
 }
 
+// Hardcoded clinician info used as the "From" block on generated invoices.
+const CLINICIAN_INVOICE_INFO = {
+  name: 'Jennifer Oliver-Miramontes, LMFT, MA',
+  license: '51961',
+  npi: '1124278486',
+  addressLines: ['31356 Via Colinas #114', 'Westlake Village, CA 91362-6864'],
+  phone: '(310) 213-0027',
+}
+
 // Pacific Time formatting helpers
 const PT_TZ = 'America/Los_Angeles'
 
@@ -256,6 +265,155 @@ function generateCheckinPdfHtml(report, milestoneName, surrogateName) {
   </body></html>`
 }
 
+// Invoice amount: 60-min slots = $150, everything else = $100. Custom check-ins
+// pull duration from the row's customCheckIns entry.
+function getInvoiceAmount(milestoneKey, customCheckIns = []) {
+  const minutes = getDefaultTimeSpent(milestoneKey, customCheckIns)
+  return minutes >= 60 ? 150 : 100
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+// Patient billed on the invoice. birthGuidelinesIp uses the IP name; everything
+// else uses the surrogate's name.
+function getInvoicePatientName(milestoneKey, row) {
+  if (milestoneKey === 'birthGuidelinesIp' && row.ipNames) return row.ipNames
+  return row.name
+}
+
+function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
+  const milestoneName = getMilestoneLabel(milestoneKey, customCheckIns)
+  const patientName = getInvoicePatientName(milestoneKey, row)
+  const apptDt = report.dateTime ? new Date(report.dateTime) : new Date()
+  const apptDateStr = formatPTDate(apptDt)
+  const issuedDt = report.completedAt ? new Date(report.completedAt) : new Date()
+  const issuedDateStr = formatPTDate(issuedDt)
+  const minutes = getDefaultTimeSpent(milestoneKey, customCheckIns)
+  const fee = getInvoiceAmount(milestoneKey, customCheckIns)
+  const feeStr = `$${fee.toFixed(2)}`
+  const invoiceNumber = `INV-${issuedDt.toISOString().slice(0, 10).replace(/-/g, '')}-${String(row.id || '').slice(-4).toUpperCase() || 'XXXX'}-${milestoneKey.toUpperCase().slice(0, 6)}`
+  const docTitle = `Invoice for ${patientName} ${milestoneName}`
+
+  return `<!DOCTYPE html><html><head>
+    <title>${escapeHtml(docTitle)}</title>
+    <style>
+      @page { size: letter; margin: 0.5in; }
+      @media print {
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .print-bar { display: none !important; }
+        .content { padding: 0 !important; }
+      }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #1c1917; line-height: 1.5; font-size: 12px; background: white; }
+      .print-bar { position: sticky; top: 0; z-index: 100; padding: 12px 24px; background: #283693; color: white; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+      .print-bar button { background: white; color: #283693; border: none; padding: 7px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+      .content { max-width: 760px; margin: 0 auto; padding: 28px 32px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 0 24px 0; }
+      .brand { font-size: 11px; color: #78716c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+      .brand .name { font-size: 16px; color: #283693; font-weight: 700; letter-spacing: 0; text-transform: none; margin-top: 2px; }
+      .doc-title { text-align: right; }
+      .doc-title h1 { font-size: 28px; font-weight: 700; color: #283693; margin: 0 0 6px 0; letter-spacing: 0.04em; }
+      .doc-title .meta { font-size: 11px; color: #57534e; line-height: 1.6; }
+      .doc-title .meta strong { color: #1c1917; font-weight: 600; }
+      .top-divider { border: none; border-top: 2px solid #283693; margin: 0 0 20px 0; }
+      .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0 0 22px 0; }
+      .party-card { border: 1px solid #e7e5e4; border-radius: 10px; padding: 14px 16px; background: #fafaf9; }
+      .party-card .label { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 6px; }
+      .party-card .name { font-size: 13px; font-weight: 700; color: #1c1917; margin-bottom: 4px; }
+      .party-card .line { font-size: 11.5px; color: #44403c; line-height: 1.55; }
+      .patient-bar { background: #f8f7ff; border: 1px solid #e0e2f0; border-radius: 10px; padding: 12px 16px; margin: 0 0 20px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
+      .patient-bar .item { display: flex; flex-direction: column; }
+      .patient-bar .lbl { font-size: 9px; color: #78716c; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+      .patient-bar .val { font-size: 13px; color: #1c1917; font-weight: 600; margin-top: 2px; }
+      table.lines { width: 100%; border-collapse: collapse; margin: 0 0 6px 0; }
+      table.lines thead th { font-size: 10px; color: #78716c; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; text-align: left; padding: 10px 12px; border-bottom: 2px solid #283693; }
+      table.lines thead th.amount { text-align: right; }
+      table.lines tbody td { padding: 14px 12px; border-bottom: 1px solid #e7e5e4; font-size: 12px; vertical-align: top; }
+      table.lines tbody td.amount { text-align: right; font-variant-numeric: tabular-nums; }
+      table.lines tbody td .svc-title { font-weight: 600; color: #1c1917; }
+      table.lines tbody td .svc-sub { color: #78716c; font-size: 11px; margin-top: 2px; }
+      table.lines tfoot td { padding: 12px; font-size: 13px; }
+      table.lines tfoot td.label { text-align: right; text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: #283693; }
+      table.lines tfoot td.amount { text-align: right; font-weight: 700; font-size: 15px; color: #1c1917; font-variant-numeric: tabular-nums; }
+      .footer-note { margin-top: 24px; font-size: 10.5px; color: #a8a29e; text-align: center; letter-spacing: 0.04em; }
+    </style>
+  </head><body>
+    <div class="print-bar">
+      <span>${escapeHtml(docTitle)}</span>
+      <button onclick="window.print()">Save as PDF</button>
+    </div>
+    <div class="content">
+      <div class="header">
+        <div class="brand">
+          Invoice from
+          <div class="name">${escapeHtml(CLINICIAN_INVOICE_INFO.name)}</div>
+        </div>
+        <div class="doc-title">
+          <h1>INVOICE</h1>
+          <div class="meta">
+            <strong>${escapeHtml(invoiceNumber)}</strong><br/>
+            Issued ${escapeHtml(issuedDateStr)}
+          </div>
+        </div>
+      </div>
+      <hr class="top-divider"/>
+      <div class="parties">
+        <div class="party-card">
+          <div class="label">Bill To</div>
+          <div class="name">ABC Surrogacy</div>
+          <div class="line">Accounts Payable</div>
+        </div>
+        <div class="party-card">
+          <div class="label">From</div>
+          <div class="name">${escapeHtml(CLINICIAN_INVOICE_INFO.name)}</div>
+          <div class="line">License #${escapeHtml(CLINICIAN_INVOICE_INFO.license)} &nbsp;•&nbsp; NPI ${escapeHtml(CLINICIAN_INVOICE_INFO.npi)}</div>
+          ${CLINICIAN_INVOICE_INFO.addressLines.map(l => `<div class="line">${escapeHtml(l)}</div>`).join('')}
+          <div class="line">${escapeHtml(CLINICIAN_INVOICE_INFO.phone)}</div>
+        </div>
+      </div>
+      <div class="patient-bar">
+        <div class="item">
+          <span class="lbl">Patient</span>
+          <span class="val">${escapeHtml(patientName)}</span>
+        </div>
+        <div class="item">
+          <span class="lbl">Service Date</span>
+          <span class="val">${escapeHtml(apptDateStr)}</span>
+        </div>
+      </div>
+      <table class="lines">
+        <thead>
+          <tr>
+            <th style="width: 110px;">Date</th>
+            <th>Service</th>
+            <th class="amount" style="width: 110px;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${escapeHtml(apptDateStr)}</td>
+            <td>
+              <div class="svc-title">${escapeHtml(milestoneName)} for ${escapeHtml(patientName)}</div>
+              <div class="svc-sub">${minutes} min session with ${escapeHtml(CLINICIAN_INVOICE_INFO.name)}</div>
+            </td>
+            <td class="amount">${feeStr}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td class="label">Total Due</td>
+            <td class="amount">${feeStr}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="footer-note">Generated by ABC Surrogacy on ${escapeHtml(issuedDateStr)}</div>
+    </div>
+  </body></html>`
+}
+
 export default function SharedPsychTrackingPage() {
   const { token } = useParams()
   const [valid, setValid] = useState(null) // null = loading, true/false
@@ -441,6 +599,14 @@ export default function SharedPsychTrackingPage() {
     const html = generateCheckinPdfHtml(report, milestoneName, surrogateName)
     const win = window.open('', '_blank')
     if (!win) { alert('Please allow popups to view the PDF'); return }
+    win.document.write(html)
+    win.document.close()
+  }
+
+  function openInvoiceWindow(report, milestoneKey, row) {
+    const html = generateInvoiceHtml(report, milestoneKey, row, row.customCheckIns)
+    const win = window.open('', '_blank')
+    if (!win) { alert('Please allow popups to view the invoice'); return }
     win.document.write(html)
     win.document.close()
   }
@@ -1050,6 +1216,14 @@ export default function SharedPsychTrackingPage() {
                 }}>
                   <FileText className="size-3.5" /> Download PDF
                 </Button>
+                {checkins[checkinRow?.id]?.[checkinMilestone]?.status === 'complete' && (
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => {
+                    const report = checkins[checkinRow?.id]?.[checkinMilestone]
+                    if (report) openInvoiceWindow(report, checkinMilestone, checkinRow)
+                  }}>
+                    <DollarSign className="size-3.5" /> Download Invoice
+                  </Button>
+                )}
               </>
             ) : (
               <>
