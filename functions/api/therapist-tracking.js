@@ -140,12 +140,34 @@ function ipDisplayName(ipCase) {
   return ip1 || ip2 || ''
 }
 
+// Returns up to two intended parent contact entries for the table's Contact
+// cell. ip1Email falls back to the intake submission's applicant_email so we
+// still show something when ip1Email isn't set in answers.
+function intendedParentsContacts(ipCase) {
+  if (!ipCase) return []
+  const a = ipCase.answers || {}
+  const list = []
+  const ip1Name = `${a.ip1FirstName || ''} ${a.ip1LastName || ''}`.trim()
+  const ip1Email = a.ip1Email || ipCase.applicant_email || ''
+  const ip1Phone = a.ip1Phone || a.phone || ''
+  if (ip1Name || ip1Email || ip1Phone) {
+    list.push({ label: 'Intended Parent 1', name: ip1Name, email: ip1Email, phone: ip1Phone })
+  }
+  const ip2Name = `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()
+  const ip2Email = a.ip2Email || ''
+  const ip2Phone = a.ip2Phone || ''
+  if (ip2Name || ip2Email || ip2Phone) {
+    list.push({ label: 'Intended Parent 2', name: ip2Name, email: ip2Email, phone: ip2Phone })
+  }
+  return list
+}
+
 async function loadRows(env) {
   const [tracking, checkins, gcsRes, ipsRes, journeysRes] = await Promise.all([
     getConfig(env, TRACKING_KEY),
     getConfig(env, CHECKINS_KEY),
     sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.gc&status=in.(qualified,approved,reviewed,pending_review)&select=id,applicant_email,answers&order=submitted_at.desc'),
-    sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.ip&select=id,answers'),
+    sbFetch(env, '/rest/v1/intake_submissions?intake_type=eq.ip&select=id,applicant_email,answers'),
     sbFetch(env, '/rest/v1/matched_journeys?select=id,gc_case_id,ip_case_id,assigned_to,status,stage,journey_data&order=created_at.desc'),
   ])
 
@@ -190,6 +212,7 @@ async function loadRows(env) {
         caseManagerName: caseManagerName(assignedEmail),
         caseManagerEmail: assignedEmail,
         ipNames: ipDisplayName(ipCase),
+        intendedParents: intendedParentsContacts(ipCase),
         dueDate: jd.dueDate || null,
         deliveryDate: jd.deliveryDate || null,
         ...calcMilestoneDates(jd.dueDate),
@@ -217,6 +240,7 @@ async function loadRows(env) {
         email: val.email || '',
         phone: val.phone || '',
         ipNames: val.ipNames || '',
+        intendedParents: Array.isArray(val.intendedParents) ? val.intendedParents : [],
         dueDate: val.dueDate || null,
         deliveryDate: val.deliveryDate || null,
         ...calcMilestoneDates(val.dueDate),
