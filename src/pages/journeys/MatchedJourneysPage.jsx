@@ -15,6 +15,7 @@ import { fetchMatchedJourneys } from '@/lib/matching'
 import { getChecklistMilestones, getChecklistSteps, deriveParentStatus } from '@/lib/checklistStore'
 import { fetchSurrogatesFromIntake, fetchIPsFromIntake, getAppConfig, getProfilePhotoUrls, getPortraitPhotoUrl } from '@/lib/db'
 import { getAdminStaff } from '@/data/mock/users'
+import { getStatusesForStage } from '@/lib/stageStatusStore'
 
 const DEFAULT_ALL_CASE_EMAILS = new Set([
   'julie@abcsurrogacy.com',
@@ -22,19 +23,6 @@ const DEFAULT_ALL_CASE_EMAILS = new Set([
 ])
 
 const JOURNEY_STAGES = SURROGATE_STAGES.filter(s => s.id === 'journey-oversight')
-
-// Order of status filter boxes, left to right. Any statuses present in data but
-// not listed here get appended (alphabetized) just before the Archived box.
-const STATUS_PRIORITY = [
-  'Pending Medical Clearance',
-  'Pending Legal Clearance',
-  'Legal Clearance Issued',
-  'Transfer Prep',
-  'Pregnant',
-  'Delivered',
-  'Delivery',
-  'Holding',
-]
 
 // The only people who can be Journey Manager
 export const JOURNEY_MANAGERS = ['Julie Allgood', 'Nicole Lawson']
@@ -323,10 +311,11 @@ export default function MatchedJourneysPage() {
   )
 
   const orderedStatuses = useMemo(() => {
+    const configuredStatuses = getStatusesForStage('journey-oversight', 'journey')
     const all = Object.keys(statusCounts)
     const seen = new Set()
     const head = []
-    for (const s of STATUS_PRIORITY) {
+    for (const s of configuredStatuses) {
       if (all.includes(s)) { head.push(s); seen.add(s) }
     }
     const tail = all.filter(s => !seen.has(s)).sort()
