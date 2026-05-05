@@ -105,8 +105,10 @@ export async function onRequestPost(context) {
     const body = await context.request.json()
     const {
       surrogateId,
-      pdfBase64, // base64 string of PDF
+      pdfBase64, // base64 string of check-in note PDF
       fileName,
+      invoicePdfBase64, // optional base64 string of invoice PDF
+      invoiceFileName,
       uploadedBy, // therapist name
       caseManagerEmail,
       journeyId, // if known
@@ -125,36 +127,34 @@ export async function onRequestPost(context) {
       Authorization: `Bearer ${supabaseKey}`,
     }
 
-    const results = { documentUploaded: false, taskCreated: false, errors: {} }
+    const results = { documentUploaded: false, invoiceUploaded: false, taskCreated: false, errors: {} }
 
-    // 1. Convert base64 to bytes
-    const binary = atob(pdfBase64)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-
-    // 2. Upload to storage (psych-evaluation folder)
-    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
-    const storagePath = `${surrogateId}/psych-evaluation/${Date.now()}-${safeName}`
-    try {
-      const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${BUCKET}/${storagePath}`, {
-        method: 'POST',
-        headers: { ...sbHeaders, 'Content-Type': 'application/pdf', 'Cache-Control': '3600' },
-        body: bytes,
-      })
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text()
-        console.error('Storage upload failed:', uploadRes.status, errText)
-        results.errors.storage = `${uploadRes.status}: ${errText}`
-      } else {
+    async function uploadPdfToCaseDocuments({ base64, name, category, errKeyPrefix }) {
+      const binary = atob(base64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const safeName = name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const storagePath = `${surrogateId}/${category}/${Date.now()}-${safeName}`
+      try {
+        const uploadRes = await fetch(`${supabaseUrl}/storage/v1/object/${BUCKET}/${storagePath}`, {
+          method: 'POST',
+          headers: { ...sbHeaders, 'Content-Type': 'application/pdf', 'Cache-Control': '3600' },
+          body: bytes,
+        })
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text()
+          console.error(`${errKeyPrefix} storage upload failed:`, uploadRes.status, errText)
+          results.errors[`${errKeyPrefix}_storage`] = `${uploadRes.status}: ${errText}`
+          return false
+        }
         const publicUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${storagePath}`
-        // 3. Insert into case_documents
         const docRes = await fetch(`${supabaseUrl}/rest/v1/case_documents`, {
           method: 'POST',
           headers: { ...sbHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
           body: JSON.stringify({
             surrogate_id: surrogateId,
-            category: 'psych-evaluation',
-            file_name: fileName,
+            category,
+            file_name: name,
             file_type: 'application/pdf',
             file_size: bytes.length,
             storage_path: storagePath,
@@ -162,17 +162,34 @@ export async function onRequestPost(context) {
             uploaded_by: uploadedBy || 'Therapist',
           }),
         })
-        if (docRes.ok) {
-          results.documentUploaded = true
-        } else {
-          const docErr = await docRes.text()
-          console.error('case_documents insert failed:', docRes.status, docErr)
-          results.errors.case_documents = `${docRes.status}: ${docErr}`
-        }
+        if (docRes.ok) return true
+        const docErr = await docRes.text()
+        console.error(`${errKeyPrefix} case_documents insert failed:`, docRes.status, docErr)
+        results.errors[`${errKeyPrefix}_case_documents`] = `${docRes.status}: ${docErr}`
+        return false
+      } catch (e) {
+        console.error(`${errKeyPrefix} upload exception:`, e)
+        results.errors[`${errKeyPrefix}_exception`] = e.message
+        return false
       }
-    } catch (e) {
-      console.error('PDF upload exception:', e)
-      results.errors.upload_exception = e.message
+    }
+
+    // 1. Upload check-in note PDF (psych-evaluation folder)
+    results.documentUploaded = await uploadPdfToCaseDocuments({
+      base64: pdfBase64,
+      name: fileName,
+      category: 'psych-evaluation',
+      errKeyPrefix: 'note',
+    })
+
+    // 1b. Upload invoice PDF if present (receipts folder)
+    if (invoicePdfBase64 && invoiceFileName) {
+      results.invoiceUploaded = await uploadPdfToCaseDocuments({
+        base64: invoicePdfBase64,
+        name: invoiceFileName,
+        category: 'receipts',
+        errKeyPrefix: 'invoice',
+      })
     }
 
     // 4. Look up matched journey if not provided (covers shared link case)
