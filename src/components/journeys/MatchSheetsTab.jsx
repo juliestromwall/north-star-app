@@ -567,34 +567,39 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
     <div ref={sheetRef} style={{ width: 816, padding: '48px 56px', backgroundColor: 'white', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', color: '#1c1917', lineHeight: 1.5 }}>
       <SheetHeader title="Clinic Match Sheet" journey={journey} color={color} />
 
-      {/* IVF / Clinic Info */}
-      <PartyBanner color={color} icon={Stethoscope}>IVF Details</PartyBanner>
+      {/* Clinic Details — pulled from journey hero card */}
+      <PartyBanner color={color} icon={Stethoscope}>Clinic Details</PartyBanner>
       <InfoGrid items={[
-        { label: 'RE Doctor / Clinic', value: ipCase?.reDoctorName || '—' },
-        { label: 'Clinic Location', editable: true, value: <EditableValue field="reClinicLocation" msData={msData} onChange={onChange} placeholder="Enter city, state..." /> },
-        { label: 'Frozen Embryos', value: yesNo(ipCase?.hasFrozenEmbryos) },
-        { label: 'Embryo Details', value: ipCase?.frozenEmbryoDetails || '—' },
-        { label: 'Egg Source', value: ipCase?.usingEggDonor ? 'Donor Egg' : "IP's Eggs" },
-        { label: 'Sperm Source', value: ipCase?.usingSpermDonor ? 'Donor Sperm' : "IP's Sperm" },
+        { label: 'Clinic Name', value: jd.ivfClinic || '—' },
+        { label: 'RE', value: jd.ivfDoctor ? (/^dr\.?\s/i.test(jd.ivfDoctor) ? jd.ivfDoctor : `Dr. ${jd.ivfDoctor}`) : '—' },
       ]} />
 
-      {/* Intended Parents */}
+      {/* Intended Parents — same 4-col structured layout as Escrow Sheet */}
       <PartyBanner color="#283693" icon={Users}>Intended Parents</PartyBanner>
 
       <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
-      <PartyName name={`${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim()} />
-      <InfoGrid items={[
-        { label: 'Email', value: ipCase?.email },
-        { label: 'Phone', value: formatPhone(ipCase?.phone) },
-        { label: 'Date of Birth', value: formatDate(a.primaryDob) },
-        { label: 'Location', value: [a.city, a.stateProv].filter(Boolean).join(', ') },
-        ...(a.hasPartner === true || a.hasPartner === 'yes' ? [
-          { label: 'IP 2 Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
-          { label: 'IP 2 DOB', value: formatDate(a.ip2Dob) },
-          { label: 'IP 2 Email', value: ipCase?.ip2Email },
-          { label: 'IP 2 Phone', value: formatPhone(ipCase?.ip2Phone) },
-        ] : []),
+      <InfoGrid columns={4} items={[
+        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim(), span: 2 },
+        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}`, span: 2 },
+        { label: 'Email', value: ipCase?.email, span: 2 },
+        { label: 'Phone', value: formatPhone(ipCase?.phone), span: 2 },
+        { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', ') },
+        { label: 'City', value: a.city },
+        { label: 'State', value: a.stateProv },
+        { label: 'Zip', value: a.zipCode },
       ]} />
+
+      {(a.hasPartner === true || a.hasPartner === 'yes') && (
+        <>
+          <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
+          <InfoGrid items={[
+            { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
+            { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
+            { label: 'Email', value: ipCase?.ip2Email },
+            { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
+          ]} />
+        </>
+      )}
 
       {/* Surrogate — detailed medical */}
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
