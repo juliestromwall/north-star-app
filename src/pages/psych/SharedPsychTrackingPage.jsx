@@ -567,7 +567,11 @@ export default function SharedPsychTrackingPage() {
     finally { setCheckinSaving(false) }
   }
 
-  function openSkipDialog() {
+  function openSkipDialog(row, milestone) {
+    if (row && milestone) {
+      setCheckinRow(row)
+      setCheckinMilestone(milestone)
+    }
     setSkipReason('')
     setSkipOpen(true)
   }
@@ -822,6 +826,7 @@ export default function SharedPsychTrackingPage() {
           onDateChange={updateDate}
           onCheckin={(row, milestone) => openCheckinDialog(row, milestone)}
           onViewReport={(row, milestone) => openCheckinDialog(row, milestone, true)}
+          onSkip={(row, milestone) => openSkipDialog(row, milestone)}
           onDownloadPdf={(row, milestone) => {
             const report = checkins[row.id]?.[milestone]
             if (report) openPdfWindow(report, milestone, row.name, row.customCheckIns)
@@ -1172,7 +1177,7 @@ export default function SharedPsychTrackingPage() {
 }
 
 // ── Check-In Cell (shared view) ──
-function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport }) {
+function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewReport, onSkip }) {
   const report = checkins[row.id]?.[milestoneKey]
   const isDraft = report?.status === 'draft'
   const isComplete = report?.status === 'complete'
@@ -1207,28 +1212,56 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
 
   if (isDraft) {
     return (
-      <button
-        onClick={() => onCheckin(row, milestoneKey)}
-        className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors"
-        title="Continue draft"
-      >
-        Draft
-      </button>
+      <div className="inline-flex items-center gap-1.5">
+        <button
+          onClick={() => onCheckin(row, milestoneKey)}
+          className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors"
+          title="Continue draft"
+        >
+          Draft
+        </button>
+        {typeof onSkip === 'function' && (
+          <>
+            <span className="text-stone-300 text-[10px]">·</span>
+            <button
+              onClick={() => onSkip(row, milestoneKey)}
+              className="text-stone-400 hover:text-amber-700 text-[10px] font-medium transition-colors"
+              title="Skip this check-in"
+            >
+              skip
+            </button>
+          </>
+        )}
+      </div>
     )
   }
 
   return (
-    <button
-      onClick={() => onCheckin(row, milestoneKey)}
-      className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors"
-    >
-      Check In
-    </button>
+    <div className="inline-flex items-center gap-1.5">
+      <button
+        onClick={() => onCheckin(row, milestoneKey)}
+        className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors"
+      >
+        Check In
+      </button>
+      {typeof onSkip === 'function' && (
+        <>
+          <span className="text-stone-300 text-[10px]">·</span>
+          <button
+            onClick={() => onSkip(row, milestoneKey)}
+            className="text-stone-400 hover:text-amber-700 text-[10px] font-medium transition-colors"
+            title="Skip this check-in"
+          >
+            skip
+          </button>
+        </>
+      )}
+    </div>
   )
 }
 
 // ── Custom Check-In Cell — renders a single custom slot inline ──
-function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRemove }) {
+function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRemove, onSkip }) {
   const report = checkins[row.id]?.[custom.id]
   const isComplete = report?.status === 'complete'
   const isSkipped = report?.status === 'skipped'
@@ -1258,14 +1291,30 @@ function CustomCheckInRow({ row, custom, checkins, onCheckin, onViewReport, onRe
           </button>
         )}
         {isDraft && (
-          <button onClick={() => onCheckin(row, custom.id)} className="text-amber-500 hover:text-amber-600 text-xs font-medium">
-            Draft
-          </button>
+          <>
+            <button onClick={() => onCheckin(row, custom.id)} className="text-amber-500 hover:text-amber-600 text-xs font-medium">
+              Draft
+            </button>
+            {typeof onSkip === 'function' && (
+              <>
+                <span className="text-stone-300 text-[10px]">·</span>
+                <button onClick={() => onSkip(row, custom.id)} className="text-stone-400 hover:text-amber-700 text-[10px] font-medium" title="Skip this check-in">skip</button>
+              </>
+            )}
+          </>
         )}
         {!isComplete && !isSkipped && !isDraft && (
-          <button onClick={() => onCheckin(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium">
-            Check In
-          </button>
+          <>
+            <button onClick={() => onCheckin(row, custom.id)} className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium">
+              Check In
+            </button>
+            {typeof onSkip === 'function' && (
+              <>
+                <span className="text-stone-300 text-[10px]">·</span>
+                <button onClick={() => onSkip(row, custom.id)} className="text-stone-400 hover:text-amber-700 text-[10px] font-medium" title="Skip this check-in">skip</button>
+              </>
+            )}
+          </>
         )}
         {!isComplete && (
           <button
@@ -1310,7 +1359,7 @@ function EditableDateCell({ value, onSave }) {
 }
 
 // ── Shared Table (no case links) ──
-function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onAddCustom, onRemoveCustom }) {
+function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip, onAddCustom, onRemoveCustom }) {
   if (rows.length === 0) {
     return (
       <Card>
@@ -1376,28 +1425,28 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onAddC
                   {/* 10 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week10Date ? formatDate(row.week10Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week10 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week10} milestoneKey="week10" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                    <CheckInCell value={row.week10} milestoneKey="week10" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                   </td>
                   {/* 20 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week20Date ? formatDate(row.week20Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week20 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week20} milestoneKey="week20" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                    <CheckInCell value={row.week20} milestoneKey="week20" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                   </td>
                   {/* 30 Week */}
                   <td className="px-3 py-3 border-r border-stone-50 text-center text-stone-400 text-[10px]">{row.week30Date ? formatDate(row.week30Date) : '—'}</td>
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.week30 ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.week30} milestoneKey="week30" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                    <CheckInCell value={row.week30} milestoneKey="week30" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                   </td>
                   {/* Birth Guidelines (GC + IP slots in one cell) */}
                   <td className="px-3 py-3 border-r border-stone-100">
                     <div className="space-y-1.5">
                       <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesGc ? 'bg-green-50/60' : ''}`}>
                         <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: GC</span>
-                        <CheckInCell value={row.birthGuidelinesGc} milestoneKey="birthGuidelinesGc" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                        <CheckInCell value={row.birthGuidelinesGc} milestoneKey="birthGuidelinesGc" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                       </div>
                       <div className={`flex items-center justify-between gap-2 px-2 py-1 rounded ${row.birthGuidelinesIp ? 'bg-green-50/60' : ''}`}>
                         <span className="text-[10px] font-medium uppercase tracking-wide text-stone-500">For: IP</span>
-                        <CheckInCell value={row.birthGuidelinesIp} milestoneKey="birthGuidelinesIp" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                        <CheckInCell value={row.birthGuidelinesIp} milestoneKey="birthGuidelinesIp" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                       </div>
                     </div>
                   </td>
@@ -1407,7 +1456,7 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onAddC
                   </td>
                   {/* Post Delivery */}
                   <td className={`px-3 py-3 border-r border-stone-100 ${row.postDelivery ? 'bg-green-50/60' : ''}`}>
-                    <CheckInCell value={row.postDelivery} milestoneKey="postDelivery" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} />
+                    <CheckInCell value={row.postDelivery} milestoneKey="postDelivery" row={row} checkins={checkins} onCheckin={onCheckin} onViewReport={onViewReport} onSkip={onSkip} />
                   </td>
                   {/* Other / Custom Check-Ins */}
                   <td className="px-3 py-3">
@@ -1420,15 +1469,16 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onAddC
                           checkins={checkins}
                           onCheckin={onCheckin}
                           onViewReport={onViewReport}
+                          onSkip={onSkip}
                           onRemove={onRemoveCustom}
                         />
                       ))}
                       {typeof onAddCustom === 'function' && (
                         <button
                           onClick={() => onAddCustom(row)}
-                          className="text-[11px] font-medium text-[#283693] hover:text-[#1e2a6e] hover:underline"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[#283693] bg-[#283693]/10 hover:bg-[#283693]/15 border border-[#283693]/20 rounded-full transition-colors"
                         >
-                          + Add Check-In
+                          <span className="text-sm leading-none">+</span> Add Check-In
                         </button>
                       )}
                     </div>
