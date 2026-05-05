@@ -762,7 +762,7 @@ export function ExpenseRow({ exp, onUpdate, onDelete, onEdit, fmtCurrency, onPre
           const file = e.target.files?.[0]
           if (!file) return
           try {
-            const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file, uploadedBy: 'Admin' })
+            const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'receipts', file, uploadedBy: 'Admin' })
             if (doc?.public_url) {
               // Append to existing URLs so adding a second attachment from the
               // table doesn't clobber what was uploaded with the expense.
@@ -1993,7 +1993,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
       const uploadedUrls = []
       for (const li of lineItems) {
         if (!li.file) continue
-        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'receipts', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
         if (doc?.public_url) uploadedUrls.push(doc.public_url)
       }
       const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null
@@ -2142,7 +2142,7 @@ export function JourneyExpensesTab({ journeyId, gcCaseId, gcCase, ipCase, journe
       const newUploadedUrls = []
       for (const li of editExpense.lineItems) {
         if (!li.file) continue
-        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        const doc = await uploadCaseDocument({ surrogateId: gcCaseId, category: 'receipts', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
         if (doc?.public_url) newUploadedUrls.push(doc.public_url)
       }
       const allUrls = [...(editExpense.existingAttachments || []), ...newUploadedUrls]
@@ -3576,7 +3576,7 @@ export default function JourneyDetailPage() {
                   const uploadedUrls = []
                   for (const li of expenseLineItems) {
                     if (!li.file) continue
-                    const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+                    const doc = await uploadCaseDocument({ surrogateId: journey.gc_case_id, category: 'receipts', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
                     if (doc?.public_url) uploadedUrls.push(doc.public_url)
                   }
                   const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null

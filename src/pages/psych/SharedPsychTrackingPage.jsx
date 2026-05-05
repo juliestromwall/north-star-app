@@ -651,28 +651,49 @@ export default function SharedPsychTrackingPage() {
 
       // 1. Generate PDF and submit via server-side API (handles RLS bypass)
       const fileName = `${checkinRow.name} - ${milestoneName} Check In.pdf`
+      const invoicePatientName = getInvoicePatientName(checkinMilestone, checkinRow)
+      const invoiceFileName = `Invoice for ${invoicePatientName} - ${milestoneName}.pdf`
       try {
         if (!String(checkinRow.id).startsWith('manual_')) {
-          const html = generateCheckinPdfHtml(report, milestoneName, checkinRow.name)
-          const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
           const html2pdf = (await import('html2pdf.js')).default
-          const tempDiv = document.createElement('div')
-          tempDiv.innerHTML = cleanHtml
-          document.body.appendChild(tempDiv)
-          const pdfBlob = await html2pdf().set({
-            margin: 0.5,
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-          }).from(tempDiv).output('blob')
-          document.body.removeChild(tempDiv)
-          // Convert blob to base64
-          const arrayBuffer = await pdfBlob.arrayBuffer()
-          const bytes = new Uint8Array(arrayBuffer)
-          let binary = ''
-          for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-          const pdfBase64 = btoa(binary)
+          const renderToBase64 = async (html, filename) => {
+            const cleanHtml = html.replace(/<div class="print-bar">[\s\S]*?<\/div>/g, '')
+            const tempDiv = document.createElement('div')
+            tempDiv.innerHTML = cleanHtml
+            document.body.appendChild(tempDiv)
+            try {
+              const blob = await html2pdf().set({
+                margin: 0.5,
+                filename,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+              }).from(tempDiv).output('blob')
+              const arrayBuffer = await blob.arrayBuffer()
+              const bytes = new Uint8Array(arrayBuffer)
+              let binary = ''
+              for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+              return btoa(binary)
+            } finally {
+              document.body.removeChild(tempDiv)
+            }
+          }
+
+          const pdfBase64 = await renderToBase64(
+            generateCheckinPdfHtml(report, milestoneName, checkinRow.name),
+            fileName,
+          )
+          // Invoice is best-effort — if it flakes, the check-in still submits.
+          let invoicePdfBase64 = null
+          try {
+            invoicePdfBase64 = await renderToBase64(
+              generateInvoiceHtml(report, checkinMilestone, checkinRow, checkinRow.customCheckIns),
+              invoiceFileName,
+            )
+          } catch (invErr) {
+            console.error('Invoice PDF generation failed:', invErr)
+          }
+
           // Submit to server endpoint
           const submitRes = await fetch('/api/therapist-checkin', {
             method: 'POST',
@@ -683,6 +704,8 @@ export default function SharedPsychTrackingPage() {
               milestoneName,
               pdfBase64,
               fileName,
+              invoicePdfBase64,
+              invoiceFileName: invoicePdfBase64 ? invoiceFileName : null,
               uploadedBy: report.therapistName || 'Therapist',
               caseManagerEmail: checkinForm.caseManagerEmail || '',
               taskTitle: `${checkinRow.name} ${milestoneName} Check In Complete - Needs Review`,
@@ -691,8 +714,11 @@ export default function SharedPsychTrackingPage() {
           })
           const result = await submitRes.json()
           console.log('Check-in submission result:', result)
-          if (!submitRes.ok || !result.success || !result.documentUploaded || !result.taskCreated) {
+          if (!submitRes.ok || !result.documentUploaded || !result.taskCreated) {
             throw new Error(result.error || 'PDF upload or task creation failed')
+          }
+          if (invoicePdfBase64 && !result.invoiceUploaded) {
+            console.warn('Invoice upload reported failure:', result.errors)
           }
         }
       } catch (e) {

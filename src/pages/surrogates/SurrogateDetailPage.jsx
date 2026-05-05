@@ -44,7 +44,7 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { sendSMS, fetchSMSMessages, fetchAdminPhones } from '@/lib/sms'
 import { markSMSRead, isMessageRead } from '@/lib/smsReadState'
-import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer, RotateCw, ZoomIn, Crop, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Trash2, AlertTriangle, Plus, Upload, FileText, FileImage, File, Download, FolderOpen, X, Eye, EyeOff, LayoutGrid, List as ListIcon, Search, FolderInput, GripVertical, Mail as MailIcon, Printer, RotateCw, ZoomIn, Crop, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
 import CaseEmailsTab from '@/components/shared/CaseEmailsTab'
 import InsuranceTab, { InsuranceCardIcon } from '@/components/shared/InsuranceTab'
 import PreviousMatchTab from '@/components/shared/PreviousMatchTab'
@@ -1916,7 +1916,7 @@ const DOC_CATEGORIES = [
   { id: 'background-check', label: 'Background Check', icon: FileText, color: '#c4219a' },
   { id: 'psych-evaluation', label: 'Psych Evaluation', icon: FileText, color: '#4d3da4' },
   { id: 'escrow', label: 'Escrow', icon: FileText, color: '#0ea5e9' },
-  { id: 'expenses', label: 'Expenses', icon: FileText, color: '#f97316' },
+  { id: 'receipts', label: 'Receipts', icon: Receipt, color: '#f97316' },
   { id: 'photos', label: 'Photos', icon: FileImage, color: '#ec4899' },
   { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
   { id: 'uploads', label: 'Client Uploads', icon: Upload, color: '#0891b2' },
@@ -3588,7 +3588,7 @@ function SurrogateExpensesTab({ surrogateId, gcName, gcPaymentPref, onExpensesCh
       const uploadedUrls = []
       for (const li of lineItems) {
         if (!li.file) continue
-        const doc = await uploadCaseDocument({ surrogateId, category: 'Expenses', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
+        const doc = await uploadCaseDocument({ surrogateId, category: 'receipts', file: li.file, uploadedBy: currentUser?.name || 'Admin' })
         if (doc?.public_url) uploadedUrls.push(doc.public_url)
       }
       const attachmentUrl = uploadedUrls.length ? uploadedUrls.join('\n') : null
