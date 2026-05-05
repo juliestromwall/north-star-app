@@ -1564,6 +1564,35 @@ function EditableDateCell({ value, onSave }) {
   )
 }
 
+// ── Contact Cell (surrogate + intended parents) ──
+function ContactCell({ row }) {
+  const intendedParents = Array.isArray(row.intendedParents) ? row.intendedParents : []
+  const fallbackIpName = !intendedParents.length && row.ipNames ? row.ipNames : ''
+  return (
+    <div className="space-y-3 min-w-[220px]">
+      <ContactBlock label="Surrogate" name={row.name} email={row.email} phone={row.phone} accent="violet" />
+      {intendedParents.map((ip, i) => (
+        <ContactBlock key={i} label={ip.label} name={ip.name} email={ip.email} phone={ip.phone} accent="indigo" />
+      ))}
+      {fallbackIpName && (
+        <ContactBlock label="Intended Parent" name={fallbackIpName} accent="indigo" />
+      )}
+    </div>
+  )
+}
+
+function ContactBlock({ label, name, email, phone, accent = 'violet' }) {
+  const accentClass = accent === 'indigo' ? 'text-[#283693]' : 'text-violet-600'
+  return (
+    <div>
+      <p className={`text-[9px] font-semibold uppercase tracking-wider ${accentClass}`}>{label}</p>
+      {name && <p className="text-xs font-semibold text-stone-800 mt-0.5">{name}</p>}
+      {email && <p className="text-[11px] text-stone-600 break-all leading-snug">{email}</p>}
+      {phone && <p className="text-[11px] text-stone-500 leading-snug">{phone}</p>}
+    </div>
+  )
+}
+
 // ── Shared Table (no case links) ──
 function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip, onAddCustom, onRemoveCustom }) {
   if (rows.length === 0) {
@@ -1579,10 +1608,7 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip
       <table className="w-full text-xs border-collapse">
         <thead>
           <tr className="bg-stone-50 border-b border-stone-200">
-                <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[180px] border-r border-stone-200">
-                  Surrogate
-                </th>
-                <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Contact</th>
+                <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[260px] border-r border-stone-200">Contact</th>
                 <th className="text-left px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100">Estimated Due Date</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">10 Week</th>
                 <th className="text-center px-4 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider whitespace-nowrap border-r border-stone-100" colSpan="2">20 Week</th>
@@ -1594,7 +1620,6 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip
               </tr>
               <tr className="bg-stone-50/50 border-b border-stone-200">
                 <th className="sticky left-0 bg-stone-50/50 z-20 border-r border-stone-200" />
-                <th className="border-r border-stone-100" />
                 <th className="border-r border-stone-100" />
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-50">Due</th>
                 <th className="text-center px-2 py-1.5 text-[9px] text-stone-400 font-medium border-r border-stone-100">Completed</th>
@@ -1610,16 +1635,9 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip
             </thead>
             <tbody>
               {rows.map(row => (
-                <tr key={row.id} className="border-b border-stone-100 hover:bg-stone-50/50 align-top">
-                  <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200">
-                    <span className="font-semibold text-xs text-stone-800">{row.name}</span>
-                    {row.ipNames && (
-                      <p className="text-[10px] text-stone-400 font-normal mt-0.5">IP: {row.ipNames}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 border-r border-stone-100">
-                    <p className="text-stone-600">{row.email || '—'}</p>
-                    {row.phone && <p className="text-stone-400 text-[10px]">{row.phone}</p>}
+                <tr key={row.id} className="border-b-2 border-stone-200 hover:bg-stone-50/50 align-top">
+                  <td className="px-5 py-3.5 sticky left-0 bg-white z-20 border-r border-stone-200 align-top">
+                    <ContactCell row={row} />
                   </td>
                   <td className="px-4 py-3 border-r border-stone-100 text-stone-600 font-medium">{row.dueDate ? formatDate(row.dueDate) : '—'}</td>
                   {/* 10 Week */}
