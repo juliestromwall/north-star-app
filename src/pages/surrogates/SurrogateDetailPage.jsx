@@ -2068,7 +2068,16 @@ export function DocumentsTab({ surrogateId, additionalCaseIds, caseLabels, surro
     })
   }
 
-  const orderedCategories = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
+  // Honor the user's saved drag-order, then append any DOC_CATEGORIES that
+  // aren't in their saved list — that way newly-added categories (e.g. the
+  // Receipts folder) automatically show up for users who customized their
+  // order before the new category existed.
+  const orderedCategories = (() => {
+    const fromSaved = categoryOrder.map(id => DOC_CATEGORIES.find(c => c.id === id)).filter(Boolean)
+    const savedIds = new Set(categoryOrder)
+    const missing = DOC_CATEGORIES.filter(c => !savedIds.has(c.id))
+    return [...fromSaved, ...missing]
+  })()
 
   // Case-folder options (matched view shows folder picker when >1 option).
   // The "Journey" option is a sentinel — at upload time it stays a single

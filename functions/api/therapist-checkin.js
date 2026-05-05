@@ -10,14 +10,13 @@ const corsHeaders = {
 
 const SHARE_KEY = 'psych_tracking_share'
 
-// While we're verifying the new auto-email pipeline, every notification is
-// redirected to the user's spam-test inbox instead of the real recipient.
-// Flip TEST_MODE to false (and JENNY_NOTIFY_ENABLED to true when ready) to
-// go live with real recipients.
-const TEST_MODE = true
+// Admin notification (the case manager) always goes to the assigned
+// caseManagerEmail. Jenny's confirmation copy is currently routed to the
+// user's spam-test inbox while we verify; flip JENNY_USE_TEST_RECIPIENT
+// to false to start sending to her real address.
 const TEST_RECIPIENT_EMAIL = 'juliestromwalll@gmail.com'
-const JENNY_NOTIFY_ENABLED = false
 const JENNY_REAL_EMAIL = 'joliver_2@hotmail.com'
+const JENNY_USE_TEST_RECIPIENT = true
 
 function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName, journeyUrl }) {
   return `<!DOCTYPE html>
@@ -69,6 +68,72 @@ function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName,
 async function sendAdminCheckinEmail({ resendKey, fromEmail, recipient, patientName, milestoneName, therapistName, journeyUrl, attachments }) {
   const subject = `🧾 ${milestoneName} check in for ${patientName} Complete`
   const html = buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName, journeyUrl })
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: `ABC Surrogacy <${fromEmail}>`,
+      to: [recipient],
+      subject,
+      html,
+      attachments,
+    }),
+  })
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`${res.status}: ${errText}`)
+  }
+  return await res.json()
+}
+
+function buildJennyInvoiceEmailHtml({ patientName, milestoneName }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<style>:root { color-scheme: light only } body { background: #ffffff; color-scheme: light only }</style>
+</head>
+<body style="margin: 0; padding: 0; background: #ffffff;">
+  <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+    <div style="text-align: center; padding: 24px 24px 12px;">
+      <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+    </div>
+    <div style="padding: 0 32px 32px;">
+      <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
+        🧾 Invoice Sent to ABC Surrogacy
+      </h1>
+      <div style="padding: 24px 0;">
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
+          Hi Jenny!
+        </p>
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
+          Your <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong> has been submitted to ABC Surrogacy. A copy of your invoice is attached for your records.
+        </p>
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
+          Thank you!
+        </p>
+      </div>
+      <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
+        <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
+          <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or its attachments outside of authorized parties.
+        </p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
+      <p style="color: #a8a29e; font-size: 10px; text-align: center;">
+        Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+      </p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+async function sendJennyInvoiceEmail({ resendKey, fromEmail, recipient, patientName, milestoneName, attachments }) {
+  const subject = `🧾 Invoice sent to ABC Surrogacy for ${patientName}'s ${milestoneName}`
+  const html = buildJennyInvoiceEmailHtml({ patientName, milestoneName })
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
@@ -206,7 +271,7 @@ export async function onRequestPost(context) {
       Authorization: `Bearer ${supabaseKey}`,
     }
 
-    const results = { documentUploaded: false, invoiceUploaded: false, taskCreated: false, adminEmailSent: false, errors: {} }
+    const results = { documentUploaded: false, invoiceUploaded: false, taskCreated: false, adminEmailSent: false, jennyEmailSent: false, errors: {} }
 
     async function uploadPdfToCaseDocuments({ base64, name, category, errKeyPrefix }) {
       const binary = atob(base64)
@@ -313,11 +378,13 @@ export async function onRequestPost(context) {
       results.errors.task_exception = e.message
     }
 
-    // 6. Notify the assigned admin (case manager) — best-effort. While in
-    // TEST_MODE every email is redirected to the spam-test inbox.
+    // 6. Notify the assigned admin (case manager) — best-effort. Goes to the
+    // real caseManagerEmail (or the resolved journey assignee as fallback).
     const resendKey = env.RESEND_API_KEY
     const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
-    const adminRecipient = TEST_MODE ? TEST_RECIPIENT_EMAIL : (caseManagerEmail || resolvedAssignee || '')
+    const adminRecipient = caseManagerEmail || resolvedAssignee || ''
+    const patientLabel = surrogateName || 'Surrogate'
+    const milestoneLabel = milestoneName || 'Check-In'
     if (resendKey && adminRecipient && results.documentUploaded) {
       try {
         const attachments = [{ filename: fileName, content: pdfBase64 }]
@@ -331,8 +398,8 @@ export async function onRequestPost(context) {
           resendKey,
           fromEmail,
           recipient: adminRecipient,
-          patientName: surrogateName || 'Surrogate',
-          milestoneName: milestoneName || 'Check-In',
+          patientName: patientLabel,
+          milestoneName: milestoneLabel,
           therapistName: uploadedBy || '',
           journeyUrl,
           attachments,
@@ -346,6 +413,27 @@ export async function onRequestPost(context) {
       results.errors.admin_email = 'RESEND_API_KEY not configured'
     } else if (!adminRecipient) {
       results.errors.admin_email = 'No admin recipient (caseManagerEmail empty and no resolvedAssignee)'
+    }
+
+    // 7. Send Jenny her own copy of the invoice — best-effort. Currently
+    // routed to the spam-test inbox; flip JENNY_USE_TEST_RECIPIENT to false
+    // to start sending to her real address.
+    const jennyRecipient = JENNY_USE_TEST_RECIPIENT ? TEST_RECIPIENT_EMAIL : JENNY_REAL_EMAIL
+    if (resendKey && jennyRecipient && invoicePdfBase64 && invoiceFileName && results.invoiceUploaded) {
+      try {
+        await sendJennyInvoiceEmail({
+          resendKey,
+          fromEmail,
+          recipient: jennyRecipient,
+          patientName: patientLabel,
+          milestoneName: milestoneLabel,
+          attachments: [{ filename: invoiceFileName, content: invoicePdfBase64 }],
+        })
+        results.jennyEmailSent = true
+      } catch (e) {
+        console.error('Jenny invoice email failed:', e)
+        results.errors.jenny_email = e.message
+      }
     }
 
     const complete = results.documentUploaded && results.taskCreated
