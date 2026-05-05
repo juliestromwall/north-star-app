@@ -10,6 +10,83 @@ const corsHeaders = {
 
 const SHARE_KEY = 'psych_tracking_share'
 
+// While we're verifying the new auto-email pipeline, every notification is
+// redirected to the user's spam-test inbox instead of the real recipient.
+// Flip TEST_MODE to false (and JENNY_NOTIFY_ENABLED to true when ready) to
+// go live with real recipients.
+const TEST_MODE = true
+const TEST_RECIPIENT_EMAIL = 'juliestromwalll@gmail.com'
+const JENNY_NOTIFY_ENABLED = false
+const JENNY_REAL_EMAIL = 'joliver_2@hotmail.com'
+
+function buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName, journeyUrl }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<style>:root { color-scheme: light only } body { background: #ffffff; color-scheme: light only }</style>
+</head>
+<body style="margin: 0; padding: 0; background: #ffffff;">
+  <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+    <div style="text-align: center; padding: 24px 24px 12px;">
+      <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+    </div>
+    <div style="padding: 0 32px 32px;">
+      <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">
+        🧾 ${milestoneName} Check-In Complete
+      </h1>
+      <div style="padding: 24px 0;">
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
+          ${therapistName ? `<strong style="color: #283693;">${therapistName}</strong> just` : 'Just'} completed the <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong>.
+        </p>
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">
+          The signed check-in note and invoice are attached to this email, and a review task has been created on the case for you.
+        </p>
+      </div>
+      ${journeyUrl ? `<div style="text-align: center; margin: 24px 0;">
+        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Open Case
+        </a>
+      </div>` : ''}
+      <div style="background: #fef3c7; border-radius: 8px; padding: 12px 16px; margin: 24px 0 0; border: 1px solid #fde68a;">
+        <p style="margin: 0; font-size: 11px; color: #92400e; line-height: 1.5;">
+          <strong>Confidential:</strong> This email contains protected health information. Please do not forward, share, or distribute this email or its attachments outside of authorized ABC Surrogacy staff.
+        </p>
+      </div>
+      <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
+      <p style="color: #a8a29e; font-size: 10px; text-align: center;">
+        Abundant Beginnings Company, LLC &middot; abcsurrogacy.com
+      </p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+async function sendAdminCheckinEmail({ resendKey, fromEmail, recipient, patientName, milestoneName, therapistName, journeyUrl, attachments }) {
+  const subject = `🧾 ${milestoneName} check in for ${patientName} Complete`
+  const html = buildAdminCheckinEmailHtml({ patientName, milestoneName, therapistName, journeyUrl })
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: `ABC Surrogacy <${fromEmail}>`,
+      to: [recipient],
+      subject,
+      html,
+      attachments,
+    }),
+  })
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`${res.status}: ${errText}`)
+  }
+  return await res.json()
+}
+
 function isActiveMatchedJourney(journey) {
   const status = String(journey?.status || '').toLowerCase()
   const stage = String(journey?.stage || '').toLowerCase()
@@ -105,6 +182,8 @@ export async function onRequestPost(context) {
     const body = await context.request.json()
     const {
       surrogateId,
+      surrogateName,
+      milestoneName,
       pdfBase64, // base64 string of check-in note PDF
       fileName,
       invoicePdfBase64, // optional base64 string of invoice PDF
@@ -127,7 +206,7 @@ export async function onRequestPost(context) {
       Authorization: `Bearer ${supabaseKey}`,
     }
 
-    const results = { documentUploaded: false, invoiceUploaded: false, taskCreated: false, errors: {} }
+    const results = { documentUploaded: false, invoiceUploaded: false, taskCreated: false, adminEmailSent: false, errors: {} }
 
     async function uploadPdfToCaseDocuments({ base64, name, category, errKeyPrefix }) {
       const binary = atob(base64)
@@ -232,6 +311,41 @@ export async function onRequestPost(context) {
     } catch (e) {
       console.error('Task creation exception:', e)
       results.errors.task_exception = e.message
+    }
+
+    // 6. Notify the assigned admin (case manager) — best-effort. While in
+    // TEST_MODE every email is redirected to the spam-test inbox.
+    const resendKey = env.RESEND_API_KEY
+    const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+    const adminRecipient = TEST_MODE ? TEST_RECIPIENT_EMAIL : (caseManagerEmail || resolvedAssignee || '')
+    if (resendKey && adminRecipient && results.documentUploaded) {
+      try {
+        const attachments = [{ filename: fileName, content: pdfBase64 }]
+        if (invoicePdfBase64 && invoiceFileName && results.invoiceUploaded) {
+          attachments.push({ filename: invoiceFileName, content: invoicePdfBase64 })
+        }
+        const journeyUrl = resolvedJourneyId
+          ? `https://app.abcsurrogacy.com/journeys/${resolvedJourneyId}`
+          : `https://app.abcsurrogacy.com/surrogates/${surrogateId}`
+        await sendAdminCheckinEmail({
+          resendKey,
+          fromEmail,
+          recipient: adminRecipient,
+          patientName: surrogateName || 'Surrogate',
+          milestoneName: milestoneName || 'Check-In',
+          therapistName: uploadedBy || '',
+          journeyUrl,
+          attachments,
+        })
+        results.adminEmailSent = true
+      } catch (e) {
+        console.error('Admin notification email failed:', e)
+        results.errors.admin_email = e.message
+      }
+    } else if (!resendKey) {
+      results.errors.admin_email = 'RESEND_API_KEY not configured'
+    } else if (!adminRecipient) {
+      results.errors.admin_email = 'No admin recipient (caseManagerEmail empty and no resolvedAssignee)'
     }
 
     const complete = results.documentUploaded && results.taskCreated
