@@ -785,7 +785,7 @@ export default function SharedPsychTrackingPage() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center">
@@ -1215,7 +1215,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
       <div className="inline-flex items-center gap-1.5">
         <button
           onClick={() => onCheckin(row, milestoneKey)}
-          className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors"
+          className="text-amber-500 hover:text-amber-600 text-xs font-medium transition-colors whitespace-nowrap"
           title="Continue draft"
         >
           Draft
@@ -1240,7 +1240,7 @@ function CheckInCell({ value, milestoneKey, row, checkins, onCheckin, onViewRepo
     <div className="inline-flex items-center gap-1.5">
       <button
         onClick={() => onCheckin(row, milestoneKey)}
-        className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors"
+        className="text-[#283693] hover:text-[#1e2a6e] text-xs font-medium transition-colors whitespace-nowrap"
       >
         Check In
       </button>
@@ -1368,23 +1368,17 @@ function EditableDateCell({ value, onSave }) {
 function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip, onAddCustom, onRemoveCustom }) {
   if (rows.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-0">
-          <div className="px-6 py-16 text-center text-stone-400">
-            <p className="text-sm">No surrogates found.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="px-6 py-16 text-center text-stone-400">
+        <p className="text-sm">No surrogates found.</p>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="bg-stone-50 border-b border-stone-200">
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-stone-50 border-b border-stone-200">
                 <th className="text-left px-5 py-3.5 text-[10px] font-semibold text-stone-500 uppercase tracking-wider sticky left-0 bg-stone-50 z-20 min-w-[180px] border-r border-stone-200">
                   Surrogate
                 </th>
@@ -1493,8 +1487,6 @@ function SharedPsychTable({ rows, checkins = {}, onCheckin, onViewReport, onSkip
               ))}
             </tbody>
           </table>
-        </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }
