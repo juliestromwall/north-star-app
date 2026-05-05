@@ -162,6 +162,97 @@ function intendedParentsContacts(ipCase) {
   return list
 }
 
+async function resolveJourneyForSurrogate(env, surrogateId) {
+  try {
+    const jRes = await sbFetch(env, `/rest/v1/matched_journeys?gc_case_id=eq.${surrogateId}&select=id,assigned_to,status,stage,journey_data&order=created_at.desc`)
+    if (!jRes.ok) return { caseManagerEmail: '', journeyId: null }
+    const rows = await jRes.json()
+    const active = (rows || []).find(isActiveMatchedJourney)
+    if (!active) return { caseManagerEmail: '', journeyId: null }
+    const caseManagerEmail = active.assigned_to || active.journey_data?.assigned_to || ''
+    return { caseManagerEmail, journeyId: active.id }
+  } catch (e) {
+    console.error('Journey resolve failed:', e)
+    return { caseManagerEmail: '', journeyId: null }
+  }
+}
+
+function escapeHtmlForEmail(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+function buildSkipNotificationHtml({ kind, patientName, milestoneName, therapistName, skipReason, journeyUrl }) {
+  const isWithdraw = kind === 'withdraw'
+  const headline = isWithdraw ? `↩️ Skip Withdrawn` : `⏭️ ${milestoneName} Check-In Skipped`
+  const sentence = isWithdraw
+    ? `${therapistName ? `<strong style="color: #283693;">${therapistName}</strong>` : 'The therapist'} withdrew the previous skip for the <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong>. They are restarting the check-in now and will submit it shortly.`
+    : `${therapistName ? `<strong style="color: #283693;">${therapistName}</strong>` : 'The therapist'} marked the <strong>${milestoneName}</strong> check-in for <strong style="color: #283693;">${patientName}</strong> as <strong style="color: #b45309;">Skipped</strong>.`
+  const reasonBlock = !isWithdraw && skipReason
+    ? `<div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin: 16px 0;">
+        <p style="margin: 0 0 4px; font-size: 10px; color: #92400e; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;">Reason</p>
+        <p style="margin: 0; font-size: 14px; color: #78350f; line-height: 1.5;">${escapeHtmlForEmail(skipReason)}</p>
+       </div>`
+    : ''
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light">
+<style>:root { color-scheme: light only } body { background: #ffffff; color-scheme: light only }</style>
+</head>
+<body style="margin: 0; padding: 0; background: #ffffff;">
+  <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+    <div style="text-align: center; padding: 24px 24px 12px;">
+      <img src="https://app.abcsurrogacy.com/abc-logo.png" alt="ABC Surrogacy" style="max-width: 160px;" />
+    </div>
+    <div style="padding: 0 32px 32px;">
+      <h1 style="color: #283693; font-size: 22px; margin: 0 0 8px; text-align: center;">${headline}</h1>
+      <div style="padding: 24px 0 8px;">
+        <p style="font-size: 15px; color: #44403c; margin: 0 0 16px; line-height: 1.6;">${sentence}</p>
+        ${reasonBlock}
+      </div>
+      ${journeyUrl ? `<div style="text-align: center; margin: 24px 0;">
+        <a href="${journeyUrl}" style="display: inline-block; background: linear-gradient(135deg, #ed148c, #283693); color: white; padding: 14px 36px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;">Open Case</a>
+      </div>` : ''}
+      <hr style="border: none; border-top: 1px solid #e7e5e4; margin: 24px 0 16px;" />
+      <p style="color: #a8a29e; font-size: 10px; text-align: center;">Abundant Beginnings Company, LLC &middot; abcsurrogacy.com</p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+async function sendAdminSkipEmail(env, { kind, recipient, patientName, milestoneName, therapistName, skipReason, journeyUrl }) {
+  const resendKey = env.RESEND_API_KEY
+  if (!resendKey || !recipient) return { sent: false, error: !resendKey ? 'RESEND_API_KEY not configured' : 'No recipient' }
+  const fromEmail = env.WELCOME_FROM_EMAIL || 'noreply@abcsurrogacy.com'
+  const isWithdraw = kind === 'withdraw'
+  const subject = isWithdraw
+    ? `↩️ Skip Withdrawn — ${milestoneName} for ${patientName}`
+    : `⏭️ ${milestoneName} check in for ${patientName} Skipped`
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: `ABC Surrogacy <${fromEmail}>`,
+        to: [recipient],
+        subject,
+        html: buildSkipNotificationHtml({ kind, patientName, milestoneName, therapistName, skipReason, journeyUrl }),
+      }),
+    })
+    if (!res.ok) {
+      const errText = await res.text()
+      return { sent: false, error: `${res.status}: ${errText}` }
+    }
+    return { sent: true }
+  } catch (e) {
+    return { sent: false, error: e.message }
+  }
+}
+
 async function loadRows(env) {
   const [tracking, checkins, gcsRes, ipsRes, journeysRes] = await Promise.all([
     getConfig(env, TRACKING_KEY),
@@ -341,7 +432,7 @@ export async function onRequestPost(context) {
     }
 
     if (action === 'skip') {
-      const { skipReason } = body || {}
+      const { skipReason, surrogateName, milestoneName, therapistName, caseManagerEmail } = body || {}
       if (!surrogateId || !milestone) return json({ error: 'Missing required fields' }, 400)
       const checkins = await getConfig(env, CHECKINS_KEY)
       const existing = (checkins || {})[surrogateId]?.[milestone] || {}
@@ -350,6 +441,7 @@ export async function onRequestPost(context) {
         status: 'skipped',
         skipReason: skipReason || '',
         skippedAt: new Date().toISOString(),
+        skippedBy: therapistName || existing.skippedBy || '',
       }
       const updatedCheckins = {
         ...(checkins || {}),
@@ -359,7 +451,51 @@ export async function onRequestPost(context) {
         },
       }
       await setConfig(env, CHECKINS_KEY, updatedCheckins)
-      return json({ success: true })
+
+      // Best-effort admin notification.
+      const journey = await resolveJourneyForSurrogate(env, surrogateId)
+      const recipient = caseManagerEmail || journey.caseManagerEmail || ''
+      const journeyUrl = journey.journeyId
+        ? `https://app.abcsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.abcsurrogacy.com/surrogates/${surrogateId}`
+      const emailResult = await sendAdminSkipEmail(env, {
+        kind: 'skip',
+        recipient,
+        patientName: surrogateName || 'Surrogate',
+        milestoneName: milestoneName || 'Check-In',
+        therapistName: therapistName || '',
+        skipReason: skipReason || '',
+        journeyUrl,
+      })
+      return json({ success: true, adminEmail: emailResult })
+    }
+
+    if (action === 'withdraw-skip') {
+      const { surrogateName, milestoneName, therapistName, caseManagerEmail } = body || {}
+      if (!surrogateId || !milestone) return json({ error: 'Missing required fields' }, 400)
+      const checkins = await getConfig(env, CHECKINS_KEY)
+      const safeCheckins = checkins || {}
+      const surrogateRecord = safeCheckins[surrogateId] || {}
+      // Drop the milestone entirely so the cell goes back to "Check In" state.
+      const { [milestone]: _removed, ...rest } = surrogateRecord
+      const updatedCheckins = { ...safeCheckins, [surrogateId]: rest }
+      await setConfig(env, CHECKINS_KEY, updatedCheckins)
+
+      const journey = await resolveJourneyForSurrogate(env, surrogateId)
+      const recipient = caseManagerEmail || journey.caseManagerEmail || ''
+      const journeyUrl = journey.journeyId
+        ? `https://app.abcsurrogacy.com/journeys/${journey.journeyId}`
+        : `https://app.abcsurrogacy.com/surrogates/${surrogateId}`
+      const emailResult = await sendAdminSkipEmail(env, {
+        kind: 'withdraw',
+        recipient,
+        patientName: surrogateName || 'Surrogate',
+        milestoneName: milestoneName || 'Check-In',
+        therapistName: therapistName || '',
+        skipReason: '',
+        journeyUrl,
+      })
+      return json({ success: true, adminEmail: emailResult })
     }
 
     if (action === 'add-custom-checkin') {
