@@ -131,33 +131,41 @@ function caseManagerName(email) {
   return prefix.split(/[._-]/).map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
 }
 
+// IP intake answers come from a few different form versions over the app's
+// life. The first IP's name/email/phone might live under ip1* (newer form),
+// primary* (older form), or bare firstName/email/phone — fall back through
+// all of them so we don't render a half-empty contact block.
+function ip1FirstName(a) { return a.ip1FirstName || a.primaryFirstName || a.firstName || '' }
+function ip1LastName(a) { return a.ip1LastName || a.primaryLastName || a.lastName || '' }
+function ip1Email(a, ipCase) { return a.ip1Email || a.email || ipCase?.applicant_email || '' }
+function ip1Phone(a) { return a.ip1Phone || a.phone || '' }
+
 function ipDisplayName(ipCase) {
   if (!ipCase) return ''
   const a = ipCase.answers || {}
-  const ip1 = `${a.ip1FirstName || ''} ${a.ip1LastName || ''}`.trim()
+  const ip1 = `${ip1FirstName(a)} ${ip1LastName(a)}`.trim()
   const ip2 = `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()
   if (ip1 && ip2) return `${ip1} & ${ip2}`
   return ip1 || ip2 || ''
 }
 
 // Returns up to two intended parent contact entries for the table's Contact
-// cell. ip1Email falls back to the intake submission's applicant_email so we
-// still show something when ip1Email isn't set in answers.
+// cell.
 function intendedParentsContacts(ipCase) {
   if (!ipCase) return []
   const a = ipCase.answers || {}
   const list = []
-  const ip1Name = `${a.ip1FirstName || ''} ${a.ip1LastName || ''}`.trim()
-  const ip1Email = a.ip1Email || ipCase.applicant_email || ''
-  const ip1Phone = a.ip1Phone || a.phone || ''
-  if (ip1Name || ip1Email || ip1Phone) {
-    list.push({ label: 'Intended Parent 1', name: ip1Name, email: ip1Email, phone: ip1Phone })
+  const name1 = `${ip1FirstName(a)} ${ip1LastName(a)}`.trim()
+  const email1 = ip1Email(a, ipCase)
+  const phone1 = ip1Phone(a)
+  if (name1 || email1 || phone1) {
+    list.push({ label: 'Intended Parent 1', name: name1, email: email1, phone: phone1 })
   }
-  const ip2Name = `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()
-  const ip2Email = a.ip2Email || ''
-  const ip2Phone = a.ip2Phone || ''
-  if (ip2Name || ip2Email || ip2Phone) {
-    list.push({ label: 'Intended Parent 2', name: ip2Name, email: ip2Email, phone: ip2Phone })
+  const name2 = `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim()
+  const email2 = a.ip2Email || ''
+  const phone2 = a.ip2Phone || ''
+  if (name2 || email2 || phone2) {
+    list.push({ label: 'Intended Parent 2', name: name2, email: email2, phone: phone2 })
   }
   return list
 }
@@ -346,7 +354,15 @@ async function loadRows(env) {
       }
     })
 
-  return { rows: [...pregnantRows, ...manualRows], checkins: safeCheckins }
+  // Sort by Due Date ascending (soonest first); rows without a dueDate sink
+  // to the bottom so Jenny sees the most time-sensitive cases at the top.
+  const allRows = [...pregnantRows, ...manualRows].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0
+    if (!a.dueDate) return 1
+    if (!b.dueDate) return -1
+    return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0
+  })
+  return { rows: allRows, checkins: safeCheckins }
 }
 
 async function requireSession(env, sessionToken) {
