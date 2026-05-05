@@ -1,5 +1,29 @@
 # Session Log
 
+## 2026-04-27 (Clinic Match Sheet redesign — surrogate hero stats, GTPAL bar, Spouse/Partner, IP layout parity, Clinic Details)
+
+**Worked on:** Continued the Clinic Match Sheet redesign per the IVF/RE clinic's feedback. Earlier in the session: removed sections clinics don't read (Blood Type, Previous Surrogacies, Fertility/Health, Insurance), added stat tiles (Age/DOB, Height, Weight, BMI, Marital Status), added a GTPAL pregnancy summary bar, restructured the surrogate identity grid to match the IP block, and added Spouse/Partner detection. Final tweak this session: brought the IP block to *exact* parity with the Escrow Match Sheet's structured 4-column layout, and replaced the heavy "IVF Details" block (which leaked egg/sperm/embryo info that's not a clinic concern) with a minimal "Clinic Details" header that just shows the Clinic Name and RE pulled from the journey hero card.
+
+**Changes made:**
+
+- `src/components/journeys/MatchSheetsTab.jsx` `ClinicSheet`:
+  - Replaced "IVF Details" PartyBanner + 6-row InfoGrid (RE Doctor/Clinic, Clinic Location, Frozen Embryos, Embryo Details, Egg Source, Sperm Source) with a "Clinic Details" PartyBanner + 2-row grid: Clinic Name (`jd.ivfClinic`) and RE (`jd.ivfDoctor` with auto "Dr." prefix when not already present). These are the same two fields the journey hero card surfaces, so the clinic sheet stays in sync.
+  - Replaced the IP block (PartyName + flat InfoGrid mixing IP1+IP2) with the Escrow Match Sheet's 4-column structured layout: PartyLabel "Intended Parent #1" → 4-col InfoGrid with Full Name (span 2) | DOB w/ age (span 2) | Email (span 2) | Phone (span 2) | Street | City | State | Zip. When `hasPartner`, a separate PartyLabel "Intended Parent #2" with Full Name / DOB w/ age / Email / Phone (no address — IP2 shares IP1's). Mirrors the visual weight given to the surrogate identity grid above.
+
+- Earlier in the session (already committed before continuation): `e2836e7` surrogate identity grid matches IP layout, `cf78d69` GTPAL bar moves above pregnancy detail table, `25e2603` tweaks per RE feedback, `a5ab79f` swap stat-tile emojis for lucide icons (CalendarDays/Ruler/Scale/Activity/Heart/User/Baby), `fcda53c` initial redesign of surrogate block.
+
+**Why "Clinic Details" instead of "IVF Details":** the clinic running the transfer is the audience here. They don't need to be told egg/sperm source or embryo count — they have that themselves. They *do* need to confirm the doc + practice on the journey hero card matches what they're expecting. Two fields, no editing surface, no clutter.
+
+**Next steps:**
+- User to eyeball the Clinic Match Sheet on a real journey (suggest #60 or any IP w/ partner) to confirm IP1/IP2 grid spacing reads cleanly when there's a partner.
+- Promote to prod when user signs off (default-deploy is staging per CLAUDE.md).
+- (Carried) `start-new-case` API copies `assigned_to` from source intake — should prefer journey ownership when journeyId is passed.
+- (Carried) `fetchSurrogateProfileByEmail` `user_id IS NOT NULL` tiebreaker fix.
+- (Carried) `/api/notify-app-released` migration to Resend.
+
+**Open questions:**
+- The pre-existing modified file `src/pages/psych/SharedPsychTrackingPage.jsx` and the untracked `scripts/import-old-surrogate-profile.js` are unrelated to the Clinic Sheet work — leaving them for the user / a separate commit.
+
 ## 2026-05-01 (Completed Journeys workflow + Master Admin default + duplicate-step gate fix + profile imports)
 
 **Worked on:** End-to-end "Mark Journey Complete" workflow that closes out a journey, archives it, hides both parties from default lists (still searchable by name), and lets admins start a sibling journey for the IP (and a new case for the GC). Followed by two bug-fixes that surfaced when the user tested on prod: the "Active Cases" chip count was off-by-one because the chip totals didn't apply the same hide-completed filter the rendered list does, and the Master Admin default filter was "My Cases" instead of "All Cases" so completed-journey surrogates owned by other admins were unsearchable. Final hotfix: the "Mark Complete" button stayed disabled on prod even after admins marked "Escrow Closed" complete because some configs have *two* steps labeled "Escrow Closed" (the locked default we seed plus a renamed legacy custom step) and `Array.find` returned the wrong one. Plus: imported six profiles (Caitlin Porras, Corey Schafer, Brittney Fuller, Karen Uribe, Marclyn Keenan, Amanda Smith, Kylie Hughes, Ashley Imm, Britney Kingman, Tasha Ehret, Danielle Coppola, Neida McLean), gave the user safe-delete SQL for 19 dupe intakes (6 explicit + Gerald spam) plus a follow-up for journey #36 + 3 old dupes Corey/Alex/Manishka. Switched IP intake to drop egg/sperm donor and move criminal history to Application Contact Info. Added Venmo "last 4 of phone" requirement.
