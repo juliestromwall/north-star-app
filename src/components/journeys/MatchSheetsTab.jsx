@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   FileText, Download, Eye, Printer, Scale, Stethoscope, DollarSign,
   User, Users, Heart, Shield, Briefcase, Clock, Pencil, Mail, Phone, Hospital,
-  Save, Send,
+  Save, Send, CalendarDays, Ruler, Activity, Baby,
 } from 'lucide-react'
 import { mockUsers, getAdminStaff } from '@/data/mock/users'
 import { useDrafts } from '@/context/DraftContext'
@@ -254,9 +254,9 @@ function PartyName({ name }) {
 }
 
 // Surrogate hero stat tiles — Age (with DOB), Height, Weight, BMI, Status.
-// Five horizontal cards with a leading icon emoji + bold value + small label.
+// Five horizontal cards with a leading lucide icon + bold value + small label.
 // Inline styles only — has to render through html2canvas for the PDF export.
-function StatTile({ icon, value, label, sub }) {
+function StatTile({ Icon, value, label, sub }) {
   return (
     <div style={{
       flex: 1,
@@ -269,7 +269,7 @@ function StatTile({ icon, value, label, sub }) {
       gap: 10,
       minWidth: 0,
     }}>
-      <span style={{ fontSize: 14, lineHeight: 1, color: '#a8a29e' }}>{icon}</span>
+      {Icon ? <Icon size={16} color="#a8a29e" strokeWidth={2} /> : null}
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#1c1917', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
         <div style={{ fontSize: 9, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>
@@ -285,13 +285,16 @@ function SurrogateStatTiles({ gcDob, heightFt, heightIn, weight, bmi, maritalSta
   const heightStr = heightFt ? `${heightFt}'${heightIn || 0}"` : '—'
   const weightStr = weight ? `${weight} lbs` : '—'
   const bmiStr = bmi || '—'
+  // Heart for partnered/married statuses, User for single (or unknown).
+  const partnered = /married|partnered|domestic|relationship|engaged/i.test(String(maritalStatus || ''))
+  const StatusIcon = partnered ? Heart : User
   return (
     <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 12 }}>
-      <StatTile icon="📅" value={age != null ? String(age) : '—'} label="Age" sub={gcDob ? formatDate(gcDob) : ''} />
-      <StatTile icon="📏" value={heightStr} label="Height" />
-      <StatTile icon="⚖️" value={weightStr} label="Weight" />
-      <StatTile icon="📊" value={bmiStr} label="BMI" />
-      <StatTile icon="💍" value={maritalStatus || '—'} label="Status" />
+      <StatTile Icon={CalendarDays} value={age != null ? String(age) : '—'} label="Age" sub={gcDob ? formatDate(gcDob) : ''} />
+      <StatTile Icon={Ruler}        value={heightStr} label="Height" />
+      <StatTile Icon={Scale}        value={weightStr} label="Weight" />
+      <StatTile Icon={Activity}     value={bmiStr}    label="BMI" />
+      <StatTile Icon={StatusIcon}   value={maritalStatus || '—'} label="Status" />
     </div>
   )
 }
@@ -345,7 +348,7 @@ function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
       flexWrap: 'wrap',
     }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 13 }}>👶</span>
+        <Baby size={14} color="#ed148c" strokeWidth={2} />
         <span style={{ fontSize: 10, color: '#a8a29e', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase' }}>Pregnancy History</span>
       </span>
       <span style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 14, fontWeight: 700, color: '#283693', letterSpacing: '0.4px' }}>{code}</span>
