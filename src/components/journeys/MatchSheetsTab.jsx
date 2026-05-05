@@ -614,24 +614,19 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       {/* Pregnancy History — GTPAL code + colored stat badges */}
       <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
 
-      {/* Contact info (kept as a compact grid below the hero) */}
-      <InfoGrid items={[
-        { label: 'Email', value: gcCase?.email },
-        { label: 'Phone', value: formatPhone(gcCase?.phone) },
-        { label: 'City / State', value: [ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', ') },
-        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
-      ]} />
-
-      {/* Spouse / Partner — only when partner data exists */}
+      {/* Spouse / Partner — surfaces directly under the Pregnancy History
+          bar (above contact info) when ANY partner data exists across the
+          GC profile, intake answers, _confidential, or _application blocks. */}
       {(() => {
         const conf = ga._confidential || {}
-        const spouseFullName = conf.spouseFullName || personal.spouseFullName || ''
+        const app = ga._application || {}
+        const spouseFullName = conf.spouseFullName || app.spouseFullName || personal.spouseFullName || ''
         const parts = spouseFullName.trim().split(/\s+/).filter(Boolean)
         // personal.partnerName is typically first-name-only on the GC profile.
-        // Fall back to the first token of spouseFullName if not.
-        const partnerFirst = personal.partnerName || conf.spouseFirstName || parts[0] || ''
-        const partnerLast = conf.spouseLastName || (parts.length > 1 ? parts.slice(1).join(' ') : '')
-        const partnerDob = personal.partnerDob || conf.spouseDob || ''
+        // App + _confidential blocks have explicit spouseFirstName / spouseLastName.
+        const partnerFirst = app.spouseFirstName || conf.spouseFirstName || personal.partnerName || parts[0] || ''
+        const partnerLast = app.spouseLastName || conf.spouseLastName || (parts.length > 1 ? parts.slice(1).join(' ') : '')
+        const partnerDob = app.spouseDob || conf.spouseDob || personal.partnerDob || ''
         const hasPartner = !!(partnerFirst || partnerLast || partnerDob)
         if (!hasPartner) return null
         return (
@@ -646,40 +641,46 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
         )
       })()}
 
-      {/* Pregnancy History detail table */}
+      {/* Contact info */}
+      <InfoGrid items={[
+        { label: 'Email', value: gcCase?.email },
+        { label: 'Phone', value: formatPhone(gcCase?.phone) },
+        { label: 'City / State', value: [ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', ') },
+        { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
+      ]} />
+
+      {/* Pregnancy detail table — totals already covered by the GTPAL bar
+          at the top, so no extra count tiles here. Default Live Birth
+          deliveries to "Vaginal" when the source data is blank. */}
       {pregnancies.length > 0 && (
-        <>
-          <SectionTitle color="#ed148c" icon={EmbryoIcon}>Pregnancy Detail</SectionTitle>
-          <InfoGrid items={[
-            { label: 'Total Pregnancies', value: numPreg },
-            { label: 'Number of Miscarriages', value: pregnancies.filter(p => /miscarriag/i.test(String(p.outcome || ''))).length },
-            { label: 'C-Sections', value: pregnancies.filter(p => /c-?section|cesarean/i.test(String(p.deliveryType || ''))).length },
-            { label: 'Vaginal Deliveries', value: pregnancies.filter(p => /vaginal/i.test(String(p.deliveryType || ''))).length },
-          ]} />
-          <div style={{ marginTop: 8, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-              <thead>
-                <tr style={{ backgroundColor: '#fafaf9' }}>
-                  {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pregnancies.map((p, i) => (
+        <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr style={{ backgroundColor: '#fafaf9' }}>
+                {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pregnancies.map((p, i) => {
+                const outcome = String(p.outcome || '').trim()
+                const isLiveBirth = /live\s*birth/i.test(outcome)
+                const delivery = p.deliveryType || (isLiveBirth ? 'Vaginal' : '—')
+                return (
                   <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
                     <td style={{ padding: '8px 12px', fontWeight: 600 }}>{i + 1}</td>
                     <td style={{ padding: '8px 12px' }}>{p.dob ? new Date(p.dob + 'T00:00:00').getFullYear() : '—'}</td>
-                    <td style={{ padding: '8px 12px' }}>{p.outcome || '—'}</td>
-                    <td style={{ padding: '8px 12px' }}>{p.deliveryType || '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>{outcome || '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>{delivery}</td>
                     <td style={{ padding: '8px 12px' }}>{p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true ? 'Yes' : 'No'}</td>
                     <td style={{ padding: '8px 12px', fontSize: 10 }}>{p.complications || p.complicationsExplanation || 'None'}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <ConfidentialFooter />
