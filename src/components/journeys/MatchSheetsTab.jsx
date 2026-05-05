@@ -32,7 +32,7 @@ import { fetchSurrogateProfileByEmail } from '@/lib/db'
 import { supabase } from '@/lib/supabase'
 
 const SHEET_TYPES = [
-  { id: 'clinic', label: 'Clinic Match Sheet', icon: Stethoscope, color: '#9b2ea7', description: 'For RE / IVF clinic — medical history, pregnancy details, insurance, and transfer logistics.' },
+  { id: 'clinic', label: 'Clinic Match Sheet', icon: Stethoscope, color: '#9b2ea7', description: 'For RE / IVF clinic — surrogate snapshot, pregnancy history, and IVF logistics.' },
   { id: 'escrow', label: 'Escrow Match Sheet', icon: DollarSign, color: '#10b981', description: 'For escrow company — compensation, payment terms, escrow funding, and employment details.' },
   { id: 'attorney', label: 'Attorney Match Sheet', icon: Scale, color: '#283693', description: 'For legal counsel — IP & GC contact info, demographics, embryo creation, attorney details, and journey terms.' },
 ]
@@ -250,6 +250,111 @@ function PartyLabel({ children, color }) {
 function PartyName({ name }) {
   return (
     <p style={{ fontSize: 18, fontWeight: 700, color: '#1c1917', marginTop: 0, marginBottom: 8 }}>{name || '—'}</p>
+  )
+}
+
+// Surrogate hero stat tiles — Age (with DOB), Height, Weight, BMI, Status.
+// Five horizontal cards with a leading icon emoji + bold value + small label.
+// Inline styles only — has to render through html2canvas for the PDF export.
+function StatTile({ icon, value, label, sub }) {
+  return (
+    <div style={{
+      flex: 1,
+      borderRadius: 12,
+      border: '1px solid #e7e5e4',
+      background: 'white',
+      padding: '10px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+      minWidth: 0,
+    }}>
+      <span style={{ fontSize: 14, lineHeight: 1, color: '#a8a29e' }}>{icon}</span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#1c1917', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+        <div style={{ fontSize: 9, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2 }}>
+          {label}{sub ? <span style={{ marginLeft: 4, color: '#78716c', textTransform: 'none', letterSpacing: 'normal', fontWeight: 500 }}>{sub}</span> : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SurrogateStatTiles({ gcDob, heightFt, heightIn, weight, bmi, maritalStatus }) {
+  const age = calcAge(gcDob)
+  const heightStr = heightFt ? `${heightFt}'${heightIn || 0}"` : '—'
+  const weightStr = weight ? `${weight} lbs` : '—'
+  const bmiStr = bmi || '—'
+  return (
+    <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 12 }}>
+      <StatTile icon="📅" value={age != null ? String(age) : '—'} label="Age" sub={gcDob ? formatDate(gcDob) : ''} />
+      <StatTile icon="📏" value={heightStr} label="Height" />
+      <StatTile icon="⚖️" value={weightStr} label="Weight" />
+      <StatTile icon="📊" value={bmiStr} label="BMI" />
+      <StatTile icon="💍" value={maritalStatus || '—'} label="Status" />
+    </div>
+  )
+}
+
+// Pregnancy history one-liner: GTPAL code (G6P4024 etc.) plus colored
+// counter dots for Pregnancies / Term / Preterm / Losses / Living. Mirrors
+// the visual on /surrogates list cards but rendered inline for the sheet.
+function GtpalDot({ count, color, label }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 18, height: 18,
+        borderRadius: '50%',
+        background: color, color: 'white',
+        fontSize: 10, fontWeight: 700,
+        lineHeight: 1,
+      }}>{count}</span>
+      <span style={{ fontSize: 11, color: '#44403c', fontWeight: 500 }}>{label}</span>
+    </span>
+  )
+}
+
+function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
+  if (!pregnancies.length && !numPreg) return null
+  const g = parseInt(numPreg) || pregnancies.length
+  let term = 0, preterm = 0, abortions = 0, living = 0
+  for (const p of pregnancies) {
+    if (p.outcome === 'Live Birth') {
+      const weeks = parseInt(p.gestationWeeks) || 40
+      if (weeks >= 37) term++
+      else preterm++
+      living++
+    } else {
+      abortions++
+    }
+  }
+  const code = `G${g}P${term}${preterm}${abortions}${living}`
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      padding: '10px 14px',
+      borderRadius: 10,
+      background: 'linear-gradient(90deg, #fdf2f8, #f0f1fa)',
+      border: '1px solid #f5d0e6',
+      marginBottom: 14,
+      flexWrap: 'wrap',
+    }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 13 }}>👶</span>
+        <span style={{ fontSize: 10, color: '#a8a29e', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase' }}>Pregnancy History</span>
+      </span>
+      <span style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 14, fontWeight: 700, color: '#283693', letterSpacing: '0.4px' }}>{code}</span>
+      <GtpalDot count={g}        color="#283693" label="Pregnancies" />
+      <GtpalDot count={term}     color="#10b981" label="Term" />
+      <GtpalDot count={preterm}  color="#f59e0b" label="Preterm" />
+      <GtpalDot count={abortions} color="#ef4444" label="Losses" />
+      <GtpalDot count={living}   color="#8b5cf6" label="Living" />
+    </div>
   )
 }
 
@@ -492,79 +597,87 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
       <PartyBanner color="#ed148c" icon={User}>Surrogate</PartyBanner>
 
       <PartyName name={gcCase?.name} />
+
+      {/* Hero stats: Age (DOB), Height, Weight, BMI, Marital Status */}
+      <SurrogateStatTiles
+        gcDob={gcDob}
+        heightFt={ga.heightFt || personal.heightFt}
+        heightIn={ga.heightIn || personal.heightIn}
+        weight={ga.weightLbs || personal.weight}
+        bmi={gcCase?.bmi}
+        maritalStatus={ga.maritalStatus || personal.maritalStatus}
+      />
+
+      {/* Pregnancy History — GTPAL code + colored stat badges */}
+      <PregnancyHistorySummary pregnancies={pregnancies} numPreg={numPreg} />
+
+      {/* Contact info (kept as a compact grid below the hero) */}
       <InfoGrid items={[
-        { label: 'Date of Birth', value: `${formatDate(gcDob)}${gcDob ? ` (Age ${calcAge(gcDob)})` : ''}` },
-        { label: 'Blood Type', value: personal.bloodType || '—' },
-        { label: 'Height', value: `${ga.heightFt || personal.heightFt || '—'}'${ga.heightIn || personal.heightIn || '0'}"` },
-        { label: 'Weight', value: `${ga.weightLbs || personal.weight || '—'} lbs` },
-        { label: 'BMI', value: gcCase?.bmi || '—' },
-        { label: 'Marital Status', value: ga.maritalStatus || personal.maritalStatus || '—' },
         { label: 'Email', value: gcCase?.email },
         { label: 'Phone', value: formatPhone(gcCase?.phone) },
         { label: 'City / State', value: [ga.city || personal.city, ga.state || personal.state].filter(Boolean).join(', ') },
         { label: 'US Citizen', value: yesNo(ga.usCitizen || personal.usCitizen) },
       ]} />
 
-      {/* Pregnancy History */}
-      <SectionTitle color="#ed148c" icon={EmbryoIcon}>Pregnancy History</SectionTitle>
-      <InfoGrid items={[
-        { label: 'Total Pregnancies', value: numPreg },
-        { label: 'Previous Surrogacies', value: pregnancies.filter(p => p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true).length },
-        { label: 'C-Sections', value: pregnancies.filter(p => p.deliveryType === 'C-Section').length },
-        { label: 'Vaginal Deliveries', value: pregnancies.filter(p => p.deliveryType === 'Vaginal' || p.deliveryType === 'vaginal').length },
-      ]} />
+      {/* Spouse / Partner — only when partner data exists */}
+      {(() => {
+        const conf = ga._confidential || {}
+        const spouseFullName = conf.spouseFullName || personal.spouseFullName || ''
+        const parts = spouseFullName.trim().split(/\s+/).filter(Boolean)
+        // personal.partnerName is typically first-name-only on the GC profile.
+        // Fall back to the first token of spouseFullName if not.
+        const partnerFirst = personal.partnerName || conf.spouseFirstName || parts[0] || ''
+        const partnerLast = conf.spouseLastName || (parts.length > 1 ? parts.slice(1).join(' ') : '')
+        const partnerDob = personal.partnerDob || conf.spouseDob || ''
+        const hasPartner = !!(partnerFirst || partnerLast || partnerDob)
+        if (!hasPartner) return null
+        return (
+          <>
+            <SectionTitle color="#ed148c" icon={Users}>Spouse / Partner</SectionTitle>
+            <InfoGrid items={[
+              { label: 'First Name', value: partnerFirst || '—' },
+              { label: 'Last Name', value: partnerLast || '—' },
+              { label: 'Date of Birth', value: partnerDob ? `${formatDate(partnerDob)}${calcAge(partnerDob) ? ` (Age ${calcAge(partnerDob)})` : ''}` : '—' },
+            ]} />
+          </>
+        )
+      })()}
 
+      {/* Pregnancy History detail table */}
       {pregnancies.length > 0 && (
-        <div style={{ marginTop: 8, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#fafaf9' }}>
-                {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {pregnancies.map((p, i) => (
-                <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
-                  <td style={{ padding: '8px 12px', fontWeight: 600 }}>{i + 1}</td>
-                  <td style={{ padding: '8px 12px' }}>{p.dob ? new Date(p.dob + 'T00:00:00').getFullYear() : '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{p.outcome || '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{p.deliveryType || '—'}</td>
-                  <td style={{ padding: '8px 12px' }}>{p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true ? 'Yes' : 'No'}</td>
-                  <td style={{ padding: '8px 12px', fontSize: 10 }}>{p.complications || p.complicationsExplanation || 'None'}</td>
+        <>
+          <SectionTitle color="#ed148c" icon={EmbryoIcon}>Pregnancy Detail</SectionTitle>
+          <InfoGrid items={[
+            { label: 'Total Pregnancies', value: numPreg },
+            { label: 'Number of Miscarriages', value: pregnancies.filter(p => /miscarriag/i.test(String(p.outcome || ''))).length },
+            { label: 'C-Sections', value: pregnancies.filter(p => /c-?section|cesarean/i.test(String(p.deliveryType || ''))).length },
+            { label: 'Vaginal Deliveries', value: pregnancies.filter(p => /vaginal/i.test(String(p.deliveryType || ''))).length },
+          ]} />
+          <div style={{ marginTop: 8, borderRadius: 12, overflow: 'hidden', border: '1px solid #e7e5e4' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+              <thead>
+                <tr style={{ backgroundColor: '#fafaf9' }}>
+                  {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {pregnancies.map((p, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{i + 1}</td>
+                    <td style={{ padding: '8px 12px' }}>{p.dob ? new Date(p.dob + 'T00:00:00').getFullYear() : '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>{p.outcome || '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>{p.deliveryType || '—'}</td>
+                    <td style={{ padding: '8px 12px' }}>{p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true ? 'Yes' : 'No'}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 10 }}>{p.complications || p.complicationsExplanation || 'None'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
-
-      {/* Fertility & Health */}
-      <SectionTitle color="#ed148c" icon={Heart}>Fertility & Health</SectionTitle>
-      <InfoGrid items={[
-        { label: 'Last Period', value: formatDate(fertility.lastPeriod) },
-        { label: 'Cycle Length', value: fertility.cycleLength ? `${fertility.cycleLength} days` : '—' },
-        { label: 'Contraceptive Method', value: fertility.contraceptiveMethod || '—' },
-        { label: 'Breastfeeding', value: yesNo(fertility.breastfeeding) },
-        { label: 'Nearest NICU', value: fertility.nearestNICU || '—' },
-        { label: 'Willing to Travel for NICU', value: yesNo(fertility.willingToTravelNICU) },
-        { label: 'Current Medications', value: health.currentMeds || 'None' },
-        { label: 'Allergies', value: health.allergies || 'None' },
-        { label: 'Last Physical', value: formatDate(health.lastPhysical) },
-        { label: 'Last Pap', value: formatDate(health.lastPap) },
-        { label: 'COVID Vaccinated', value: yesNo(health.covidVaccine) },
-        { label: 'Open to Vaccinations', value: yesNo(health.openToVaccinations) },
-      ]} />
-
-      {/* Insurance */}
-      <SectionTitle color="#ed148c" icon={Shield}>Insurance</SectionTitle>
-      <InfoGrid items={[
-        { label: 'Has Health Insurance', value: yesNo(employment.healthInsurance) },
-        { label: 'Insurance Type', value: employment.insuranceType || '—' },
-        { label: 'Surrogacy-Friendly Policy', editable: true, value: <EditableSelect field="surrogacyFriendlyInsurance" msData={msData} onChange={onChange} placeholder="Select..." /> },
-        { label: 'Insurance Carrier', editable: true, value: <EditableValue field="insuranceCarrier" msData={msData} onChange={onChange} placeholder="Enter carrier..." /> },
-      ]} />
 
       <ConfidentialFooter />
     </div>
