@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
-import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, Sparkles, Plus, X, Mail, Baby } from 'lucide-react'
+import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, ChevronRight, Plus, X, Mail, Baby } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -1574,7 +1574,7 @@ function MilestoneStation({ row, milestoneKey, label, plannedDate, checkins, onC
     statusClass = 'text-amber-600 font-medium'
   } else {
     bubbleClass = 'bg-white text-[#283693] border-[#283693]/30 group-hover:bg-[#283693] group-hover:text-white group-hover:border-[#283693]'
-    bubbleIcon = <Sparkles className="size-3.5" />
+    bubbleIcon = <ChevronRight className="size-4" strokeWidth={2.5} />
     statusText = 'Check In'
     statusClass = 'text-[#283693] font-semibold group-hover:underline'
   }
