@@ -2820,9 +2820,11 @@ function ProfilesTabContent({ profileView, gcCase, setGcCase, gcProfileData, set
   return <ProfileErrorBoundary key="ip"><Suspense fallback={<TabFallback />}><IPProfileTab ip={ipCase} onUpdate={async (updates) => {
     try {
       const { updateIntakeSubmission } = await import('@/lib/db')
-      await updateIntakeSubmission(ipCase.id, updates)
-      setIpCase(prev => ({ ...prev, ...updates }))
-    } catch {}
+      await updateIntakeSubmission(ipCase.id, { answers: updates })
+      setIpCase(prev => ({ ...prev, answers: updates }))
+    } catch (err) {
+      console.error('Failed to save journey IP profile:', err)
+    }
   }} /></Suspense></ProfileErrorBoundary>
 }
 
