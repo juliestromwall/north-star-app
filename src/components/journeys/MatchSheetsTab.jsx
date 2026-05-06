@@ -546,6 +546,10 @@ function AttorneySheet({ journey, gcCase, ipCase, profileData, sheetRef, msData,
 
 function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
+  // Admin-edited overrides for IP info live in answers._ipContact. Without
+  // this fallback chain, address/name/DOB updates the admin makes through
+  // the IP application tab don't reach the Clinic sheet.
+  const ipContact = a._ipContact || {}
   const ga = gcCase?.answers || {}
   const jd = journey.journey_data || {}
   const pd = profileData || {}
@@ -576,24 +580,24 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
       <InfoGrid columns={4} items={[
-        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim(), span: 2 },
-        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}`, span: 2 },
-        { label: 'Email', value: ipCase?.email, span: 2 },
-        { label: 'Phone', value: formatPhone(ipCase?.phone), span: 2 },
-        { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', ') },
-        { label: 'City', value: a.city },
-        { label: 'State', value: a.stateProv },
-        { label: 'Zip', value: a.zipCode },
+        { label: 'Full Name', value: `${ipContact.ip1FirstName || a.primaryFirstName || ''} ${ipContact.ip1LastName || a.primaryLastName || ''}`.trim(), span: 2 },
+        { label: 'Date of Birth', value: `${formatDate(ipContact.ip1Dob || a.primaryDob)}${(ipContact.ip1Dob || a.primaryDob) ? ` (Age ${calcAge(ipContact.ip1Dob || a.primaryDob)})` : ''}`, span: 2 },
+        { label: 'Email', value: ipContact.ip1Email || ipCase?.email, span: 2 },
+        { label: 'Phone', value: formatPhone(ipContact.ip1Phone || ipCase?.phone), span: 2 },
+        { label: 'Street Address', value: [ipContact.street || a.street, a.street2].filter(Boolean).join(', ') },
+        { label: 'City', value: ipContact.city || a.city },
+        { label: 'State', value: ipContact.state || a.stateProv },
+        { label: 'Zip', value: ipContact.zipCode || a.zipCode },
       ]} />
 
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
           <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
           <InfoGrid items={[
-            { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
-            { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
-            { label: 'Email', value: ipCase?.ip2Email },
-            { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
+            { label: 'Full Name', value: `${ipContact.ip2FirstName || a.ip2FirstName || ''} ${ipContact.ip2LastName || a.ip2LastName || ''}`.trim() },
+            { label: 'Date of Birth', value: `${formatDate(ipContact.ip2Dob || a.ip2Dob)}${(ipContact.ip2Dob || a.ip2Dob) ? ` (Age ${calcAge(ipContact.ip2Dob || a.ip2Dob)})` : ''}` },
+            { label: 'Email', value: ipContact.ip2Email || ipCase?.ip2Email },
+            { label: 'Phone', value: formatPhone(ipContact.ip2Phone || ipCase?.ip2Phone) },
           ]} />
         </>
       )}
@@ -711,6 +715,9 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
 function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, onChange }) {
   const a = ipCase?.answers || {}
+  // Same _ipContact fallback chain the Attorney/Clinic sheets use, so admin
+  // edits to IP info reach this sheet too.
+  const ipContact = a._ipContact || {}
   const ga = gcCase?.answers || {}
   const jd = journey.journey_data || {}
   const pd = profileData || {}
@@ -727,24 +734,24 @@ function EscrowSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
 
       <PartyLabel color="#283693">Intended Parent #1</PartyLabel>
       <InfoGrid columns={4} items={[
-        { label: 'Full Name', value: `${a.primaryFirstName || ''} ${a.primaryLastName || ''}`.trim(), span: 2 },
-        { label: 'Date of Birth', value: `${formatDate(a.primaryDob)}${a.primaryDob ? ` (Age ${calcAge(a.primaryDob)})` : ''}`, span: 2 },
-        { label: 'Email', value: ipCase?.email, span: 2 },
-        { label: 'Phone', value: formatPhone(ipCase?.phone), span: 2 },
-        { label: 'Street Address', value: [a.street, a.street2].filter(Boolean).join(', ') },
-        { label: 'City', value: a.city },
-        { label: 'State', value: a.stateProv },
-        { label: 'Zip', value: a.zipCode },
+        { label: 'Full Name', value: `${ipContact.ip1FirstName || a.primaryFirstName || ''} ${ipContact.ip1LastName || a.primaryLastName || ''}`.trim(), span: 2 },
+        { label: 'Date of Birth', value: `${formatDate(ipContact.ip1Dob || a.primaryDob)}${(ipContact.ip1Dob || a.primaryDob) ? ` (Age ${calcAge(ipContact.ip1Dob || a.primaryDob)})` : ''}`, span: 2 },
+        { label: 'Email', value: ipContact.ip1Email || ipCase?.email, span: 2 },
+        { label: 'Phone', value: formatPhone(ipContact.ip1Phone || ipCase?.phone), span: 2 },
+        { label: 'Street Address', value: [ipContact.street || a.street, a.street2].filter(Boolean).join(', ') },
+        { label: 'City', value: ipContact.city || a.city },
+        { label: 'State', value: ipContact.state || a.stateProv },
+        { label: 'Zip', value: ipContact.zipCode || a.zipCode },
       ]} />
 
       {(a.hasPartner === true || a.hasPartner === 'yes') && (
         <>
           <PartyLabel color="#283693">Intended Parent #2</PartyLabel>
           <InfoGrid items={[
-            { label: 'Full Name', value: `${a.ip2FirstName || ''} ${a.ip2LastName || ''}`.trim() },
-            { label: 'Date of Birth', value: `${formatDate(a.ip2Dob)}${a.ip2Dob ? ` (Age ${calcAge(a.ip2Dob)})` : ''}` },
-            { label: 'Email', value: ipCase?.ip2Email },
-            { label: 'Phone', value: formatPhone(ipCase?.ip2Phone) },
+            { label: 'Full Name', value: `${ipContact.ip2FirstName || a.ip2FirstName || ''} ${ipContact.ip2LastName || a.ip2LastName || ''}`.trim() },
+            { label: 'Date of Birth', value: `${formatDate(ipContact.ip2Dob || a.ip2Dob)}${(ipContact.ip2Dob || a.ip2Dob) ? ` (Age ${calcAge(ipContact.ip2Dob || a.ip2Dob)})` : ''}` },
+            { label: 'Email', value: ipContact.ip2Email || ipCase?.ip2Email },
+            { label: 'Phone', value: formatPhone(ipContact.ip2Phone || ipCase?.ip2Phone) },
           ]} />
         </>
       )}
