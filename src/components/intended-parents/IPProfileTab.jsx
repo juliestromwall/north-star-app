@@ -788,6 +788,9 @@ export default function IPProfileTab({ ip, onUpdate }) {
   // Local copy of profile for immediate UI updates; debounced save bubbles up
   const [localProfile, setLocalProfile] = useState(answers._ipProfile || {})
   const saveTimer = useRef(null)
+  const latestAnswersRef = useRef(answers)
+  const onUpdateRef = useRef(onUpdate)
+  const pendingProfileRef = useRef(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewPhotos, setPreviewPhotos] = useState([])
   const [approvalSaving, setApprovalSaving] = useState(false)
@@ -798,6 +801,23 @@ export default function IPProfileTab({ ip, onUpdate }) {
   useEffect(() => {
     setLocalProfile(answers._ipProfile || {})
   }, [ip?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    latestAnswersRef.current = answers
+  }, [answers])
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate
+  }, [onUpdate])
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      if (pendingProfileRef.current) {
+        onUpdateRef.current?.({ ...latestAnswersRef.current, _ipProfile: pendingProfileRef.current })
+      }
+    }
+  }, [])
 
   const profile = localProfile
   const hasPartner = answers.hasPartner === 'yes' || answers.hasPartner === true
@@ -810,9 +830,11 @@ export default function IPProfileTab({ ip, onUpdate }) {
 
   function scheduleAutoSave(updatedProfile) {
     setLocalProfile(updatedProfile)
+    pendingProfileRef.current = updatedProfile
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
-      onUpdate({ ...answers, _ipProfile: updatedProfile })
+      pendingProfileRef.current = null
+      onUpdateRef.current?.({ ...latestAnswersRef.current, _ipProfile: updatedProfile })
     }, 1500)
   }
 
@@ -852,6 +874,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
     const updatedProfile = isApproved
       ? { ...profile, _approved: false, _approvedAt: null }
       : { ...profile, _approved: true, _approvedAt: new Date().toISOString() }
+    pendingProfileRef.current = null
+    if (saveTimer.current) clearTimeout(saveTimer.current)
     setLocalProfile(updatedProfile)
     try {
       await onUpdate({ ...answers, _ipProfile: updatedProfile })
@@ -863,6 +887,8 @@ export default function IPProfileTab({ ip, onUpdate }) {
     if (!window.confirm(`Reopen ${ipFirstName}'s profile so they can edit it again?`)) return
     setReopening(true)
     const updatedProfile = { ...profile, _approved: false, _approvedAt: null }
+    pendingProfileRef.current = null
+    if (saveTimer.current) clearTimeout(saveTimer.current)
     setLocalProfile(updatedProfile)
     try {
       await onUpdate({
