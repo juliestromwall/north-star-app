@@ -955,37 +955,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         // Clinic: To = 3rd party coordinator
         const coordinatorEmail = jd.ivfCoordinatorEmail || ''
         const subjectLabel = ip2Name ? `Intended Parents: ${ip1Name} & ${ip2Name}` : `Intended Parent: ${ip1Name}`
-
-        // Pull the GC's "GC Psych Evaluation" document (admin-labeled via the
-        // Edit Document → Label dropdown) and attach it. We match on
-        // doc_label rather than category so therapist check-in notes that
-        // share the psych-evaluation category don't get attached by mistake.
-        // The 'I have attached the Psych Report' line is conditional.
-        const clinicAttachments = [attachment]
-        let psychEvalAttached = false
-        try {
-          if (gcCase?.id && supabase) {
-            const { data: psychDocs } = await supabase
-              .from('case_documents')
-              .select('file_name, public_url, created_at')
-              .eq('surrogate_id', gcCase.id)
-              .eq('doc_label', 'gc-psych-evaluation')
-              .order('created_at', { ascending: false })
-              .limit(1)
-            const top = psychDocs?.[0]
-            if (top?.public_url) {
-              const a = await urlToAttachment(top.public_url, top.file_name || `${gcCase?.name || 'GC'} Psych Evaluation.pdf`)
-              if (a) {
-                clinicAttachments.push(a)
-                psychEvalAttached = true
-              }
-            }
-          }
-        } catch (err) { console.error('Psych eval lookup failed:', err) }
-
-        const gcFirstName = gcName?.split(' ')[0] || 'the surrogate'
-        const psychSentence = psychEvalAttached ? ` I have attached ${gcFirstName}'s Psych Report.` : ''
-        const body = `<p>Hello,</p><p>My name is ${adminName}, and I am the Case Manager working with IP's: ${ipNames} and GS: ${gcName}. I am looking forward to working with you all on this case.</p><p>Attached, please find the Match Sheet. If you need anything else to proceed please let me know.</p><p>Please let me know when you anticipate being able to bring her in for a medical evaluation.</p><p>If you could let me know what your medical evaluation process includes that would be great. For the group psych eval, are you fine using one of our therapists?${psychSentence}</p>`
+        const ipPossessive = hasPartner ? 'IPs' : 'IP'
+        const body = `<p>Hello,</p><p>My name is ${adminName}, and I am the Case Manager working with ${ipPossessive}: ${ipNames} and GS: ${gcName}. I am looking forward to working with you all on this case.</p><p>Attached, please find the Match Sheet. If you need anything else to proceed please let me know.</p><p>Please let me know when you anticipate being able to bring her in for a medical evaluation.</p><p>If you could let me know what your medical evaluation process includes that would be great. For the group psych eval, are you fine using one of our therapists?</p>`
         openDraft({
           to: coordinatorEmail,
           subject: `Match Sheet for ${subjectLabel} with Surrogate: ${gcName}`,
@@ -993,7 +964,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
           userId: currentUser?.id,
           caseId: journey.id,
           caseType: 'journey',
-          attachments: clinicAttachments,
+          attachments: [attachment],
         })
       }
     } catch (err) {
