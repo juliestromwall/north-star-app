@@ -7,6 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
+// Hard cutoff: never surface faxes from before this date. The SRFax account
+// has historical traffic that predates this app's adoption of fax — Julie
+// only wants the inbox/outbox views to start fresh from 2026-05-06.
+const CUTOFF_EPOCH_SECONDS = Math.floor(Date.UTC(2026, 4, 6) / 1000) // May 6, 2026 00:00 UTC
+
+function faxIsOnOrAfterCutoff(fax) {
+  // Inbox rows include EpochTime (Unix seconds). Use that when present.
+  if (fax?.EpochTime) {
+    const epoch = parseInt(fax.EpochTime, 10)
+    if (Number.isFinite(epoch)) return epoch >= CUTOFF_EPOCH_SECONDS
+  }
+  // Outbox rows include DateSent / DateQueued strings (parseable by Date).
+  const dateStr = fax?.DateSent || fax?.DateQueued || fax?.Date
+  if (dateStr) {
+    const t = new Date(dateStr).getTime()
+    if (Number.isFinite(t)) return Math.floor(t / 1000) >= CUTOFF_EPOCH_SECONDS
+  }
+  // No date on the row — drop it to be safe (won't surface ancient
+  // undated entries).
+  return false
+}
+
 export async function onRequestGet(context) {
   const { env, request } = context
   const url = new URL(request.url)
@@ -41,7 +63,9 @@ export async function onRequestGet(context) {
     const result = await res.json()
 
     if (result.Status === 'Success') {
-      return new Response(JSON.stringify({ success: true, faxes: result.Result || [] }), {
+      const all = Array.isArray(result.Result) ? result.Result : []
+      const faxes = all.filter(faxIsOnOrAfterCutoff)
+      return new Response(JSON.stringify({ success: true, faxes }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
     }
