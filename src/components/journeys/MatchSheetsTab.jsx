@@ -791,6 +791,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
   const sheetRef = useRef(null)
+  const autosaveTimerRef = useRef(null)
   const { openDraft } = useDrafts()
   const { currentUser } = useRole()
 
@@ -827,6 +828,22 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       setSaving(false)
     }
   }
+
+  useEffect(() => {
+    const savedData = journey.journey_data?._matchSheetData || {}
+    const current = JSON.stringify(msData || {})
+    const saved = JSON.stringify(savedData)
+    if (current === saved) return
+
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+    autosaveTimerRef.current = setTimeout(() => {
+      saveMatchSheetData()
+    }, 800)
+
+    return () => {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+    }
+  }, [msData, journey.journey_data?._matchSheetData])
 
   function getFileName() {
     const sheetType = SHEET_TYPES.find(s => s.id === activeSheet)
