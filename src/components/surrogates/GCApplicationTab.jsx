@@ -305,6 +305,8 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
       const init = {
         // Identity
         fullLegalName: saved.fullLegalName || '',
+        // Backfill: if a maiden name was already on file, infer 'yes'.
+        hadDifferentLastName: saved.hadDifferentLastName ?? (saved.maidenName ? 'yes' : ''),
         maidenName: saved.maidenName || '',
         dob: saved.dob || '',
         ssn4: saved.ssn4 || '',
@@ -381,7 +383,13 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
           {editing ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-1"><FieldLabel>Full Legal Name</FieldLabel><Input value={form.fullLegalName} onChange={e => set('fullLegalName', e.target.value)} /></div>
-              <div className="space-y-1"><FieldLabel>Maiden Name (if applicable)</FieldLabel><Input value={form.maidenName} onChange={e => set('maidenName', e.target.value)} /></div>
+              <div className="space-y-1">
+                <FieldLabel>Have you ever had a different last name?</FieldLabel>
+                <YesNoButtons value={form.hadDifferentLastName} onChange={v => setForm(f => ({ ...f, hadDifferentLastName: v, ...(v === 'no' ? { maidenName: '' } : {}) }))} />
+              </div>
+              {(form.hadDifferentLastName === 'yes' || form.hadDifferentLastName === true) && (
+                <div className="space-y-1"><FieldLabel>Other Name(s) Used</FieldLabel><Input value={form.maidenName} onChange={e => set('maidenName', e.target.value)} /></div>
+              )}
               <div className="space-y-1"><FieldLabel>Date of Birth</FieldLabel><Input type="date" value={form.dob} onChange={e => set('dob', e.target.value)} /></div>
               <div className="space-y-1"><FieldLabel>Last 4 of SSN</FieldLabel><Input value={form.ssn4} onChange={e => set('ssn4', e.target.value)} maxLength={4} /></div>
               <div className="space-y-1"><FieldLabel>Religion (if applicable)</FieldLabel><Input value={form.religion} onChange={e => set('religion', e.target.value)} /></div>
@@ -389,7 +397,10 @@ function ApplicationSection({ surrogate, answers, profileData, onSaved, search }
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <ReadField label="Full Legal Name" value={stored.fullLegalName} />
-              <ReadField label="Maiden Name" value={stored.maidenName} />
+              <ReadField label="Different Last Name?" value={stored.hadDifferentLastName === 'yes' || stored.hadDifferentLastName === true ? 'Yes' : (stored.hadDifferentLastName === 'no' || stored.hadDifferentLastName === false ? 'No' : '')} />
+              {(stored.hadDifferentLastName === 'yes' || stored.hadDifferentLastName === true || stored.maidenName) && (
+                <ReadField label="Other Name(s) Used" value={stored.maidenName} />
+              )}
               <ReadField label="Date of Birth" value={stored.dob} />
               <ReadField label="Last 4 of SSN" value={stored.ssn4} />
               <ReadField label="Religion" value={stored.religion} />
