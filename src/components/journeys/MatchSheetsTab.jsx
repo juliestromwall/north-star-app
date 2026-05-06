@@ -956,9 +956,11 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
         const coordinatorEmail = jd.ivfCoordinatorEmail || ''
         const subjectLabel = ip2Name ? `Intended Parents: ${ip1Name} & ${ip2Name}` : `Intended Parent: ${ip1Name}`
 
-        // Pull the GC's most recent Psych Evaluation document (if any) and
-        // attach it. The body's 'I have attached the Psych Report' line is
-        // conditional so we don't promise an attachment that isn't there.
+        // Pull the GC's "GC Psych Evaluation" document (admin-labeled via the
+        // Edit Document → Label dropdown) and attach it. We match on
+        // doc_label rather than category so therapist check-in notes that
+        // share the psych-evaluation category don't get attached by mistake.
+        // The 'I have attached the Psych Report' line is conditional.
         const clinicAttachments = [attachment]
         let psychEvalAttached = false
         try {
@@ -967,7 +969,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
               .from('case_documents')
               .select('file_name, public_url, created_at')
               .eq('surrogate_id', gcCase.id)
-              .eq('category', 'psych-evaluation')
+              .eq('doc_label', 'gc-psych-evaluation')
               .order('created_at', { ascending: false })
               .limit(1)
             const top = psychDocs?.[0]
