@@ -3,7 +3,7 @@
 // Persisted to Supabase app_config table (key: 'checklist_config').
 // Memory-cached for synchronous reads; async load on app startup.
 
-import { getAppConfig, setAppConfig } from './db'
+import { getAppConfigStrict, setAppConfig } from './db'
 
 const STORAGE_KEY = 'abc_checklist_config'
 const CONFIG_KEY = 'checklist_config'
@@ -200,31 +200,38 @@ function saveToSupabase(config) {
 
 /** Load checklist config from Supabase into memory cache. Call on app startup.
  *
- * This function MUST NEVER write back to Supabase on its own. Doing so
- * caused a production data-loss incident: a stale-cached browser tab loaded
- * the remote config, ensureDefaults decided some stages were "missing"
- * (because DEFAULT_CHECKLISTS is a slim seed), filled them with empty
- * arrays, and silently saved the result — wiping all admin-customized
- * checklist templates. Saves only happen on explicit user action via the
- * setter functions (which call save()).
+ * This function MUST NEVER write back to Supabase on its own — doing so
+ * caused production data-loss incidents twice now. The April 26 fix closed
+ * one path (writing on every load); this fix closes a second path: the
+ * lenient getAppConfig helper used to return null on ANY error (timeout,
+ * RLS hiccup, network blip), which the seed-defaults branch interpreted
+ * as "row doesn't exist" and merrily wrote DEFAULT_CHECKLISTS over the
+ * real config. We now use getAppConfigStrict, which distinguishes
+ * "row genuinely missing" (ok: true, value: null — PGRST116) from any
+ * fetch error (ok: false). Errors fall through to the safe-mode path that
+ * never writes.
  */
 export async function loadChecklistConfig() {
+  let remoteResult
   try {
-    const remote = await getAppConfig(CONFIG_KEY)
-    if (remote) {
-      const config = remote
-      // In-memory normalization only — DO NOT save the result back.
-      migrateIfNeeded(config)
-      ensureDefaults(config)
-      _cache = config
-      _loaded = true // unblock save() so user-initiated changes can persist
-      saveToLocalStorage(config)
-      return config
-    }
+    remoteResult = await getAppConfigStrict(CONFIG_KEY)
+  } catch (err) {
+    remoteResult = { ok: false, value: null, error: err?.message || 'load threw' }
+  }
 
-    // Supabase empty — check localStorage for migration. We DO write back
-    // in this branch because there's no remote config to overwrite (this
-    // is the "first ever load" path, seeding from a previous tab).
+  if (remoteResult.ok && remoteResult.value) {
+    // Real remote config — trust it. In-memory normalization only.
+    const config = remoteResult.value
+    migrateIfNeeded(config)
+    ensureDefaults(config)
+    _cache = config
+    _loaded = true // unblock save() so user-initiated changes can persist
+    saveToLocalStorage(config)
+    return config
+  }
+
+  if (remoteResult.ok && !remoteResult.value) {
+    // Confirmed no row exists (PGRST116). Safe to seed.
     const local = loadFromLocalStorage()
     if (local) {
       migrateIfNeeded(local)
@@ -234,30 +241,26 @@ export async function loadChecklistConfig() {
       saveToSupabase(local)
       return local
     }
-
-    // Nothing anywhere — seed defaults. Same reasoning: empty remote means
-    // there's nothing to clobber.
     const defaults = JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
     _cache = defaults
     _loaded = true
     saveToSupabase(defaults)
     return defaults
-  } catch {
-    // Supabase failed — fall back to localStorage if available
-    const local = loadFromLocalStorage()
-    if (local) {
-      migrateIfNeeded(local)
-      ensureDefaults(local)
-      _cache = local
-      // Do NOT mark _loaded = true: we never confirmed against Supabase,
-      // so saves stay blocked until a real load succeeds. This prevents
-      // overwriting Supabase with stale localStorage data.
-      return local
-    }
-    // No data anywhere — return defaults but DO NOT cache or mark loaded.
-    // Saves remain blocked so we can't clobber Supabase with defaults.
-    return JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
   }
+
+  // remoteResult.ok === false: a real fetch error. We CANNOT distinguish
+  // "remote is empty" from "remote temporarily unreachable", so the only
+  // safe move is to never write back from this load. Render from
+  // localStorage / defaults but leave _loaded false so save() stays blocked.
+  console.warn('[checklistStore] remote load failed — staying in read-only safe mode:', remoteResult.error)
+  const local = loadFromLocalStorage()
+  if (local) {
+    migrateIfNeeded(local)
+    ensureDefaults(local)
+    _cache = local
+    return local
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_CHECKLISTS))
 }
 
 function save(config) {
