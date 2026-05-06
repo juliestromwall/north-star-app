@@ -326,6 +326,14 @@ export default function SignFormPage() {
       const signedBlob = new Blob([filledHtml + auditHtml], { type: 'text/html' })
       const signedPath = `documents/signed_form_${doc.id}_${Date.now()}.html`
       await supabase.storage.from('esign-documents').upload(signedPath, signedBlob, { contentType: 'text/html' })
+      const baseMeta = (() => { try { return JSON.parse(updated?.document_hash || doc.document_hash || '{}') } catch { return {} } })()
+      await updateDocument(doc.id, {
+        file_path: signedPath,
+        document_hash: JSON.stringify({
+          ...baseMeta,
+          htmlPath: signedPath,
+        }),
+      })
 
       // Generate PDF
       try {
@@ -390,6 +398,14 @@ export default function SignFormPage() {
           const pdfPath = `documents/signed_form_${doc.id}_${Date.now()}.pdf`
           await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
           const { data: pdfUrl } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+          await updateDocument(doc.id, {
+            file_path: pdfPath,
+            document_hash: JSON.stringify({
+              ...baseMeta,
+              htmlPath: signedPath,
+              pdfPath,
+            }),
+          })
           if (pdfUrl?.publicUrl && doc.case_id) {
             await supabase.from('case_documents').insert({
               surrogate_id: doc.case_id,
@@ -460,6 +476,14 @@ export default function SignFormPage() {
         const pdfPath = `documents/signed_form_${doc.id}_${Date.now()}.pdf`
         await supabase.storage.from('esign-documents').upload(pdfPath, pdfBlob, { contentType: 'application/pdf' })
         const { data: pdfUrl } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+        await updateDocument(doc.id, {
+          file_path: pdfPath,
+          document_hash: JSON.stringify({
+            ...baseMeta,
+            htmlPath: signedPath,
+            pdfPath,
+          }),
+        })
 
         if (pdfUrl?.publicUrl && doc.case_id) {
           await supabase.from('case_documents').insert({
@@ -479,6 +503,22 @@ export default function SignFormPage() {
         } catch (taskErr) { console.error('Batch completion task failed:', taskErr) }
       } catch (pdfErr) {
         console.error('PDF failed:', pdfErr)
+        try {
+          const { data: htmlUrl } = supabase.storage.from('esign-documents').getPublicUrl(signedPath)
+          if (htmlUrl?.publicUrl && doc.case_id) {
+            await supabase.from('case_documents').insert({
+              surrogate_id: doc.case_id,
+              category: 'e-signature',
+              file_name: `[Signed] ${doc.title}.html`,
+              file_type: 'text/html',
+              storage_path: signedPath,
+              public_url: htmlUrl.publicUrl,
+              uploaded_by: 'System (E-Sign)',
+            })
+          }
+        } catch (htmlErr) {
+          console.error('HTML fallback filing failed:', htmlErr)
+        }
       }
 
       // Auto-create task for the assigned case manager to request the background check.
