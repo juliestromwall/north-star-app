@@ -466,7 +466,7 @@ export default function SharedPsychTrackingPage() {
 
   const SESSION_KEY = useMemo(() => `psych_share_session_${token}`, [token])
   const LAST_ACTIVITY_KEY = useMemo(() => `psych_share_last_activity_${token}`, [token])
-  const IDLE_TIMEOUT_MS = 1 * 60 * 60 * 1000
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000
 
   const expireForIdle = useCallback(() => {
     if (idleTimer.current) clearTimeout(idleTimer.current)

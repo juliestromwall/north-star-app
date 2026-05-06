@@ -191,8 +191,8 @@ export function RoleProvider({ children }) {
   // ── Auto-logout on inactivity ──
   const idleTimer = useRef(null)
   const ADMIN_ROLES_SET = new Set([ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN, ROLES.OFFICE_ADMIN])
-  const ADMIN_TIMEOUT = 6 * 60 * 60 * 1000  // 6 hours
-  const USER_TIMEOUT = 1 * 60 * 60 * 1000   // 1 hour
+  const ADMIN_TIMEOUT = 3 * 60 * 60 * 1000  // 3 hours
+  const USER_TIMEOUT = 30 * 60 * 1000       // 30 minutes
   const getTimeoutMs = useCallback(() => ADMIN_ROLES_SET.has(currentRole) ? ADMIN_TIMEOUT : USER_TIMEOUT, [currentRole])
 
   const forceIdleLogout = useCallback(() => {
