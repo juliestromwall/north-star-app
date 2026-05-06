@@ -62,6 +62,7 @@ export function RoleProvider({ children }) {
   const [authUser, setAuthUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [portalBlocked, setPortalBlocked] = useState(false)
+  const lastActivityKeyRef = useRef(null)
 
   // Listen for Supabase auth state changes
   useEffect(() => {
@@ -189,31 +190,58 @@ export function RoleProvider({ children }) {
 
   // ── Auto-logout on inactivity ──
   const idleTimer = useRef(null)
-  const ADMIN_ROLES_SET = new Set([ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN])
+  const ADMIN_ROLES_SET = new Set([ROLES.SUPER_ADMIN, ROLES.MASTER_ADMIN, ROLES.ADMIN, ROLES.OFFICE_ADMIN])
   const ADMIN_TIMEOUT = 6 * 60 * 60 * 1000  // 6 hours
   const USER_TIMEOUT = 1 * 60 * 60 * 1000   // 1 hour
+  const getTimeoutMs = useCallback(() => ADMIN_ROLES_SET.has(currentRole) ? ADMIN_TIMEOUT : USER_TIMEOUT, [currentRole])
+
+  const forceIdleLogout = useCallback(() => {
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    const key = lastActivityKeyRef.current
+    if (key) localStorage.removeItem(key)
+    signOut()
+    window.location.href = '/login?reason=idle'
+  }, [])
 
   const resetIdleTimer = useCallback(() => {
     if (!authUser) return
     if (idleTimer.current) clearTimeout(idleTimer.current)
-    const timeout = ADMIN_ROLES_SET.has(currentRole) ? ADMIN_TIMEOUT : USER_TIMEOUT
+    const timeout = getTimeoutMs()
+    const key = lastActivityKeyRef.current
+    if (key) localStorage.setItem(key, String(Date.now()))
     idleTimer.current = setTimeout(() => {
-      signOut()
-      window.location.href = '/login?reason=idle'
+      forceIdleLogout()
     }, timeout)
-  }, [authUser, currentRole])
+  }, [authUser, getTimeoutMs, forceIdleLogout])
 
   useEffect(() => {
     if (!authUser) return
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove']
+    lastActivityKeyRef.current = `abc_last_activity_${authUser.id}`
+    const checkForExpiredIdle = () => {
+      const key = lastActivityKeyRef.current
+      if (!key) return
+      const raw = localStorage.getItem(key)
+      const last = Number(raw || 0)
+      if (last && Date.now() - last > getTimeoutMs()) {
+        forceIdleLogout()
+        return
+      }
+      resetIdleTimer()
+    }
+
+    const events = ['mousedown', 'keydown', 'touchstart']
     const handler = () => resetIdleTimer()
     events.forEach(e => window.addEventListener(e, handler, { passive: true }))
+    window.addEventListener('focus', checkForExpiredIdle)
+    document.addEventListener('visibilitychange', checkForExpiredIdle)
     resetIdleTimer() // start the timer
     return () => {
       events.forEach(e => window.removeEventListener(e, handler))
+      window.removeEventListener('focus', checkForExpiredIdle)
+      document.removeEventListener('visibilitychange', checkForExpiredIdle)
       if (idleTimer.current) clearTimeout(idleTimer.current)
     }
-  }, [authUser, resetIdleTimer])
+  }, [authUser, getTimeoutMs, resetIdleTimer, forceIdleLogout])
 
   // Use auth user if logged in, otherwise fall back to mock user for dev
   const currentUser = authUser || MOCK_USERS[currentRole]
