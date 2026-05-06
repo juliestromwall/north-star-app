@@ -203,7 +203,7 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
       hasInsurance: hasInsFromProfile ? 'yes' : '',
     }
     const KEYS = [
-      'fullLegalName','maidenName','dob','ssn4','religion',
+      'fullLegalName','hadDifferentLastName','maidenName','dob','ssn4','religion',
       'street','city','state','zipCode',
       'hasInsurance','insuranceProvider','insurancePolicyNumber','insuranceGroupNumber','insurancePhone',
       'hasSpouse','spouseFirstName','spouseLastName','spouseDob','spouseEmail','spousePhone',
@@ -230,12 +230,14 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     return arr.every(m => m && m.firstName?.toString().trim() && m.lastName?.toString().trim() && isValidEmail(m.email) && isValidPhone(m.phone))
   }
 
-  const requiredKeys = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','dlGcUrl','emergencyName','emergencyPhone','emergencyRelationship']
+  const hadDifferentLastName = form.hadDifferentLastName === 'yes' || form.hadDifferentLastName === true
+  const requiredKeys = ['fullLegalName','hadDifferentLastName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','dlGcUrl','emergencyName','emergencyPhone','emergencyRelationship']
+  if (hadDifferentLastName) requiredKeys.push('maidenName')
   if (hasSpouse) requiredKeys.push(...SPOUSE_KEYS, 'dlPartnerUrl')
   if (hasInsurance) requiredKeys.push(...INSURANCE_KEYS)
   const allFilled = requiredKeys.every(k => {
     const v = form[k]
-    if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers') return v === 'yes' || v === 'no'
+    if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers' || k === 'hadDifferentLastName') return v === 'yes' || v === 'no'
     if (k === 'emergencyPhone' || k === 'spousePhone' || k === 'insurancePhone') return isValidPhone(v)
     if (k === 'spouseEmail') return isValidEmail(v)
     if (k === 'dlGcUrl') return !!(form.dlGcUrl || dlGcUrl)
@@ -262,12 +264,14 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
     const hs = d.hasSpouse === 'yes'
     const hi = d.hasInsurance === 'yes'
     const ha = d.hasAdultHouseholdMembers === 'yes'
-    const rk = ['fullLegalName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','emergencyName','emergencyPhone','emergencyRelationship']
+    const hd = d.hadDifferentLastName === 'yes'
+    const rk = ['fullLegalName','hadDifferentLastName','dob','ssn4','street','city','state','zipCode','hasInsurance','hasSpouse','hasAdultHouseholdMembers','emergencyName','emergencyPhone','emergencyRelationship']
+    if (hd) rk.push('maidenName')
     if (hs) rk.push(...SPOUSE_KEYS)
     if (hi) rk.push(...INSURANCE_KEYS)
     const baseOk = rk.every(k => {
       const v = d[k]
-      if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers') return v === 'yes' || v === 'no'
+      if (k === 'hasInsurance' || k === 'hasSpouse' || k === 'hasAdultHouseholdMembers' || k === 'hadDifferentLastName') return v === 'yes' || v === 'no'
       if (k.includes('Phone')) return isValidPhone(v)
       if (k.includes('Email')) return isValidEmail(v)
       return v?.toString().trim()
@@ -297,7 +301,13 @@ function PersonalInfoForm({ data, onSave, saving, readOnly, isOpen, onToggle, qu
           <p className="text-xs font-semibold text-muted-foreground uppercase pt-1">Identity</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="space-y-1"><FieldLabel>Full Legal Name <Req /></FieldLabel><Input value={form.fullLegalName || ''} onChange={e => setForm(f => ({ ...f, fullLegalName: e.target.value }))} /></div>
-            <div className="space-y-1"><FieldLabel>Maiden Name</FieldLabel><Input value={form.maidenName || ''} onChange={e => setForm(f => ({ ...f, maidenName: e.target.value }))} /></div>
+            <div className="space-y-1">
+              <FieldLabel>Have you ever had a different last name? <Req /></FieldLabel>
+              <YesNoButtons value={form.hadDifferentLastName} onChange={v => setForm(f => ({ ...f, hadDifferentLastName: v, ...(v === 'no' ? { maidenName: '' } : {}) }))} />
+            </div>
+            {hadDifferentLastName && (
+              <div className="space-y-1"><FieldLabel>Other Name(s) Used <Req /></FieldLabel><Input value={form.maidenName || ''} onChange={e => setForm(f => ({ ...f, maidenName: e.target.value }))} /></div>
+            )}
             <div className="space-y-1"><FieldLabel>Date of Birth <Req /></FieldLabel><Input type="date" value={form.dob || ''} onChange={e => setForm(f => ({ ...f, dob: e.target.value }))} /></div>
             <div className="space-y-1"><FieldLabel>Last 4 of SSN <Req /></FieldLabel><Input value={form.ssn4 || ''} onChange={e => setForm(f => ({ ...f, ssn4: e.target.value }))} maxLength={4} /></div>
             <div className="space-y-1"><FieldLabel>Religion</FieldLabel><Input value={form.religion || ''} onChange={e => setForm(f => ({ ...f, religion: e.target.value }))} /></div>
