@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Search, Brain, Lock, Eye, EyeOff, ShieldCheck, Loader2, ClipboardCheck, FileText, User, Phone, ClipboardList, DollarSign, MessageSquare, Calendar, Check, Pencil, ChevronRight, Plus, X, Mail, Baby } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -416,10 +416,12 @@ function generateInvoiceHtml(report, milestoneKey, row, customCheckIns = []) {
 
 export default function SharedPsychTrackingPage() {
   const { token } = useParams()
+  const idleTimer = useRef(null)
   const [valid, setValid] = useState(null) // null = loading, true/false
   const [authed, setAuthed] = useState(false)
   const [needsSetup, setNeedsSetup] = useState(false) // true = first time, set password
   const [sessionToken, setSessionToken] = useState('')
+  const [idleLoggedOut, setIdleLoggedOut] = useState(false)
   const [rows, setRows] = useState([])
   const [tracking, setTracking] = useState({})
   const [checkins, setCheckins] = useState({})
@@ -463,6 +465,26 @@ export default function SharedPsychTrackingPage() {
   const [tab, setTab] = useState('active')
 
   const SESSION_KEY = useMemo(() => `psych_share_session_${token}`, [token])
+  const LAST_ACTIVITY_KEY = useMemo(() => `psych_share_last_activity_${token}`, [token])
+  const IDLE_TIMEOUT_MS = 1 * 60 * 60 * 1000
+
+  const expireForIdle = useCallback(() => {
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    sessionStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem(LAST_ACTIVITY_KEY)
+    setSessionToken('')
+    setAuthed(false)
+    setIdleLoggedOut(true)
+  }, [SESSION_KEY, LAST_ACTIVITY_KEY])
+
+  const resetIdleTimer = useCallback(() => {
+    if (!authed || !sessionToken) return
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
+    idleTimer.current = setTimeout(() => {
+      expireForIdle()
+    }, IDLE_TIMEOUT_MS)
+  }, [authed, sessionToken, expireForIdle, LAST_ACTIVITY_KEY])
 
   const loadData = useCallback(async (authToken = sessionToken) => {
     const data = await therapistTrackingApi({ action: 'load', sessionToken: authToken })
@@ -492,15 +514,42 @@ export default function SharedPsychTrackingPage() {
           await loadData(savedSession)
           setSessionToken(savedSession)
           setAuthed(true)
+          setIdleLoggedOut(false)
         } catch {
           sessionStorage.removeItem(SESSION_KEY)
+          localStorage.removeItem(LAST_ACTIVITY_KEY)
           setSessionToken('')
           setAuthed(false)
         }
       }
     }
     load()
-  }, [SESSION_KEY, loadData, token])
+  }, [SESSION_KEY, LAST_ACTIVITY_KEY, loadData, token])
+
+  useEffect(() => {
+    if (!authed || !sessionToken) return
+    const checkForExpiredIdle = () => {
+      const raw = localStorage.getItem(LAST_ACTIVITY_KEY)
+      const last = Number(raw || 0)
+      if (last && Date.now() - last > IDLE_TIMEOUT_MS) {
+        expireForIdle()
+        return
+      }
+      resetIdleTimer()
+    }
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'mousemove']
+    const handler = () => resetIdleTimer()
+    events.forEach((eventName) => window.addEventListener(eventName, handler, { passive: true }))
+    window.addEventListener('focus', checkForExpiredIdle)
+    document.addEventListener('visibilitychange', checkForExpiredIdle)
+    resetIdleTimer()
+    return () => {
+      events.forEach((eventName) => window.removeEventListener(eventName, handler))
+      window.removeEventListener('focus', checkForExpiredIdle)
+      document.removeEventListener('visibilitychange', checkForExpiredIdle)
+      if (idleTimer.current) clearTimeout(idleTimer.current)
+    }
+  }, [authed, sessionToken, resetIdleTimer, expireForIdle, LAST_ACTIVITY_KEY])
 
   async function handleSetPassword() {
     setPasswordError('')
@@ -510,8 +559,10 @@ export default function SharedPsychTrackingPage() {
     try {
       const result = await therapistTrackingApi({ action: 'set-password', token, password })
       sessionStorage.setItem(SESSION_KEY, result.sessionToken)
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
       setSessionToken(result.sessionToken)
       setAuthed(true)
+      setIdleLoggedOut(false)
       setNeedsSetup(false)
       await loadData(result.sessionToken)
     } catch { setPasswordError('Failed to set password. Please try again.') }
@@ -525,8 +576,10 @@ export default function SharedPsychTrackingPage() {
     try {
       const result = await therapistTrackingApi({ action: 'login', token, password })
       sessionStorage.setItem(SESSION_KEY, result.sessionToken)
+      localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
       setSessionToken(result.sessionToken)
       setAuthed(true)
+      setIdleLoggedOut(false)
       await loadData(result.sessionToken)
     } catch (err) { setPasswordError(err.message === 'Incorrect password' ? 'Incorrect password' : 'Something went wrong. Please try again.') }
     finally { setPasswordSaving(false) }
@@ -1023,6 +1076,7 @@ export default function SharedPsychTrackingPage() {
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
+              {idleLoggedOut && <p className="text-xs text-amber-600 font-medium">You were logged out due to inactivity. Please enter your password again.</p>}
               {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
               <Button className="w-full gap-1.5" style={{ background: 'linear-gradient(135deg, #ed148c, #283693)' }} onClick={handleLogin} disabled={passwordSaving}>
                 {passwordSaving ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
