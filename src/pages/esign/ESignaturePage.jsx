@@ -378,12 +378,12 @@ function DocumentsTab() {
                           <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => {
                             try {
                               const meta = JSON.parse(doc.document_hash || '{}')
-                              const pdfPath = meta.pdfPath || doc.file_path
-                              if (pdfPath && supabase) {
-                                const { data } = supabase.storage.from('esign-documents').getPublicUrl(pdfPath)
+                              const filePath = meta.pdfPath || meta.htmlPath || doc.file_path
+                              if (filePath && supabase) {
+                                const { data } = supabase.storage.from('esign-documents').getPublicUrl(filePath)
                                 if (data?.publicUrl) window.open(data.publicUrl, '_blank')
                               } else {
-                                alert('No PDF available for this document.')
+                                alert('No signed file available for this document.')
                               }
                             } catch { alert('Could not load PDF.') }
                           }}>
