@@ -347,10 +347,7 @@ function PregnancyHistorySummary({ pregnancies = [], numPreg }) {
       marginBottom: 14,
       flexWrap: 'wrap',
     }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <Baby size={14} color="#ed148c" strokeWidth={2} />
-        <span style={{ fontSize: 10, color: '#a8a29e', fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase' }}>Pregnancy History</span>
-      </span>
+      <Baby size={14} color="#ed148c" strokeWidth={2} />
       <span style={{ fontFamily: 'ui-monospace, "SF Mono", Menlo, monospace', fontSize: 14, fontWeight: 700, color: '#283693', letterSpacing: '0.4px' }}>{code}</span>
       <GtpalDot count={g}        color="#283693" label="Pregnancies" />
       <GtpalDot count={term}     color="#10b981" label="Term" />
@@ -666,7 +663,7 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr style={{ backgroundColor: '#fafaf9' }}>
-                {['#', 'Year', 'Outcome', 'Delivery', 'Surrogacy', 'Complications'].map(h => (
+                {['#', 'Year', 'Outcome', 'Delivery', 'Gestational Age', 'Weight / Length', 'Surrogacy', 'Complications'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 10, color: '#a8a29e', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
@@ -676,12 +673,25 @@ function ClinicSheet({ journey, gcCase, ipCase, profileData, sheetRef, msData, o
                 const outcome = String(p.outcome || '').trim()
                 const isLiveBirth = /live\s*birth/i.test(outcome)
                 const delivery = p.deliveryType || (isLiveBirth ? 'Vaginal' : '—')
+                const weeks = p.gestationWeeks ? String(p.gestationWeeks).trim() : ''
+                const days = p.gestationDays ? String(p.gestationDays).trim() : ''
+                const gestationalAge = weeks ? `${weeks}w${days ? ` ${days}d` : ''}` : '—'
+                const babies = []
+                if (p.weight || p.length) babies.push({ weight: p.weight, length: p.length })
+                if (p.babyBWeight || p.babyBLength) babies.push({ weight: p.babyBWeight, length: p.babyBLength })
+                if (p.babyCWeight || p.babyCLength) babies.push({ weight: p.babyCWeight, length: p.babyCLength })
                 return (
                   <tr key={i} style={{ borderTop: '1px solid #e7e5e4' }}>
                     <td style={{ padding: '8px 12px', fontWeight: 600 }}>{i + 1}</td>
                     <td style={{ padding: '8px 12px' }}>{p.dob ? new Date(p.dob + 'T00:00:00').getFullYear() : '—'}</td>
                     <td style={{ padding: '8px 12px' }}>{outcome || '—'}</td>
                     <td style={{ padding: '8px 12px' }}>{delivery}</td>
+                    <td style={{ padding: '8px 12px' }}>{gestationalAge}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 10 }}>
+                      {babies.length === 0 ? '—' : babies.map((b, j) => (
+                        <div key={j}>{[b.weight, b.length ? `${b.length}"` : null].filter(Boolean).join(', ') || '—'}</div>
+                      ))}
+                    </td>
                     <td style={{ padding: '8px 12px' }}>{p.wasSurrogacy === 'Yes' || p.wasSurrogacy === true ? 'Yes' : 'No'}</td>
                     <td style={{ padding: '8px 12px', fontSize: 10 }}>{p.complications || p.complicationsExplanation || 'None'}</td>
                   </tr>
