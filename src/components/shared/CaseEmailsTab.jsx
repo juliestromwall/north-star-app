@@ -304,12 +304,19 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
   const [logging, setLogging] = useState(false)
 
   const DOC_FOLDERS = [
+    { id: 'photo-id', label: 'Photo IDs' },
     { id: 'agency-documents', label: 'Agency Documents' },
     { id: 'clinic', label: 'Clinic' },
     { id: 'medical-records', label: 'Medical Records' },
     { id: 'insurance', label: 'Insurance' },
     { id: 'legal', label: 'Legal Documents' },
+    { id: 'background-check', label: 'Background Check' },
+    { id: 'psych-evaluation', label: 'Psych Evaluation' },
     { id: 'escrow', label: 'Escrow' },
+    { id: 'receipts', label: 'Receipts' },
+    { id: 'photos', label: 'Photos' },
+    { id: 'e-signature', label: 'E-Signature' },
+    { id: 'uploads', label: 'Client Uploads' },
     { id: 'expenses', label: 'Expenses' },
     { id: 'other', label: 'Other' },
   ]
@@ -344,7 +351,15 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
       const safeName = att.filename.replace(/[^a-zA-Z0-9._-]/g, '_')
       const file = new File([blob], safeName, { type: att.mimeType })
       const { uploadCaseDocument } = await import('@/lib/db')
-      await uploadCaseDocument({ surrogateId: caseId, category: category || 'other', file, uploadedBy: currentUser?.name || 'Admin' })
+      const isJourneyCase = caseType === 'journey'
+      const docTargetCaseId = isJourneyCase ? (additionalCaseIds?.[0] || caseId) : caseId
+      await uploadCaseDocument({
+        surrogateId: docTargetCaseId,
+        category: category || 'other',
+        file,
+        uploadedBy: currentUser?.name || 'Admin',
+        docLabel: isJourneyCase ? 'journey' : null,
+      })
       setSaveAttDialog(null)
     } catch (err) {
       console.error('Save attachment to case failed:', err)
