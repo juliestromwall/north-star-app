@@ -571,7 +571,7 @@ export default function SignDocumentPage() {
               if (urlData?.publicUrl) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: updated.case_id,
-                  category: 'e-signature',
+                  category: 'agency-documents',
                   file_name: `[Signed] ${updated.title || 'Document'}.pdf`,
                   file_type: 'application/pdf',
                   storage_path: signedPath,
@@ -595,7 +595,7 @@ export default function SignDocumentPage() {
               if (urlData?.publicUrl) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: updated.case_id,
-                  category: 'e-signature',
+                  category: 'agency-documents',
                   file_name: `[Signed] ${updated.title || 'Document'}${pdfPath ? '.pdf' : '.html'}`,
                   file_type: pdfPath ? 'application/pdf' : 'text/html',
                   storage_path: filePath,
@@ -616,7 +616,7 @@ export default function SignDocumentPage() {
               if (urlData?.publicUrl) {
                 await supabase.from('case_documents').insert({
                   surrogate_id: updated.case_id,
-                  category: 'e-signature',
+                  category: 'agency-documents',
                   file_name: `[Signed] ${updated.title || 'Document'}`,
                   file_type: filePath.endsWith('.pdf') ? 'application/pdf' : 'text/html',
                   storage_path: filePath,

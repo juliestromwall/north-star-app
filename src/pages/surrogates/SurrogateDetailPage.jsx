@@ -1918,7 +1918,7 @@ const DOC_CATEGORIES = [
   { id: 'escrow', label: 'Escrow', icon: FileText, color: '#0ea5e9' },
   { id: 'receipts', label: 'Receipts', icon: Receipt, color: '#f97316' },
   { id: 'photos', label: 'Photos', icon: FileImage, color: '#ec4899' },
-  { id: 'e-signature', label: 'E-Signature', icon: FileText, color: '#283693' },
+  { id: 'e-signature', label: 'Release Forms', icon: FileText, color: '#283693' },
   { id: 'uploads', label: 'Client Uploads', icon: Upload, color: '#0891b2' },
   { id: 'other', label: 'Other', icon: File, color: '#6b7280' },
 ]

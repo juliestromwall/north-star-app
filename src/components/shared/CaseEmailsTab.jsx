@@ -315,7 +315,7 @@ export default function CaseEmailsTab({ caseId, caseType, caseName, caseEmail, a
     { id: 'escrow', label: 'Escrow' },
     { id: 'receipts', label: 'Receipts' },
     { id: 'photos', label: 'Photos' },
-    { id: 'e-signature', label: 'E-Signature' },
+    { id: 'e-signature', label: 'Release Forms' },
     { id: 'uploads', label: 'Client Uploads' },
     { id: 'expenses', label: 'Expenses' },
     { id: 'other', label: 'Other' },
