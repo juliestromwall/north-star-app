@@ -833,6 +833,16 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     return `${sheetType?.label || 'Match Sheet'} - ${gcCase?.name || 'GC'} & ${ipCase?.names || 'IP'}.pdf`
   }
 
+  async function buildCurrentSheetAttachment() {
+    const pdf = await generatePDF()
+    if (!pdf) return null
+    return {
+      filename: getFileName(),
+      mimeType: 'application/pdf',
+      base64Data: pdf.output('datauristring').split(',')[1],
+    }
+  }
+
   async function generatePDF() {
     if (!sheetRef.current) return null
     await saveMatchSheetData()
@@ -911,11 +921,6 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
   async function sendMatchSheet() {
     setGenerating(true)
     try {
-      const pdf = await generatePDF()
-      if (!pdf) return
-      const fileName = getFileName()
-      const pdfBase64 = pdf.output('datauristring').split(',')[1]
-
       const ipAnswers = ipCase?.answers || {}
       const jd = journey?.journey_data || {}
       const ip1First = ipAnswers.primaryFirstName || ''
@@ -929,7 +934,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
       const gcName = gcCase?.name || ''
       const adminName = currentUser?.name || ''
 
-      const attachment = { filename: fileName, mimeType: 'application/pdf', base64Data: pdfBase64 }
+      const attachment = await buildCurrentSheetAttachment()
+      if (!attachment) return
 
       if (activeSheet === 'attorney') {
         // Show picker for IP Attorney vs GC Attorney
@@ -1020,6 +1026,8 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     // the override, then fall back to the journey field.
     const clinicName = msData.ivfClinicName || jd.ivfClinic || jd.ivfClinicName || jd.clinicName || ''
     const clinicState = msData.reClinicLocation?.split(',').pop()?.trim() || jd.ivfState || jd.clinicState || ''
+    const matchSheetAttachment = pendingPdf || await buildCurrentSheetAttachment()
+    if (!matchSheetAttachment) return
 
     // Pull labeled docs from BOTH the GC and IP cases. We dedupe nothing
     // intentionally — a GC could (rarely) have multiple docs sharing the
@@ -1048,7 +1056,7 @@ export default function MatchSheetsTab({ journey, gcCase, ipCase, onUpdate }) {
     // back it up. Match Sheet is the exception (always present, comes
     // from the rendered PDF in pendingPdf).
     const bullets = ['Attorney Match Sheet']
-    const attachments = pendingPdf ? [pendingPdf] : []
+    const attachments = [matchSheetAttachment]
 
     // GC ID
     if ((docsByLabel['gc'] || []).length > 0) {
